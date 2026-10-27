@@ -385,6 +385,67 @@
   `CLAUDE.md` current phase; `README.md`; docs index; system context; `flow.md`; constraints
   (quality targets, suggested first slice, major decisions, R-004, R-005).
 
+## D-18 MVP first; ADR-0004 to ADR-0007 accepted (answers Q-038, Q-059, Q-068; sets MVP defaults)
+- Status: **Accepted** (owner instruction in chat, 2026-10-27; [`mvp-scope.md`](mvp-scope.md)
+  Accepted)
+- Answers:
+  1. **MVP first:** "deliver the basic requirements; don't ask deep edge cases; cover missed
+     edge cases in future releases." Build the basic product in `mvp-scope.md` section 2,
+     Android first. Its section 3 lists what is post-MVP; every other requirement stays in the
+     MVP.
+  2. **MVP defaults:** the defaults in `mvp-scope.md` section 4 answer those open questions for
+     the MVP. Any can be changed later.
+  3. **Unanswered questions:** when an open question that does not block safety or privacy has
+     no answer, Claude Code picks the simplest option that keeps every invariant, records it as
+     an "MVP default" in the pull request and in
+     [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#mvp-defaults-d-18),
+     and continues without asking the owner.
+  4. **Still need the owner:** the invariants, D-01 to D-17, privacy rules and accepted ADRs are
+     never weakened without the owner.
+  5. **Backlog:** post-MVP items and deferred edge cases are listed in [`backlog.md`](backlog.md).
+  6. **ADR pre-approval:** ADR-0004 to ADR-0007 are Accepted if checking them against the
+     requirements, invariants, threat model, D-01 to D-18 and ADR-0001 to ADR-0003 finds no
+     conflict that touches privacy, security or a D- decision. Small inconsistencies are fixed in
+     the ADRs first. A conflict that does touch one goes to the owner.
+  7. **Voice (answers Q-038; owner's answer to the one conflict the check found):** a phone's
+     built-in speech service may send the voice to its provider's servers before FitSphere's
+     server can check consent (invariant #3, C-004). Answer: **on-device recognition only.** The
+     voice never leaves the phone; only the text is used, and it reaches AI only after the
+     server's consent check. On a phone that cannot recognise speech on the device, the
+     microphone button is hidden.
+  8. **Coach view (answers Q-059):** a Coach sees their trainees' logs, read-only: meals (with
+     photos and image links), weight, steps, sleep, measurements (with notes), workouts and
+     Progress. Not saved meals; never settings or AI consent (D-13). A Head Coach sees the same
+     for trainees who allow it (REQ-ROLE-004, REQ-ROLE-013). Legal confirms before real users
+     (Q-049).
+  9. **Web dashboard (answers Q-068):** none in the MVP; it is post-MVP.
+  10. **ADR-0004 to ADR-0007 Accepted** under answer 6, with answers 7 and 8 and the small fixes
+      applied in the same change: sign-in with Supabase Auth, email through Resend, Expo push
+      (ADR-0004); Gemini 3.1 Flash-Lite on the paid tier (ADR-0005); FitSphere's own food list
+      plus Open Food Facts (ADR-0006); own simple sync with Expo SQLite (ADR-0007).
+- **Interpretation (confirm):** nutrition-label photos are input for reading, like voice
+  recordings (D-16 answer 5), not stored media. Deleting them after reading (Q-064 default)
+  therefore does not conflict with D-16 answer 6.
+- **Interpretation (confirm):** the delete-account default (Q-048) keeps only the security logs
+  required by REQ-NFR-005, so Head Coach permission answers are deleted with the account. This
+  is the provisional answer to the period left open in D-13 answer 8; Legal confirms (Q-049).
+- **Interpretation (confirm):** Q-035 and Q-048 are answered for the MVP, so REQ-PLAN-006 and
+  REQ-ACC-009 are no longer blocked and leave invariant #8. Real users still wait for Legal
+  (Q-049).
+- **Interpretation (confirm):** ADR-0007 keeps the last 90 days of a user's own data on the
+  phone and loads older history from the server when it is viewed online. This is read as
+  meeting D-14 ("the app restores it from the server"): the full history stays on the server and
+  can be viewed on any phone, and only entries already synced age out of the phone.
+- Not given an MVP default, because they touch privacy, security or the law: minimum age
+  (Q-066); whether sign-up must use the invited address (T-05); Legal's review (Q-049).
+- Doc changes: `backlog.md` created; MVP defaults section and Q- items marked in
+  `constraints-and-assumptions.md` (A-001, A-004, A-006, A-009, C-008, quality targets);
+  requirements marked MVP default or Post-MVP, REQ-PLAN-006 and REQ-ACC-009 unblocked,
+  REQ-ROLE-016, REQ-ROLE-017, REQ-PLAN-008, REQ-TRN-006 and REQ-TRN-007 added; invariant #8;
+  threat model (matrix, T-01 to T-07, retention); ADR-0004 to ADR-0007 fixed and accepted;
+  decisions index; `CLAUDE.md`; `README.md`; docs index; system context; `flow.md`; journeys;
+  product brief; glossary.
+
 ---
 
 ## Proposed replacement wording for the two invariants

@@ -27,5 +27,6 @@ refer to `docs/product/owner-decisions-2026-10-27.md`.
    canonical unit each; convert only for display/input. (REQ-ACC-002/003, MEAS-003)
 7. **Sensitive data stays out of logs, analytics and fixtures.** Use synthetic test data only.
    (REQ-NFR-002)
-8. **Blocked requirements stay unbuilt** until their Q- item is answered: REQ-PLAN-006 (Q-035),
-   REQ-ACC-009 (Q-048).
+8. **Blocked requirements stay unbuilt** until their Q- item is answered. None is blocked now:
+   Q-035 and Q-048 were answered for the MVP (D-18), so REQ-PLAN-006 and REQ-ACC-009 may be
+   built; real users still wait for Legal (Q-049).

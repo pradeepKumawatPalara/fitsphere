@@ -34,15 +34,17 @@ Long-term aspiration — **not a proven capacity target**: FitSphere aims to sup
 (ADR-0002, ADR-0003) must show how they can grow toward this without a rewrite, and what each
 stage would cost (D-15).
 
-## Scope (first release — proposed, pending owner approval)
-All features in the BRD sections 1–11, captured as REQ IDs in [`requirements.md`](requirements.md):
-navigation and global date handling, Home dashboard, measurements, Nutrition (Consumed / Diet
-plan / Saved), Log meal (incl. AI parsing), Training, Progress, Account & settings, and the
-three role views.
+## Scope (first release: the MVP — D-18)
+The first release is the MVP in [`mvp-scope.md`](mvp-scope.md) (D-18): the basic product from
+the BRD sections 1–11, captured as REQ IDs in [`requirements.md`](requirements.md) — navigation
+and global date handling, Home dashboard, measurements, Nutrition (Consumed / Diet plan / Saved),
+Log meal (incl. AI reading), Training, Progress, Account & settings, and the three role views.
+Parts marked **Post-MVP** wait for later releases; they and deferred edge cases are listed in
+[`backlog.md`](backlog.md).
 
 Phase 1 releases on Android first; iOS follows once an iPhone is available for testing (D-10).
 
-Release slicing is not decided. A suggested first vertical slice is in
+The MVP comes first; slices within it are not decided. A suggested first vertical slice is in
 [`../architecture/constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#suggested-first-slice).
 
 ## Non-goals (proposed — confirm, Q-003)
@@ -52,7 +54,8 @@ Release slicing is not decided. A suggested first vertical slice is in
 - Medical advice or clinical diagnosis.
 
 ## Future scope (not in phase 1)
-Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built now.
+Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built now. Post-MVP items
+are tracked in [`backlog.md`](backlog.md).
 - Premium plans that gate the Head Coach role and limit how many coaches and trainees each plan
   allows (D-06). These would need payments, which are a proposed non-goal for the first release.
 - Users outside India and multiple time zones (D-09).
@@ -64,7 +67,7 @@ Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built no
 - Voice recordings and video uploads (view-only): users can store voice recordings and upload
   videos, and play them in the app; there is no download feature (D-16). Storage is decided in
   ADR-0008 (planned); limits and quotas are open (Q-090). Phase 1 keeps voice meal entry
-  (REQ-LOG-005), but deletes the recording once transcribed; coaches' how-to videos and users'
+  (REQ-LOG-005), recognised on the phone only, with no audio stored (D-16, D-18); coaches' how-to videos and users'
   own photos can already be added as YouTube or other public links (D-16).
 
 ## Success measures

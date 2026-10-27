@@ -16,10 +16,10 @@ Answered Q- items stay listed: they record what the decision rests on.
 | ADR-0001 | [Mobile client framework](ADR-0001-mobile-client-framework.md) (native iOS/Android vs cross-platform e.g. Flutter / React Native vs web/PWA) — chosen: React Native with Expo | Accepted (D-12) | Q-020, Q-051, Q-052, Q-053, Q-055, Q-068, Q-076, Q-083, A-001, C-007, REQ-NFR-004 |
 | ADR-0002 | [Backend architecture and hosting](ADR-0002-backend-and-hosting.md) (backend language/runtime and hosting model; media storage rules) — chosen: own TypeScript Node.js API with Supabase (PostgreSQL, file storage) in Mumbai on the Free plan in phase 1 (D-16), API on Google Cloud Run; sign-in provider decided in ADR-0004 | Accepted (D-17) | Q-041, Q-049, Q-050, Q-053, Q-055, Q-064, Q-082, Q-083, Q-087, Q-088, Q-089, Q-092 |
 | ADR-0003 | [Primary database](ADR-0003-primary-database.md) (and data-residency approach) — chosen: PostgreSQL managed by Supabase in Mumbai | Accepted (D-17) | Q-010, Q-014, Q-018, Q-030, Q-048, Q-049, Q-053, Q-055, Q-064, Q-072, Q-088, Q-089, REQ-NFR-004 |
-| ADR-0004 | Authentication and role/hierarchy authorization model, including the sign-in provider (D-16) | Missing | Q-006, Q-007, Q-008, Q-009, Q-010, Q-021, Q-047, Q-053, Q-058, Q-059, Q-070, Q-075, Q-078, Q-079, Q-082, Q-085, C-002 |
-| ADR-0005 | AI meal-parsing provider and consent enforcement | Missing | Q-038, Q-040, Q-049, Q-053, Q-063, Q-065, C-004, C-005 |
-| ADR-0006 | Food database, barcode and (if any) health-data integrations | Missing | Q-015, Q-039, Q-049, Q-053, Q-063 |
-| ADR-0007 | Offline storage, sync and conflict resolution (D-04); decided inputs below | Missing | Q-055, Q-075, Q-077, REQ-NFR-004 |
+| ADR-0004 | [Accounts, sign-in, authorization and notifications](ADR-0004-accounts-auth-and-notifications.md) — chosen: Supabase Auth behind one access module in the Node API; email through Resend from a domain FitSphere owns; Expo push (FCM on Android); owner-only logged admin commands, no admin screens | Accepted (D-18) | Q-006, Q-007, Q-008, Q-009, Q-010, Q-021, Q-047, Q-048, Q-053, Q-058, Q-059, Q-066, Q-070, Q-073, Q-075, Q-078, Q-079, Q-080, Q-082, Q-083, Q-085, C-002, C-008 |
+| ADR-0005 | [AI meal reading](ADR-0005-ai-meal-reading.md) and consent enforcement — chosen: Gemini 3.1 Flash-Lite on the paid tier, through one AI module; voice recognised on the phone only (D-18) | Accepted (D-18) | Q-038, Q-040, Q-049, Q-053, Q-062, Q-063, Q-064, Q-065, Q-087, C-004, C-005, C-008 |
+| ADR-0006 | [Food data](ADR-0006-food-data.md): search, barcode and (if any) health-data integrations — chosen: FitSphere's own food list, cached on the phone, plus Open Food Facts for barcodes; no health-platform sync in the MVP | Accepted (D-18) | Q-015, Q-039, Q-049, Q-053, Q-063 |
+| ADR-0007 | [Offline storage, sync and conflict resolution](ADR-0007-offline-storage-and-sync.md) (D-04) — chosen: Expo SQLite on the phone, an outbox and one sync endpoint in the Node API; decided inputs below | Accepted (D-18) | Q-030, Q-055, Q-059, Q-075, Q-077, REQ-NFR-004 |
 | ADR-0008 | Media storage (audio/video release) — planned slot named in ADR-0002; audio and video are future scope | Missing | Q-049, Q-089, Q-090, Q-091, Q-092 |
 
 Recommended order: ADR-0001 → 0002 → 0003 → 0004, then 0007 before offline logging is built,
@@ -40,7 +40,26 @@ decision (ADR-0004).
 ADR-0001 was accepted while Q-020, Q-052, Q-068 and Q-083 were still open (D-12); the ADR says
 how each is handled. Its validation checks run in the first slices.
 
+ADR-0004 to ADR-0007 were accepted together on 2026-10-27 under the owner's D-18 pre-approval.
+Checking them against the requirements, invariants, threat model, D-01 to D-18 and ADR-0001 to
+ADR-0003 found one conflict that touched privacy: in ADR-0005, the phone's speech service could
+receive the voice before the server's consent check (invariant #3). The owner answered it before
+acceptance (on-device recognition only), together with Q-059 (what a coach sees). Small
+inconsistencies were fixed in the ADRs in the same change. These were still open at the time:
+- ADR-0004: Q-049, Q-066 and whether sign-up must use the invited address (T-05);
+- ADR-0005: Q-040, Q-049 and Q-087;
+- ADR-0006: the licence of the food-list source, and Q-049 (ODbL);
+- ADR-0007: the encryption method on the phone, verified in the first slice.
+
+Each ADR's open-questions table says how each is handled, and each ADR's validation steps run in
+the first slices. ADR-0007 is a workable offline-sync approach with PostgreSQL, so the revisit
+condition shared by ADR-0002 and ADR-0003 is not triggered.
+
 ## Inputs already decided
+- **All ADRs** (D-18): build the MVP in [`mvp-scope.md`](../../product/mvp-scope.md) first. For
+  an open question that does not block safety or privacy, pick the simplest option that keeps
+  every invariant and record it as an MVP default; never weaken the invariants, owner decisions,
+  privacy rules or accepted ADRs without the owner.
 - **ADR-0002 and ADR-0003** (D-15): FitSphere aims to support up to 20 million users in the long
   term — an aspiration, not a proven capacity target. Phase 1 starts on free tiers (C-008). Each
   of these ADRs must explain how the chosen backend or database can grow toward that number

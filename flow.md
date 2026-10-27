@@ -5,9 +5,11 @@
 - Last updated: 2026-10-27
 
 High-level only. Components below are **logical**. Chosen so far: React Native with Expo
-(ADR-0001, Accepted, D-12), and a TypeScript Node.js API with Supabase PostgreSQL and file
-storage in Mumbai (ADR-0002, ADR-0003, Accepted, D-17); the rest is open (see
-`docs/architecture/decisions/`). Detailed schemas will live in `docs/contracts/`.
+(ADR-0001, Accepted, D-12); a TypeScript Node.js API with Supabase PostgreSQL and file storage in
+Mumbai (ADR-0002, ADR-0003, Accepted, D-17); sign-in, AI meal reading, food data and offline sync
+(ADR-0004 to ADR-0007, Accepted, D-18). See `docs/architecture/decisions/`. The MVP is defined in
+[`docs/product/mvp-scope.md`](docs/product/mvp-scope.md) (D-18). Detailed schemas will live in
+`docs/contracts/`.
 
 ## Main user journey (trainee daily loop)
 See [`docs/product/user-journeys.md`](docs/product/user-journeys.md) J-01 to J-07.
@@ -22,11 +24,11 @@ flowchart TD
     C -- Head Coach --> HV[Head Coach view: coaches and trainees who agreed]
     H --> P["+ Log meal"]
     P --> M{Method}
-    M -- Text / voice / photo --> K{AI consent on?}
+    M -- Text / voice recognised on the phone / photo --> K{AI consent on?}
     K -- No --> ASK[Ask for consent] -->|Declined| ALT
     ASK -->|Accepted| AI
     K -- Yes --> AI[AI parses items] --> R[User reviews · A-006] --> SAVE
-    M -- Search / barcode / eaten before / saved --> ALT[Non-AI picker] --> SAVE
+    M -- Search / barcode / saved --> ALT[Non-AI picker] --> SAVE
     SAVE[Save meal entry] --> T[Totals vs coach targets update]
     H --> W[Log weight / steps / sleep / measurements] --> T
     H --> TR[Training: plan or empty workout] --> T
@@ -52,23 +54,22 @@ flowchart LR
 flowchart TD
     subgraph Device["User device (untrusted)"]
         APP[Mobile app · Android first · C-007]
-        LOCAL[(On-device store · encrypted · REQ-NFR-004)]
+        LOCAL[(On-device store · Expo SQLite, encrypted · ADR-0007)]
     end
     subgraph Backend["FitSphere backend (trusted)"]
         API[API]
-        AUTHN[Authentication]
-        AUTHZ[Authorization: role + hierarchy · C-002]
-        SVC[Domain services: logging, plans, progress]
+        AUTHN[Authentication · Supabase Auth · ADR-0004]
+        AUTHZ[Authorization: one access module · C-002 · ADR-0004]
+        SVC[Domain services: logging, plans, progress, sync]
         CONSENT[Consent check · C-004]
-        DB[(Database: users, roles, entries, plans)]
+        DB[(Database: users, roles, links, entries, plans, food list)]
         FILES[(Media storage: meal photos)]
     end
     subgraph External["External services (third party)"]
-        AIP[AI meal parsing · ADR-0005]
-        FOOD[Food database / barcode lookup · Q-039]
-        STT[Speech-to-text · Q-038]
-        EMAIL[Email service · Q-082]
-        PUSH[Push notifications · Q-083]
+        AIP[AI meal reading · Gemini · ADR-0005]
+        FOOD[Barcode lookup · Open Food Facts · ADR-0006]
+        EMAIL[Email · Resend · ADR-0004]
+        PUSH[Push · Expo push · ADR-0004]
     end
     APP --> LOCAL
     APP -- HTTPS · queued changes re-authorized --> API
@@ -77,8 +78,7 @@ flowchart TD
     SVC --> FILES
     SVC --> CONSENT
     CONSENT -- only if consent recorded --> AIP
-    CONSENT -.-> STT
-    SVC --> FOOD
+    SVC -- barcode numbers --> FOOD
     SVC -- invitation, verification and reset emails --> EMAIL
     SVC -- invitation and link-ended alerts --> PUSH
     PUSH --> APP
@@ -96,6 +96,10 @@ re-authorized at sync — REQ-NFR-004, ADR-0007); consent withdrawn mid-request;
 phone with no sync for 30 days (clear drafts and other people's data, keep the user's own
 unsynced entries; the server stays the permanent record — D-14).
 
+Voice meal entry is recognised on the phone, so the voice never reaches the backend or any
+external service (D-18, ADR-0005).
+
 ## Open questions affecting flows
-Q-038, Q-039, Q-049, Q-075, Q-077, Q-082, Q-083 — see
+Q-049 (Legal) and Q-066 (minimum age, before real users). Q-075 and Q-077 have MVP defaults
+(D-18). See
 [`docs/architecture/constraints-and-assumptions.md`](docs/architecture/constraints-and-assumptions.md).

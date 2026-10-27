@@ -5,24 +5,42 @@ FitSphere is a coach-led fitness app. Clients log food, body metrics and workout
 targets set by their coach; Coaches manage their trainees; Head Coaches manage Coaches.
 
 ## Current phase
-**Pre-development (documentation).** Approved stack:
+**Pre-development (documentation).**
+
+**MVP first (D-18).** Build the basic product in `docs/product/mvp-scope.md`, Android first.
+Post-MVP work and deferred edge cases go to `docs/product/backlog.md`. When an open question
+that does not block safety or privacy has no answer, pick the simplest option that keeps every
+invariant, record it as an "MVP default" in the pull request and in
+`docs/architecture/constraints-and-assumptions.md`, and continue without asking. Never weaken
+the invariants, owner decisions, privacy rules or accepted ADRs; those need the owner.
+
+Approved stack:
 - Mobile client: React Native with Expo, TypeScript (ADR-0001, Accepted — D-12).
 - Backend: a TypeScript Node.js API, the only path to the data; Supabase's Data API is turned
   off (ADR-0002, Accepted — D-17).
 - Database and file storage: Supabase PostgreSQL and Supabase Storage in Mumbai, on the Free
   plan in phase 1 with no backups (ADR-0002, ADR-0003, Accepted — D-17; D-16, R-005).
 - API host: Google Cloud Run in Mumbai once Q-087 is settled; until then the API runs locally.
+- Sign-in and authorization: Supabase Auth, with every request authorized by one access module
+  in the Node API; email through Resend from a domain FitSphere owns; Expo push (ADR-0004,
+  Accepted — D-18).
+- AI meal reading: Gemini 3.1 Flash-Lite on the paid tier, through one AI module; voice is
+  recognised on the phone only (ADR-0005, Accepted — D-18). Paid use needs the owner's sign-off
+  on billing and the monthly cap (C-008, Q-087).
+- Food data: FitSphere's own food list plus Open Food Facts for barcodes (ADR-0006, Accepted —
+  D-18).
+- Offline: Expo SQLite on the phone, an outbox and one sync endpoint (ADR-0007, Accepted — D-18).
 
-The validation steps of ADR-0001 to ADR-0003 run in the first slices.
-Not approved yet: the sign-in provider and authorization model (ADR-0004 — Supabase Auth is
-only a candidate), AI (ADR-0005), food database (ADR-0006), offline sync (ADR-0007), audio/video
-media storage (ADR-0008), and the email and push services (Q-082, Q-083).
+The validation steps of ADR-0001 to ADR-0007 run in the first slices.
+Not approved yet: audio/video media storage (ADR-0008).
 Do not scaffold an app, add dependencies or pick frameworks until the relevant ADRs in
 `docs/architecture/decisions/` are marked **Accepted** by the decision owner.
 
 ## Sources of truth
 - Documentation index and status: `docs/README.md`
 - Product scope: `docs/product/product-brief.md`
+- MVP scope and defaults (D-18, Accepted): `docs/product/mvp-scope.md`
+- Backlog (post-MVP items, deferred edge cases): `docs/product/backlog.md`
 - Requirements (REQ IDs): `docs/product/requirements.md`
 - User journeys: `docs/product/user-journeys.md`
 - Constraints, assumptions, open questions, risks (C-/A-/Q-/R- IDs): `docs/architecture/constraints-and-assumptions.md`
@@ -43,7 +61,8 @@ If a referenced document does not exist, state that it is missing; do not invent
 1. Inspect the actual repository before proposing changes.
 2. Read relevant requirements, rules, contracts and accepted ADRs before implementation.
 3. Do not invent requirements, provider capabilities, benchmark results or security guarantees.
-   If the requirements are ambiguous, check the Q- list and ask; do not guess silently.
+   If the requirements are ambiguous, check the Q- list and `mvp-scope.md`. Apply D-18 to
+   questions that do not block safety or privacy; ask about the rest. Never guess silently.
 4. For major choices, compare options against documented constraints and obtain human approval.
 5. Do not silently change an Accepted ADR; propose a replacement ADR.
 6. Treat health, body and meal data as sensitive in code, logs, tests, fixtures and output.

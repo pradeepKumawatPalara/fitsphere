@@ -8,7 +8,7 @@ What FitSphere is made of at the highest level, who uses it, which outside syste
 on, and where data crosses a trust boundary. Components are **logical**. The mobile app uses
 React Native with Expo (ADR-0001, Accepted — D-12). The backend is a TypeScript Node.js API with
 Supabase PostgreSQL and file storage in Mumbai (ADR-0002, ADR-0003, Accepted — D-17). Sign-in,
-AI, food data and sync are not chosen yet (ADR-0004 to ADR-0007 are Missing). Detailed flows are in
+AI, food data and offline sync are decided in ADR-0004 to ADR-0007 (Accepted — D-18). Detailed flows are in
 [`flow.md`](../../flow.md); threats and the permission matrix are in
 [`data-and-threat-model.md`](../security/data-and-threat-model.md). D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md).
@@ -18,7 +18,11 @@ FitSphere consists of:
 - **Mobile app** — Android first, iOS later (D-10), with an encrypted on-device store for
   offline logging (REQ-NFR-004).
 - **Backend** — API, sign-in, permission checks (invariant 1), domain services, the consent
-  check before any AI call (invariant 3), database and media storage.
+  check before any AI call (invariant 3), database (including FitSphere's own food list —
+  ADR-0006) and media storage.
+
+Speech recognition for voice meal entry runs on the phone only, so the voice never leaves it
+(D-18, ADR-0005); no speech service is an external system.
 
 Everything else on this page is outside the boundary.
 
@@ -44,11 +48,10 @@ flowchart LR
         APP[Mobile app · Android first]
         BE[Backend: API, sign-in, permissions, data]
     end
-    EMAIL[Email service · Q-082]
-    PUSH[Push notification service · Q-083]
-    AI[AI meal parsing · ADR-0005]
-    STT[Speech-to-text · Q-038]
-    FOOD[Food database and barcode lookup · ADR-0006]
+    EMAIL[Email service · Resend · ADR-0004]
+    PUSH[Push notifications · Expo push and FCM · ADR-0004]
+    AI[AI meal reading · Gemini · ADR-0005]
+    FOOD[Barcode lookup · Open Food Facts · ADR-0006]
     EXT[YouTube and other sites hosting linked content · D-16]
     T --> APP
     C --> APP
@@ -59,25 +62,23 @@ flowchart LR
     EMAIL --> N
     BE -- invitation and link-ended alerts --> PUSH
     PUSH --> APP
-    BE -- meal data, only with consent --> AI
-    BE -. voice, if done in the cloud .-> STT
-    BE -- search text and barcodes --> FOOD
+    BE -- meal text and photos, only with consent --> AI
+    BE -- barcode numbers --> FOOD
     APP -. opens linked content .-> EXT
 ```
 
 ## External systems
 | System | Why FitSphere uses it | Data sent to it | Sensitivity | Decision |
 |---|---|---|---|---|
-| Email service | Invitation emails with a sign-up link (REQ-ROLE-008); verification and password-reset emails (REQ-ACC-010) | Recipient address, email text, sign-up or reset link | Reveals that someone was invited to, or uses, a health app | Q-082, ADR-0002; SPF, DKIM and DMARC on the sender domain (D-13) |
-| Push notification service | Alerts for in-app invitations (REQ-ROLE-009) and "no longer linked" messages (REQ-ROLE-014, D-14) | Device token, notification text | Notification text passes through Google or Apple (below) | Q-083, ADR-0002; Expo push support checked in the first slice (ADR-0001, D-13) |
-| AI meal-parsing provider | Turn meal text, photos, voice and labels into food items (REQ-LOG-009) | Meal text, photos, voice, labels — only with consent (C-004) | Sensitive | ADR-0005, Q-049 |
-| Speech-to-text | Voice meal entry (REQ-LOG-005), if done in the cloud | Voice recordings, deleted once transcribed (D-16) | Sensitive | Q-038 |
-| Food database and barcode lookup | Search and barcode logging without AI (REQ-LOG-007, C-005) | Search text, barcode numbers | Low on its own | Q-039, ADR-0006 |
+| Email service | Invitation emails with a sign-up link (REQ-ROLE-008); verification and password-reset emails (REQ-ACC-010) | Recipient address, email text, sign-up or reset link | Reveals that someone was invited to, or uses, a health app | Resend, from a domain FitSphere owns (ADR-0004, answers Q-082); SPF, DKIM and DMARC on the sender domain (D-13) |
+| Push notification service | Alerts for in-app invitations (REQ-ROLE-009), permission requests (REQ-ROLE-013) and "no longer linked" messages (REQ-ROLE-014, D-14) | Device token, notification text — no health data (ADR-0004) | Notification text passes through Expo and Google, or Apple (below) | Expo push, FCM credentials for Android (ADR-0004, answers Q-083); checked in the first slice (ADR-0001, D-13) |
+| AI meal-reading provider | Turn meal text (typed or spoken) and photos of meals or labels into food items (REQ-LOG-009) | Meal text and photos — only with consent (C-004); no name, email or user ID (ADR-0005) | Sensitive; may be processed outside India (ADR-0005) | Gemini 3.1 Flash-Lite, paid tier (ADR-0005); Legal to confirm (Q-049) |
+| Barcode lookup | Barcode logging without AI (REQ-LOG-007, C-005). Food search uses FitSphere's own food list, inside the boundary | Barcode numbers only (ADR-0006) | Low on its own | Open Food Facts (ADR-0006, answers Q-039) |
 | YouTube and other sites hosting linked content | Coaches' exercise how-to videos (REQ-TRN-001) and users' own content added as a link instead of an upload (REQ-LOG-010) | Nothing from FitSphere's servers; FitSphere stores only the link. When someone opens it, their phone requests the content from that site | The site learns who opened the content and when; FitSphere cannot delete the content or revoke access to it (R-004) | D-16, T-09, Q-049 |
 
 Push services on Android normally deliver through Google's Firebase Cloud Messaging, and on iOS
 through Apple Push Notification service, so notification text also passes through Google or
-Apple. Keeping health data out of notification text is proposed, not decided.
+Apple. Notification text carries no health data (ADR-0004).
 
 ## Delivery (not used at runtime)
 | System | Purpose | Reference |
@@ -114,8 +115,8 @@ Apple. Keeping health data out of notification text is proposed, not decided.
 - Platform Admin role — future scope (D-13, Q-086).
 
 ## Open items
-- Email service and sender domain (Q-082); push service (Q-083); speech-to-text (Q-038); food
-  data source (Q-039); data-residency obligations, for Legal to confirm (Q-049; hosting is in Mumbai — ADR-0002,
-  ADR-0003).
+- Data-residency obligations, for Legal to confirm (Q-049): hosting is in Mumbai (ADR-0002,
+  ADR-0003), but the AI provider may process meal data outside India (ADR-0005).
+- The licence of the food-list source, checked before release (ADR-0006).
 - Legal to confirm the 1-year retention of the admin access log (Q-049); the operator reviewing
   their own access is an accepted risk (R-003).

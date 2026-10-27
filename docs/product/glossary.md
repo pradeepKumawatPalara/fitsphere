@@ -47,3 +47,11 @@ What follows from that:
   (D-10, D-11). The other side gets a neutral message, "X is no longer linked with you" (D-13,
   D-14). The former coach's or Head Coach's app then deletes that trainee's data from the phone
   on its next sync (D-13); nothing is deleted on the server, which is the permanent record (D-14).
+
+## Releases
+
+| Term | Meaning | Source |
+|---|---|---|
+| MVP | The first release: the basic product in [`mvp-scope.md`](mvp-scope.md), Android first. | D-18 |
+| MVP default | An answer to an open question used for the MVP. Set by the owner in `mvp-scope.md` section 4, or chosen by Claude Code under D-18 (the simplest option that keeps every invariant) and listed in [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#mvp-defaults-d-18). Any can be changed later. | D-18 |
+| Post-MVP | Not in the MVP; listed in [`backlog.md`](backlog.md). | D-18 |

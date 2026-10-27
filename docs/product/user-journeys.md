@@ -12,25 +12,25 @@ Actor: Personal Training User · REQ-NAV-003, LOG-001..004, LOG-009, NUT-002/003
 1. On Home, taps the floating "+". Log meal opens, date chip = today.
 2. Selects meal type (e.g. Lunch); optionally adds a tag.
 3. Types "150 g cooked rice, 200 g dal, 1 roti".
-4. AI returns items with quantities and nutrition; user reviews and confirms *(assumed, A-006)*.
+4. AI returns items with quantities, kcal and protein; user reviews and confirms (A-006, confirmed — D-18).
 5. Returns to Home/Nutrition: Eaten summary, calories and protein cards update.
 
 Alternates:
 - **AI consent off** → app asks for consent (REQ-ACC-004); if declined, user uses Search database / Scan barcode / Saved.
 - **AI fails or times out** → input kept; retry or switch method.
 - **Logging for another day** → date chip → "Log this meal to" sheet → Yesterday or "Another day…" (REQ-LOG-002).
-- **Voice / photo** → same flow starting from "Speak your meal" or camera (REQ-LOG-005/006). The voice recording is deleted once transcribed; a photo is kept as a compressed copy, or the user pastes a public link to an image after confirming a privacy warning (REQ-LOG-010, D-16).
+- **Voice / photo** → same flow starting from "Speak your meal" or camera (REQ-LOG-005/006). Speech is turned into text on the phone, and the voice never leaves it (D-18); a meal photo is kept as a compressed copy, or the user pastes a public link to an image after confirming a privacy warning (REQ-LOG-010, D-16); a label photo is deleted once read (D-18).
 
 ## J-02 Trainee logs a meal without AI
 Actor: Personal Training User · REQ-LOG-007, ACC-005
 1. "+" → Search database (or Scan barcode).
-2. Picks food, sets quantity, chooses meal type, saves.
+2. Picks food, sets quantity, chooses meal type, saves. If a barcode is not found, types the values from the label (MVP default).
 3. Totals update. Works with AI off.
 
 ## J-03 Trainee re-logs a saved meal
 REQ-NUT-004, SAVED-001/002
 1. In Consumed, opens a logged meal's "•••" → "Save to my meals".
-2. Another day, Nutrition › Saved → taps the meal → logged to selected date *(slot per Q-036)*.
+2. Another day, Nutrition › Saved → taps the meal → logged to the selected date, in the slot it was saved from (MVP default, Q-036).
 
 ## J-04 Trainee logs weight and weekly measurements
 REQ-HOME-006, HOME-008, MEAS-001..006, PRG-006
@@ -47,28 +47,28 @@ REQ-DATE-001..003
 3. Taps "Back to today" → returns to today.
 
 ## J-06 Trainee follows the training plan
-REQ-TRN-001..005, HOME-007
+REQ-TRN-001..005, TRN-007, HOME-007
 1. Training tab → today's plan from coach, with exercise how-to (a coach-provided YouTube link — D-16).
-2. Logs sets in the lifting unit setting *(fields per Q-042)*.
+2. Starts the workout and logs sets × reps × weight per exercise in the lifting unit setting (MVP default, Q-042).
 3. Workout appears in history; Home workout tracker increments (e.g. "2 of 5 · 3 left").
 Alternate: no plan → "No training plan yet" → "Start an empty workout".
 
 ## J-07 Trainee checks progress
 REQ-PRG-001..006
 1. Progress → weight change over 4 weeks and weekly rate (or not-enough-data message).
-2. Changes chart range 1W…All; reads week table vs Target row; taps a week for details.
+2. Changes chart range 1W…All; reads week table vs Target row. (Week details and the "Pre" row are post-MVP — D-18.)
 
 ## J-08 Coach onboards a trainee and sets a plan
-Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011, 012, 013, 014, 015
+Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011, 012, 013, 014, 015, 016, 017; PLAN-008; TRN-006
 1. Profile → turns on the Coach role (any user can, D-06) → role selector → Coach. Coach view lists trainees who have accepted.
 2. Enters the trainee's email. The app always shows "Invitation sent" and never says which channel was used (REQ-ROLE-011). The system picks the channel (D-11):
    - **No FitSphere account:** the person gets an invitation email with a sign-up link, signs up, then accepts (REQ-ROLE-008).
    - **Registered user:** the invitation arrives in the app — a push notification plus the in-app Notifications list, so it is not lost if push is off (REQ-ROLE-009, D-15).
    - If the trainee already has a coach, the accept screen warns that accepting ends that link; on accepting, it ends first and the old coach gets a neutral message (REQ-ROLE-015, D-13).
    - If this coach has a Head Coach, the trainee is also asked during acceptance whether to allow that Head Coach to see their logs and set their plans and targets (REQ-ROLE-013, D-14). The coach sees whether each trainee allowed, declined or has not answered (D-14).
-   The trainee appears in the list only after accepting; the coach then sees their past activity too (REQ-ROLE-012).
-3. Opens the trainee, sets calorie and protein targets and weekly workout target (D-14; Progress "Target row" still open — Q-013).
-4. Builds a diet plan (meals with up to 3 options, protein source first) and a training plan, and sends them.
+   The trainee appears in the list only after accepting; the coach then sees their logs, read-only, including past activity (REQ-ROLE-005, REQ-ROLE-012, D-18). Pending invitations can be resent or cancelled (REQ-ROLE-017).
+3. Opens the trainee, sets calorie and protein targets, weekly workout target, target body weight and daily steps target (D-14; MVP default, Q-013).
+4. Builds a diet plan (meals with up to 3 options, protein source first — REQ-PLAN-008) and a training plan (REQ-TRN-006), and saves them.
 5. Trainee's Diet plan shows the targets labelled "Set by <name>" with when they were last changed; Training shows the plan (D-13, D-14). If the coach has a Head Coach whom the trainee allowed, that Head Coach can also change these, and the label then names the Head Coach (REQ-ROLE-004).
 Failure: Coach tries to open a trainee of another coach → refused (REQ-ROLE-005).
 Removal: Coach removes a trainee, or the trainee leaves (REQ-ROLE-014) → the link ends, no data is deleted, and the coach loses access to all of the trainee's data, including past data (D-07, D-10, D-11). The other side — the trainee if removed, the coach if the trainee left — gets a neutral message, "<name> is no longer linked with you", by push and in the in-app Notifications list (D-13, D-14). The coach's app deletes the trainee's data from the phone on its next sync (D-13).
@@ -85,5 +85,6 @@ Failure: attempts to view a coach outside their hierarchy → refused.
 ## J-10 User changes settings
 REQ-ACC-001..005, 007, 008
 Theme, lifting unit, body-weight unit, AI meal reading consent, Head Coach access (Allow/Decline — REQ-ROLE-013), change password, log out.
-Country/time zone is fixed to India · Kolkata in phase 1 (REQ-ACC-006 is Won't — D-09).
-Delete account → separate flow (**blocked, Q-048**).
+Country/time zone is fixed to India · Kolkata in phase 1 and not shown in the MVP (REQ-ACC-006 is Won't — D-09, D-18).
+Delete account → separate flow: after confirming, the user's data and sign-in account are deleted and all links end (REQ-ACC-009; MVP default, Q-048).
+A user without a coach can set their own calorie and protein targets (REQ-ROLE-007; MVP default, Q-016).

@@ -4,6 +4,7 @@
 - Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 - Derived from: [`source/business-requirements.txt`](source/business-requirements.txt) (BRD). "BRD §x" points to the source section.
+- Scope: the MVP in [`mvp-scope.md`](mvp-scope.md) (D-18). Every requirement is in the MVP unless it, or part of it, is marked **Post-MVP**; post-MVP work is listed in [`backlog.md`](backlog.md).
 
 ## Conventions
 - IDs are stable: `REQ-<AREA>-<NNN>`. Never reuse a retired ID; mark it *Retired* instead.
@@ -15,6 +16,13 @@
 - Where the BRD is ambiguous, the requirement states the reading taken and links a Q- item in
   [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md).
   Those readings are **not** confirmed requirements.
+- **MVP default (D-18)** marks an answer used for the MVP: set by the owner in
+  [`mvp-scope.md`](mvp-scope.md#4-mvp-defaults-for-open-questions) section 4, or chosen under
+  D-18's rule and listed in
+  [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#mvp-defaults-d-18).
+  Any can be changed later.
+- **Post-MVP** marks a requirement, or part of one, that is not in the MVP (D-18,
+  `mvp-scope.md` section 3).
 
 Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN · PRG · ACC · NFR
 
@@ -38,8 +46,8 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: A floating "+" button on Home and Nutrition opens the Log meal screen (REQ-LOG-001).
 - Acceptance criteria:
   - Given Home or Nutrition, then a floating "+" is visible; given Training or Progress, then it is not.
-  - When "+" is tapped, then Log meal opens with the date chip set to the currently selected date. *(Reading: BRD says date chip "defaults to Today" — Q-011.)*
-- Open: whether "+" offers other quick logs (weight, steps) — Q-012.
+  - When "+" is tapped, then Log meal opens with the date chip set to the currently selected date (MVP default, Q-011; the BRD says the chip "defaults to Today").
+- MVP default (D-18): "+" logs meals only; weight, steps and sleep are logged from the Home tiles (Q-012).
 
 ---
 
@@ -60,7 +68,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given the Coach role is active, then Coach-only functions are available and Head-Coach-only functions are not.
   - Given a role is not granted, when its functions are requested directly (e.g. by API), then the request is refused. *(Authorization must be enforced server-side, not only hidden in the UI.)*
-- Open: is the last active role remembered between sessions (Q-008).
+- MVP default (D-18): the last active role is remembered on each device (Q-008).
 
 ### REQ-ROLE-003 — Head Coach: manage Coach records
 - Requirement: A Head Coach can invite Coaches (REQ-ROLE-008, REQ-ROLE-009), view the Coaches who have accepted, and remove (unassign) them, which ends the link. A link has no editable fields (D-11). Removing a Coach deletes no data (D-07).
@@ -73,7 +81,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When a Head Coach removes a Coach, then the Coach gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app Notifications list (D-14).
 
 ### REQ-ROLE-004 — Head Coach: hierarchy visibility, plans and targets
-- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Without a trainee's permission, that activity is counts per coach only: number of trainees; how many have allowed, declined or not yet answered (pending); and plans sent. It shows no trainee names or data (D-13). For each trainee who allows it (REQ-ROLE-013), the Head Coach can view that trainee's data and set their diet plan, training plan, and calorie, protein and weekly workout targets (D-08, D-13, D-14). A Head Coach never sees a trainee's settings or AI consent; of the permission answer, they see only its status (D-13). Trainees who have declined or not answered appear only in the counts, never by name; trainees who have allowed it are named (D-13, D-14).
+- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Without a trainee's permission, that activity is counts per coach only: number of trainees; how many have allowed, declined or not yet answered (pending); and plans sent. It shows no trainee names or data (D-13). For each trainee who allows it (REQ-ROLE-013), the Head Coach can view that trainee's data — the same read-only view a Coach has (REQ-ROLE-005, D-18) — and set their diet plan, training plan, and calorie, protein and weekly workout targets (D-08, D-13, D-14), and their target body weight and daily steps target (MVP default, Q-013). A Head Coach never sees a trainee's settings or AI consent; of the permission answer, they see only its status (D-13). Trainees who have declined or not answered appear only in the counts, never by name; trainees who have allowed it are named (D-13, D-14).
 - Type: Functional, Security, Privacy
 - Acceptance criteria:
   - Given Head Coach view, then each accepted coach is listed with their counts, and under each coach the trainees who have allowed it (REQ-ROLE-013).
@@ -83,7 +91,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a trainee who has declined or not yet answered, then the Head Coach cannot view or set their plans or targets (D-11, D-13).
   - When a Head Coach changes a trainee's plan or target, then the change records the Head Coach and the time, and the trainee and their coach see it labelled "Set by <name>" (D-13, D-14).
   - The Head Coach never sees a trainee's settings or AI consent (D-13).
-- Open: if the Coach and the Head Coach edit at the same time, which change wins (Q-075, ADR-0007).
+- MVP default (D-18): if the Coach and the Head Coach both change a plan or target, the change the server receives last wins, and the label shows its author and time (Q-075, ADR-0007). Finer handling is post-MVP.
 
 ### REQ-ROLE-005 — Coach: manage trainee records
 - Requirement: A Coach can invite trainees (REQ-ROLE-008, REQ-ROLE-009), view the trainees who have accepted, update their plans and targets (REQ-ROLE-006), and remove (unassign) them, which ends the link. A link has no editable fields (D-11). Removing a trainee deletes no data (D-07).
@@ -96,21 +104,23 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When a Coach removes a trainee, then the trainee gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app Notifications list (D-14).
   - The Coach never sees the trainee's settings or AI consent (D-13).
   - Given the Coach has a Head Coach, then the Coach sees whether each trainee has allowed, declined or not answered the Head Coach request (D-14).
-- Open: which trainee data can the coach see (Q-059)? What happens to targets and plans after removal (Q-060)?
+  - The Coach sees each trainee's logs, read-only: meals (with photos and image links), weight, steps, sleep, measurements (with notes), workouts and Progress. The Coach does not see the trainee's saved meals (D-18, answers Q-059). Legal confirms before real users (Q-049).
+- MVP default (D-18): after the link ends, the trainee keeps their plans and targets, read-only and labelled with their author; a trainee with no coach may then set their own calorie and protein targets (Q-060, REQ-ROLE-007).
 
 ### REQ-ROLE-006 — Coach: set targets and plans
-- Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001). A Head Coach can set the same targets and both plans, only while the trainee allows it (REQ-ROLE-004, D-13, D-14). Every change records who made it and when; the trainee, their coach and — while the trainee allows it — the Head Coach see the latest change and its author (D-13). Plans and targets are labelled "Set by <name>", naming the actual author (D-14).
+- Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, target body weight and daily steps target (MVP default, Q-013), diet plan (REQ-PLAN-*, built as in REQ-PLAN-008) and training plan (REQ-TRN-001, built as in REQ-TRN-006). A Head Coach can set the same targets and both plans, only while the trainee allows it (REQ-ROLE-004, D-13, D-14). Every change records who made it and when; the trainee, their coach and — while the trainee allows it — the Head Coach see the latest change and its author (D-13). Plans and targets are labelled "Set by <name>", naming the actual author (D-14).
 - Acceptance criteria:
   - When a Coach saves a calorie/protein target, then the trainee's Home and Diet plan show it.
   - When a Coach sends a training plan, then the trainee's Training tab shows it instead of the empty state.
   - When a Coach or Head Coach changes a target or plan, then the trainee, the coach and (while allowed) the Head Coach see who made the latest change and when (D-13), and the label reads "Set by <name>" with that person's name (D-14).
-- Open: which change wins if the Coach and the Head Coach edit at the same time (Q-075, ADR-0007). Progress "Target row" (body weight, steps) — is it set by the coach (Q-013)? Do target changes apply from a date or retroactively (Q-014)?
+- MVP default (D-18): the change the server receives last wins (Q-075, ADR-0007). The target body weight and daily steps target appear in the Progress Target row (Q-013, REQ-PRG-005).
+- Open: do target changes apply from a date or retroactively (Q-014)?
 
 ### REQ-ROLE-007 — Self-directed users
-- Requirement: A Personal Training User without a coach can still log and view all personal data; target-dependent displays show a no-target state.
+- Requirement: A Personal Training User without a coach can still log and view all personal data; target-dependent displays show a no-target state. They can set their own daily calorie and protein targets, labelled "Set by you" (MVP default, Q-016). These are new entries by the user; targets set by a former coach are not edited (invariant 2). Once they accept a coach, coach-set targets apply and are read-only (REQ-PLAN-001).
 - Acceptance criteria:
   - Given no coach and no targets, then the calories card shows kcal eaten without a percentage or remaining value.
-- Open: can a self-directed user set their own targets (Q-016)?
+  - Given no coach, when the user sets a calorie target, then the calories card shows the percentage and kcal remaining against it.
 
 ### REQ-ROLE-008 — Invite a new email address
 - Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address (D-06). When the address has no FitSphere account, phase 1 sends an invitation email with a sign-up link (D-11); the person signs up (REQ-ACC-010), and the link takes effect only when they accept (REQ-ROLE-009). A registered address gets the in-app invitation instead (REQ-ROLE-009). The inviter sees only "Invitation sent" and is never told whether the address was registered or which channel was used (REQ-ROLE-011).
@@ -121,7 +131,8 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - The sign-up link in an invitation email works only once and expires 7 days after it is sent (D-13).
   - The sender domain has SPF, DKIM and DMARC set up (D-13).
 - Future scope: other channels such as SMS or WhatsApp (D-11).
-- Open: resend, cancel and the size of the daily limit (Q-073); the email service and sender domain (Q-082). Threat model items T-04, T-05.
+- MVP default (D-18): up to 20 invitations per user per day; invitations can be resent and cancelled (Q-073, REQ-ROLE-017).
+- Emails are sent through Resend from a domain FitSphere owns (ADR-0004, answers Q-082). Threat model items T-04, T-05.
 
 ### REQ-ROLE-009 — Invite an existing user; accept or decline
 - Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invitation is delivered in the app — a push notification plus the in-app Notifications list, so it is not lost if push is off; no email is sent (D-11, D-15). The invited user accepts or declines; the link exists only after they accept (D-06). When a coach accepts, the inviting Head Coach becomes their Head Coach (D-11). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
@@ -134,7 +145,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Until the invitation is accepted, the inviter cannot see any of the invited user's data.
   - Given the invited user already has a coach or Head Coach, when they accept, then REQ-ROLE-015 applies.
   - An in-app invitation expires 7 days after it is sent (D-14).
-- Open: resend, cancel and pending-invitation rules (Q-073); the push notification service (Q-083).
+- Resend, cancel and pending invitations: REQ-ROLE-017 (MVP default, Q-073). Push service: Expo push (ADR-0004, answers Q-083).
 
 ### REQ-ROLE-010 — Head Coach sees past coaching activity
 - Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past coaching activity, not only activity from the acceptance date on — never the coach's own personal logs (D-06, D-10). Coaching activity is the counts per coach in REQ-ROLE-004 (D-13). Any trainee's data is visible only while that trainee allows it (REQ-ROLE-013). *(The coach-sees-trainee part is now REQ-ROLE-012 — D-11.)*
@@ -150,17 +161,17 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given one registered and one unregistered email address, when a Coach invites each, then the Coach gets the same "Invitation sent" result for both, in the app and in the API response, with no sign of which channel was used; response timing does not reveal the difference (T-01).
   - Given a user who has reached the daily invitation limit, when they send another invitation, then it is refused and they are told the daily limit is reached.
-- Open: the size of the daily limit, resend and cancel (Q-073); expiry is decided (REQ-ROLE-008, REQ-ROLE-009; D-13, D-14). Threat model items T-01, T-04, T-05.
+- MVP default (D-18): the daily limit is 20 invitations per user, resends included (Q-073, ADR-0004). Expiry is decided (REQ-ROLE-008, REQ-ROLE-009; D-13, D-14). Threat model items T-01, T-04, T-05.
 
 ### REQ-ROLE-012 — Coach sees a trainee's past activity
 - Requirement: When a trainee accepts a Coach, the Coach can see the trainee's past activity, not only activity from the acceptance date on (D-06). *(Split from REQ-ROLE-010 — D-11.)*
 - Type: Functional, Privacy
 - Acceptance criteria:
   - Given a trainee who logged meals before accepting a Coach, when they accept, then the Coach can see those earlier logs.
-- Open: which trainee data the coach sees (Q-059).
+- What the coach sees: REQ-ROLE-005 (D-18, answers Q-059).
 
 ### REQ-ROLE-013 — Trainee permission for Head Coach access
-- Requirement: A Head Coach sees a trainee's data and sets their plans and targets only while the trainee allows it (D-10, D-11, D-13). The trainee gets an in-app request in the Notifications list (D-15): "Allow Head Coach <name> to see your logs and set your plans and targets?" with **Allow** and **Decline** (wording D-14). Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp. Of the answer, the Head Coach sees only its status — allowed, declined or pending (D-13; see REQ-ROLE-004) — and the trainee's coach sees each trainee's status (D-14). Answers are kept while the account exists; how long they are kept after the account is deleted is decided with Legal (Q-049, D-13).
+- Requirement: A Head Coach sees a trainee's data and sets their plans and targets only while the trainee allows it (D-10, D-11, D-13). The trainee gets an in-app request in the Notifications list (D-15): "Allow Head Coach <name> to see your logs and set your plans and targets?" with **Allow** and **Decline** (wording D-14). Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp. Of the answer, the Head Coach sees only its status — allowed, declined or pending (D-13; see REQ-ROLE-004) — and the trainee's coach sees each trainee's status (D-14). Answers are kept while the account exists and are deleted with it (MVP default, Q-048); Legal confirms how long they are kept after deletion (Q-049, D-13).
 - Type: Functional, Privacy, Security
 - Acceptance criteria:
   - When a coach accepts a Head Coach, then each of that coach's trainees gets the request in the app, in the Notifications list (D-15).
@@ -171,7 +182,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When the coach switches to a new Head Coach, then earlier answers do not carry over and each trainee gets a fresh request (REQ-ROLE-015).
   - Answers are kept for as long as the trainee's account exists (D-13).
   - The trainee's coach sees whether each trainee has allowed, declined or not answered (D-14).
-- Open: whether this step meets the consent requirements of India's DPDP Act, and how long answers are kept after an account is deleted, are for Legal to confirm (Q-049). Threat model: permission matrix.
+- Open: whether this step meets the consent requirements of India's DPDP Act, and whether answers may be deleted with the account, are for Legal to confirm (Q-049). Threat model: permission matrix.
 
 ### REQ-ROLE-014 — Leave a coach or Head Coach
 - Requirement: A trainee can leave their coach, and a coach can leave their Head Coach, at any time (D-11). Leaving ends the link exactly like removal: no data is deleted, and the other side loses access to all of the leaver's data, including past data (D-07, D-10).
@@ -182,7 +193,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When someone leaves, then the other side gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app Notifications list (D-14). The same message goes to the removed side on removal (REQ-ROLE-003, REQ-ROLE-005).
   - On its next sync, the former coach's or Head Coach's app deletes the trainee's data from the device (D-13, REQ-NFR-004).
   - To rejoin, the person must accept a new invitation (D-07).
-- Open: what happens to targets and plans after the link ends (Q-060).
+- MVP default (D-18): the trainee keeps their plans and targets (REQ-ROLE-005, Q-060).
 
 ### REQ-ROLE-015 — Switch coach or Head Coach
 - Requirement: A coach has at most one Head Coach and a trainee at most one coach (D-11). If a coach who already has a Head Coach accepts an invitation from another Head Coach, the old link ends first — the old Head Coach loses all access immediately (D-10) — and then the new link is created. Trainees' earlier Allow/Decline answers do not carry over: each trainee gets a fresh request for the new Head Coach (REQ-ROLE-013). The same applies when a trainee accepts a new coach: the old coach link ends first.
@@ -194,7 +205,23 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a coach who already has a Head Coach, or a trainee who already has a coach, then before they accept, the accept screen warns that accepting ends their current link (D-13).
   - When the old link ends, then the old Head Coach or coach gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app Notifications list (D-14).
   - On its next sync, the old Head Coach's or coach's app deletes the trainee data it holds from the device (D-13, REQ-NFR-004).
-- Open: what happens to the old coach's targets and plans (Q-060). Threat model item T-06.
+- MVP default (D-18): the trainee keeps the old coach's plans and targets until the new coach changes them (Q-060). Threat model item T-06.
+
+### REQ-ROLE-016 — Notifications list and push
+- Requirement: One in-app Notifications list holds invitations, Head Coach permission requests and "no longer linked" messages (D-15). Each also arrives as a push notification where push is allowed; the list is the record and push is a best-effort alert (ADR-0004). Push text names the sender and the kind of message and carries no health data (ADR-0004). *(Listed in the MVP table — D-18; brings together REQ-ROLE-009, REQ-ROLE-013 and REQ-ROLE-014.)*
+- Type: Functional, Privacy
+- Acceptance criteria:
+  - Given push notifications are off, when an invitation, permission request or "no longer linked" message arrives, then it appears in the Notifications list.
+  - Push text contains no health, body or meal data.
+  - When the user logs out on a phone, then that phone gets no further push notifications for them (MVP default, ADR-0004).
+
+### REQ-ROLE-017 — Pending invitations: resend and cancel
+- Requirement: A Coach or Head Coach sees the invitations they have sent that are still pending — the email address and the date sent — and can resend or cancel each one (MVP default, Q-073). A resend replaces the earlier invitation, which can no longer be accepted; a cancelled invitation can no longer be accepted (T-05). Resends count toward the daily limit (REQ-ROLE-011). An invitation leaves the list when it is accepted, cancelled or expires (7 days — D-13, D-14). A declined invitation stays shown as pending until it expires, so a decline does not reveal that the address is registered (REQ-ROLE-011). *(Listed in the MVP table — D-18.)*
+- Type: Functional, Security, Privacy
+- Acceptance criteria:
+  - When the inviter cancels an invitation, then its email link or in-app invitation can no longer be accepted.
+  - When the inviter resends an invitation, then the person gets a new one, the earlier one can no longer be accepted, and the resend counts toward the 20-a-day limit.
+  - Given an invitation that was declined, then the inviter sees it as pending until it expires.
 
 ---
 
@@ -204,7 +231,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Users can select any past date via the calendar icon or week/date strip; all on-screen data follows the selected date.
 - Acceptance criteria:
   - When a past date is selected, then cards, meals and tiles show that date's data.
-  - Future dates cannot be selected. *(Reading — BRD only mentions past dates; Q-017.)*
+  - Future dates cannot be selected (MVP default, Q-017).
 
 ### REQ-DATE-002 — Past-date banner
 - Requirement: While a past date is selected, a banner shows the date and a "Back to today" shortcut.
@@ -228,35 +255,37 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-HOME-002 — Week strip
 - Requirement: A Monday-to-Sunday strip shows a status box per day and highlights today and the selected day.
-- Open: what the status box represents (meals logged? targets hit?) — Q-019.
+- MVP default (D-18): a day's box is filled when at least one meal is logged that day (Q-019).
 
 ### REQ-HOME-003 — Calories card
 - Requirement: Shows kcal eaten vs target with progress bar, percentage achieved and kcal remaining for the selected date.
 - Acceptance criteria:
   - Given target 2000 and eaten 1500, then 75% and 500 kcal remaining are shown.
-  - Given eaten exceeds target, then behaviour is per Q-022 (over-target display not specified).
+  - Given eaten exceeds target, then the bar shows full in a warning colour with the text "X kcal over" (MVP default, Q-022).
 
 ### REQ-HOME-004 — Protein card
-- Requirement: As REQ-HOME-003 for protein in grams.
+- Requirement: As REQ-HOME-003 for protein in grams (over target: "X g over").
 
 ### REQ-HOME-005 — By-meal breakdown
 - Requirement: A "By meal" link opens the meal-wise breakdown for the selected day.
-- Open: is this the Nutrition › Consumed tab or a separate view (Q-023)?
+- MVP default (D-18): it opens Nutrition › Consumed for that day (Q-023).
 
 ### REQ-HOME-006 — Quick tiles
 - Requirement: Tiles for Weight, Steps and Sleep show the logged value for the selected date, or "+ Add" when none.
 - Acceptance criteria:
   - Given no weight logged that day, then the tile shows "+ Add"; tapping it allows entry.
-  - Weight displays in the body-weight unit setting (REQ-ACC-003). *(BRD says "Weight (kg)"; Q-024.)*
-- Open: sleep unit (hours? hours+minutes?) and input method for steps/sleep (Q-015).
+  - Weight displays in the body-weight unit setting (REQ-ACC-003; MVP default, Q-024 — the BRD says "Weight (kg)").
+  - Values outside weight 20–300 kg, steps 0–100,000 and sleep 0–24 h cannot be saved (MVP default, Q-028).
+  - Given a value already logged for that day, when a new one is saved, then it replaces the old one (MVP default, Q-030).
+- MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
-- Open: does a self-directed "empty workout" count toward the target (Q-025)?
+- MVP default (D-18): an empty workout counts toward the weekly target (Q-025). The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006).
 
 ### REQ-HOME-008 — Measurements prompt
 - Requirement: A Measurements card prompts weekly waist measurements and opens the measurements sheet (REQ-MEAS-001).
-- Open: when the prompt is shown/hidden (e.g. hidden once logged this week) — Q-026.
+- MVP default (D-18): the card is hidden once both waist values are logged for the current Monday–Sunday week (Q-026).
 
 ---
 
@@ -266,7 +295,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Measurements open as a bottom sheet from the Home card or Progress screen.
 
 ### REQ-MEAS-002 — Date selector
-- Requirement: The sheet's date defaults to today and can be changed to another date (past only — Q-017).
+- Requirement: The sheet's date defaults to today and can be changed to another date (past dates only; MVP default, Q-017).
 
 ### REQ-MEAS-003 — Unit toggle
 - Requirement: A cm/in toggle sets the unit for entered values; stored values are unit-consistent. *(Storage unit is a contract decision.)*
@@ -276,14 +305,14 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-MEAS-005 — Optional fields
 - Requirement: An expandable section holds optional chest, hips, arms, thighs and notes.
-- Open: arms/thighs — left, right, or one value (Q-027)?
+- MVP default (D-18): one value each for arms and thighs (Q-027).
 
 ### REQ-MEAS-006 — Save and close
 - Requirement: "Save measurements" is enabled only once both mandatory fields hold valid values; the close (X) button exits without saving.
 - Acceptance criteria:
   - Given only upper waist entered, then Save is disabled.
   - When X is tapped after entering values, then nothing is saved.
-- Open: valid ranges (Q-028); whether X warns about unsaved input (Q-029); logging twice on one date — overwrite or add (Q-030).
+- MVP default (D-18): valid values are 10–250 cm (Q-028); X closes without a warning (Q-029); a second entry for the same date replaces the first (Q-030).
 
 ---
 
@@ -297,11 +326,10 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NUT-003 — Meal slots
 - Requirement: Breakfast, Lunch, Snack and Dinner slots each show "Tap to add what you ate" with a "+" that opens Log meal preset to that slot and date.
-- Open: where items logged with the tags "Before training" or "Dessert" appear (Q-031).
+- MVP default (D-18): tags attach to a meal, which keeps its meal type; a tagged meal shows a small label in its slot (Q-031).
 
-### REQ-NUT-004 — Save to my meals
-- Requirement: Each logged meal has a "•••" menu with "Save to my meals", which adds it to the Saved tab.
-- Open: other menu items (edit, delete, move to another day?) are not specified — Q-032. Editing/deleting a logged meal is assumed necessary (A-004).
+### REQ-NUT-004 — Meal menu: edit, delete, save to my meals
+- Requirement: Each logged meal has a "•••" menu with Edit, Delete and "Save to my meals" (MVP default, Q-032). "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
 
 ---
 
@@ -316,31 +344,41 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-PLAN-002 — How-to guide
 - Requirement: A collapsible "How to use this plan" guide (meet calorie and protein targets, build every meal around a complete protein source, log every meal) with a "Got it" button that dismisses it.
-- Open: is dismissal remembered per user/device (Q-033)?
+- MVP default (D-18): dismissal is remembered per user (Q-033).
 
 ### REQ-PLAN-003 — Meal cards
 - Requirement: Each meal slot in the plan has a card showing its total kcal and protein (e.g. Breakfast: 646 kcal, 50 g protein).
 
 ### REQ-PLAN-004 — Up to three options per meal
 - Requirement: Each meal offers 1–3 alternatives as tabs (Option 1–3). Each shows a meal name and ingredients with quantities in grams, scoops, tablespoons or pieces.
-- Open: do the card totals vary per option (Q-034)?
+- MVP default (D-18): each option shows its own kcal and protein (Q-034).
 
 ### REQ-PLAN-005 — Protein first
 - Requirement: In every option the protein source is listed first and visually highlighted.
 
-### REQ-PLAN-006 — Option action button
-- Requirement: Each option has an action button. **The BRD marks its purpose as presumed** ("presumably to log that planned meal").
-- Status: **Blocked — Q-035.** Do not implement until confirmed.
+### REQ-PLAN-006 — Log this option
+- Requirement: Each option has a "Log this option" button that logs that option to its meal slot on the selected date (MVP default, Q-035). *(The BRD marked the button's purpose as presumed: "presumably to log that planned meal".)*
+- Acceptance criteria:
+  - Given yesterday is selected, when the trainee taps "Log this option" on Lunch option 2, then that option is logged to yesterday's Lunch slot and the totals update.
+- Status: unblocked — Q-035 answered for the MVP (D-18).
 
 ### REQ-PLAN-007 — No diet plan state
 - Requirement: When no diet plan exists, the tab shows an empty state. *(Not in BRD; inferred by analogy to REQ-TRN-002 — A-005.)*
+
+### REQ-PLAN-008 — Coach builds a diet plan
+- Requirement: A Coach, or a Head Coach the trainee allows (REQ-ROLE-004), builds the trainee's diet plan: meals by slot (Breakfast, Lunch, Snack, Dinner), each with 1–3 options. Each option has a name, ingredients with quantities in grams, scoops, tablespoons or pieces, its protein source marked and listed first (REQ-PLAN-005), and its own kcal and protein (Q-034). Saving the plan makes it visible to the trainee, labelled "Set by <name>" (REQ-ROLE-006). *(Listed in the MVP table — D-18; the trainee's view is REQ-PLAN-003 to REQ-PLAN-005.)*
+- Acceptance criteria:
+  - Given a meal with three options, when the coach tries to add a fourth, then it is not allowed.
+  - When the coach saves the plan, then the trainee's Diet plan tab shows it instead of the empty state (REQ-PLAN-007).
+- MVP default (D-18): the coach types each option's kcal and protein.
+- Open: coach screen layout and designs (Q-020, Q-052).
 
 ---
 
 ## SAVED — Nutrition: Saved (BRD §7)
 
 ### REQ-SAVED-001 — Saved meals list
-- Requirement: Lists the user's saved meals; one tap re-logs a meal to the selected date. *(Reading: which meal slot it goes to — Q-036.)*
+- Requirement: Lists the user's saved meals; one tap re-logs a meal to the selected date, in the meal slot it was saved from; the user can change the slot (MVP default, Q-036).
 
 ### REQ-SAVED-002 — Empty state
 - Requirement: With no saved meals, an empty state explains how to save one from the Consumed tab.
@@ -354,43 +392,51 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-LOG-002 — Date picker sheet
 - Requirement: The date chip opens a "Log this meal to" sheet listing Today, Yesterday and the five days before, each with its logging status (e.g. "nothing logged"), plus "Another day…" which opens a calendar.
-- Open: full set of status labels (Q-037).
+- MVP default (D-18): each day shows "Nothing logged" or "N meals logged" (Q-037).
 
 ### REQ-LOG-003 — Meal type and tags
 - Requirement: The user selects one meal type (Breakfast, Lunch, Snack, Dinner) and may add tags "Before training" and "Dessert".
-- Open: are tags independent of meal type or alternative slots (Q-031)?
+- MVP default (D-18): the meal type is required; tags are optional and attach to the meal (Q-031).
 
 ### REQ-LOG-004 — Free-text entry
 - Requirement: A free-text box with placeholder "Speak or type what you ate…" accepts a description; a sample entry is shown.
 
 ### REQ-LOG-005 — Voice entry
-- Requirement: "Speak your meal" records voice and converts it to meal text/items. The recording is deleted once it has been transcribed; audio storage is future scope (D-16).
+- Requirement: "Speak your meal" turns speech into meal text using the phone's **on-device** speech recognition, so the voice never leaves the phone (D-18, answers Q-038; ADR-0005). The text then follows the free-text path, including the AI consent check (REQ-LOG-009). FitSphere stores no audio; audio storage is future scope (D-16). On a phone that cannot recognise speech on the device, the button is hidden.
 - Acceptance criteria:
-  - When a voice entry has been transcribed, then the audio recording is deleted and is not kept on the device or the server (D-16).
-- Open: on-device vs cloud speech-to-text, and whether voice needs AI consent (Q-038).
+  - Given a phone with on-device speech recognition and no network, when the user speaks a meal, then the text appears in the free-text box.
+  - No audio recording is uploaded or kept by FitSphere, on the device or the server (D-16).
+  - Given a phone without on-device speech recognition, then "Speak your meal" is not shown.
 
 ### REQ-LOG-006 — Photo entry
 - Requirement: A camera button captures a meal photo or nutrition label for parsing. A meal photo is kept as a compressed viewable copy of about 200 KB (phone-viewable quality) with a small thumbnail for lists. Instead of uploading, the user can paste a public link to an image (REQ-LOG-010). Photos are view-only (REQ-NFR-006). A user's own photos are never fully deleted automatically while the account exists; an original may be replaced by a viewing-quality copy (D-16). A user may delete their own meal photo or nutrition-label image, and it is then really removed: from file storage, and from copies cached on other phones at their next sync (D-16, A-004).
 - Acceptance criteria:
   - When a user saves a meal photo, then the stored copy is about 200 KB and a thumbnail is created for lists (D-16).
   - When a user deletes their own meal photo, then the file and its thumbnail are removed from file storage, no viewing link can be issued for it, and phones that cached it delete it on their next sync (D-16).
-- Open: whether nutrition-label images are kept after parsing by default, and whether deleting a meal also deletes its photo (Q-064, Q-032); how long media is kept (Q-089); which of it the coach sees (Q-059); once backups exist, how long they keep deleted media (Q-049).
+  - When a nutrition-label photo has been read, then it is deleted from file storage (MVP default, Q-064).
+- MVP default (D-18): deleting a meal deletes its photo (Q-032). The coach sees meal photos (REQ-ROLE-005, Q-059).
+- Open: how long media is kept (Q-089); once backups exist, how long they keep deleted media (Q-049).
 
 ### REQ-LOG-007 — Alternative methods
-- Requirement: Search database, Scan barcode, Eaten before (past meals) and Saved (your meals) are available and work without AI (REQ-ACC-005).
-- Open: food database and barcode data sources (Q-039).
+- Requirement: Search database, Scan barcode and Saved (your meals) are available and work without AI (REQ-ACC-005). When a barcode is not found, the user can type the values from the label (MVP default; ADR-0006).
+- **Post-MVP:** Eaten before (past meals) — Saved covers re-logging in the MVP (D-18, backlog B-03).
+- Acceptance criteria:
+  - Given AI consent is off, when a scanned barcode is not found, then the user can type the label values and save the meal.
+- Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039).
 
 ### REQ-LOG-008 — Guidance
-- Requirement: Best-practice tips (amounts in grams; raw vs cooked, e.g. cooked rice weighs about 3× raw; name each food separately) and a collapsible Examples section (Best, Vague, Say) with Hide.
+- Requirement: Best-practice tips (amounts in grams; raw vs cooked, e.g. cooked rice weighs about 3× raw; name each food separately).
+- **Post-MVP:** a collapsible Examples section (Best, Vague, Say) with Hide (D-18, backlog B-04).
 
 ### REQ-LOG-009 — AI parsing
-- Requirement: AI converts text, voice and photo input into food items with quantities (and nutrition values) that the user reviews before saving. *(Reading: BRD §8 says AI produces "food items and quantities" only. Whether the review shows nutrition values is Q-062; where those values come from is Q-063.)*
+- Requirement: AI converts text, voice and photo input into food items with quantities and nutrition values that the user reviews before saving. The review list shows each item with its quantity, kcal and protein (MVP default, Q-062; the BRD §8 mentions only "food items and quantities"). Values come from the food list where an item matches; otherwise the AI's estimate is used and marked "estimated" (ADR-0005, ADR-0006; answers Q-063).
 - Type: Functional, Privacy
 - Acceptance criteria:
   - Given AI consent is off, then no meal text, photo, voice or label is sent to an AI service, and the user is offered non-AI methods.
   - Given AI consent is on, when the user submits text, then a list of items with quantities is returned for review; nothing is saved until confirmed. *(Review step — A-006.)*
   - When AI fails or times out, then the input is kept and the user can retry or use another method.
-- Open: AI provider (ADR-0005), accuracy expectations (Q-040).
+  - Given a user who has used 15 AI readings today, when they ask for another, then it is refused with a message and non-AI methods are offered (MVP default; ADR-0005).
+- AI provider: ADR-0005. Open: accuracy expectations (Q-040), measured in ADR-0005's validation.
 
 ### REQ-LOG-010 — Public link instead of an upload
 - Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, meal photos only (REQ-LOG-006; D-16, confirmed). Links to their own videos come with the audio/video release (future scope). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
@@ -414,13 +460,26 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-TRN-003 — Empty workout
 - Requirement: "Start an empty workout" lets the user log a self-directed session.
-- Open: what is logged per exercise — sets, reps, weight, duration (Q-042)?
+- MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout counts toward the weekly target (Q-025).
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
 
 ### REQ-TRN-005 — Lifting unit
 - Requirement: Lifting weights are entered and shown in the lifting-weight unit setting (REQ-ACC-002); changing the setting converts display of existing history.
+
+### REQ-TRN-006 — Coach builds a training plan
+- Requirement: A Coach, or a Head Coach the trainee allows (REQ-ROLE-004), builds the trainee's training plan by day. Each day lists exercises, each with a name, sets × reps, an optional note and an optional YouTube how-to link, unlisted or public (REQ-TRN-001, D-16). Saving the plan makes it visible to the trainee, labelled "Set by <name>" (REQ-ROLE-006). *(Listed in the MVP table — D-18.)*
+- Acceptance criteria:
+  - When the coach saves a plan, then the trainee's Training tab shows it instead of "No training plan yet" (REQ-TRN-002).
+- MVP default (D-18): the exercise fields above.
+- Open: coach screen layout and designs (Q-020, Q-052).
+
+### REQ-TRN-007 — Log a planned workout
+- Requirement: From the day's plan, the trainee starts the workout; its exercises are filled in from the plan, and the trainee logs sets × reps × weight per exercise, with an optional note (MVP default, Q-042). *(Listed in the MVP table — D-18.)*
+- Acceptance criteria:
+  - When a trainee finishes a planned workout, then it appears in workout history (REQ-TRN-004) and counts toward the weekly target (REQ-HOME-007).
+  - Weights are entered and shown in the lifting-weight unit (REQ-TRN-005).
 
 ---
 
@@ -430,22 +489,23 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Shows weight change over the last 4 weeks and the weekly rate, in the body-weight unit (REQ-ACC-003).
 - Acceptance criteria:
   - Given less than one week of weigh-ins, then the weekly rate is replaced by a not-enough-data message.
-- Open: exact calculation of change and weekly rate (first vs last, averages, regression) — Q-043.
+- MVP default (D-18): the 4-week change is the latest weigh-in minus the weigh-in nearest to 28 days earlier; the weekly rate is that change ÷ 4 (Q-043).
 
 ### REQ-PRG-002 — Average calories
-- Requirement: Shows average daily calories vs target. *(Period and whether non-logged days count — Q-043.)*
+- Requirement: Shows average daily calories vs target.
+- MVP default (D-18): averages count only days that have entries (Q-043); the period is the last 4 weeks, as in REQ-PRG-001.
 
 ### REQ-PRG-003 — Days logged
 - Requirement: Shows meals logged as days with ≥1 meal out of total days (e.g. "0 of 27 days").
-- Open: what "total days" counts from (program start?) — Q-044.
+- MVP default (D-18): total days count from the day the account was created, capped at the last 28 days (Q-044).
 
 ### REQ-PRG-004 — Weight trend chart
 - Requirement: Chart with range filters 1W, 4W, 12W, 26W, All; empty state until enough weigh-ins exist.
-- Open: minimum weigh-ins for the chart (Q-043).
+- MVP default (D-18): the chart needs at least 2 weigh-ins (Q-043).
 
 ### REQ-PRG-005 — Week-by-week table
-- Requirement: Rows per week with Body Weight, Calories, Protein and Steps, a Target row, and a "Pre" row with pre-program baseline. Tapping a week opens its details.
-- Open: who enters "Pre" baseline (Q-045); week details content (Q-046); aggregation per column (Q-043).
+- Requirement: Rows per week with Body Weight, Calories, Protein and Steps, and a Target row. Weekly values are averages over the days that have entries (MVP default, Q-043). The Target row shows the calorie and protein targets and the target body weight and daily steps target set by the coach (MVP default, Q-013).
+- **Post-MVP:** the "Pre" row with the pre-program baseline, and tapping a week to open its details (D-18; Q-045, Q-046; backlog B-02).
 
 ### REQ-PRG-006 — Measurements section
 - Requirement: Lists measurements; with none, shows "Add first" (opens REQ-MEAS-001) and recommends weekly upper/lower waist tracking.
@@ -470,7 +530,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a new user, then AI is off until they consent. *(Default-off — A-007.)*
   - When consent is withdrawn, then no further data is sent to AI.
   - Consent changes are recorded with a timestamp. *(A-007.)*
-- Open: what else a consent record must contain (Q-065).
+- MVP default (D-18): each change records on/off, the time and the version of the consent text shown; one toggle covers typed or spoken text, photos and labels (Q-065; ADR-0005). Legal confirms (Q-049).
 
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
@@ -478,7 +538,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 ### REQ-ACC-006 — Country and time zone
 - Priority: **Won't** for this release (D-09). Phase 1 uses Asia/Kolkata for everyone (REQ-DATE-004).
 - Requirement: Country and time zone are configurable (e.g. India · Kolkata) and drive REQ-DATE-004.
-- Open: in phase 1, show "India · Kolkata" as fixed text or hide the setting — owner's choice, not yet made.
+- MVP (D-18): the setting is not shown; the MVP Settings list is theme, units and AI consent (`mvp-scope.md` section 2).
 
 ### REQ-ACC-007 — Change password
 - Type: Security
@@ -490,8 +550,13 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-ACC-009 — Delete account
 - Type: Privacy
-- Requirement: "Delete account" opens a separate flow.
-- Status: **Blocked — Q-048** (flow, data deleted vs retained, effect on coach/trainee links not defined).
+- Requirement: "Delete account" opens a separate flow. After the user confirms, FitSphere deletes the user's data from the database and file storage, ends all their links (the other side gets the neutral "<name> is no longer linked with you" message), and deletes the sign-in account. Only the security logs required by REQ-NFR-005 are kept, without health data (MVP default, Q-048; Legal to confirm, Q-049). Google Play also requires a web page: a simple page explains how to request deletion by email (Q-048). *(How: ADR-0004 rule 7.)*
+- Acceptance criteria:
+  - When the user confirms deletion, then their entries, plans, targets, settings, consent records, Head Coach permission answers and media are removed from the database and file storage, and they can no longer sign in.
+  - When the account is deleted, then each linked coach, Head Coach or trainee gets the neutral message, and their phones delete the user's data on their next sync (REQ-NFR-004).
+  - The admin access log keeps its entries about the account, without health data (REQ-NFR-005).
+  - A public web page explains how to request deletion by email. The owner acts on a request only after confirming it from the account's registered address, and only through the logged admin path (ADR-0004).
+- Status: unblocked — Q-048 answered for the MVP (D-18). Before real users, Legal confirms what is deleted and what is kept (Q-049). Asking for the password again is post-MVP (backlog E-01).
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
@@ -502,7 +567,9 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a user who has forgotten their password, when they request a reset, then a reset link is sent to their registered email address and lets them set a new password.
   - Given an email address that is already registered, when someone signs up with it, then they see the same neutral message as for a new address, and response timing does not reveal the difference (D-11, T-01).
   - When a password reset is requested, then the same neutral message is shown whether or not the email is registered, under the same timing rule (D-11).
-- Open: minimum age (Q-066); what an unverified account may do, and how long verification and reset links stay valid (Q-080); which email service sends these emails (Q-082).
+  - Given an account whose email is not yet verified, when it tries to sign in, then it is asked to verify first (MVP default, Q-080).
+- MVP default (D-18): an account must verify its email before it can sign in; verification and reset links expire within 24 hours (Q-080; ADR-0004). Emails are sent through Resend from FitSphere's own domain (ADR-0004, answers Q-082).
+- Open: minimum age (Q-066) — a privacy and legal question, so it gets no MVP default; needed before real users.
 
 ---
 
@@ -520,7 +587,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Body, health, meal and photo data are treated as sensitive personal data: encrypted in transit and at rest, excluded from logs, and processed only for stated purposes. Applicable law (e.g. India's DPDP Act 2023) to be confirmed (C-003, Q-049).
 
 ### REQ-NFR-003 — Performance, availability, accessibility
-- Requirement: Targets to be defined by owner — Q-050. No numeric target is assumed.
+- Requirement: No numeric targets for the MVP; the app must be usable on a low-end Android phone (MVP default, Q-050).
 - Long-term aspiration, **not a capacity target**: FitSphere aims to support up to 20 million users. Phase 1 starts on free tiers (C-008). ADR-0002 and ADR-0003 must explain how the chosen backend and database can grow toward this without a rewrite, and what each stage would cost (D-15).
 
 ### REQ-NFR-004 — Offline logging and data on the device
@@ -528,7 +595,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Users can log while offline: entries are saved on the device and synced when the connection returns. Any step that needs the internet shows a warning that names that step (D-04). Every queued change is re-authorized on the server at sync time (D-10).
   - **The server is the permanent record.** No device rule ever deletes a user's full history; on sign-in, even years later, the app restores it from the server (D-14).
   - **Encryption:** health data stored on the device is encrypted (D-10), invisibly to the user — no extra passwords, no lost features, and offline logging still works (D-14).
-  - **Ended links:** the former coach's or Head Coach's app deletes that trainee's data from the device on its next sync (D-13).
+  - **Ended links:** the former coach's or Head Coach's app deletes that trainee's data from the device on its next sync (D-13). The same happens on a Head Coach's phone when a trainee withdraws permission (REQ-ROLE-013, ADR-0007).
   - **30 days without a sync:** the app clears only (a) unfinished drafts, such as typed meal text never sent for AI reading, and (b) other people's data copied onto a coach's or Head Coach's phone. Cleared trainee data comes back on the next sync if the link is still active (D-14). Three days before an unfinished draft is cleared, the app shows a reminder: "You have an unfinished meal entry. It will be removed in 3 days." (D-15)
   - **Never cleared automatically:** the user's own entries waiting to sync — they are the only copy and stay until synced (D-14).
   - **Photos cached on the device** (REQ-NFR-006) follow the same rules: encrypted; deleted for a trainee on the next sync after the link ends; other people's photos cleared after 30 days without a sync (D-16).
@@ -538,16 +605,16 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given the device is offline, when the user starts a step that needs the internet, then the app shows a warning that names that step.
   - Given a change queued offline by a user who has since lost access (e.g. a coach removed from a trainee), when it syncs, then the server rejects it (D-10).
   - Health data stored on the device is encrypted (D-10); the user is asked for no extra password, no feature is lost, and offline logging still works (D-14).
-  - Given a user who signs in on a new or reset phone, then the app restores their full history from the server (D-14).
+  - Given a user who signs in on a new or reset phone, then the app restores their full history from the server (D-14): the last 90 days are stored on the phone, and older history loads when viewed online (ADR-0007; D-18 interpretation).
   - Given a link that has ended, when the former coach's or Head Coach's app next syncs, then it deletes that trainee's data from the device (D-13).
   - Given a phone that has not synced for 30 days, then unfinished drafts and other people's data on it are cleared; the user's own entries waiting to sync are kept (D-14).
   - Given an unfinished draft that will be cleared in 3 days, then the app shows the reminder "You have an unfinished meal entry. It will be removed in 3 days." (D-15)
   - Given cleared trainee data on a coach's phone whose link is still active, when the phone next syncs, then that data comes back (D-14).
-- Open: which steps work offline follows the proposed split in D-04, to confirm (Q-077); how offline changes are synced and conflicts resolved (ADR-0007). If an encryption choice would break a feature, it is raised as a question, not applied (D-14).
+- MVP default (D-18): which steps work offline and which need internet is set by ADR-0007 rule 6, which refines the D-04 split (Q-077). Sync and conflicts: ADR-0007. If an encryption choice would break a feature, it is raised as a question, not applied (D-14).
 
 ### REQ-NFR-005 — Operator access
 - Type: Security, Privacy, Operational
-- Requirement: In phase 1 the project owner is the only operator of FitSphere; there is no support staff. Every admin access to user data is logged (D-13). The log is stored in the backend database, kept for 1 year (Legal to confirm, Q-049) and reviewed monthly by the owner (D-14). The owner signs in to the hosting dashboards (Supabase, Google Cloud) with two-factor sign-in, never browses user data in those dashboards, and makes any needed access through the logged admin path (D-16). In phase 1 the operator reviews their own access, and dashboard access is outside this log — accepted risk R-003. A Platform Admin role is future scope (Q-086).
+- Requirement: In phase 1 the project owner is the only operator of FitSphere; there is no support staff. Every admin access to user data is logged (D-13). The log is stored in the backend database, kept for 1 year (Legal to confirm, Q-049) and reviewed monthly by the owner (D-14). The owner signs in to the hosting dashboards (Supabase, Google Cloud) with two-factor sign-in, never browses user data in those dashboards, and makes any needed access through the logged admin path (D-16). In phase 1 the operator reviews their own access, and dashboard access is outside this log — accepted risk R-003. The MVP has no admin screens; the logged admin path is a small set of owner-only API commands (ADR-0004). A Platform Admin role is future scope (Q-086).
 - Acceptance criteria:
   - When the operator views or changes a user's data through admin access, then a log entry records who, when and whose data — without the data itself (invariant 7).
   - Log entries are kept for 1 year (D-14; period to be confirmed by Legal, Q-049).
