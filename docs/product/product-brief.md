@@ -29,6 +29,11 @@ One person may hold several roles and switch between them in their profile (REQ-
 4. Give head coaches oversight of coaches and their trainees.
 5. Keep AI processing of meal data consent-based (REQ-ACC-004).
 
+Long-term aspiration — **not a proven capacity target**: FitSphere aims to support up to
+20 million users. Phase 1 starts on free tiers (C-008); the backend and database decisions
+(ADR-0002, ADR-0003) must show how they can grow toward this without a rewrite, and what each
+stage would cost (D-15).
+
 ## Scope (first release — proposed, pending owner approval)
 All features in the BRD sections 1–11, captured as REQ IDs in [`requirements.md`](requirements.md):
 navigation and global date handling, Home dashboard, measurements, Nutrition (Consumed / Diet

@@ -28,6 +28,10 @@ D- numbers refer to the owner decisions in
 - Accessibility: **Open** (Q-050)
 - Budget/licensing: free tiers first; paid items need owner sign-off (C-008) — affects AI provider, food database and hosting choices
 - Deployment/network/region: **Open** — data residency may follow from C-003 (Q-049)
+- Scale: **aspiration, not a capacity target** — FitSphere aims to support up to 20 million users
+  in the long term (D-15). Phase 1 starts on free tiers (C-008). ADR-0002 and ADR-0003 must
+  explain how the chosen backend and database can grow toward this without a rewrite, and what
+  each stage would cost.
 
 ## Assumptions
 | ID | Assumption | Evidence | Confidence | Owner |

@@ -278,6 +278,21 @@
   (matrix, T-03, T-05 to T-07, retention); ADR-0007 inputs; system context; glossary; journeys
   J-08 and J-09; `flow.md`.
 
+## D-15 Notifications list, draft reminder and long-term scale
+- Status: **Accepted** (answers given by the project owner in chat, 2026-10-27)
+- Answers:
+  1. **One Notifications list:** there is one in-app "Notifications" list. Invitations, Head
+     Coach permission requests and "no longer linked" messages all appear there.
+  2. **Draft reminder:** before an unfinished draft is auto-cleared (D-14), the app shows a
+     reminder 3 days earlier: "You have an unfinished meal entry. It will be removed in 3 days."
+  3. **Long-term scale — an aspiration, not a proven capacity target:** FitSphere aims to
+     support up to 20 million users. Phase 1 starts on free tiers. ADR-0002 and ADR-0003 must
+     explain how the chosen backend and database can grow toward this without a rewrite, and
+     what it would cost at each stage.
+- Doc changes: REQ-ROLE-009/013 and the "no longer linked" criteria name the Notifications list;
+  REQ-NFR-003 (aspiration) and REQ-NFR-004 (reminder) updated; quality targets; product brief
+  goals; ADR-0002, ADR-0003 and ADR-0007 inputs; glossary; journeys J-08 and J-09.
+
 ---
 
 ## Proposed replacement wording for the two invariants

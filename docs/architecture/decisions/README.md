@@ -29,6 +29,10 @@ ADR-0001 was accepted while Q-020, Q-052, Q-068 and Q-083 were still open (D-12)
 how each is handled. Its validation checks run in the first slices.
 
 ## Inputs already decided
+- **ADR-0002 and ADR-0003** (D-15): FitSphere aims to support up to 20 million users in the long
+  term — an aspiration, not a proven capacity target. Phase 1 starts on free tiers (C-008). Each
+  of these ADRs must explain how the chosen backend or database can grow toward that number
+  without a rewrite, and what it would cost at each stage.
 - **ADR-0007** (D-10): every change queued offline is re-authorized on the server at sync time;
   health data stored on the device is encrypted. See threat model items T-02 and T-03.
 - **ADR-0007** (D-13): when a link ends, the former coach's or Head Coach's app deletes that
@@ -43,3 +47,5 @@ how each is handled. Its validation checks run in the first slices.
     onto a coach's or Head Coach's phone; cleared trainee data comes back on the next sync if
     the link is still active.
   - Never auto-delete the user's own entries waiting to sync; they stay until synced.
+- **ADR-0007** (D-15): three days before an unfinished draft is cleared, the app shows a
+  reminder: "You have an unfinished meal entry. It will be removed in 3 days."

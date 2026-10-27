@@ -70,7 +70,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a Coach not under this Head Coach, then it cannot be viewed or removed by them; no Head Coach can see another Head Coach's coaches or view (D-06).
   - When a Head Coach removes a Coach, then the link ends and no data is deleted; to rejoin, the Coach must accept a new invitation (D-07).
   - After removal, the Head Coach can no longer see any of that Coach's data, including past data (D-10).
-  - When a Head Coach removes a Coach, then the Coach gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app notifications list (D-14).
+  - When a Head Coach removes a Coach, then the Coach gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app Notifications list (D-14).
 
 ### REQ-ROLE-004 — Head Coach: hierarchy visibility, plans and targets
 - Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Without a trainee's permission, that activity is counts per coach only: number of trainees; how many have allowed, declined or not yet answered (pending); and plans sent. It shows no trainee names or data (D-13). For each trainee who allows it (REQ-ROLE-013), the Head Coach can view that trainee's data and set their diet plan, training plan, and calorie, protein and weekly workout targets (D-08, D-13, D-14). A Head Coach never sees a trainee's settings or AI consent; of the permission answer, they see only its status (D-13). Trainees who have declined or not answered appear only in the counts, never by name; trainees who have allowed it are named (D-13, D-14).
@@ -93,7 +93,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - A Coach cannot read or change a trainee of another coach.
   - When a Coach removes a trainee, then the link ends and no data is deleted; to rejoin, the trainee must accept a new invitation (D-07).
   - After removal, the Coach can no longer see any of the trainee's data, including past data (D-10).
-  - When a Coach removes a trainee, then the trainee gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app notifications list (D-14).
+  - When a Coach removes a trainee, then the trainee gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app Notifications list (D-14).
   - The Coach never sees the trainee's settings or AI consent (D-13).
   - Given the Coach has a Head Coach, then the Coach sees whether each trainee has allowed, declined or not answered the Head Coach request (D-14).
 - Open: which trainee data can the coach see (Q-059)? What happens to targets and plans after removal (Q-060)?
@@ -124,11 +124,11 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: resend, cancel and the size of the daily limit (Q-073); the email service and sender domain (Q-082). Threat model items T-04, T-05.
 
 ### REQ-ROLE-009 — Invite an existing user; accept or decline
-- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invitation is delivered in the app — a push notification plus an in-app invitations list, so it is not lost if push is off; no email is sent (D-11). The invited user accepts or declines; the link exists only after they accept (D-06). When a coach accepts, the inviting Head Coach becomes their Head Coach (D-11). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
+- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invitation is delivered in the app — a push notification plus the in-app Notifications list, so it is not lost if push is off; no email is sent (D-11, D-15). The invited user accepts or declines; the link exists only after they accept (D-06). When a coach accepts, the inviting Head Coach becomes their Head Coach (D-11). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
 - Type: Functional, Security
 - Acceptance criteria:
-  - Given a registered user, when they are invited, then they get a push notification and the invitation appears in their in-app invitations list.
-  - Given push notifications are off, then the invitation still appears in the in-app invitations list.
+  - Given a registered user, when they are invited, then they get a push notification and the invitation appears in their in-app Notifications list (D-15).
+  - Given push notifications are off, then the invitation still appears in the in-app Notifications list (D-15).
   - When the invited user accepts, then they appear in the inviter's coach or trainee list.
   - When the invited user declines, then no link is created and the inviter gains no access.
   - Until the invitation is accepted, the inviter cannot see any of the invited user's data.
@@ -160,10 +160,10 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: which trainee data the coach sees (Q-059).
 
 ### REQ-ROLE-013 — Trainee permission for Head Coach access
-- Requirement: A Head Coach sees a trainee's data and sets their plans and targets only while the trainee allows it (D-10, D-11, D-13). The trainee gets an in-app request: "Allow Head Coach <name> to see your logs and set your plans and targets?" with **Allow** and **Decline** (wording D-14). Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp. Of the answer, the Head Coach sees only its status — allowed, declined or pending (D-13; see REQ-ROLE-004) — and the trainee's coach sees each trainee's status (D-14). Answers are kept while the account exists; how long they are kept after the account is deleted is decided with Legal (Q-049, D-13).
+- Requirement: A Head Coach sees a trainee's data and sets their plans and targets only while the trainee allows it (D-10, D-11, D-13). The trainee gets an in-app request in the Notifications list (D-15): "Allow Head Coach <name> to see your logs and set your plans and targets?" with **Allow** and **Decline** (wording D-14). Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp. Of the answer, the Head Coach sees only its status — allowed, declined or pending (D-13; see REQ-ROLE-004) — and the trainee's coach sees each trainee's status (D-14). Answers are kept while the account exists; how long they are kept after the account is deleted is decided with Legal (Q-049, D-13).
 - Type: Functional, Privacy, Security
 - Acceptance criteria:
-  - When a coach accepts a Head Coach, then each of that coach's trainees gets the request in the app.
+  - When a coach accepts a Head Coach, then each of that coach's trainees gets the request in the app, in the Notifications list (D-15).
   - Given a new trainee accepting a coach who has a Head Coach, then the request is part of accepting.
   - Given a trainee who has declined or not yet answered, then the Head Coach sees none of their data and cannot set their plans or targets.
   - When the trainee taps Allow, then the Head Coach can see their logs and set their plans and targets; when they later change the answer to Decline in Settings, then that access ends.
@@ -179,7 +179,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - When a trainee leaves their coach, then the link ends, no data is deleted, and the coach — and the coach's Head Coach — can no longer see any of the trainee's data, including past data.
   - When a coach leaves their Head Coach, then the Head Coach can no longer see the coach's coaching activity or any of that coach's trainees' data.
-  - When someone leaves, then the other side gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app notifications list (D-14). The same message goes to the removed side on removal (REQ-ROLE-003, REQ-ROLE-005).
+  - When someone leaves, then the other side gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app Notifications list (D-14). The same message goes to the removed side on removal (REQ-ROLE-003, REQ-ROLE-005).
   - On its next sync, the former coach's or Head Coach's app deletes the trainee's data from the device (D-13, REQ-NFR-004).
   - To rejoin, the person must accept a new invitation (D-07).
 - Open: what happens to targets and plans after the link ends (Q-060).
@@ -192,7 +192,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given trainees who had allowed A, then B has no access to any of them until each one allows B.
   - Given a trainee linked to Coach X, when they accept an invitation from Coach Y, then the link with X ends first and X loses all access.
   - Given a coach who already has a Head Coach, or a trainee who already has a coach, then before they accept, the accept screen warns that accepting ends their current link (D-13).
-  - When the old link ends, then the old Head Coach or coach gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app notifications list (D-14).
+  - When the old link ends, then the old Head Coach or coach gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app Notifications list (D-14).
   - On its next sync, the old Head Coach's or coach's app deletes the trainee data it holds from the device (D-13, REQ-NFR-004).
 - Open: what happens to the old coach's targets and plans (Q-060). Threat model item T-06.
 
@@ -507,6 +507,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NFR-003 — Performance, availability, accessibility
 - Requirement: Targets to be defined by owner — Q-050. No numeric target is assumed.
+- Long-term aspiration, **not a capacity target**: FitSphere aims to support up to 20 million users. Phase 1 starts on free tiers (C-008). ADR-0002 and ADR-0003 must explain how the chosen backend and database can grow toward this without a rewrite, and what each stage would cost (D-15).
 
 ### REQ-NFR-004 — Offline logging and data on the device
 - Type: Functional, Operational, Security
@@ -514,7 +515,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - **The server is the permanent record.** No device rule ever deletes a user's full history; on sign-in, even years later, the app restores it from the server (D-14).
   - **Encryption:** health data stored on the device is encrypted (D-10), invisibly to the user — no extra passwords, no lost features, and offline logging still works (D-14).
   - **Ended links:** the former coach's or Head Coach's app deletes that trainee's data from the device on its next sync (D-13).
-  - **30 days without a sync:** the app clears only (a) unfinished drafts, such as typed meal text never sent for AI reading, and (b) other people's data copied onto a coach's or Head Coach's phone. Cleared trainee data comes back on the next sync if the link is still active (D-14).
+  - **30 days without a sync:** the app clears only (a) unfinished drafts, such as typed meal text never sent for AI reading, and (b) other people's data copied onto a coach's or Head Coach's phone. Cleared trainee data comes back on the next sync if the link is still active (D-14). Three days before an unfinished draft is cleared, the app shows a reminder: "You have an unfinished meal entry. It will be removed in 3 days." (D-15)
   - **Never cleared automatically:** the user's own entries waiting to sync — they are the only copy and stay until synced (D-14).
 - Acceptance criteria:
   - Given the device is offline, when the user logs their weight, then it is saved on the device and shown in their data; when the connection returns, it is synced.
@@ -524,6 +525,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a user who signs in on a new or reset phone, then the app restores their full history from the server (D-14).
   - Given a link that has ended, when the former coach's or Head Coach's app next syncs, then it deletes that trainee's data from the device (D-13).
   - Given a phone that has not synced for 30 days, then unfinished drafts and other people's data on it are cleared; the user's own entries waiting to sync are kept (D-14).
+  - Given an unfinished draft that will be cleared in 3 days, then the app shows the reminder "You have an unfinished meal entry. It will be removed in 3 days." (D-15)
   - Given cleared trainee data on a coach's phone whose link is still active, when the phone next syncs, then that data comes back (D-14).
 - Open: which steps work offline follows the proposed split in D-04, to confirm (Q-077); how offline changes are synced and conflicts resolved (ADR-0007). If an encryption choice would break a feature, it is raised as a question, not applied (D-14).
 
