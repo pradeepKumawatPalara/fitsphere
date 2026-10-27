@@ -65,7 +65,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given Head Coach view, when they add a Coach, then that Coach appears in their coach list.
   - Given a Coach not under this Head Coach, then it cannot be viewed, updated or deleted by them.
-- Open: does "add" create a new account, invite by email, or assign an existing user (Q-009)? What happens to a deleted Coach's trainees (Q-010)?
+- Open: does "add" create a new account, invite by email, or assign an existing user (Q-009)? What happens to a deleted Coach's trainees (Q-010)? Is a "Coach record" the person's user account or a separate record (Q-058)?
 
 ### REQ-ROLE-004 — Head Coach: hierarchy visibility
 - Requirement: A Head Coach can view details of their coaches and of trainees assigned to those coaches.
@@ -73,7 +73,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given Head Coach view, then each managed coach and that coach's trainees are listed.
   - Trainees of coaches outside their hierarchy are not visible.
-- Open: what "details" include (logs? targets? only summaries?), and whether a Head Coach may *edit* trainee plans (BRD "manage and oversee") — Q-021.
+- Open: what "details" include (logs? targets? only summaries?), and whether a Head Coach may *edit* trainee plans (BRD "manage and oversee") — Q-021. Whether a coach's own Personal Training User data is visible up the hierarchy — Q-061.
 
 ### REQ-ROLE-005 — Coach: manage trainee records
 - Requirement: A Coach can create, view, update and delete trainee records for trainees directly assigned to them.
@@ -81,7 +81,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given Coach view, then only directly assigned trainees are listed.
   - A Coach cannot read or change a trainee assigned to another coach.
-- Open: does "delete" remove the trainee's account and data, or only unassign them (Q-010)? How is a trainee added (Q-009)?
+- Open: does "delete" remove the trainee's account and data, or only unassign them (Q-010)? How is a trainee added (Q-009)? Is a trainee record the user account (Q-058)? Which trainee data can the coach see (Q-059)? Can the trainee end the relationship (Q-060)?
 
 ### REQ-ROLE-006 — Coach: set targets and plans
 - Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001).
@@ -269,6 +269,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-LOG-006 — Photo entry
 - Requirement: A camera button captures a meal photo or nutrition label for parsing.
+- Open: whether images are kept after parsing, for how long and who can see them (Q-064).
 
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode, Eaten before (past meals) and Saved (your meals) are available and work without AI (REQ-ACC-005).
@@ -278,7 +279,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Best-practice tips (amounts in grams; raw vs cooked, e.g. cooked rice weighs about 3× raw; name each food separately) and a collapsible Examples section (Best, Vague, Say) with Hide.
 
 ### REQ-LOG-009 — AI parsing
-- Requirement: AI converts text, voice and photo input into food items with quantities (and nutrition values) that the user reviews before saving.
+- Requirement: AI converts text, voice and photo input into food items with quantities (and nutrition values) that the user reviews before saving. *(Reading: BRD §8 says AI produces "food items and quantities" only. Whether the review shows nutrition values is Q-062; where those values come from is Q-063.)*
 - Type: Functional, Privacy
 - Acceptance criteria:
   - Given AI consent is off, then no meal text, photo, voice or label is sent to an AI service, and the user is offered non-AI methods.
@@ -355,6 +356,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a new user, then AI is off until they consent. *(Default-off — A-007.)*
   - When consent is withdrawn, then no further data is sent to AI.
   - Consent changes are recorded with a timestamp. *(A-007.)*
+- Open: what else a consent record must contain (Q-065).
 
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
@@ -375,6 +377,12 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Type: Privacy
 - Requirement: "Delete account" opens a separate flow.
 - Status: **Blocked — Q-048** (flow, data deleted vs retained, effect on coach/trainee links not defined).
+
+### REQ-ACC-010 — Sign-up and sign-in
+- Type: Security
+- Requirement: A person can create an account and sign in before using any role view. *(Not in the BRD, which mentions only change password, log out and delete account; every flow in `flow.md` starts signed in.)*
+- Status: **Blocked — Q-047** (sign-up and sign-in methods, forgot password, email verification and social login are not defined). A-008 (email + password) is a low-confidence assumption, not a decision.
+- Open: minimum age (Q-066); accounts created by a coach or head coach (Q-009).
 
 ---
 

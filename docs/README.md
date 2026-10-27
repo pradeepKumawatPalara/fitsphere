@@ -16,13 +16,14 @@ Last updated: 2026-10-27
 | 1 | [`CLAUDE.md`](../CLAUDE.md) | Draft | Tech lead | Claude Code entry point |
 | 2 | `docs/README.md` (this file) | Draft | Product owner | Index |
 | 3 | [`product/product-brief.md`](product/product-brief.md) | Draft | Product owner | Problem, users, scope, non-goals |
+| 3a | [`product/glossary.md`](product/glossary.md) | Draft | Product owner | Terms the documents use inconsistently or leave undefined |
 | 4 | [`product/requirements.md`](product/requirements.md) | Draft | Product owner | Testable REQ IDs |
 | 5 | [`architecture/constraints-and-assumptions.md`](architecture/constraints-and-assumptions.md) | Draft | Tech lead | Constraints, assumptions, open questions |
 | 6a | [`product/user-journeys.md`](product/user-journeys.md) | Draft | Product owner | Actor journeys |
 | 6b | [`../flow.md`](../flow.md) | Draft | Tech lead | High-level flows |
 | 7 | `architecture/system-context.md` | Missing | Tech lead | System boundary, externals, trust boundaries |
 | 8 | `security/data-and-threat-model.md` | Missing | Security owner | Data categories, threats, controls |
-| 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Index only | Tech lead | ADRs (all pending) |
+| 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Tech lead | ADR index and template; ADR-0001 to 0006 are Missing |
 | 10 | `contracts/` | Missing | Tech lead | Data, API, error, integration contracts |
 | 11 | `quality/test-strategy.md`, `definition-of-done.md` | Missing | QA owner | Verification |
 | 12 | `operations/runbook.md` | Missing | Ops owner | Setup, deploy, recovery |
