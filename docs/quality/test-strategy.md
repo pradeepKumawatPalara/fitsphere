@@ -1,8 +1,8 @@
 # Test Strategy
 
-- Status: Draft — agreed when the owner approves the Skeleton plan
+- Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28
 - Builds on: [`definition-of-done.md`](definition-of-done.md); contracts in [`../contracts/`](../contracts/);
   the validation steps of ADR-0001 to ADR-0007
 
@@ -141,7 +141,7 @@ builds the feature.
 
 ## Where checks run
 
-| Check | On the PC | GitHub Actions (every push and pull request) |
+| Check | On the PC | GitHub Actions (pushes to `main` and every pull request) |
 |---|---|---|
 | Lint | Yes | Yes |
 | Type-check (each package) | Yes | Yes |
@@ -159,5 +159,16 @@ CI rules:
 - A red check is fixed before more work is added on top of it.
 
 ## Tools
-*Proposed in the Skeleton plan; this section is updated when the owner approves it.* The levels
-and rules above do not depend on the tools.
+Approved with the [Skeleton plan](../plans/skeleton-slice.md) on 2026-10-28. The levels and rules
+above do not depend on the tools.
+
+| Use | Tool | Where |
+|---|---|---|
+| Unit, integration, authorization and database tests | Vitest | `packages/shared`, `apps/api` |
+| API requests in tests | Fastify's in-process request helper (`inject`); no network | `apps/api` |
+| App unit and component tests | Jest with the `jest-expo` preset, and React Native Testing Library | `apps/mobile`, from Skeleton step 2 |
+| Lint and types | ESLint with typescript-eslint; TypeScript `~6.0` in strict mode, the version Expo SDK 58 uses | Whole repository |
+| Test database | PostgreSQL 17: installed natively on the PC (D-18 answer 14); a service container in CI | `TEST_DATABASE_URL` |
+| CI | GitHub Actions: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | — |
+
+How to run each check: [runbook](../operations/runbook.md#7-install-the-code-and-run-the-checks).

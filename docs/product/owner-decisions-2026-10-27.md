@@ -387,7 +387,8 @@
 
 ## D-18 MVP first; ADR-0004 to ADR-0007 accepted (answers Q-038, Q-059, Q-066, Q-068 and T-05; sets MVP defaults)
 - Status: **Accepted** (owner instruction in chat, 2026-10-27; [`mvp-scope.md`](mvp-scope.md)
-  Accepted). Answers 11 to 13 are the owner's confirmations, given later the same day.
+  Accepted). Answers 11 to 13 are the owner's confirmations, given later the same day. Answer 14
+  was given on 2026-10-28 with the approval of the Skeleton slice plan.
 - Answers:
   1. **MVP first:** "deliver the basic requirements; don't ask deep edge cases; cover missed
      edge cases in future releases." Build the basic product in `mvp-scope.md` section 2,
@@ -431,6 +432,14 @@
       ([`backlog.md`](backlog.md) B-16); what it would need is for Legal (Q-049).
   13. **Who can accept an invitation (answers T-05):** an invitation can be accepted only by an
       account with the invited email address.
+  14. **Skeleton slice (2026-10-28):** the owner approved
+      [`docs/plans/skeleton-slice.md`](../plans/skeleton-slice.md), with these answers:
+      - **Minimum password length: 8 characters.** No character-type rules. A security setting,
+        so the owner's answer was needed under answer 4 (REQ-ACC-010).
+      - **The Expo push check stays in the Skeleton**, as D-13 answer 9 requires. It needs a free
+        Firebase project, with its FCM credentials uploaded to Expo (ADR-0001 step 7).
+      - **Integration tests on the PC use PostgreSQL 17 installed natively**, not Docker Desktop.
+      - **Each step goes on its own branch with a pull request; CI must pass before merge.**
 - **Interpretation (confirmed, answer 11):** nutrition-label photos are input for reading, like voice
   recordings (D-16 answer 5), not stored media. Deleting them after reading (Q-064 default)
   therefore does not conflict with D-16 answer 6.
@@ -456,7 +465,8 @@
   product brief; glossary. For answers 11 to 13: REQ-ACC-010, REQ-ROLE-008 and REQ-ROLE-009;
   threat model (account data, invitations, T-05, open risks); constraints (MVP defaults, Q-049,
   Q-066); backlog B-16; ADR-0004 open-questions table; decisions index; `flow.md`; journeys;
-  product brief.
+  product brief. For answer 14: `docs/plans/skeleton-slice.md`; REQ-ACC-010; runbook (local
+  setup); `CLAUDE.md` current phase; docs index.
 
 ---
 

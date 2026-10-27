@@ -15,4 +15,13 @@ desktop.ini
 # Claude Code local-only settings
 .claude/settings.local.json
 
-# Stack-specific entries will be added once ADR-0001/0002 are accepted.
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Expo: caches, and the native projects generated at build time (ADR-0001)
+.expo/
+apps/mobile/android/
+apps/mobile/ios/

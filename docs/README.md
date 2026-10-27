@@ -1,7 +1,7 @@
 # Documentation Index
 
 Owner of this index: Project owner (D-01)
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 
 ## Status definitions
 - **Missing** — not written yet.
@@ -28,8 +28,9 @@ Last updated: 2026-10-27
 | 8 | [`security/data-and-threat-model.md`](security/data-and-threat-model.md) | Draft | Project owner | Data categories, threats, controls |
 | 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 and 0003 are Accepted (D-17), ADR-0004 to 0007 are Accepted (D-18), ADR-0008 is a planned slot |
 | 10 | [`contracts/`](contracts/) | Draft | Project owner | For the Skeleton slice: [`data-model.md`](contracts/data-model.md), [`api-conventions.md`](contracts/api-conventions.md), [`error-model.md`](contracts/error-model.md). `integrations.md` is not needed yet |
-| 11 | [`quality/test-strategy.md`](quality/test-strategy.md), [`definition-of-done.md`](quality/definition-of-done.md) | Draft | Project owner | Verification; agreed when the owner approves the Skeleton plan |
-| 12 | [`operations/runbook.md`](operations/runbook.md) | Draft | Project owner | Local setup (not yet run on the owner's PC), configuration names, paused project (D-16) |
+| 11 | [`quality/test-strategy.md`](quality/test-strategy.md), [`definition-of-done.md`](quality/definition-of-done.md) | Accepted | Project owner | Verification; agreed with the Skeleton plan (2026-10-28) |
+| 12 | [`operations/runbook.md`](operations/runbook.md) | Draft | Project owner | Local setup (install and check commands verified on the owner's PC; the rest not yet run), configuration names, paused project (D-16) |
+| 13 | [`plans/skeleton-slice.md`](plans/skeleton-slice.md) | Accepted | Project owner | The Skeleton slice: steps, checks and progress (D-18 answer 14) |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.

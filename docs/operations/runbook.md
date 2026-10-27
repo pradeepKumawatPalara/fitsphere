@@ -28,7 +28,7 @@ Commands that need the monorepo (install, run, test) are added when the Skeleton
 | Supabase account | Free plan, project in South Asia (Mumbai) | Database and sign-in (ADR-0002, ADR-0004) |
 | Expo account | Free plan | EAS iOS compile check (ADR-0001 step 5) and push credentials (ADR-0001 step 7) |
 | Firebase project | Free | FCM credentials for push on Android, used only for the push check (ADR-0001 step 7, D-13 answer 9, ADR-0004 rule 6) |
-| PostgreSQL 17 on the PC | Only if the Skeleton plan chooses local database tests | Integration tests; Supabase's current default is PostgreSQL 17 |
+| PostgreSQL 17 on the PC | Installed natively for Windows, not in Docker (owner's choice, D-18 answer 14) | Integration, authorization and database tests; Supabase's current default is PostgreSQL 17 |
 | A password manager | Any | Where secret values are kept (see "Secrets on the PC") |
 
 Not needed for the Skeleton: Resend and a domain (invitations slice), or a Google Cloud billing
@@ -43,9 +43,8 @@ Read-only checks from VS Code; nothing was installed or changed.
   there is no NDK yet. The user-level `ANDROID_HOME` and the `platform-tools` entry in `Path` are
   set, but VS Code terminals see them only after VS Code is restarted.
 - Emulator `emulator-5554` runs Android API level 37 (x86_64); `adb devices` lists it.
-- No PostgreSQL. Docker Desktop is installed but was not running; its free licence covers
-  personal use and small businesses only, so check that it fits before using it for the test
-  database.
+- No PostgreSQL yet; the owner chose a native install of PostgreSQL 17 (D-18 answer 14). Docker
+  Desktop is installed but is not used for the test database.
 - IPv6 works, so `MIGRATION_DATABASE_URL` can use the direct connection.
 - Not stated by the owner: a real Android phone, a password manager, a Firebase project.
 
@@ -112,7 +111,7 @@ it when the Skeleton's database step starts.
      in (Q-080 MVP default).
    - **Email OTP Expiration:** keep the default of 3,600 seconds (1 hour). It also covers reset
      links. Q-080 asks for 24 hours or less.
-   - **Minimum password length:** the value the owner chooses in the Skeleton plan. Supabase's
+   - **Minimum password length: 8**, with no character-type rules (D-18 answer 14). Supabase's
      docs do not state its default and say anything under 8 is not recommended. Leaked-password
      protection needs the Pro plan, so it is not available.
 4. **Confirm phone:** turn it on too, even though phone sign-in stays off. Supabase's sign-up
@@ -154,12 +153,34 @@ accordingly. Resend replaces it in the invitations slice (ADR-0004 rule 1).
 - Since Expo SDK 58, Expo commands read `.env` but not variants such as `.env.test`; keep the
   app's values in `apps/mobile/.env`.
 - Never paste secret values into chat, issues, commits, screenshots or logs. Claude Code is
-  told not to read `.env` files (the Skeleton plan proposes the setting).
+  denied reading or writing `.env` files by the committed `.claude/settings.json`. This covers
+  its file tools (Read, Grep, Glob, Edit, Write), not its shell commands, because Claude Code's
+  sandbox is off.
 - If a secret leaks: change it in the provider's dashboard first, then update the password
   manager and the `.env` file.
 
-### 7. Running the app against the API on the PC
-*Not yet written; added when the Skeleton creates the monorepo.* Points to verify then:
+### 7. Install the code and run the checks
+Verified on the owner's PC on 2026-10-28 (Node 24.21.0, npm 11.19.0). Run from the repository
+root:
+
+| Command | What it does |
+|---|---|
+| `npm install` | Installs every workspace (`apps/*`, `packages/*`) from `package-lock.json`. CI uses `npm ci` |
+| `npm run lint` | ESLint over the whole repository |
+| `npm run typecheck` | TypeScript checks in each workspace; no files are written |
+| `npm test` | Unit tests in each workspace (Vitest) |
+| `npm run test:integration` | Database tests; they need `TEST_DATABASE_URL`. None exist yet (Skeleton step 4) |
+| `npm run dev -w @fitsphere/api` | Runs the API at `http://127.0.0.1:3000` and restarts it on changes; reads `apps/api/.env` if it exists |
+
+The API runs its TypeScript files directly on Node 24, with no build step. It listens only on
+the PC's own loopback address: the Android emulator reaches it at `10.0.2.2`, and nothing else
+on the local network can. Check: `http://127.0.0.1:3000/v1/health` in a browser shows
+`{"status":"ok"}`. Use `127.0.0.1` rather than `localhost`: on this PC `localhost` resolves to the
+IPv6 address `::1` first, which the API does not listen on, so some tools wait before falling
+back. Stop the API with Ctrl+C in its terminal.
+
+### 8. Running the app against the API on the PC
+*Not yet written; added in Skeleton step 2.* Points to verify then:
 - From the emulator, the PC is `http://10.0.2.2:<port>`; from a phone over USB, run
   `adb reverse tcp:<port> tcp:<port>` and use `http://localhost:<port>`.
 - Android blocks plain HTTP by default, and Expo's `usesCleartextTraffic` setting defaults to

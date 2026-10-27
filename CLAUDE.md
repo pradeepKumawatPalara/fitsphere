@@ -5,7 +5,9 @@ FitSphere is a coach-led fitness app. Clients log food, body metrics and workout
 targets set by their coach; Coaches manage their trainees; Head Coaches manage Coaches.
 
 ## Current phase
-**Pre-development (documentation).**
+**Skeleton slice — the first implementation slice.** Plan approved by the owner on 2026-10-28:
+`docs/plans/skeleton-slice.md`. One branch and pull request per step; CI must pass before merge;
+stop after each step for the owner's check (D-18 answer 14).
 
 **MVP first (D-18).** Build the basic product in `docs/product/mvp-scope.md`, Android first.
 Post-MVP work and deferred edge cases go to `docs/product/backlog.md`. When an open question
@@ -54,7 +56,8 @@ Do not scaffold an app, add dependencies or pick frameworks until the relevant A
 - Original business requirements (input, not edited): `docs/product/source/business-requirements.txt`
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
-- Verification (Draft): `docs/quality/test-strategy.md`, `definition-of-done.md`
+- Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
+- Current slice plan (Accepted): `docs/plans/skeleton-slice.md`
 - Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.
