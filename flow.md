@@ -4,7 +4,8 @@
 - Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 
-High-level only. Components below are **logical**; no technology is chosen (see
+High-level only. Components below are **logical**. Only the mobile framework is chosen —
+React Native with Expo (ADR-0001, Accepted, D-12); nothing else is (see
 `docs/architecture/decisions/`). Detailed schemas will live in `docs/contracts/`.
 
 ## Main user journey (trainee daily loop)
@@ -36,8 +37,8 @@ flowchart TD
 ```mermaid
 flowchart LR
     HC[Head Coach] -- invite · accept · unassign · REQ-ROLE-003 --> CO[Coach]
-    HC -- sees coaching activity only · D-10 --> CO
-    HC -. plans of trainees who allowed it · REQ-ROLE-004 · REQ-ROLE-013 .-> TE
+    HC -- coaching activity: counts only · D-10 · D-13 --> CO
+    HC -. data, plans and targets of trainees who allowed it · REQ-ROLE-004 · REQ-ROLE-013 .-> TE
     CO -- invite · accept · unassign · REQ-ROLE-005 --> TE[Trainee]
     CO -- targets, diet plan, training plan · REQ-ROLE-006 --> TE
     TE -- logs food, body metrics, workouts --> DATA[(Trainee data)]
@@ -89,8 +90,9 @@ boundaries is in [`docs/architecture/system-context.md`](docs/architecture/syste
 
 Failure paths to design: AI/food-database timeout or error (keep user input, offer
 alternatives); offline device (log on the device and sync later; every queued change is
-re-authorized at sync — REQ-NFR-004, ADR-0007); consent withdrawn mid-request.
+re-authorized at sync — REQ-NFR-004, ADR-0007); consent withdrawn mid-request; a link that ends
+(the former coach's or Head Coach's app deletes that trainee's data on its next sync — D-13).
 
 ## Open questions affecting flows
-Q-038, Q-039, Q-049, Q-077, Q-082, Q-083, Q-084, Q-085 — see
+Q-038, Q-039, Q-049, Q-075, Q-077, Q-082, Q-083 — see
 [`docs/architecture/constraints-and-assumptions.md`](docs/architecture/constraints-and-assumptions.md).

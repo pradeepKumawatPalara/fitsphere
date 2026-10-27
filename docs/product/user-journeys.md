@@ -64,22 +64,22 @@ Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011, 012, 013, 014, 015
 2. Enters the trainee's email. The app always shows "Invitation sent" and never says which channel was used (REQ-ROLE-011). The system picks the channel (D-11):
    - **No FitSphere account:** the person gets an invitation email with a sign-up link, signs up, then accepts (REQ-ROLE-008).
    - **Registered user:** the invitation arrives in the app — a push notification plus the in-app invitations list, so it is not lost if push is off (REQ-ROLE-009).
-   - If the trainee already has a coach, accepting ends that link first (REQ-ROLE-015).
+   - If the trainee already has a coach, the accept screen warns that accepting ends that link; on accepting, it ends first and the old coach gets a neutral message (REQ-ROLE-015, D-13).
    - If this coach has a Head Coach, the trainee is also asked during acceptance whether to allow that Head Coach to see their logs and edit their plans (REQ-ROLE-013).
    The trainee appears in the list only after accepting; the coach then sees their past activity too (REQ-ROLE-012).
 3. Opens the trainee, sets calorie and protein targets and weekly workout target *(Q-013)*.
 4. Builds a diet plan (meals with up to 3 options, protein source first) and a training plan, and sends them.
-5. Trainee's Diet plan shows "Set by your coach" targets; Training shows the plan.
+5. Trainee's Diet plan shows "Set by your coach" targets with who made the latest change and when; Training shows the plan (D-13). If the coach has a Head Coach whom the trainee allowed, that Head Coach can also change these (REQ-ROLE-004).
 Failure: Coach tries to open a trainee of another coach → refused (REQ-ROLE-005).
-Removal: Coach removes a trainee, or the trainee leaves (REQ-ROLE-014) → the link ends, no data is deleted, and the coach loses access to all of the trainee's data, including past data (D-07, D-10, D-11).
+Removal: Coach removes a trainee, or the trainee leaves (REQ-ROLE-014) → the link ends, no data is deleted, and the coach loses access to all of the trainee's data, including past data (D-07, D-10, D-11). If the trainee left, the coach gets a neutral message: "<name> is no longer linked with you". The coach's app deletes the trainee's data from the phone on its next sync (D-13).
 
 ## J-09 Head Coach manages coaches
 Actor: Head Coach · REQ-ROLE-001, 003, 004, 008, 009, 010, 011, 013, 014, 015
 1. Profile → turns on the Head Coach role (any user can, D-06) → role selector → Head Coach.
 2. Enters a coach's email; the app shows only "Invitation sent" (REQ-ROLE-011). The coach gets an invitation email with a sign-up link if they have no account (REQ-ROLE-008), or an in-app invitation — push plus the invitations list — if they do (REQ-ROLE-009).
-3. When the coach accepts, this Head Coach becomes their Head Coach (D-11). If the coach had another Head Coach, that link ends first and the old Head Coach loses all access immediately (REQ-ROLE-015). The Head Coach then sees the coach's coaching activity, including past activity — never the coach's own personal logs (REQ-ROLE-010).
-4. Each of the coach's trainees gets an in-app request: "Allow Head Coach <name> to see your logs and edit your plans?" (REQ-ROLE-013). The Head Coach sees a trainee's data, and can edit their diet and training plans (REQ-ROLE-004), only for trainees who allow it. A trainee can change the answer at any time in Settings.
-5. Removes (unassigns) a Coach, or the coach leaves (REQ-ROLE-014) → no data is deleted; access to all of that coach's data and their trainees' data ends (D-07, D-10, D-11).
+3. When the coach accepts, this Head Coach becomes their Head Coach (D-11). If the coach had another Head Coach, their accept screen warns that accepting ends that link; the link ends first, and the old Head Coach loses all access immediately and gets a neutral message (REQ-ROLE-015, D-13). The Head Coach then sees the coach's coaching activity, including past activity — counts only: number of trainees; allowed / declined / pending; plans sent — and never the coach's own personal logs (REQ-ROLE-010, D-13).
+4. Each of the coach's trainees gets an in-app request: "Allow Head Coach <name> to see your logs and edit your plans?" (REQ-ROLE-013). The Head Coach sees a trainee's data, and can set their diet plan, training plan, and calorie and protein targets (REQ-ROLE-004, D-13), only for trainees who allow it. Every change shows its author and time to the trainee and the coach. A trainee can change the answer at any time in Settings.
+5. Removes (unassigns) a Coach, or the coach leaves (REQ-ROLE-014) → no data is deleted; access to all of that coach's data and their trainees' data ends (D-07, D-10, D-11). If the coach left, the Head Coach gets a neutral message: "<name> is no longer linked with you". The Head Coach's app deletes those trainees' data from the phone on its next sync (D-13).
 Failure: attempts to view a coach outside their hierarchy → refused.
 
 ## J-10 User changes settings

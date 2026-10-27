@@ -179,11 +179,73 @@
   `docs/architecture/system-context.md` drafted; journeys J-08 to J-10 updated; product brief
   Future scope (other invitation channels).
 
+## D-12 ADR-0001 accepted without the spike
+- Status: **Accepted** (answer given by the project owner in chat, 2026-10-27)
+- Answer: skip the ADR-0001 validation spike and mark ADR-0001 **Accepted** — Option A, React
+  Native with Expo and TypeScript, using development builds and EAS Build. The spike's checks
+  move into the first slices.
+- ADR-0001 is accepted while four of its dependencies are still open: Q-020 and Q-052 (coach
+  screen layout and designs), Q-068 (web dashboard for coaches — already a revisit condition)
+  and Q-083 (push service — checked in the first slice, D-13).
+- Risk accepted: a problem with the framework may only be found once the first slices are
+  built (R-002).
+- Doc changes: ADR-0001 status, decision and validation plan; decisions index; R-002; suggested
+  first slice; `CLAUDE.md` current phase; docs index; system context; `flow.md`.
+
+## D-13 Head Coach visibility, targets, invitation safeguards, phone copies and operator (answers Q-084, Q-085; updates Q-075)
+- Status: **Accepted** (answers given by the project owner in chat, 2026-10-27)
+- Answers:
+  1. **Coaching activity (Q-085):** without a trainee's permission, a Head Coach sees only
+     counts per coach: number of trainees; how many have allowed, declined or not yet answered
+     (pending); plans sent. No trainee names or data.
+  2. **Targets and plans (Q-075, updated):** both the Coach and the Head Coach can set a
+     trainee's diet plan, training plan, and calorie and protein targets. The Coach can do this
+     for their own trainees; the Head Coach only while that trainee allows Head Coach access
+     (REQ-ROLE-013). Each change records who made it and when, so the trainee and both coaches
+     can see the latest change and its author.
+  3. **Invitations:** invitation links work once and expire after 7 days; the sender domain has
+     SPF, DKIM and DMARC set up; the accept screen warns that accepting ends the current link.
+     These move from "proposed" to decided in the threat model (T-04, T-05, T-06).
+  4. **Settings and consent:** Coaches and Head Coaches cannot see a trainee's settings or AI
+     consent. A Head Coach sees only each trainee's permission status (allowed / declined /
+     pending).
+  5. **Phone copies:** when a link ends, the former coach's or Head Coach's app deletes that
+     trainee's data from the device on its next sync. Input to ADR-0007; threat T-06.
+  6. **Operator (updated):**
+     - Phase 1: the project owner is the only operator. No support staff. Any admin access to
+       user data is logged.
+     - Future scope: a fourth role, "Platform Admin" (the business owner), with the rights
+       needed to run FitSphere as a business. Not designed now.
+     - New open question Q-086 (Project owner + Legal): which Platform Admin rights include
+       viewing users' personal health data, and under what controls (need-to-know only, every
+       access logged, user notified where the law requires).
+  7. **Leaving and switching (Q-084):** when a link ends by leaving or switching, the other side
+     always gets a neutral message: "X is no longer linked with you".
+  8. **Permission answers:** kept while the account exists; how long they are kept after the
+     account is deleted is decided with Legal (Q-049).
+  9. **ADR-0001:** push notifications added to the decision criteria; verify Expo push support
+     in the first slice.
+  10. **Invariant #1:** the two proposed wording changes are applied ("only while that trainee
+      allows it"; "Ending a link — by removal, leaving or switching —"), and it now says a Head
+      Coach may set plans and targets only while the trainee allows it.
+- **Interpretation:** answers 1 and 4 read together — a Head Coach sees trainees who have
+  declined or not answered only within the counts, with no names; trainees who have allowed
+  access are shown by name. *(Confirm.)*
+- **Interpretation:** "links" in answer 3 means the sign-up link in an invitation email.
+  Whether in-app invitations also expire stays open (Q-073). *(Confirm.)*
+- Still open from Q-075: which change wins if the Coach and the Head Coach edit at the same time
+  (ADR-0007).
+- Doc changes: REQ-ROLE-004/005/006/008/010/011/013/014/015, REQ-PLAN-001, REQ-NFR-001 and
+  REQ-NFR-004 updated; REQ-NFR-005 (operator access) added; Q-075 partly answered; notes on
+  Q-049, Q-059, Q-073 and Q-083; Q-086 added; threat model (matrix, T-04 to T-06 decided, T-07
+  added, retention); ADR-0001 decision criteria and checks; ADR-0007 inputs; system context;
+  glossary; product brief; journeys J-08 and J-09; `flow.md`; invariant #1.
+
 ---
 
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
-Invariant #1 was then updated for D-10; the rules file holds the current wording.)*
+Invariant #1 was later updated for D-10 and D-13; the rules file holds the current wording.)*
 
 - **Invariant #1 (new):** Authorization is server-side. A user can access another person's
   data only through an **accepted** link: Coach → their accepted trainees; Head Coach → their

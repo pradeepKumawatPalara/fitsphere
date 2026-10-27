@@ -5,7 +5,9 @@ FitSphere is a coach-led fitness app. Clients log food, body metrics and workout
 targets set by their coach; Coaches manage their trainees; Head Coaches manage Coaches.
 
 ## Current phase
-**Pre-development (documentation).** No technology stack has been approved yet.
+**Pre-development (documentation).** Only the mobile client framework is approved: React
+Native with Expo (ADR-0001, Accepted — D-12); its validation checks run in the first slices.
+The backend, database, authorization and other choices are not approved yet.
 Do not scaffold an app, add dependencies or pick frameworks until the relevant ADRs in
 `docs/architecture/decisions/` are marked **Accepted** by the decision owner.
 

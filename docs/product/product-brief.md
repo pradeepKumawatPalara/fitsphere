@@ -18,7 +18,7 @@ Evidence: not yet documented. *(Open — Q-002: what user research or business c
 |---|---|
 | Personal Training User (trainee / client) | Logs food, weight, steps, sleep, measurements and workouts; follows coach-set targets and plans. May also use the app without a coach. |
 | Coach | Manages directly assigned trainees; sets calorie/protein targets, diet plans and training plans. |
-| Head Coach | Invites and manages Coaches; sees their coaching activity, and a trainee's data only after that trainee agrees (D-10). |
+| Head Coach | Invites and manages Coaches; sees counts of their coaching activity (D-13), and sees a trainee's data and sets their plans and targets only while that trainee allows it (D-10, D-13). |
 
 One person may hold several roles and switch between them in their profile (REQ-ROLE-001).
 
@@ -52,6 +52,10 @@ Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built no
   allows (D-06). These would need payments, which are a proposed non-goal for the first release.
 - Users outside India and multiple time zones (D-09).
 - Invitation channels other than email and in-app, such as SMS or WhatsApp (D-11).
+- A fourth role, **Platform Admin**, for the business owner, with the rights needed to run
+  FitSphere as a business (D-13). Not designed yet; which of its rights include users' health
+  data, and under what controls, is open (Q-086). In phase 1 the project owner is the only
+  operator.
 
 ## Success measures
 Not defined in the BRD. *(Open — Q-004.)* Candidate measures for the owner to choose from:

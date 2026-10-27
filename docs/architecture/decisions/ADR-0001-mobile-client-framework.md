@@ -1,17 +1,19 @@
 # ADR-0001: Mobile client framework
 
-- Status: **Proposed**
+- Status: **Accepted** by the project owner on 2026-10-27 without the validation spike (D-12).
+  Criterion 8 (push notifications, D-13) was added in the same change, before acceptance.
 - Date: 2026-10-27
 - Decision owner: Project owner
-- Related requirements: REQ-NAV-*, REQ-LOG-005 (voice), REQ-LOG-006 (camera), REQ-LOG-007 (barcode), REQ-MEAS-001 (bottom sheets), REQ-NFR-004 (offline, proposed)
-- Related constraints/decisions: C-007, C-008 (budget), D-01 (solo developer), D-02 (Android + iOS), D-03 (React Native / JS / Node preference), D-04 (offline), D-10 (Android-first)
+- Related requirements: REQ-NAV-*, REQ-LOG-005 (voice), REQ-LOG-006 (camera), REQ-LOG-007 (barcode), REQ-MEAS-001 (bottom sheets), REQ-ROLE-009 (push), REQ-NFR-004 (offline, proposed)
+- Related constraints/decisions: C-007, C-008 (budget), D-01 (solo developer), D-02 (Android + iOS), D-03 (React Native / JS / Node preference), D-04 (offline), D-10 (Android-first), D-12 (accepted without the spike), D-13 (push)
 - Supersedes: None
 
 ## Context
 FitSphere needs one app for Android and iOS (D-02), built and maintained by one developer
 working about 40 hours a week (D-01). The app must use the camera (meal photos, nutrition
 labels), barcode scanning, microphone (voice meals), local storage for offline logging (D-04),
-charts (Progress), and bottom sheets. The owner prefers React Native with JavaScript, but will
+push notifications for in-app invitations (REQ-ROLE-009, D-11), charts (Progress), and bottom
+sheets. The owner prefers React Native with JavaScript, but will
 change if functionality or scalability would suffer (D-03). Budget is free tiers first (C-008).
 
 Known: the owner develops on Windows and has neither a Mac nor an iPhone, so phase 1 is
@@ -31,6 +33,7 @@ and access to device features.
 5. **Should:** free to build and test at phase-1 volume.
 6. **Should:** smooth on low-end Android devices.
 7. **Should:** large ecosystem; Claude Code works well with it.
+8. **Must:** push notifications, for in-app invitation alerts (REQ-ROLE-009; added by D-13).
 
 ## Options considered
 
@@ -51,7 +54,8 @@ and access to device features.
     only architecture from React Native 0.82 onward. Check each library before adopting it.
   - JavaScript-based UI can stutter on low-end phones if lists and charts are not built
     carefully.
-- Fit against constraints: meets 1, 2, 3, 4, 5, 7; 6 needs care.
+- Fit against constraints: meets 1, 2, 3, 4, 5, 7; 6 needs care; 8 not yet verified — verify
+  Expo push support in the first slice (D-13).
 - Evidence and uncertainty: Expo and Play/Apple pricing pages read 2026-10-27; New
   Architecture status from a 2026 industry article — confirm against the React Native release
   notes at setup. Offline database choice (e.g. expo-sqlite vs. a sync library) belongs to
@@ -61,7 +65,8 @@ and access to device features.
 - Benefits: same language as A; full control of native projects.
 - Costs and risks: you maintain Android and iOS native projects yourself; iOS builds need a Mac
   or a separately configured cloud CI; native upgrades are a known time sink.
-- Fit: meets 1, 2, 4, 7; fails 3 without extra paid tooling; weaker on 5 for a solo developer.
+- Fit: meets 1, 2, 4, 7; fails 3 without extra paid tooling; weaker on 5 for a solo developer;
+  8 not assessed.
 - Why it loses: all of its control is available from Option A when needed (Expo development
   builds allow custom native code), without the maintenance cost.
 
@@ -70,18 +75,25 @@ and access to device features.
   camera, barcode and SQLite plugins; good charting.
 - Costs and risks: Dart is a new language for the owner; the backend would be a second
   language (no shared code with Node); iOS builds from Windows need a cloud CI service.
-- Fit: meets 1, 2, 6; partial on 3, 5; fails 4.
+- Fit: meets 1, 2, 6; partial on 3, 5; fails 4; 8 not assessed.
 - Why it loses: its main advantage (rendering performance) is not a stated bottleneck for this
   app's screens (forms, lists, simple charts), and the cost is learning a new language alone.
 
 ### Option D — Native apps (Kotlin for Android + Swift for iOS)
 - Benefits: best performance and earliest access to platform features.
 - Costs and risks: two codebases, two languages, and iOS work needs a Mac.
-- Fit: fails 1, 3, 4.
+- Fit: fails 1, 3, 4; 8 not assessed.
 - Why it loses: doubles the work for one developer.
 
 ## Decision
-Pending approval.
+**Option A — React Native with Expo, TypeScript, using development builds and EAS Build.**
+Accepted by the project owner on 2026-10-27 (D-12). The validation spike was skipped; its checks
+run in the first slices instead (see "Validation in the first slices").
+
+Accepted while these dependencies are still open (D-12):
+- Q-020, Q-052 — coach and Head Coach screen layout and designs.
+- Q-068 — web dashboard for coaches; if one is needed, the revisit condition below applies.
+- Q-083 — push notification service; Expo push support is checked in the first slice (D-13).
 
 ## Recommended option
 **Option A — React Native with Expo, TypeScript, using development builds and EAS Build.**
@@ -106,19 +118,31 @@ See "Why it loses" under each option.
 - Costs accepted at release: Google Play US$25 once at Android release; Apple US$99/year only
   at iOS release (C-008, D-10).
 - Risk accepted: iOS-only bugs will be found late (R-001, D-10).
+- Risk accepted: without the spike, a problem with the framework may only be found once the
+  first slices are built (R-002, D-12).
 - Commits: every native library must support the New Architecture.
 
-## Validation plan (spike, ~1–2 days, before Accepted)
+## Validation in the first slices (D-12)
+The pre-acceptance spike was skipped (D-12). Run these checks during the first slices instead:
 1. Create a blank Expo TypeScript app; run it on an Android emulator on Windows.
 2. Scan an EAN-13 barcode from a real food pack with the camera.
 3. Record 5 seconds of audio; take a photo.
 4. Save and read 1,000 rows from a local SQLite database with the network off.
 5. Run one EAS iOS build only to confirm it compiles; real-device iOS testing deferred (D-10).
 6. Scroll a 200-row list on the lowest-end Android phone available.
-Record results in this ADR, then the owner marks it Accepted or Rejected.
+7. Verify Expo push support in the first slice (D-13): deliver a push notification to an
+   Android phone.
+
+Record each result, with its date, under "Validation results". A failed check that optimisation
+does not fix triggers the revisit conditions; changing the decision needs a new ADR that
+supersedes this one.
+
+## Validation results
+None yet.
 
 ## Revisit conditions
-- Spike step 6 shows visible lag that optimisation does not fix.
+- Check 6 shows visible lag that optimisation does not fix.
+- Check 7 shows that Expo push support does not meet REQ-ROLE-009 (Q-083).
 - EAS free limits block regular development for two months in a row.
 - An iPhone becomes available — revisit the iOS test plan (R-001, D-10).
 - A web dashboard for coaches becomes a requirement (F-01) — re-check whether React Native
