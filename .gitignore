@@ -1,0 +1,18 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Claude Code local-only settings
+.claude/settings.local.json
+
+# Stack-specific entries will be added once ADR-0001/0002 are accepted.

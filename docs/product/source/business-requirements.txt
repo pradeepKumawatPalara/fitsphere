@@ -1,0 +1,243 @@
+FitSphere: Business Requirements 
+
+1. Product Overview and User Roles 
+
+1.1 Product Overview 
+
+FitSphere is a coach-led fitness application where clients log their food intake, body metrics, and workouts against targets set by their coach. 
+
+The application supports personal fitness tracking as well as coach-managed fitness programs. 
+
+The application has a four-tab bottom navigation menu that provides access to Home, Nutrition, Training, and Progress. 
+
+Every main screen displays the selected date, a calendar shortcut, and a profile avatar that opens Account settings. 
+
+A floating “+” button on Home and Nutrition provides quick logging functionality. 
+
+1.2 User Roles 
+
+FitSphere supports three selectable application roles that determine the user's view and available functionality. 
+
+1. Personal Training User 
+
+The Personal Training User uses the application to track their own food intake, body metrics, workouts, and fitness progress. 
+
+The user can access Home, Nutrition, Training, Progress, and Account settings. 
+
+The user tracks their activities against the targets and training plans assigned by their coach, where applicable. 
+
+The user can switch to another available application role through the role selector in their profile. 
+
+2. Head Coach 
+
+A user can activate the Head Coach role through a toggle in their user profile. 
+
+When the Head Coach role is selected, the application switches to the Head Coach view and provides additional coach-management and configuration functionality. 
+
+The Head Coach can add, view, update, and delete Coach records. 
+
+The Head Coach can view the details of coaches under their management. 
+
+The Head Coach can view the details of trainees/users associated with the coaches under their management. 
+
+The Head Coach can manage and oversee the coaches and their associated trainees/users within their hierarchy. 
+
+The Head Coach can switch to another available application role through the role selector in their profile. 
+
+3. Coach 
+
+A user can switch to the Coach view after logging in, provided the Coach role is available to them. 
+
+The Coach view displays the trainees/users directly assigned to that coach. 
+
+The Coach can add, view, update, and delete trainee/user records under their management. 
+
+The Coach can access the details of their assigned trainees/users to manage their fitness programs. 
+
+The Coach can set fitness targets, diet plans, and training plans for their assigned trainees/users. 
+
+The Coach can switch to another available application role through the role selector in their profile. 
+
+1.3 Role-Based Application Views and Management Hierarchy 
+
+The user profile provides a role selector with three roles: Personal Training User, Head Coach, and Coach. 
+
+Users can switch between the roles available to them. The application view and available functionality change according to the currently selected role. 
+
+Selecting the Personal Training User role displays the personal fitness-tracking experience. 
+
+Selecting the Head Coach role displays the Head Coach experience, including coach management and visibility into trainees/users under the managed coaches. 
+
+Selecting the Coach role displays the Coach experience, including management of trainees/users directly assigned to that coach. 
+
+The Head Coach manages Coaches, while each Coach manages their assigned trainees/users. 
+
+Head Coach permissions include CRUD operations on Coach records. 
+
+Coach permissions include CRUD operations on trainee/user records under their management. 
+
+The Head Coach can view the details of both the coaches under their management and the trainees/users associated with those coaches. 
+
+2. Date Handling (Global) 
+
+Users can view any past date using the calendar icon or the week/date strip. All data displayed on the screen follows the selected date. 
+
+When a past date is being viewed, a banner displays that date with a “Back to today” shortcut. 
+
+Today is highlighted in blue on all date strips. 
+
+“Today” and day boundaries follow the user's configured country and time zone. 
+
+3. Home Dashboard 
+
+The header displays the selected date and the user's username. 
+
+A Monday-to-Sunday week strip displays a status box for each day, highlighting both today and the selected day. 
+
+The calories card displays kcal eaten against the target, including a progress bar, percentage achieved, and kcal remaining. 
+
+The protein card displays grams eaten against the target, including a progress bar, percentage achieved, and grams remaining. 
+
+A “By meal” link opens the meal-wise breakdown for the selected day. 
+
+Quick tiles for Weight (kg), Steps, and Sleep display the logged value or “+ Add” when no value has been logged. 
+
+The workout tracker displays workouts completed against the weekly target, for example, “1 of 5 · 4 left,” with Monday-to-Sunday dots marking workout days. 
+
+A Measurements card prompts the user to take weekly waist measurements. 
+
+4. Measurements Logging 
+
+Measurements open as a bottom sheet from the Home card or the Progress screen. 
+
+A date selector defaults to Today and can be changed to log measurements for another date. 
+
+A cm/in toggle allows the user to select the measurement unit. 
+
+Upper waist measurement is mandatory, with the guidance “2 fingers above the navel.” 
+
+Lower waist measurement is mandatory, with the guidance “2 fingers below the navel.” 
+
+An expandable section contains optional fields for chest, hips, arms, thighs, and notes. 
+
+The “Save measurements” button becomes active only after values have been entered. 
+
+A close (X) button exits without saving. 
+
+5. Nutrition: Consumed 
+
+A horizontally scrollable date strip allows users to switch between days. 
+
+Three tabs are available: Consumed, Diet plan, and Saved. 
+
+The Eaten summary displays total kcal and colour-coded Protein, Carbs, Fat, and Fiber values. A dash is displayed when there is no data. 
+
+Meal slots for Breakfast, Lunch, Snack, and Dinner each display “Tap to add what you ate” with a “+” button. 
+
+Each logged meal has a “•••” menu that includes the “Save to my meals” option. 
+
+6. Nutrition: Diet Plan 
+
+A daily target card displays calories and protein, marked “Set by your coach.” These targets are read-only for the client. 
+
+A collapsible “How to use this plan” guide includes a “Got it” dismiss button. 
+
+The guide instructs users to meet their calorie and protein targets, build every meal around a complete protein source, and log every meal. 
+
+Each meal slot has a card displaying its total kcal and protein, for example, Breakfast: 646 kcal, 50 g protein. 
+
+Each meal offers up to three alternatives as tabs: Option 1, Option 2, and Option 3. 
+
+Each option displays the meal name and an ingredient list with quantities in grams, scoops, tablespoons, or pieces. 
+
+The protein source is listed first and highlighted in every option. 
+
+Each option has an action button, partly visible in the screenshot, presumably to log that planned meal. 
+
+7. Nutrition: Saved 
+
+This tab lists the user's saved meals for one-tap re-logging. 
+
+When no meals are saved, an empty state explains how to save a meal from the Consumed tab. 
+
+8. Log Meal 
+
+The Log meal screen opens from any “+” button. It has a back button and a date chip that defaults to Today. 
+
+The date chip opens a “Log this meal to” sheet showing Today, Yesterday, and the previous five days. 
+
+Each date in the sheet displays its logging status, such as “nothing logged,” and an “Another day…” option opens a calendar. 
+
+Meal type options are Breakfast, Lunch, Snack, and Dinner, along with additional tags for Before training and Dessert. 
+
+A free-text box with the placeholder “Speak or type what you ate…” includes a sample entry. 
+
+A “Speak your meal” button allows voice entry. 
+
+A camera button captures a meal photo or nutrition label. 
+
+Alternative logging methods include Search database, Scan barcode, Eaten before (past meals), and Saved (your meals). 
+
+Best-practice tips advise users to state amounts in grams, specify whether food is raw or cooked (for example, rice weighs about three times more cooked), and name each food separately. 
+
+A collapsible Examples section displays Best, Vague, and Say examples, with a Hide option. 
+
+AI converts text, voice, and photo inputs into food items and quantities, subject to the user's AI consent setting. 
+
+9. Training 
+
+The coach-assigned training plan appears day by day, with a how-to guide for every exercise. 
+
+Until a coach sends a plan, an empty state displays “No training plan yet.” 
+
+“Start an empty workout” allows users to log a self-directed session. 
+
+“Workouts you have logged” displays the user's workout history. 
+
+Lifting weights are recorded in the unit selected in Account settings. 
+
+10. Progress 
+
+The “Weight over 4 weeks” card displays weight change in kg, along with the weekly rate. 
+
+The weekly rate requires at least one week of weigh-ins. A message is displayed until sufficient data is available. 
+
+Average calories are displayed against the target. 
+
+Meals logged are displayed as days logged out of the total number of days, for example, “0 of 27 days.” 
+
+The weight trend chart has range filters for 1W, 4W, 12W, 26W, and All. An empty state is displayed until enough weigh-ins exist. 
+
+A week-by-week table displays Body Weight, Calories, Protein, and Steps against a Target row. 
+
+A “Pre” row in the table holds baseline data from before the program. 
+
+Tapping a week opens its details. 
+
+The Measurements section includes an “Add first” button and recommends tracking upper and lower waist measurements weekly. 
+
+11. Account and Settings 
+
+Appearance offers System, Light, and Dark themes, with helper text explaining the selected option. 
+
+Units for lifting weights in workouts and workout history can be set independently to kg or lb. 
+
+Units for body weight in weigh-ins and progress can be set independently to kg or lb. 
+
+An “AI meal reading” toggle controls consent. Users are asked for consent before any meal text, photo, voice note, or nutrition label is sent to AI. 
+
+The food database, barcodes, and saved meals work even when AI is turned off. 
+
+Country and time zone are configurable, for example, India · Kolkata. 
+
+Users can change their password. 
+
+Users can log out. 
+
+“Delete account” opens a separate flow. 
+
+The user profile provides access to the three application roles: Personal Training User, Head Coach, and Coach, subject to the roles available to that user. 
+
+Switching the active role changes the application view and the functionality available to the user. 
+
+ 
