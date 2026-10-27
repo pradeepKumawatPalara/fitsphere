@@ -12,7 +12,8 @@ compliant: each control still needs an implementation and a test. D- numbers ref
 ## Assets and data categories
 Body, health, meal and photo data are sensitive (REQ-NFR-002, C-003). Categories used in the
 permission matrix below:
-- **A trainee's data:** meal logs (including AI-parsed items and meal photos), body metrics
+- **A trainee's data:** meal logs (including AI-parsed items, meal photos and links to images
+  the trainee stores on other sites — D-16), body metrics
   (weight, steps, sleep, measurements), workouts, saved meals, targets, diet and training plans,
   who last changed a target or plan, and settings (including AI consent and Head Coach
   permission answers).
@@ -47,6 +48,7 @@ far. The server enforces this (invariant 1); hiding something in the app is not 
 | Meal logs, including AI-parsed items and meal photos | View, edit (A-004, Q-032) | View — scope open (Q-059) | View ("your logs", D-11) — scope as Q-059 | — | — (D-10, D-11) | — |
 | Body metrics: weight, steps, sleep, measurements | View, edit (A-004) | View — scope open (Q-059) | View (D-11) — scope as Q-059 | — | — | — |
 | Workouts | View, edit (A-004) | View — scope open (Q-059) | View (D-11) — scope as Q-059 | — | — | — |
+| External links the trainee added (e.g. YouTube) instead of an upload | View, edit (REQ-LOG-010, D-16) | View — scope open (Q-059) | View — scope as Q-059 | — | — link hidden (D-16); the content stays viewable by anyone who has the link (R-004) | — in FitSphere; outside it, anyone who has the link (R-004) |
 | Saved meals | View, edit (REQ-SAVED-001, REQ-NUT-004) | Open (Q-059) | Open (Q-059) | — | — | — |
 | Calorie and protein targets | View only (REQ-PLAN-001, invariant 2) | View, edit (REQ-ROLE-006, D-11) | View, edit (REQ-ROLE-004, D-13) | — | — | — |
 | Weekly workout target | View only (REQ-HOME-007, invariant 2) | View, edit (REQ-ROLE-006, D-14) | View, edit (REQ-ROLE-004, D-14) | — | — | — |
@@ -58,8 +60,9 @@ far. The server enforces this (invariant 1); hiding something in the app is not 
 When a link ends, the former coach's or Head Coach's app deletes that trainee's data from the
 device on its next sync (D-13). A phone that has not synced for 30 days clears other people's
 data anyway; while the link is still active, the data comes back on the next sync
-(REQ-NFR-004, D-14, T-06). None of this deletes anything on the server, which is the
-permanent record (D-14).
+(REQ-NFR-004, D-14, T-06). Photos cached on a phone follow the same rules (REQ-NFR-006, D-16).
+None of this deletes anything on the server, which is the permanent record (D-14) — in phase 1
+without backups (R-005).
 
 ### A coach's data
 | Data | Coach (self) | Their Head Coach | Former Head Coach (removed, left or switched) | Anyone else |
@@ -97,14 +100,21 @@ T-07, R-003).
 | T-04 | Trust in FitSphere emails; users' passwords | (a) Someone sends emails that pretend to be FitSphere invitations, to phish passwords. (b) If the real invitation email shows anything the inviter typed, such as their name, the inviter can put misleading text or links into a genuine FitSphere email | Stolen accounts; real invitations stop being trusted | Not assessed | Daily invitation limits (REQ-ROLE-011); SPF, DKIM and DMARC on the sender domain (REQ-ROLE-008, D-13) | Sender domain and email service (Q-082). Proposed, not decided: links point only to FitSphere's own domain; inviter-supplied text shown as plain text with a length limit | Project owner |
 | T-05 | The link between two accounts | An invitation link that never expires, works more than once or is forwarded lets the wrong person — or the right person much later — accept | The wrong or an unexpected person becomes linked, and the inviter then sees their data | Not assessed | Accepting is always an explicit step (REQ-ROLE-009); a Head Coach still needs each trainee's permission (REQ-ROLE-013); invitation-email links work once and expire after 7 days (REQ-ROLE-008, D-13); in-app invitations also expire after 7 days (REQ-ROLE-009, D-14) | Resend and cancel rules (Q-073); whether sign-up must use the invited address. Proposed, not decided: a link stops working when its invitation is cancelled | Project owner |
 | T-06 | Access after a link ends, especially on a switch of Head Coach or coach | (a) The old Head Coach or coach keeps access: requests already in progress, changes queued offline on their phone, or copies of data still on their phone. (b) A coach accepts a new Head Coach by mistake, ending the old link. (c) The new Head Coach gets trainee data on the strength of answers given to the old one | Data seen after access should have ended; old Head Coach cut off without warning; trainee data shown without fresh permission | Not assessed | Old link ends first and all its access ends immediately (REQ-ROLE-015, D-11); queued changes re-authorized at sync (T-02); the old side's app deletes that trainee's data from the phone on its next sync (REQ-NFR-004, D-13); the accept screen warns that accepting ends the current link, and the other side gets a neutral message, "X is no longer linked with you", by push and in the in-app Notifications list — on removal too (REQ-ROLE-003, REQ-ROLE-005, REQ-ROLE-014, REQ-ROLE-015, D-13, D-14); a phone that has not synced for 30 days clears other people's data (REQ-NFR-004, D-14); answers do not carry over and each trainee gets a fresh request (REQ-ROLE-013, D-11) | Within the 30 days, an old phone that never syncs keeps its encrypted copy (T-03). How the 30-day clear runs if the app is not opened is for ADR-0007 | Project owner |
-| T-07 | All user data | The operator, or anyone who gets the operator's credentials, reads user data through admin access, outside the link checks | Health data seen without the user's knowledge | Not assessed | One operator only (the project owner), no support staff; every admin access to user data is logged in the backend database, kept for 1 year and reviewed monthly by the owner (REQ-NFR-005, D-13, D-14) | The operator reviews their own access and could change a log kept in a database they run — accepted risk R-003. 1-year retention to be confirmed by Legal (Q-049). Platform Admin rights and controls (Q-086) | Project owner |
+| T-07 | All user data | The operator, or anyone who gets the operator's credentials, reads user data through admin access or directly in the hosting dashboards (Supabase, Google Cloud), outside the link checks | Health data seen without the user's knowledge | Not assessed | One operator only (the project owner), no support staff; every admin access to user data is logged in the backend database, kept for 1 year and reviewed monthly by the owner (REQ-NFR-005, D-13, D-14); two-factor sign-in on Supabase and Google Cloud; the owner never browses user data in dashboards and uses only the logged admin path (D-16) | The operator reviews their own access and could change a log kept in a database they run; dashboard access does not appear in FitSphere's admin access log — accepted risk R-003. 1-year retention to be confirmed by Legal (Q-049). Platform Admin rights and controls (Q-086) | Project owner |
+| T-08 | Meal photos in file storage | (a) A former coach or Head Coach uses a viewing link issued before the link between them ended; (b) a viewing link is forwarded, or leaks through a log or a shared screen | Photos seen by someone who should no longer, or never, see them | Not assessed | Viewing links are issued only by the API after its permission checks (invariant 1); short maximum expiry (D-16); links are kept out of logs (invariant 7); photos cached on the phone follow the device rules (REQ-NFR-004, REQ-NFR-006, D-16) | Until it expires, a link works for anyone who has it. Proposed in ADR-0002, decided when it is accepted: viewing links expire after at most 5 minutes and are never stored by the app. Upload links are valid for 2 hours (Supabase docs; no shorter option documented) but give no viewing access | Project owner |
+| T-09 | Content a user stores on YouTube or another site and adds as a link | (a) A former coach or Head Coach kept the link and keeps viewing the content after the link between them ends; (b) the site hosting the content learns who viewed it and when (e.g. IP address), so a user could track who looks at their link; (c) a link leads to misleading or harmful content shown inside FitSphere | Content seen after access should have ended; viewers tracked by a third party; phishing through a link shown in the app | Not assessed | Privacy warning the user must confirm before saving (REQ-LOG-010, D-16); the link is hidden from the former coach or Head Coach when a link ends (D-16); exception stated in invariant 1 | FitSphere cannot delete or revoke the content — accepted risk R-004. Proposed, not decided: accept only https links; show the website name before opening a link. Legal to confirm the approach (Q-049) | Project owner |
 
 ## Security controls
 *Not yet written.* Always-on rules are in
 [`project-invariants.md`](../../.claude/rules/project-invariants.md).
 
 ## Retention and deletion
-*Not yet written.* Open: delete-account flow (Q-048), meal photo retention (Q-064). Head Coach
+*Not yet written in full.* Open: delete-account flow (Q-048); the rest of meal photo and media
+retention (Q-064, Q-089). Decided (D-16): a user's own media is never fully deleted
+automatically while the account exists, and an original may be replaced by a viewing-quality
+copy; voice recordings are deleted once transcribed; content stored on other sites and added as
+a link cannot be deleted by FitSphere (R-004). Phase 1 runs on the Supabase Free plan with no
+backups, so data lost on the server cannot be restored (R-005, D-16). Head Coach
 permission answers are stored with timestamps (REQ-ROLE-013) and kept while the account exists;
 how long they are kept after the account is deleted is decided with Legal (Q-049, D-13). The
 admin access log is kept for 1 year, to be confirmed by Legal (REQ-NFR-005, Q-049, D-14).
@@ -120,4 +130,9 @@ are never cleared automatically (REQ-NFR-004, D-14).
 - Obligations under the DPDP Act are not yet confirmed by Legal (Q-049).
 - Trainee data can stay on a former coach's or Head Coach's phone for up to 30 days if that phone
   does not sync — longer if the app never gets to run the clear (T-06, ADR-0007).
-- The operator reviews their own access (R-003).
+- The operator reviews their own access, and dashboard access is outside the admin access log
+  (R-003).
+- Content added as an external link stays viewable by anyone who has the link, even after a
+  link between people ends (R-004, T-09).
+- No backups in phase 1: data lost on the server cannot be restored, which conflicts with "the
+  server is the permanent record" (R-005, D-14, D-16).

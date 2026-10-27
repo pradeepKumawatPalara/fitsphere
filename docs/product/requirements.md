@@ -364,12 +364,16 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: A free-text box with placeholder "Speak or type what you ate…" accepts a description; a sample entry is shown.
 
 ### REQ-LOG-005 — Voice entry
-- Requirement: "Speak your meal" records voice and converts it to meal text/items.
+- Requirement: "Speak your meal" records voice and converts it to meal text/items. The recording is deleted once it has been transcribed; audio storage is future scope (D-16).
+- Acceptance criteria:
+  - When a voice entry has been transcribed, then the audio recording is deleted and is not kept on the device or the server (D-16).
 - Open: on-device vs cloud speech-to-text, and whether voice needs AI consent (Q-038).
 
 ### REQ-LOG-006 — Photo entry
-- Requirement: A camera button captures a meal photo or nutrition label for parsing.
-- Open: whether images are kept after parsing, for how long and who can see them (Q-064).
+- Requirement: A camera button captures a meal photo or nutrition label for parsing. A meal photo is kept as a compressed viewable copy of about 200 KB (phone-viewable quality) with a small thumbnail for lists. Instead of uploading, the user can paste a public link to an image (REQ-LOG-010). Photos are view-only (REQ-NFR-006). A user's own photos are never fully deleted automatically while the account exists; an original may be replaced by a viewing-quality copy (D-16).
+- Acceptance criteria:
+  - When a user saves a meal photo, then the stored copy is about 200 KB and a thumbnail is created for lists (D-16).
+- Open: whether nutrition-label images are kept, and whether deleting a meal deletes its photo (Q-064); how long media is kept (Q-089); which of it the coach sees (Q-059).
 
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode, Eaten before (past meals) and Saved (your meals) are available and work without AI (REQ-ACC-005).
@@ -387,13 +391,22 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When AI fails or times out, then the input is kept and the user can retry or use another method.
 - Open: AI provider (ADR-0005), accuracy expectations (Q-040).
 
+### REQ-LOG-010 — Public link instead of an upload
+- Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, a meal photo (REQ-LOG-006); their own videos once the audio/video release adds video (D-16, interpretation to confirm). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
+- Type: Functional, Privacy
+- Acceptance criteria:
+  - When a user adds a public link, then the privacy warning is shown and the link is saved only after the user confirms; if they cancel, nothing is saved.
+  - Given a link between a trainee and their coach that has ended, when the former coach requests the trainee's data, then the server returns none of the trainee's external links (D-16).
+- Open: Legal to confirm the approach (Q-049). Proposed safeguards for links: threat model item T-09.
+
 ---
 
 ## TRN — Training (BRD §9)
 
 ### REQ-TRN-001 — Coach plan by day
-- Requirement: The coach-assigned training plan appears day by day, with a how-to guide for every exercise.
-- Open: how-to format (text, image, video) and who authors exercise content (Q-041).
+- Requirement: The coach-assigned training plan appears day by day, with a how-to guide for every exercise. In phase 1 a how-to is a YouTube link, unlisted or public, provided by the coach (D-16, answers Q-041); FitSphere stores only the link.
+- Acceptance criteria:
+  - Given an exercise in the plan with a how-to link, then the trainee can open the how-to video from the plan.
 
 ### REQ-TRN-002 — Empty state
 - Requirement: Until a coach sends a plan, Training shows "No training plan yet".
@@ -496,7 +509,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NFR-001 — Server-side authorization
 - Type: Security
-- Requirement: Every data read and write is authorized on the server. A user can access another person's data only through an accepted link: a Coach → their accepted trainees; a Head Coach → the coaching activity of their accepted coaches (never a coach's own personal logs; counts only — REQ-ROLE-004), and a trainee's data only while that trainee allows it (REQ-ROLE-013). A Head Coach may view and set a trainee's plans and targets only while the trainee allows it. Coaches and Head Coaches never see a trainee's settings or AI consent. Ending a link — by removal, leaving or switching — ends access to all of that person's data, including past data. Changes queued offline are re-authorized at sync time. UI hiding is not access control. (Project invariant 1; D-06, D-07, D-10, D-11, D-13.)
+- Requirement: Every data read and write is authorized on the server. A user can access another person's data only through an accepted link: a Coach → their accepted trainees; a Head Coach → the coaching activity of their accepted coaches (never a coach's own personal logs; counts only — REQ-ROLE-004), and a trainee's data only while that trainee allows it (REQ-ROLE-013). A Head Coach may view and set a trainee's plans and targets only while the trainee allows it. Coaches and Head Coaches never see a trainee's settings or AI consent. Ending a link — by removal, leaving or switching — ends access to all of that person's data, including past data. Changes queued offline are re-authorized at sync time. UI hiding is not access control. Exception — external links: for content a user stores on another site and adds as a link, ending a link hides the link from the former coach or Head Coach, but FitSphere cannot revoke access to the content itself (REQ-LOG-010, R-004). (Project invariant 1; D-06, D-07, D-10, D-11, D-13, D-16.)
 - Acceptance criteria:
   - Given a request for another person's data with no accepted link, or from a Head Coach without that trainee's permission, then the server refuses it, whether the request comes from the app or directly to the API.
   - Given a Head Coach whose access a trainee has declined, when they try to set that trainee's plan or target through the API, then the server refuses it (D-13).
@@ -517,6 +530,8 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - **Ended links:** the former coach's or Head Coach's app deletes that trainee's data from the device on its next sync (D-13).
   - **30 days without a sync:** the app clears only (a) unfinished drafts, such as typed meal text never sent for AI reading, and (b) other people's data copied onto a coach's or Head Coach's phone. Cleared trainee data comes back on the next sync if the link is still active (D-14). Three days before an unfinished draft is cleared, the app shows a reminder: "You have an unfinished meal entry. It will be removed in 3 days." (D-15)
   - **Never cleared automatically:** the user's own entries waiting to sync — they are the only copy and stay until synced (D-14).
+  - **Photos cached on the device** (REQ-NFR-006) follow the same rules: encrypted; deleted for a trainee on the next sync after the link ends; other people's photos cleared after 30 days without a sync (D-16).
+  - **Phase 1 hosting (D-16):** the Supabase Free plan has no backups, so data lost on the server cannot be restored from a backup. This conflicts with "the server is the permanent record" and is accepted risk R-005.
 - Acceptance criteria:
   - Given the device is offline, when the user logs their weight, then it is saved on the device and shown in their data; when the connection returns, it is synced.
   - Given the device is offline, when the user starts a step that needs the internet, then the app shows a warning that names that step.
@@ -531,7 +546,15 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NFR-005 — Operator access
 - Type: Security, Privacy, Operational
-- Requirement: In phase 1 the project owner is the only operator of FitSphere; there is no support staff. Every admin access to user data is logged (D-13). The log is stored in the backend database, kept for 1 year (Legal to confirm, Q-049) and reviewed monthly by the owner (D-14). In phase 1 the operator reviews their own access — accepted risk R-003. A Platform Admin role is future scope (Q-086).
+- Requirement: In phase 1 the project owner is the only operator of FitSphere; there is no support staff. Every admin access to user data is logged (D-13). The log is stored in the backend database, kept for 1 year (Legal to confirm, Q-049) and reviewed monthly by the owner (D-14). The owner signs in to the hosting dashboards (Supabase, Google Cloud) with two-factor sign-in, never browses user data in those dashboards, and makes any needed access through the logged admin path (D-16). In phase 1 the operator reviews their own access, and dashboard access is outside this log — accepted risk R-003. A Platform Admin role is future scope (Q-086).
 - Acceptance criteria:
   - When the operator views or changes a user's data through admin access, then a log entry records who, when and whose data — without the data itself (invariant 7).
   - Log entries are kept for 1 year (D-14; period to be confirmed by Legal, Q-049).
+  - The owner's Supabase and Google Cloud accounts have two-factor sign-in turned on (D-16).
+
+### REQ-NFR-006 — View-only media
+- Type: Functional, Privacy, Operational
+- Requirement: Photos — and audio and video once the audio/video release adds them — are viewed or played in the app; there is no download feature (D-16). Lists show a small thumbnail rather than the full copy. Viewed photos are cached on the device under the rules in REQ-NFR-004, so repeat views do not download them again (D-16). View-only is not copy protection: anyone can take a screenshot or screen recording, so privacy rests on who may view (REQ-NFR-001).
+- Acceptance criteria:
+  - Given a photo in a meal log, then the app shows it and offers no download or save-to-device action.
+  - Given a photo already viewed on this device, when it is viewed again, then it is shown from the device cache without being downloaded again.

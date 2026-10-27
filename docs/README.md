@@ -17,7 +17,7 @@ Last updated: 2026-10-27
 | 2 | `docs/README.md` (this file) | Draft | Project owner | Index |
 | 3 | [`product/product-brief.md`](product/product-brief.md) | Draft | Project owner | Problem, users, scope, non-goals |
 | 3a | [`product/glossary.md`](product/glossary.md) | Draft | Project owner | Terms the documents use inconsistently or leave undefined |
-| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-15) and follow-ups |
+| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-16) and follow-ups |
 | 4 | [`product/requirements.md`](product/requirements.md) | Draft | Project owner | Testable REQ IDs |
 | 5 | [`architecture/constraints-and-assumptions.md`](architecture/constraints-and-assumptions.md) | Draft | Project owner | Constraints, assumptions, open questions |
 | 6a | [`product/user-journeys.md`](product/user-journeys.md) | Draft | Project owner | Actor journeys |
@@ -27,7 +27,7 @@ Last updated: 2026-10-27
 | 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 and 0003 are Proposed, ADR-0004 to 0007 are Missing, ADR-0008 is a planned slot |
 | 10 | `contracts/` | Missing | Project owner | Data, API, error, integration contracts |
 | 11 | `quality/test-strategy.md`, `definition-of-done.md` | Missing | Project owner | Verification |
-| 12 | `operations/runbook.md` | Missing | Project owner | Setup, deploy, recovery |
+| 12 | [`operations/runbook.md`](operations/runbook.md) | Draft | Project owner | Setup, deploy, recovery; only the paused-project step is written (D-16) |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.

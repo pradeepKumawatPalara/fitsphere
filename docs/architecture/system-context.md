@@ -48,6 +48,7 @@ flowchart LR
     AI[AI meal parsing · ADR-0005]
     STT[Speech-to-text · Q-038]
     FOOD[Food database and barcode lookup · ADR-0006]
+    EXT[YouTube and other sites hosting linked content · D-16]
     T --> APP
     C --> APP
     H --> APP
@@ -60,6 +61,7 @@ flowchart LR
     BE -- meal data, only with consent --> AI
     BE -. voice, if done in the cloud .-> STT
     BE -- search text and barcodes --> FOOD
+    APP -. opens linked content .-> EXT
 ```
 
 ## External systems
@@ -68,8 +70,9 @@ flowchart LR
 | Email service | Invitation emails with a sign-up link (REQ-ROLE-008); verification and password-reset emails (REQ-ACC-010) | Recipient address, email text, sign-up or reset link | Reveals that someone was invited to, or uses, a health app | Q-082, ADR-0002; SPF, DKIM and DMARC on the sender domain (D-13) |
 | Push notification service | Alerts for in-app invitations (REQ-ROLE-009) and "no longer linked" messages (REQ-ROLE-014, D-14) | Device token, notification text | Notification text passes through Google or Apple (below) | Q-083, ADR-0002; Expo push support checked in the first slice (ADR-0001, D-13) |
 | AI meal-parsing provider | Turn meal text, photos, voice and labels into food items (REQ-LOG-009) | Meal text, photos, voice, labels — only with consent (C-004) | Sensitive | ADR-0005, Q-049 |
-| Speech-to-text | Voice meal entry (REQ-LOG-005), if done in the cloud | Voice recordings | Sensitive | Q-038 |
+| Speech-to-text | Voice meal entry (REQ-LOG-005), if done in the cloud | Voice recordings, deleted once transcribed (D-16) | Sensitive | Q-038 |
 | Food database and barcode lookup | Search and barcode logging without AI (REQ-LOG-007, C-005) | Search text, barcode numbers | Low on its own | Q-039, ADR-0006 |
+| YouTube and other sites hosting linked content | Coaches' exercise how-to videos (REQ-TRN-001) and users' own content added as a link instead of an upload (REQ-LOG-010) | Nothing from FitSphere's servers; FitSphere stores only the link. When someone opens it, their phone requests the content from that site | The site learns who opened the content and when; FitSphere cannot delete the content or revoke access to it (R-004) | D-16, T-09, Q-049 |
 
 Push services on Android normally deliver through Google's Firebase Cloud Messaging, and on iOS
 through Apple Push Notification service, so notification text also passes through Google or
@@ -98,7 +101,11 @@ Apple. Keeping health data out of notification text is proposed, not decided.
    unsynced entries (T-06, REQ-NFR-004, D-13, D-14).
 6. **Operator ↔ user data:** admin access does not come from a link, so every access is logged
    and the log is reviewed monthly; the operator reviews their own access (REQ-NFR-005, T-07,
-   R-003).
+   R-003). The owner uses two-factor sign-in on the hosting dashboards and never browses user
+   data there (D-16).
+7. **Linked content on other sites:** content a user adds as a link stays on that site. When a
+   link between people ends, FitSphere hides the link from the former coach or Head Coach but
+   cannot revoke access to the content (R-004, T-09, D-16).
 
 ## Not in phase 1
 - Health-platform sync (Apple Health, Google Health Connect) — proposed non-goal (Q-003, Q-015).

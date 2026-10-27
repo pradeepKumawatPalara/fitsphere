@@ -1,37 +1,42 @@
 # ADR-0002: Backend architecture and hosting
 
-- Status: **Proposed**
+- Status: **Proposed** — revised 2026-10-27 after review and owner decision D-16; not accepted
 - Date: 2026-10-27
 - Decision owner: Project owner
-- Related requirements: REQ-ROLE-* (links, invitations, permissions), REQ-ACC-004/010, REQ-LOG-009, REQ-NFR-001, NFR-003, NFR-004, NFR-005
-- Related constraints/decisions: C-002, C-003, C-004, C-008; D-01 (solo), D-03 (Node preference, free first), D-09 (India only), D-10…D-15; ADR-0001 (React Native + Expo, TypeScript)
-- Related ADRs: ADR-0003 (database) is decided together with this one; ADR-0004 (auth details), ADR-0005 (AI), ADR-0007 (offline sync) and a future ADR-0008 (media storage) build on it
+- Related requirements: REQ-ROLE-* (links, invitations, permissions), REQ-ACC-004/010, REQ-LOG-005, REQ-LOG-006, REQ-LOG-009, REQ-LOG-010, REQ-TRN-001, REQ-NFR-001, REQ-NFR-002, REQ-NFR-003, REQ-NFR-004, REQ-NFR-005, REQ-NFR-006
+- Related constraints/decisions: C-002, C-003, C-004, C-008; D-01 (solo), D-03 (Node preference, free first), D-09 (India only), D-10…D-16; R-003, R-004, R-005; ADR-0001 (React Native + Expo, TypeScript)
+- Related ADRs: ADR-0003 (database) is decided together with this one. ADR-0004 (sign-in provider and authorization), ADR-0005 (AI), ADR-0007 (offline sync) and ADR-0008 (media storage, audio/video release) build on it
 - Supersedes: None
 
 ## Context
 FitSphere needs a server that:
-- signs users in (email + password, verification, reset — REQ-ACC-010);
+- signs users in (email + password, verification, reset — REQ-ACC-010). The sign-in provider
+  is decided in ADR-0004 (D-16);
 - enforces the link-and-permission rules on every request (invariant #1): accepted links,
   per-trainee Head Coach permission, counts-only views, ending links, re-checking offline
   changes at sync time;
-- checks AI consent on the server before any AI call (C-004);
+- checks AI consent on the server immediately before each AI call (invariant #3, C-004);
 - sends invitation emails and push notifications (Q-082, Q-083);
-- stores meal photos;
+- stores meal photos as compressed viewable copies, and links to content users keep on other
+  sites (D-16);
 - logs every admin access (REQ-NFR-005);
 - serves users in India (D-09), with India's DPDP Act 2023 the likely applicable law (Q-049).
 
 It is built and run by one developer (D-01), costs nothing during development (C-008), and
-must be able to grow toward an aspiration of 20 million users without a rewrite (D-15).
-The owner knows JavaScript/Node (D-03); the app is TypeScript (ADR-0001).
+phase 1 runs on free plans (D-16). It must be able to grow toward an aspiration of 20 million
+users without a rewrite (D-15). The owner knows JavaScript/Node (D-03); the app is TypeScript
+(ADR-0001).
 
 ## Decision criteria
-1. **Must:** authorization rules live on the server and are testable as ordinary code.
-2. **Must:** free during development; known, gradual costs after launch.
+1. **Must:** authorization rules live on the server and are testable as ordinary code; the app
+   has no other path to the data.
+2. **Must:** free during development and phase 1 (D-16); known, gradual costs after that.
 3. **Must:** a hosting region in India (Mumbai) is available.
 4. **Must:** a growth path toward millions of users without rewriting the app.
-5. **Should:** TypeScript/Node, sharing types with the app.
-6. **Should:** little server maintenance for one person (managed services).
-7. **Should:** low lock-in — parts can be moved to another provider.
+5. **Must:** data encrypted in transit and at rest (REQ-NFR-002).
+6. **Should:** TypeScript/Node, sharing types with the app.
+7. **Should:** little server maintenance for one person (managed services).
+8. **Should:** low lock-in — parts can be moved to another provider.
 
 ## Options considered
 
@@ -44,12 +49,22 @@ database policies ("row level security").
   ending links, re-authorizing offline changes, consent before AI) would mostly be database
   policies. These are harder to write, read and test than application code, and a mistake
   exposes health data. Server functions run on Deno, not Node.
-- Fit: meets 2, 3, 6; weak on 1; partial on 5, 7.
+- Fit: meets 2, 3, 5, 7; weak on 1; partial on 6, 8.
 
-### Option B — Own Node.js API + Supabase for database, sign-in and file storage (hybrid)
+### Option B — Own Node.js API + Supabase for database and file storage (hybrid)
 A TypeScript Node.js API is the **only** way the app reads or writes data. Supabase provides
-the managed PostgreSQL database (ADR-0003), sign-in and photo storage in Mumbai. Database
-policies are kept as a second safety layer, not the main one.
+the managed PostgreSQL database (ADR-0003) and photo storage in Mumbai. Sign-in is decided in
+ADR-0004; Supabase Auth is one candidate.
+- **The API really is the only path.** Supabase's auto-generated Data API is turned off with
+  the project setting **Enable Data API**; with it off, "none of the auto-generated REST
+  endpoints respond, regardless of grants or RLS" (Supabase docs, "Hardening the Data API").
+  Supabase's docs do not say whether its sign-in and file storage keep working with the Data
+  API off, so the validation plan checks it. If something FitSphere needs stops working, the
+  fallback is to leave the Data API on but expose no app table: switch off **Automatically
+  expose new tables** and revoke default privileges from the `anon` and `authenticated` roles
+  (same docs). Database policies stay as a second safety layer, not the main one.
+- The API connects to PostgreSQL directly. Supabase's docs recommend its connection pooler in
+  transaction mode for serverless hosts such as Cloud Run; confirm in validation.
 - Benefits:
   - All business and permission rules in one TypeScript codebase, covered by normal
     automated tests (the authorization test suite the review asked for).
@@ -57,48 +72,56 @@ policies are kept as a second safety layer, not the main one.
   - The API holds no state, so more copies can run as users grow.
   - Standard PostgreSQL — the database can move to another provider later without changing
     the app.
+  - Supabase encrypts all customer data at rest (AES-256) and in transit (TLS) (Supabase
+    security page).
 - Costs and risks:
   - More to build than Option A: an API layer, deployment, and monitoring.
-  - The API needs a host. Candidates (checked 2026-10-27):
-    - **Google Cloud Run (Mumbai, asia-south1):** free tier of 2 million requests and
-      180,000 vCPU-seconds per month for request-based services; scales to zero when idle;
-      Mumbai is in the pricing tier used for the free allowance. Likely needs a billing
-      account (card) — set budget alerts. *(Confirm — Q-087.)*
-    - **Render free web service:** sleeps after 15 minutes idle and takes about a minute to
-      wake — acceptable for development only, not for users.
-  - Supabase Auth cost grows per active user (see "Growth path").
-- Fit: meets 1, 3, 4, 5; meets 2 at development stage; good on 6 and 7.
+  - The API needs a host. Candidates (official pages, checked 2026-10-27):
+    - **Google Cloud Run (Mumbai, asia-south1):** for request-based billing, the first
+      2 million requests, 180,000 vCPU-seconds and 360,000 GiB-seconds each month are free,
+      applied as a spending discount at Tier 1 prices; asia-south1 is a Tier 1 region. "A
+      Google Cloud billing account is required to access the Google Cloud Free Tier" — the
+      owner decides whether to create one, with a budget alert (Q-087).
+    - **Render free web service:** spins down after 15 minutes without traffic and takes
+      about a minute to start again — acceptable for development only, not for users.
+  - If ADR-0004 picks Supabase Auth, its cost grows per monthly active user (see "Growth
+    path").
+- Fit: meets 1, 2, 3, 4, 5, 6; good on 7 and 8.
 
 ### Option C — Firebase (Firestore database, Firebase Auth, Cloud Functions)
 - Benefits: popular with mobile apps; good offline support in its own SDK; Mumbai region.
-- Costs and risks: server functions require the paid pay-as-you-go plan (Firebase docs).
+- Costs and risks: Cloud Functions need the pay-as-you-go Blaze plan (Firebase docs).
   Firestore is a document database — the link/permission/counts model is relational and
-  awkward to query there (ADR-0003). Pricing is per document read/write, which grows quickly
-  with dashboards and history screens. A 2026 secondary source reports the free Firestore
-  quota was cut (25,000 reads and 10,000 writes per day) — *unverified on Google's site*.
-  High lock-in.
-- Fit: meets 3; weak on 1, 2, 4 (cost), 7.
+  awkward to query there (ADR-0003). Pricing is per document read and write, which grows
+  quickly with dashboards and history screens; the free Spark plan allows 1 GiB stored and
+  50,000 reads, 20,000 writes and 20,000 deletes per day (Firebase docs). High lock-in.
+- Fit: meets 3; weak on 1, 2, 4 (cost), 8; 5 not assessed.
 
 ### Option D — Self-managed server (Node API + own PostgreSQL on a rented virtual server)
 - Benefits: lowest monthly cost at small scale; full control.
-- Costs and risks: one person must handle security patches, backups, failover and scaling of
-  a server holding health data. High operational risk.
-- Fit: meets 1, 5, 7; fails 6; risky on 4.
+- Costs and risks: one person must handle security patches, encryption, backups, failover and
+  scaling of a server holding health data. High operational risk.
+- Fit: meets 1, 6, 8; fails 7; risky on 4 and 5.
 
 ## Decision
 Pending approval.
 
 ## Recommended option
-**Option B — a TypeScript Node.js API (as one modular application, not microservices),
-with Supabase providing PostgreSQL, sign-in and file storage in the Mumbai region.**
-Host the API on Google Cloud Run in Mumbai, subject to Q-087. During early development
-the API can also run on the developer's PC against the free Supabase project.
+**Option B — a TypeScript Node.js API (as one modular application, not microservices), with
+Supabase providing PostgreSQL and file storage in the Mumbai region, on the Free plan in phase 1
+(D-16, accepted risk R-005).** Supabase's Data API is turned off, so the Node API is the only
+path to the data.
+
+Host the API on Google Cloud Run in Mumbai once Q-087 is settled. Until then the API runs on the
+developer's PC against the Free project, with synthetic data only (invariant #7). The sign-in
+provider is chosen in ADR-0004; Supabase Auth is a candidate because it comes with the same
+project.
 
 ## Why this option wins
 It is the only option that keeps FitSphere's most important and most complex rules —
 who may see whose health data — in ordinary, testable TypeScript code, while still using
 managed services so one person does not run servers. It is free during development and
-built from standard parts (Node, PostgreSQL, containers) that can each be moved.
+phase 1, and built from standard parts (Node, PostgreSQL, containers) that can each be moved.
 
 ## Why alternatives were rejected
 - **A:** puts the riskiest logic in database policies that are hard to test; a policy
@@ -113,139 +136,208 @@ built from standard parts (Node, PostgreSQL, containers) that can each be moved.
 - **D** would win with a dedicated operations person and very tight budgets at large scale.
 
 ## Growth path toward 20 million users (aspiration, D-15)
-Costs below are list prices checked 2026-10-27 and exclude AI, email, push and store fees.
+List prices from the providers' official pages, checked 2026-10-27. They exclude AI, email,
+push and app-store fees. Stages match ADR-0003.
 
-| Stage | What runs | Approx. server cost |
-|---|---|---|
-| 0. Development | Supabase Free (500 MB database, 1 GB files, 50,000 monthly active users; **pauses after 1 week idle; no backups**); API on PC or Cloud Run free tier | $0 |
-| 1. Launch / early users | Supabase Pro (from $25/month: 8 GB database, 100 GB files, 100,000 monthly active users, daily backups kept 7 days); Cloud Run likely within free tier | ~$25/month + usage |
-| 2. Growth (100,000s of users) | Larger database compute; more API copies; sign-in billed at $0.00325 per monthly active user above 100,000 (e.g. 1 million MAU ≈ $2,900/month for sign-in alone) | Rises with users — review |
-| 3. Millions of users | Move sign-in to a cheaper or self-run service and/or the database to a dedicated managed PostgreSQL (e.g. a cloud provider's Mumbai region); keep the same API and data model | Needs a capacity and cost model before this stage |
+| Stage | When | What runs | Approx. server cost |
+|---|---|---|---|
+| 0. Development and phase 1 | Now (D-16) | Supabase Free: 500 MB database, 1 GB files, 5 GB egress plus a separate 5 GB cached egress per month, 50,000 monthly active users; **no backups; pauses after 1 week of inactivity** (R-005). API on the developer's PC, then Cloud Run's free tier (Q-087) | $0 |
+| 1. First paid stage | When an R-005 trigger is hit and the owner approves (C-008) | Supabase Pro, from $25/month: 8 GB disk (then $0.125/GB), 100 GB files (then $0.0213/GB-month), 250 GB egress (then $0.09/GB) and 250 GB cached egress (then $0.03/GB), 100,000 monthly active users (then $0.00325 each), daily backups kept 7 days. Or, instead, a separate backup while staying on Free | From ~$25/month + usage |
+| 2. Growth (100,000s of users) | As usage grows | Larger database compute; more API copies. If ADR-0004 picks Supabase Auth, sign-in is billed at $0.00325 per monthly active user above 100,000 (1 million ≈ $2,925/month for sign-in alone) | Rises with users — owner review |
+| 3. Millions of users | Only after a capacity and cost model | Possibly move sign-in to a cheaper or self-run service and/or the database to a dedicated managed PostgreSQL (e.g. a cloud provider's Mumbai region); keep the same API and data model | **Not estimated.** A capacity and cost model is required before this stage; start it when monthly active users reach 250,000 |
 
-Key point: **at millions of users, per-user sign-in pricing becomes a large cost.** The design
-keeps that replaceable: the API uses its own user IDs and talks to sign-in through one module.
+Owner-review triggers for moving from stage 0 to stage 1 (D-16, R-005):
+- database over 400 MB;
+- files over 800 MB;
+- monthly active users near 50,000;
+- monthly egress over 4 GB — Supabase counts uncached and cached egress separately, 5 GB each,
+  so both are watched;
+- any pause;
+- any data-loss incident.
+
+Capacity note (D-16): at about 200 KB per photo, the 1 GB of free file storage holds about
+5,000 photos, fewer once thumbnails are counted. The 800 MB trigger is about 4,000 photos — for
+example, 50 users each saving one photo a day reach it in about 80 days.
+
+Key point: **at millions of users, per-user sign-in pricing can become a large cost.** The
+design keeps sign-in replaceable: the API uses its own user IDs and talks to sign-in through
+one module.
 
 ## Media files: photos now; audio and video in a future release
-The owner plans to store food photos, voice recordings and user-uploaded videos, at the
-lowest reasonable cost (owner request, 2026-10-27). Audio and video are **future scope**;
-the design below keeps them possible without rework.
+Phase 1 stores meal photos only. Storing voice recordings and videos is future scope (D-16),
+decided in **ADR-0008**; the rules below keep it possible without rework.
 
 Design rules (apply from phase 1):
 1. **Media never goes in the database.** Files live in object storage; the database keeps
    only a small record pointing to each file (ADR-0003).
-2. **Shrink on the phone before upload.** Photos are resized and compressed; audio uses a
-   compressed format; videos (future) have a maximum length and resolution set by the owner.
-   This is the single biggest cost saving.
-3. **The phone uploads directly to storage, with permission from the API.** The API checks
-   links, permission and consent, then gives the phone a short-lived upload or download link.
-   Files don't pass through the API, so API costs stay low, and authorization stays on the
-   server (invariant #1).
+2. **Shrink on the phone before upload.** A meal photo becomes a compressed viewable copy of
+   about 200 KB (phone-viewable quality) plus a small thumbnail for lists (D-16), with location
+   data (GPS) removed. Phase 1 voice recordings are transcribed and then deleted, not stored
+   (D-16). Limits for future audio and video: Q-090.
+3. **The phone uploads directly to storage, with permission from the API.** The API checks the
+   link and permission rules (invariant #1), then issues a short-lived link. Files don't pass
+   through the API, so API costs stay low, and authorization stays on the server.
+   - Viewing (download) links expire after **at most 5 minutes** (proposed value; Supabase
+     lets the caller set the expiry in seconds). The app never stores a viewing link; it asks
+     the API again.
+   - Upload links are valid for 2 hours (Supabase docs; no shorter option is documented).
+     They allow uploading one file to one path and give no viewing access.
+   - Links are kept out of logs (invariant #7). Threat T-08.
 4. **One storage module.** The API talks to storage through one module using the common
    S3-style interface, so the provider can be changed without changing the app.
-5. **Lifecycle rules.** Old originals can be shrunk, moved to cheaper storage or deleted
-   automatically, according to the retention decision (Q-089).
-6. **Privacy.** Remove location data (GPS) from photos before upload; meal media may show
-   faces or homes. Sending media to AI still requires AI consent (C-004).
+5. **Retention (D-16, Q-089).** A user's own media is never fully deleted automatically while
+   the account exists; an original may be replaced by a viewing-quality copy. Phase 1 keeps
+   only the viewing copy, so no retention rule runs in phase 1. Account deletion: Q-048.
+6. **AI consent.** Storing a photo needs no AI consent; sending it to AI does. Consent is
+   checked on the server immediately before each AI call (invariant #3, C-004), not when an
+   upload link is issued.
+7. **Photos cached on the phone follow the device rules** (D-10, D-13, D-14; REQ-NFR-004,
+   REQ-NFR-006). Viewed photos are cached so repeat views use no egress. The cache is
+   encrypted; when a link ends, the former coach's or Head Coach's app deletes that trainee's
+   cached photos on its next sync; other people's cached photos are cleared after 30 days
+   without a sync. A user's own photo saved offline and not yet uploaded is an unsynced entry
+   and is never cleared automatically (D-14). Detailed design: ADR-0007.
+8. **External links** are stored as links, never fetched or copied by FitSphere — see below.
 
 Provider plan:
-- **Phase 1 (photos):** Supabase Storage in Mumbai — already part of Option B; 1 GB free,
-  100 GB included on Pro, then $0.0213/GB-month; downloads above 250 GB/month cost $0.09/GB.
-- **When media grows (audio/video release):** decide in a new **ADR-0008 (media storage)**.
-  Candidates checked 2026-10-27:
+- **Phase 1 (photos):** Supabase Storage in Mumbai, Free plan (1 GB).
+- **When media grows (audio/video release):** decide in **ADR-0008 (media storage)**.
+  Candidates (official pages, checked 2026-10-27):
 
   | Provider | Storage | Downloads (egress) | Free allowance | Location |
   |---|---|---|---|---|
-  | Supabase Storage | $0.0213/GB-month after 100 GB on Pro | $0.09/GB after 250 GB | 1 GB (Free plan) | Mumbai |
-  | Cloudflare R2 | $0.015/GB-month | **Free** | 10 GB, 1M uploads, 10M reads per month | Not India-specific — confirm for Q-049 |
-  | Backblaze B2 | about $0.007/GB-month ($6.95/TB) | Free up to 3× stored data, then $0.01/GB | 10 GB | Not India-specific — confirm for Q-049 |
+  | Supabase Storage | $0.0213/GB-month after 100 GB on Pro | $0.09/GB after 250 GB on Pro ($0.03/GB for cached egress) | 1 GB files, 5 GB egress + 5 GB cached egress (Free plan) | Mumbai |
+  | Cloudflare R2 | $0.015/GB-month | Free | 10 GB-month storage, 1 million Class A and 10 million Class B operations per month | No India option: jurisdictions are EU, FedRAMP and US only; location hints (e.g. Asia-Pacific) are "best effort and not a guarantee" |
+  | Backblaze B2 | From $6.95/TB-month | Free up to 3× average monthly stored data, then $0.01/GB | First 10 GB | No India region (US East, US West, EU Central, CA East) |
 
   Example at 10 TB stored, list prices, storage only: Supabase ≈ $211/month, Cloudflare R2 ≈
   $150/month, Backblaze B2 ≈ $70/month. Videos are watched repeatedly, so download fees
   matter as much as storage — R2 and B2 are much cheaper there.
 - **Video specifics** (converting formats, streaming smoothly on slow mobile networks) need
   their own comparison in ADR-0008; a plain storage bucket may not be enough.
-- **Trade-off to settle with Legal (Q-049):** the cheapest providers don't offer an
-  India-only location; Supabase Storage does.
+- **Trade-off to settle with Legal (Q-091, Q-049):** the cheapest providers have no India
+  location; Supabase Storage does.
 
-### View-only media (owner input, 2026-10-27)
-Users upload photos, audio and video and can **view or play** them in the app; there is no
-"download" feature.
-- This removes a download button, but **watching or listening still transfers the file to
-  the phone**, so download (egress) fees still apply each time media is viewed. To keep
-  them low: serve a smaller viewing copy (thumbnail for photos, reduced-quality stream for
-  video) rather than the original, and cache on the device so repeat views are free.
-- View-only is not copy protection: anyone can screen-record. Privacy relies on who is
-  allowed to view (invariant #1), not on hiding the download button.
+### View-only media (D-16)
+Users view photos — and later play audio and video — in the app; there is no download feature
+(REQ-NFR-006).
+- Watching or viewing still transfers the file to the phone, so egress fees apply each time
+  media is viewed. Lists use the thumbnail, and viewed photos are cached on the phone (rule 7),
+  so repeat views are free.
+- View-only is not copy protection: anyone can take a screenshot or screen recording. Privacy
+  relies on who is allowed to view (invariant #1), not on hiding a download button.
 
-### Low-cost option: video hosted on YouTube, FitSphere stores only the link
-The owner proposed letting users upload videos to YouTube and paste the link. FitSphere
-would store no video at all — **near-zero storage and streaming cost**. Facts checked
-2026-10-27 (secondary source; confirm on YouTube Help):
+### External links: YouTube and other public links (D-16)
+FitSphere stores only the link — near-zero storage and streaming cost.
+- **Coaches** add exercise how-to videos as YouTube links, unlisted or public (REQ-TRN-001;
+  answers Q-041).
+- **Users** may add public links to their own content instead of uploading: meal photos in
+  phase 1, and their own videos once video is added (D-16, interpretation to confirm). Before
+  saving, the app shows a privacy warning the user must confirm (REQ-LOG-010).
+- **When a link between people ends,** the API stops returning the trainee's external links to
+  the former coach or Head Coach. FitSphere cannot revoke access to the content itself or
+  delete it — the exception in invariant #1, accepted risk R-004, threat T-09; Legal to confirm
+  (Q-049).
 
-| YouTube setting | Who can watch | Play inside FitSphere? | Fit |
-|---|---|---|---|
-| Private | Only Google accounts the uploader invites (about 50 per video), signed in | **No** — private videos can't be embedded | Poor: coach must be invited by email and watch in YouTube |
-| Unlisted | **Anyone who has the link**; can be forwarded | Yes, if embedding is allowed | Works, but weak privacy |
+YouTube settings (YouTube Help, checked 2026-10-27):
 
-Assessment:
-- **Good fit for non-personal content**, e.g. exercise how-to videos made by coaches
-  (REQ-TRN-001). These are not personal health data; unlisted or public YouTube links are a
-  cheap, sensible choice there.
-- **Risky for trainees' personal videos** (body, progress, workout form): an unlisted link
-  works for anyone it reaches; FitSphere cannot delete the video when an account is deleted
-  or a link ends (D-10); the video sits on the user's own Google account outside our
-  control; and DPDP consent and deletion duties (Q-049) are hard to meet. Use only if Legal
-  agrees and users are clearly told.
-- FitSphere would only store and play links; uploading to YouTube from the app (via
-  YouTube's API) would add quotas, Google sign-in and API terms — evaluate in ADR-0008.
-Final choice is made in **ADR-0008**, based on the future requirements.
+| Setting | Who can watch | Embedding |
+|---|---|---|
+| Private | Only the uploader and people they choose — up to 50 email addresses, each needing a Google account; the URL cannot be shared | An embedded video stops working once it is made private |
+| Unlisted | Anyone who has the link; it can be forwarded | Embedded unlisted videos keep playing |
+
+So links shown in FitSphere must be unlisted or public. Uploading to YouTube from the app (via
+YouTube's API, with quotas and Google sign-in) is not in phase 1; evaluate it in ADR-0008.
+
+## Logging, monitoring and owner access
+- API logs and monitoring exclude health, body and meal data, media and external links, and
+  tokens (invariant #7, REQ-NFR-002). They record only request facts such as route, status,
+  timing and user ID. Where logs are stored is checked against Q-049.
+- The owner uses two-factor sign-in on Supabase (available in account settings, Supabase docs)
+  and Google Cloud, never browses user data in the dashboards, and makes any needed access
+  through the logged admin path (D-16, REQ-NFR-005). Dashboard access does not appear in the
+  admin access log — accepted risk R-003.
+
+## Open questions and how each is handled
+| ID | Question | Status | How this ADR handles it | Blocks acceptance? |
+|---|---|---|---|---|
+| Q-041 | Exercise how-to format | Answered (D-16) | Coach-provided YouTube links; FitSphere stores links only | No |
+| Q-049 | DPDP obligations, data residency, external links | Open (Legal) | All data stays in Mumbai; Legal confirms before real users (C-003), including the external-link approach (R-004) | No — blocks real users, not this choice |
+| Q-050 | Performance and availability targets | Open | No target assumed; cold starts measured in validation; revisit condition | No |
+| Q-053 | Team, skills, budget | Answered (D-01, D-03, C-008) | One modular TypeScript application on managed services | No |
+| Q-055 | Offline logging | Answered (D-04) | Queued changes re-authorized by the API at sync; sync design in ADR-0007 | No |
+| Q-064 | Are meal photos kept? | Partly answered (D-16) | Compressed ~200 KB copy plus thumbnail, or an external link. Label images and deleting with the meal are data-model details that don't change hosting | No |
+| Q-082 | Email service and sender domain | Open | Sign-in emails are verified in ADR-0004 (SPF, DKIM, DMARC — D-13); the invitation email service is chosen before invitations are built | No |
+| Q-083 | Push notification service | Open | Expo push checked in the first slice (ADR-0001) | No |
+| Q-087 | Cloud Run billing account | Open (fact checked: a billing account is required for the free tier) | API runs on the developer's PC until the owner approves the billing account and a budget alert | No — blocks deploying to Cloud Run |
+| Q-088 | Backups before Pro | Answered (D-16) | Free plan, no backups, accepted risk R-005 with review triggers | No |
+| Q-089 | Media retention | Partly answered (D-16) | Rule 5; remaining periods with Legal and in ADR-0008 | No |
+| Q-092 | Which videos may use YouTube links | Answered (D-16) | "External links" above | No |
+
+To confirm on acceptance (proposed values, not open questions): the 5-minute maximum for
+viewing links, and D-16's two interpretations (trainee video links; scope of the retention
+rule).
 
 ## Consequences and accepted trade-offs
 - Easier: testing permission rules; moving providers; one language end to end.
 - Media storage can be switched to a cheaper provider later without app changes (rule 4).
 - Harder: more code than a database-only backend; the API must be deployed and monitored.
-- Accepted: the free Supabase project pauses when idle and has no backups — fine for
-  development only. **Before any real user data, move to Supabase Pro** (first recurring
-  server cost) or set up separate backups.
-- Accepted: dependence on Supabase Auth until stage 3.
+  With the Data API off, the API reaches the database through a direct (pooled) connection
+  rather than Supabase's data client.
+- Accepted (D-16, R-005): phase 1 runs on the Free plan with **no backups**, so data lost on the
+  server cannot be restored — this conflicts with D-14 ("the server is the permanent record").
+  The project pauses after 1 week of inactivity; the owner resumes it from the dashboard
+  ([`runbook.md`](../../operations/runbook.md)). Supabase Pro is a later stage, reviewed when a
+  trigger is hit and approved by the owner (C-008).
+- Accepted (D-16, R-004): content added as an external link stays viewable by anyone who has
+  the link after a link between people ends.
+- Accepted: dependence on Supabase for the database and file storage until stage 3, and on
+  Supabase Auth only if ADR-0004 chooses it.
 
 ## Validation plan
-In the first implementation slice:
-1. Create the Supabase project in Mumbai; sign up, verify email, sign in, reset password.
-2. Deploy a minimal API to Cloud Run (Mumbai); measure cold-start time from an Android phone.
-3. Write the first authorization tests: a coach cannot read another coach's trainee.
+In the first implementation slice, with synthetic data only (invariant #7):
+1. Create the Supabase project in Mumbai on the Free plan. Turn on two-factor sign-in for the
+   owner's Supabase and Google Cloud accounts.
+2. Turn off **Enable Data API**. Confirm that the auto-generated REST endpoints return nothing,
+   and that Storage upload and viewing links (and Supabase Auth, if ADR-0004 is considering it)
+   still work. If not, apply the fallback in Option B and record which one was used.
+3. Connect the API to PostgreSQL through the connection pooler. Once Q-087 is settled, deploy a
+   minimal API to Cloud Run (Mumbai) and measure cold-start time from an Android phone.
+4. Write the first authorization tests: a coach cannot read another coach's trainee; after a
+   link ends, the former coach gets none of the trainee's data or external links.
+5. Upload a photo: confirm a ~200 KB copy and a thumbnail, location data removed, and that the
+   viewing link stops working after 5 minutes.
+6. Confirm that API logs contain no health data, media links or tokens.
 Record results here.
 
 ## Revisit conditions
-- Monthly active users approach 100,000 (sign-in pricing changes).
-- Database approaches 80% of the plan's size.
-- Cloud Run cold starts are noticeably slow for users.
-- Legal advice (Q-049) requires a specific hosting setup.
-- Supabase or Google Cloud pricing changes materially.
+- An R-005 trigger is hit: database over 400 MB; files over 800 MB; monthly active users near
+  50,000; monthly egress over 4 GB; any pause; any data-loss incident.
+- Monthly active users reach 250,000 — build the capacity and cost model before stage 3.
+- Monthly active users approach 100,000, if ADR-0004 chooses Supabase Auth (sign-in pricing
+  changes).
+- Cloud Run cold starts are noticeably slow for users (Q-050).
+- The Data API cannot be turned off without breaking a Supabase service FitSphere needs.
+- Legal advice (Q-049) requires a specific hosting setup, or rejects the external-link
+  approach (R-004).
+- Supabase or Google Cloud pricing or free tiers change materially.
 
-## New open questions
-Recorded in [`constraints-and-assumptions.md`](../constraints-and-assumptions.md#hosting-and-media).
-- **Q-087:** Does the Cloud Run free tier need a billing account/card? If so, set a
-  budget alert (e.g. ₹500/month) before deploying.
-- **Q-088:** Backups before Pro: is "no real users on the Free plan" acceptable, or do we
-  need our own scheduled database export?
-- **Q-089:** Media retention: how long to keep original photos, audio and (future) videos,
-  and whether to keep only a small copy after a period? 1 GB free storage fills quickly.
-- **Q-090:** Future audio/video limits: maximum recording length, video length and
-  resolution, and per-user storage quota (possibly tied to future premium plans).
-- **Q-091:** Can media be stored outside India (cheaper providers), or must it stay in
-  India? (Legal, links to Q-049.)
-- **Q-092:** Which videos may use YouTube links: coach how-to videos only, or also
-  trainees' personal videos? (Project owner + Legal.)
-
-## References (checked 2026-10-27)
-- Supabase pricing: https://supabase.com/pricing
-- Supabase regions (South Asia — Mumbai): https://supabase.com/docs/guides/platform/regions
+## References (official pages, checked 2026-10-27)
+- Supabase pricing (plans, limits, pausing, backups): https://supabase.com/pricing
+- Supabase regions (South Asia — Mumbai, ap-south-1): https://supabase.com/docs/guides/platform/regions
+- Supabase, Hardening the Data API: https://supabase.com/docs/guides/database/hardening-data-api
+- Supabase, Securing your API: https://supabase.com/docs/guides/api/securing-your-api
+- Supabase, Connecting to Postgres: https://supabase.com/docs/guides/database/connecting-to-postgres
+- Supabase Storage signed links: https://supabase.com/docs/reference/javascript/storage-from-createsignedurl and https://supabase.com/docs/reference/javascript/storage-from-createsigneduploadurl
+- Supabase security (encryption at rest and in transit): https://supabase.com/security
+- Supabase account two-factor sign-in: https://supabase.com/docs/guides/platform/multi-factor-authentication
+- Supabase free project pausing: https://supabase.com/docs/guides/platform/free-project-pausing
 - Cloud Run pricing and free tier: https://cloud.google.com/run/pricing
+- Cloud Run locations and pricing tiers: https://docs.cloud.google.com/run/docs/locations
+- Google Cloud Free Tier (billing account required): https://docs.cloud.google.com/free/docs/free-cloud-features
 - Render free tier: https://render.com/docs/free
-- Cloudflare R2 pricing (secondary source): https://filebase.com/blog/cloudflare-r2-pricing-costs-savings-and-alternatives-in-2026/ — confirm on Cloudflare's site
-- Backblaze B2 pricing: https://backblaze.com/cloud-storage/pricing
-- YouTube private vs unlisted (secondary source): https://swarmify.com/blog/youtube-unlisted-vs-private/ — confirm on YouTube Help
-- Firebase Cloud Functions requires Blaze: https://firebase.google.com/docs/functions/faq-and-troubleshooting
-- Firebase Spark quota change (secondary, unverified): https://rohitraj.tech/en/notes/supabase-vs-firebase-india-mvp-2026
-- Project: owner-decisions-2026-10-27.md (D-01, D-03, D-09, D-15), ADR-0001, project invariants
+- Cloudflare R2 pricing: https://developers.cloudflare.com/r2/pricing/ and data location: https://developers.cloudflare.com/r2/reference/data-location/
+- Backblaze B2 pricing: https://www.backblaze.com/cloud-storage/pricing and regions: https://www.backblaze.com/docs/cloud-storage-data-regions
+- YouTube privacy settings: https://support.google.com/youtube/answer/157177 and https://support.google.com/youtube/answer/9230970
+- Firebase Cloud Functions (Blaze plan): https://firebase.google.com/docs/functions ; pricing: https://firebase.google.com/pricing ; Firestore quotas: https://firebase.google.com/docs/firestore/quotas
+- Project: owner-decisions-2026-10-27.md (D-01, D-03, D-09, D-14, D-15, D-16), ADR-0001, project invariants

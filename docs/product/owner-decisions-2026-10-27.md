@@ -293,11 +293,83 @@
   REQ-NFR-003 (aspiration) and REQ-NFR-004 (reminder) updated; quality targets; product brief
   goals; ADR-0002, ADR-0003 and ADR-0007 inputs; glossary; journeys J-08 and J-09.
 
+## D-16 Media, external links, phase-1 hosting plan and owner access (answers Q-041, Q-088, Q-092; partly answers Q-064, Q-089)
+- Status: **Accepted** (answers given by the project owner in chat, 2026-10-27)
+- Answers:
+  1. **View-only media:** media is view-only in the app. Users view photos and play media; there
+     is no download feature.
+  2. **External links (YouTube and other public links):**
+     - Coaches may add YouTube links for exercise how-to videos. In phase 1 a how-to is a
+       coach-provided YouTube link, unlisted or public (answers Q-041).
+     - Trainees may also add YouTube or other public links for their own videos and photos.
+       Before saving, the app shows a privacy warning, e.g. "Anyone who has this link can view
+       it, even if you later remove your coach. FitSphere cannot delete content stored on
+       YouTube or other sites." The user must confirm to continue (answers Q-092).
+     - When a link between people ends, FitSphere hides the external link from the former coach
+       or Head Coach, but cannot revoke access to the content itself. Accepted risk R-004;
+       invariant #1 states this exception; threat-model entry T-09; note for Legal (Q-049).
+  3. **Phase-1 hosting plan (answers Q-088):** use the Supabase **Free** plan only, with no
+     backups in this release. Supabase Pro is **not approved** now; it may be approved later
+     (C-008). Accepted risk R-005: no backups (data loss possible); the project may pause after
+     1 week without activity; limits of 500 MB database and 1 GB files. This **conflicts with
+     D-14** ("the server is the permanent record"); the conflict is recorded in R-005.
+     - Owner-review triggers to move to Pro or add backups: database over 400 MB; files over
+       800 MB; monthly active users near 50,000; monthly viewing traffic (egress) over 4 GB of
+       the 5 GB free allowance; any pause; any data-loss incident.
+     - If the project pauses, the owner resumes it from the Supabase dashboard
+       ([`runbook.md`](../operations/runbook.md)).
+     - This sets the plan level only. It does not accept ADR-0002 or ADR-0003, which stay
+       Proposed.
+  4. **Meal photos in phase 1 (partly answers Q-064):** a user can (a) upload a photo, stored as
+     a compressed viewable copy of about 200 KB (phone-viewable quality) plus a small thumbnail
+     for lists, or (b) paste a public link to an image, with the same privacy warning as in
+     answer 2. Viewed photos are cached on the device under the device rules (D-10, D-13, D-14),
+     so repeat views use no egress. Capacity estimate: about 5,000 photos fit in the 1 GB of
+     free file storage (fewer once thumbnails are counted).
+  5. **Voice meal recordings in phase 1:** transcribe, then delete the audio. Audio storage is
+     future scope.
+  6. **Retention (input to Q-089):** never fully delete a user's own media while the account
+     exists; originals may be replaced by a viewing-quality copy.
+  7. **Owner access:** two-factor sign-in on Supabase and Google Cloud. The owner never browses
+     user data in dashboards; any needed access goes through a logged admin path
+     (REQ-NFR-005). R-003 is extended with the remaining dashboard risk.
+  8. **ADR-0002 and ADR-0003 revisions (both stay Proposed):**
+     - The device media cache follows D-10, D-13 and D-14 (encrypted, removed when a link
+       ends, cleared after 30 days without a sync). Media links have a short maximum expiry
+       and a threat-model entry (T-08).
+     - Encryption at rest is a Must (REQ-NFR-002).
+     - Supabase's auto-generated Data API is switched off or denies all app tables, so the
+       Node API is the only path to the data.
+     - Supabase Auth is only a candidate. The sign-in decision moves to ADR-0004, which must
+       verify neutral messages and equal timing (REQ-ACC-010, T-01) and email from a sender
+       domain with SPF, DKIM and DMARC (Q-082, D-13).
+     - Growth paths start on the Free plan (R-005); Pro is a later stage, reached when a
+       trigger is hit. A capacity and cost model is required before stage 3, started at
+       250,000 monthly active users (D-15), instead of invented figures.
+     - Each ADR lists its open questions and how each is handled, as ADR-0001 did.
+     - Links are never deleted except as the delete-account flow decides (Q-048).
+     - API logs and monitoring exclude health data (invariant #7).
+     - AI consent is checked immediately before each AI call, not when an upload link is
+       issued (invariant #3).
+- **Interpretation:** phase 1 has no video feature for trainees (audio and video are future
+  scope), so in phase 1 trainees' public links (answer 2) are links to meal photos (answer 4).
+  Video links apply once the audio/video release adds video. *(Confirm.)*
+- **Interpretation:** answer 6 governs automatic retention. Whether deleting a meal also
+  deletes its photo, and whether nutrition-label images are kept, stay open (Q-064); account
+  deletion stays with Q-048. *(Confirm.)*
+- Doc changes: invariant #1; REQ-LOG-005, REQ-LOG-006, REQ-TRN-001, REQ-NFR-001, REQ-NFR-004
+  and REQ-NFR-005 updated; REQ-LOG-010 (public links) and REQ-NFR-006 (view-only media) added;
+  Q-041, Q-088 and Q-092 answered; Q-064 and Q-089 partly answered; notes on Q-038, Q-049 and
+  Q-087; Q-082 also blocks ADR-0004; C-008; R-003 extended, R-004 and R-005 added; threat model
+  (data categories, matrix, T-07 updated, T-08 and T-09 added, retention, open risks); system
+  context; glossary; journeys J-01 and J-06; product brief Future scope;
+  `docs/operations/runbook.md` created; ADR-0002 and ADR-0003 revised; decisions index.
+
 ---
 
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
-Invariant #1 was later updated for D-10 and D-13; the rules file holds the current wording.)*
+Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
 
 - **Invariant #1 (new):** Authorization is server-side. A user can access another person's
   data only through an **accepted** link: Coach → their accepted trainees; Head Coach → their

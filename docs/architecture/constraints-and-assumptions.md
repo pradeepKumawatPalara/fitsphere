@@ -19,7 +19,7 @@ D- numbers refer to the owner decisions in
 | C-005 | Food database, barcode and saved-meal logging must work with AI off. | BRD §11; REQ-ACC-005 |
 | C-006 | Phase 1: all users are in India; days are computed in Asia/Kolkata. | BRD §2; REQ-DATE-004; D-09 |
 | C-007 | The UI pattern is mobile: bottom navigation, bottom sheets, camera, microphone and barcode scanning. The client must support these device capabilities. | BRD §1, §4, §8 |
-| C-008 | Budget: free tiers first. These paid items need project-owner sign-off: Apple Developer Program (US$99/year, required for TestFlight and the App Store — needed only at iOS release, D-10); Google Play developer account (US$25 one-time; new personal accounts must meet testing requirements before production release); AI meal parsing (per-request cost after any free tier, ADR-0005). Prices verified 2026-10-27 — recheck before paying. | D-03, D-10 |
+| C-008 | Budget: free tiers first. These paid items need project-owner sign-off: Apple Developer Program (US$99/year, required for TestFlight and the App Store — needed only at iOS release, D-10); Google Play developer account (US$25 one-time; new personal accounts must meet testing requirements before production release); AI meal parsing (per-request cost after any free tier, ADR-0005); Supabase Pro (from US$25/month) — **not approved for phase 1**, which runs on the Free plan; reviewed when an R-005 trigger is hit (D-16). Prices verified 2026-10-27 — recheck before paying. | D-03, D-10, D-16 |
 
 ## Quality targets
 - Performance: **Open** (Q-050)
@@ -112,12 +112,12 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-032 | Logged-meal "•••" menu: edit, delete, move, duplicate? | REQ-NUT-004 | Project owner | |
 | Q-036 | Re-logging a saved meal: which slot and date does it go to? | REQ-SAVED-001 | Project owner | |
 | Q-037 | Full list of day logging-status labels in the date sheet. | REQ-LOG-002 | Project owner | |
-| Q-038 | Voice: on-device or cloud speech-to-text? Is it covered by AI consent? | REQ-LOG-005, ADR-0005 | Project owner + Legal | |
+| Q-038 | Voice: on-device or cloud speech-to-text? Is it covered by AI consent? *The audio is deleted once transcribed; audio storage is future scope (D-16).* | REQ-LOG-005, ADR-0005 | Project owner + Legal | |
 | Q-039 | Food database and barcode data source (licensed, open such as Open Food Facts, Indian foods such as IFCT)? | REQ-LOG-007, ADR-0006 | Project owner | |
 | Q-040 | Acceptable AI parsing accuracy and how it is measured. | REQ-LOG-009, ADR-0005 | Project owner | |
 | Q-062 | Does the AI review list show nutrition values per item, or only items and quantities as BRD §8 states? (REQ-LOG-009 currently reads "and nutrition values".) | REQ-LOG-009 | Project owner | |
 | Q-063 | Where do nutrition values for AI-parsed items come from: the AI's estimate, or a match in the food database? Meal totals (REQ-HOME-003/004, NUT-002) need them either way. | REQ-LOG-009, ADR-0005, ADR-0006 | Project owner | |
-| Q-064 | Are meal photos and nutrition-label images kept after parsing? If so, for how long, who can see them, and are they deleted with the meal? ([`flow.md`](../../flow.md) shows media storage.) | REQ-LOG-006, ADR-0003, threat model | Project owner + Legal | |
+| Q-064 | **Partly answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: a meal photo is kept as a compressed ~200 KB copy with a thumbnail, or the user pastes a public link; a user's own media is never fully deleted while the account exists). Are meal photos and nutrition-label images kept after parsing? If so, for how long, who can see them, and are they deleted with the meal? ([`flow.md`](../../flow.md) shows media storage.) *Still open: nutrition-label images; whether deleting a meal deletes its photo; who sees photos is Q-059.* | REQ-LOG-006, ADR-0002, ADR-0003, threat model | Project owner + Legal | |
 
 ### Screens and display rules
 | ID | Question | Blocks | Owner | Due |
@@ -134,7 +134,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-033 | Is "Got it" dismissal remembered per user or per device? | REQ-PLAN-002 | Project owner | |
 | Q-034 | Do kcal/protein totals change per option? | REQ-PLAN-003/004 | Project owner | |
 | **Q-035** | **What does the diet-plan option action button do?** (BRD: "partly visible in the screenshot, presumably to log".) | **REQ-PLAN-006 blocked** | Project owner | |
-| Q-041 | Exercise how-to format and who authors the exercise library. | REQ-TRN-001 | Project owner | |
+| Q-041 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: a coach-provided YouTube link, unlisted or public). Exercise how-to format and who authors the exercise library. | REQ-TRN-001, ADR-0002 | Project owner | |
 | Q-042 | Workout log fields (sets, reps, weight, RPE, duration, rest). | REQ-TRN-003 | Project owner | |
 | Q-043 | Exact formulas: 4-week change, weekly rate, average calories, weekly aggregates, minimum weigh-ins for the chart. | REQ-PRG-001..005 | Project owner | |
 | Q-044 | "Days logged out of total days": total counted from when? | REQ-PRG-003 | Project owner | |
@@ -146,7 +146,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 |---|---|---|---|---|
 | Q-047 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-05). Sign-up, sign-in method(s), forgot password, email verification, social login? | REQ-ACC-010, ADR-0004 | Project owner | |
 | **Q-048** | **Delete-account flow: what is deleted, what is retained and for how long, effect on coach links.** | **REQ-ACC-009 blocked**, ADR-0003 | Project owner + Legal | |
-| Q-049 | Phase 1 is India only (D-09): confirm obligations under India's Digital Personal Data Protection Act 2023 — data residency, consent records and anything else needed before real users. Other laws only if users outside India are added later. *Includes how long Head Coach permission answers are kept after an account is deleted (D-13), and confirming the 1-year retention of the admin access log (D-14).* | Threat model, ADR-0002, ADR-0003, ADR-0005, ADR-0006, ADR-0008 | Legal | |
+| Q-049 | Phase 1 is India only (D-09): confirm obligations under India's Digital Personal Data Protection Act 2023 — data residency, consent records and anything else needed before real users. Other laws only if users outside India are added later. *Includes how long Head Coach permission answers are kept after an account is deleted (D-13), and confirming the 1-year retention of the admin access log (D-14). Also whether the privacy warning for user-provided public links is enough, given that FitSphere cannot delete or revoke that content (D-16, R-004).* | Threat model, ADR-0002, ADR-0003, ADR-0005, ADR-0006, ADR-0008 | Legal | |
 | Q-050 | Performance, availability, accessibility (e.g. WCAG level) targets. | Test strategy, ADR-0002 | Project owner | |
 | Q-055 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-04, REQ-NFR-004). Must logging work offline and sync later? *Offline/online split to confirm: Q-077.* | ADR-0001, ADR-0002, ADR-0003, ADR-0007 | Project owner | |
 | Q-065 | What must a consent record contain beyond a timestamp (A-007): the notice version shown, which inputs it covers (text, voice, photo, label), the AI provider, and when consent was withdrawn? | REQ-ACC-004, ADR-0005 | Project owner + Legal | |
@@ -155,27 +155,29 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-077 | Confirm the offline split in D-04. *(F-10)* | REQ-NFR-004, ADR-0007 | Project owner | |
 | Q-079 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-11: neutral messages). Do sign-up and password reset also avoid revealing whether an email is registered? If not, the invitation protection (D-10, REQ-ROLE-011) can be bypassed through them. | REQ-ACC-010, ADR-0004, threat model | Project owner | |
 | Q-080 | What can an account do before its email is verified, and how long do verification and password-reset links stay valid? | REQ-ACC-010 | Project owner | |
-| Q-082 | Which email service and sender domain send invitation emails, on a free tier (C-008)? Should the same service send verification and password-reset emails (REQ-ACC-010)? | REQ-ROLE-008, REQ-ACC-010, ADR-0002 | Project owner | |
+| Q-082 | Which email service and sender domain send invitation emails, on a free tier (C-008)? Should the same service send verification and password-reset emails (REQ-ACC-010)? *ADR-0004 must verify that sign-in emails come from a sender domain with SPF, DKIM and DMARC (D-16).* | REQ-ROLE-008, REQ-ACC-010, ADR-0002, ADR-0004 | Project owner | |
 | Q-083 | Which push notification service delivers in-app invitation alerts? *Expo push support is to be verified in the first slice (D-13, ADR-0001). The same service also delivers "no longer linked" messages (D-14).* | REQ-ROLE-009, ADR-0001, ADR-0002 | Project owner | |
 
 ### Hosting and media
-Raised by [ADR-0002](decisions/ADR-0002-backend-and-hosting.md#new-open-questions) (Proposed, 2026-10-27).
+Raised by [ADR-0002](decisions/ADR-0002-backend-and-hosting.md#open-questions-and-how-each-is-handled) (Proposed, 2026-10-27).
 
 | ID | Question | Blocks | Owner | Due |
 |---|---|---|---|---|
-| Q-087 | Does the Google Cloud Run free tier need a billing account (card)? If so, set a budget alert (e.g. ₹500/month) before deploying. | API hosting on Cloud Run, ADR-0002 | Project owner | |
-| Q-088 | Backups before Supabase Pro: is "no real users on the Free plan" acceptable, or do we need our own scheduled database export? | Storing real user data, ADR-0002, ADR-0003 | Project owner | |
-| Q-089 | Media retention: how long to keep original photos, audio and (future) videos, and whether to keep only a small copy after a period? The free plan's 1 GB of file storage fills quickly. *Overlaps Q-064 for meal photos and labels — answer together.* | Media lifecycle rules, ADR-0002, ADR-0003, ADR-0008 | Project owner + Legal | |
+| Q-087 | Does the Google Cloud Run free tier need a billing account (card)? If so, set a budget alert (e.g. ₹500/month) before deploying. *Checked 2026-10-27: Google's docs say "A Google Cloud billing account is required to access the Google Cloud Free Tier"; whether the billing account needs a card is stated only for Free Trial sign-up. Still open: the owner approves creating the billing account and its budget alert.* | API hosting on Cloud Run, ADR-0002 | Project owner | |
+| Q-088 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: phase 1 runs on the Free plan with no backups; accepted risk R-005, with owner-review triggers). Backups before Supabase Pro: is "no real users on the Free plan" acceptable, or do we need our own scheduled database export? | Storing real user data, ADR-0002, ADR-0003 | Project owner | |
+| Q-089 | **Partly answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: a user's own media is never fully deleted while the account exists; an original may be replaced by a viewing-quality copy; voice audio is deleted after transcription). Media retention: how long to keep original photos, audio and (future) videos, and whether to keep only a small copy after a period? The free plan's 1 GB of file storage fills quickly. *Overlaps Q-064 for meal photos and labels — answer together. Still open: periods after account deletion (Q-048) and Legal's view (Q-049).* | Media lifecycle rules, ADR-0002, ADR-0003, ADR-0008 | Project owner + Legal | |
 | Q-090 | Audio and video limits (future scope): maximum recording length, video length and resolution, and per-user storage quota (possibly tied to future premium plans, D-06)? | Audio/video release, ADR-0008 | Project owner | |
 | Q-091 | Can media be stored outside India with a cheaper provider, or must it stay in India? *Part of Q-049.* | ADR-0008 | Legal | |
-| Q-092 | Which videos may use YouTube links: coaches' exercise how-to videos only, or also trainees' personal videos? | ADR-0008 | Project owner + Legal | |
+| Q-092 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: both — coaches' how-to videos, and trainees' own videos and photos after a privacy warning; accepted risk R-004; Legal note in Q-049). Which videos may use YouTube links: coaches' exercise how-to videos only, or also trainees' personal videos? | ADR-0002, ADR-0008 | Project owner + Legal | |
 
 ## Risks
 | ID | Risk | Source | Mitigation | Owner |
 |---|---|---|---|---|
 | R-001 | iOS-only bugs will be found late: phase 1 is developed and tested on Android only, and iOS builds are at most compiled to check that they build. | D-10 | Compile iOS builds with EAS where useful (ADR-0001); test on a real iPhone before any iOS release. | Project owner |
 | R-002 | ADR-0001 was accepted without its validation spike, so a problem with the framework — barcode scanning, audio or photo capture, offline SQLite, the iOS compile, list speed on low-end Android phones, or push notifications — may only be found once the first slices are built, when changing course costs more. | D-12 | Run the ADR-0001 checks during the first slices, with the push check in the first slice (D-13); the ADR's revisit conditions say when to change course. | Project owner |
-| R-003 | In phase 1 the operator reviews their own access: the project owner is the only operator and also the only reviewer of the admin access log, which is kept in the same backend database. | D-14 | Accepted for phase 1. The log records every admin access to user data and is reviewed monthly (REQ-NFR-005); Platform Admin controls are open (Q-086). | Project owner |
+| R-003 | In phase 1 the operator reviews their own access: the project owner is the only operator and also the only reviewer of the admin access log, which is kept in the same backend database. **Remaining dashboard risk (D-16):** the owner can still read user data directly in the Supabase and Google Cloud dashboards, and such access does not appear in FitSphere's admin access log. | D-14, D-16 | Accepted for phase 1. The log records every admin access to user data and is reviewed monthly (REQ-NFR-005); Platform Admin controls are open (Q-086). Two-factor sign-in on Supabase and Google Cloud; the owner never browses user data in dashboards and uses only the logged admin path (D-16). | Project owner |
+| R-004 | Content a user stores on YouTube or another site and adds to FitSphere as a link stays viewable by anyone who has the link — including a former coach or Head Coach after the link between them ends. FitSphere cannot delete that content or revoke access to it. | D-16 | Accepted. A privacy warning that the user must confirm before the link is saved (REQ-LOG-010); the link is hidden from the former coach or Head Coach when a link ends; exception stated in invariant #1; threat T-09; Legal to confirm the approach (Q-049). | Project owner |
+| R-005 | Phase 1 runs on the Supabase Free plan with no backups (D-16): data lost on the server cannot be restored; the project may pause after 1 week without activity, making the app unavailable until resumed; limits of 500 MB database, 1 GB files and 5 GB monthly egress. **Conflicts with D-14** ("the server is the permanent record", REQ-NFR-004): without backups, the server copy itself can be lost. | D-16 | Accepted for phase 1. The owner reviews moving to Supabase Pro (C-008) or adding backups when any trigger is hit: database over 400 MB; files over 800 MB; monthly active users near 50,000; monthly egress over 4 GB (Supabase counts cached egress separately, also 5 GB — watch both); any pause; any data-loss incident. A paused project is resumed from the Supabase dashboard ([`runbook.md`](../operations/runbook.md)). | Project owner |
 
 ## Major decisions needed (ADRs)
 Listed in [`decisions/README.md`](decisions/README.md), which is the single record of each
@@ -210,3 +212,8 @@ recorded: [ADR-0001](decisions/ADR-0001-mobile-client-framework.md#validation-in
   REQ-ROLE-015, the data model and the permission matrix in the threat model.
 - Adding wearables/health sync — new integration ADR.
 - Switching or adding an AI provider — revisit ADR-0005 and consent text.
+- An R-005 trigger is hit (database over 400 MB, files over 800 MB, monthly active users near
+  50,000, monthly egress over 4 GB, any pause or data-loss incident) — owner reviews Supabase Pro
+  or backups (D-16, C-008).
+- Monthly active users reach 250,000 — start the capacity and cost model required before
+  stage 3 of the ADR-0002 and ADR-0003 growth paths (D-15, D-16).

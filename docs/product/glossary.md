@@ -35,6 +35,8 @@ Usage *(proposed — owner to confirm)*:
 | Coach record | The accepted link between a Head Coach and a Coach — not a user account (D-10). It has no editable fields (D-11); the BRD's "delete" means removing (unassigning) it. | BRD §1.2, §1.3; REQ-ROLE-003; D-07, D-10, D-11 |
 | Trainee record | The accepted link between a Coach and a trainee — not a user account (D-10). It has no editable fields: the BRD's "update" means editing the trainee's plans and targets, and "delete" means removing the link (D-11). | BRD §1.2, §1.3; REQ-ROLE-005; D-07, D-10, D-11 |
 | Notifications list | The one in-app list where invitations, Head Coach permission requests and "no longer linked" messages appear, so none is lost if push notifications are off (D-15). | REQ-ROLE-009, REQ-ROLE-013, REQ-ROLE-014 |
+| External link | A link to content a user stores on another site, such as YouTube, added instead of an upload (D-16): a coach's exercise how-to video, or a user's own photo. FitSphere stores only the link. When a link between people ends, it hides the link from the former coach or Head Coach but cannot delete the content or stop people who have the link from viewing it (R-004). | REQ-LOG-010, REQ-TRN-001 |
+| View-only media | Photos, and later audio and video, that can be viewed or played in the app but not downloaded (D-16). Not copy protection: screenshots and screen recordings remain possible. | REQ-NFR-006 |
 | Coaching activity | What a Head Coach sees about each of their coaches. Without a trainee's permission it is counts only: number of trainees; how many have allowed, declined or not answered; plans sent. No trainee names or data (D-13). Never the coach's own personal logs (D-10). | REQ-ROLE-004, REQ-ROLE-010 |
 
 What follows from that:

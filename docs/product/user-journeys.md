@@ -19,7 +19,7 @@ Alternates:
 - **AI consent off** → app asks for consent (REQ-ACC-004); if declined, user uses Search database / Scan barcode / Saved.
 - **AI fails or times out** → input kept; retry or switch method.
 - **Logging for another day** → date chip → "Log this meal to" sheet → Yesterday or "Another day…" (REQ-LOG-002).
-- **Voice / photo** → same flow starting from "Speak your meal" or camera (REQ-LOG-005/006).
+- **Voice / photo** → same flow starting from "Speak your meal" or camera (REQ-LOG-005/006). The voice recording is deleted once transcribed; a photo is kept as a compressed copy, or the user pastes a public link to an image after confirming a privacy warning (REQ-LOG-010, D-16).
 
 ## J-02 Trainee logs a meal without AI
 Actor: Personal Training User · REQ-LOG-007, ACC-005
@@ -48,7 +48,7 @@ REQ-DATE-001..003
 
 ## J-06 Trainee follows the training plan
 REQ-TRN-001..005, HOME-007
-1. Training tab → today's plan from coach, with exercise how-to.
+1. Training tab → today's plan from coach, with exercise how-to (a coach-provided YouTube link — D-16).
 2. Logs sets in the lifting unit setting *(fields per Q-042)*.
 3. Workout appears in history; Home workout tracker increments (e.g. "2 of 5 · 3 left").
 Alternate: no plan → "No training plan yet" → "Start an empty workout".

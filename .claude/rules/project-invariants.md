@@ -10,7 +10,11 @@ refer to `docs/product/owner-decisions-2026-10-27.md`.
    and targets only while the trainee allows it (D-08, D-13). Ending a link — by removal,
    leaving or switching — ends access to all of that person's data, including past data.
    Changes queued offline are re-authorized on the server at sync time. UI hiding is not access
-   control. (C-002, REQ-NFR-001, D-06, D-07, D-10, D-11, D-13)
+   control. **Exception — external links:** for content a user stores on another site (e.g.
+   YouTube) and adds as a link, ending a link hides that link from the former coach or Head
+   Coach, but FitSphere cannot revoke access to the content itself; the user is warned before
+   saving (REQ-LOG-010, accepted risk R-004). (C-002, REQ-NFR-001, D-06, D-07, D-10, D-11,
+   D-13, D-16)
 2. **Client cannot edit coach-set targets.** (REQ-PLAN-001)
 3. **No AI call without recorded consent.** Check consent on the server immediately before
    sending any meal text, photo, voice or label to an AI service. (C-004, REQ-ACC-004)

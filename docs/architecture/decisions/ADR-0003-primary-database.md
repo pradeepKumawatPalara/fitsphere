@@ -1,17 +1,18 @@
 # ADR-0003: Primary database
 
-- Status: **Proposed**
+- Status: **Proposed** — revised 2026-10-27 after review and owner decision D-16; not accepted
 - Date: 2026-10-27
 - Decision owner: Project owner
-- Related requirements: REQ-ROLE-* (links, permissions, switching), REQ-PLAN-*, REQ-LOG-*, REQ-PRG-* (weekly aggregates), REQ-NFR-001, NFR-003, NFR-004, NFR-005
-- Related constraints/decisions: C-003, C-006, C-008; D-07 (unassign, never delete), D-09 (India, IST), D-10/D-11 (links, consent, switching), D-13 (author of each change), D-15 (20M aspiration)
-- Related ADRs: ADR-0002 (decided together); ADR-0007 (device storage and sync) builds on it
+- Related requirements: REQ-ROLE-* (links, permissions, switching), REQ-PLAN-*, REQ-LOG-*, REQ-PRG-* (weekly aggregates), REQ-NFR-001, REQ-NFR-002, REQ-NFR-003, REQ-NFR-004, REQ-NFR-005, REQ-NFR-006
+- Related constraints/decisions: C-003, C-006, C-008; D-07 (unassign, never delete), D-09 (India, IST), D-10/D-11 (links, consent, switching), D-13 (author of each change), D-14 (server is the permanent record), D-15 (20M aspiration), D-16 (Free plan, media); R-005
+- Related ADRs: ADR-0002 (decided together); ADR-0004 (sign-in and authorization); ADR-0007 (device storage and sync) and ADR-0008 (media storage, audio/video release) build on it
 - Supersedes: None
 
 ## Context
-This decides where FitSphere's **permanent record** lives (D-14: "the server is the
-permanent record"). The phone keeps a copy for offline use (ADR-0007), but the server
-database is the source of truth.
+This decides where FitSphere's **permanent record** lives (D-14: "the server is the permanent
+record"). The phone keeps a copy for offline use (ADR-0007), but the server database is the
+source of truth. In phase 1 that database runs on a free plan without backups (D-16, accepted
+risk R-005), which weakens the D-14 promise until backups are added.
 
 The data is strongly **relational** — records point to each other and rules depend on
 those connections:
@@ -20,9 +21,10 @@ those connections:
 - per-trainee Head Coach permission answers with timestamps (REQ-ROLE-013);
 - plans, options and ingredients; targets with an author and time (D-13);
 - daily entries (meals, weight, steps, sleep, measurements, workouts) per user per IST day;
-- invitations with expiry; consent records; admin access log;
-- references to media files: meal photos now; voice recordings and videos in a future
-  release (owner request, 2026-10-27).
+- invitations with expiry; consent records; admin access log (REQ-NFR-005);
+- references to media: meal photos now — a compressed copy and a thumbnail, or an external
+  link (D-16). Voice recordings are not stored in phase 1; audio and video come in a future
+  release.
 
 Some operations must happen **all-or-nothing**: switching Head Coach ends the old link,
 creates the new link and issues fresh permission requests together (D-11). Progress needs
@@ -33,64 +35,76 @@ weekly totals and averages (REQ-PRG-*).
    database itself.
 2. **Must:** all-or-nothing changes (transactions) across several records.
 3. **Must:** efficient date-range totals and averages for Progress.
-4. **Must:** managed hosting in Mumbai with a free development tier.
+4. **Must:** managed hosting in Mumbai with a free tier usable for development and phase 1
+   (D-16).
 5. **Must:** growth path toward millions of users; data portable to other providers.
-6. **Should:** works with the hybrid backend in ADR-0002 and with an offline-sync approach
+6. **Must:** data encrypted at rest and in transit (REQ-NFR-002).
+7. **Should:** works with the hybrid backend in ADR-0002 and with an offline-sync approach
    (ADR-0007).
-7. **Should:** encryption at rest and backups available as standard.
+8. **Should:** backups available once the owner approves them (phase 1 runs without — R-005).
 
 ## Options considered
 
 ### Option A — PostgreSQL, managed by Supabase (Mumbai)
-- Benefits: relational, with constraints, transactions and fast date-range queries; the
-  most widely used open-source relational database — can be moved to any cloud's managed
-  PostgreSQL later (portability); comes with ADR-0002's Supabase choice; Mumbai region;
-  free tier for development; daily backups on Pro.
-- Costs and risks: free tier is 500 MB, pauses after a week idle and has no backups; very
-  large tables (meal entries for millions of users) need partitioning and indexing work
-  later.
-- Fit: meets 1–7.
+- Benefits: relational, with constraints, transactions and fast date-range queries; the most
+  widely used open-source relational database — can be moved to any cloud's managed PostgreSQL
+  later (portability); comes with ADR-0002's Supabase choice; Mumbai region; free tier; all
+  customer data encrypted at rest (AES-256) and in transit (TLS) (Supabase security page);
+  daily backups kept 7 days on Pro.
+- Costs and risks: the Free plan has a 500 MB database, pauses after 1 week of inactivity and
+  has no backups — phase 1 runs on it (D-16, R-005). Very large tables (meal entries for
+  millions of users) need partitioning and indexing work later.
+- Fit: meets 1–7; 8 only on Pro or with a separate backup.
 
 ### Option B — Firestore (Google, document database)
 - Benefits: built-in offline sync in its SDK; automatic scaling.
 - Costs and risks: no joins or database-enforced relationships — "one active coach per
-  trainee", link switching and counts-only views must be enforced in code; aggregates
-  (weekly averages) need extra bookkeeping; billed per document read, which grows with
-  history screens; strong lock-in.
-- Fit: meets 4 (partly); weak on 1, 2 (limited), 3, 5 (portability), 6.
+  trainee", link switching and counts-only views must be enforced in code; aggregates (weekly
+  averages) need extra bookkeeping; billed per document read, which grows with history screens
+  (free Spark plan: 1 GiB stored; 50,000 reads, 20,000 writes and 20,000 deletes per day —
+  Firebase docs); strong lock-in.
+- Fit: meets 4 (partly); weak on 1, 2 (limited), 3, 5 (portability), 7; 6 not assessed.
 
 ### Option C — MongoDB Atlas (document database)
 - Benefits: flexible documents; a free shared cluster for development; good tooling.
 - Costs and risks: same relational-fit problems as B, though with better aggregation;
   multi-document transactions exist but relational integrity is not its strength.
-- Fit: partial on 1, 2; meets 3, 5 (partly).
+- Fit: partial on 1, 2; meets 3; 5 partly; 6 not assessed.
 
 ## Decision
 Pending approval.
 
 ## Recommended option
-**Option A — PostgreSQL, managed by Supabase, in the Mumbai region.**
+**Option A — PostgreSQL, managed by Supabase, in the Mumbai region, on the Free plan in phase 1
+(D-16, R-005).**
 
 Design rules that follow (to be detailed in `docs/contracts/data-model.md`):
+- **Only the Node API reaches the database** (ADR-0002). Supabase's auto-generated Data API is
+  turned off, or exposes no app table; database policies stay as a second safety layer.
 - Store timestamps in UTC, plus a separate **IST day** field chosen by the user
   (invariant #5, REQ-LOG-002).
 - Store each measure in one canonical unit (invariant #6).
-- Links are rows with status and start/end dates; never deleted (D-07). A database rule
-  allows only one active coach link per trainee and one active Head Coach link per coach.
+- Links are rows with status and start/end dates. Ending a link — by removal, leaving or
+  switching — never deletes the row (D-07). Rows are deleted only as the delete-account flow
+  decides (Q-048, blocked). A database rule allows only one active coach link per trainee and
+  one active Head Coach link per coach (D-11).
+- Head Coach permission answers are stored per link with timestamps, so a new Head Coach starts
+  with fresh requests (D-11, REQ-ROLE-013).
 - Every plan/target change records author and time (D-13).
-- Large time-based tables (meal entries, weigh-ins) are designed so they can be
-  partitioned by month later without changing the app.
-- **Media files (photos now; audio and video in a future release) are never stored in the
-  database.** One `media` record per file holds only: owner, the entry it belongs to, type
-  (photo / audio / video), storage location key, size, duration, created time, status, and
-  a removal date if retention removes it. The file itself lives in object storage
-  (ADR-0002, future ADR-0008). This keeps the database small, fast and cheap even when
-  users upload many large files, and lets media move to a cheaper storage provider by
-  updating location keys only.
-- A `media` record can instead point to an **external link** (e.g. a YouTube video) with
-  the provider name, for the low-cost option described in ADR-0002. Media is view-only in
-  the app, so records also track a smaller "viewing copy" (thumbnail or reduced-quality
-  version) where one exists.
+- Large time-based tables (meal entries, weigh-ins) are designed so they can be partitioned by
+  month later without changing the app.
+- **Media files are never stored in the database.** One `media` record per file holds only:
+  owner, the entry it belongs to, type (photo now; audio and video in a future release),
+  storage location keys for the viewing copy and its thumbnail, size, duration (future audio
+  and video), created time, status, and whether an original has been replaced by a
+  viewing-quality copy. A user's own media is never fully deleted automatically while the
+  account exists (D-16, Q-089). The files live in object storage (ADR-0002, ADR-0008), so the
+  database stays small and media can move to a cheaper provider by updating location keys only.
+- A `media` record can instead hold an **external link** (e.g. YouTube) with the site's name
+  (D-16, REQ-LOG-010). When a link between people ends, the API stops returning it to the former
+  coach or Head Coach; the content itself stays reachable outside FitSphere (R-004).
+- Database logging never records health data (invariant #7): statement logging that captures
+  values stays off.
 
 ## Why this option wins
 FitSphere's core is relationships and permissions between people. A relational database
@@ -109,38 +123,80 @@ cross-user rules, or if offline sync could only be achieved with Firestore's SDK
 checked in ADR-0007).
 
 ## Growth path toward 20 million users (aspiration, D-15)
-1. **Development:** Supabase Free (500 MB). $0.
-2. **Launch:** Supabase Pro — 8 GB database included, then $0.125/GB; daily backups. From $25/month.
-3. **Growth:** larger compute; indexes tuned to real queries; read replica for Progress and
-   coach dashboards; monthly partitions for entry tables.
-4. **Millions of users:** dedicated managed PostgreSQL (Supabase large plans or a cloud
-   provider's Mumbai PostgreSQL); archive old raw entries while keeping weekly summaries.
-   Plan this with a capacity model before reaching it.
+List prices from Supabase's pricing page, checked 2026-10-27. Stages match ADR-0002.
+0. **Development and phase 1 (D-16):** Supabase Free — 500 MB database; no backups; pauses
+   after 1 week of inactivity (R-005). $0. Owner-review trigger: database over 400 MB (with the
+   other R-005 triggers in ADR-0002).
+1. **First paid stage — when an R-005 trigger is hit and the owner approves (C-008):**
+   Supabase Pro — 8 GB disk included, then $0.125/GB; daily backups kept 7 days. From
+   $25/month. Alternatively, a separate backup while staying on Free.
+2. **Growth:** larger compute; indexes tuned to real queries; a read replica for Progress and
+   coach dashboards; monthly partitions for entry tables. Cost rises with compute size — owner
+   review.
+3. **Millions of users:** dedicated managed PostgreSQL (Supabase large plans or a cloud
+   provider's Mumbai PostgreSQL); old raw entries archived — not deleted (D-14) — while weekly
+   summaries stay at hand. **Not estimated:** a capacity and cost model is required before
+   this stage; start it when monthly active users reach 250,000.
 No step requires changing the app's data model or rewriting the API.
+
+## Open questions and how each is handled
+| ID | Question | Status | How this ADR handles it | Blocks acceptance? |
+|---|---|---|---|---|
+| Q-010 | Meaning of "delete" for a coach or trainee | Answered (D-07) | Ending a link never deletes data or the link row | No |
+| Q-014 | Do target changes apply from a date or retroactively? | Open | A data-model detail: targets are stored with an effective date and author, which supports either answer | No |
+| Q-018 | Time zone | Answered (D-09) | UTC timestamps plus a separate IST day field | No |
+| Q-030 | Two measurements or weigh-ins on one date | Open | A data-model detail (a uniqueness rule or not); does not change the database choice | No |
+| Q-048 | Delete-account flow | Open (REQ-ACC-009 blocked) | Rows, including links, are deleted only as this flow decides | No — blocks REQ-ACC-009 |
+| Q-049 | DPDP obligations, data residency | Open (Legal) | All data in Mumbai; Legal confirms before real users (C-003) | No — blocks real users |
+| Q-053 | Team, skills, budget | Answered (D-01, D-03, C-008) | Managed PostgreSQL; Free plan in phase 1 | No |
+| Q-055 | Offline logging | Answered (D-04) | Server is the source of truth; whether PostgreSQL supports the sync design is shown in ADR-0007 (revisit condition) | No — accepted risk |
+| Q-064 | Are meal photos kept? | Partly answered (D-16) | `media` record with viewing copy and thumbnail, or external link; label images and deleting with the meal stay data-model details | No |
+| Q-072 | One coach / one Head Coach | Answered (D-11) | Enforced by a database rule | No |
+| Q-088 | Backups before Pro | Answered (D-16) | Free plan without backups, R-005 triggers | No |
+| Q-089 | Media retention | Partly answered (D-16) | Never fully deleted automatically while the account exists; the record notes when an original was replaced | No |
 
 ## Consequences and accepted trade-offs
 - Easier: correct permissions, safe switching, Progress queries, moving providers.
 - Harder: offline sync from a relational database needs a deliberate design (ADR-0007).
-- Accepted: free tier unsuitable for real user data (no backups, pausing) — move to Pro
-  before launch (shared with ADR-0002).
+  Accepted risk: if ADR-0007 finds no workable approach, this ADR is revisited.
+- Accepted (D-16, R-005): phase 1 runs on the Free plan with **no backups** — data lost on the
+  server cannot be restored, which conflicts with D-14 ("the server is the permanent
+  record"). The project pauses after 1 week of inactivity, making the app unavailable until the
+  owner resumes it ([`runbook.md`](../../operations/runbook.md)). The 500 MB limit is watched
+  through the 400 MB trigger.
+- Accepted: dependence on Supabase for hosting the database; the data stays portable because it
+  is standard PostgreSQL.
 
 ## Validation plan
-In the first slice: create tables for users, links and weigh-ins; prove with tests that
-(a) a second active coach link for one trainee is rejected, (b) switching is all-or-nothing,
-(c) a weekly-average query on 10,000 synthetic entries returns quickly. Record results here.
+In the first slice, with synthetic data only (invariant #7): create tables for users, links and
+weigh-ins; prove with tests that
+(a) a second active coach link for one trainee is rejected;
+(b) switching is all-or-nothing;
+(c) a weekly-average query on 10,000 synthetic entries returns quickly;
+(d) ending a link leaves the link row in place;
+(e) with the Data API off, no table is reachable through Supabase's auto-generated endpoints
+(shared with ADR-0002).
+Also measure database growth per 10,000 synthetic entries, to estimate when the 400 MB trigger
+will be reached. Record results here.
 
 ## Rejected approach: storing files inside the database
 Putting photos, audio or video directly in PostgreSQL would quickly exhaust the database
-size (500 MB free, 8 GB on Pro), make backups slow and large, and cost several times more
+size (500 MB on Free, 8 GB on Pro), make backups slow and large, and cost several times more
 per GB than object storage. Rejected for all media types.
 
 ## Revisit conditions
-- Database size reaches 80% of the plan.
+- An R-005 trigger is hit, especially database over 400 MB (D-16).
+- After moving to Pro, the database reaches 80% of the plan's included disk.
+- Monthly active users reach 250,000 — build the capacity and cost model before stage 3.
 - ADR-0007 finds no workable offline-sync approach with PostgreSQL.
 - Progress queries become slow after indexing.
 - Legal advice (Q-049) changes data-location requirements.
 
-## References (checked 2026-10-27)
+## References (official pages, checked 2026-10-27)
 - Supabase pricing (database size, backups, pausing): https://supabase.com/pricing
 - Supabase regions (Mumbai): https://supabase.com/docs/guides/platform/regions
-- Project: owner-decisions-2026-10-27.md, invariants #1, #5, #6; ADR-0002
+- Supabase security (encryption at rest and in transit): https://supabase.com/security
+- Supabase, Hardening the Data API: https://supabase.com/docs/guides/database/hardening-data-api
+- Firestore quotas: https://firebase.google.com/docs/firestore/quotas
+- Project: owner-decisions-2026-10-27.md (D-07, D-11, D-13, D-14, D-15, D-16), invariants #1,
+  #5, #6, #7; ADR-0002

@@ -52,8 +52,7 @@ Release slicing is not decided. A suggested first vertical slice is in
 - Medical advice or clinical diagnosis.
 
 ## Future scope (not in phase 1)
-Recorded from the [owner decisions](owner-decisions-2026-10-27.md) and other owner requests; not
-built now.
+Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built now.
 - Premium plans that gate the Head Coach role and limit how many coaches and trainees each plan
   allows (D-06). These would need payments, which are a proposed non-goal for the first release.
 - Users outside India and multiple time zones (D-09).
@@ -63,9 +62,10 @@ built now.
   data, and under what controls, is open (Q-086). In phase 1 the project owner is the only
   operator.
 - Voice recordings and video uploads (view-only): users can store voice recordings and upload
-  videos, and play them in the app; there is no download feature (owner request, 2026-10-27,
-  recorded in ADR-0002). Storage is decided in ADR-0008 (planned); limits and quotas are open
-  (Q-090). Voice meal entry (REQ-LOG-005) is unaffected and stays in phase 1.
+  videos, and play them in the app; there is no download feature (D-16). Storage is decided in
+  ADR-0008 (planned); limits and quotas are open (Q-090). Phase 1 keeps voice meal entry
+  (REQ-LOG-005), but deletes the recording once transcribed; coaches' how-to videos and users'
+  own photos can already be added as YouTube or other public links (D-16).
 
 ## Success measures
 Not defined in the BRD. *(Open — Q-004.)* Candidate measures for the owner to choose from:
