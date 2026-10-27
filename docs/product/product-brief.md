@@ -44,6 +44,12 @@ Release slicing is not decided. A suggested first vertical slice is in
 - Wearable / health-platform sync for steps and sleep (BRD implies manual entry; Q-015).
 - Medical advice or clinical diagnosis.
 
+## Future scope (not in phase 1)
+Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built now.
+- Premium plans that gate the Head Coach role and limit how many coaches and trainees each plan
+  allows (D-06). These would need payments, which are a proposed non-goal for the first release.
+- Users outside India and multiple time zones (D-09).
+
 ## Success measures
 Not defined in the BRD. *(Open — Q-004.)* Candidate measures for the owner to choose from:
 weekly active loggers, % of days with meals logged (the Progress "days logged" metric),

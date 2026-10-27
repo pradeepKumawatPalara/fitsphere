@@ -7,8 +7,9 @@
 
 ## Conventions
 - IDs are stable: `REQ-<AREA>-<NNN>`. Never reuse a retired ID; mark it *Retired* instead.
-- **Priority** is `TBD` for all items — the BRD does not rank features. The owner sets
-  Must / Should / Could / Won't (Q-005).
+- **Priority** is `TBD` unless an owner decision sets it (so far only REQ-ACC-006: Won't) — the
+  BRD does not rank features. The owner sets Must / Should / Could / Won't (Q-005).
+- D- numbers refer to the owner decisions in [`owner-decisions-2026-10-27.md`](owner-decisions-2026-10-27.md).
 - **Type** is Functional unless stated.
 - **Related tests**: none yet; to be linked once `docs/quality/test-strategy.md` exists.
 - Where the BRD is ambiguous, the requirement states the reading taken and links a Q- item in
@@ -45,11 +46,14 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 ## ROLE — Roles, views and hierarchy (BRD §1.2, §1.3, §11)
 
 ### REQ-ROLE-001 — Role selector
-- Requirement: The user profile provides a role selector listing Personal Training User, Head Coach and Coach, enabled only for roles granted to that user.
+- Requirement: The user profile provides a role selector listing Personal Training User, Coach and Head Coach. In phase 1 any user can turn on any of these roles for themselves (D-06); a role becomes selectable once turned on.
+- Type: Functional, Security
 - Acceptance criteria:
-  - Given a user granted only Personal Training User, then the other roles are not selectable.
-  - Given a user granted Coach and Personal Training User, when they select Coach, then the Coach view loads.
-- Open: who grants roles, and is Head Coach self-activated by "toggle" (BRD §1.2) or granted (Q-006). Is Personal Training User granted to everyone (Q-007)?
+  - Given a signed-in user, when they turn on the Coach role, then Coach becomes selectable in the role selector.
+  - Given a user with Coach and Personal Training User turned on, when they select Coach, then the Coach view loads.
+  - Turning on Coach or Head Coach gives no access to anyone else's data; that needs an accepted invitation (REQ-ROLE-009).
+- Future scope: premium plans may gate the Head Coach role and limit how many coaches and trainees each plan allows (D-06).
+- Open: is Personal Training User available to every account (Q-007)? D-06 suggests yes — to confirm.
 
 ### REQ-ROLE-002 — View follows active role
 - Requirement: The app's view and available functions change to match the active role.
@@ -60,28 +64,31 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: is the last active role remembered between sessions (Q-008).
 
 ### REQ-ROLE-003 — Head Coach: manage Coach records
-- Requirement: A Head Coach can create, view, update and delete Coach records under their management.
+- Requirement: A Head Coach can add Coaches by invitation (REQ-ROLE-008, REQ-ROLE-009), view and update the Coach records under their management, and remove (unassign) them. Removing a Coach deletes no data (D-07).
 - Type: Functional, Security
 - Acceptance criteria:
-  - Given Head Coach view, when they add a Coach, then that Coach appears in their coach list.
-  - Given a Coach not under this Head Coach, then it cannot be viewed, updated or deleted by them.
-- Open: does "add" create a new account, invite by email, or assign an existing user (Q-009)? What happens to a deleted Coach's trainees (Q-010)? Is a "Coach record" the person's user account or a separate record (Q-058)?
+  - Given Head Coach view, when a Coach accepts their invitation, then that Coach appears in the Head Coach's coach list.
+  - Given a Coach not under this Head Coach, then it cannot be viewed, updated or removed by them; no Head Coach can see another Head Coach's coaches or view (D-06).
+  - When a Head Coach removes a Coach, then the link ends and no data is deleted; to rejoin, the Coach must accept a new invitation (D-07).
+- Open: is a "Coach record" the person's user account or the link between them (Q-058) — and so what "update" changes.
 
-### REQ-ROLE-004 — Head Coach: hierarchy visibility
-- Requirement: A Head Coach can view details of their coaches and of trainees assigned to those coaches.
-- Type: Functional, Privacy
+### REQ-ROLE-004 — Head Coach: hierarchy visibility and plan editing
+- Requirement: A Head Coach can view details of their accepted coaches and of those coaches' trainees, and can edit those trainees' plans (D-08). Each plan records who last changed it. *(Reading: "plans" means the diet plan and the training plan; whether targets are included is Q-075.)*
+- Type: Functional, Security, Privacy
 - Acceptance criteria:
-  - Given Head Coach view, then each managed coach and that coach's trainees are listed.
-  - Trainees of coaches outside their hierarchy are not visible.
-- Open: what "details" include (logs? targets? only summaries?), and whether a Head Coach may *edit* trainee plans (BRD "manage and oversee") — Q-021. Whether a coach's own Personal Training User data is visible up the hierarchy — Q-061.
+  - Given Head Coach view, then each accepted coach and that coach's trainees are listed.
+  - Trainees of coaches outside their hierarchy are not visible, and nothing in another Head Coach's hierarchy is visible (D-06).
+  - When a Head Coach edits a trainee's diet or training plan, then the plan shows who last changed it.
+- Open: whether trainees must be told or asked to agree before a Head Coach sees their data (Q-069); whether a coach's own logs are visible (Q-070); targets, and simultaneous edits by Coach and Head Coach (Q-075).
 
 ### REQ-ROLE-005 — Coach: manage trainee records
-- Requirement: A Coach can create, view, update and delete trainee records for trainees directly assigned to them.
+- Requirement: A Coach can add trainees by invitation (REQ-ROLE-008, REQ-ROLE-009), view and update the records of trainees who have accepted, and remove (unassign) them. Removing a trainee deletes no data (D-07).
 - Type: Functional, Security
 - Acceptance criteria:
-  - Given Coach view, then only directly assigned trainees are listed.
-  - A Coach cannot read or change a trainee assigned to another coach.
-- Open: does "delete" remove the trainee's account and data, or only unassign them (Q-010)? How is a trainee added (Q-009)? Is a trainee record the user account (Q-058)? Which trainee data can the coach see (Q-059)? Can the trainee end the relationship (Q-060)?
+  - Given Coach view, then only trainees who have accepted this Coach are listed.
+  - A Coach cannot read or change a trainee of another coach.
+  - When a Coach removes a trainee, then the link ends and no data is deleted; to rejoin, the trainee must accept a new invitation (D-07).
+- Open: is a trainee record the user account or the link (Q-058)? Which trainee data can the coach see (Q-059)? Can a trainee leave on their own, or have more than one coach (Q-072)? Can the former coach still see past data after removal (Q-074)? What happens to targets and plans after removal (Q-060)?
 
 ### REQ-ROLE-006 — Coach: set targets and plans
 - Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001).
@@ -95,6 +102,30 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given no coach and no targets, then the calories card shows kcal eaten without a percentage or remaining value.
 - Open: can a self-directed user set their own targets (Q-016)?
+
+### REQ-ROLE-008 — Invite a new email address
+- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address that is not registered in FitSphere (D-06). The invited person signs up (REQ-ACC-010); the link takes effect only when they accept (REQ-ROLE-009). *(Reading: an email that is already registered goes through REQ-ROLE-009 instead — Q-071.)*
+- Type: Functional, Security
+- Acceptance criteria:
+  - Given an email address not registered in FitSphere, when a Coach invites it, then an invitation is sent to that address.
+  - Until the invited person signs up and accepts, the inviter has no access to any of their data.
+- Open: invitation expiry, resend, cancel and limits on pending invitations (Q-073).
+
+### REQ-ROLE-009 — Invite an existing user; accept or decline
+- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invited user accepts or declines; the link exists only after they accept (D-06).
+- Type: Functional, Security
+- Acceptance criteria:
+  - When the invited user accepts, then they appear in the inviter's coach or trainee list.
+  - When the invited user declines, then no link is created and the inviter gains no access.
+  - Until the invitation is accepted, the inviter cannot see any of the invited user's data.
+- Open: invitation rules (Q-073); more than one coach or head coach (Q-072).
+
+### REQ-ROLE-010 — Past activity visible after acceptance
+- Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past activity, not only activity from the acceptance date on. When a trainee accepts a Coach, the Coach can likewise see the trainee's past activity (D-06).
+- Type: Functional, Privacy
+- Acceptance criteria:
+  - Given a trainee who logged meals before accepting a Coach, when they accept, then the Coach can see those earlier logs.
+- Open: whether trainees must be told or asked to agree before a Head Coach sees their data (Q-069); whether a coach's own food and body logs count as "activity" (Q-070); which trainee data the coach sees (Q-059).
 
 ---
 
@@ -114,11 +145,10 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 ### REQ-DATE-003 — Today highlight
 - Requirement: Today is highlighted in blue on all date strips.
 
-### REQ-DATE-004 — Time-zone day boundaries
-- Requirement: "Today" and day boundaries follow the user's configured country and time zone (REQ-ACC-006).
+### REQ-DATE-004 — Day boundaries in India time
+- Requirement: In phase 1 all users are in India, so "today" and day boundaries use Asia/Kolkata (IST, UTC+05:30, no daylight saving) for everyone (D-09). Other time zones are future scope (product brief).
 - Acceptance criteria:
-  - Given time zone Asia/Kolkata, when a meal is logged at 23:50 IST, then it belongs to that IST date, regardless of server time zone.
-- Open: when a user changes time zone, are existing entries re-bucketed (Q-018)? Which time zone applies when a coach views a trainee's day (Q-018)?
+  - Given a meal logged to Today at 23:50 IST, then it belongs to that IST date, regardless of server time zone.
 
 ---
 
@@ -362,13 +392,14 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
 
 ### REQ-ACC-006 — Country and time zone
+- Priority: **Won't** for this release (D-09). Phase 1 uses Asia/Kolkata for everyone (REQ-DATE-004).
 - Requirement: Country and time zone are configurable (e.g. India · Kolkata) and drive REQ-DATE-004.
-- Open: default value for new users (device time zone?) — Q-018.
+- Open: in phase 1, show "India · Kolkata" as fixed text or hide the setting — owner's choice, not yet made.
 
 ### REQ-ACC-007 — Change password
 - Type: Security
 - Requirement: A signed-in user can change their password.
-- Open: authentication method, sign-up and forgot-password are not in the BRD (Q-047).
+- Sign-in is email and password (D-05); sign-up and password reset are in REQ-ACC-010.
 
 ### REQ-ACC-008 — Log out
 - Requirement: The user can log out; the session ends on this device.
@@ -380,9 +411,12 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
-- Requirement: A person can create an account and sign in before using any role view. *(Not in the BRD, which mentions only change password, log out and delete account; every flow in `flow.md` starts signed in.)*
-- Status: **Blocked — Q-047** (sign-up and sign-in methods, forgot password, email verification and social login are not defined). A-008 (email + password) is a low-confidence assumption, not a decision.
-- Open: minimum age (Q-066); accounts created by a coach or head coach (Q-009).
+- Requirement: A person can create an account and sign in with email and password before using any role view; this is the only sign-in method in phase 1 (D-05). *(Not in the BRD, which mentions only change password, log out and delete account.)*
+- Acceptance criteria:
+  - Given an email address that is not registered, when the person signs up with it and a password, then an account is created and a verification email is sent to that address.
+  - Given a registered email and its correct password, when the user signs in, then they are signed in.
+  - Given a user who has forgotten their password, when they request a reset, then a reset link is sent to their registered email address and lets them set a new password.
+- Open: minimum age (Q-066); what an unverified account may do, and how long verification and reset links stay valid (no Q- item yet).
 
 ---
 
@@ -398,3 +432,11 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NFR-003 — Performance, availability, accessibility
 - Requirement: Targets to be defined by owner — Q-050. No numeric target is assumed.
+
+### REQ-NFR-004 — Offline logging
+- Type: Functional, Operational
+- Requirement: Users can log while offline: entries are saved on the device and synced when the connection returns. Any step that needs the internet shows a warning that names that step (D-04).
+- Acceptance criteria:
+  - Given the device is offline, when the user logs their weight, then it is saved on the device and shown in their data; when the connection returns, it is synced.
+  - Given the device is offline, when the user starts a step that needs the internet, then the app shows a warning that names that step.
+- Open: which steps work offline follows the proposed split in D-04, to confirm (Q-077); how offline changes are synced and conflicts resolved (ADR-0007).

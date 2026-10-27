@@ -1,18 +1,21 @@
 # Project Invariants
 
-Always-on rules for any FitSphere change. Each links to its authoritative source.
+Always-on rules for any FitSphere change. Each links to its authoritative source; D- numbers
+refer to `docs/product/owner-decisions-2026-10-27.md`.
 
-1. **Authorization is server-side.** Every read/write checks the caller's granted roles and
-   hierarchy (self; coach → directly assigned trainees; head coach → managed coaches and their
-   trainees). UI hiding is not access control. (C-002, REQ-NFR-001)
+1. **Authorization is server-side.** A user can access another person's data only through an
+   **accepted** link: Coach → their accepted trainees; Head Coach → their accepted coaches and
+   those coaches' trainees. Head Coaches may view and edit those trainees' plans (D-08).
+   Removing a link removes access (D-07). UI hiding is not access control.
+   (C-002, REQ-NFR-001, D-06)
 2. **Client cannot edit coach-set targets.** (REQ-PLAN-001)
 3. **No AI call without recorded consent.** Check consent on the server immediately before
    sending any meal text, photo, voice or label to an AI service. (C-004, REQ-ACC-004)
 4. **Non-AI logging always works.** Food database, barcode and saved meals must not depend
    on AI. (C-005)
-5. **Dates use the user's time zone.** Compute "today" and day membership from the user's
-   configured time zone, never server local time. Store timestamps unambiguously (UTC +
-   the user's zone). (C-006, REQ-DATE-004)
+5. **Phase 1 serves India only.** "Today" and day membership use Asia/Kolkata, never server
+   local time. Store timestamps in UTC, and store the day the user chose (REQ-LOG-002) as its
+   own field — never derive it from the timestamp alone. (C-006, REQ-DATE-004, D-09)
 6. **Units are display settings.** Store body weight, lifting weight and measurements in one
    canonical unit each; convert only for display/input. (REQ-ACC-002/003, MEAS-003)
 7. **Sensitive data stays out of logs, analytics and fixtures.** Use synthetic test data only.
