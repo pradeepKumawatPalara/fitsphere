@@ -1,7 +1,7 @@
 # Requirements
 
-- Status: Draft (every requirement below is **Draft** until the product owner accepts it)
-- Owner: Product owner (Q-001)
+- Status: Draft (every requirement below is **Draft** until the project owner accepts it)
+- Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 - Derived from: [`source/business-requirements.txt`](source/business-requirements.txt) (BRD). "BRD §x" points to the source section.
 
@@ -53,7 +53,6 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a user with Coach and Personal Training User turned on, when they select Coach, then the Coach view loads.
   - Turning on Coach or Head Coach gives no access to anyone else's data; that needs an accepted invitation (REQ-ROLE-009).
 - Future scope: premium plans may gate the Head Coach role and limit how many coaches and trainees each plan allows (D-06).
-- Open: is Personal Training User available to every account (Q-007)? D-06 suggests yes — to confirm.
 
 ### REQ-ROLE-002 — View follows active role
 - Requirement: The app's view and available functions change to match the active role.
@@ -70,16 +69,19 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given Head Coach view, when a Coach accepts their invitation, then that Coach appears in the Head Coach's coach list.
   - Given a Coach not under this Head Coach, then it cannot be viewed, updated or removed by them; no Head Coach can see another Head Coach's coaches or view (D-06).
   - When a Head Coach removes a Coach, then the link ends and no data is deleted; to rejoin, the Coach must accept a new invitation (D-07).
-- Open: is a "Coach record" the person's user account or the link between them (Q-058) — and so what "update" changes.
+  - After removal, the Head Coach can no longer see any of that Coach's data, including past data (D-10).
+- Open: what "update" changes on a Coach record, which is the link between two accounts (Q-058, Q-081).
 
 ### REQ-ROLE-004 — Head Coach: hierarchy visibility and plan editing
-- Requirement: A Head Coach can view details of their accepted coaches and of those coaches' trainees, and can edit those trainees' plans (D-08). Each plan records who last changed it. *(Reading: "plans" means the diet plan and the training plan; whether targets are included is Q-075.)*
+- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Once a trainee of those coaches has been notified and has agreed (D-10), the Head Coach can view that trainee's details and edit their plans (D-08). Each plan records who last changed it. *(Reading: "plans" means the diet plan and the training plan; whether targets are included is Q-075.)*
 - Type: Functional, Security, Privacy
 - Acceptance criteria:
-  - Given Head Coach view, then each accepted coach and that coach's trainees are listed.
+  - Given Head Coach view, then each accepted coach is listed, and under each coach the trainees who have agreed (D-10).
   - Trainees of coaches outside their hierarchy are not visible, and nothing in another Head Coach's hierarchy is visible (D-06).
+  - Given a coach who also logs as a Personal Training User, then the Head Coach sees none of that coach's own logs (D-10).
+  - Given a trainee who has not agreed, then the Head Coach sees none of that trainee's data and cannot edit their plans (D-10).
   - When a Head Coach edits a trainee's diet or training plan, then the plan shows who last changed it.
-- Open: whether trainees must be told or asked to agree before a Head Coach sees their data (Q-069); whether a coach's own logs are visible (Q-070); targets, and simultaneous edits by Coach and Head Coach (Q-075).
+- Open: the trainee notice-and-agreement step, including what a Head Coach sees before a trainee agrees (Q-078); targets, and simultaneous edits by Coach and Head Coach (Q-075).
 
 ### REQ-ROLE-005 — Coach: manage trainee records
 - Requirement: A Coach can add trainees by invitation (REQ-ROLE-008, REQ-ROLE-009), view and update the records of trainees who have accepted, and remove (unassign) them. Removing a trainee deletes no data (D-07).
@@ -88,7 +90,8 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given Coach view, then only trainees who have accepted this Coach are listed.
   - A Coach cannot read or change a trainee of another coach.
   - When a Coach removes a trainee, then the link ends and no data is deleted; to rejoin, the trainee must accept a new invitation (D-07).
-- Open: is a trainee record the user account or the link (Q-058)? Which trainee data can the coach see (Q-059)? Can a trainee leave on their own, or have more than one coach (Q-072)? Can the former coach still see past data after removal (Q-074)? What happens to targets and plans after removal (Q-060)?
+  - After removal, the Coach can no longer see any of the trainee's data, including past data (D-10).
+- Open: which trainee data can the coach see (Q-059)? Can a trainee leave on their own, or have more than one coach (Q-072)? What happens to targets and plans after removal (Q-060)? What "update" changes on a trainee record (Q-081)?
 
 ### REQ-ROLE-006 — Coach: set targets and plans
 - Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001).
@@ -104,15 +107,15 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: can a self-directed user set their own targets (Q-016)?
 
 ### REQ-ROLE-008 — Invite a new email address
-- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address that is not registered in FitSphere (D-06). The invited person signs up (REQ-ACC-010); the link takes effect only when they accept (REQ-ROLE-009). *(Reading: an email that is already registered goes through REQ-ROLE-009 instead — Q-071.)*
+- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address (D-06). When the address is not registered in FitSphere, the invitation asks the person to sign up (REQ-ACC-010); the link takes effect only when they accept (REQ-ROLE-009). The inviter is never told whether the address was registered (REQ-ROLE-011). *(Reading: a registered address goes through REQ-ROLE-009 instead — Q-071.)*
 - Type: Functional, Security
 - Acceptance criteria:
-  - Given an email address not registered in FitSphere, when a Coach invites it, then an invitation is sent to that address.
+  - Given an email address not registered in FitSphere, when a Coach invites it, then an invitation to sign up is sent to that address and the Coach sees "Invitation sent".
   - Until the invited person signs up and accepts, the inviter has no access to any of their data.
 - Open: invitation expiry, resend, cancel and limits on pending invitations (Q-073).
 
 ### REQ-ROLE-009 — Invite an existing user; accept or decline
-- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invited user accepts or declines; the link exists only after they accept (D-06).
+- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invited user accepts or declines; the link exists only after they accept (D-06). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
 - Type: Functional, Security
 - Acceptance criteria:
   - When the invited user accepts, then they appear in the inviter's coach or trainee list.
@@ -121,11 +124,21 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: invitation rules (Q-073); more than one coach or head coach (Q-072).
 
 ### REQ-ROLE-010 — Past activity visible after acceptance
-- Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past activity, not only activity from the acceptance date on. When a trainee accepts a Coach, the Coach can likewise see the trainee's past activity (D-06).
+- Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past coaching activity — never the coach's own personal logs — not only activity from the acceptance date on. When a trainee accepts a Coach, the Coach can likewise see the trainee's past activity (D-06, D-10). A Head Coach sees a trainee's data only after that trainee has been notified and has agreed (D-10).
 - Type: Functional, Privacy
+- Status: **Blocked — Q-078** (the trainee notice-and-agreement step required by D-10 is not specified).
 - Acceptance criteria:
   - Given a trainee who logged meals before accepting a Coach, when they accept, then the Coach can see those earlier logs.
-- Open: whether trainees must be told or asked to agree before a Head Coach sees their data (Q-069); whether a coach's own food and body logs count as "activity" (Q-070); which trainee data the coach sees (Q-059).
+  - Given a coach who also logs as a Personal Training User, then their Head Coach never sees those personal logs (D-10).
+- Open: which trainee data the coach sees (Q-059).
+
+### REQ-ROLE-011 — Invitation privacy and daily limits
+- Requirement: Inviting someone by email never reveals whether the address is registered in FitSphere: the inviter always sees "Invitation sent". Each user can send only a limited number of invitations per day (D-10).
+- Type: Security, Privacy
+- Acceptance criteria:
+  - Given one registered and one unregistered email address, when a Coach invites each, then the Coach gets the same "Invitation sent" result for both, in the app and in the API response.
+  - Given a user who has reached the daily invitation limit, when they send another invitation, then it is refused and they are told the daily limit is reached.
+- Open: the size of the daily limit, and expiry, resend and cancel (Q-073); whether sign-up and password reset reveal the same thing (Q-079). Threat model item T-01.
 
 ---
 
@@ -416,7 +429,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given an email address that is not registered, when the person signs up with it and a password, then an account is created and a verification email is sent to that address.
   - Given a registered email and its correct password, when the user signs in, then they are signed in.
   - Given a user who has forgotten their password, when they request a reset, then a reset link is sent to their registered email address and lets them set a new password.
-- Open: minimum age (Q-066); what an unverified account may do, and how long verification and reset links stay valid (no Q- item yet).
+- Open: minimum age (Q-066); whether sign-up and password reset reveal that an email is registered (Q-079); what an unverified account may do, and how long verification and reset links stay valid (Q-080).
 
 ---
 
@@ -434,9 +447,11 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Requirement: Targets to be defined by owner — Q-050. No numeric target is assumed.
 
 ### REQ-NFR-004 — Offline logging
-- Type: Functional, Operational
-- Requirement: Users can log while offline: entries are saved on the device and synced when the connection returns. Any step that needs the internet shows a warning that names that step (D-04).
+- Type: Functional, Operational, Security
+- Requirement: Users can log while offline: entries are saved on the device and synced when the connection returns. Any step that needs the internet shows a warning that names that step (D-04). Every queued change is re-authorized on the server at sync time, and health data stored on the device is encrypted (D-10).
 - Acceptance criteria:
   - Given the device is offline, when the user logs their weight, then it is saved on the device and shown in their data; when the connection returns, it is synced.
   - Given the device is offline, when the user starts a step that needs the internet, then the app shows a warning that names that step.
+  - Given a change queued offline by a user who has since lost access (e.g. a coach removed from a trainee), when it syncs, then the server rejects it (D-10).
+  - Health data stored on the device is encrypted (D-10).
 - Open: which steps work offline follows the proposed split in D-04, to confirm (Q-077); how offline changes are synced and conflicts resolved (ADR-0007).

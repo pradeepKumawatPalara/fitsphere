@@ -1,7 +1,7 @@
 # User Journeys
 
 - Status: Draft
-- Owner: Product owner (Q-001)
+- Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 
 Journeys reference REQ IDs; behaviour details live in [`requirements.md`](requirements.md).
@@ -59,22 +59,25 @@ REQ-PRG-001..006
 2. Changes chart range 1W…All; reads week table vs Target row; taps a week for details.
 
 ## J-08 Coach onboards a trainee and sets a plan
-Actor: Coach · REQ-ROLE-001, 002, 005, 006
-1. Profile → role selector → Coach. Coach view lists assigned trainees.
-2. Adds a trainee *(mechanism per Q-009)*.
+Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011
+1. Profile → turns on the Coach role (any user can, D-06) → role selector → Coach. Coach view lists trainees who have accepted.
+2. Invites a trainee by email; the app always shows "Invitation sent" (REQ-ROLE-011). A new person signs up first (REQ-ROLE-008). The trainee appears in the list only after accepting (REQ-ROLE-009).
 3. Opens the trainee, sets calorie and protein targets and weekly workout target *(Q-013)*.
 4. Builds a diet plan (meals with up to 3 options, protein source first) and a training plan, and sends them.
 5. Trainee's Diet plan shows "Set by your coach" targets; Training shows the plan.
-Failure: Coach tries to open a trainee assigned to another coach → refused (REQ-ROLE-005).
+Failure: Coach tries to open a trainee of another coach → refused (REQ-ROLE-005).
+Removal: Coach removes a trainee → the link ends, no data is deleted, and the coach loses access to all of the trainee's data, including past data (D-07, D-10).
 
 ## J-09 Head Coach manages coaches
-Actor: Head Coach · REQ-ROLE-001, 003, 004
-1. Profile → role selector → Head Coach *(how the role is granted per Q-006)*.
-2. Adds a Coach *(Q-009)*; views coach list and each coach's trainees.
-3. Updates or deletes a Coach *(effect on trainees per Q-010)*.
+Actor: Head Coach · REQ-ROLE-001, 003, 004, 008, 009, 011
+1. Profile → turns on the Head Coach role (any user can, D-06) → role selector → Head Coach.
+2. Invites a Coach by email ("Invitation sent", REQ-ROLE-011). After the Coach accepts, sees that coach's coaching activity — never the coach's own personal logs (D-10).
+3. Sees a trainee's data, and can edit their diet and training plans (REQ-ROLE-004), only after that trainee has been notified and agreed *(step not yet specified — Q-078)*.
+4. Removes (unassigns) a Coach → no data is deleted; access to all of that coach's data ends (D-07, D-10).
 Failure: attempts to view a coach outside their hierarchy → refused.
 
 ## J-10 User changes settings
-REQ-ACC-001..008
-Theme, lifting unit, body-weight unit, AI meal reading consent, country/time zone, change password, log out.
+REQ-ACC-001..005, 007, 008
+Theme, lifting unit, body-weight unit, AI meal reading consent, change password, log out.
+Country/time zone is fixed to India · Kolkata in phase 1 (REQ-ACC-006 is Won't — D-09).
 Delete account → separate flow (**blocked, Q-048**).

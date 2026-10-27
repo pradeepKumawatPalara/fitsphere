@@ -1,7 +1,7 @@
 # Constraints and Assumptions
 
 - Status: Draft
-- Owner: Tech lead (Q-001)
+- Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 
 Confirmed facts, assumptions and open questions are kept in separate sections. Nothing under
@@ -19,12 +19,12 @@ D- numbers refer to the owner decisions in
 | C-005 | Food database, barcode and saved-meal logging must work with AI off. | BRD §11; REQ-ACC-005 |
 | C-006 | Phase 1: all users are in India; days are computed in Asia/Kolkata. | BRD §2; REQ-DATE-004; D-09 |
 | C-007 | The UI pattern is mobile: bottom navigation, bottom sheets, camera, microphone and barcode scanning. The client must support these device capabilities. | BRD §1, §4, §8 |
-| C-008 | Budget: free tiers first. These paid items need project-owner sign-off: Apple Developer Program (US$99/year, required for TestFlight and the App Store); Google Play developer account (US$25 one-time; new personal accounts must meet testing requirements before production release); AI meal parsing (per-request cost after any free tier, ADR-0005). Prices verified 2026-10-27 — recheck before paying. | D-03 |
+| C-008 | Budget: free tiers first. These paid items need project-owner sign-off: Apple Developer Program (US$99/year, required for TestFlight and the App Store — needed only at iOS release, D-10); Google Play developer account (US$25 one-time; new personal accounts must meet testing requirements before production release); AI meal parsing (per-request cost after any free tier, ADR-0005). Prices verified 2026-10-27 — recheck before paying. | D-03, D-10 |
 
 ## Quality targets
 - Performance: **Open** (Q-050)
 - Availability/reliability: **Open** (Q-050)
-- Security/privacy: C-002, C-003, C-004; detailed controls to be set in `docs/security/data-and-threat-model.md` (Missing)
+- Security/privacy: C-002, C-003, C-004; detailed controls in [`data-and-threat-model.md`](../security/data-and-threat-model.md) (Draft)
 - Accessibility: **Open** (Q-050)
 - Budget/licensing: free tiers first; paid items need owner sign-off (C-008) — affects AI provider, food database and hosting choices
 - Deployment/network/region: **Open** — data residency may follow from C-003 (Q-049)
@@ -32,15 +32,15 @@ D- numbers refer to the owner decisions in
 ## Assumptions
 | ID | Assumption | Evidence | Confidence | Owner |
 |---|---|---|---|---|
-| A-001 | Phase 1 clients are Android and iOS apps; no web app for trainees. Coaches and Head Coaches use the same mobile app with no web dashboard — interpretation, to confirm (Q-068). | Owner decision D-02 | Confirmed (D-02); coach part pending Q-068 | Product owner (Q-051) |
-| A-002 | One account can hold several roles at once (e.g. a Coach who is also a Personal Training User). | BRD "switch between roles available to them" | High | Product owner |
-| A-003 | Each trainee has at most one coach; each coach at most one head coach. | BRD "directly assigned", "within their hierarchy" | Medium | Product owner (Q-072) |
-| A-004 | Users can edit and delete their own logged meals and entries. | Not in BRD; needed for usable logging | Medium | Product owner (Q-032) |
-| A-005 | Diet plan tab has an empty state when no plan exists. | By analogy to Training | Medium | Product owner |
-| A-006 | AI-parsed meals are shown for review and saved only after the user confirms. | Not in BRD; reduces wrong logs | Medium | Product owner |
-| A-007 | AI consent is off by default and each change is timestamped. | BRD "asked for consent before"; C-003 | Medium | Product owner / legal |
-| A-008 | Email and password is the only sign-in method in phase 1. | Owner decision D-05 | Confirmed (D-05) | Product owner (Q-047) |
-| A-009 | English-only for first release. | BRD is in English; no localisation mentioned | Low | Product owner (Q-054) |
+| A-001 | Phase 1 clients are Android and iOS apps, Android first: iOS testing and release wait until an iPhone is available (D-10). No web app for trainees. Coaches and Head Coaches use the same mobile app with no web dashboard — interpretation, to confirm (Q-068). | Owner decisions D-02, D-10 | Confirmed (D-02); coach part pending Q-068 | Project owner (Q-051) |
+| A-002 | One account can hold several roles at once (e.g. a Coach who is also a Personal Training User). | BRD "switch between roles available to them" | High | Project owner |
+| A-003 | Each trainee has at most one coach; each coach at most one head coach. | BRD "directly assigned", "within their hierarchy" | Medium | Project owner (Q-072) |
+| A-004 | Users can edit and delete their own logged meals and entries. | Not in BRD; needed for usable logging | Medium | Project owner (Q-032) |
+| A-005 | Diet plan tab has an empty state when no plan exists. | By analogy to Training | Medium | Project owner |
+| A-006 | AI-parsed meals are shown for review and saved only after the user confirms. | Not in BRD; reduces wrong logs | Medium | Project owner |
+| A-007 | AI consent is off by default and each change is timestamped. | BRD "asked for consent before"; C-003 | Medium | Project owner + Legal |
+| A-008 | Email and password is the only sign-in method in phase 1. | Owner decision D-05 | Confirmed (D-05) | Project owner (Q-047) |
+| A-009 | English-only for first release. | BRD is in English; no localisation mentioned | Low | Project owner (Q-054) |
 
 ## Open questions
 **Blocks** = what cannot be built (or finalised) until it is answered. **Owner** is the project
@@ -62,13 +62,13 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-054 | Languages and localisation needed? | i18n setup | Project owner | |
 | Q-056 | **Superseded by Q-068 (F-01).** Do Coach and Head Coach tools (e.g. building diet plans with up to three options per meal) run in the same mobile app, or is a web interface needed? A-001 covers trainees only. | — | Project owner | |
 | Q-068 | Confirm: no web dashboard for coaches in phase 1? Building 3-option diet plans on a phone is a lot of typing. *(F-01)* | Coach plan editor, ADR-0001 | Project owner | |
-| Q-076 | Do you have a Mac and an iPhone for iOS testing? *(F-09)* | iOS release, ADR-0001 | Project owner | |
+| Q-076 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10: neither; Android-first). Do you have a Mac and an iPhone for iOS testing? *(F-09)* | iOS release, ADR-0001 | Project owner | |
 
 ### Roles and hierarchy
 | ID | Question | Blocks | Owner | Due |
 |---|---|---|---|---|
 | Q-006 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-06). Who grants Coach and Head Coach roles? BRD says Head Coach is activated "through a toggle" — can any user self-activate it? | REQ-ROLE-001, ADR-0004, threat model | Project owner | |
-| Q-007 | Is Personal Training User available to every account? | REQ-ROLE-001, ADR-0004 | Project owner | |
+| Q-007 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10). Is Personal Training User available to every account? | REQ-ROLE-001, ADR-0004 | Project owner | |
 | Q-008 | Is the last active role remembered across sessions/devices? | REQ-ROLE-002, ADR-0004 | Project owner | |
 | Q-009 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-06). "Add Coach/trainee": create account, email invite, invite code, or link an existing user? *Follow-ups: Q-071, Q-073.* | REQ-ROLE-003/005, ADR-0004 | Project owner | |
 | Q-010 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-07). "Delete Coach/trainee": delete the account and data, or just unassign? What happens to a deleted coach's trainees and plans? *Former coach's access to past data: Q-074.* | REQ-ROLE-003/005, ADR-0003, ADR-0004 | Project owner + Legal | |
@@ -78,17 +78,19 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-014 | Do target changes apply from a date forward or to past days too? | Data model, ADR-0003 | Project owner | |
 | Q-016 | Can a self-directed user set their own targets? | REQ-ROLE-007 | Project owner | |
 | Q-057 | What is the Head Coach "configuration functionality" in BRD §1.2? No requirement covers it yet. | Head Coach scope (no REQ yet) | Project owner | |
-| Q-058 | Is a "Coach record" or "trainee record" the person's user account, or a separate record (e.g. the coaching assignment) linked to an account? Can a record exist before the person has an account? See the [glossary](../product/glossary.md). | REQ-ROLE-003/005, ADR-0004, data model | Project owner | |
+| Q-058 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10: the record is the link). Is a "Coach record" or "trainee record" the person's user account, or a separate record (e.g. the coaching assignment) linked to an account? Can a record exist before the person has an account? See the [glossary](../product/glossary.md). | REQ-ROLE-003/005, ADR-0004, data model | Project owner | |
 | Q-059 | Which trainee data can their Coach see (meal logs, meal photos, body metrics, measurement notes, workouts)? Q-021 covers Head Coaches only. | REQ-ROLE-005, ADR-0004, threat model | Project owner + Legal | |
 | Q-060 | **Partly superseded by Q-072 and Q-074;** what remains open here is what happens to the trainee's targets and plans after removal (D-07). Can a trainee end the relationship with their coach themselves? What happens to their targets and plans, and to the coach's access to past data? | REQ-ROLE-005, data model | Project owner + Legal | |
 | Q-061 | **Superseded by Q-070 (F-03).** When one account holds a coaching role and the Personal Training User role, is that person's own logged data kept separate from the hierarchy — e.g. can their Head Coach see it? | — | Project owner + Legal | |
-| Q-069 | **Trainee privacy:** when a Coach accepts a Head Coach, the Head Coach sees that Coach's trainees' data — but the trainees only agreed to the Coach. Should trainees be told, or asked to agree? Likely a DPDP consent issue. *(F-02)* | REQ-ROLE-010, threat model | Project owner + Legal | |
-| Q-070 | If a Coach is also a Personal Training User, does "past activity" visible to their Head Coach include the Coach's **own** food and body logs? (Recommend: no — coaching activity only.) *(F-03)* | REQ-ROLE-010, ADR-0004 | Project owner + Legal | |
+| Q-069 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10: notify and agree; step to specify — Q-078). **Trainee privacy:** when a Coach accepts a Head Coach, the Head Coach sees that Coach's trainees' data — but the trainees only agreed to the Coach. Should trainees be told, or asked to agree? Likely a DPDP consent issue. *(F-02)* | REQ-ROLE-010, threat model | Project owner + Legal | |
+| Q-070 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10: coaching activity only). If a Coach is also a Personal Training User, does "past activity" visible to their Head Coach include the Coach's **own** food and body logs? (Recommend: no — coaching activity only.) *(F-03)* | REQ-ROLE-010, ADR-0004 | Project owner + Legal | |
 | Q-071 | Confirm the reading of "new email never registered" in D-06. *(F-04)* | REQ-ROLE-008 | Project owner | |
 | Q-072 | Can a trainee have more than one Coach, or a Coach more than one Head Coach? Can the trainee leave a coach on their own? Affects A-003. *(F-05)* | REQ-ROLE-*, ADR-0003 | Project owner | |
-| Q-073 | Invitation rules: expiry, resend, cancel, how many pending invites. *(F-06)* | REQ-ROLE-008/009 | Project owner | |
-| Q-074 | After a trainee is unassigned, can the former coach still see their past data? (Recommend: no.) *(F-07)* | REQ-ROLE-005 | Project owner + Legal | |
+| Q-073 | Invitation rules: expiry, resend, cancel, how many pending invites. *(F-06)* *Daily limits are decided (D-10); their size, expiry, resend and cancel are still open.* | REQ-ROLE-008/009/011 | Project owner | |
+| Q-074 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10: no — removal ends all access). After a trainee is unassigned, can the former coach still see their past data? (Recommend: no.) *(F-07)* | REQ-ROLE-005 | Project owner + Legal | |
 | Q-075 | Can a Head Coach also change calorie/protein **targets**, or only plans? If Coach and Head Coach edit at the same time, which wins? *(F-08)* | REQ-ROLE-004/006, ADR-0004, ADR-0007 | Project owner | |
+| **Q-078** | **Specify the trainee notice-and-agreement step required before a Head Coach sees a trainee's data (D-10):** what the trainee is told, how they agree or refuse, what happens if they refuse, whether they can withdraw later, and how the agreement is recorded. | **REQ-ROLE-010 blocked**, REQ-ROLE-004, ADR-0004, threat model | Project owner + Legal | |
+| Q-081 | What can a Head Coach or Coach "update" on a Coach or trainee record, now that a record is the link between two accounts (D-10)? | REQ-ROLE-003/005 | Project owner | |
 
 ### Dates and logging
 | ID | Question | Blocks | Owner | Due |
@@ -144,6 +146,13 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-066 | Is there a minimum age for users? If minors may use the app, what consent is required? | REQ-ACC-010, threat model | Project owner + Legal | |
 | Q-067 | Which usage data may be collected to measure success (Q-004), given that health, body and meal data stay out of analytics (project invariant 7)? | Analytics design | Project owner + Legal | |
 | Q-077 | Confirm the offline split in D-04. *(F-10)* | REQ-NFR-004, ADR-0007 | Project owner | |
+| Q-079 | Do sign-up and password reset also avoid revealing whether an email is registered? If not, the invitation protection (D-10, REQ-ROLE-011) can be bypassed through them. | REQ-ACC-010, ADR-0004, threat model | Project owner | |
+| Q-080 | What can an account do before its email is verified, and how long do verification and password-reset links stay valid? | REQ-ACC-010 | Project owner | |
+
+## Risks
+| ID | Risk | Source | Mitigation | Owner |
+|---|---|---|---|---|
+| R-001 | iOS-only bugs will be found late: phase 1 is developed and tested on Android only, and iOS builds are at most compiled to check that they build. | D-10 | Compile iOS builds with EAS where useful (ADR-0001); test on a real iPhone before any iOS release. | Project owner |
 
 ## Major decisions needed (ADRs)
 Listed in [`decisions/README.md`](decisions/README.md), which is the single record of each
@@ -166,5 +175,6 @@ It avoids AI, food database, coach screens and Progress formulas, which have the
 - A change to team, platforms or budget (D-01 to D-03) — revisit all stack ADRs.
 - Users outside India (future scope, D-09) or a regulated-health partner — revisit C-003,
   C-006, REQ-DATE-004, project invariant 5 and hosting.
+- An iPhone becomes available — start iOS testing (R-001, ADR-0001).
 - Adding wearables/health sync — new integration ADR.
 - Switching or adding an AI provider — revisit ADR-0005 and consent text.

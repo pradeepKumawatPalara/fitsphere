@@ -107,11 +107,40 @@
   - C-003 / Q-049: India's Digital Personal Data Protection Act 2023 becomes the primary law
     to check. **Still needs legal confirmation** before real users (owner: Legal advisor).
 
+## D-10 Privacy, invitations, offline security and iOS (answers Q-007, Q-058, Q-069, Q-070, Q-074, Q-076)
+- Status: **Accepted** (answers given by the project owner in chat, 2026-10-27)
+- Answers:
+  1. **Removal ends access (Q-074, F-07):** removing a link ends access to all of that person's
+     data, including past data.
+  2. **Coaching activity only (Q-070, F-03):** a Head Coach sees a coach's coaching activity
+     only, never the coach's own personal logs.
+  3. **Trainee agreement (Q-069, F-02):** trainees must be notified and must agree before a
+     Head Coach can see their data. REQ-ROLE-010 is **Blocked** until this consent step is
+     specified (Q-078) and is listed in invariant #8.
+  4. **Invitations:** the invite flow never reveals whether an email is registered — it always
+     shows "Invitation sent" — and invitations have daily limits.
+  5. **ADR-0007 inputs:** every change queued offline is re-authorized on the server at sync
+     time; health data stored on the device is encrypted.
+  6. **Q-007:** yes — any account can turn on Personal Training User (D-06).
+  7. **Q-058:** a Coach record or trainee record is the accepted link between two accounts, not
+     an account; removing it deletes no data (D-07).
+  8. **iOS (Q-076, F-09):** the owner has neither a Mac nor an iPhone. Phase 1 is
+     **Android-first**: develop and test on Android (emulator and an Android phone). iOS builds
+     may be compiled with EAS to check that they build, but iOS testing and App Store release
+     are deferred until an iPhone is available. The Apple Developer fee is needed only at iOS
+     release.
+- Risk accepted: iOS-only bugs will be found late (R-001).
+- Doc changes: invariant #1 updated and REQ-ROLE-010 added to invariant #8; REQ-ROLE-003/004/
+  005/008/009/010 and REQ-NFR-004 updated; REQ-ROLE-011 added (invitation privacy and limits);
+  threat-model item T-01 (plus T-02 and T-03 for the ADR-0007 inputs); ADR-0001 validation
+  step 5 and revisit conditions; product brief Scope (Android first, iOS follows); C-008 and
+  A-001 updated.
+
 ---
 
 ## Proposed replacement wording for the two invariants
-*(The review found these pre-answered open questions. Now that D-08 and D-09 exist, here is
-wording to approve. Do not apply until approved.)*
+*(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
+Invariant #1 was then updated for D-10; the rules file holds the current wording.)*
 
 - **Invariant #1 (new):** Authorization is server-side. A user can access another person's
   data only through an **accepted** link: Coach → their accepted trainees; Head Coach → their
@@ -124,7 +153,8 @@ wording to approve. Do not apply until approved.)*
 ---
 
 ## Follow-up questions raised by these answers
-Assign the next free Q- numbers when adding these.
+Added as Q-068 to Q-077 (F-01 → Q-068 … F-10 → Q-077). F-02, F-03, F-07 and F-09 are
+answered in D-10.
 
 | Ref | Question | Why it matters | Blocks |
 |---|---|---|---|

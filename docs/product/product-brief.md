@@ -1,7 +1,7 @@
 # Product Brief
 
 - Status: Draft
-- Owner: Product owner (to be named — Q-001)
+- Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 - Source: [`source/business-requirements.txt`](source/business-requirements.txt)
 
@@ -18,7 +18,7 @@ Evidence: not yet documented. *(Open — Q-002: what user research or business c
 |---|---|
 | Personal Training User (trainee / client) | Logs food, weight, steps, sleep, measurements and workouts; follows coach-set targets and plans. May also use the app without a coach. |
 | Coach | Manages directly assigned trainees; sets calorie/protein targets, diet plans and training plans. |
-| Head Coach | Manages Coach records; can view coaches and their trainees within the hierarchy. |
+| Head Coach | Invites and manages Coaches; sees their coaching activity, and a trainee's data only after that trainee agrees (D-10). |
 
 One person may hold several roles and switch between them in their profile (REQ-ROLE-001).
 
@@ -34,6 +34,8 @@ All features in the BRD sections 1–11, captured as REQ IDs in [`requirements.m
 navigation and global date handling, Home dashboard, measurements, Nutrition (Consumed / Diet
 plan / Saved), Log meal (incl. AI parsing), Training, Progress, Account & settings, and the
 three role views.
+
+Phase 1 releases on Android first; iOS follows once an iPhone is available for testing (D-10).
 
 Release slicing is not decided. A suggested first vertical slice is in
 [`../architecture/constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#suggested-first-slice).

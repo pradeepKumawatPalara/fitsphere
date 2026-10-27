@@ -4,7 +4,7 @@
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-NAV-*, REQ-LOG-005 (voice), REQ-LOG-006 (camera), REQ-LOG-007 (barcode), REQ-MEAS-001 (bottom sheets), REQ-NFR-004 (offline, proposed)
-- Related constraints/decisions: C-007, C-008 (budget), D-01 (solo developer), D-02 (Android + iOS), D-03 (React Native / JS / Node preference), D-04 (offline)
+- Related constraints/decisions: C-007, C-008 (budget), D-01 (solo developer), D-02 (Android + iOS), D-03 (React Native / JS / Node preference), D-04 (offline), D-10 (Android-first)
 - Supersedes: None
 
 ## Context
@@ -14,7 +14,8 @@ labels), barcode scanning, microphone (voice meals), local storage for offline l
 charts (Progress), and bottom sheets. The owner prefers React Native with JavaScript, but will
 change if functionality or scalability would suffer (D-03). Budget is free tiers first (C-008).
 
-Known: the owner develops on Windows. Unknown: whether a Mac and iPhone are available (F-09).
+Known: the owner develops on Windows and has neither a Mac nor an iPhone, so phase 1 is
+Android-first and iOS testing waits until an iPhone is available (D-10).
 iOS apps can only be compiled on macOS, either a local Mac or a cloud build service.
 
 Note on "scalability": the number of users the system can serve depends on the backend and
@@ -102,7 +103,9 @@ See "Why it loses" under each option.
 - Easier: one TypeScript codebase; shared types with a Node backend; iOS builds from Windows.
 - Harder: build minutes on the free tier are limited — plan builds, and develop mostly with
   local Android builds and the Android emulator.
-- Costs accepted at release: Apple US$99/year; Google Play US$25 once (C-008).
+- Costs accepted at release: Google Play US$25 once at Android release; Apple US$99/year only
+  at iOS release (C-008, D-10).
+- Risk accepted: iOS-only bugs will be found late (R-001, D-10).
 - Commits: every native library must support the New Architecture.
 
 ## Validation plan (spike, ~1–2 days, before Accepted)
@@ -110,13 +113,14 @@ See "Why it loses" under each option.
 2. Scan an EAN-13 barcode from a real food pack with the camera.
 3. Record 5 seconds of audio; take a photo.
 4. Save and read 1,000 rows from a local SQLite database with the network off.
-5. Run one EAS iOS build; install it on an iPhone if available (F-09).
+5. Run one EAS iOS build only to confirm it compiles; real-device iOS testing deferred (D-10).
 6. Scroll a 200-row list on the lowest-end Android phone available.
 Record results in this ADR, then the owner marks it Accepted or Rejected.
 
 ## Revisit conditions
 - Spike step 6 shows visible lag that optimisation does not fix.
 - EAS free limits block regular development for two months in a row.
+- An iPhone becomes available — revisit the iOS test plan (R-001, D-10).
 - A web dashboard for coaches becomes a requirement (F-01) — re-check whether React Native
   for Web or a separate web app fits.
 
