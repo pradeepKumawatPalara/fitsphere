@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28
 
 Only verified operational steps belong here (`docs/pre-development-guide.md` §5.10). Procedures
 not yet known are marked *Not yet written* rather than guessed. D- numbers refer to
@@ -34,6 +34,21 @@ Commands that need the monorepo (install, run, test) are added when the Skeleton
 Not needed for the Skeleton: Resend and a domain (invitations slice), or a Google Cloud billing
 account (Q-087).
 
+### Owner's PC, checked 2026-10-28
+Read-only checks from VS Code; nothing was installed or changed.
+- Node 24.21.0 and npm 11.19.0: usable (24 LTS).
+- `origin` is the GitHub repository; `main` tracks `origin/main`.
+- `JAVA_HOME` (machine-level) points to **JDK 26**, not 17. Fix in step 2.
+- Android SDK: Platform 37 and Build-Tools 36.0.0 are installed; **Platform 36 is missing** and
+  there is no NDK yet. The user-level `ANDROID_HOME` and the `platform-tools` entry in `Path` are
+  set, but VS Code terminals see them only after VS Code is restarted.
+- Emulator `emulator-5554` runs Android API level 37 (x86_64); `adb devices` lists it.
+- No PostgreSQL. Docker Desktop is installed but was not running; its free licence covers
+  personal use and small businesses only, so check that it fits before using it for the test
+  database.
+- IPv6 works, so `MIGRATION_DATABASE_URL` can use the direct connection.
+- Not stated by the owner: a real Android phone, a password manager, a Firebase project.
+
 ### 1. Node.js and Git
 1. In PowerShell, run `node --version` and `git --version`.
 2. If Node is not 26.x or 24.x, install Node 26 LTS from nodejs.org, then open a new terminal and
@@ -55,6 +70,11 @@ account (Q-087).
 
 Expo's Windows steps do not mention `JAVA_HOME` or the NDK. If a build later says Java or the NDK
 is missing, record the fix here.
+
+If `JAVA_HOME` already points to another JDK (on the owner's PC, a machine-level JDK 26), add a
+**user** environment variable `JAVA_HOME` with the JDK 17 folder; on Windows a user variable
+overrides a machine variable of the same name. Open a new terminal; `echo $env:JAVA_HOME` must
+show the JDK 17 folder. *Not yet verified with a build.*
 
 ### 3. A real Android phone over USB
 1. On the phone: **Settings › About phone** (Samsung: **Settings › About phone › Software
