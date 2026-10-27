@@ -5,9 +5,18 @@ FitSphere is a coach-led fitness app. Clients log food, body metrics and workout
 targets set by their coach; Coaches manage their trainees; Head Coaches manage Coaches.
 
 ## Current phase
-**Pre-development (documentation).** Only the mobile client framework is approved: React
-Native with Expo (ADR-0001, Accepted — D-12); its validation checks run in the first slices.
-The backend, database, authorization and other choices are not approved yet.
+**Pre-development (documentation).** Approved stack:
+- Mobile client: React Native with Expo, TypeScript (ADR-0001, Accepted — D-12).
+- Backend: a TypeScript Node.js API, the only path to the data; Supabase's Data API is turned
+  off (ADR-0002, Accepted — D-17).
+- Database and file storage: Supabase PostgreSQL and Supabase Storage in Mumbai, on the Free
+  plan in phase 1 with no backups (ADR-0002, ADR-0003, Accepted — D-17; D-16, R-005).
+- API host: Google Cloud Run in Mumbai once Q-087 is settled; until then the API runs locally.
+
+The validation steps of ADR-0001 to ADR-0003 run in the first slices.
+Not approved yet: the sign-in provider and authorization model (ADR-0004 — Supabase Auth is
+only a candidate), AI (ADR-0005), food database (ADR-0006), offline sync (ADR-0007), audio/video
+media storage (ADR-0008), and the email and push services (Q-082, Q-083).
 Do not scaffold an app, add dependencies or pick frameworks until the relevant ADRs in
 `docs/architecture/decisions/` are marked **Accepted** by the decision owner.
 

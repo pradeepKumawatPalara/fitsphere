@@ -1,10 +1,13 @@
 # ADR-0002: Backend architecture and hosting
 
-- Status: **Proposed** — revised 2026-10-27 after review and owner decision D-16; not accepted
+- Status: **Accepted** by the project owner on 2026-10-27 (D-17), together with ADR-0003. The
+  owner's D-16 confirmations (5-minute viewing links, the upload-link limitation, the scope of
+  the retention rule, phase-1 public links for meal photos only) were applied in the same
+  change, before acceptance.
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-ROLE-* (links, invitations, permissions), REQ-ACC-004/010, REQ-LOG-005, REQ-LOG-006, REQ-LOG-009, REQ-LOG-010, REQ-TRN-001, REQ-NFR-001, REQ-NFR-002, REQ-NFR-003, REQ-NFR-004, REQ-NFR-005, REQ-NFR-006
-- Related constraints/decisions: C-002, C-003, C-004, C-008; D-01 (solo), D-03 (Node preference, free first), D-09 (India only), D-10…D-16; R-003, R-004, R-005; ADR-0001 (React Native + Expo, TypeScript)
+- Related constraints/decisions: C-002, C-003, C-004, C-008; D-01 (solo), D-03 (Node preference, free first), D-09 (India only), D-10…D-16, D-17 (accepted); R-003, R-004, R-005; ADR-0001 (React Native + Expo, TypeScript)
 - Related ADRs: ADR-0003 (database) is decided together with this one. ADR-0004 (sign-in provider and authorization), ADR-0005 (AI), ADR-0007 (offline sync) and ADR-0008 (media storage, audio/video release) build on it
 - Supersedes: None
 
@@ -104,7 +107,17 @@ ADR-0004; Supabase Auth is one candidate.
 - Fit: meets 1, 6, 8; fails 7; risky on 4 and 5.
 
 ## Decision
-Pending approval.
+**Option B — a TypeScript Node.js API (one modular application) that is the only path to the
+data, with Supabase PostgreSQL and file storage in the Mumbai region, on the Free plan in
+phase 1 (D-16); Supabase's Data API turned off; the API hosted on Google Cloud Run in Mumbai
+once Q-087 is settled.** Accepted by the project owner on 2026-10-27 (D-17), together with
+ADR-0003. The sign-in provider is not part of this decision; ADR-0004 decides it, and Supabase
+Auth is only a candidate.
+
+Accepted while these were still open (D-17): Q-049, Q-050, Q-082, Q-083 and Q-087, plus Q-064
+and Q-089, both partly answered. "Open questions and how each is handled" below says how each
+is handled. The owner accepted risks R-004 and R-005 (D-17). The validation steps run in the
+first slice.
 
 ## Recommended option
 **Option B — a TypeScript Node.js API (as one modular application, not microservices), with
@@ -177,17 +190,21 @@ Design rules (apply from phase 1):
 3. **The phone uploads directly to storage, with permission from the API.** The API checks the
    link and permission rules (invariant #1), then issues a short-lived link. Files don't pass
    through the API, so API costs stay low, and authorization stays on the server.
-   - Viewing (download) links expire after **at most 5 minutes** (proposed value; Supabase
-     lets the caller set the expiry in seconds). The app never stores a viewing link; it asks
-     the API again.
+   - Viewing (download) links expire after **at most 5 minutes** (D-16; Supabase lets the
+     caller set the expiry in seconds). The app never stores a viewing link; it asks the API
+     again.
    - Upload links are valid for 2 hours (Supabase docs; no shorter option is documented).
-     They allow uploading one file to one path and give no viewing access.
+     They allow uploading one file to one path and give no viewing access. Accepted by the
+     owner as a known limitation (D-16).
    - Links are kept out of logs (invariant #7). Threat T-08.
 4. **One storage module.** The API talks to storage through one module using the common
    S3-style interface, so the provider can be changed without changing the app.
 5. **Retention (D-16, Q-089).** A user's own media is never fully deleted automatically while
    the account exists; an original may be replaced by a viewing-quality copy. Phase 1 keeps
-   only the viewing copy, so no retention rule runs in phase 1. Account deletion: Q-048.
+   only the viewing copy, so no retention rule runs in phase 1. This rule covers automatic
+   retention only: a user may delete their own meal photo or label image, and it is then
+   really removed — the file and its thumbnail from storage, and cached copies from other
+   phones at their next sync (D-16, REQ-LOG-006, A-004). Account deletion: Q-048.
 6. **AI consent.** Storing a photo needs no AI consent; sending it to AI does. Consent is
    checked on the server immediately before each AI call (invariant #3, C-004), not when an
    upload link is issued.
@@ -231,9 +248,9 @@ Users view photos — and later play audio and video — in the app; there is no
 FitSphere stores only the link — near-zero storage and streaming cost.
 - **Coaches** add exercise how-to videos as YouTube links, unlisted or public (REQ-TRN-001;
   answers Q-041).
-- **Users** may add public links to their own content instead of uploading: meal photos in
-  phase 1, and their own videos once video is added (D-16, interpretation to confirm). Before
-  saving, the app shows a privacy warning the user must confirm (REQ-LOG-010).
+- **Users** may add public links to their own content instead of uploading. In phase 1 this is
+  for meal photos only (D-16, confirmed); links to their own videos come with the audio/video
+  release. Before saving, the app shows a privacy warning the user must confirm (REQ-LOG-010).
 - **When a link between people ends,** the API stops returning the trainee's external links to
   the former coach or Head Coach. FitSphere cannot revoke access to the content itself or
   delete it — the exception in invariant #1, accepted risk R-004, threat T-09; Legal to confirm
@@ -266,7 +283,7 @@ YouTube's API, with quotas and Google sign-in) is not in phase 1; evaluate it in
 | Q-050 | Performance and availability targets | Open | No target assumed; cold starts measured in validation; revisit condition | No |
 | Q-053 | Team, skills, budget | Answered (D-01, D-03, C-008) | One modular TypeScript application on managed services | No |
 | Q-055 | Offline logging | Answered (D-04) | Queued changes re-authorized by the API at sync; sync design in ADR-0007 | No |
-| Q-064 | Are meal photos kept? | Partly answered (D-16) | Compressed ~200 KB copy plus thumbnail, or an external link. Label images and deleting with the meal are data-model details that don't change hosting | No |
+| Q-064 | Are meal photos kept? | Partly answered (D-16) | Compressed ~200 KB copy plus thumbnail, or an external link; a user may delete their own photo or label image, and it is really removed (rule 5). Whether label images are kept by default, and whether deleting a meal deletes its photo, are data-model details that don't change hosting | No |
 | Q-082 | Email service and sender domain | Open | Sign-in emails are verified in ADR-0004 (SPF, DKIM, DMARC — D-13); the invitation email service is chosen before invitations are built | No |
 | Q-083 | Push notification service | Open | Expo push checked in the first slice (ADR-0001) | No |
 | Q-087 | Cloud Run billing account | Open (fact checked: a billing account is required for the free tier) | API runs on the developer's PC until the owner approves the billing account and a budget alert | No — blocks deploying to Cloud Run |
@@ -274,9 +291,9 @@ YouTube's API, with quotas and Google sign-in) is not in phase 1; evaluate it in
 | Q-089 | Media retention | Partly answered (D-16) | Rule 5; remaining periods with Legal and in ADR-0008 | No |
 | Q-092 | Which videos may use YouTube links | Answered (D-16) | "External links" above | No |
 
-To confirm on acceptance (proposed values, not open questions): the 5-minute maximum for
-viewing links, and D-16's two interpretations (trainee video links; scope of the retention
-rule).
+Confirmed by the owner before acceptance (D-16): the 5-minute maximum for viewing links; the
+2-hour upload links as a known limitation; phase-1 public links for meal photos only; "never
+fully delete" applying to automatic retention only.
 
 ## Consequences and accepted trade-offs
 - Easier: testing permission rules; moving providers; one language end to end.
@@ -294,7 +311,7 @@ rule).
 - Accepted: dependence on Supabase for the database and file storage until stage 3, and on
   Supabase Auth only if ADR-0004 chooses it.
 
-## Validation plan
+## Validation in the first slice (D-17)
 In the first implementation slice, with synthetic data only (invariant #7):
 1. Create the Supabase project in Mumbai on the Free plan. Turn on two-factor sign-in for the
    owner's Supabase and Google Cloud accounts.
@@ -308,7 +325,13 @@ In the first implementation slice, with synthetic data only (invariant #7):
 5. Upload a photo: confirm a ~200 KB copy and a thumbnail, location data removed, and that the
    viewing link stops working after 5 minutes.
 6. Confirm that API logs contain no health data, media links or tokens.
-Record results here.
+
+Record each result, with its date, under "Validation results". A failed step that the
+documented fallback does not fix triggers the revisit conditions; changing the decision needs a
+new ADR that supersedes this one.
+
+## Validation results
+None yet.
 
 ## Revisit conditions
 - An R-005 trigger is hit: database over 400 MB; files over 800 MB; monthly active users near
@@ -318,6 +341,8 @@ Record results here.
   changes).
 - Cloud Run cold starts are noticeably slow for users (Q-050).
 - The Data API cannot be turned off without breaking a Supabase service FitSphere needs.
+- ADR-0007 finds no workable offline-sync approach with this backend and PostgreSQL (shared
+  with ADR-0003).
 - Legal advice (Q-049) requires a specific hosting setup, or rejects the external-link
   approach (R-004).
 - Supabase or Google Cloud pricing or free tiers change materially.

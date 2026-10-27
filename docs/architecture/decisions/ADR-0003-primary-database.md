@@ -1,10 +1,12 @@
 # ADR-0003: Primary database
 
-- Status: **Proposed** — revised 2026-10-27 after review and owner decision D-16; not accepted
+- Status: **Accepted** by the project owner on 2026-10-27 (D-17), together with ADR-0002. The
+  owner's D-16 confirmations (the scope of the retention rule, users deleting their own photos)
+  were applied in the same change, before acceptance.
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-ROLE-* (links, permissions, switching), REQ-PLAN-*, REQ-LOG-*, REQ-PRG-* (weekly aggregates), REQ-NFR-001, REQ-NFR-002, REQ-NFR-003, REQ-NFR-004, REQ-NFR-005, REQ-NFR-006
-- Related constraints/decisions: C-003, C-006, C-008; D-07 (unassign, never delete), D-09 (India, IST), D-10/D-11 (links, consent, switching), D-13 (author of each change), D-14 (server is the permanent record), D-15 (20M aspiration), D-16 (Free plan, media); R-005
+- Related constraints/decisions: C-003, C-006, C-008; D-07 (unassign, never delete), D-09 (India, IST), D-10/D-11 (links, consent, switching), D-13 (author of each change), D-14 (server is the permanent record), D-15 (20M aspiration), D-16 (Free plan, media), D-17 (accepted); R-005
 - Related ADRs: ADR-0002 (decided together); ADR-0004 (sign-in and authorization); ADR-0007 (device storage and sync) and ADR-0008 (media storage, audio/video release) build on it
 - Supersedes: None
 
@@ -72,7 +74,15 @@ weekly totals and averages (REQ-PRG-*).
 - Fit: partial on 1, 2; meets 3; 5 partly; 6 not assessed.
 
 ## Decision
-Pending approval.
+**Option A — PostgreSQL, managed by Supabase, in the Mumbai region, on the Free plan in phase 1
+(D-16, R-005), reached only through the Node API (ADR-0002).** Accepted by the project owner on
+2026-10-27 (D-17), together with ADR-0002.
+
+Accepted while these were still open (D-17): Q-014, Q-030, Q-048 and Q-049, plus Q-064 and
+Q-089, both partly answered. "Open questions and how each is handled" below says how each is
+handled. The owner accepted risk R-005 (D-17). Whether PostgreSQL supports the offline sync in
+REQ-NFR-004 is shown in ADR-0007; if not, this ADR is revisited. The validation steps run in the
+first slice.
 
 ## Recommended option
 **Option A — PostgreSQL, managed by Supabase, in the Mumbai region, on the Free plan in phase 1
@@ -98,7 +108,9 @@ Design rules that follow (to be detailed in `docs/contracts/data-model.md`):
   storage location keys for the viewing copy and its thumbnail, size, duration (future audio
   and video), created time, status, and whether an original has been replaced by a
   viewing-quality copy. A user's own media is never fully deleted automatically while the
-  account exists (D-16, Q-089). The files live in object storage (ADR-0002, ADR-0008), so the
+  account exists (D-16, Q-089). That rule covers automatic retention only: a user may delete
+  their own meal photo or label image, and then the file, its thumbnail and its `media` record
+  are really removed (D-16, REQ-LOG-006, A-004). The files live in object storage (ADR-0002, ADR-0008), so the
   database stays small and media can move to a cheaper provider by updating location keys only.
 - A `media` record can instead hold an **external link** (e.g. YouTube) with the site's name
   (D-16, REQ-LOG-010). When a link between people ends, the API stops returning it to the former
@@ -150,7 +162,7 @@ No step requires changing the app's data model or rewriting the API.
 | Q-049 | DPDP obligations, data residency | Open (Legal) | All data in Mumbai; Legal confirms before real users (C-003) | No — blocks real users |
 | Q-053 | Team, skills, budget | Answered (D-01, D-03, C-008) | Managed PostgreSQL; Free plan in phase 1 | No |
 | Q-055 | Offline logging | Answered (D-04) | Server is the source of truth; whether PostgreSQL supports the sync design is shown in ADR-0007 (revisit condition) | No — accepted risk |
-| Q-064 | Are meal photos kept? | Partly answered (D-16) | `media` record with viewing copy and thumbnail, or external link; label images and deleting with the meal stay data-model details | No |
+| Q-064 | Are meal photos kept? | Partly answered (D-16) | `media` record with viewing copy and thumbnail, or external link; a user may delete their own photo or label image, removing the file and its record. Whether label images are kept by default, and whether deleting a meal deletes its photo, stay data-model details | No |
 | Q-072 | One coach / one Head Coach | Answered (D-11) | Enforced by a database rule | No |
 | Q-088 | Backups before Pro | Answered (D-16) | Free plan without backups, R-005 triggers | No |
 | Q-089 | Media retention | Partly answered (D-16) | Never fully deleted automatically while the account exists; the record notes when an original was replaced | No |
@@ -167,7 +179,7 @@ No step requires changing the app's data model or rewriting the API.
 - Accepted: dependence on Supabase for hosting the database; the data stays portable because it
   is standard PostgreSQL.
 
-## Validation plan
+## Validation in the first slice (D-17)
 In the first slice, with synthetic data only (invariant #7): create tables for users, links and
 weigh-ins; prove with tests that
 (a) a second active coach link for one trainee is rejected;
@@ -177,7 +189,14 @@ weigh-ins; prove with tests that
 (e) with the Data API off, no table is reachable through Supabase's auto-generated endpoints
 (shared with ADR-0002).
 Also measure database growth per 10,000 synthetic entries, to estimate when the 400 MB trigger
-will be reached. Record results here.
+will be reached.
+
+Record each result, with its date, under "Validation results". A failed check that optimisation
+does not fix triggers the revisit conditions; changing the decision needs a new ADR that
+supersedes this one.
+
+## Validation results
+None yet.
 
 ## Rejected approach: storing files inside the database
 Putting photos, audio or video directly in PostgreSQL would quickly exhaust the database

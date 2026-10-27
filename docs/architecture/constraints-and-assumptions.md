@@ -27,7 +27,9 @@ D- numbers refer to the owner decisions in
 - Security/privacy: C-002, C-003, C-004; detailed controls in [`data-and-threat-model.md`](../security/data-and-threat-model.md) (Draft)
 - Accessibility: **Open** (Q-050)
 - Budget/licensing: free tiers first; paid items need owner sign-off (C-008) — affects AI provider, food database and hosting choices
-- Deployment/network/region: **Open** — data residency may follow from C-003 (Q-049)
+- Deployment/network/region: Mumbai — Supabase for the database and file storage, Google Cloud
+  Run for the API (ADR-0002, ADR-0003, D-17). Legal still to confirm data-residency obligations
+  (C-003, Q-049)
 - Scale: **aspiration, not a capacity target** — FitSphere aims to support up to 20 million users
   in the long term (D-15). Phase 1 starts on free tiers (C-008). ADR-0002 and ADR-0003 must
   explain how the chosen backend and database can grow toward this without a rewrite, and what
@@ -39,7 +41,7 @@ D- numbers refer to the owner decisions in
 | A-001 | Phase 1 clients are Android and iOS apps, Android first: iOS testing and release wait until an iPhone is available (D-10). No web app for trainees. Coaches and Head Coaches use the same mobile app with no web dashboard — interpretation, to confirm (Q-068). | Owner decisions D-02, D-10 | Confirmed (D-02); coach part pending Q-068 | Project owner (Q-051) |
 | A-002 | One account can hold several roles at once (e.g. a Coach who is also a Personal Training User). | BRD "switch between roles available to them" | High | Project owner |
 | A-003 | Each trainee has at most one coach; each coach at most one head coach. Either side may leave at any time. | Owner decision D-11 ("for now") | Confirmed (D-11) | Project owner (Q-072) |
-| A-004 | Users can edit and delete their own logged meals and entries. | Not in BRD; needed for usable logging | Medium | Project owner (Q-032) |
+| A-004 | Users can edit and delete their own logged meals and entries. | Not in BRD; needed for usable logging. D-16: a user may delete their own meal photo or nutrition-label image, and it is really removed | Medium (confirmed for photos and label images, D-16) | Project owner (Q-032) |
 | A-005 | Diet plan tab has an empty state when no plan exists. | By analogy to Training | Medium | Project owner |
 | A-006 | AI-parsed meals are shown for review and saved only after the user confirms. | Not in BRD; reduces wrong logs | Medium | Project owner |
 | A-007 | AI consent is off by default and each change is timestamped. | BRD "asked for consent before"; C-003 | Medium | Project owner + Legal |
@@ -117,7 +119,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-040 | Acceptable AI parsing accuracy and how it is measured. | REQ-LOG-009, ADR-0005 | Project owner | |
 | Q-062 | Does the AI review list show nutrition values per item, or only items and quantities as BRD §8 states? (REQ-LOG-009 currently reads "and nutrition values".) | REQ-LOG-009 | Project owner | |
 | Q-063 | Where do nutrition values for AI-parsed items come from: the AI's estimate, or a match in the food database? Meal totals (REQ-HOME-003/004, NUT-002) need them either way. | REQ-LOG-009, ADR-0005, ADR-0006 | Project owner | |
-| Q-064 | **Partly answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: a meal photo is kept as a compressed ~200 KB copy with a thumbnail, or the user pastes a public link; a user's own media is never fully deleted while the account exists). Are meal photos and nutrition-label images kept after parsing? If so, for how long, who can see them, and are they deleted with the meal? ([`flow.md`](../../flow.md) shows media storage.) *Still open: nutrition-label images; whether deleting a meal deletes its photo; who sees photos is Q-059.* | REQ-LOG-006, ADR-0002, ADR-0003, threat model | Project owner + Legal | |
+| Q-064 | **Partly answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-16: a meal photo is kept as a compressed ~200 KB copy with a thumbnail, or the user pastes a public link; a user's own media is never fully deleted automatically while the account exists, but a user may delete their own meal photo or label image, and it is really removed — A-004). Are meal photos and nutrition-label images kept after parsing? If so, for how long, who can see them, and are they deleted with the meal? ([`flow.md`](../../flow.md) shows media storage.) *Still open: whether nutrition-label images are kept after parsing by default (if kept, the user can delete them — D-16); whether deleting a meal also deletes its photo (Q-032); who sees photos is Q-059.* | REQ-LOG-006, ADR-0002, ADR-0003, threat model | Project owner + Legal | |
 
 ### Screens and display rules
 | ID | Question | Blocks | Owner | Due |
@@ -159,7 +161,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-083 | Which push notification service delivers in-app invitation alerts? *Expo push support is to be verified in the first slice (D-13, ADR-0001). The same service also delivers "no longer linked" messages (D-14).* | REQ-ROLE-009, ADR-0001, ADR-0002 | Project owner | |
 
 ### Hosting and media
-Raised by [ADR-0002](decisions/ADR-0002-backend-and-hosting.md#open-questions-and-how-each-is-handled) (Proposed, 2026-10-27).
+Raised by [ADR-0002](decisions/ADR-0002-backend-and-hosting.md#open-questions-and-how-each-is-handled) (2026-10-27).
 
 | ID | Question | Blocks | Owner | Due |
 |---|---|---|---|---|
@@ -176,14 +178,14 @@ Raised by [ADR-0002](decisions/ADR-0002-backend-and-hosting.md#open-questions-an
 | R-001 | iOS-only bugs will be found late: phase 1 is developed and tested on Android only, and iOS builds are at most compiled to check that they build. | D-10 | Compile iOS builds with EAS where useful (ADR-0001); test on a real iPhone before any iOS release. | Project owner |
 | R-002 | ADR-0001 was accepted without its validation spike, so a problem with the framework — barcode scanning, audio or photo capture, offline SQLite, the iOS compile, list speed on low-end Android phones, or push notifications — may only be found once the first slices are built, when changing course costs more. | D-12 | Run the ADR-0001 checks during the first slices, with the push check in the first slice (D-13); the ADR's revisit conditions say when to change course. | Project owner |
 | R-003 | In phase 1 the operator reviews their own access: the project owner is the only operator and also the only reviewer of the admin access log, which is kept in the same backend database. **Remaining dashboard risk (D-16):** the owner can still read user data directly in the Supabase and Google Cloud dashboards, and such access does not appear in FitSphere's admin access log. | D-14, D-16 | Accepted for phase 1. The log records every admin access to user data and is reviewed monthly (REQ-NFR-005); Platform Admin controls are open (Q-086). Two-factor sign-in on Supabase and Google Cloud; the owner never browses user data in dashboards and uses only the logged admin path (D-16). | Project owner |
-| R-004 | Content a user stores on YouTube or another site and adds to FitSphere as a link stays viewable by anyone who has the link — including a former coach or Head Coach after the link between them ends. FitSphere cannot delete that content or revoke access to it. | D-16 | Accepted. A privacy warning that the user must confirm before the link is saved (REQ-LOG-010); the link is hidden from the former coach or Head Coach when a link ends; exception stated in invariant #1; threat T-09; Legal to confirm the approach (Q-049). | Project owner |
-| R-005 | Phase 1 runs on the Supabase Free plan with no backups (D-16): data lost on the server cannot be restored; the project may pause after 1 week without activity, making the app unavailable until resumed; limits of 500 MB database, 1 GB files and 5 GB monthly egress. **Conflicts with D-14** ("the server is the permanent record", REQ-NFR-004): without backups, the server copy itself can be lost. | D-16 | Accepted for phase 1. The owner reviews moving to Supabase Pro (C-008) or adding backups when any trigger is hit: database over 400 MB; files over 800 MB; monthly active users near 50,000; monthly egress over 4 GB (Supabase counts cached egress separately, also 5 GB — watch both); any pause; any data-loss incident. A paused project is resumed from the Supabase dashboard ([`runbook.md`](../operations/runbook.md)). | Project owner |
+| R-004 | Content a user stores on YouTube or another site and adds to FitSphere as a link stays viewable by anyone who has the link — including a former coach or Head Coach after the link between them ends. FitSphere cannot delete that content or revoke access to it. | D-16, D-17 | Accepted by the owner (D-17). A privacy warning that the user must confirm before the link is saved (REQ-LOG-010); the link is hidden from the former coach or Head Coach when a link ends; exception stated in invariant #1; threat T-09; Legal to confirm the approach (Q-049). | Project owner |
+| R-005 | Phase 1 runs on the Supabase Free plan with no backups (D-16): data lost on the server cannot be restored; the project may pause after 1 week without activity, making the app unavailable until resumed; limits of 500 MB database, 1 GB files and 5 GB monthly egress. **Conflicts with D-14** ("the server is the permanent record", REQ-NFR-004): without backups, the server copy itself can be lost. | D-16, D-17 | Accepted for phase 1 by the owner (D-17). The owner reviews moving to Supabase Pro (C-008) or adding backups when any trigger is hit: database over 400 MB; files over 800 MB; monthly active users near 50,000; monthly egress over 4 GB (Supabase counts cached egress separately, also 5 GB — watch both); any pause; any data-loss incident. A paused project is resumed from the Supabase dashboard ([`runbook.md`](../operations/runbook.md)). | Project owner |
 
 ## Major decisions needed (ADRs)
 Listed in [`decisions/README.md`](decisions/README.md), which is the single record of each
 ADR's dependencies; the **Blocks** column above names the same ADRs. ADR-0001 is Accepted
-(D-12); ADR-0002 and ADR-0003 are Proposed; ADR-0004 to ADR-0007 are not written yet; ADR-0008
-(media storage for the audio/video release) is a planned slot.
+(D-12); ADR-0002 and ADR-0003 are Accepted (D-17); ADR-0004 to ADR-0007 are not written yet;
+ADR-0008 (media storage for the audio/video release) is a planned slot.
 
 ## Suggested first slice
 *(Proposal for the owner — not approved.)* A thin vertical slice that touches the riskiest
@@ -202,6 +204,11 @@ Expo app on the Android emulator, EAN-13 barcode scan, audio and photo capture, 
 local SQLite with the network off, one EAS iOS compile, and a 200-row list on a low-end Android
 phone. Expo push support is checked in the first slice (D-13). Details and where results are
 recorded: [ADR-0001](decisions/ADR-0001-mobile-client-framework.md#validation-in-the-first-slices-d-12).
+
+The validation steps of ADR-0002 and ADR-0003 also run in the first slice (D-17): the Supabase
+project in Mumbai with two-factor sign-in, the Data API turned off, a pooled database
+connection, the first authorization tests, photo upload and the 5-minute viewing links, log
+checks, and the link-constraint and query tests. Results are recorded in each ADR.
 
 ## Revisit triggers
 - A change to team, platforms or budget (D-01 to D-03) — revisit all stack ADRs.

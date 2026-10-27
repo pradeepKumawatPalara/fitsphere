@@ -4,8 +4,9 @@
 - Owner: Project owner (D-01)
 - Last updated: 2026-10-27
 
-High-level only. Components below are **logical**. Only the mobile framework is chosen —
-React Native with Expo (ADR-0001, Accepted, D-12); nothing else is (see
+High-level only. Components below are **logical**. Chosen so far: React Native with Expo
+(ADR-0001, Accepted, D-12), and a TypeScript Node.js API with Supabase PostgreSQL and file
+storage in Mumbai (ADR-0002, ADR-0003, Accepted, D-17); the rest is open (see
 `docs/architecture/decisions/`). Detailed schemas will live in `docs/contracts/`.
 
 ## Main user journey (trainee daily loop)

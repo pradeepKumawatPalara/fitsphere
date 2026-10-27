@@ -6,8 +6,9 @@
 
 What FitSphere is made of at the highest level, who uses it, which outside systems it depends
 on, and where data crosses a trust boundary. Components are **logical**. The mobile app uses
-React Native with Expo (ADR-0001, Accepted — D-12); no backend technology is chosen yet
-(ADR-0002 and ADR-0003 are Proposed; ADR-0004 to ADR-0007 are Missing). Detailed flows are in
+React Native with Expo (ADR-0001, Accepted — D-12). The backend is a TypeScript Node.js API with
+Supabase PostgreSQL and file storage in Mumbai (ADR-0002, ADR-0003, Accepted — D-17). Sign-in,
+AI, food data and sync are not chosen yet (ADR-0004 to ADR-0007 are Missing). Detailed flows are in
 [`flow.md`](../../flow.md); threats and the permission matrix are in
 [`data-and-threat-model.md`](../security/data-and-threat-model.md). D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md).
@@ -114,6 +115,7 @@ Apple. Keeping health data out of notification text is proposed, not decided.
 
 ## Open items
 - Email service and sender domain (Q-082); push service (Q-083); speech-to-text (Q-038); food
-  data source (Q-039); hosting and data residency (ADR-0002, ADR-0003, Q-049).
+  data source (Q-039); data-residency obligations, for Legal to confirm (Q-049; hosting is in Mumbai — ADR-0002,
+  ADR-0003).
 - Legal to confirm the 1-year retention of the admin access log (Q-049); the operator reviewing
   their own access is an accepted risk (R-003).

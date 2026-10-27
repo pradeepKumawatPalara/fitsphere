@@ -351,12 +351,15 @@
      - API logs and monitoring exclude health data (invariant #7).
      - AI consent is checked immediately before each AI call, not when an upload link is
        issued (invariant #3).
-- **Interpretation:** phase 1 has no video feature for trainees (audio and video are future
-  scope), so in phase 1 trainees' public links (answer 2) are links to meal photos (answer 4).
-  Video links apply once the audio/video release adds video. *(Confirm.)*
-- **Interpretation:** answer 6 governs automatic retention. Whether deleting a meal also
-  deletes its photo, and whether nutrition-label images are kept, stay open (Q-064); account
-  deletion stays with Q-048. *(Confirm.)*
+- **Interpretation (confirmed by the owner, 2026-10-27):** phase 1 has no video feature for
+  trainees (audio and video are future scope), so in phase 1 trainees' public links (answer 2)
+  are for meal photos only (answer 4). Video links apply once the audio/video release adds video.
+- **Interpretation (confirmed by the owner, 2026-10-27):** "never fully delete" (answer 6)
+  applies to automatic retention only. A user may delete their own meal photo or nutrition-label
+  image, and it is really removed (A-004, Q-064). Account deletion stays with Q-048.
+- **Confirmed by the owner (2026-10-27):** media viewing links expire after at most 5 minutes.
+  Supabase's 2-hour upload links are accepted as a known limitation — each allows uploading
+  one file to one path and gives no viewing access (T-08).
 - Doc changes: invariant #1; REQ-LOG-005, REQ-LOG-006, REQ-TRN-001, REQ-NFR-001, REQ-NFR-004
   and REQ-NFR-005 updated; REQ-LOG-010 (public links) and REQ-NFR-006 (view-only media) added;
   Q-041, Q-088 and Q-092 answered; Q-064 and Q-089 partly answered; notes on Q-038, Q-049 and
@@ -364,6 +367,23 @@
   (data categories, matrix, T-07 updated, T-08 and T-09 added, retention, open risks); system
   context; glossary; journeys J-01 and J-06; product brief Future scope;
   `docs/operations/runbook.md` created; ADR-0002 and ADR-0003 revised; decisions index.
+  Confirmations applied to REQ-LOG-006, REQ-LOG-010, A-004, Q-064, T-08, retention, ADR-0002,
+  ADR-0003 and the ADR-0007 inputs.
+
+## D-17 ADR-0002 and ADR-0003 accepted
+- Status: **Accepted** (answer given by the project owner in chat, 2026-10-27)
+- Answer: the owner accepts risks R-004 and R-005 and marks ADR-0002 (backend and hosting) and
+  ADR-0003 (primary database) **Accepted**: a TypeScript Node.js API that is the only path to
+  the data, with Supabase PostgreSQL and file storage in Mumbai, on the Free plan in phase 1
+  (D-16). Supabase Auth is still pending ADR-0004.
+- Each ADR keeps its validation steps for the first slice and its revisit conditions,
+  including ADR-0007 finding no workable offline-sync approach with PostgreSQL.
+- Accepted while these are still open; each ADR's "Open questions and how each is handled"
+  table says how each is handled: Q-049, Q-050, Q-082, Q-083 and Q-087 (ADR-0002); Q-014, Q-030
+  and Q-048 (ADR-0003); Q-064 and Q-089, both partly answered (both ADRs).
+- Doc changes: ADR-0002 and ADR-0003 status, decision and validation sections; decisions index;
+  `CLAUDE.md` current phase; `README.md`; docs index; system context; `flow.md`; constraints
+  (quality targets, suggested first slice, major decisions, R-004, R-005).
 
 ---
 

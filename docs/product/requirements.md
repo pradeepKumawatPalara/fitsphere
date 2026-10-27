@@ -370,10 +370,11 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: on-device vs cloud speech-to-text, and whether voice needs AI consent (Q-038).
 
 ### REQ-LOG-006 — Photo entry
-- Requirement: A camera button captures a meal photo or nutrition label for parsing. A meal photo is kept as a compressed viewable copy of about 200 KB (phone-viewable quality) with a small thumbnail for lists. Instead of uploading, the user can paste a public link to an image (REQ-LOG-010). Photos are view-only (REQ-NFR-006). A user's own photos are never fully deleted automatically while the account exists; an original may be replaced by a viewing-quality copy (D-16).
+- Requirement: A camera button captures a meal photo or nutrition label for parsing. A meal photo is kept as a compressed viewable copy of about 200 KB (phone-viewable quality) with a small thumbnail for lists. Instead of uploading, the user can paste a public link to an image (REQ-LOG-010). Photos are view-only (REQ-NFR-006). A user's own photos are never fully deleted automatically while the account exists; an original may be replaced by a viewing-quality copy (D-16). A user may delete their own meal photo or nutrition-label image, and it is then really removed: from file storage, and from copies cached on other phones at their next sync (D-16, A-004).
 - Acceptance criteria:
   - When a user saves a meal photo, then the stored copy is about 200 KB and a thumbnail is created for lists (D-16).
-- Open: whether nutrition-label images are kept, and whether deleting a meal deletes its photo (Q-064); how long media is kept (Q-089); which of it the coach sees (Q-059).
+  - When a user deletes their own meal photo, then the file and its thumbnail are removed from file storage, no viewing link can be issued for it, and phones that cached it delete it on their next sync (D-16).
+- Open: whether nutrition-label images are kept after parsing by default, and whether deleting a meal also deletes its photo (Q-064, Q-032); how long media is kept (Q-089); which of it the coach sees (Q-059); once backups exist, how long they keep deleted media (Q-049).
 
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode, Eaten before (past meals) and Saved (your meals) are available and work without AI (REQ-ACC-005).
@@ -392,7 +393,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: AI provider (ADR-0005), accuracy expectations (Q-040).
 
 ### REQ-LOG-010 — Public link instead of an upload
-- Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, a meal photo (REQ-LOG-006); their own videos once the audio/video release adds video (D-16, interpretation to confirm). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
+- Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, meal photos only (REQ-LOG-006; D-16, confirmed). Links to their own videos come with the audio/video release (future scope). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
 - Type: Functional, Privacy
 - Acceptance criteria:
   - When a user adds a public link, then the privacy warning is shown and the link is saved only after the user confirms; if they cancel, nothing is saved.
