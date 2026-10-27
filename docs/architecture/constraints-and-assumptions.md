@@ -78,6 +78,10 @@ confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
 | Push and log out | Push text carries no health data; logging out removes the phone's push token | REQ-ROLE-016, ADR-0004 |
 | 30-day clear | Runs when the app starts or returns to the foreground | ADR-0007, T-06 |
 | Record of the 18+ confirmation | The account stores when the "I am 18 or older" confirmation was given and which version of its text was shown, as for the consent record (Q-065). *Not yet confirmed: added after answer 11* | REQ-ACC-010 |
+| Neutral sign-up and reset texts | Sign-up: "Check your email. If this address can be used for a new account, we've sent a link to finish signing up." Reset: "If an account uses this address, we've sent a link to reset the password." *Not yet confirmed: added with the Skeleton contracts* | REQ-ACC-010, error model |
+| Roles of a new account | Account setup turns on the Personal Training User role; Coach and Head Coach are turned on by the user (D-06). *Not yet confirmed: added with the Skeleton contracts* | REQ-ROLE-001, data model |
+| Log out and data on the phone | Logging out deletes the phone's local database and its key. If it holds entries not yet synced, the app warns first and deletes them only if the user confirms. *Not yet confirmed: added with the Skeleton contracts* | REQ-ACC-008, data model |
+| Weight entry precision | Body weight is entered and shown with one decimal in the chosen unit; it is stored in whole grams (invariant #6). *Not yet confirmed: added with the Skeleton contracts* | REQ-HOME-006, data model |
 
 Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
 and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18
@@ -223,8 +227,13 @@ ADR's dependencies; the **Blocks** column above names the same ADRs. ADR-0001 is
 ADR-0008 (media storage for the audio/video release) is a planned slot.
 
 ## Suggested first slice
-*(Proposal for the owner — not approved.)* A thin vertical slice that touches the riskiest
-foundations with the fewest open questions:
+*(Proposal for the owner — not approved.)* The owner has since asked for the **Skeleton** slice
+(2026-10-28): monorepo, CI, sign-in with the 18+ confirmation, IST dates, weight online and
+offline, and the first authorization tests. Its contracts are in
+[`docs/contracts/`](../contracts/) and its checks in
+[`test-strategy.md`](../quality/test-strategy.md). This proposal is kept as a record until the
+Skeleton plan is approved. A thin vertical slice that touches the riskiest foundations with the
+fewest open questions:
 
 1. Sign-in with email and password (REQ-ACC-010, D-05), log out (REQ-ACC-008). Country/time
    zone (REQ-ACC-006) is Won't for phase 1 (D-09).

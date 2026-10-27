@@ -52,8 +52,10 @@ Do not scaffold an app, add dependencies or pick frameworks until the relevant A
 - Decisions: `docs/architecture/decisions/`
 - Always-on invariants: `.claude/rules/project-invariants.md`
 - Original business requirements (input, not edited): `docs/product/source/business-requirements.txt`
-- Runbook (Draft — only the paused-project step is written): `docs/operations/runbook.md`
-- Not yet written: `docs/contracts/`, `docs/quality/`
+- Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
+  `error-model.md`
+- Verification (Draft): `docs/quality/test-strategy.md`, `definition-of-done.md`
+- Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.
 

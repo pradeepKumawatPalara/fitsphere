@@ -61,6 +61,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a user with Coach and Personal Training User turned on, when they select Coach, then the Coach view loads.
   - Turning on Coach or Head Coach gives no access to anyone else's data; that needs an accepted invitation (REQ-ROLE-009).
 - Future scope: premium plans may gate the Head Coach role and limit how many coaches and trainees each plan allows (D-06).
+- MVP default (D-18): a new account starts with the Personal Training User role turned on.
 
 ### REQ-ROLE-002 — View follows active role
 - Requirement: The app's view and available functions change to match the active role.
@@ -279,7 +280,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Weight displays in the body-weight unit setting (REQ-ACC-003; MVP default, Q-024 — the BRD says "Weight (kg)").
   - Values outside weight 20–300 kg, steps 0–100,000 and sleep 0–24 h cannot be saved (MVP default, Q-028).
   - Given a value already logged for that day, when a new one is saved, then it replaces the old one (MVP default, Q-030).
-- MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14).
+- MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14). Weight is entered and shown with one decimal in the chosen unit and stored in whole grams (invariant #6).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
@@ -549,6 +550,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-ACC-008 — Log out
 - Requirement: The user can log out; the session ends on this device.
+- MVP default (D-18): logging out deletes the phone's local data. If entries are not yet synced, the app warns that they will be lost and deletes them only if the user confirms (data model, "On the phone").
 
 ### REQ-ACC-009 — Delete account
 - Type: Privacy
@@ -573,6 +575,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When a password reset is requested, then the same neutral message is shown whether or not the email is registered, under the same timing rule (D-11).
   - Given an account whose email is not yet verified, when it tries to sign in, then it is asked to verify first (MVP default, Q-080).
 - MVP default (D-18): an account must verify its email before it can sign in; verification and reset links expire within 24 hours (Q-080; ADR-0004). Emails are sent through Resend from FitSphere's own domain (ADR-0004, answers Q-082).
+- MVP default (D-18): the neutral sign-up and reset texts are in the [error model](../contracts/error-model.md#texts-the-app-shows).
 - Minimum age (D-18, Q-066): 18 or older in the MVP. The confirmation is self-declared; FitSphere does not verify age (threat model, open risks). **Post-MVP:** use by people under 18 (backlog B-16); what it would need is for Legal (Q-049).
 
 ---
