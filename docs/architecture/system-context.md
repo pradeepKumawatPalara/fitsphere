@@ -7,7 +7,7 @@
 What FitSphere is made of at the highest level, who uses it, which outside systems it depends
 on, and where data crosses a trust boundary. Components are **logical**. The mobile app uses
 React Native with Expo (ADR-0001, Accepted — D-12); no backend technology is chosen yet
-(ADR-0002 to ADR-0007 are Missing). Detailed flows are in
+(ADR-0002 and ADR-0003 are Proposed; ADR-0004 to ADR-0007 are Missing). Detailed flows are in
 [`flow.md`](../../flow.md); threats and the permission matrix are in
 [`data-and-threat-model.md`](../security/data-and-threat-model.md). D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md).

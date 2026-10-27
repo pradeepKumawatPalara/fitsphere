@@ -24,7 +24,7 @@ Last updated: 2026-10-27
 | 6b | [`../flow.md`](../flow.md) | Draft | Project owner | High-level flows |
 | 7 | [`architecture/system-context.md`](architecture/system-context.md) | Draft | Project owner | System boundary, externals, trust boundaries |
 | 8 | [`security/data-and-threat-model.md`](security/data-and-threat-model.md) | Draft | Project owner | Data categories, threats, controls |
-| 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 to 0007 are Missing |
+| 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 and 0003 are Proposed, ADR-0004 to 0007 are Missing, ADR-0008 is a planned slot |
 | 10 | `contracts/` | Missing | Project owner | Data, API, error, integration contracts |
 | 11 | `quality/test-strategy.md`, `definition-of-done.md` | Missing | Project owner | Verification |
 | 12 | `operations/runbook.md` | Missing | Project owner | Setup, deploy, recovery |

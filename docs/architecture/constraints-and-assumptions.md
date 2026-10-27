@@ -146,7 +146,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 |---|---|---|---|---|
 | Q-047 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-05). Sign-up, sign-in method(s), forgot password, email verification, social login? | REQ-ACC-010, ADR-0004 | Project owner | |
 | **Q-048** | **Delete-account flow: what is deleted, what is retained and for how long, effect on coach links.** | **REQ-ACC-009 blocked**, ADR-0003 | Project owner + Legal | |
-| Q-049 | Phase 1 is India only (D-09): confirm obligations under India's Digital Personal Data Protection Act 2023 — data residency, consent records and anything else needed before real users. Other laws only if users outside India are added later. *Includes how long Head Coach permission answers are kept after an account is deleted (D-13), and confirming the 1-year retention of the admin access log (D-14).* | Threat model, ADR-0002, ADR-0003, ADR-0005, ADR-0006 | Legal | |
+| Q-049 | Phase 1 is India only (D-09): confirm obligations under India's Digital Personal Data Protection Act 2023 — data residency, consent records and anything else needed before real users. Other laws only if users outside India are added later. *Includes how long Head Coach permission answers are kept after an account is deleted (D-13), and confirming the 1-year retention of the admin access log (D-14).* | Threat model, ADR-0002, ADR-0003, ADR-0005, ADR-0006, ADR-0008 | Legal | |
 | Q-050 | Performance, availability, accessibility (e.g. WCAG level) targets. | Test strategy, ADR-0002 | Project owner | |
 | Q-055 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-04, REQ-NFR-004). Must logging work offline and sync later? *Offline/online split to confirm: Q-077.* | ADR-0001, ADR-0002, ADR-0003, ADR-0007 | Project owner | |
 | Q-065 | What must a consent record contain beyond a timestamp (A-007): the notice version shown, which inputs it covers (text, voice, photo, label), the AI provider, and when consent was withdrawn? | REQ-ACC-004, ADR-0005 | Project owner + Legal | |
@@ -158,6 +158,18 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-082 | Which email service and sender domain send invitation emails, on a free tier (C-008)? Should the same service send verification and password-reset emails (REQ-ACC-010)? | REQ-ROLE-008, REQ-ACC-010, ADR-0002 | Project owner | |
 | Q-083 | Which push notification service delivers in-app invitation alerts? *Expo push support is to be verified in the first slice (D-13, ADR-0001). The same service also delivers "no longer linked" messages (D-14).* | REQ-ROLE-009, ADR-0001, ADR-0002 | Project owner | |
 
+### Hosting and media
+Raised by [ADR-0002](decisions/ADR-0002-backend-and-hosting.md#new-open-questions) (Proposed, 2026-10-27).
+
+| ID | Question | Blocks | Owner | Due |
+|---|---|---|---|---|
+| Q-087 | Does the Google Cloud Run free tier need a billing account (card)? If so, set a budget alert (e.g. ₹500/month) before deploying. | API hosting on Cloud Run, ADR-0002 | Project owner | |
+| Q-088 | Backups before Supabase Pro: is "no real users on the Free plan" acceptable, or do we need our own scheduled database export? | Storing real user data, ADR-0002, ADR-0003 | Project owner | |
+| Q-089 | Media retention: how long to keep original photos, audio and (future) videos, and whether to keep only a small copy after a period? The free plan's 1 GB of file storage fills quickly. *Overlaps Q-064 for meal photos and labels — answer together.* | Media lifecycle rules, ADR-0002, ADR-0003, ADR-0008 | Project owner + Legal | |
+| Q-090 | Audio and video limits (future scope): maximum recording length, video length and resolution, and per-user storage quota (possibly tied to future premium plans, D-06)? | Audio/video release, ADR-0008 | Project owner | |
+| Q-091 | Can media be stored outside India with a cheaper provider, or must it stay in India? *Part of Q-049.* | ADR-0008 | Legal | |
+| Q-092 | Which videos may use YouTube links: coaches' exercise how-to videos only, or also trainees' personal videos? | ADR-0008 | Project owner + Legal | |
+
 ## Risks
 | ID | Risk | Source | Mitigation | Owner |
 |---|---|---|---|---|
@@ -168,7 +180,8 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 ## Major decisions needed (ADRs)
 Listed in [`decisions/README.md`](decisions/README.md), which is the single record of each
 ADR's dependencies; the **Blocks** column above names the same ADRs. ADR-0001 is Accepted
-(D-12); the others are not written yet.
+(D-12); ADR-0002 and ADR-0003 are Proposed; ADR-0004 to ADR-0007 are not written yet; ADR-0008
+(media storage for the audio/video release) is a planned slot.
 
 ## Suggested first slice
 *(Proposal for the owner — not approved.)* A thin vertical slice that touches the riskiest
