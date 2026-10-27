@@ -123,11 +123,12 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given no coach, when the user sets a calorie target, then the calories card shows the percentage and kcal remaining against it.
 
 ### REQ-ROLE-008 — Invite a new email address
-- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address (D-06). When the address has no FitSphere account, phase 1 sends an invitation email with a sign-up link (D-11); the person signs up (REQ-ACC-010), and the link takes effect only when they accept (REQ-ROLE-009). A registered address gets the in-app invitation instead (REQ-ROLE-009). The inviter sees only "Invitation sent" and is never told whether the address was registered or which channel was used (REQ-ROLE-011).
+- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address (D-06). When the address has no FitSphere account, phase 1 sends an invitation email with a sign-up link (D-11); the person signs up (REQ-ACC-010), and the link takes effect only when they accept (REQ-ROLE-009). Only an account with the invited email address can accept (D-18, T-05). A registered address gets the in-app invitation instead (REQ-ROLE-009). The inviter sees only "Invitation sent" and is never told whether the address was registered or which channel was used (REQ-ROLE-011).
 - Type: Functional, Security
 - Acceptance criteria:
   - Given an email address with no FitSphere account, when a Coach invites it, then an invitation email with a sign-up link is sent to that address and the Coach sees "Invitation sent".
   - Until the invited person signs up and accepts, the inviter has no access to any of their data.
+  - Given a person who signs up with a different email address from the invited one, then that account cannot accept the invitation (D-18, T-05).
   - The sign-up link in an invitation email works only once and expires 7 days after it is sent (D-13).
   - The sender domain has SPF, DKIM and DMARC set up (D-13).
 - Future scope: other channels such as SMS or WhatsApp (D-11).
@@ -135,13 +136,14 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Emails are sent through Resend from a domain FitSphere owns (ADR-0004, answers Q-082). Threat model items T-04, T-05.
 
 ### REQ-ROLE-009 — Invite an existing user; accept or decline
-- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invitation is delivered in the app — a push notification plus the in-app Notifications list, so it is not lost if push is off; no email is sent (D-11, D-15). The invited user accepts or declines; the link exists only after they accept (D-06). When a coach accepts, the inviting Head Coach becomes their Head Coach (D-11). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
+- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invitation is delivered in the app — a push notification plus the in-app Notifications list, so it is not lost if push is off; no email is sent (D-11, D-15). The invited user accepts or declines; the link exists only after they accept (D-06). The server accepts an invitation only from an account with the invited email address (D-18, T-05). When a coach accepts, the inviting Head Coach becomes their Head Coach (D-11). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
 - Type: Functional, Security
 - Acceptance criteria:
   - Given a registered user, when they are invited, then they get a push notification and the invitation appears in their in-app Notifications list (D-15).
   - Given push notifications are off, then the invitation still appears in the in-app Notifications list (D-15).
   - When the invited user accepts, then they appear in the inviter's coach or trainee list.
   - When the invited user declines, then no link is created and the inviter gains no access.
+  - Given an account whose email address is not the invited one, when it tries to accept the invitation — in the app or directly through the API — then the server refuses, no link is created, and the message does not show the invited address (D-18, T-05).
   - Until the invitation is accepted, the inviter cannot see any of the invited user's data.
   - Given the invited user already has a coach or Head Coach, when they accept, then REQ-ROLE-015 applies.
   - An in-app invitation expires 7 days after it is sent (D-14).
@@ -560,16 +562,18 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
-- Requirement: A person can create an account and sign in with email and password before using any role view; this is the only sign-in method in phase 1 (D-05). *(Not in the BRD, which mentions only change password, log out and delete account.)*
+- Requirement: A person can create an account and sign in with email and password before using any role view; this is the only sign-in method in phase 1 (D-05). Users must be 18 or older: sign-up requires an "I am 18 or older" confirmation (D-18, answers Q-066 for the MVP). *(Not in the BRD, which mentions only change password, log out and delete account.)*
 - Acceptance criteria:
   - Given an email address that is not registered, when the person signs up with it and a password, then an account is created and a verification email is sent to that address.
+  - Given the person has not confirmed "I am 18 or older", then sign-up cannot be completed and they cannot use FitSphere (D-18).
+  - When the confirmation is given, then the account records when it was given and which version of the confirmation text was shown (MVP default, D-18).
   - Given a registered email and its correct password, when the user signs in, then they are signed in.
   - Given a user who has forgotten their password, when they request a reset, then a reset link is sent to their registered email address and lets them set a new password.
   - Given an email address that is already registered, when someone signs up with it, then they see the same neutral message as for a new address, and response timing does not reveal the difference (D-11, T-01).
   - When a password reset is requested, then the same neutral message is shown whether or not the email is registered, under the same timing rule (D-11).
   - Given an account whose email is not yet verified, when it tries to sign in, then it is asked to verify first (MVP default, Q-080).
 - MVP default (D-18): an account must verify its email before it can sign in; verification and reset links expire within 24 hours (Q-080; ADR-0004). Emails are sent through Resend from FitSphere's own domain (ADR-0004, answers Q-082).
-- Open: minimum age (Q-066) — a privacy and legal question, so it gets no MVP default; needed before real users.
+- Minimum age (D-18, Q-066): 18 or older in the MVP. The confirmation is self-declared; FitSphere does not verify age (threat model, open risks). **Post-MVP:** use by people under 18 (backlog B-16); what it would need is for Legal (Q-049).
 
 ---
 

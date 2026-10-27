@@ -100,6 +100,7 @@ Voice meal entry is recognised on the phone, so the voice never reaches the back
 external service (D-18, ADR-0005).
 
 ## Open questions affecting flows
-Q-049 (Legal) and Q-066 (minimum age, before real users). Q-075 and Q-077 have MVP defaults
-(D-18). See
+Q-049 (Legal). Minimum age (Q-066: 18 or older) and who can accept an invitation (T-05: only
+an account with the invited email address) are answered for the MVP (D-18). Q-075 and Q-077
+have MVP defaults (D-18). See
 [`docs/architecture/constraints-and-assumptions.md`](docs/architecture/constraints-and-assumptions.md).

@@ -46,7 +46,8 @@ ADR-0003 found one conflict that touched privacy: in ADR-0005, the phone's speec
 receive the voice before the server's consent check (invariant #3). The owner answered it before
 acceptance (on-device recognition only), together with Q-059 (what a coach sees). Small
 inconsistencies were fixed in the ADRs in the same change. These were still open at the time:
-- ADR-0004: Q-049, Q-066 and whether sign-up must use the invited address (T-05);
+- ADR-0004: Q-049, Q-066 and whether sign-up must use the invited address (T-05). The owner
+  answered Q-066 and T-05 later the same day (D-18 answers 12 and 13);
 - ADR-0005: Q-040, Q-049 and Q-087;
 - ADR-0006: the licence of the food-list source, and Q-049 (ODbL);
 - ADR-0007: the encryption method on the phone, verified in the first slice.

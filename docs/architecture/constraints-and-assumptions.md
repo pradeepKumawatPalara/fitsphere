@@ -56,7 +56,9 @@ section 4; defaults chosen by Claude Code under D-18's rule are in
 Under D-18, when an open question that does not block safety or privacy has no answer in
 [`mvp-scope.md`](../product/mvp-scope.md#4-mvp-defaults-for-open-questions), Claude Code picks the
 simplest option that keeps every invariant and records it here (and in the pull request). The
-owner can change any of them. The owner's own defaults are in `mvp-scope.md` section 4.
+owner can change any of them. The owner's own defaults are in `mvp-scope.md` section 4. The owner
+confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
+*not yet confirmed*.
 
 | Question | MVP default | Applied in |
 |---|---|---|
@@ -75,9 +77,11 @@ owner can change any of them. The owner's own defaults are in `mvp-scope.md` sec
 | AI readings | At most 15 per user per day; a hard monthly cap in the AI module | REQ-LOG-009, ADR-0005 |
 | Push and log out | Push text carries no health data; logging out removes the phone's push token | REQ-ROLE-016, ADR-0004 |
 | 30-day clear | Runs when the app starts or returns to the foreground | ADR-0007, T-06 |
+| Record of the 18+ confirmation | The account stores when the "I am 18 or older" confirmation was given and which version of its text was shown, as for the consent record (Q-065). *Not yet confirmed: added after answer 11* | REQ-ACC-010 |
 
-Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066);
-whether sign-up must use the invited address (T-05); Legal's review (Q-049).
+Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
+and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18
+answers 12 and 13); Legal's review (Q-049), still open.
 
 ## Open questions
 **Blocks** = what cannot be built (or finalised) until it is answered. **Owner** is the project
@@ -179,11 +183,11 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 |---|---|---|---|---|
 | Q-047 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-05). Sign-up, sign-in method(s), forgot password, email verification, social login? | REQ-ACC-010, ADR-0004 | Project owner | |
 | Q-048 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** delete the user's data from the database and file storage, end all links (the other side gets the neutral message), delete the sign-in account; keep only the security logs required by REQ-NFR-005, without health data; a web page explains how to request deletion by email. Legal confirms (Q-049). Delete-account flow: what is deleted, what is retained and for how long, effect on coach links. | REQ-ACC-009 (unblocked by D-18), ADR-0003, ADR-0004 | Project owner + Legal | |
-| Q-049 | Phase 1 is India only (D-09): confirm obligations under India's Digital Personal Data Protection Act 2023 — data residency, consent records and anything else needed before real users. Other laws only if users outside India are added later. *Includes how long Head Coach permission answers are kept after an account is deleted (D-13), and confirming the 1-year retention of the admin access log (D-14). Also whether the privacy warning for user-provided public links is enough, given that FitSphere cannot delete or revoke that content (D-16, R-004). Added by D-18: the AI provider may process meal data outside India (ADR-0005); the coach view (Q-059); what the delete-account default deletes and keeps, including permission answers and consent records (Q-048, Q-065).* | Threat model, ADR-0002, ADR-0003, ADR-0005, ADR-0006, ADR-0008 | Legal | |
+| Q-049 | Phase 1 is India only (D-09): confirm obligations under India's Digital Personal Data Protection Act 2023 — data residency, consent records and anything else needed before real users. Other laws only if users outside India are added later. *Includes how long Head Coach permission answers are kept after an account is deleted (D-13), and confirming the 1-year retention of the admin access log (D-14). Also whether the privacy warning for user-provided public links is enough, given that FitSphere cannot delete or revoke that content (D-16, R-004). Added by D-18: the AI provider may process meal data outside India (ADR-0005); the coach view (Q-059); what the delete-account default deletes and keeps, including permission answers and consent records (Q-048, Q-065). Added by D-18 answer 12: whether a self-declared "I am 18 or older" confirmation is enough, and what use by people under 18 would need (Q-066).* | Threat model, ADR-0002, ADR-0003, ADR-0005, ADR-0006, ADR-0008 | Legal | |
 | Q-050 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** no numeric targets for the MVP; the app must be usable on a low-end Android phone. Performance, availability, accessibility (e.g. WCAG level) targets. | Test strategy, ADR-0002 | Project owner | |
 | Q-055 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-04, REQ-NFR-004). Must logging work offline and sync later? *Offline/online split to confirm: Q-077.* | ADR-0001, ADR-0002, ADR-0003, ADR-0007 | Project owner | |
 | Q-065 | **MVP default — [chosen under D-18](#mvp-defaults-d-18):** on/off, the time and the version of the consent text shown; one toggle covers typed or spoken text, photos and labels. Legal confirms (Q-049). What must a consent record contain beyond a timestamp (A-007): the notice version shown, which inputs it covers (text, voice, photo, label), the AI provider, and when consent was withdrawn? | REQ-ACC-004, ADR-0005 | Project owner + Legal | |
-| Q-066 | Is there a minimum age for users? If minors may use the app, what consent is required? *No MVP default: a privacy and legal question (D-18). Needed before real users.* | REQ-ACC-010, threat model | Project owner + Legal | |
+| Q-066 | **Answered for the MVP — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-18 answer 12): users must be 18 or older; sign-up requires an "I am 18 or older" confirmation. Use by people under 18 is post-MVP ([backlog](../product/backlog.md) B-16); what it would need is for Legal (Q-049). Is there a minimum age for users? If minors may use the app, what consent is required? | REQ-ACC-010, threat model | Project owner + Legal | |
 | Q-067 | Which usage data may be collected to measure success (Q-004), given that health, body and meal data stay out of analytics (project invariant 7)? | Analytics design | Project owner + Legal | |
 | Q-077 | **MVP default — [chosen under D-18](#mvp-defaults-d-18):** ADR-0007 rule 6, which refines the D-04 split. Confirm the offline split in D-04. *(F-10)* | REQ-NFR-004, ADR-0007 | Project owner | |
 | Q-079 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-11: neutral messages). Do sign-up and password reset also avoid revealing whether an email is registered? If not, the invitation protection (D-10, REQ-ROLE-011) can be bypassed through them. | REQ-ACC-010, ADR-0004, threat model | Project owner | |

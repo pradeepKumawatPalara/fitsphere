@@ -385,9 +385,9 @@
   `CLAUDE.md` current phase; `README.md`; docs index; system context; `flow.md`; constraints
   (quality targets, suggested first slice, major decisions, R-004, R-005).
 
-## D-18 MVP first; ADR-0004 to ADR-0007 accepted (answers Q-038, Q-059, Q-068; sets MVP defaults)
+## D-18 MVP first; ADR-0004 to ADR-0007 accepted (answers Q-038, Q-059, Q-066, Q-068 and T-05; sets MVP defaults)
 - Status: **Accepted** (owner instruction in chat, 2026-10-27; [`mvp-scope.md`](mvp-scope.md)
-  Accepted)
+  Accepted). Answers 11 to 13 are the owner's confirmations, given later the same day.
 - Answers:
   1. **MVP first:** "deliver the basic requirements; don't ask deep edge cases; cover missed
      edge cases in future releases." Build the basic product in `mvp-scope.md` section 2,
@@ -423,28 +423,40 @@
       applied in the same change: sign-in with Supabase Auth, email through Resend, Expo push
       (ADR-0004); Gemini 3.1 Flash-Lite on the paid tier (ADR-0005); FitSphere's own food list
       plus Open Food Facts (ADR-0006); own simple sync with Expo SQLite (ADR-0007).
-- **Interpretation (confirm):** nutrition-label photos are input for reading, like voice
+  11. **Owner confirmations:** the owner accepts all 15 MVP defaults chosen under answer 3 (listed
+      in [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#mvp-defaults-d-18)),
+      confirms the four interpretations below, and accepts the invariant #8 update.
+  12. **Minimum age (answers Q-066 for the MVP):** users must be 18 or older. Sign-up requires an
+      "I am 18 or older" confirmation. Use by people under 18 is post-MVP
+      ([`backlog.md`](backlog.md) B-16); what it would need is for Legal (Q-049).
+  13. **Who can accept an invitation (answers T-05):** an invitation can be accepted only by an
+      account with the invited email address.
+- **Interpretation (confirmed, answer 11):** nutrition-label photos are input for reading, like voice
   recordings (D-16 answer 5), not stored media. Deleting them after reading (Q-064 default)
   therefore does not conflict with D-16 answer 6.
-- **Interpretation (confirm):** the delete-account default (Q-048) keeps only the security logs
+- **Interpretation (confirmed, answer 11):** the delete-account default (Q-048) keeps only the security logs
   required by REQ-NFR-005, so Head Coach permission answers are deleted with the account. This
   is the provisional answer to the period left open in D-13 answer 8; Legal confirms (Q-049).
-- **Interpretation (confirm):** Q-035 and Q-048 are answered for the MVP, so REQ-PLAN-006 and
+- **Interpretation (confirmed, answer 11):** Q-035 and Q-048 are answered for the MVP, so REQ-PLAN-006 and
   REQ-ACC-009 are no longer blocked and leave invariant #8. Real users still wait for Legal
   (Q-049).
-- **Interpretation (confirm):** ADR-0007 keeps the last 90 days of a user's own data on the
+- **Interpretation (confirmed, answer 11):** ADR-0007 keeps the last 90 days of a user's own data on the
   phone and loads older history from the server when it is viewed online. This is read as
   meeting D-14 ("the app restores it from the server"): the full history stays on the server and
   can be viewed on any phone, and only entries already synced age out of the phone.
 - Not given an MVP default, because they touch privacy, security or the law: minimum age
-  (Q-066); whether sign-up must use the invited address (T-05); Legal's review (Q-049).
+  (Q-066) and whether sign-up must use the invited address (T-05), both since answered by the
+  owner (answers 12 and 13); Legal's review (Q-049), still open.
 - Doc changes: `backlog.md` created; MVP defaults section and Q- items marked in
   `constraints-and-assumptions.md` (A-001, A-004, A-006, A-009, C-008, quality targets);
   requirements marked MVP default or Post-MVP, REQ-PLAN-006 and REQ-ACC-009 unblocked,
   REQ-ROLE-016, REQ-ROLE-017, REQ-PLAN-008, REQ-TRN-006 and REQ-TRN-007 added; invariant #8;
   threat model (matrix, T-01 to T-07, retention); ADR-0004 to ADR-0007 fixed and accepted;
   decisions index; `CLAUDE.md`; `README.md`; docs index; system context; `flow.md`; journeys;
-  product brief; glossary.
+  product brief; glossary. For answers 11 to 13: REQ-ACC-010, REQ-ROLE-008 and REQ-ROLE-009;
+  threat model (account data, invitations, T-05, open risks); constraints (MVP defaults, Q-049,
+  Q-066); backlog B-16; ADR-0004 open-questions table; decisions index; `flow.md`; journeys;
+  product brief.
 
 ---
 

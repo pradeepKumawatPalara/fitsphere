@@ -21,6 +21,7 @@ Evidence: not yet documented. *(Open — Q-002: what user research or business c
 | Head Coach | Invites and manages Coaches; sees counts of their coaching activity (D-13), and sees a trainee's data and sets their plans and targets only while that trainee allows it (D-10, D-13). |
 
 One person may hold several roles and switch between them in their profile (REQ-ROLE-001).
+In the MVP every user is 18 or older (D-18, REQ-ACC-010); use by people under 18 is post-MVP.
 
 ## Goals
 1. Make daily logging quick (floating "+", text/voice/photo meal entry, saved meals).

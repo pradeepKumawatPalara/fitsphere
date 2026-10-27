@@ -62,7 +62,7 @@ REQ-PRG-001..006
 Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011, 012, 013, 014, 015, 016, 017; PLAN-008; TRN-006
 1. Profile → turns on the Coach role (any user can, D-06) → role selector → Coach. Coach view lists trainees who have accepted.
 2. Enters the trainee's email. The app always shows "Invitation sent" and never says which channel was used (REQ-ROLE-011). The system picks the channel (D-11):
-   - **No FitSphere account:** the person gets an invitation email with a sign-up link, signs up, then accepts (REQ-ROLE-008).
+   - **No FitSphere account:** the person gets an invitation email with a sign-up link, signs up with the invited address and confirms they are 18 or older, then accepts. An account with a different address cannot accept (REQ-ROLE-008, REQ-ACC-010, D-18).
    - **Registered user:** the invitation arrives in the app — a push notification plus the in-app Notifications list, so it is not lost if push is off (REQ-ROLE-009, D-15).
    - If the trainee already has a coach, the accept screen warns that accepting ends that link; on accepting, it ends first and the old coach gets a neutral message (REQ-ROLE-015, D-13).
    - If this coach has a Head Coach, the trainee is also asked during acceptance whether to allow that Head Coach to see their logs and set their plans and targets (REQ-ROLE-013, D-14). The coach sees whether each trainee allowed, declined or has not answered (D-14).

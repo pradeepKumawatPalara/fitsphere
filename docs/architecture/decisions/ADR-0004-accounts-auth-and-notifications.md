@@ -4,6 +4,8 @@
   against the requirements, invariants, threat model, D-01 to D-18 and ADR-0001 to ADR-0003
   found only small inconsistencies, which the existing decisions already settled. They were
   fixed in the same change, before acceptance.
+- Updated 2026-10-27: the owner's later answers to Q-066 and T-05 (D-18 answers 12 and 13) are
+  recorded in "Open questions and handling". The decision is unchanged.
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-ACC-007…010, REQ-ROLE-001…017, REQ-NFR-001, REQ-NFR-005
@@ -146,8 +148,8 @@ limits change; iOS release (push credentials for Apple).
 | Q-073 invitation rules | Answered for the MVP (D-18): rule 5 |
 | Q-080 unverified accounts, link validity | MVP default (D-18): an account must verify its email before it can sign in; verification and reset links expire within 24 hours (exact value set at setup and recorded under "Validation results") |
 | Q-059 which trainee data a coach sees | Answered (D-18): permission matrix in the threat model, enforced by the access module (rule 4) |
-| Q-066 minimum age | Open — a privacy and legal question, so no MVP default (D-18). Needed before real users |
-| T-05 must sign-up use the invited address? | Open — a security question, so no MVP default (D-18). Decided before the invitations slice |
+| Q-066 minimum age | Answered for the MVP (D-18 answer 12): 18 or older; sign-up requires an "I am 18 or older" confirmation (REQ-ACC-010). Use by people under 18 is post-MVP (backlog B-16; Legal, Q-049) |
+| T-05 must sign-up use the invited address? | Answered (D-18 answer 13): an invitation can be accepted only by an account with the invited email address; the API checks this on acceptance (REQ-ROLE-008, REQ-ROLE-009) |
 | Q-049 Legal | Does not block development; blocks real users |
 
 ## References (checked 2026-10-27)

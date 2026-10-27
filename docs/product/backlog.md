@@ -29,6 +29,7 @@ From `mvp-scope.md` section 3, plus items the D-18 answers moved out of the MVP.
 | B-13 | Web dashboard for coaches | Q-068, A-001, ADR-0001 revisit condition | D-18 |
 | B-14 | Health-platform sync for steps and sleep | REQ-HOME-006, Q-015, ADR-0006 | Steps and sleep are typed in for the MVP. Proposed non-goal (Q-003) |
 | B-15 | Voice entry on phones that cannot recognise speech on the device | REQ-LOG-005, ADR-0005 | D-18 allows on-device recognition only. Anything else needs the owner (invariant #3) |
+| B-16 | Use by people under 18 | REQ-ACC-010, Q-066 | The MVP is for people 18 or older (D-18). What under-18 use would need, such as consent, is for Legal (Q-049) |
 
 ## Deferred edge cases
 Found while applying D-18. The MVP behaviour applies until an item is picked up.
