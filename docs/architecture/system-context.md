@@ -28,7 +28,7 @@ Everything else on this page is outside the boundary.
 | Coach | Invite trainees; set their targets and plans | REQ-ROLE-005, REQ-ROLE-006 |
 | Head Coach | Invite coaches; see counts per coach; see the data of, and set plans and targets for, trainees who allow it | REQ-ROLE-003, REQ-ROLE-004 |
 | Invited person without an account | Receive an invitation email and sign up | REQ-ROLE-008 |
-| Operator | Run FitSphere. Phase 1: the project owner only, no support staff; every admin access to user data is logged | REQ-NFR-005, D-13 |
+| Operator | Run FitSphere. Phase 1: the project owner only, no support staff; every admin access to user data is logged in the backend database and reviewed monthly | REQ-NFR-005, D-13, D-14, R-003 |
 | Platform Admin *(future scope)* | A fourth role for the business owner, with the rights needed to run FitSphere as a business; not designed | D-13, Q-086 |
 
 ## Diagram
@@ -55,7 +55,7 @@ flowchart LR
     O -- admin access, logged --> BE
     BE -- invitation, verification and reset emails --> EMAIL
     EMAIL --> N
-    BE -- invitation alerts --> PUSH
+    BE -- invitation and link-ended alerts --> PUSH
     PUSH --> APP
     BE -- meal data, only with consent --> AI
     BE -. voice, if done in the cloud .-> STT
@@ -66,7 +66,7 @@ flowchart LR
 | System | Why FitSphere uses it | Data sent to it | Sensitivity | Decision |
 |---|---|---|---|---|
 | Email service | Invitation emails with a sign-up link (REQ-ROLE-008); verification and password-reset emails (REQ-ACC-010) | Recipient address, email text, sign-up or reset link | Reveals that someone was invited to, or uses, a health app | Q-082, ADR-0002; SPF, DKIM and DMARC on the sender domain (D-13) |
-| Push notification service | Alerts for in-app invitations (REQ-ROLE-009) | Device token, notification text | Notification text passes through Google or Apple (below) | Q-083, ADR-0002; Expo push support checked in the first slice (ADR-0001, D-13) |
+| Push notification service | Alerts for in-app invitations (REQ-ROLE-009) and "no longer linked" messages (REQ-ROLE-014, D-14) | Device token, notification text | Notification text passes through Google or Apple (below) | Q-083, ADR-0002; Expo push support checked in the first slice (ADR-0001, D-13) |
 | AI meal-parsing provider | Turn meal text, photos, voice and labels into food items (REQ-LOG-009) | Meal text, photos, voice, labels — only with consent (C-004) | Sensitive | ADR-0005, Q-049 |
 | Speech-to-text | Voice meal entry (REQ-LOG-005), if done in the cloud | Voice recordings | Sensitive | Q-038 |
 | Food database and barcode lookup | Search and barcode logging without AI (REQ-LOG-007, C-005) | Search text, barcode numbers | Low on its own | Q-039, ADR-0006 |
@@ -88,14 +88,17 @@ Apple. Keeping health data out of notification text is proposed, not decided.
 2. **Backend ↔ each external service:** data leaves FitSphere's control. AI calls only with
    recorded consent (invariant 3); data processing terms needed (Q-049).
 3. **Email:** once sent, an invitation email can be forwarded or kept, and look-alike emails
-   can be faked. Invitation links work once and expire after 7 days; the sender domain uses
-   SPF, DKIM and DMARC (T-04, T-05, D-13).
+   can be faked. Invitation links work once and expire after 7 days, as do in-app invitations;
+   the sender domain uses SPF, DKIM and DMARC (T-04, T-05, D-13, D-14).
 4. **Push:** notification text passes through the platform push service.
-5. **The phone itself:** health data stored for offline use is encrypted (T-03). When a link
-   ends, the former coach's or Head Coach's app deletes that trainee's data on its next sync
-   (T-06, D-13).
+5. **The phone itself:** health data stored for offline use is encrypted, invisibly to the user
+   (T-03, D-14). The server is the permanent record; the phone holds a copy. When a link ends,
+   the former coach's or Head Coach's app deletes that trainee's data on its next sync, and after
+   30 days without a sync it clears drafts and other people's data — never the user's own
+   unsynced entries (T-06, REQ-NFR-004, D-13, D-14).
 6. **Operator ↔ user data:** admin access does not come from a link, so every access is logged
-   (REQ-NFR-005, T-07).
+   and the log is reviewed monthly; the operator reviews their own access (REQ-NFR-005, T-07,
+   R-003).
 
 ## Not in phase 1
 - Health-platform sync (Apple Health, Google Health Connect) — proposed non-goal (Q-003, Q-015).
@@ -105,4 +108,5 @@ Apple. Keeping health data out of notification text is proposed, not decided.
 ## Open items
 - Email service and sender domain (Q-082); push service (Q-083); speech-to-text (Q-038); food
   data source (Q-039); hosting and data residency (ADR-0002, ADR-0003, Q-049).
-- Where the admin access log is kept, and how it is protected and reviewed (REQ-NFR-005, T-07).
+- Legal to confirm the 1-year retention of the admin access log (Q-049); the operator reviewing
+  their own access is an accepted risk (R-003).

@@ -228,11 +228,11 @@
   10. **Invariant #1:** the two proposed wording changes are applied ("only while that trainee
       allows it"; "Ending a link — by removal, leaving or switching —"), and it now says a Head
       Coach may set plans and targets only while the trainee allows it.
-- **Interpretation:** answers 1 and 4 read together — a Head Coach sees trainees who have
-  declined or not answered only within the counts, with no names; trainees who have allowed
-  access are shown by name. *(Confirm.)*
-- **Interpretation:** "links" in answer 3 means the sign-up link in an invitation email.
-  Whether in-app invitations also expire stays open (Q-073). *(Confirm.)*
+- **Interpretation (confirmed in D-14):** answers 1 and 4 read together — a Head Coach sees
+  trainees who have declined or not answered only within the counts, with no names; trainees
+  who have allowed access are shown by name.
+- **Interpretation (confirmed in D-14):** "links" in answer 3 means the sign-up link in an
+  invitation email. In-app invitations also expire after 7 days (D-14).
 - Still open from Q-075: which change wins if the Coach and the Head Coach edit at the same time
   (ADR-0007).
 - Doc changes: REQ-ROLE-004/005/006/008/010/011/013/014/015, REQ-PLAN-001, REQ-NFR-001 and
@@ -240,6 +240,43 @@
   Q-049, Q-059, Q-073 and Q-083; Q-086 added; threat model (matrix, T-04 to T-06 decided, T-07
   added, retention); ADR-0001 decision criteria and checks; ADR-0007 inputs; system context;
   glossary; product brief; journeys J-08 and J-09; `flow.md`; invariant #1.
+
+## D-14 Confirmations, weekly target, messages, data on the device and the access log
+- Status: **Accepted** (answers given by the project owner in chat, 2026-10-27)
+- Answers:
+  1. **D-13 interpretations confirmed:** trainees who have declined or not answered appear to a
+     Head Coach only in the counts; trainees who have allowed access are named. In-app
+     invitations also expire after 7 days (Q-073).
+  2. **Weekly workout target:** the Head Coach may also set it, the same as the Coach, only
+     while the trainee allows it.
+  3. **Permission request text** becomes: "Allow Head Coach <name> to see your logs and set
+     your plans and targets?"
+  4. **Removal:** when a link ends by removal, the removed side also gets the neutral message.
+  5. **Coach sees the answers:** a Coach can see which of their trainees have allowed, declined
+     or not answered the Head Coach request.
+  6. **Data on the device (updated; T-06, ADR-0007 inputs, REQ-NFR-004):**
+     - The server is the permanent record. No device rule ever deletes a user's full history;
+       on sign-in, even years later, the app restores it from the server.
+     - Encryption of data on the phone must be invisible to the user: no extra passwords, no
+       lost features, and offline logging still works. If an encryption choice would break a
+       feature, raise it as a question instead of applying it.
+     - Auto-clear after 30 days without a sync applies **only** to (a) unfinished drafts, such
+       as typed meal text never sent for AI reading, and (b) other people's data copied onto a
+       coach's or Head Coach's phone.
+     - The user's own entries waiting to sync are never auto-deleted — they are the only copy.
+       They stay until synced.
+     - Cleared copies of trainee data come back automatically on the next sync if the link is
+       still active.
+  7. **Admin access log:** stored in the backend database, kept for 1 year (Legal to confirm,
+     Q-049), reviewed monthly by the owner. Accepted risk R-003: in phase 1 the operator
+     reviews their own access.
+  8. **Neutral "no longer linked" message:** delivered by push notification and the in-app
+     notifications list.
+  9. **Labels:** plan and target labels show the actual author: "Set by <name>" (REQ-PLAN-001).
+- Doc changes: REQ-ROLE-003/004/005/006/009/011/013/014/015, REQ-PLAN-001, REQ-NFR-004 and
+  REQ-NFR-005 updated; R-003 added; notes on Q-013, Q-049, Q-073 and Q-083; threat model
+  (matrix, T-03, T-05 to T-07, retention); ADR-0007 inputs; system context; glossary; journeys
+  J-08 and J-09; `flow.md`.
 
 ---
 

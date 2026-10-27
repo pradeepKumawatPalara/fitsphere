@@ -70,9 +70,10 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given a Coach not under this Head Coach, then it cannot be viewed or removed by them; no Head Coach can see another Head Coach's coaches or view (D-06).
   - When a Head Coach removes a Coach, then the link ends and no data is deleted; to rejoin, the Coach must accept a new invitation (D-07).
   - After removal, the Head Coach can no longer see any of that Coach's data, including past data (D-10).
+  - When a Head Coach removes a Coach, then the Coach gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app notifications list (D-14).
 
 ### REQ-ROLE-004 — Head Coach: hierarchy visibility, plans and targets
-- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Without a trainee's permission, that activity is counts per coach only: number of trainees; how many have allowed, declined or not yet answered (pending); and plans sent. It shows no trainee names or data (D-13). For each trainee who allows it (REQ-ROLE-013), the Head Coach can view that trainee's data and set their diet plan, training plan, and calorie and protein targets (D-08, D-13). A Head Coach never sees a trainee's settings or AI consent; of the permission answer, they see only its status (D-13). *(Interpretation, to confirm: trainees who have declined or not answered appear only in the counts, never by name — D-13.)*
+- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Without a trainee's permission, that activity is counts per coach only: number of trainees; how many have allowed, declined or not yet answered (pending); and plans sent. It shows no trainee names or data (D-13). For each trainee who allows it (REQ-ROLE-013), the Head Coach can view that trainee's data and set their diet plan, training plan, and calorie, protein and weekly workout targets (D-08, D-13, D-14). A Head Coach never sees a trainee's settings or AI consent; of the permission answer, they see only its status (D-13). Trainees who have declined or not answered appear only in the counts, never by name; trainees who have allowed it are named (D-13, D-14).
 - Type: Functional, Security, Privacy
 - Acceptance criteria:
   - Given Head Coach view, then each accepted coach is listed with their counts, and under each coach the trainees who have allowed it (REQ-ROLE-013).
@@ -80,9 +81,9 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Trainees of coaches outside their hierarchy are not visible, and nothing in another Head Coach's hierarchy is visible (D-06).
   - Given a coach who also logs as a Personal Training User, then the Head Coach sees none of that coach's own logs (D-10).
   - Given a trainee who has declined or not yet answered, then the Head Coach cannot view or set their plans or targets (D-11, D-13).
-  - When a Head Coach changes a trainee's plan or calorie or protein target, then the change records the Head Coach and the time, and the trainee and their coach see the latest change and its author (D-13).
+  - When a Head Coach changes a trainee's plan or target, then the change records the Head Coach and the time, and the trainee and their coach see it labelled "Set by <name>" (D-13, D-14).
   - The Head Coach never sees a trainee's settings or AI consent (D-13).
-- Open: if the Coach and the Head Coach edit at the same time, which change wins (Q-075, ADR-0007). The Head Coach is not given the weekly workout target (D-13 names calorie and protein only).
+- Open: if the Coach and the Head Coach edit at the same time, which change wins (Q-075, ADR-0007).
 
 ### REQ-ROLE-005 — Coach: manage trainee records
 - Requirement: A Coach can invite trainees (REQ-ROLE-008, REQ-ROLE-009), view the trainees who have accepted, update their plans and targets (REQ-ROLE-006), and remove (unassign) them, which ends the link. A link has no editable fields (D-11). Removing a trainee deletes no data (D-07).
@@ -92,16 +93,18 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - A Coach cannot read or change a trainee of another coach.
   - When a Coach removes a trainee, then the link ends and no data is deleted; to rejoin, the trainee must accept a new invitation (D-07).
   - After removal, the Coach can no longer see any of the trainee's data, including past data (D-10).
+  - When a Coach removes a trainee, then the trainee gets the neutral message "<name> is no longer linked with you" by push notification and in the in-app notifications list (D-14).
   - The Coach never sees the trainee's settings or AI consent (D-13).
+  - Given the Coach has a Head Coach, then the Coach sees whether each trainee has allowed, declined or not answered the Head Coach request (D-14).
 - Open: which trainee data can the coach see (Q-059)? What happens to targets and plans after removal (Q-060)?
 
 ### REQ-ROLE-006 — Coach: set targets and plans
-- Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001). A Head Coach can also set the calorie and protein targets and both plans, only while the trainee allows it (REQ-ROLE-004, D-13). Every change records who made it and when; the trainee, their coach and — while the trainee allows it — the Head Coach see the latest change and its author (D-13).
+- Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001). A Head Coach can set the same targets and both plans, only while the trainee allows it (REQ-ROLE-004, D-13, D-14). Every change records who made it and when; the trainee, their coach and — while the trainee allows it — the Head Coach see the latest change and its author (D-13). Plans and targets are labelled "Set by <name>", naming the actual author (D-14).
 - Acceptance criteria:
   - When a Coach saves a calorie/protein target, then the trainee's Home and Diet plan show it.
   - When a Coach sends a training plan, then the trainee's Training tab shows it instead of the empty state.
-  - When a Coach or Head Coach changes a target or plan, then the trainee, the coach and (while allowed) the Head Coach see who made the latest change and when (D-13).
-- Open: which change wins if the Coach and the Head Coach edit at the same time (Q-075, ADR-0007). Weekly workout target and Progress "Target row" (body weight, steps) — are they set by the coach (Q-013)? Do target changes apply from a date or retroactively (Q-014)?
+  - When a Coach or Head Coach changes a target or plan, then the trainee, the coach and (while allowed) the Head Coach see who made the latest change and when (D-13), and the label reads "Set by <name>" with that person's name (D-14).
+- Open: which change wins if the Coach and the Head Coach edit at the same time (Q-075, ADR-0007). Progress "Target row" (body weight, steps) — is it set by the coach (Q-013)? Do target changes apply from a date or retroactively (Q-014)?
 
 ### REQ-ROLE-007 — Self-directed users
 - Requirement: A Personal Training User without a coach can still log and view all personal data; target-dependent displays show a no-target state.
@@ -130,7 +133,8 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - When the invited user declines, then no link is created and the inviter gains no access.
   - Until the invitation is accepted, the inviter cannot see any of the invited user's data.
   - Given the invited user already has a coach or Head Coach, when they accept, then REQ-ROLE-015 applies.
-- Open: invitation rules (Q-073); the push notification service (Q-083).
+  - An in-app invitation expires 7 days after it is sent (D-14).
+- Open: resend, cancel and pending-invitation rules (Q-073); the push notification service (Q-083).
 
 ### REQ-ROLE-010 — Head Coach sees past coaching activity
 - Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past coaching activity, not only activity from the acceptance date on — never the coach's own personal logs (D-06, D-10). Coaching activity is the counts per coach in REQ-ROLE-004 (D-13). Any trainee's data is visible only while that trainee allows it (REQ-ROLE-013). *(The coach-sees-trainee part is now REQ-ROLE-012 — D-11.)*
@@ -146,7 +150,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given one registered and one unregistered email address, when a Coach invites each, then the Coach gets the same "Invitation sent" result for both, in the app and in the API response, with no sign of which channel was used; response timing does not reveal the difference (T-01).
   - Given a user who has reached the daily invitation limit, when they send another invitation, then it is refused and they are told the daily limit is reached.
-- Open: the size of the daily limit, resend and cancel (Q-073); invitation-link expiry is decided (REQ-ROLE-008, D-13). Threat model items T-01, T-04, T-05.
+- Open: the size of the daily limit, resend and cancel (Q-073); expiry is decided (REQ-ROLE-008, REQ-ROLE-009; D-13, D-14). Threat model items T-01, T-04, T-05.
 
 ### REQ-ROLE-012 — Coach sees a trainee's past activity
 - Requirement: When a trainee accepts a Coach, the Coach can see the trainee's past activity, not only activity from the acceptance date on (D-06). *(Split from REQ-ROLE-010 — D-11.)*
@@ -156,7 +160,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: which trainee data the coach sees (Q-059).
 
 ### REQ-ROLE-013 — Trainee permission for Head Coach access
-- Requirement: A Head Coach sees a trainee's data and sets their plans and targets only while the trainee allows it (D-10, D-11, D-13). The trainee gets an in-app request: "Allow Head Coach <name> to see your logs and edit your plans?" with **Allow** and **Decline**. Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp. Of the answer, the Head Coach sees only its status — allowed, declined or pending (D-13; see REQ-ROLE-004). Answers are kept while the account exists; how long they are kept after the account is deleted is decided with Legal (Q-049, D-13).
+- Requirement: A Head Coach sees a trainee's data and sets their plans and targets only while the trainee allows it (D-10, D-11, D-13). The trainee gets an in-app request: "Allow Head Coach <name> to see your logs and set your plans and targets?" with **Allow** and **Decline** (wording D-14). Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp. Of the answer, the Head Coach sees only its status — allowed, declined or pending (D-13; see REQ-ROLE-004) — and the trainee's coach sees each trainee's status (D-14). Answers are kept while the account exists; how long they are kept after the account is deleted is decided with Legal (Q-049, D-13).
 - Type: Functional, Privacy, Security
 - Acceptance criteria:
   - When a coach accepts a Head Coach, then each of that coach's trainees gets the request in the app.
@@ -166,6 +170,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Every answer, and every change to it, is stored with a timestamp.
   - When the coach switches to a new Head Coach, then earlier answers do not carry over and each trainee gets a fresh request (REQ-ROLE-015).
   - Answers are kept for as long as the trainee's account exists (D-13).
+  - The trainee's coach sees whether each trainee has allowed, declined or not answered (D-14).
 - Open: whether this step meets the consent requirements of India's DPDP Act, and how long answers are kept after an account is deleted, are for Legal to confirm (Q-049). Threat model: permission matrix.
 
 ### REQ-ROLE-014 — Leave a coach or Head Coach
@@ -174,7 +179,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - When a trainee leaves their coach, then the link ends, no data is deleted, and the coach — and the coach's Head Coach — can no longer see any of the trainee's data, including past data.
   - When a coach leaves their Head Coach, then the Head Coach can no longer see the coach's coaching activity or any of that coach's trainees' data.
-  - When someone leaves, then the other side gets a neutral message: "<name> is no longer linked with you" (D-13).
+  - When someone leaves, then the other side gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app notifications list (D-14). The same message goes to the removed side on removal (REQ-ROLE-003, REQ-ROLE-005).
   - On its next sync, the former coach's or Head Coach's app deletes the trainee's data from the device (D-13, REQ-NFR-004).
   - To rejoin, the person must accept a new invitation (D-07).
 - Open: what happens to targets and plans after the link ends (Q-060).
@@ -187,7 +192,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given trainees who had allowed A, then B has no access to any of them until each one allows B.
   - Given a trainee linked to Coach X, when they accept an invitation from Coach Y, then the link with X ends first and X loses all access.
   - Given a coach who already has a Head Coach, or a trainee who already has a coach, then before they accept, the accept screen warns that accepting ends their current link (D-13).
-  - When the old link ends, then the old Head Coach or coach gets a neutral message: "<name> is no longer linked with you" (D-13).
+  - When the old link ends, then the old Head Coach or coach gets a neutral message: "<name> is no longer linked with you" (D-13), by push notification and in the in-app notifications list (D-14).
   - On its next sync, the old Head Coach's or coach's app deletes the trainee data it holds from the device (D-13, REQ-NFR-004).
 - Open: what happens to the old coach's targets and plans (Q-060). Threat model item T-06.
 
@@ -303,11 +308,11 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 ## PLAN — Nutrition: Diet plan (BRD §6)
 
 ### REQ-PLAN-001 — Daily target card
-- Requirement: Shows daily calorie and protein targets labelled "Set by your coach"; read-only for the client. It also shows who made the latest change and when (D-13).
+- Requirement: Shows daily calorie and protein targets labelled "Set by <name>", naming whoever made the latest change — the coach or the Head Coach (D-14; the BRD's label was "Set by your coach"); read-only for the client. It also shows when the latest change was made (D-13).
 - Type: Functional, Security
 - Acceptance criteria:
   - The trainee cannot change targets through the UI or API.
-  - When the coach or Head Coach changes a target, then the card shows who made the change and when (D-13).
+  - When the coach or Head Coach changes a target, then the card reads "Set by <name>" with that person's name, and shows when the change was made (D-13, D-14).
 
 ### REQ-PLAN-002 — How-to guide
 - Requirement: A collapsible "How to use this plan" guide (meet calorie and protein targets, build every meal around a complete protein source, log every meal) with a "Got it" button that dismisses it.
@@ -503,20 +508,28 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 ### REQ-NFR-003 — Performance, availability, accessibility
 - Requirement: Targets to be defined by owner — Q-050. No numeric target is assumed.
 
-### REQ-NFR-004 — Offline logging
+### REQ-NFR-004 — Offline logging and data on the device
 - Type: Functional, Operational, Security
-- Requirement: Users can log while offline: entries are saved on the device and synced when the connection returns. Any step that needs the internet shows a warning that names that step (D-04). Every queued change is re-authorized on the server at sync time, and health data stored on the device is encrypted (D-10). When a link ends, the former coach's or Head Coach's app deletes that trainee's data from the device on its next sync (D-13).
+- Requirement: Users can log while offline: entries are saved on the device and synced when the connection returns. Any step that needs the internet shows a warning that names that step (D-04). Every queued change is re-authorized on the server at sync time (D-10).
+  - **The server is the permanent record.** No device rule ever deletes a user's full history; on sign-in, even years later, the app restores it from the server (D-14).
+  - **Encryption:** health data stored on the device is encrypted (D-10), invisibly to the user — no extra passwords, no lost features, and offline logging still works (D-14).
+  - **Ended links:** the former coach's or Head Coach's app deletes that trainee's data from the device on its next sync (D-13).
+  - **30 days without a sync:** the app clears only (a) unfinished drafts, such as typed meal text never sent for AI reading, and (b) other people's data copied onto a coach's or Head Coach's phone. Cleared trainee data comes back on the next sync if the link is still active (D-14).
+  - **Never cleared automatically:** the user's own entries waiting to sync — they are the only copy and stay until synced (D-14).
 - Acceptance criteria:
   - Given the device is offline, when the user logs their weight, then it is saved on the device and shown in their data; when the connection returns, it is synced.
   - Given the device is offline, when the user starts a step that needs the internet, then the app shows a warning that names that step.
   - Given a change queued offline by a user who has since lost access (e.g. a coach removed from a trainee), when it syncs, then the server rejects it (D-10).
-  - Health data stored on the device is encrypted (D-10).
+  - Health data stored on the device is encrypted (D-10); the user is asked for no extra password, no feature is lost, and offline logging still works (D-14).
+  - Given a user who signs in on a new or reset phone, then the app restores their full history from the server (D-14).
   - Given a link that has ended, when the former coach's or Head Coach's app next syncs, then it deletes that trainee's data from the device (D-13).
-- Open: which steps work offline follows the proposed split in D-04, to confirm (Q-077); how offline changes are synced and conflicts resolved (ADR-0007).
+  - Given a phone that has not synced for 30 days, then unfinished drafts and other people's data on it are cleared; the user's own entries waiting to sync are kept (D-14).
+  - Given cleared trainee data on a coach's phone whose link is still active, when the phone next syncs, then that data comes back (D-14).
+- Open: which steps work offline follows the proposed split in D-04, to confirm (Q-077); how offline changes are synced and conflicts resolved (ADR-0007). If an encryption choice would break a feature, it is raised as a question, not applied (D-14).
 
 ### REQ-NFR-005 — Operator access
 - Type: Security, Privacy, Operational
-- Requirement: In phase 1 the project owner is the only operator of FitSphere; there is no support staff. Every admin access to user data is logged (D-13). A Platform Admin role is future scope (Q-086).
+- Requirement: In phase 1 the project owner is the only operator of FitSphere; there is no support staff. Every admin access to user data is logged (D-13). The log is stored in the backend database, kept for 1 year (Legal to confirm, Q-049) and reviewed monthly by the owner (D-14). In phase 1 the operator reviews their own access — accepted risk R-003. A Platform Admin role is future scope (Q-086).
 - Acceptance criteria:
   - When the operator views or changes a user's data through admin access, then a log entry records who, when and whose data — without the data itself (invariant 7).
-- Open: where the access log is kept, how long, and how it is reviewed — not decided.
+  - Log entries are kept for 1 year (D-14; period to be confirmed by Legal, Q-049).

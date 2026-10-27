@@ -79,7 +79,7 @@ flowchart TD
     CONSENT -.-> STT
     SVC --> FOOD
     SVC -- invitation, verification and reset emails --> EMAIL
-    SVC -- invitation alerts --> PUSH
+    SVC -- invitation and link-ended alerts --> PUSH
     PUSH --> APP
 ```
 
@@ -91,7 +91,9 @@ boundaries is in [`docs/architecture/system-context.md`](docs/architecture/syste
 Failure paths to design: AI/food-database timeout or error (keep user input, offer
 alternatives); offline device (log on the device and sync later; every queued change is
 re-authorized at sync — REQ-NFR-004, ADR-0007); consent withdrawn mid-request; a link that ends
-(the former coach's or Head Coach's app deletes that trainee's data on its next sync — D-13).
+(the former coach's or Head Coach's app deletes that trainee's data on its next sync — D-13); a
+phone with no sync for 30 days (clear drafts and other people's data, keep the user's own
+unsynced entries; the server stays the permanent record — D-14).
 
 ## Open questions affecting flows
 Q-038, Q-039, Q-049, Q-075, Q-077, Q-082, Q-083 — see

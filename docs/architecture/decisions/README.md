@@ -33,3 +33,13 @@ how each is handled. Its validation checks run in the first slices.
   health data stored on the device is encrypted. See threat model items T-02 and T-03.
 - **ADR-0007** (D-13): when a link ends, the former coach's or Head Coach's app deletes that
   trainee's data from the device on its next sync. See threat model item T-06.
+- **ADR-0007** (D-14, see REQ-NFR-004):
+  - The server is the permanent record. No device rule ever deletes a user's full history; on
+    sign-in, even years later, the app restores it from the server.
+  - Encryption on the phone is invisible to the user: no extra passwords, no lost features,
+    offline logging still works. If an encryption choice would break a feature, raise it as a
+    question instead of applying it.
+  - After 30 days without a sync, clear only unfinished drafts and other people's data copied
+    onto a coach's or Head Coach's phone; cleared trainee data comes back on the next sync if
+    the link is still active.
+  - Never auto-delete the user's own entries waiting to sync; they stay until synced.

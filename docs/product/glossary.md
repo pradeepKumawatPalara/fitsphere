@@ -17,7 +17,7 @@ it does not settle it. Role descriptions live in [`product-brief.md`](product-br
 | Trainee | A Personal Training User who has accepted a Coach's invitation (D-06); at most one coach at a time (D-11). The BRD writes "trainees/users" and "directly assigned". | BRD §1.2, §1.3; REQ-ROLE-005, REQ-ROLE-009 |
 | Self-directed user | A Personal Training User with no coach. | REQ-ROLE-007 |
 | Client | The BRD overview's word for a trainee ("clients log their food intake … against targets set by their coach"). Same meaning as trainee. | BRD §1.1; REQ-PLAN-001 |
-| Operator | Whoever runs FitSphere's systems. Not a role in the app. In phase 1 this is the project owner only, with no support staff; every admin access to user data is logged (D-13). | REQ-NFR-005 |
+| Operator | Whoever runs FitSphere's systems. Not a role in the app. In phase 1 this is the project owner only, with no support staff; every admin access to user data is logged (D-13) and the log is reviewed monthly (D-14). | REQ-NFR-005; R-003 |
 | Platform Admin | *Future scope.* A fourth role for the business owner, with the rights needed to run FitSphere as a business. Not designed; which of its rights include users' health data is open (Q-086). | D-13 |
 
 Usage *(proposed — owner to confirm)*:
@@ -41,5 +41,6 @@ What follows from that:
 - A trainee has at most one coach, and a coach at most one Head Coach (D-11).
 - A link ends by removal, by leaving (REQ-ROLE-014) or by switching (REQ-ROLE-015). Ending it
   deletes no data (D-07) and ends access to all of that person's data, including past data
-  (D-10, D-11). The former coach's or Head Coach's app then deletes that trainee's data from the
-  phone on its next sync (D-13).
+  (D-10, D-11). The other side gets a neutral message, "X is no longer linked with you" (D-13,
+  D-14). The former coach's or Head Coach's app then deletes that trainee's data from the phone
+  on its next sync (D-13); nothing is deleted on the server, which is the permanent record (D-14).
