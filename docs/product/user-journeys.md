@@ -59,25 +59,31 @@ REQ-PRG-001..006
 2. Changes chart range 1W…All; reads week table vs Target row; taps a week for details.
 
 ## J-08 Coach onboards a trainee and sets a plan
-Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011
+Actor: Coach · REQ-ROLE-001, 002, 005, 006, 008, 009, 011, 012, 013, 014, 015
 1. Profile → turns on the Coach role (any user can, D-06) → role selector → Coach. Coach view lists trainees who have accepted.
-2. Invites a trainee by email; the app always shows "Invitation sent" (REQ-ROLE-011). A new person signs up first (REQ-ROLE-008). The trainee appears in the list only after accepting (REQ-ROLE-009).
+2. Enters the trainee's email. The app always shows "Invitation sent" and never says which channel was used (REQ-ROLE-011). The system picks the channel (D-11):
+   - **No FitSphere account:** the person gets an invitation email with a sign-up link, signs up, then accepts (REQ-ROLE-008).
+   - **Registered user:** the invitation arrives in the app — a push notification plus the in-app invitations list, so it is not lost if push is off (REQ-ROLE-009).
+   - If the trainee already has a coach, accepting ends that link first (REQ-ROLE-015).
+   - If this coach has a Head Coach, the trainee is also asked during acceptance whether to allow that Head Coach to see their logs and edit their plans (REQ-ROLE-013).
+   The trainee appears in the list only after accepting; the coach then sees their past activity too (REQ-ROLE-012).
 3. Opens the trainee, sets calorie and protein targets and weekly workout target *(Q-013)*.
 4. Builds a diet plan (meals with up to 3 options, protein source first) and a training plan, and sends them.
 5. Trainee's Diet plan shows "Set by your coach" targets; Training shows the plan.
 Failure: Coach tries to open a trainee of another coach → refused (REQ-ROLE-005).
-Removal: Coach removes a trainee → the link ends, no data is deleted, and the coach loses access to all of the trainee's data, including past data (D-07, D-10).
+Removal: Coach removes a trainee, or the trainee leaves (REQ-ROLE-014) → the link ends, no data is deleted, and the coach loses access to all of the trainee's data, including past data (D-07, D-10, D-11).
 
 ## J-09 Head Coach manages coaches
-Actor: Head Coach · REQ-ROLE-001, 003, 004, 008, 009, 011
+Actor: Head Coach · REQ-ROLE-001, 003, 004, 008, 009, 010, 011, 013, 014, 015
 1. Profile → turns on the Head Coach role (any user can, D-06) → role selector → Head Coach.
-2. Invites a Coach by email ("Invitation sent", REQ-ROLE-011). After the Coach accepts, sees that coach's coaching activity — never the coach's own personal logs (D-10).
-3. Sees a trainee's data, and can edit their diet and training plans (REQ-ROLE-004), only after that trainee has been notified and agreed *(step not yet specified — Q-078)*.
-4. Removes (unassigns) a Coach → no data is deleted; access to all of that coach's data ends (D-07, D-10).
+2. Enters a coach's email; the app shows only "Invitation sent" (REQ-ROLE-011). The coach gets an invitation email with a sign-up link if they have no account (REQ-ROLE-008), or an in-app invitation — push plus the invitations list — if they do (REQ-ROLE-009).
+3. When the coach accepts, this Head Coach becomes their Head Coach (D-11). If the coach had another Head Coach, that link ends first and the old Head Coach loses all access immediately (REQ-ROLE-015). The Head Coach then sees the coach's coaching activity, including past activity — never the coach's own personal logs (REQ-ROLE-010).
+4. Each of the coach's trainees gets an in-app request: "Allow Head Coach <name> to see your logs and edit your plans?" (REQ-ROLE-013). The Head Coach sees a trainee's data, and can edit their diet and training plans (REQ-ROLE-004), only for trainees who allow it. A trainee can change the answer at any time in Settings.
+5. Removes (unassigns) a Coach, or the coach leaves (REQ-ROLE-014) → no data is deleted; access to all of that coach's data and their trainees' data ends (D-07, D-10, D-11).
 Failure: attempts to view a coach outside their hierarchy → refused.
 
 ## J-10 User changes settings
 REQ-ACC-001..005, 007, 008
-Theme, lifting unit, body-weight unit, AI meal reading consent, change password, log out.
+Theme, lifting unit, body-weight unit, AI meal reading consent, Head Coach access (Allow/Decline — REQ-ROLE-013), change password, log out.
 Country/time zone is fixed to India · Kolkata in phase 1 (REQ-ACC-006 is Won't — D-09).
 Delete account → separate flow (**blocked, Q-048**).

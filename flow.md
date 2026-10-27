@@ -37,7 +37,7 @@ flowchart TD
 flowchart LR
     HC[Head Coach] -- invite · accept · unassign · REQ-ROLE-003 --> CO[Coach]
     HC -- sees coaching activity only · D-10 --> CO
-    HC -. plans of trainees who agreed · REQ-ROLE-004 · Q-078 .-> TE
+    HC -. plans of trainees who allowed it · REQ-ROLE-004 · REQ-ROLE-013 .-> TE
     CO -- invite · accept · unassign · REQ-ROLE-005 --> TE[Trainee]
     CO -- targets, diet plan, training plan · REQ-ROLE-006 --> TE
     TE -- logs food, body metrics, workouts --> DATA[(Trainee data)]
@@ -65,6 +65,8 @@ flowchart TD
         AIP[AI meal parsing · ADR-0005]
         FOOD[Food database / barcode lookup · Q-039]
         STT[Speech-to-text · Q-038]
+        EMAIL[Email service · Q-082]
+        PUSH[Push notifications · Q-083]
     end
     APP --> LOCAL
     APP -- HTTPS · queued changes re-authorized --> API
@@ -75,16 +77,20 @@ flowchart TD
     CONSENT -- only if consent recorded --> AIP
     CONSENT -.-> STT
     SVC --> FOOD
+    SVC -- invitation, verification and reset emails --> EMAIL
+    SVC -- invitation alerts --> PUSH
+    PUSH --> APP
 ```
 
 Trust boundaries: device ↔ backend (all input untrusted; all authorization on backend);
 backend ↔ each external service (sensitive meal data leaves our control — consent and data
-processing terms required, Q-049).
+processing terms required, Q-049). The full list of people, external systems and trust
+boundaries is in [`docs/architecture/system-context.md`](docs/architecture/system-context.md).
 
 Failure paths to design: AI/food-database timeout or error (keep user input, offer
 alternatives); offline device (log on the device and sync later; every queued change is
 re-authorized at sync — REQ-NFR-004, ADR-0007); consent withdrawn mid-request.
 
 ## Open questions affecting flows
-Q-038, Q-039, Q-049, Q-077, Q-078 — see
+Q-038, Q-039, Q-049, Q-077, Q-082, Q-083, Q-084, Q-085 — see
 [`docs/architecture/constraints-and-assumptions.md`](docs/architecture/constraints-and-assumptions.md).

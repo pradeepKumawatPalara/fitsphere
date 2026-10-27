@@ -17,13 +17,13 @@ Do not scaffold an app, add dependencies or pick frameworks until the relevant A
 - Constraints, assumptions, open questions, risks (C-/A-/Q-/R- IDs): `docs/architecture/constraints-and-assumptions.md`
 - Owner decisions (D- IDs, Accepted): `docs/product/owner-decisions-2026-10-27.md`
 - Glossary: `docs/product/glossary.md`
-- Data and threat model (Draft): `docs/security/data-and-threat-model.md`
+- System context (Draft): `docs/architecture/system-context.md`
+- Data and threat model, including the permission matrix (Draft): `docs/security/data-and-threat-model.md`
 - System flows: `flow.md`
 - Decisions: `docs/architecture/decisions/`
 - Always-on invariants: `.claude/rules/project-invariants.md`
 - Original business requirements (input, not edited): `docs/product/source/business-requirements.txt`
-- Not yet written: `docs/architecture/system-context.md`, `docs/contracts/`, `docs/quality/`,
-  `docs/operations/`
+- Not yet written: `docs/contracts/`, `docs/quality/`, `docs/operations/`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.
 

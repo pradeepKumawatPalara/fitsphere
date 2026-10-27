@@ -63,35 +63,34 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: is the last active role remembered between sessions (Q-008).
 
 ### REQ-ROLE-003 — Head Coach: manage Coach records
-- Requirement: A Head Coach can add Coaches by invitation (REQ-ROLE-008, REQ-ROLE-009), view and update the Coach records under their management, and remove (unassign) them. Removing a Coach deletes no data (D-07).
+- Requirement: A Head Coach can invite Coaches (REQ-ROLE-008, REQ-ROLE-009), view the Coaches who have accepted, and remove (unassign) them, which ends the link. A link has no editable fields (D-11). Removing a Coach deletes no data (D-07).
 - Type: Functional, Security
 - Acceptance criteria:
   - Given Head Coach view, when a Coach accepts their invitation, then that Coach appears in the Head Coach's coach list.
-  - Given a Coach not under this Head Coach, then it cannot be viewed, updated or removed by them; no Head Coach can see another Head Coach's coaches or view (D-06).
+  - Given a Coach not under this Head Coach, then it cannot be viewed or removed by them; no Head Coach can see another Head Coach's coaches or view (D-06).
   - When a Head Coach removes a Coach, then the link ends and no data is deleted; to rejoin, the Coach must accept a new invitation (D-07).
   - After removal, the Head Coach can no longer see any of that Coach's data, including past data (D-10).
-- Open: what "update" changes on a Coach record, which is the link between two accounts (Q-058, Q-081).
 
 ### REQ-ROLE-004 — Head Coach: hierarchy visibility and plan editing
-- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). Once a trainee of those coaches has been notified and has agreed (D-10), the Head Coach can view that trainee's details and edit their plans (D-08). Each plan records who last changed it. *(Reading: "plans" means the diet plan and the training plan; whether targets are included is Q-075.)*
+- Requirement: A Head Coach can view the coaching activity of their accepted coaches — never a coach's own personal logs (D-10). For each trainee of those coaches who has allowed it (REQ-ROLE-013), the Head Coach can view that trainee's details and edit their plans (D-08). Each plan records who last changed it. *(Reading: "plans" means the diet plan and the training plan; whether targets are included is Q-075.)*
 - Type: Functional, Security, Privacy
 - Acceptance criteria:
-  - Given Head Coach view, then each accepted coach is listed, and under each coach the trainees who have agreed (D-10).
+  - Given Head Coach view, then each accepted coach is listed, and under each coach the trainees who have allowed it (REQ-ROLE-013).
   - Trainees of coaches outside their hierarchy are not visible, and nothing in another Head Coach's hierarchy is visible (D-06).
   - Given a coach who also logs as a Personal Training User, then the Head Coach sees none of that coach's own logs (D-10).
-  - Given a trainee who has not agreed, then the Head Coach sees none of that trainee's data and cannot edit their plans (D-10).
+  - Given a trainee who has declined or not yet answered, then the Head Coach sees none of that trainee's data and cannot edit their plans (D-11).
   - When a Head Coach edits a trainee's diet or training plan, then the plan shows who last changed it.
-- Open: the trainee notice-and-agreement step, including what a Head Coach sees before a trainee agrees (Q-078); targets, and simultaneous edits by Coach and Head Coach (Q-075).
+- Open: what "coaching activity" includes (Q-085); targets, and simultaneous edits by Coach and Head Coach (Q-075).
 
 ### REQ-ROLE-005 — Coach: manage trainee records
-- Requirement: A Coach can add trainees by invitation (REQ-ROLE-008, REQ-ROLE-009), view and update the records of trainees who have accepted, and remove (unassign) them. Removing a trainee deletes no data (D-07).
+- Requirement: A Coach can invite trainees (REQ-ROLE-008, REQ-ROLE-009), view the trainees who have accepted, update their plans and targets (REQ-ROLE-006), and remove (unassign) them, which ends the link. A link has no editable fields (D-11). Removing a trainee deletes no data (D-07).
 - Type: Functional, Security
 - Acceptance criteria:
   - Given Coach view, then only trainees who have accepted this Coach are listed.
   - A Coach cannot read or change a trainee of another coach.
   - When a Coach removes a trainee, then the link ends and no data is deleted; to rejoin, the trainee must accept a new invitation (D-07).
   - After removal, the Coach can no longer see any of the trainee's data, including past data (D-10).
-- Open: which trainee data can the coach see (Q-059)? Can a trainee leave on their own, or have more than one coach (Q-072)? What happens to targets and plans after removal (Q-060)? What "update" changes on a trainee record (Q-081)?
+- Open: which trainee data can the coach see (Q-059)? What happens to targets and plans after removal (Q-060)?
 
 ### REQ-ROLE-006 — Coach: set targets and plans
 - Requirement: A Coach can set for each assigned trainee: daily calorie target, daily protein target, weekly workout target, diet plan (REQ-PLAN-*) and training plan (REQ-TRN-001).
@@ -107,38 +106,78 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Open: can a self-directed user set their own targets (Q-016)?
 
 ### REQ-ROLE-008 — Invite a new email address
-- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address (D-06). When the address is not registered in FitSphere, the invitation asks the person to sign up (REQ-ACC-010); the link takes effect only when they accept (REQ-ROLE-009). The inviter is never told whether the address was registered (REQ-ROLE-011). *(Reading: a registered address goes through REQ-ROLE-009 instead — Q-071.)*
+- Requirement: A Head Coach can invite a Coach, and a Coach can invite a trainee, by entering an email address (D-06). When the address has no FitSphere account, phase 1 sends an invitation email with a sign-up link (D-11); the person signs up (REQ-ACC-010), and the link takes effect only when they accept (REQ-ROLE-009). A registered address gets the in-app invitation instead (REQ-ROLE-009). The inviter sees only "Invitation sent" and is never told whether the address was registered or which channel was used (REQ-ROLE-011).
 - Type: Functional, Security
 - Acceptance criteria:
-  - Given an email address not registered in FitSphere, when a Coach invites it, then an invitation to sign up is sent to that address and the Coach sees "Invitation sent".
+  - Given an email address with no FitSphere account, when a Coach invites it, then an invitation email with a sign-up link is sent to that address and the Coach sees "Invitation sent".
   - Until the invited person signs up and accepts, the inviter has no access to any of their data.
-- Open: invitation expiry, resend, cancel and limits on pending invitations (Q-073).
+- Future scope: other channels such as SMS or WhatsApp (D-11).
+- Open: invitation expiry, resend, cancel and the size of the daily limit (Q-073); the email service and sender domain (Q-082). Threat model items T-04, T-05.
 
 ### REQ-ROLE-009 — Invite an existing user; accept or decline
-- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invited user accepts or declines; the link exists only after they accept (D-06). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
+- Requirement: A Head Coach can invite an existing user to be their Coach, and a Coach can invite an existing user to be their trainee. The invitation is delivered in the app — a push notification plus an in-app invitations list, so it is not lost if push is off; no email is sent (D-11). The invited user accepts or declines; the link exists only after they accept (D-06). When a coach accepts, the inviting Head Coach becomes their Head Coach (D-11). The inviter sees "Invitation sent", as for any address (REQ-ROLE-011).
 - Type: Functional, Security
 - Acceptance criteria:
+  - Given a registered user, when they are invited, then they get a push notification and the invitation appears in their in-app invitations list.
+  - Given push notifications are off, then the invitation still appears in the in-app invitations list.
   - When the invited user accepts, then they appear in the inviter's coach or trainee list.
   - When the invited user declines, then no link is created and the inviter gains no access.
   - Until the invitation is accepted, the inviter cannot see any of the invited user's data.
-- Open: invitation rules (Q-073); more than one coach or head coach (Q-072).
+  - Given the invited user already has a coach or Head Coach, when they accept, then REQ-ROLE-015 applies.
+- Open: invitation rules (Q-073); the push notification service (Q-083).
 
-### REQ-ROLE-010 — Past activity visible after acceptance
-- Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past coaching activity — never the coach's own personal logs — not only activity from the acceptance date on. When a trainee accepts a Coach, the Coach can likewise see the trainee's past activity (D-06, D-10). A Head Coach sees a trainee's data only after that trainee has been notified and has agreed (D-10).
+### REQ-ROLE-010 — Head Coach sees past coaching activity
+- Requirement: When a Coach accepts a Head Coach, the Head Coach can see the Coach's past coaching activity, not only activity from the acceptance date on — never the coach's own personal logs (D-06, D-10). Any trainee's data within that activity is visible only if that trainee has allowed it (REQ-ROLE-013). *(The coach-sees-trainee part is now REQ-ROLE-012 — D-11.)*
 - Type: Functional, Privacy
-- Status: **Blocked — Q-078** (the trainee notice-and-agreement step required by D-10 is not specified).
 - Acceptance criteria:
-  - Given a trainee who logged meals before accepting a Coach, when they accept, then the Coach can see those earlier logs.
   - Given a coach who also logs as a Personal Training User, then their Head Coach never sees those personal logs (D-10).
-- Open: which trainee data the coach sees (Q-059).
+  - Given a trainee who has not allowed it, then the Head Coach sees none of that trainee's data, including within the coach's past activity (D-11).
+- Open: what "coaching activity" includes (Q-085).
 
 ### REQ-ROLE-011 — Invitation privacy and daily limits
-- Requirement: Inviting someone by email never reveals whether the address is registered in FitSphere: the inviter always sees "Invitation sent". Each user can send only a limited number of invitations per day (D-10).
+- Requirement: Inviting someone by email never reveals whether the address is registered in FitSphere: the inviter always sees "Invitation sent" and is never shown which channel was used (email or in-app — D-11). Each user can send only a limited number of invitations per day (D-10).
 - Type: Security, Privacy
 - Acceptance criteria:
-  - Given one registered and one unregistered email address, when a Coach invites each, then the Coach gets the same "Invitation sent" result for both, in the app and in the API response.
+  - Given one registered and one unregistered email address, when a Coach invites each, then the Coach gets the same "Invitation sent" result for both, in the app and in the API response, with no sign of which channel was used; response timing does not reveal the difference (T-01).
   - Given a user who has reached the daily invitation limit, when they send another invitation, then it is refused and they are told the daily limit is reached.
-- Open: the size of the daily limit, and expiry, resend and cancel (Q-073); whether sign-up and password reset reveal the same thing (Q-079). Threat model item T-01.
+- Open: the size of the daily limit, and expiry, resend and cancel (Q-073). Threat model items T-01, T-04, T-05.
+
+### REQ-ROLE-012 — Coach sees a trainee's past activity
+- Requirement: When a trainee accepts a Coach, the Coach can see the trainee's past activity, not only activity from the acceptance date on (D-06). *(Split from REQ-ROLE-010 — D-11.)*
+- Type: Functional, Privacy
+- Acceptance criteria:
+  - Given a trainee who logged meals before accepting a Coach, when they accept, then the Coach can see those earlier logs.
+- Open: which trainee data the coach sees (Q-059).
+
+### REQ-ROLE-013 — Trainee permission for Head Coach access
+- Requirement: A Head Coach sees a trainee's data and edits their plans only if the trainee allows it (D-10, D-11). The trainee gets an in-app request: "Allow Head Coach <name> to see your logs and edit your plans?" with **Allow** and **Decline**. Declined means the Head Coach has no access to that trainee. The trainee can change the answer at any time in Settings. Each answer is recorded with a timestamp.
+- Type: Functional, Privacy, Security
+- Acceptance criteria:
+  - When a coach accepts a Head Coach, then each of that coach's trainees gets the request in the app.
+  - Given a new trainee accepting a coach who has a Head Coach, then the request is part of accepting.
+  - Given a trainee who has declined or not yet answered, then the Head Coach sees none of their data and cannot edit their plans.
+  - When the trainee taps Allow, then the Head Coach can see their logs and edit their plans; when they later change the answer to Decline in Settings, then that access ends.
+  - Every answer, and every change to it, is stored with a timestamp.
+  - When the coach switches to a new Head Coach, then earlier answers do not carry over and each trainee gets a fresh request (REQ-ROLE-015).
+- Open: whether this step meets the consent requirements of India's DPDP Act is for Legal to confirm (Q-049); what "coaching activity" a Head Coach sees without permission (Q-085). Threat model: permission matrix.
+
+### REQ-ROLE-014 — Leave a coach or Head Coach
+- Requirement: A trainee can leave their coach, and a coach can leave their Head Coach, at any time (D-11). Leaving ends the link exactly like removal: no data is deleted, and the other side loses access to all of the leaver's data, including past data (D-07, D-10).
+- Type: Functional, Privacy, Security
+- Acceptance criteria:
+  - When a trainee leaves their coach, then the link ends, no data is deleted, and the coach — and the coach's Head Coach — can no longer see any of the trainee's data, including past data.
+  - When a coach leaves their Head Coach, then the Head Coach can no longer see the coach's coaching activity or any of that coach's trainees' data.
+  - To rejoin, the person must accept a new invitation (D-07).
+- Open: what happens to targets and plans after the link ends (Q-060).
+
+### REQ-ROLE-015 — Switch coach or Head Coach
+- Requirement: A coach has at most one Head Coach and a trainee at most one coach (D-11). If a coach who already has a Head Coach accepts an invitation from another Head Coach, the old link ends first — the old Head Coach loses all access immediately (D-10) — and then the new link is created. Trainees' earlier Allow/Decline answers do not carry over: each trainee gets a fresh request for the new Head Coach (REQ-ROLE-013). The same applies when a trainee accepts a new coach: the old coach link ends first.
+- Type: Functional, Privacy, Security
+- Acceptance criteria:
+  - Given a coach linked to Head Coach A, when they accept an invitation from Head Coach B, then A loses all access immediately and B becomes their Head Coach.
+  - Given trainees who had allowed A, then B has no access to any of them until each one allows B.
+  - Given a trainee linked to Coach X, when they accept an invitation from Coach Y, then the link with X ends first and X loses all access.
+- Open: whether the old Head Coach or coach is told (Q-084); what happens to the old coach's targets and plans (Q-060). Threat model item T-06.
 
 ---
 
@@ -429,7 +468,9 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
   - Given an email address that is not registered, when the person signs up with it and a password, then an account is created and a verification email is sent to that address.
   - Given a registered email and its correct password, when the user signs in, then they are signed in.
   - Given a user who has forgotten their password, when they request a reset, then a reset link is sent to their registered email address and lets them set a new password.
-- Open: minimum age (Q-066); whether sign-up and password reset reveal that an email is registered (Q-079); what an unverified account may do, and how long verification and reset links stay valid (Q-080).
+  - Given an email address that is already registered, when someone signs up with it, then they see the same neutral message as for a new address, and response timing does not reveal the difference (D-11, T-01).
+  - When a password reset is requested, then the same neutral message is shown whether or not the email is registered, under the same timing rule (D-11).
+- Open: minimum age (Q-066); what an unverified account may do, and how long verification and reset links stay valid (Q-080); which email service sends these emails (Q-082).
 
 ---
 
@@ -437,7 +478,9 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NFR-001 — Server-side authorization
 - Type: Security
-- Requirement: Every data read/write is authorized server-side against the active user's granted roles and hierarchy (self, assigned trainees, managed coaches).
+- Requirement: Every data read and write is authorized on the server. A user can access another person's data only through an accepted link: a Coach → their accepted trainees; a Head Coach → the coaching activity of their accepted coaches (never a coach's own personal logs), and a trainee's data only while that trainee allows it (REQ-ROLE-013). Ending a link — by removal, leaving or switching — ends access to all of that person's data, including past data. Changes queued offline are re-authorized at sync time. UI hiding is not access control. (Project invariant 1; D-06, D-07, D-10, D-11.)
+- Acceptance criteria:
+  - Given a request for another person's data with no accepted link, or from a Head Coach without that trainee's permission, then the server refuses it, whether the request comes from the app or directly to the API.
 
 ### REQ-NFR-002 — Sensitive data handling
 - Type: Privacy

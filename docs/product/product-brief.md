@@ -51,6 +51,7 @@ Recorded from the [owner decisions](owner-decisions-2026-10-27.md); not built no
 - Premium plans that gate the Head Coach role and limit how many coaches and trainees each plan
   allows (D-06). These would need payments, which are a proposed non-goal for the first release.
 - Users outside India and multiple time zones (D-09).
+- Invitation channels other than email and in-app, such as SMS or WhatsApp (D-11).
 
 ## Success measures
 Not defined in the BRD. *(Open — Q-004.)* Candidate measures for the owner to choose from:

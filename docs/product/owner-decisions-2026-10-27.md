@@ -136,6 +136,49 @@
   step 5 and revisit conditions; product brief Scope (Android first, iOS follows); C-008 and
   A-001 updated.
 
+## D-11 Links, invitation delivery, switching and trainee permission (answers Q-071, Q-072, Q-078, Q-079, Q-081)
+- Status: **Accepted** (answers given by the project owner in chat, 2026-10-27)
+- Answers:
+  1. **One link each, for now (Q-072, F-05):** one coach per trainee and one Head Coach per
+     coach. A trainee may leave their coach, and a coach may leave their Head Coach, at any
+     time; leaving ends access exactly like removal (D-10).
+  2. **Invitation delivery (refines D-06; answers Q-071):** a Head Coach invites a coach by
+     entering an email; a Coach invites a trainee the same way.
+     - Email with no FitSphere account: phase 1 sends an invitation email with a sign-up link.
+       Other channels (SMS, WhatsApp, etc.) are future scope.
+     - Email of a registered user: the invitation is delivered in the app — a push
+       notification plus an in-app invitations list, so it is not lost if push is off. No
+       email is needed.
+     - In both cases the inviter sees only "Invitation sent" (REQ-ROLE-011 still holds); the
+       channel used is never shown to the inviter.
+     - When a coach accepts, the inviting Head Coach becomes that coach's Head Coach.
+  3. **Switching:** if a coach who already has a Head Coach accepts a new invitation, the old
+     link ends first (the old Head Coach loses all access immediately, per D-10), then the new
+     one is created. Trainees' earlier Allow/Decline answers do not carry over; each trainee
+     gets a fresh request for the new Head Coach. The same rule applies when a trainee
+     accepts a new coach: the old coach link ends.
+  4. **Trainee permission (Q-078):** an in-app request to each trainee: "Allow Head Coach
+     <name> to see your logs and edit your plans?" — Allow / Decline. Declined means the Head
+     Coach has no access to that trainee. The trainee can change the answer at any time in
+     Settings. New trainees joining a coach who has a Head Coach get the same request during
+     acceptance. Each answer is recorded with a timestamp. REQ-ROLE-010 is unblocked and
+     removed from invariant #8.
+  5. **Neutral messages (Q-079):** sign-up and password reset show neutral messages that never
+     reveal whether an email is registered, with the same timing rule as T-01.
+  6. **Links have no editable fields (Q-081):** "update" means editing the trainee's plans and
+     targets; "remove" means ending the link.
+  7. Split the coach-sees-trainee-past-activity part of REQ-ROLE-010 into its own requirement.
+     Align REQ-NFR-001 with invariant #1.
+  8. New open questions: invitation email service and sender domain (Q-082); push notification
+     service (Q-083); whether the old Head Coach or coach is told when a link ends by
+     switching (Q-084).
+- Doc changes: REQ-ROLE-003/004/005/008/009/010/011, REQ-ACC-010 and REQ-NFR-001 updated;
+  REQ-ROLE-012 (coach sees past activity), REQ-ROLE-013 (trainee permission), REQ-ROLE-014
+  (leave) and REQ-ROLE-015 (switch) added; A-003 confirmed; REQ-ROLE-010 removed from
+  invariant #8; threat model gains a permission matrix and threats T-04 to T-06;
+  `docs/architecture/system-context.md` drafted; journeys J-08 to J-10 updated; product brief
+  Future scope (other invitation channels).
+
 ---
 
 ## Proposed replacement wording for the two invariants

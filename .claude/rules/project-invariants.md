@@ -23,4 +23,4 @@ refer to `docs/product/owner-decisions-2026-10-27.md`.
 7. **Sensitive data stays out of logs, analytics and fixtures.** Use synthetic test data only.
    (REQ-NFR-002)
 8. **Blocked requirements stay unbuilt** until their Q- item is answered: REQ-PLAN-006 (Q-035),
-   REQ-ACC-009 (Q-048), REQ-ROLE-010 (Q-078).
+   REQ-ACC-009 (Q-048).
