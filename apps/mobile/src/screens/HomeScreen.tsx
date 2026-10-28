@@ -10,6 +10,7 @@ import { EntrySheet } from '../components/EntrySheet';
 import { ExpiredTokenTest } from '../components/ExpiredTokenTest';
 import { LocalDatabaseCheck } from '../components/LocalDatabaseCheck';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { TodayIst } from '../components/TodayIst';
 import { WeekStrip } from '../components/WeekStrip';
 import { WeightTile } from '../components/WeightTile';
 import { formatDay } from '../format';
@@ -106,6 +107,7 @@ export function HomeScreen({ now = () => new Date(), showDevTools = __DEV__ }: {
       <LogOut />
       {showDevTools ? (
         <View style={styles.dev}>
+          <TodayIst />
           <Text>Sync: {sync.status}</Text>
           <ApiStatus apiUrl={deps.apiUrl} check={checkApiHealth} />
           <LocalDatabaseCheck />
