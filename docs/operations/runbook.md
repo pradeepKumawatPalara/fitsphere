@@ -22,27 +22,25 @@ Commands that need the monorepo (install, run, test) are added when the Skeleton
 |---|---|---|
 | Node.js | **26 LTS** (Active LTS from 2026-10-28 on the Node.js release schedule). 24 LTS (maintenance until 2028-04-30) also works | API, tools, Expo CLI. Expo SDK 58 needs Node 22.13 or later |
 | Git | Any recent version | Repository |
-| Android Studio | Current version, with Android SDK Platform 36 (Android 16), SDK Build-Tools, Platform-Tools and the Emulator | Android development builds and the emulator (ADR-0001) |
-| JDK | 17 (Microsoft Build of OpenJDK 17) | Android builds, as Expo's setup guide says |
-| A real Android phone | The lowest-end one available, with a USB cable that carries data | Device checks (ADR-0001 step 6, ADR-0007) |
+| EAS CLI | 26.0.0 or later, installed globally | Android development builds on EAS (D-19) |
+| Android platform-tools (`adb`) only | Any recent version | The "USB + adb" checks (D-19). No Android Studio, JDK, Android SDK or emulator |
+| An Android phone | The owner's OnePlus Nord CE4, with a USB cable that carries data | Every device check (D-19). The lowest-end phone available for ADR-0001 step 6 |
 | Supabase account | Free plan, project in South Asia (Mumbai) | Database and sign-in (ADR-0002, ADR-0004) |
-| Expo account | Free plan | EAS iOS compile check (ADR-0001 step 5) and push credentials (ADR-0001 step 7) |
-| Firebase project | Free | FCM credentials for push on Android, used only for the push check (ADR-0001 step 7, D-13 answer 9, ADR-0004 rule 6) |
+| Expo account | Free plan: 15 Android builds a month | Android development builds and the development server's tunnel (D-19). Post-MVP (D-20): the EAS iOS compile check (ADR-0001 step 5) and push credentials (ADR-0001 step 7) |
+| Firebase project | Free | **Post-MVP (D-20, backlog B-23)**, not needed for the Skeleton: FCM credentials for push on Android (ADR-0001 step 7, D-13 answer 9, ADR-0004 rule 6) |
 | PostgreSQL 17 on the PC | Installed natively for Windows, not in Docker (owner's choice, D-18 answer 14) | Integration, authorization and database tests; Supabase's current default is PostgreSQL 17 |
 | A password manager | Any | Where secret values are kept (see "Secrets on the PC") |
 
-Not needed for the Skeleton: Resend and a domain (invitations slice), or a Google Cloud billing
+Not needed for the Skeleton: Resend and a domain (the Release slice, D-20), or a Google Cloud billing
 account (Q-087).
 
 ### Owner's PC, checked 2026-10-28
 Read-only checks from VS Code; nothing was installed or changed.
 - Node 24.21.0 and npm 11.19.0: usable (24 LTS).
 - `origin` is the GitHub repository; `main` tracks `origin/main`.
-- `JAVA_HOME` (machine-level) points to **JDK 26**, not 17. Fix in step 2.
-- Android SDK: Platform 37 and Build-Tools 36.0.0 are installed; **Platform 36 is missing** and
-  there is no NDK yet. The user-level `ANDROID_HOME` and the `platform-tools` entry in `Path` are
-  set, but VS Code terminals see them only after VS Code is restarted.
-- Emulator `emulator-5554` runs Android API level 37 (x86_64); `adb devices` lists it.
+- A JDK, the Android SDK and an emulator are installed, but are no longer needed (D-19). The
+  `platform-tools` entry in the user `Path` is set; VS Code terminals see it only after VS Code
+  is restarted.
 - No PostgreSQL yet; the owner chose a native install of PostgreSQL 17 (D-18 answer 14). Docker
   Desktop is installed but is not used for the test database.
 - IPv6 works, so `MIGRATION_DATABASE_URL` can use the direct connection.
@@ -53,29 +51,33 @@ Read-only checks from VS Code; nothing was installed or changed.
 2. If Node is not 26.x or 24.x, install Node 26 LTS from nodejs.org, then open a new terminal and
    check again. If nodejs.org does not yet label 26 as LTS, use 24 LTS and update this line.
 
-### 2. Android Studio, SDK and emulator
-1. Install Android Studio. In **SDK Manager**:
-   - **SDK Platforms:** under Android 16 (Baklava), "Android SDK Platform 36" and "Sources for
-     Android 36";
-   - **SDK Tools:** at least one version of Android SDK Build-Tools, Android SDK Platform-Tools
-     and Android Emulator.
-2. Install JDK 17. Expo's guide uses Chocolatey: `choco install -y microsoft-openjdk17`. Without
-   Chocolatey, install Microsoft Build of OpenJDK 17 from Microsoft's download page.
-3. Add a **user** environment variable `ANDROID_HOME` = `%LOCALAPPDATA%\Android\Sdk`, and add
-   `%LOCALAPPDATA%\Android\Sdk\platform-tools` to the user `Path`.
-4. Open a new PowerShell and check: `Get-ChildItem -Path Env:` lists `ANDROID_HOME`, and
-   `adb --version` prints a version.
-5. In **Device Manager**, create a virtual device (a phone with Android 16) and start it once.
+### 2. EAS CLI and the development build (D-19)
+Android builds run on EAS, in the cloud: no Android Studio, JDK, Android SDK or emulator is
+needed. The Expo account comes first (step 4). *Not yet verified on the owner's PC.*
+1. Install EAS CLI: `npm install --global eas-cli`, then `eas --version` (26.0.0 was current on
+   2026-10-28; `apps/mobile/eas.json` requires at least that).
+2. Sign in: `eas login`, then `eas whoami`. The development server's tunnel needs the same
+   sign-in: from `apps/mobile`, `npx expo whoami` must show the same account; if it does not, run
+   `npx expo login`.
+3. Once, **from `apps/mobile`**: `eas init`. It creates the EAS project and writes its ID and
+   account into `apps/mobile/app.json` (`extra.eas.projectId`, `owner`). Commit that change;
+   neither is a secret. Run from the repository root, it creates a second `app.json` there
+   instead (seen 2026-10-28).
+4. Build only when native code changes (Skeleton plan, decision 8); Claude Code asks first. From
+   `apps/mobile`: `eas build --platform android --profile development`. The free plan allows 15
+   Android builds a month, in a low-priority queue, so a build may wait. At the end, the command
+   prints a link and a QR code.
+5. Install: open the link, or scan the QR code, on the phone; download the app; when Android
+   asks, allow the browser to install apps. Reinstalling the same build later from the same link
+   does not use a build.
+6. Optional check of what EAS uploads: `eas build:inspect --platform android --stage archive
+   --output <an empty folder outside the repository>`. `apps/mobile/.env` must not be in it:
+   EAS CLI leaves out what `.gitignore` excludes.
 
-Expo's Windows steps do not mention `JAVA_HOME` or the NDK. If a build later says Java or the NDK
-is missing, record the fix here.
-
-If `JAVA_HOME` already points to another JDK (on the owner's PC, a machine-level JDK 26), add a
-**user** environment variable `JAVA_HOME` with the JDK 17 folder; on Windows a user variable
-overrides a machine variable of the same name. Open a new terminal; `echo $env:JAVA_HOME` must
-show the JDK 17 folder. *Not yet verified with a build.*
-
-### 3. A real Android phone over USB
+### 3. The phone over USB (only for "USB + adb" checks)
+Android's platform-tools (`adb`) is the only Android tool kept (D-19). If it ever needs
+reinstalling, use Android's standalone "SDK Platform Tools" download and add its folder to the
+user `Path`.
 1. On the phone: **Settings › About phone** (Samsung: **Settings › About phone › Software
    information**) → tap **Build number** seven times until "You are now a developer!".
 2. **Settings › Developer options** → turn on **USB debugging**.
@@ -90,9 +92,11 @@ ADR-0004 rule 8, D-16):
 - **GitHub** — the repository and GitHub Actions. On GitHub Free, private repositories get 2,000
   Actions minutes a month; public repositories are free.
 - **Supabase** — create an organization, then the project in step 5.
-- **Expo** — needed for EAS Build, including the iOS simulator build, which needs no Apple
-  account, and for push credentials.
-- **Firebase** (Google account) — a project used only for FCM push credentials. The steps follow
+- **Expo** — needed for EAS Build (the Android development builds, D-19) and for the development
+  server's tunnel. Post-MVP (D-20): the iOS simulator build, which needs no Apple account, and
+  push credentials.
+- **Firebase** (Google account) — post-MVP (D-20, backlog B-23); not needed for the Skeleton. A
+  project used only for FCM push credentials. The steps follow
   Expo's push notification setup guide and are written here once done; they were not part of
   the docs check on 2026-10-27. The FCM service-account key is a secret: upload it to Expo's
   credentials, keep it in the password manager, never in the repository.
@@ -139,7 +143,8 @@ it when the Skeleton's database step starts.
 Sign-in emails in the Skeleton come from Supabase's built-in sender, which delivers only to
 members of the project's team, at most 2 emails an hour (`email_address_not_authorized` for
 anyone else). Manual sign-up checks therefore use the owner's own team address and are paced
-accordingly. Resend replaces it in the invitations slice (ADR-0004 rule 1).
+accordingly. Resend replaces it in the Release slice, before the MVP release (D-20; ADR-0004
+rule 1).
 
 ### 6. Secrets on the PC
 - Secret values live in two places only: the **password manager** (the record) and **`.env`
@@ -173,21 +178,37 @@ root:
 | `npm run dev -w @fitsphere/api` | Runs the API at `http://127.0.0.1:3000` and restarts it on changes; reads `apps/api/.env` if it exists |
 
 The API runs its TypeScript files directly on Node 24, with no build step. It listens only on
-the PC's own loopback address: the Android emulator reaches it at `10.0.2.2`, and nothing else
-on the local network can. Check: `http://127.0.0.1:3000/v1/health` in a browser shows
+the PC's own loopback address, so nothing else on the network can reach it; how the phone reaches
+it is step 8. Check: `http://127.0.0.1:3000/v1/health` in a browser shows
 `{"status":"ok"}`. Use `127.0.0.1` rather than `localhost`: on this PC `localhost` resolves to the
 IPv6 address `::1` first, which the API does not listen on, so some tools wait before falling
 back. Stop the API with Ctrl+C in its terminal.
 
-### 8. Running the app against the API on the PC
-*Not yet written; added in Skeleton step 2.* Points to verify then:
-- From the emulator, the PC is `http://10.0.2.2:<port>`; from a phone over USB, run
-  `adb reverse tcp:<port> tcp:<port>` and use `http://localhost:<port>`.
-- Android blocks plain HTTP by default, and Expo's `usesCleartextTraffic` setting defaults to
-  off. No official page says development builds allow it, so check on a device and, if needed,
-  allow it in development builds only — never in a release build.
-- SQLite encryption (SQLCipher) needs a development build, not Expo Go, and fails silently when
-  missing; the app checks at start that it is active (data model, "On the phone").
+### 8. Running the app on the phone (D-19)
+*Not yet verified on the phone.*
+1. Start the development server: `npm run start -w @fitsphere/mobile`, which runs
+   `expo start --dev-client --tunnel`. Expo CLI 58 uses Expo's own tunnel service, which needs
+   the sign-in from step 2. It prints a QR code.
+2. On the phone, scan the QR code with the camera, or open FitSphere and type the address the
+   terminal shows. The app loads its code through the tunnel; a saved change shows on the phone
+   without a new build.
+3. While the tunnel runs, the development server has a public address. It serves the app's
+   code, which holds only publishable `EXPO_PUBLIC_` values. Stop it with Ctrl+C when done.
+4. If the tunnel fails ("Couldn't create a signed tunnel URL" or "Tunnel connection has been
+   closed"), check https://status.expo.dev/ and restart the server. The CLI's own suggestion is
+   `npx expo start --tunnel ngrok`, which uses ngrok instead.
+5. **The API from the phone:** *waiting for the owner's choice (Q-093).* Once it is chosen, it
+   is written here and `EXPO_PUBLIC_API_URL` is set in `apps/mobile/.env`. Restart the
+   development server after changing `.env`.
+6. **"USB + adb" checks** (Skeleton plan, decision 8): connect the phone as in step 3, run
+   `adb reverse tcp:8081 tcp:8081`, and from `apps/mobile` start the server with
+   `npx expo start --dev-client --localhost`. The app then loads its code over USB, which keeps
+   working in airplane mode.
+7. **Plain HTTP:** a development build is Gradle's debug build. The debug manifest that Expo
+   generates allows plain HTTP; release builds do not. This matters only if the chosen route to
+   the API is plain HTTP.
+8. SQLite encryption (SQLCipher) needs a development build, not Expo Go, and fails silently when
+   missing; the app checks at start that it is active (data model, "On the phone").
 
 ### References (local setup)
 Checked 2026-10-27:
@@ -197,6 +218,9 @@ Checked 2026-10-27:
 - Expo environment variables: https://docs.expo.dev/guides/environment-variables/
 - Expo SQLite (SQLCipher): https://docs.expo.dev/versions/latest/sdk/sqlite/
 - EAS simulator builds: https://docs.expo.dev/build-reference/simulators/
+- EAS build profiles (`developmentClient`, `distribution`): https://docs.expo.dev/eas/json/ (checked 2026-10-28)
+- EAS app versions (`appVersionSource`): https://docs.expo.dev/build-reference/app-versions/ (checked 2026-10-28)
+- What EAS CLI uploads (`.gitignore`, `.easignore`): https://docs.expo.dev/build-reference/easignore/ (checked 2026-10-28)
 - Android developer options: https://developer.android.com/studio/debug/dev-options
 - Android OEM USB drivers: https://developer.android.com/studio/run/oem-usb
 - Supabase built-in email limits: https://supabase.com/docs/guides/auth/auth-smtp
@@ -222,7 +246,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `LOG_LEVEL` | API | `info` by default | No |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
-| `EXPO_PUBLIC_API_URL` | App | Address of the API, e.g. the PC during development | No (built into the app) |
+| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the address at which the phone reaches the API on the PC: the owner's choice (Q-093, step 8) | No (built into the app) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
 Files with credentials, never committed:

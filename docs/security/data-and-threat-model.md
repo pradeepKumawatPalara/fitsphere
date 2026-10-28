@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01); legal obligations: Legal (Q-049)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28 (D-20: MVP scope of the matrix and threats; own targets)
 
 Started with the items the owner has decided. Sections marked *Not yet written* are gaps, not
 statements that nothing is needed. This file does not show that FitSphere is secure or
@@ -35,9 +35,26 @@ In phase 1 the project owner is the only operator, with no support staff; every 
 user data is logged, and the owner reviews the log monthly (REQ-NFR-005, D-13, D-14). A Platform Admin role is future scope; which of its
 rights include health data is open (Q-086).
 
+## MVP scope (D-20)
+The MVP is the Personal Training User view only. No links, invitations or Head Coach permission
+answers are created, so:
+- In the permission matrix below, only the **Trainee (self)** and **Anyone else** columns apply
+  in the MVP: a user reads and writes only their own data, and the server refuses every request
+  for another user's data. The other columns, the coach's data and the invitations table apply
+  post-MVP (backlog B-18 to B-20).
+- The MVP's authorization tests cover self-access and the "anyone else" cases
+  ([test strategy](../quality/test-strategy.md)).
+- The user sets all five of their own targets (REQ-ROLE-007, D-20). Invariant #2 applies once
+  coaches can set targets.
+- No diet or training plans exist in the MVP (REQ-PLAN-007, REQ-TRN-002).
+- Threats: T-05 and T-06 are post-MVP, as are the invitation parts of T-01 and T-04 and part (a)
+  of T-08 and T-09. In the MVP, T-01 covers sign-up and password reset, and T-04 the sign-up and
+  reset emails, which still go through Resend from a domain FitSphere owns (D-20).
+
 ## Permission matrix
 Who can view or edit each kind of data, according to the requirements and owner decisions so
-far. The server enforces this (invariant 1); hiding something in the app is not enough.
+far. The server enforces this (invariant 1); hiding something in the app is not enough. In the
+MVP only the "Trainee (self)" and "Anyone else" columns apply (D-20, above).
 
 - **View**, **Edit** — granted by the cited requirement or decision.
 - **—** — not granted by any requirement or decision.
@@ -51,8 +68,8 @@ far. The server enforces this (invariant 1); hiding something in the app is not 
 | Workouts and Progress | View, edit (A-004) | View, read-only (D-18) | View, read-only (D-11, D-18) | — | — | — |
 | External links the trainee added (e.g. YouTube) instead of an upload | View, edit (REQ-LOG-010, D-16) | View (D-18) | View (D-18) | — | — link hidden (D-16); the content stays viewable by anyone who has the link (R-004) | — in FitSphere; outside it, anyone who has the link (R-004) |
 | Saved meals | View, edit (REQ-SAVED-001, REQ-NUT-004) | — (D-18) | — (D-18) | — | — | — |
-| Calorie and protein targets | View only (REQ-PLAN-001, invariant 2) | View, edit (REQ-ROLE-006, D-11) | View, edit (REQ-ROLE-004, D-13) | — | — | — |
-| Weekly workout target, target body weight and daily steps target | View only (REQ-HOME-007, REQ-PRG-005, invariant 2) | View, edit (REQ-ROLE-006, D-14; Q-013 MVP default) | View, edit (REQ-ROLE-004, D-14; Q-013 MVP default) | — | — | — |
+| Calorie and protein targets | Their own: view, edit (REQ-ROLE-007; Q-016, D-20). Set by a coach: view only (REQ-PLAN-001, invariant 2) | View, edit (REQ-ROLE-006, D-11) | View, edit (REQ-ROLE-004, D-13) | — | — | — |
+| Weekly workout target, target body weight and daily steps target | Their own: view, edit (REQ-ROLE-007, D-20). Set by a coach: view only (REQ-HOME-007, REQ-PRG-005, invariant 2) | View, edit (REQ-ROLE-006, D-14; Q-013 MVP default) | View, edit (REQ-ROLE-004, D-14; Q-013 MVP default) | — | — | — |
 | Diet plan and training plan | View | View, edit (REQ-ROLE-006) | View, edit (D-08, D-13) | — | — | — |
 | Who made the latest change to a target or plan ("Set by <name>"), and when | View (D-13, D-14) | View (D-13, D-14) | View (D-13, D-14) | — | — | — |
 | Settings and AI consent | View, change (REQ-ACC-*) | — never (D-13) | — never (D-13) | — never (D-13) | — | — |

@@ -3,11 +3,26 @@
 ## Purpose
 FitSphere is a coach-led fitness app. Clients log food, body metrics and workouts against
 targets set by their coach; Coaches manage their trainees; Head Coaches manage Coaches.
+**The MVP delivers only the Personal Training User view (D-20):** users set their own targets;
+Coach and Head Coach are post-MVP.
 
 ## Current phase
 **Skeleton slice — the first implementation slice.** Plan approved by the owner on 2026-10-28:
 `docs/plans/skeleton-slice.md`. One branch and pull request per step; CI must pass before merge;
 stop after each step for the owner's check (D-18 answer 14).
+
+**Builds and devices (D-19).** No Android Studio, emulator or local Android builds. Development
+builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
+native code changes, and **tell the owner before every cloud build** (free plan: 15 Android
+builds a month). Live code: `npx expo start --dev-client --tunnel`. Checks that need a cable are
+marked "USB + adb".
+
+**Personal Training User only (D-20).** No Coach or Head Coach roles, invitations, links, Head
+Coach permission, Notifications list or push in the MVP; the role selector is hidden. Keep the
+data model able to add links later without rework, but build no link or permission features or
+screens. Authorization tests cover self-access and "no other user's data". Slices, in order:
+Skeleton; Home and daily tracking; Meal logging (no AI); Training; Progress; Settings and
+account; AI meal reading; Release (`mvp-scope.md` section 5).
 
 **MVP first (D-18).** Build the basic product in `docs/product/mvp-scope.md`, Android first.
 Post-MVP work and deferred edge cases go to `docs/product/backlog.md`. When an open question
@@ -24,8 +39,8 @@ Approved stack:
   plan in phase 1 with no backups (ADR-0002, ADR-0003, Accepted — D-17; D-16, R-005).
 - API host: Google Cloud Run in Mumbai once Q-087 is settled; until then the API runs locally.
 - Sign-in and authorization: Supabase Auth, with every request authorized by one access module
-  in the Node API; email through Resend from a domain FitSphere owns; Expo push (ADR-0004,
-  Accepted — D-18).
+  in the Node API; email through Resend from a domain FitSphere owns (still required at the MVP
+  release, D-20); Expo push, post-MVP (ADR-0004, Accepted — D-18).
 - AI meal reading: Gemini 3.1 Flash-Lite on the paid tier, through one AI module; voice is
   recognised on the phone only (ADR-0005, Accepted — D-18). Paid use needs the owner's sign-off
   on billing and the monthly cap (C-008, Q-087).

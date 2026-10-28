@@ -326,6 +326,10 @@ In the first implementation slice, with synthetic data only (invariant #7):
    viewing link stops working after 5 minutes.
 6. Confirm that API logs contain no health data, media links or tokens.
 
+*D-20 (2026-10-28):* the MVP has no links, so step 4's cases run post-MVP with links (backlog
+B-19). The MVP's first authorization tests cover self-access and "no other user's data". The
+decision is unchanged.
+
 Record each result, with its date, under "Validation results". A failed step that the
 documented fallback does not fix triggers the revisit conditions; changing the decision needs a
 new ADR that supersedes this one.

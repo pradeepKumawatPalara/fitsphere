@@ -129,6 +129,10 @@ sign-in cost at scale becomes the main cost (ADR-0002 stage 3), revisit with B o
 7. Account deletion with synthetic data: rows and files gone, links ended, the other side
    gets the message, the sign-in account deleted, the admin log holds no health data.
 
+*D-20 (2026-10-28):* the MVP has no Coach or Head Coach, so steps 4, 5 and 6, and the link part
+of step 7, run post-MVP with links, push and invitations (backlog B-18 to B-22). The decision is
+unchanged. Step 1's emails from FitSphere's domain run in the MVP's Release slice.
+
 Record each result, with its date, under "Validation results". A failed step that the rules
 above cannot fix triggers the revisit conditions; changing the decision needs a new ADR that
 supersedes this one.
@@ -143,7 +147,7 @@ limits change; iOS release (push credentials for Apple).
 ## Open questions and handling
 | Question | Handling |
 |---|---|
-| Q-082 email service and domain | Answered by this ADR (Resend + owned domain); owner buys the domain (C-008 sign-off) before the invitations slice |
+| Q-082 email service and domain | Answered by this ADR (Resend + owned domain); owner buys the domain (C-008 sign-off) before the Release slice, which sets up Resend for the sign-up and reset emails (D-20; previously "before the invitations slice") |
 | Q-083 push service | Answered by this ADR (Expo push; FCM credentials for Android) |
 | Q-073 invitation rules | Answered for the MVP (D-18): rule 5 |
 | Q-080 unverified accounts, link validity | MVP default (D-18): an account must verify its email before it can sign in; verification and reset links expire within 24 hours (exact value set at setup and recorded under "Validation results") |

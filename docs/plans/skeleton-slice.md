@@ -2,7 +2,9 @@
 
 - Status: **Accepted** — approved by the project owner on 2026-10-28 (D-18 answer 14)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28
+- Last updated: 2026-10-28 (D-19: development on the owner's phone with EAS Build; no emulator.
+  D-20: the MVP is the Personal Training User view only; steps 11 and 12 moved to the backlog,
+  step 9 simplified to self-access)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) (D-18), the contracts in
   [`docs/contracts/`](../contracts/), [`test-strategy.md`](../quality/test-strategy.md),
   [`definition-of-done.md`](../quality/definition-of-done.md), ADR-0001 to ADR-0007
@@ -13,7 +15,7 @@ feature work:
 - sign-in through Supabase (ADR-0004);
 - IST dates (invariant #5);
 - weight logging online and offline (ADR-0007);
-- server-side authorization (invariant #1);
+- server-side authorization, which is self-access only in the MVP (invariant #1, D-20);
 - the ADR-0001 to ADR-0007 validation steps that fit this slice.
 
 Where the contracts define something, this plan does not repeat it.
@@ -21,12 +23,15 @@ Where the contracts define something, this plan does not repeat it.
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Monorepo, tooling and CI | In review | `skeleton/01-monorepo-ci` |
-| 2–12 | Not started | — |
+| 1. Monorepo, tooling and CI | Done (merged 2026-10-28) | `skeleton/01-monorepo-ci` |
+| 2. App shell on the phone | In progress: waiting for the API access choice (Q-093) and the first EAS build | `skeleton/02-app-shell` |
+| 3–10 | Not started | — |
+| 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)
-1. Install JDK 17 and set a **user-level** `JAVA_HOME` to it. Install Android SDK Platform 36.
-   Restart VS Code ([runbook](../operations/runbook.md) step 2).
+1. Install EAS CLI, sign in to Expo, and link the app to an EAS project
+   ([runbook](../operations/runbook.md) step 2). Turn on USB debugging on the phone for the
+   "USB + adb" checks (runbook step 3). No JDK, Android SDK or emulator (D-19).
 2. Install PostgreSQL 17 for Windows, for the tests (native install, not Docker: D-18 answer 14).
 3. Create `apps/api/.env` and `apps/mobile/.env` from the examples and fill them in.
 4. Supabase checks (runbook step 5):
@@ -38,7 +43,7 @@ item 4.
 
 ## Decisions
 Approved with this plan. Decisions 2, 3 and 5, and the native PostgreSQL for tests, are also
-recorded as D-18 answer 14.
+recorded as D-18 answer 14. D-20 changed decision 5.
 
 **1. Tools and dependencies**
 
@@ -47,14 +52,20 @@ recorded as D-18 answer 14.
 | Root (dev) | `typescript` (`~6.0`, the version Expo SDK 58 uses; typescript-eslint supports up to 6.0), `eslint`, `typescript-eslint`, `@eslint/js`, `@types/node` | Strict types and lint, run in CI |
 | `packages/shared` | `zod`; dev: `vitest` | One strict schema for the app and the API ("Strict input"); IST dates and units |
 | `apps/api` | `fastify`, `jose`, `pg`; dev: `vitest`, `@types/pg` | Fastify's built-in logger can remove fields by configuration (log rule), and its route hook supports the route-listing test. `jose` checks tokens against JWKS. `pg` with plain SQL |
-| `apps/mobile` | Expo SDK 58 (blank TypeScript), `expo-router`, `expo-dev-client`, `@supabase/supabase-js`, `expo-secure-store`, `expo-sqlite` (SQLCipher), `expo-crypto`, `expo-network`, `expo-notifications` (step 11); dev: `jest-expo`, `jest`, `@types/jest`, `@testing-library/react-native`, `eslint-config-expo` | ADR-0001, ADR-0004 rule 3, ADR-0007; Expo's documented test path |
+| `apps/mobile` | Expo SDK 58 (blank TypeScript), `expo-router`, `expo-dev-client`, `@supabase/supabase-js`, `expo-secure-store`, `expo-sqlite` (SQLCipher), `expo-crypto`, `expo-network`; dev: `jest-expo`, `jest`, `@types/jest`, `@testing-library/react-native`, `react-dom` (pinned to the app's React version, see below) | ADR-0001, ADR-0004 rule 3, ADR-0007; Expo's documented test path |
+| Root (dev), for the app | `eslint-plugin-react-hooks`, `eslint-plugin-expo` | In place of `eslint-config-expo`: version 58 bundles a React plugin that fails on ESLint 10 (step 2). These are the two plugins from it that matter here, at the versions it uses |
+| The PC, globally (not a project dependency) | `eas-cli` (26.0.0 on 2026-10-28) | Development builds on EAS (D-19); installed globally as Expo's guide does. `apps/mobile/eas.json` sets the minimum version |
 
 - Each package is installed in the first step that uses it.
 - Deliberately **not** added: a date library (IST is a fixed +05:30 offset), an ORM, `dotenv`
   (Node 24 has `--env-file`), a TypeScript runner (Node 24 runs the API's TypeScript directly),
-  Prettier.
+  Prettier, and `@expo/ngrok` (Expo's own tunnel is the default, D-19).
 - Migrations are numbered SQL files applied by a small, tested runner.
 - Workspaces use npm, which needs no extra tool. Expo sets up Metro for monorepos from SDK 52.
+- **One copy of React.** Two copies break the app at runtime (Expo's monorepo guide). Expo's
+  command-line tools pull in `react-dom` as an optional peer, and an unpinned one asks for a newer
+  React than the app's. So `apps/mobile` pins `react-dom` to the app's React version, and the
+  root `overrides` pin both. Check with `npm ls react react-dom --all`: one version of each.
 
 **2. Workflow**
 - One branch and one pull request per step.
@@ -65,16 +76,31 @@ recorded as D-18 answer 14.
 rules; leaked-password checks need the Pro plan.
 
 **4. App identity: Android application ID `com.fitsphere.app`, link scheme `fitsphere`.** The
-application ID cannot change after the first Play Store upload, and the Firebase setup (step 11)
-depends on it.
+application ID cannot change after the first Play Store upload, and the Firebase setup for push
+(backlog B-23) depends on it.
 
-**5. The push check stays in the Skeleton (D-13).** It needs a free Firebase project.
+**5. The push check is post-MVP (D-20).** It was kept in the Skeleton under D-13 and D-18
+answer 14. D-20 moved it, with the iOS compile check, to the backlog (B-23, B-24), so the
+Skeleton needs no Firebase project and no `expo-notifications`.
 
 **6. New MVP default, recorded in step 10:** a new account's body-weight unit is kg (the BRD says
 "Weight (kg)"). The Skeleton shows kg until the Settings slice adds the setting (REQ-ACC-003).
 
 **7. Claude Code is denied reading or writing `.env` files** by the committed
 `.claude/settings.json` ([runbook](../operations/runbook.md) step 6).
+
+**8. Builds and devices (D-19, 2026-10-28).**
+- Development builds come from EAS Build (`development` profile) and are installed on the
+  owner's phone from the EAS link. There is no emulator and no local Android build.
+- A new build is needed only when native code changes:
+  - a package with native code is added or upgraded;
+  - a native setting in `app.json` changes;
+  - the Expo SDK is upgraded.
+- Claude Code tells the owner before each build.
+- Live code: `npm run start -w @fitsphere/mobile` (`expo start --dev-client --tunnel`).
+- A development build loads its code from the PC each time it starts, so it cannot be reopened
+  with the network off. Checks that reopen the app offline, and checks that read the phone's
+  files, are marked **USB + adb**.
 
 ## Steps
 Each step lists its requirements, what it builds, its automated tests, and a check the owner
@@ -101,27 +127,35 @@ runs. Test names start with the REQ ID or ADR step they check.
 
 **Tests:** health returns `{ "status": "ok" }`, through Fastify's in-process request helper.
 
-**Owner's check (PC; no emulator yet)**
+**Owner's check (PC)**
 - `npm run lint`, `npm run typecheck` and `npm test` pass.
 - With the API started (`npm run dev -w @fitsphere/api`), `http://127.0.0.1:3000/v1/health` in a
   browser shows `{"status":"ok"}`.
 - CI is green on the pull request.
 
-### Step 2: App shell on the emulator (ADR-0001 step 1)
+### Step 2: App shell on the phone (ADR-0001 step 1; D-19)
 **Builds**
 - A blank TypeScript Expo app in `apps/mobile`, keeping its existing `.env.example`.
 - `expo-router` and `expo-dev-client`.
 - `app.json` with the name, the `fitsphere` scheme and the `android.package` from decision 4.
-- A development build through `npx expo run:android`.
+- `eas.json` with a `development` profile: a development client (Gradle's debug build) with
+  internal distribution, which gives an install link and QR code.
+- One EAS Android development build, installed on the phone from its link.
+- `npm run start -w @fitsphere/mobile` runs `expo start --dev-client --tunnel`.
 - A screen that imports a value from `@fitsphere/shared` (proves the workspace link) and calls
   `GET /v1/health`.
+- How the phone reaches the API during development: the owner's choice (Q-093), set up in the
+  runbook's step 8.
 
 **Tests:** jest-expo set up; the screen shows "API: ok" or "API: unreachable".
 
-**Emulator check**
-- The build installs and opens.
+**Phone check (OnePlus Nord CE4)**
+- The build installs from the EAS link and opens.
+- With `npm run start -w @fitsphere/mobile` running, the app loads its code through the tunnel.
+  A change to the screen's text shows on the phone without a new build.
 - With the API running, it shows "API: ok"; stop the API and it shows "API: unreachable".
-- This also confirms that the development build allows plain HTTP to `10.0.2.2`.
+- If the chosen route to the API is plain HTTP, this also confirms that the development build
+  allows it.
 - Result recorded in ADR-0001.
 
 ### Step 3: Shared dates, units and contract schemas (REQ-DATE-001…004, REQ-HOME-006; invariants #5 and #6)
@@ -140,10 +174,10 @@ runs. Test names start with the REQ ID or ADR step they check.
 - Out-of-range values are refused, and so are unknown fields.
 - In CI, all of these run in two time zones.
 
-**Emulator check**
+**Phone check**
 - The screen shows "Today (IST): …".
-- Set the emulator's time zone to America/Los_Angeles: the IST date stays right while the clock
-  changes.
+- In the phone's date and time settings, turn off the automatic time zone and choose Los
+  Angeles: the IST date stays right while the clock changes. Set it back afterwards.
 
 ### Step 4: Database schema and migrations (data model; ADR-0003 (a)–(e); ADR-0002 step 2)
 **Builds**
@@ -153,6 +187,9 @@ runs. Test names start with the REQ ID or ADR step they check.
     `applied_changes`;
   - checks and the partial unique index;
   - row level security turned on with no policies.
+- `user_roles`, `links` and `head_coach_permission_answers` are created so that links can be
+  added later without rework (D-20). In the MVP only the database tests below write `links` and
+  `head_coach_permission_answers`; no route, screen or other fixture does.
 - A migration runner: each numbered file runs in one transaction, applied files are recorded,
   and an applied file that was later edited is refused.
 
@@ -164,7 +201,7 @@ runs. Test names start with the REQ ID or ADR step they check.
 - (c) A weekly-average query over 10,000 synthetic weigh-ins: the time is recorded, with no
   target (Q-050).
 
-**Owner's checks (Supabase; no emulator)**
+**Owner's checks (Supabase; no phone)**
 - Run the migrations on `fitsphere-dev`.
 - Turn **Enable Data API** off. One given command shows the auto-generated REST endpoint returns
   nothing (ADR-0002 step 2, ADR-0003 (e)).
@@ -220,10 +257,10 @@ recorded in the runbook.
 - The sign-in failure text and the offline warnings.
 - Account setup sends the confirmation and the text version.
 
-**Emulator checks:** these use about 2 emails, within the built-in sender's 2 per hour.
+**Phone checks:** these use about 2 emails, within the built-in sender's 2 per hour.
 1. Sign up with your own address and see the neutral text.
 2. Try to sign in before verifying: it is refused (Q-080).
-3. Open the email link on the emulator, using its browser or a single given `adb` command.
+3. Open the email link on the phone, from its email app.
 4. Sign in, complete account setup, and Home shows your email.
 5. Log out.
 6. Sign up again with your address, then with an address outside your team: same text. One
@@ -239,8 +276,8 @@ password" (`updateUser`).
 
 **Tests:** the neutral text for every outcome; the password rules; handling of the link.
 
-**Emulator check (1 email)**
-- Request a reset for your address, open the link on the emulator, set a new password, log out,
+**Phone check (1 email)**
+- Request a reset for your address, open the link on the phone, set a new password, log out,
   and sign in with the new password.
 - A reset for an address outside your team shows the same text.
 
@@ -258,29 +295,35 @@ password" (`updateUser`).
 **Tests:** outbox, pruning and log-out decisions against an in-memory repository; the "SQLCipher
 missing" path.
 
-**Emulator checks**
+**Phone checks**
 - The start-up check passes.
-- In airplane mode, the 1,000-row check passes, and its times are recorded (ADR-0001 step 4).
-- Copy the database file off the emulator with a given `adb … run-as` command; a SQLite viewer
-  cannot open it (ADR-0007 step 6).
+- With the app open, turn on airplane mode: the 1,000-row check passes, and its times are
+  recorded (ADR-0001 step 4). Do not reload the app while offline (decision 8).
+- **USB + adb:** copy the database file off the phone with a given `adb … run-as` command
+  (development builds are debuggable, which `run-as` needs); a SQLite viewer cannot open it
+  (ADR-0007 step 6).
 
-### Step 9: Sync and weigh-in reads; the authorization suite (REQ-NFR-001, REQ-NFR-004, REQ-HOME-006, REQ-ROLE-005, REQ-ROLE-013; ADR-0002 step 4, ADR-0004 step 4; T-02)
+### Step 9: Sync and weigh-in reads; the self-access authorization suite (REQ-NFR-001, REQ-NFR-004, REQ-HOME-006; T-02; D-20)
 **Builds**
 - `POST /v1/sync` exactly as in `api-conventions.md`:
   - once-only through `applied_changes`, with the user-row lock and `change_seq`;
   - checks per change: `DAY_IN_FUTURE`, `VALIDATION_FAILED`, `ROLE_NOT_ENABLED`,
     `UNKNOWN_CHANGE_TYPE`;
   - the cursor, the 90-day window, pages of 500, and `413` above 100 changes.
-- `GET /v1/users/{userId}/weigh-ins` through the access module.
-- Test fixtures that build links and answers (no invitation API yet).
+- `GET /v1/users/{userId}/weigh-ins` through the access module, with one rule in the MVP: the
+  user themselves (D-20). The user's ID stays in the path, so coach access can be added later as
+  a rule, not a new route.
 
 **Tests**
-- The sync list and the whole authorization table in the test strategy.
-- No route writes another user's weigh-ins.
+- The sync list and the authorization table in the test strategy: the user gets their own
+  weigh-ins; anyone else gets `404`.
+- No other user's data: a second user's sync never changes or returns the first user's
+  weigh-ins, even with the same day and `changeId`; no route writes another user's weigh-ins.
 - The log test with a weight value.
-- ADR-0004 step 4's target case waits for the Plans slice.
+- Post-MVP (D-20; backlog B-19 to B-21): the link, Head Coach permission and coach-target cases
+  of ADR-0002 step 4 and ADR-0004 step 4, with the fixtures that build links and answers.
 
-**Owner's check:** the integration suite is green on the PC and in CI. No emulator check in this
+**Owner's check:** the integration suite is green on the PC and in CI. No phone check in this
 step.
 
 ### Step 10: Log and view weight, online and offline (REQ-HOME-006, REQ-DATE-001/002/003, REQ-NFR-004, REQ-ACC-008; ADR-0007 rules 1, 2, 6 and 7)
@@ -303,56 +346,65 @@ step.
 - The sync client: a failed sync keeps the outbox; a rejected change is kept; the pull is
   applied; pruning never removes pending or rejected entries.
 
-**Emulator checks**
+**Phone checks**
 1. Log today's weight, then change it: the new value replaces the old.
 2. Pick a past day: the banner shows; log a weight; "Back to today" returns. Future days cannot
    be picked.
-3. **ADR-0007 step 1:** in airplane mode, log a weight, force-stop and reopen the app (the entry
-   is still pending), then go back online: it syncs. Log out and sign in again: the server
-   restores exactly one value for that day.
-4. **ADR-0007 step 4:** turn automatic date off and set the emulator one day ahead. A weight for
+3. **ADR-0007 step 1 (USB + adb):** in airplane mode, log a weight, force-stop and reopen the app
+   (the entry is still pending), then go back online: it syncs. Log out and sign in again: the
+   server restores exactly one value for that day. To reopen offline, the app's code comes over
+   USB (`adb reverse tcp:8081 tcp:8081` with `npx expo start --dev-client --localhost`, no
+   tunnel; decision 8). The given commands also make sure the API cannot be reached over USB
+   while the phone is offline.
+4. **ADR-0007 step 4:** turn automatic date off and set the phone one day ahead. A weight for
    its "today" is rejected (`DAY_IN_FUTURE`) and stays, even after a restart, until you discard
-   it.
+   it. Set the date back afterwards.
 5. **ADR-0007 step 5:** with the time zone set to Los Angeles at a time when its date differs
    from India's, the entry still gets the IST day.
 6. Log out with a pending entry: the warning appears, and "Stay signed in" keeps you signed in.
 7. **ADR-0001 step 6:** a development-only screen shows the history list with 200 synthetic
    rows; scroll it. This counts as partial until a low-end phone is available.
 
-### Step 11: Push check (ADR-0001 step 7; D-13 answer 9)
-**Owner:** create a free Firebase project, add an Android app with `com.fitsphere.app`, create an
-FCM V1 key, and upload it to EAS credentials (Expo's guide). The key stays in the password
-manager, never in the repository.
-
-**Builds:** `expo-notifications`, the permission prompt, and a development-only screen showing
-the Expo push token on the phone. It is not logged. How `google-services.json` reaches builds
-stays outside the repository.
-
-**Emulator check:** send a notification to that token with Expo's push tool; it arrives. The
-emulator image needs Google Play services. Confirms Q-083. Server-side push comes with the Links
-slice (ADR-0004 step 5).
-
-### Step 12: iOS compile check and close-out (ADR-0001 step 5)
-- An EAS iOS simulator build (`npx eas-cli build --platform ios --profile simulator`). It uses 1
-  of the free plan's iOS builds and needs no Apple account.
+**Close-out** (in step 10's pull request; it was part of step 12 until D-20)
 - Record every validation result, with its date, in ADR-0001, 0002, 0003, 0004 and 0007.
 - Update the test-strategy tools, the runbook commands, `CLAUDE.md` "Current phase" and the docs
   index.
 - Add anything deferred to `backlog.md`.
 
+Steps 11 (push check) and 12 (iOS compile check) are no longer in the Skeleton: D-20 moved them
+to the backlog as B-23 and B-24, with what each needs.
+
 ## Risks
-- **R-002, framework surprises:** they would show up first in step 2 (Gradle and JDK) and step 8
-  (SQLCipher). The fallback is ADR-0007 rule 5 (encrypting fields); if encryption would break a
-  feature, it goes to the owner (D-14).
+- **R-002, framework surprises:** they would show up first in step 2 (the first EAS build) and
+  step 8 (SQLCipher). The fallback is ADR-0007 rule 5 (encrypting fields); if encryption would
+  break a feature, it goes to the owner (D-14). Before D-19, a local build on the PC
+  (`expo run:android`, 2026-10-28) stopped twice: at Windows' 260-character path limit in the
+  native build, and at a Gradle download that timed out on the owner's network. It never produced
+  an app.
+- **EAS free plan (D-19):** 15 Android builds a month, in a low-priority queue, so a build may
+  wait. Packages with native code are added in steps 6 (`expo-secure-store`), 8 (`expo-sqlite`,
+  `expo-crypto`) and 10 (`expo-network`). With step 2, that is about 4 builds in the Skeleton,
+  plus any that fail. If the limit blocks work for two months in a
+  row, ADR-0001's revisit condition applies.
+- **Expo's tunnel (D-19):** while it runs, the development server has a public address. It serves
+  the app's code, which holds only publishable values. Stop it when not in use. If the tunnel
+  service is down, live code stops; `--tunnel ngrok`, or the development server over USB
+  (decision 8), are the fallbacks.
 - **Built-in email (team addresses only, 2 per hour):** steps 6 and 7 are paced for it. ADR-0004
   step 2's timing part waits for Resend.
 - **Re-testing first sign-up with the same address:** it needs the old test account removed from
   both Supabase Auth and the development database, because `users.email` is unique. A
   development-only script is added if needed.
 - **Free project pauses after 1 week without activity:** resume it as in the runbook.
+- **Known `npm audit` findings in development tools (2026-10-28), no fix available:** a `zod`
+  3.x copy inside Expo's command-line tools (memory exhaustion on oversized input, high; fixed in
+  4.6.6, which step 3 uses) and `deepmerge` 4.3.1 in Expo's config loader and Jest (prototype
+  pollution, low; no fixed release). Neither is in the app bundle or the API. npm's suggested fix
+  downgrades Expo to SDK 51, so it is not applied. Re-check at each step.
 
 ## Verification (end to end, after step 10)
-On a fresh install on the emulator:
+On a fresh install on the phone (uninstall the app, then install it again from the same EAS link;
+no new build):
 1. Sign up, verify, sign in.
 2. Log a weight offline; it syncs.
 3. Log out and sign in: the history is restored from the server.

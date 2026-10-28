@@ -2,6 +2,9 @@
 
 - Status: **Accepted** by the project owner on 2026-10-27 without the validation spike (D-12).
   Criterion 8 (push notifications, D-13) was added in the same change, before acceptance.
+  Amended on 2026-10-28 by D-19, without changing the decision: development builds come from EAS
+  Build and checks run on the owner's phone, not the emulator ("Consequences", validation
+  step 1).
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-NAV-*, REQ-LOG-005 (voice), REQ-LOG-006 (camera), REQ-LOG-007 (barcode), REQ-MEAS-001 (bottom sheets), REQ-ROLE-009 (push), REQ-NFR-004 (offline, proposed)
@@ -113,8 +116,9 @@ See "Why it loses" under each option.
 
 ## Consequences and accepted trade-offs
 - Easier: one TypeScript codebase; shared types with a Node backend; iOS builds from Windows.
-- Harder: build minutes on the free tier are limited — plan builds, and develop mostly with
-  local Android builds and the Android emulator.
+- Harder: builds on the free tier are limited (15 Android builds a month). Rebuild only when
+  native code changes; JavaScript changes reach the phone from the development server (D-19).
+  *Before D-19: develop mostly with local Android builds and the Android emulator.*
 - Costs accepted at release: Google Play US$25 once at Android release; Apple US$99/year only
   at iOS release (C-008, D-10).
 - Risk accepted: iOS-only bugs will be found late (R-001, D-10).
@@ -124,7 +128,8 @@ See "Why it loses" under each option.
 
 ## Validation in the first slices (D-12)
 The pre-acceptance spike was skipped (D-12). Run these checks during the first slices instead:
-1. Create a blank Expo TypeScript app; run it on an Android emulator on Windows.
+1. Create a blank Expo TypeScript app; run it on an Android phone as an EAS development build
+   (D-19; previously on an Android emulator on Windows).
 2. Scan an EAN-13 barcode from a real food pack with the camera.
 3. Record 5 seconds of audio; take a photo.
 4. Save and read 1,000 rows from a local SQLite database with the network off.
@@ -132,6 +137,9 @@ The pre-acceptance spike was skipped (D-12). Run these checks during the first s
 6. Scroll a 200-row list on the lowest-end Android phone available.
 7. Verify Expo push support in the first slice (D-13): deliver a push notification to an
    Android phone.
+
+*D-20 (2026-10-28):* push and the iOS release are post-MVP, so steps 7 and 5 no longer run in the
+first slice; they are backlog items B-23 and B-24. The decision is unchanged.
 
 Record each result, with its date, under "Validation results". A failed check that optimisation
 does not fix triggers the revisit conditions; changing the decision needs a new ADR that

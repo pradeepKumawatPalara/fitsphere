@@ -2,7 +2,8 @@
 
 - Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28
+- Last updated: 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
+  backlog)
 - Builds on: [`definition-of-done.md`](definition-of-done.md); contracts in [`../contracts/`](../contracts/);
   the validation steps of ADR-0001 to ADR-0007
 
@@ -32,37 +33,42 @@ There is no coverage percentage target (Q-050: no numeric targets for the MVP). 
 |---|---|---|
 | Unit | Pure logic: IST dates, unit conversion, shared validation schemas, access-module decisions, outbox logic on the phone | Code only, no network or database |
 | Integration | API routes over HTTP with a real PostgreSQL database and the real migrations: account setup, sync, reads | A local or CI PostgreSQL with synthetic data |
-| Authorization suite | The permission matrix, case by case, through the API | As integration |
+| Authorization suite | The permission matrix, case by case, through the API. In the MVP: self-access and "anyone else" (D-20) | As integration |
 | Database | Constraints and transactions in ADR-0003's validation | As integration |
 | App components | Screens and hooks with Supabase and the API replaced by fakes | Code only |
-| Device checks (manual) | What only a phone or the real Supabase project can show: offline behaviour, encryption, emails, the Data API switch | Android emulator, a real Android phone, the Supabase development project |
+| Device checks (manual) | What only a phone or the real Supabase project can show: offline behaviour, encryption, emails, the Data API switch | The owner's Android phone with an EAS development build (no emulator, D-19), the Supabase development project |
 
 Tokens in automated tests are signed by a test key that the test run creates; the API under test
 trusts only that key. Automated tests never call Supabase.
 
 ## What the Skeleton must test
 
-### Authorization (ADR-0002 step 4, ADR-0004 step 4)
-For `GET /v1/users/{userId}/weigh-ins`:
+### Authorization (self-access in the MVP, D-20)
+The MVP has no links, so the suite covers self-access and "no other user's data" (D-20). For
+`GET /v1/users/{userId}/weigh-ins`:
 
 | Caller | Expected |
 |---|---|
 | The user themselves | `200` |
-| Their coach, link active | `200`, read-only |
-| Their former coach, link ended | `404` |
-| A coach with no link to the user | `404` |
-| Head Coach of the user's coach, trainee's answer "allowed" | `200`, read-only |
-| Same Head Coach, answer "declined" or no answer | `404` |
-| Same Head Coach after the trainee changes "allowed" to "declined" | `404` |
-| A new Head Coach after the coach switched, old answers "allowed" | `404` (answers do not carry over) |
-| A Head Coach reading their coach's own weigh-ins | `404` (D-10) |
+| Another signed-in user, with an account set up | `404` |
+| Any signed-in user, for a user ID that does not exist | `404`, the same as for another user |
 | No token, or an expired token, or one signed by another key | `401` |
 | Signed in, account not set up | `403 ACCOUNT_SETUP_REQUIRED` |
 
 Also:
 - no route lets anyone write another user's weigh-ins;
+- a second user's sync never changes or returns the first user's weigh-ins, even with the same
+  day and `changeId`;
 - logging a weight without the Personal Training User role is rejected (`ROLE_NOT_ENABLED`);
 - the route-listing test fails if a route has no access rule.
+
+**Post-MVP (D-20; backlog B-19 to B-21):** added with links, these cases from ADR-0002 step 4
+and ADR-0004 step 4 — their coach, link active: `200`, read-only; their former coach, link
+ended: `404`; a coach with no link: `404`; the Head Coach of the user's coach with the answer
+"allowed": `200`, read-only; the same Head Coach with "declined", no answer, or after a change
+from "allowed" to "declined": `404`; a new Head Coach after a switch, old answers "allowed":
+`404`; a Head Coach reading their coach's own weigh-ins: `404` (D-10); a trainee changing a
+coach-set target: refused (invariant #2).
 
 ### Sync (ADR-0007)
 - A change sent twice is applied once, and the second reply matches the first.
@@ -92,6 +98,8 @@ Also:
 - The app shows the same neutral text for every sign-up and reset outcome from Supabase.
 
 ### Database (ADR-0003 validation)
+Links are post-MVP, but their tables are created in the Skeleton so links can be added later
+without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - (a) a second active coach link for one trainee is rejected;
 - (b) switching is all-or-nothing: a failure after ending the old link leaves it active;
 - (c) a weekly-average query over 10,000 synthetic weigh-ins: record the time (no target, Q-050);
@@ -108,13 +116,12 @@ Recorded, with the date, under "Validation results" in the ADR named:
 
 | Check | ADR step |
 |---|---|
-| Blank Expo TypeScript app runs on the Android emulator on Windows | ADR-0001 step 1 |
+| Blank Expo TypeScript app runs on the owner's Android phone as an EAS development build (D-19) | ADR-0001 step 1 |
 | 1,000 rows saved to and read from the local database with the network off | ADR-0001 step 4 |
-| An iOS build compiles on EAS (simulator build, no device) | ADR-0001 step 5 |
 | A 200-row weight history list scrolls smoothly on the lowest-end Android phone available | ADR-0001 step 6 |
 | Data API off: Supabase's auto-generated endpoints return nothing; Supabase Auth still works | ADR-0002 step 2, ADR-0003 (e), ADR-0004 step 3 |
 | The API connects through Supabase's connection pooler | ADR-0002 step 3 (Cloud Run part waits for Q-087) |
-| Sign-up, reset and sign-in with a registered and an unregistered address, through the app and directly against Supabase Auth: same app text, no revealing Supabase response (Confirm email and Confirm phone both on). The timing part is limited by the built-in sender (team addresses only, 2 emails an hour) and is repeated with Resend in the invitations slice | ADR-0004 step 2 |
+| Sign-up, reset and sign-in with a registered and an unregistered address, through the app and directly against Supabase Auth: same app text, no revealing Supabase response (Confirm email and Confirm phone both on). The timing part is limited by the built-in sender (team addresses only, 2 emails an hour) and is repeated with Resend in the Release slice (D-20) | ADR-0004 step 2 |
 | Account setup is refused while the email is unverified | ADR-0004 step 3, Q-080 |
 | SQLCipher is active in the development build (the start-up check passes) | ADR-0007 step 6 |
 | An expired token is refused by the API | ADR-0004 step 3 |
@@ -122,12 +129,14 @@ Recorded, with the date, under "Validation results" in the ADR named:
 | A rejected own change stays on the phone until fixed or discarded | ADR-0007 step 4 |
 | Phone set to another country's time zone: the entry still gets the IST day chosen | ADR-0007 step 5 |
 | The phone's database file is unreadable without the key | ADR-0007 step 6 |
-| A push notification sent through Expo's push service reaches the Android phone (development build, FitSphere's own FCM credentials) | ADR-0001 step 7, D-13 answer 9 |
 
-Not in the Skeleton: barcode, audio, photos, AI, food data, invitations, account deletion, the
-push token removed at log out, coach-phone removals (ADR-0001 steps 2–3, ADR-0002 step 5,
-ADR-0004 steps 1 and 5–7, ADR-0005, ADR-0006, ADR-0007 steps 2–3). Each runs in the slice that
-builds the feature.
+Not in the Skeleton: barcode, audio, photos, AI, food data, account deletion (ADR-0001 steps
+2–3, ADR-0002 step 5, ADR-0004 steps 1 and 7, ADR-0005, ADR-0006). Each runs in the MVP slice
+that builds the feature.
+
+Post-MVP (D-20): the push check (ADR-0001 step 7, backlog B-23), the iOS compile check
+(ADR-0001 step 5, B-24), invitations, the push token removed at log out, the link cases and
+coach-phone removals (ADR-0002 step 4, ADR-0004 steps 4–6, ADR-0007 steps 2–3; B-18 to B-22).
 
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's
@@ -167,8 +176,9 @@ above do not depend on the tools.
 | Unit, integration, authorization and database tests | Vitest | `packages/shared`, `apps/api` |
 | API requests in tests | Fastify's in-process request helper (`inject`); no network | `apps/api` |
 | App unit and component tests | Jest with the `jest-expo` preset, and React Native Testing Library | `apps/mobile`, from Skeleton step 2 |
-| Lint and types | ESLint with typescript-eslint; TypeScript `~6.0` in strict mode, the version Expo SDK 58 uses | Whole repository |
+| Lint and types | ESLint with typescript-eslint; for the app also `eslint-plugin-react-hooks` and `eslint-plugin-expo`. TypeScript `~6.0` in strict mode, the version Expo SDK 58 uses | Whole repository |
 | Test database | PostgreSQL 17: installed natively on the PC (D-18 answer 14); a service container in CI | `TEST_DATABASE_URL` |
+| Device checks | An EAS development build (`development` profile) on the owner's phone; live code through Expo's tunnel; `adb` only for checks marked "USB + adb" (D-19) | `apps/mobile/eas.json` |
 | CI | GitHub Actions: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | — |
 
 How to run each check: [runbook](../operations/runbook.md#7-install-the-code-and-run-the-checks).

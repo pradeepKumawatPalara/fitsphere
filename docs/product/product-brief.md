@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28 (D-20: the MVP is the Personal Training User view only)
 - Source: [`source/business-requirements.txt`](source/business-requirements.txt)
 
 ## Problem
@@ -39,14 +39,17 @@ stage would cost (D-15).
 The first release is the MVP in [`mvp-scope.md`](mvp-scope.md) (D-18): the basic product from
 the BRD sections 1–11, captured as REQ IDs in [`requirements.md`](requirements.md) — navigation
 and global date handling, Home dashboard, measurements, Nutrition (Consumed / Diet plan / Saved),
-Log meal (incl. AI reading), Training, Progress, Account & settings, and the three role views.
-Parts marked **Post-MVP** wait for later releases; they and deferred edge cases are listed in
-[`backlog.md`](backlog.md).
+Log meal (incl. AI reading), Training, Progress, and Account & settings — for the **Personal
+Training User view only** (D-20). Users set their own targets; the Diet plan and Training tabs
+show their empty states. Coach and Head Coach views, invitations, links, the Notifications list
+and push notifications come after the MVP. Parts marked **Post-MVP** wait for later releases;
+they and deferred edge cases are listed in [`backlog.md`](backlog.md).
 
 Phase 1 releases on Android first; iOS follows once an iPhone is available for testing (D-10).
 
-The MVP comes first; slices within it are not decided. A suggested first vertical slice is in
-[`../architecture/constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#suggested-first-slice).
+The MVP is built in eight slices, in the order set by the owner (D-20): Skeleton; Home and daily
+tracking; Meal logging (no AI); Training; Progress; Settings and account; AI meal reading;
+Release ([`mvp-scope.md`](mvp-scope.md) section 5).
 
 ## Non-goals (proposed — confirm, Q-003)
 - Payments, subscriptions or coach billing.

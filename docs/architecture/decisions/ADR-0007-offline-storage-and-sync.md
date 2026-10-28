@@ -110,6 +110,9 @@ If real-time collaboration or large offline datasets become needed, B becomes at
    user chose.
 6. Inspect the phone's database file: unreadable without the key.
 
+*D-20 (2026-10-28):* the MVP has no Coach or Head Coach, so steps 2 and 3 run post-MVP with
+links (backlog B-19, B-20). The decision is unchanged.
+
 Record each result, with its date, under "Validation results". A failed step that the rules
 above cannot fix triggers the revisit conditions; changing the decision needs a new ADR that
 supersedes this one.

@@ -2,11 +2,14 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28 (D-20: links and permission answers kept in the schema, unused in the
+  MVP)
 - Builds on: ADR-0002, ADR-0003, ADR-0004, ADR-0007; invariants #1, #5, #6, #7
 
 Covers users, roles, links, Head Coach permission answers and weigh-ins, plus the sync
-bookkeeping the Skeleton needs. D- numbers refer to
+bookkeeping the Skeleton needs. The MVP is the Personal Training User view only (D-20): links and
+permission answers are post-MVP, but their tables stay in the schema so links can be added later
+without rework. D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md). The permission
 matrix is in the [threat model](../security/data-and-threat-model.md#permission-matrix); it is
 not repeated here.
@@ -63,6 +66,8 @@ not stored on the server; the server checks roles turned on, never the active ro
 
 - Primary key: (`user_id`, `role`).
 - Account setup turns on `personal` (Personal Training User) — MVP default, D-18.
+- In the MVP no other role can be turned on: the role selector is hidden and no route turns on
+  `coach` or `head_coach` (D-20, backlog B-17).
 - Turning a role off is not in the Skeleton (backlog E-03). Turning on Coach or Head Coach gives
   no access to anyone's data (REQ-ROLE-001).
 
@@ -93,8 +98,9 @@ Integrity rules (ADR-0003):
   create the new one. If either step fails, neither happens.
 - The API checks that the upper user has the matching role turned on (`coach` or `head_coach`)
   before creating a link.
-- In the Skeleton, links are created only by test fixtures and the switching test; invitations
-  (REQ-ROLE-008, REQ-ROLE-009) come in a later slice.
+- Links are post-MVP (D-20, backlog B-19). The table is created in the Skeleton so links can be
+  added later without rework; in the MVP only ADR-0003's database tests write it. Invitations
+  (REQ-ROLE-008, REQ-ROLE-009) are post-MVP too (backlog B-18).
 
 ### `head_coach_permission_answers`
 A trainee's answers to "Allow Head Coach <name> to see your logs and set your plans and
@@ -114,7 +120,8 @@ targets?" (REQ-ROLE-013). Append-only: every answer and every change is a new ro
   answer, so answers never carry over (REQ-ROLE-013, REQ-ROLE-015).
 - The API checks that both links share the same coach.
 - Deleted with the trainee's account (Q-048 MVP default; Legal confirms, Q-049).
-- In the Skeleton: table and authorization tests only, no screens.
+- Post-MVP (D-20, backlog B-20). In the MVP: the table only, with no route, screen or test
+  fixture that writes it.
 
 ### `weigh_ins` — Health
 One body-weight value per user per IST day (REQ-HOME-006, REQ-PRG-001).
@@ -136,7 +143,8 @@ One body-weight value per user per IST day (REQ-HOME-006, REQ-PRG-001).
   without changing the app (ADR-0003).
 - Who may read or write it: the
   [permission matrix](../security/data-and-threat-model.md#permission-matrix) (body metrics).
-  The owner writes; their coach, and a Head Coach the trainee allows, read only (D-18).
+  The owner writes; their coach, and a Head Coach the trainee allows, read only (D-18). In the
+  MVP only the owner reads or writes it (D-20).
 - No delete in the Skeleton: no requirement asks for deleting a weigh-in. Deleted with the
   account (REQ-ACC-009).
 
@@ -207,4 +215,5 @@ rule 5 and D-14 require.
 ## Not in this document yet
 Added with the slice that needs them: invitations, Notifications list, push tokens, settings
 (units, theme, AI consent), targets and plans, meals and food data, media, measurements, steps,
-sleep, workouts, and the admin access log (REQ-NFR-005).
+sleep, workouts, and the admin access log (REQ-NFR-005). When targets are added, each target
+records who set it and when, so coach-set targets can follow without rework (D-20, invariant #2).
