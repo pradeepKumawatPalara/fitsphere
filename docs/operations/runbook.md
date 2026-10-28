@@ -176,8 +176,16 @@ root:
 | `npm run lint` | ESLint over the whole repository |
 | `npm run typecheck` | TypeScript checks in each workspace; no files are written |
 | `npm test` | Unit tests in each workspace (Vitest) |
-| `npm run test:integration` | Database tests; they need `TEST_DATABASE_URL`. None exist yet (Skeleton step 4) |
+| `npm run test:integration` | Integration, authorization and database tests. They drop and recreate schema `app` in `TEST_DATABASE_URL` (from the environment, or else from `apps/api/.env`), and refuse a Supabase address |
 | `npm run dev -w @fitsphere/api` | Runs the API at `http://127.0.0.1:3000` and restarts it on changes; reads `apps/api/.env` if it exists |
+| `npm run migrate -w @fitsphere/api` | Applies new migration files from `apps/api/migrations/` to `MIGRATION_DATABASE_URL`, each in one transaction; refuses a file that was edited after it was applied |
+| `npm run db:growth -w @fitsphere/api` | Writes 10,000 synthetic weigh-ins to `MIGRATION_DATABASE_URL` inside one transaction, prints the PostgreSQL version and the growth, then rolls everything back (R-005) |
+| `npm run check:data-api -w @fitsphere/api` | Calls Supabase's auto-generated REST endpoint with the publishable key and prints PASS when it returns no data (ADR-0002 step 2) |
+
+`TEST_DATABASE_URL` must be a URL, `postgres://postgres:<password>@localhost:5432/fitsphere_test`.
+If the password holds `/`, `#`, `?`, `@`, `%` or a space, write those characters percent-encoded
+(for example `/` as `%2F`), or give the local `postgres` user a password without them. Create the
+database once with `createdb -U postgres fitsphere_test` (PostgreSQL's `bin` folder).
 
 The API runs its TypeScript files directly on Node 24, with no build step. It listens only on
 the PC's own loopback address, so nothing else on the network can reach it; how the phone reaches
