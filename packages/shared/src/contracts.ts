@@ -157,6 +157,31 @@ export const syncResponseSchema = z.object({
 });
 export type SyncResponse = z.infer<typeof syncResponseSchema>;
 
+// --- Weigh-in history: GET /v1/users/{userId}/weigh-ins ---
+
+export const DEFAULT_LIST_LIMIT = 100;
+export const MAX_LIST_LIMIT = 500;
+
+/** Query values arrive as text; `limit` is a whole number from 1 to 500. */
+export const weighInsQuerySchema = z.strictObject({
+  from: istDaySchema,
+  to: istDaySchema,
+  limit: z
+    .string()
+    .regex(/^\d{1,3}$/)
+    .transform(Number)
+    .pipe(z.int().min(1).max(MAX_LIST_LIMIT))
+    .optional(),
+  cursor: z.string().min(1).max(200).optional(),
+});
+export type WeighInsQuery = z.input<typeof weighInsQuerySchema>;
+
+export const weighInsPageSchema = z.object({
+  items: z.array(weighInSchema),
+  nextCursor: z.string().nullable(),
+});
+export type WeighInsPage = z.infer<typeof weighInsPageSchema>;
+
 // --- Validation details ---
 
 /**

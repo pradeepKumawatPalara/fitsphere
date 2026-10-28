@@ -75,6 +75,9 @@ never removes it automatically (ADR-0007 rule 2, D-14).
 | `NOT_ALLOWED` | The user may not change this data, e.g. the link it depended on has ended (T-02). Not reachable in the Skeleton, where users write only their own data |
 | `UNKNOWN_CHANGE_TYPE` | The server does not know the change `type` |
 
+A rejected change's `error` is `{ "code", "message", "details" }`, with `details` always `null`,
+so a change sent again gets exactly the same reply (api-conventions, "Once only").
+
 `401`, `403 ACCOUNT_SETUP_REQUIRED`, `413`, `500` and `503` fail the whole sync request; the
 phone keeps its outbox and tries again later.
 

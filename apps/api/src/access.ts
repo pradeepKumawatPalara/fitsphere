@@ -1,6 +1,7 @@
 // The access module (invariant #1, ADR-0004 rule 4, api-conventions "Authorization").
 // Every route declares its rule in its config; a route without one cannot be registered, and
 // anything a rule does not allow is refused.
+import type { Role } from '@fitsphere/shared';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import { findAccount, type Account } from './accounts.ts';
@@ -65,6 +66,21 @@ export function requireIdentity(request: FastifyRequest): Identity {
 export function requireAccount(request: FastifyRequest): Account {
   if (!request.account) throw new ApiError('ACCOUNT_SETUP_REQUIRED');
   return request.account;
+}
+
+/** Roles the account has turned on; the app's active role is never used (REQ-ROLE-002). */
+export function hasRole(account: Account, role: Role): boolean {
+  return account.roles.includes(role);
+}
+
+/**
+ * Who may read a person's weigh-ins (permission matrix, body metrics). MVP (D-20): only the
+ * person themselves. Anyone else gets 404, exactly as for a user that does not exist (T-01).
+ * Post-MVP (backlog B-19, B-20): their coach with an active link, and a Head Coach the trainee
+ * allows, read-only.
+ */
+export function authorizeWeighInRead(caller: Account, userId: string): void {
+  if (caller.id !== userId) throw new ApiError('NOT_FOUND');
 }
 
 function bearerToken(request: FastifyRequest): string {
