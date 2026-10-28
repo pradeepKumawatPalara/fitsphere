@@ -15,7 +15,9 @@ stop after each step for the owner's check (D-18 answer 14).
 builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
 native code changes, and **tell the owner before every cloud build** (free plan: 15 Android
 builds a month). Live code: `npx expo start --dev-client --tunnel`. Checks that need a cable are
-marked "USB + adb".
+marked "USB + adb". The phone reaches the API on the PC through a Cloudflare Quick Tunnel, only
+while testing, with test data only, closed after use; **never commit the tunnel's address**
+(D-19 answer 6, runbook step 8).
 
 **Personal Training User only (D-20).** No Coach or Head Coach roles, invitations, links, Head
 Coach permission, Notifications list or push in the MVP; the role selector is hidden. Keep the

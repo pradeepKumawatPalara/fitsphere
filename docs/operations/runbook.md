@@ -23,6 +23,7 @@ Commands that need the monorepo (install, run, test) are added when the Skeleton
 | Node.js | **26 LTS** (Active LTS from 2026-10-28 on the Node.js release schedule). 24 LTS (maintenance until 2028-04-30) also works | API, tools, Expo CLI. Expo SDK 58 needs Node 22.13 or later |
 | Git | Any recent version | Repository |
 | EAS CLI | 26.0.0 or later, installed globally | Android development builds on EAS (D-19) |
+| `cloudflared` | Latest release, from Cloudflare's GitHub releases (`cloudflared-windows-amd64.msi`). It does not update itself on Windows | The development tunnel to the API (D-19 answer 6, step 8). No Cloudflare account |
 | Android platform-tools (`adb`) only | Any recent version | The "USB + adb" checks (D-19). No Android Studio, JDK, Android SDK or emulator |
 | An Android phone | The owner's OnePlus Nord CE4, with a USB cable that carries data | Every device check (D-19). The lowest-end phone available for ADR-0001 step 6 |
 | Supabase account | Free plan, project in South Asia (Mumbai) | Database and sign-in (ADR-0002, ADR-0004) |
@@ -55,7 +56,8 @@ Read-only checks from VS Code; nothing was installed or changed.
 Android builds run on EAS, in the cloud: no Android Studio, JDK, Android SDK or emulator is
 needed. The Expo account comes first (step 4). *Not yet verified on the owner's PC.*
 1. Install EAS CLI: `npm install --global eas-cli`, then `eas --version` (26.0.0 was current on
-   2026-10-28; `apps/mobile/eas.json` requires at least that).
+   2026-10-28; `apps/mobile/eas.json` requires at least that). Without the global install,
+   `npx eas-cli@26` in place of `eas` works the same; the first build was started that way.
 2. Sign in: `eas login`, then `eas whoami`. The development server's tunnel needs the same
    sign-in: from `apps/mobile`, `npx expo whoami` must show the same account; if it does not, run
    `npx expo login`.
@@ -197,16 +199,43 @@ back. Stop the API with Ctrl+C in its terminal.
 4. If the tunnel fails ("Couldn't create a signed tunnel URL" or "Tunnel connection has been
    closed"), check https://status.expo.dev/ and restart the server. The CLI's own suggestion is
    `npx expo start --tunnel ngrok`, which uses ngrok instead.
-5. **The API from the phone:** *waiting for the owner's choice (Q-093).* Once it is chosen, it
-   is written here and `EXPO_PUBLIC_API_URL` is set in `apps/mobile/.env`. Restart the
-   development server after changing `.env`.
+5. **The API from the phone: a development tunnel** (D-19 answer 6, Q-093). Use it only while
+   testing, with test data only, and close it when done. Its address is never committed: it
+   goes only in `apps/mobile/.env`, which git ignores, and CI fails if a Quick Tunnel address is
+   committed. The tunnel is Cloudflare's Quick Tunnel: no account, and a new address each run.
+   *Not yet verified on the phone.*
+
+   **Start**, in three terminals from the repository root:
+   1. The API: `npm run dev -w @fitsphere/api`. It listens on `127.0.0.1:3000` only.
+   2. The tunnel: `cloudflared tunnel --url http://127.0.0.1:3000`. It prints an address of the
+      form `https://<random-words>.trycloudflare.com`.
+   3. In `apps/mobile/.env`, set `EXPO_PUBLIC_API_URL` to that address, with no trailing slash.
+      Then start the development server, or restart it if it was running:
+      `npm run start -w @fitsphere/mobile`.
+   4. Check from the PC: `<address>/v1/health` in a browser shows `{"status":"ok"}`.
+
+   **Stop**, after every test session:
+   1. Ctrl+C in the tunnel's terminal. The address stops working at once.
+   2. Ctrl+C in the API's and the development server's terminals.
+   3. Empty `EXPO_PUBLIC_API_URL` in `apps/mobile/.env`, so an old address is never reused or
+      copied.
+
+   - While the tunnel runs, anyone who has the address can reach the API. Until Skeleton step 5
+     that is only `GET /v1/health`; from step 5 on, every other route needs a valid sign-in
+     token. The Supabase development project holds test data only.
+   - Do not paste the address into issues, pull requests or chats. The app's screen shows it,
+     so leave it out of screenshots.
+   - Quick Tunnels have no uptime guarantee, allow up to 200 requests in flight (more get
+     `429`), and do not support Server-Sent Events (Cloudflare's docs). The Skeleton needs none
+     of these. If a tunnel stops working, stop it and start a new one; it gets a new address,
+     so update `.env` and restart the development server.
 6. **"USB + adb" checks** (Skeleton plan, decision 8): connect the phone as in step 3, run
    `adb reverse tcp:8081 tcp:8081`, and from `apps/mobile` start the server with
    `npx expo start --dev-client --localhost`. The app then loads its code over USB, which keeps
    working in airplane mode.
 7. **Plain HTTP:** a development build is Gradle's debug build. The debug manifest that Expo
-   generates allows plain HTTP; release builds do not. This matters only if the chosen route to
-   the API is plain HTTP.
+   generates allows plain HTTP; release builds do not. The tunnel's address is HTTPS, so the
+   route to the API does not rely on this.
 8. SQLite encryption (SQLCipher) needs a development build, not Expo Go, and fails silently when
    missing; the app checks at start that it is active (data model, "On the phone").
 
@@ -221,6 +250,8 @@ Checked 2026-10-27:
 - EAS build profiles (`developmentClient`, `distribution`): https://docs.expo.dev/eas/json/ (checked 2026-10-28)
 - EAS app versions (`appVersionSource`): https://docs.expo.dev/build-reference/app-versions/ (checked 2026-10-28)
 - What EAS CLI uploads (`.gitignore`, `.easignore`): https://docs.expo.dev/build-reference/easignore/ (checked 2026-10-28)
+- Cloudflare Quick Tunnels (no account, limits): https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/ (checked 2026-10-28)
+- `cloudflared` downloads (Windows: GitHub releases, no automatic updates): https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/ (checked 2026-10-28)
 - Android developer options: https://developer.android.com/studio/debug/dev-options
 - Android OEM USB drivers: https://developer.android.com/studio/run/oem-usb
 - Supabase built-in email limits: https://supabase.com/docs/guides/auth/auth-smtp
@@ -246,7 +277,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `LOG_LEVEL` | API | `info` by default | No |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
-| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the address at which the phone reaches the API on the PC: the owner's choice (Q-093, step 8) | No (built into the app) |
+| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). Never committed | No (built into the app's code served by the development server) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
 Files with credentials, never committed. Both are for push, which is post-MVP (D-20, backlog

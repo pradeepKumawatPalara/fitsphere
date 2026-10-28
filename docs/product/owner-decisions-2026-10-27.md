@@ -488,6 +488,14 @@
      unchanged.
   5. **Device checks:** every emulator check in the Skeleton plan moves to the phone. A check
      that truly needs a cable is marked "USB + adb".
+  6. **The API from the phone (answers Q-093; given later on 2026-10-28):** a development tunnel
+     to the API on the PC, **only while testing, with test data only, and closed after use**.
+     The tunnel's address is never committed. The owner left the tool to Claude Code, which
+     picked Cloudflare's Quick Tunnel (`cloudflared`): free, no account needed; each run gets a
+     new `trycloudflare.com` address, which stops working when `cloudflared` stops (Cloudflare's
+     docs, read 2026-10-28). Not chosen: USB with `adb reverse` (needs the cable for every
+     check that calls the API) and Cloud Run early (needs billing, Q-087). Start and stop:
+     runbook step 8. CI fails if a Quick Tunnel address is committed.
 - Checked with this decision (2026-10-28):
   - In Expo CLI 58.1.16, as installed, `--tunnel` uses Expo's own tunnel service, which needs the
     developer signed in to an Expo account. ngrok is used only with `--tunnel ngrok`. This was
@@ -503,7 +511,10 @@
   risks); runbook (what is needed, EAS and the phone, running the app); ADR-0001 (consequences,
   validation step 1); test strategy (device checks, tools); constraints (suggested first slice,
   Q-093); system context (EAS Build); `CLAUDE.md` current phase; docs index; `apps/mobile`
-  (`eas.json`, `start` script, `.env.example`).
+  (`eas.json`, `start` script, `.env.example`). For answer 6: runbook (what is needed, step 8,
+  configuration names, references); Skeleton plan (decisions 1 and 8, step 2, risks); test
+  strategy (tools); constraints (Q-093); `CLAUDE.md`; `apps/mobile/.env.example`; CI (a check
+  that no Quick Tunnel address is committed).
 
 ## D-20 The MVP is the Personal Training User view only (amends D-18's MVP scope and the Skeleton plan)
 - Status: **Accepted** (owner instruction in chat, 2026-10-28). It amends D-18 answer 1 (what the
@@ -536,7 +547,7 @@
   stay read-only for the trainee once coaches exist. The ADRs' decisions stand; only the
   validation steps that check post-MVP features move with those features: ADR-0001 steps 5 and
   7, ADR-0002 step 4 (its link cases), ADR-0004 steps 4 to 6, and ADR-0007 steps 2 and 3.
-- **Interpretation (not yet confirmed)** of answer 5:
+- **Interpretation (confirmed by the owner, 2026-10-28: "keep the link tables")** of answer 5:
   - The Skeleton's migration still creates `user_roles`, `links` and
     `head_coach_permission_answers` as in the [data model](../contracts/data-model.md), and
     ADR-0003's link checks (a), (b) and (d) still run in step 4, because they show the schema can

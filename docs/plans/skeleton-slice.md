@@ -24,7 +24,7 @@ Where the contracts define something, this plan does not repeat it.
 | Step | Status | Branch |
 |---|---|---|
 | 1. Monorepo, tooling and CI | Done (merged 2026-10-28) | `skeleton/01-monorepo-ci` |
-| 2. App shell on the phone | In progress: waiting for the API access choice (Q-093) and the first EAS build | `skeleton/02-app-shell` |
+| 2. App shell on the phone | In progress: first EAS build started 2026-10-28; then the phone check | `skeleton/02-app-shell` |
 | 3–10 | Not started | — |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
@@ -54,7 +54,8 @@ recorded as D-18 answer 14. D-20 changed decision 5.
 | `apps/api` | `fastify`, `jose`, `pg`; dev: `vitest`, `@types/pg` | Fastify's built-in logger can remove fields by configuration (log rule), and its route hook supports the route-listing test. `jose` checks tokens against JWKS. `pg` with plain SQL |
 | `apps/mobile` | Expo SDK 58 (blank TypeScript), `expo-router`, `expo-dev-client`, `@supabase/supabase-js`, `expo-secure-store`, `expo-sqlite` (SQLCipher), `expo-crypto`, `expo-network`; dev: `jest-expo`, `jest`, `@types/jest`, `@testing-library/react-native`, `react-dom` (pinned to the app's React version, see below) | ADR-0001, ADR-0004 rule 3, ADR-0007; Expo's documented test path |
 | Root (dev), for the app | `eslint-plugin-react-hooks`, `eslint-plugin-expo` | In place of `eslint-config-expo`: version 58 bundles a React plugin that fails on ESLint 10 (step 2). These are the two plugins from it that matter here, at the versions it uses |
-| The PC, globally (not a project dependency) | `eas-cli` (26.0.0 on 2026-10-28) | Development builds on EAS (D-19); installed globally as Expo's guide does. `apps/mobile/eas.json` sets the minimum version |
+| The PC, globally (not a project dependency) | `eas-cli` (26.0.0 on 2026-10-28) | Development builds on EAS (D-19); installed globally as Expo's guide does, or run with `npx eas-cli@26`. `apps/mobile/eas.json` sets the minimum version |
+| The PC (not a project dependency) | `cloudflared`, from Cloudflare's GitHub releases | The development tunnel from the phone to the API (D-19 answer 6, Q-093): Cloudflare's Quick Tunnel, free and with no account |
 
 - Each package is installed in the first step that uses it.
 - Deliberately **not** added: a date library (IST is a fixed +05:30 offset), an ORM, `dotenv`
@@ -98,6 +99,9 @@ Skeleton needs no Firebase project and no `expo-notifications`.
   - the Expo SDK is upgraded.
 - Claude Code tells the owner before each build.
 - Live code: `npm run start -w @fitsphere/mobile` (`expo start --dev-client --tunnel`).
+- The API from the phone (D-19 answer 6): a Cloudflare Quick Tunnel to the API on the PC, only
+  while testing, with test data only, and closed after use. Its address is never committed
+  (runbook step 8).
 - A development build loads its code from the PC each time it starts, so it cannot be reopened
   with the network off. Checks that reopen the app offline, and checks that read the phone's
   files, are marked **USB + adb**.
@@ -144,8 +148,9 @@ runs. Test names start with the REQ ID or ADR step they check.
 - `npm run start -w @fitsphere/mobile` runs `expo start --dev-client --tunnel`.
 - A screen that imports a value from `@fitsphere/shared` (proves the workspace link) and calls
   `GET /v1/health`.
-- How the phone reaches the API during development: the owner's choice (Q-093), set up in the
-  runbook's step 8.
+- How the phone reaches the API during development: a Cloudflare Quick Tunnel (D-19 answer 6,
+  Q-093), started and stopped as in the runbook's step 8. A CI step fails if a Quick Tunnel
+  address is committed.
 
 **Tests:** jest-expo set up; the screen shows "API: ok" or "API: unreachable".
 
@@ -153,9 +158,9 @@ runs. Test names start with the REQ ID or ADR step they check.
 - The build installs from the EAS link and opens.
 - With `npm run start -w @fitsphere/mobile` running, the app loads its code through the tunnel.
   A change to the screen's text shows on the phone without a new build.
-- With the API running, it shows "API: ok"; stop the API and it shows "API: unreachable".
-- If the chosen route to the API is plain HTTP, this also confirms that the development build
-  allows it.
+- With the API and the tunnel running, it shows "API: ok"; stop the API and "Check again" shows
+  "API: unreachable".
+- Stop the tunnel afterwards and empty `EXPO_PUBLIC_API_URL` (runbook step 8).
 - Result recorded in ADR-0001.
 
 ### Step 3: Shared dates, units and contract schemas (REQ-DATE-001…004, REQ-HOME-006; invariants #5 and #6)
@@ -390,6 +395,12 @@ to the backlog as B-23 and B-24, with what each needs.
   the app's code, which holds only publishable values. Stop it when not in use. If the tunnel
   service is down, live code stops; `--tunnel ngrok`, or the development server over USB
   (decision 8), are the fallbacks.
+- **The API tunnel (D-19 answer 6):** while it runs, anyone who has its address can reach the
+  API on the PC. Until step 5 that is only the health check; from step 5 on, every other route
+  needs a valid sign-in token, and the Supabase development project holds test data only. The
+  tunnel runs only while testing and is stopped afterwards; each run gets a new address, which
+  stops working when the tunnel stops. Quick Tunnels have no uptime guarantee (Cloudflare); if
+  one fails, start a new one.
 - **Built-in email (team addresses only, 2 per hour):** steps 6 and 7 are paced for it. ADR-0004
   step 2's timing part waits for Resend.
 - **Re-testing first sign-up with the same address:** it needs the old test account removed from
