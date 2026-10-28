@@ -249,11 +249,12 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the address at which the phone reaches the API on the PC: the owner's choice (Q-093, step 8) | No (built into the app) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
-Files with credentials, never committed:
+Files with credentials, never committed. Both are for push, which is post-MVP (D-20, backlog
+B-23); neither is needed for the Skeleton:
 - the FCM service-account key (JSON) — a secret, kept in the password manager and uploaded to
   Expo's credentials;
-- the app's Firebase configuration file (`google-services.json`) — kept out of the repository
-  until the Skeleton decides how builds receive it.
+- the app's Firebase configuration file (`google-services.json`) — kept out of the repository;
+  it reaches the EAS build as an EAS environment variable of the file type.
 
 GitHub Actions needs no secrets in the Skeleton: its tests use a PostgreSQL service container and
 test signing keys made during the run.
