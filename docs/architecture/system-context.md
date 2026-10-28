@@ -85,7 +85,7 @@ Apple. Notification text carries no health data (ADR-0004).
 |---|---|---|
 | Google Play | Android release in phase 1 | C-008, D-10 |
 | Apple App Store and TestFlight | iOS release, deferred until an iPhone is available | C-008, D-10, R-001 |
-| EAS Build | Cloud builds, including the iOS compile check | ADR-0001 (Accepted, D-12) |
+| EAS Build | Cloud builds: the Android development builds (D-19) and, post-MVP, the iOS compile check (D-20) | ADR-0001 (Accepted, D-12) |
 
 ## Trust boundaries
 1. **Phone ↔ backend:** everything from the phone is untrusted. All permission checks run on the

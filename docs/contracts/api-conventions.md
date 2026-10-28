@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28 (D-20: self-access only in the MVP; Resend with the Release slice)
 - Builds on: ADR-0002 (the Node API is the only path to the data), ADR-0004 (Supabase Auth, one
   access module), ADR-0007 (one sync endpoint); [`data-model.md`](data-model.md);
   [`error-model.md`](error-model.md)
@@ -92,7 +92,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `GET /v1/me` | The signed-in user's account | Signed in | REQ-ACC-010, REQ-ROLE-001 |
 | `POST /v1/me` | Set up the FitSphere account after the first sign-in | Signed in, account not yet set up | REQ-ACC-010, D-18 |
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write weigh-ins | REQ-NFR-004, REQ-HOME-006, ADR-0007 |
-| `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user, their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-ROLE-005, REQ-ROLE-013, REQ-NFR-001 |
+| `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 
 ### `GET /v1/health`
 `200` with `{ "status": "ok" }`. Says nothing about the database or configuration.
@@ -198,8 +198,10 @@ first.
   (REQ-ROLE-013). Coaches and Head Coaches only read (D-18).
 - Anyone else gets `404 NOT_FOUND`, including a former coach after the link ended (D-10,
   REQ-ROLE-005).
-- In the Skeleton the app uses it only for the user's own history older than 90 days. The coach
-  screens come in a later slice; the authorization tests cover the other cases now.
+- **MVP (D-20):** only the user themselves is allowed; anyone else gets `404`. The coach and Head
+  Coach rules above are post-MVP (backlog B-19, B-20) and are added to the access module then;
+  the path keeps the user's ID so that no new route is needed. In the Skeleton the app uses this
+  route only for the user's own history older than 90 days.
 
 ## Sign-in flows (Supabase Auth, ADR-0004)
 The app talks to Supabase Auth for these; the FitSphere API is not involved until account setup.
@@ -225,5 +227,5 @@ The app talks to Supabase Auth for these; the FitSphere API is not involved unti
   and resetting a password.
 - In the Skeleton, Supabase's built-in email sender is used. It delivers only to members of the
   project's team, at most 2 emails an hour, so it serves development only. Email from FitSphere's
-  own domain through Resend comes with the invitations slice (ADR-0004 rule 1, validation
-  step 1).
+  own domain through Resend comes with the Release slice, before the MVP release (D-20; ADR-0004
+  rule 1, validation step 1).

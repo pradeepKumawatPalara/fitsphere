@@ -14,6 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # The development tunnel's address is never committed (D-19 answer 6, Q-093).
+      - name: No tunnel address committed
+        run: |
+          if git grep -nE 'https?://[a-z0-9-]+\.trycloudflare\.com' -- .; then
+            echo "A Cloudflare Quick Tunnel address is committed. Remove it." >&2
+            exit 1
+          fi
       - uses: actions/setup-node@v7
         with:
           node-version: 24

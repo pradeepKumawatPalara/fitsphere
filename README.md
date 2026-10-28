@@ -6,7 +6,8 @@ Coach-led fitness app: clients log food, body metrics and workouts against coach
 Building the first slice, the Skeleton ([`docs/plans/skeleton-slice.md`](docs/plans/skeleton-slice.md)):
 an npm workspaces monorepo with the API in `apps/api` and shared code in `packages/shared`; the
 Expo app comes in `apps/mobile`. The MVP comes first
-([`docs/product/mvp-scope.md`](docs/product/mvp-scope.md), D-18). Approved stack (ADR-0001 to
+([`docs/product/mvp-scope.md`](docs/product/mvp-scope.md), D-18): the Personal Training User view
+only, with Coach and Head Coach after the MVP (D-20). Approved stack (ADR-0001 to
 ADR-0007): React Native with Expo; a TypeScript Node.js API; Supabase PostgreSQL, file storage and
 sign-in in Mumbai; Gemini for AI meal reading; FitSphere's own food list plus Open Food Facts;
 offline sync with Expo SQLite. Details and what is still open:

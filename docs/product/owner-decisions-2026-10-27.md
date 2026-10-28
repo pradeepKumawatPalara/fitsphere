@@ -438,6 +438,7 @@
         so the owner's answer was needed under answer 4 (REQ-ACC-010).
       - **The Expo push check stays in the Skeleton**, as D-13 answer 9 requires. It needs a free
         Firebase project, with its FCM credentials uploaded to Expo (ADR-0001 step 7).
+        *Superseded by D-20: the push check is post-MVP (backlog B-23).*
       - **Integration tests on the PC use PostgreSQL 17 installed natively**, not Docker Desktop.
       - **Each step goes on its own branch with a pull request; CI must pass before merge.**
 - **Interpretation (confirmed, answer 11):** nutrition-label photos are input for reading, like voice
@@ -467,6 +468,107 @@
   Q-066); backlog B-16; ADR-0004 open-questions table; decisions index; `flow.md`; journeys;
   product brief. For answer 14: `docs/plans/skeleton-slice.md`; REQ-ACC-010; runbook (local
   setup); `CLAUDE.md` current phase; docs index.
+
+## D-19 Development on the phone with EAS Build (changes the Skeleton plan; opens Q-093)
+- Status: **Accepted** (owner instruction in chat, 2026-10-28). It changes the Skeleton plan
+  approved in D-18 answer 14 and how ADR-0001 is validated, and narrows D-10's "emulator and an
+  Android phone" to the phone.
+- Answers:
+  1. **No Android Studio, emulator or local Android builds.** JDK 17 and the Android SDK are no
+     longer needed. The owner keeps only Android's platform-tools (`adb`).
+  2. **Development builds come from EAS Build** (cloud, `development` profile). They are installed
+     on the owner's OnePlus Nord CE4 from the EAS link or QR code. Rebuild only when native code
+     changes, and stay within the free plan (15 Android builds a month). Claude Code tells the
+     owner before each cloud build.
+  3. **Live code:** `npx expo start --dev-client --tunnel`, because the owner's Wi-Fi blocks
+     traffic between devices.
+  4. **API access from the phone during development:** Claude Code proposes the safest free
+     option (a development-only tunnel to the API on the PC, or Cloud Run early), with its
+     security trade-offs, and the owner chooses (Q-093, open). Production API rules are
+     unchanged.
+  5. **Device checks:** every emulator check in the Skeleton plan moves to the phone. A check
+     that truly needs a cable is marked "USB + adb".
+  6. **The API from the phone (answers Q-093; given later on 2026-10-28):** a development tunnel
+     to the API on the PC, **only while testing, with test data only, and closed after use**.
+     The tunnel's address is never committed. The owner left the tool to Claude Code, which
+     picked Cloudflare's Quick Tunnel (`cloudflared`): free, no account needed; each run gets a
+     new `trycloudflare.com` address, which stops working when `cloudflared` stops (Cloudflare's
+     docs, read 2026-10-28). Not chosen: USB with `adb reverse` (needs the cable for every
+     check that calls the API) and Cloud Run early (needs billing, Q-087). Start and stop:
+     runbook step 8. CI fails if a Quick Tunnel address is committed.
+- Checked with this decision (2026-10-28):
+  - In Expo CLI 58.1.16, as installed, `--tunnel` uses Expo's own tunnel service, which needs the
+    developer signed in to an Expo account. ngrok is used only with `--tunnel ngrok`. This was
+    read from the installed CLI's source. While the tunnel runs, the development server has a
+    public address; it serves the app's code, which holds only publishable `EXPO_PUBLIC_` values.
+  - `developmentClient: true` makes EAS run Gradle's `:app:assembleDebug` (Expo's eas.json
+    reference). The debug manifest that Expo SDK 58 generates allows plain HTTP; the main
+    manifest does not, so release builds do not (seen in a local `expo prebuild`).
+  - By default, EAS CLI leaves out of the upload every file that `.gitignore` excludes (Expo's
+    ".easignore" page), so `apps/mobile/.env` is not uploaded. A development build gets its code
+    and `EXPO_PUBLIC_` values from the PC's development server, not from the build.
+- Doc changes: `docs/plans/skeleton-slice.md` (steps 2, 3, 6–8, 10–11, verification, tools,
+  risks); runbook (what is needed, EAS and the phone, running the app); ADR-0001 (consequences,
+  validation step 1); test strategy (device checks, tools); constraints (suggested first slice,
+  Q-093); system context (EAS Build); `CLAUDE.md` current phase; docs index; `apps/mobile`
+  (`eas.json`, `start` script, `.env.example`). For answer 6: runbook (what is needed, step 8,
+  configuration names, references); Skeleton plan (decisions 1 and 8, step 2, risks); test
+  strategy (tools); constraints (Q-093); `CLAUDE.md`; `apps/mobile/.env.example`; CI (a check
+  that no Quick Tunnel address is committed).
+
+## D-20 The MVP is the Personal Training User view only (amends D-18's MVP scope and the Skeleton plan)
+- Status: **Accepted** (owner instruction in chat, 2026-10-28). It amends D-18 answer 1 (what the
+  MVP includes, [`mvp-scope.md`](mvp-scope.md) section 2) and answer 14 (the Skeleton plan),
+  moves the push check that D-13 answer 9 placed in the first slice to post-MVP, and extends the
+  Q-016 MVP default.
+- Answers:
+  1. **The MVP delivers only the Personal Training User view.** Coach and Head Coach are
+     post-MVP: their roles, invitations, links, Head Coach permission, the Notifications list and
+     push notifications ([`backlog.md`](backlog.md) B-17 to B-22).
+  2. **Users set their own targets:** daily calories, daily protein, daily steps, weekly workouts
+     and target body weight. This extends the Q-016 MVP default, which covered calories and
+     protein only.
+  3. **Diet plan tab:** an empty state, "No diet plan yet. Your coach will add one here."
+     **Training tab:** "No training plan yet", "Start an empty workout" and the workout history.
+  4. **The role selector is hidden in the MVP;** every account is a Personal Training User.
+  5. **Links later, without rework:** the data model stays able to add links, but no link or
+     permission features or screens are built now. Authorization tests cover self-access only,
+     plus cases showing that no other user's data can be read or written.
+  6. **Still required at release:** Resend, with a domain FitSphere owns, for the sign-up and
+     password-reset emails (ADR-0004).
+  7. **Skeleton plan:** step 11 (push check) and step 12 (iOS compile check) move to the backlog
+     (B-23, B-24), and step 9 is simplified to self-access. Step 12's close-out tasks move to
+     step 10.
+  8. **MVP slices, in this order:** 1 Skeleton, 2 Home and daily tracking, 3 Meal logging (no AI),
+     4 Training, 5 Progress, 6 Settings and account, 7 AI meal reading, 8 Release
+     ([`mvp-scope.md`](mvp-scope.md) section 5).
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+  Invariant #2 still holds: in the MVP every target is set by the user, and targets a coach sets
+  stay read-only for the trainee once coaches exist. The ADRs' decisions stand; only the
+  validation steps that check post-MVP features move with those features: ADR-0001 steps 5 and
+  7, ADR-0002 step 4 (its link cases), ADR-0004 steps 4 to 6, and ADR-0007 steps 2 and 3.
+- **Interpretation (confirmed by the owner, 2026-10-28: "keep the link tables")** of answer 5:
+  - The Skeleton's migration still creates `user_roles`, `links` and
+    `head_coach_permission_answers` as in the [data model](../contracts/data-model.md), and
+    ADR-0003's link checks (a), (b) and (d) still run in step 4, because they show the schema can
+    hold links. In the MVP, nothing but those database tests writes `links` or
+    `head_coach_permission_answers`.
+  - Routes that read a user's data keep the user's ID in the path (for example
+    `GET /v1/users/{userId}/weigh-ins`): in the MVP only the user gets their data, and anyone else
+    gets `404`. Coach access is added later as new rules in the access module, not new routes.
+  - Targets record who set them and when, so coach-set targets can be added later and kept
+    read-only for the trainee (invariant #2).
+- **MVP default (D-18 answer 3):** which REQ IDs each slice covers ([`mvp-scope.md`](mvp-scope.md)
+  section 5). Each slice's plan confirms its scope with the owner before work starts.
+- Doc changes: `mvp-scope.md` (status, sections 1–5); requirements (Coach and Head Coach REQs and
+  coach parts marked Post-MVP; REQ-ROLE-007 extended); `backlog.md` (B-17 to B-24, E-05 closed);
+  threat model (MVP scope of the matrix and threats; own targets); `docs/plans/skeleton-slice.md`
+  (steps 9, 11 and 12, decisions 4 and 5, tools, risks, close-out); test strategy (authorization
+  table, device checks); data model (roles, links, permission answers, targets); API
+  conventions (the weigh-ins route, Resend); runbook (Resend); constraints (A-005, Q-005, Q-008,
+  Q-013, Q-016, Q-034, Q-035, Q-073, MVP defaults, R-002, suggested first slice); ADR-0001,
+  ADR-0002, ADR-0004 and ADR-0007 (a note on their validation steps; ADR-0004's Q-082 row);
+  product brief; user journeys; `CLAUDE.md`; `README.md`; docs index.
 
 ---
 

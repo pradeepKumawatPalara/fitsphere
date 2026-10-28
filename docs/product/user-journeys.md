@@ -2,10 +2,13 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28 (D-20: coach journeys post-MVP)
 
 Journeys reference REQ IDs; behaviour details live in [`requirements.md`](requirements.md).
 Steps marked *(assumed)* rely on an assumption or open question.
+
+**MVP (D-20):** the MVP is the Personal Training User view only. J-08 and J-09, and the coach
+plan in J-06, are **post-MVP** (backlog B-17 to B-22).
 
 ## J-01 Trainee logs a meal by typing (AI on)
 Actor: Personal Training User · REQ-NAV-003, LOG-001..004, LOG-009, NUT-002/003, HOME-003/004
@@ -51,7 +54,8 @@ REQ-TRN-001..005, TRN-007, HOME-007
 1. Training tab → today's plan from coach, with exercise how-to (a coach-provided YouTube link — D-16).
 2. Starts the workout and logs sets × reps × weight per exercise in the lifting unit setting (MVP default, Q-042).
 3. Workout appears in history; Home workout tracker increments (e.g. "2 of 5 · 3 left").
-Alternate: no plan → "No training plan yet" → "Start an empty workout".
+Alternate: no plan → "No training plan yet" → "Start an empty workout". In the MVP this is the
+only path (D-20).
 
 ## J-07 Trainee checks progress
 REQ-PRG-001..006
@@ -84,7 +88,7 @@ Failure: attempts to view a coach outside their hierarchy → refused.
 
 ## J-10 User changes settings
 REQ-ACC-001..005, 007, 008
-Theme, lifting unit, body-weight unit, AI meal reading consent, Head Coach access (Allow/Decline — REQ-ROLE-013), change password, log out.
+Theme, lifting unit, body-weight unit, AI meal reading consent, Head Coach access (Allow/Decline — REQ-ROLE-013; post-MVP, D-20), change password, log out.
 Country/time zone is fixed to India · Kolkata in phase 1 and not shown in the MVP (REQ-ACC-006 is Won't — D-09, D-18).
-Delete account → separate flow: after confirming, the user's data and sign-in account are deleted and all links end (REQ-ACC-009; MVP default, Q-048).
-A user without a coach can set their own calorie and protein targets (REQ-ROLE-007; MVP default, Q-016).
+Delete account → separate flow: after confirming, the user's data and sign-in account are deleted and all links end (REQ-ACC-009; MVP default, Q-048; no links exist in the MVP, D-20).
+A user without a coach sets their own daily calorie, protein and steps targets, weekly workout target and target body weight (REQ-ROLE-007; Q-016 MVP default, extended by D-20).
