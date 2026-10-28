@@ -24,7 +24,7 @@ Where the contracts define something, this plan does not repeat it.
 | Step | Status | Branch |
 |---|---|---|
 | 1. Monorepo, tooling and CI | Done (merged 2026-10-28) | `skeleton/01-monorepo-ci` |
-| 2. App shell on the phone | In progress: first EAS build started 2026-10-28; then the phone check | `skeleton/02-app-shell` |
+| 2. App shell on the phone | In progress: first EAS development build done 2026-10-28 (1 of the month's 15); waiting for the phone check | `skeleton/02-app-shell` |
 | 3–10 | Not started | — |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
