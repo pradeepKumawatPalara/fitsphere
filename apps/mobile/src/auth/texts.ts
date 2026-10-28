@@ -12,6 +12,10 @@ export const TEXTS = {
   emailNotVerified: 'Verify your email first. Check your inbox for the link.',
   passwordRule: 'Use at least 8 characters.',
   emailRule: 'Enter your email address.',
+  // MVP defaults (D-18) for "Set a new password".
+  resetLinkInvalid:
+    'This link has expired, was already used, or was opened on another phone. Request a new one on this phone.',
+  samePassword: 'Use a different password from your current one.',
 } as const;
 
 // Decision 3 of the Skeleton plan: at least 8 characters, no character rules. Supabase accepts
