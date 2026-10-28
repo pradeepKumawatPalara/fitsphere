@@ -344,8 +344,16 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
 - **Step 6 — passed in automated tests:** the log holds one line per request with the route
   pattern, and no token, email address, weight value, query value or body
   (`test/integration/logs.test.ts`). Media links do not exist yet.
-- **Steps 1, 2 and 3:** the owner's checks on `fitsphere-dev`; not run yet. Step 5 runs with
-  media, after the Skeleton.
+- **Step 2, REST part — passed on `fitsphere-dev`, 2026-10-28 (owner):** with **Enable Data
+  API** off, the REST root, `app.users` and `app.weigh_ins` answered HTTP 404 (`PGRST125`) with
+  no data to the publishable key (`npm run check:data-api`). Skeleton step 6's phone checks prove
+  that Supabase Auth works with the Data API off. Storage waits for media, after the Skeleton.
+- **Step 3, PC part — passed, 2026-10-28:** the migration and `npm run db:growth` reached
+  `fitsphere-dev` from the PC through the session pooler (`DATABASE_URL`). The API uses the same
+  address; its first queries through it come with step 6's account setup. The Cloud Run part
+  waits for Q-087.
+- **Step 1:** not recorded yet (Mumbai region, Free plan, two-factor sign-in on the owner's
+  Supabase and Google Cloud accounts). Step 5 runs with media, after the Skeleton.
 
 ## Revisit conditions
 - An R-005 trigger is hit: database over 400 MB; files over 800 MB; monthly active users near

@@ -153,6 +153,18 @@ it when the Skeleton's database step starts.
    - The **transaction pooler** (port 6543) is for Cloud Run later (Q-087). It does not support
      prepared statements.
 
+**Done on `fitsphere-dev`, 2026-10-28 (owner)**, with the dashboard's menu paths:
+- Items 3 and 4: **Authentication → Sign In / Providers → Email**. Confirm email is on, the
+  link expiry is left at 1 hour and the minimum password length is 8. Phone sign-in is off and
+  Confirm phone is not turned on; `npm run check:signup` (ADR-0004 step 2) shows whether item 4
+  is still needed.
+- Item 5: **Project Settings → JWT Keys**. The current key is ECC (P-256). The legacy shared
+  secret (HS256) is under "Previously used keys", not revoked.
+- Item 6: **Authentication → URL Configuration**. `fitsphere://**` is added; the Site URL is
+  unchanged.
+- Item 2: Enable Data API is off and `check:data-api` passed; the menu path is not recorded yet.
+- Migration `0001_skeleton.sql` is applied, and `db:growth` has been run (ADR-0003).
+
 Sign-in emails in the Skeleton come from Supabase's built-in sender, which delivers only to
 members of the project's team, at most 2 emails an hour (`email_address_not_authorized` for
 anyone else). Manual sign-up checks therefore use the owner's own team address and are paced

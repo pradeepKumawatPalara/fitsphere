@@ -25,14 +25,14 @@ Where the contracts define something, this plan does not repeat it.
 |---|---|---|
 | 1. Monorepo, tooling and CI | Done (merged 2026-10-28) | `skeleton/01-monorepo-ci` |
 | 2. App shell on the phone | Done (merged 2026-10-28; phone check in ADR-0001) | `skeleton/02-app-shell` |
-| 3. Shared dates, units and contract schemas | Built 2026-10-28; waiting for CI and the phone check | `skeleton/03-shared-dates-units` |
-| 4. Database schema and migrations | Built 2026-10-28; waiting for CI and the owner's Supabase checks | `skeleton/04-database-schema` |
-| 5. API foundations and account setup | Built 2026-10-28; waiting for CI and the owner's check on the PC | `skeleton/05-api-foundations` |
-| 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/06-sign-up-sign-in` |
-| 7. Forgot password and set a new password | Built 2026-10-28; waiting for CI and the phone check | `skeleton/07-password-reset` |
-| 8. Encrypted phone database and outbox | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/08-phone-database` |
-| 9. Sync and weigh-in reads; the self-access authorization suite | Built 2026-10-28; waiting for CI (no phone check) | `skeleton/09-sync-and-reads` |
-| 10. Log and view weight, online and offline; close-out | Built 2026-10-28; waiting for CI, the EAS build and the phone checks. Automated results recorded in ADR-0001, 0002, 0003, 0004 and 0007; device results are added after the checks | `skeleton/10-weight-logging` |
+| 3. Shared dates, units and contract schemas | Built 2026-10-28; CI green (PR #3); waiting for the phone check | `skeleton/03-shared-dates-units` |
+| 4. Database schema and migrations | Built 2026-10-28; CI green (PR #4). Owner's Supabase checks done 2026-10-28: migration applied, Data API check passed, growth measured (ADR-0002, ADR-0003) | `skeleton/04-database-schema` |
+| 5. API foundations and account setup | Built 2026-10-28; CI green (PR #5). Check on the PC passed 2026-10-28: `/v1/me` answered `401` with a request ID (ADR-0004) | `skeleton/05-api-foundations` |
+| 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; CI green (PR #6); waiting for the EAS build and the phone checks | `skeleton/06-sign-up-sign-in` |
+| 7. Forgot password and set a new password | Built 2026-10-28; CI green (PR #7); waiting for the phone check | `skeleton/07-password-reset` |
+| 8. Encrypted phone database and outbox | Built 2026-10-28; CI green (PR #8); waiting for the EAS build and the phone checks | `skeleton/08-phone-database` |
+| 9. Sync and weigh-in reads; the self-access authorization suite | Built 2026-10-28; CI green (PR #9) and the integration suite green on the PC: the step's check is done (no phone check) | `skeleton/09-sync-and-reads` |
+| 10. Log and view weight, online and offline; close-out | Built 2026-10-28; CI green (PR #10); waiting for the EAS build, `check:signup` and the phone checks. Automated results, and the Supabase results of steps 4 and 5, recorded in ADR-0001, 0002, 0003, 0004 and 0007; device results are added after the checks | `skeleton/10-weight-logging` |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)

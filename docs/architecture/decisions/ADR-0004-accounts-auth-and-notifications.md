@@ -144,7 +144,14 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   (HS256), the wrong audience or issuer, a role other than `authenticated` and an anonymous
   session all get `401` (`apps/api/src/auth.test.ts`, `test/integration/me.test.ts`). Account
   setup is refused while Supabase shows the email unconfirmed (`EMAIL_NOT_VERIFIED`).
-- **Steps 2 and 3, phone part:** Skeleton step 6's phone checks; not run yet.
+- **Step 3, API on the PC — passed, 2026-10-28:** with the API set up for `fitsphere-dev`,
+  `GET /v1/me` with no token, and with a malformed token, answered `401` `AUTH_REQUIRED` with a
+  request ID and no detail (Skeleton step 5's check).
+- **Signing key on `fitsphere-dev`, 2026-10-28 (owner):** the current JWT signing key is ECC
+  (P-256), which the API accepts (ES256). The earlier shared secret (HS256) is listed under
+  "Previously used keys" and is not revoked; the API refuses HS256 tokens either way.
+- **Steps 2 and 3, phone part:** Skeleton step 6's phone checks and `npm run check:signup`; not
+  run yet.
 - **Step 1** runs in the Release slice (Resend, D-20).
 
 ## Revisit conditions
