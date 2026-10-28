@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button, Text } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount, signIn } from '../auth/service';
+import { TEMPORARY_PASSWORD } from '../auth/temporary-password';
 import { TEXTS } from '../auth/texts';
 import { Field, Message, Screen } from '../components/ui';
 import { goAfterAccountCheck } from './navigation';
@@ -12,7 +13,8 @@ export function SignInScreen() {
   const { deps } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(TEMPORARY_PASSWORD); // TESTING ONLY
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
