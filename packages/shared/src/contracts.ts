@@ -2,7 +2,7 @@
 // Request schemas are strict: unknown fields are refused. Response schemas accept added fields,
 // because adding a field does not change the API version.
 import { z } from 'zod';
-import { isIstDay } from './dates.ts';
+import { addDays, isIstDay, type IstDay } from './dates.ts';
 import { WEIGHT_GRAMS_MAX, WEIGHT_GRAMS_MIN } from './units.ts';
 
 // --- Error codes (error-model, "Codes") ---
@@ -93,6 +93,11 @@ export const MAX_SYNC_CHANGES = 100;
 export const SYNC_PAGE_SIZE = 500;
 /** The phone keeps, and the pull returns, the last 90 IST days (ADR-0007 rule 1). */
 export const SYNC_WINDOW_DAYS = 90;
+
+/** The first IST day of the window that ends today: 90 days including today. */
+export function syncWindowStart(today: IstDay): IstDay {
+  return addDays(today, -(SYNC_WINDOW_DAYS - 1));
+}
 
 export const WEIGH_IN_SET = 'weighIn.set';
 
