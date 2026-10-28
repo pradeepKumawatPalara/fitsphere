@@ -176,6 +176,7 @@ above do not depend on the tools.
 | Unit, integration, authorization and database tests | Vitest | `packages/shared`, `apps/api` |
 | API requests in tests | Fastify's in-process request helper (`inject`); no network | `apps/api` |
 | App unit and component tests | Jest with the `jest-expo` preset, and React Native Testing Library | `apps/mobile`, from Skeleton step 2 |
+| The phone database in app tests | Node's built-in `node:sqlite`, in memory, behind the expo-sqlite methods the app uses, so the app's SQL runs unchanged; Supabase and the API are fakes | `apps/mobile/src/testing/`, from Skeleton step 8 |
 | Lint and types | ESLint with typescript-eslint; for the app also `eslint-plugin-react-hooks` and `eslint-plugin-expo`. TypeScript `~6.0` in strict mode, the version Expo SDK 58 uses | Whole repository |
 | Test database | PostgreSQL 17: installed natively on the PC (D-18 answer 14); a service container in CI | `TEST_DATABASE_URL` |
 | Device checks | An EAS development build (`development` profile) on the owner's phone; live code through Expo's tunnel; the API through a Cloudflare Quick Tunnel, only while testing (D-19 answer 6); `adb` only for checks marked "USB + adb" (D-19) | `apps/mobile/eas.json` |

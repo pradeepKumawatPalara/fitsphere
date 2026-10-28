@@ -50,3 +50,6 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-03 | Turning off a role that still has active links | REQ-ROLE-001 | The role cannot be turned off until those links have ended |
 | E-04 | A wrong or changed phone clock (the 30-day clear, "today") | ADR-0007 | The phone's clock is used, read in Asia/Kolkata |
 | E-05 | *Closed by D-20.* After a link ends, the old weekly workout, body-weight and steps targets stay read-only, because a user without a coach sets only calorie and protein targets (Q-016) | REQ-ROLE-007, Q-060 | D-20 lets every user set all five targets, so a user whose link has ended sets new ones (REQ-ROLE-007) |
+| E-06 | A password-reset link opened on another phone, or after reinstalling the app | REQ-ACC-010 | The link works only on the phone that asked for the reset (PKCE); elsewhere the app says so and offers a new link (Skeleton step 7) |
+| E-07 | Signing up again with an address whose old test account was deleted from Supabase Auth but not from the FitSphere database | REQ-ACC-010 | Account setup answers `500`; delete the old `app.users` row by hand on the development project (Skeleton plan, risks) |
+| E-08 | The phone's database belongs to another user when the app starts, e.g. after an interrupted log out | REQ-ACC-008 | It is deleted with its key and a new one is created; anything unsynced in it is lost (Skeleton step 8) |

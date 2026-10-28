@@ -118,7 +118,20 @@ above cannot fix triggers the revisit conditions; changing the decision needs a 
 supersedes this one.
 
 ## Validation results
-None yet.
+Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreSQL 17, synthetic data); CI runs them on every pull request. Device and Supabase checks are recorded here once the owner has run them.
+- **Step 1, server and phone logic — passed in automated tests:** a change sent twice is applied
+  once and gets the same reply; a sync that fails or has no connection keeps the outbox and
+  sends it again (`sync.test.ts`, `apps/mobile/src/sync/syncClient.test.ts`). The airplane-mode
+  check on the phone (weight part) is Skeleton step 10's phone check 3; not run yet.
+- **Step 4, logic — passed in automated tests:** a rejected change stays, with its code, until a
+  new value for the day replaces it or the user discards it, and is never pruned
+  (`store.test.ts`, `home.test.tsx`). Phone check 4 of step 10; not run yet.
+- **Step 5, logic — passed in automated tests:** the IST day comes from the UTC clock (shared
+  date tests under `Asia/Kolkata` and `America/Los_Angeles`; the API accepts a day that is
+  already "today" at 00:10 IST). Phone check 5 of step 10; not run yet.
+- **Step 6:** the app stops when SQLCipher is missing and never sets a key on a plain database
+  (`database.test.ts`). The start-up check and the unreadable file are step 8's phone checks;
+  not run yet.
 
 ## Revisit conditions
 Sync bugs grow costly to maintain; real-time features required; device storage problems.

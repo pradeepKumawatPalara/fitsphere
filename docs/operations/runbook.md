@@ -224,7 +224,7 @@ back. Stop the API with Ctrl+C in its terminal.
    testing, with test data only, and close it when done. Its address is never committed: it
    goes only in `apps/mobile/.env`, which git ignores, and CI fails if a Quick Tunnel address is
    committed. The tunnel is Cloudflare's Quick Tunnel: no account, and a new address each run.
-   *Not yet verified on the phone.*
+   Verified on the owner's phone on 2026-10-28 (Skeleton step 2: "API: ok").
 
    **Start**, in three terminals from the repository root:
    1. The API: `npm run dev -w @fitsphere/api`. It listens on `127.0.0.1:3000` only.
@@ -253,7 +253,9 @@ back. Stop the API with Ctrl+C in its terminal.
 6. **"USB + adb" checks** (Skeleton plan, decision 8): connect the phone as in step 3, run
    `adb reverse tcp:8081 tcp:8081`, and from `apps/mobile` start the server with
    `npx expo start --dev-client --localhost`. The app then loads its code over USB, which keeps
-   working in airplane mode.
+   working in airplane mode. Then run `adb reverse --list`: it must show only `tcp:8081`. If
+   `tcp:3000` is listed, run `adb reverse --remove tcp:3000`, so the API cannot be reached over
+   USB while the phone is offline. Afterwards, `adb reverse --remove-all`.
 7. **Plain HTTP:** a development build is Gradle's debug build. The debug manifest that Expo
    generates allows plain HTTP; release builds do not. The tunnel's address is HTTPS, so the
    route to the API does not rely on this.

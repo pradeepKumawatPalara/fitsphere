@@ -335,7 +335,17 @@ documented fallback does not fix triggers the revisit conditions; changing the d
 new ADR that supersedes this one.
 
 ## Validation results
-None yet.
+Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreSQL 17, synthetic data); CI runs them on every pull request. Device and Supabase checks are recorded here once the owner has run them.
+- **Step 4 (MVP form, D-20) — passed in automated tests:** a user reads their own weigh-ins
+  (`200`); another user, and an unknown user ID, get the same `404`; no token, an expired token or
+  another key get `401`; a second user's sync never changes or returns the first user's
+  weigh-ins, even with the same day and change ID (`test/integration/sync.test.ts`,
+  `weigh-ins.test.ts`). The link cases wait for B-19.
+- **Step 6 — passed in automated tests:** the log holds one line per request with the route
+  pattern, and no token, email address, weight value, query value or body
+  (`test/integration/logs.test.ts`). Media links do not exist yet.
+- **Steps 1, 2 and 3:** the owner's checks on `fitsphere-dev`; not run yet. Step 5 runs with
+  media, after the Skeleton.
 
 ## Revisit conditions
 - An R-005 trigger is hit: database over 400 MB; files over 800 MB; monthly active users near

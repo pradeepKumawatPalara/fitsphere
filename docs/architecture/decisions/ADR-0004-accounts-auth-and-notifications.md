@@ -138,7 +138,14 @@ above cannot fix triggers the revisit conditions; changing the decision needs a 
 supersedes this one.
 
 ## Validation results
-None yet.
+Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreSQL 17, synthetic data); CI runs them on every pull request. Device and Supabase checks are recorded here once the owner has run them.
+- **Step 3, API part — passed in automated tests:** tokens are checked against the project's
+  key list; an expired token, one signed by another key or with the shared-secret method
+  (HS256), the wrong audience or issuer, a role other than `authenticated` and an anonymous
+  session all get `401` (`apps/api/src/auth.test.ts`, `test/integration/me.test.ts`). Account
+  setup is refused while Supabase shows the email unconfirmed (`EMAIL_NOT_VERIFIED`).
+- **Steps 2 and 3, phone part:** Skeleton step 6's phone checks; not run yet.
+- **Step 1** runs in the Release slice (Resend, D-20).
 
 ## Revisit conditions
 Email volume nears 100/day; neutral-message validation fails; Supabase Auth pricing or

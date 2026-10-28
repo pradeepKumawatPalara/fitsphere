@@ -32,7 +32,7 @@ Where the contracts define something, this plan does not repeat it.
 | 7. Forgot password and set a new password | Built 2026-10-28; waiting for CI and the phone check | `skeleton/07-password-reset` |
 | 8. Encrypted phone database and outbox | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/08-phone-database` |
 | 9. Sync and weigh-in reads; the self-access authorization suite | Built 2026-10-28; waiting for CI (no phone check) | `skeleton/09-sync-and-reads` |
-| 10 | Not started | — |
+| 10. Log and view weight, online and offline; close-out | Built 2026-10-28; waiting for CI, the EAS build and the phone checks. Automated results recorded in ADR-0001, 0002, 0003, 0004 and 0007; device results are added after the checks | `skeleton/10-weight-logging` |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)

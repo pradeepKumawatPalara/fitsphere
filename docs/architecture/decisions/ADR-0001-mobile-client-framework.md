@@ -151,7 +151,8 @@ supersedes this one.
   on the owner's OnePlus Nord CE4. The owner reported the step 2 phone check as passed: the
   screen showed "API: ok", reaching the API on the PC through a Cloudflare Quick Tunnel (D-19
   answer 6, Q-093). The build used 1 of the month's 15 EAS Android builds.
-- Checks 4 and 6: planned for Skeleton steps 8 and 10. Checks 2 and 3: not run yet.
+- Checks 4 and 6: built in Skeleton steps 8 and 10 (the 1,000-row check and the 200-row list,
+  development builds only); the phone checks have not run yet. Checks 2 and 3: not run yet.
 - Checks 5 and 7: not run in the first slice (D-20); backlog items B-24 and B-23.
 
 ## Revisit conditions
