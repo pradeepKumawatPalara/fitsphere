@@ -44,7 +44,8 @@ Read-only checks from VS Code; nothing was installed or changed.
   is restarted.
 - No PostgreSQL yet; the owner chose a native install of PostgreSQL 17 (D-18 answer 14). Docker
   Desktop is installed but is not used for the test database.
-- IPv6 works, so `MIGRATION_DATABASE_URL` can use the direct connection.
+- IPv6 works, but nothing needs it: every script connects through the session pooler
+  (`DATABASE_URL`, owner's decision, 2026-10-28).
 - Not stated by the owner: a real Android phone, a password manager, a Firebase project.
 
 ### 1. Node.js and Git
@@ -145,10 +146,10 @@ it when the Skeleton's database step starts.
    key (`sb_secret_…`) is for servers only and is not needed in the Skeleton. Supabase is
    retiring the legacy `anon` and `service_role` keys by the end of 2026, so neither is used.
 8. **Connection strings** (Connect button), saved in the password manager:
-   - **Session pooler** (port 5432): what the API uses on the PC. The shared pooler works over
-     IPv4.
-   - **Direct connection**: for migrations. It needs IPv6 unless the paid IPv4 add-on is bought;
-     if the PC's network has no IPv6, use the session pooler for migrations as well.
+   - **Session pooler** (port 5432): `DATABASE_URL`, used on the PC by the API, the migrations
+     and `db:growth`. The shared pooler works over IPv4.
+   - **Direct connection**: not used. The owner decided on 2026-10-28 that the migrations use
+     the session pooler too, so there is one database connection string.
    - The **transaction pooler** (port 6543) is for Cloud Run later (Q-087). It does not support
      prepared statements.
 
@@ -188,8 +189,8 @@ root:
 | `npm test` | Unit tests in each workspace (Vitest) |
 | `npm run test:integration` | Integration, authorization and database tests. They drop and recreate schema `app` in `TEST_DATABASE_URL` (from the environment, or else from `apps/api/.env`), and refuse a Supabase address |
 | `npm run dev -w @fitsphere/api` | Runs the API at `http://127.0.0.1:3000` and restarts it on changes; reads `apps/api/.env` if it exists |
-| `npm run migrate -w @fitsphere/api` | Applies new migration files from `apps/api/migrations/` to `MIGRATION_DATABASE_URL`, each in one transaction; refuses a file that was edited after it was applied |
-| `npm run db:growth -w @fitsphere/api` | Writes 10,000 synthetic weigh-ins to `MIGRATION_DATABASE_URL` inside one transaction, prints the PostgreSQL version and the growth, then rolls everything back (R-005) |
+| `npm run migrate -w @fitsphere/api` | Applies new migration files from `apps/api/migrations/` to `DATABASE_URL`, each in one transaction; refuses a file that was edited after it was applied |
+| `npm run db:growth -w @fitsphere/api` | Writes 10,000 synthetic weigh-ins to `DATABASE_URL` inside one transaction, prints the PostgreSQL version and the growth, then rolls everything back (R-005) |
 | `npm run check:data-api -w @fitsphere/api` | Calls Supabase's auto-generated REST endpoint with the publishable key and prints PASS when it returns no data (ADR-0002 step 2) |
 | `npm run check:signup -w @fitsphere/api -- <address>` | Calls Supabase Auth's sign-up directly with the publishable key for an address that already has an account, and prints PASS when the answer does not say it is registered (ADR-0004 step 2). It may send one email |
 
@@ -293,8 +294,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 
 | Name | Used by | What it holds | Secret? |
 |---|---|---|---|
-| `DATABASE_URL` | API | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later | **Yes** (contains the database password) |
-| `MIGRATION_DATABASE_URL` | API migrations | Direct connection, or the session pooler without IPv6 | **Yes** |
+| `DATABASE_URL` | API, `migrate` and `db:growth` | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later. The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
 | `SUPABASE_URL` | API | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
 | `PORT` | API | Port the API listens on, on the PC | No |
