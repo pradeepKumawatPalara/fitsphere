@@ -1,0 +1,47 @@
+import { AGE_CONFIRMATION_TEXT_VERSION } from '@fitsphere/shared';
+import { describe, expect, it } from 'vitest';
+import { startTestApi } from './app.ts';
+
+// ADR-0002 step 6, invariant #7: the log holds no token, email address, query value or body.
+
+describe('ADR-0002 step 6 log content', () => {
+  it('ADR-0002 step 6 logs one line per request with the route pattern and no sensitive values', async () => {
+    const lines: string[] = [];
+    const api = await startTestApi({ log: { level: 'info', stream: { write: (line) => lines.push(line) } } });
+    try {
+      const user = await api.signUp();
+      const auth = { authorization: `Bearer ${user.token}` };
+      await api.app.inject({
+        method: 'POST',
+        url: '/v1/me?probe=query-value-7f3a',
+        headers: auth,
+        payload: { ageConfirmed: true, ageConfirmationTextVersion: AGE_CONFIRMATION_TEXT_VERSION },
+      });
+      await api.app.inject({ method: 'GET', url: '/v1/me', headers: auth });
+      await api.app.inject({
+        method: 'POST',
+        url: '/v1/me',
+        headers: auth,
+        payload: { ageConfirmed: true, ageConfirmationTextVersion: 'x', email: 'body-value@example.test' },
+      });
+
+      const log = lines.join('');
+      expect(log).not.toContain(user.token);
+      expect(log).not.toContain(user.token.split('.')[1]);
+      expect(log).not.toContain(user.email);
+      expect(log).not.toContain('@example.test');
+      expect(log).not.toContain('query-value-7f3a');
+      expect(log).not.toContain('probe');
+      expect(log.toLowerCase()).not.toContain('authorization');
+
+      const requests = lines.map((line) => JSON.parse(line)).filter((entry) => entry.msg === 'request');
+      expect(requests).toHaveLength(3);
+      expect(requests[0]).toMatchObject({ method: 'POST', route: '/v1/me', status: 201 });
+      expect(requests[0].requestId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(requests[1]).toMatchObject({ method: 'GET', route: '/v1/me', status: 200 });
+      expect(requests[1].userId).toMatch(/^[0-9a-f-]{36}$/);
+    } finally {
+      await api.close();
+    }
+  });
+});

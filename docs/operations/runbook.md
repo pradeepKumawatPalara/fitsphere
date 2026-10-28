@@ -187,7 +187,10 @@ If the password holds `/`, `#`, `?`, `@`, `%` or a space, write those characters
 (for example `/` as `%2F`), or give the local `postgres` user a password without them. Create the
 database once with `createdb -U postgres fitsphere_test` (PostgreSQL's `bin` folder).
 
-The API runs its TypeScript files directly on Node 24, with no build step. It listens only on
+The API runs its TypeScript files directly on Node 24, with no build step. From Skeleton step 5 it
+needs `DATABASE_URL`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `apps/api/.env`; without
+them it stops at start and names the missing ones. Every route except `/v1/health` needs a
+Supabase access token. It listens only on
 the PC's own loopback address, so nothing else on the network can reach it; how the phone reaches
 it is step 8. Check: `http://127.0.0.1:3000/v1/health` in a browser shows
 `{"status":"ok"}`. Use `127.0.0.1` rather than `localhost`: on this PC `localhost` resolves to the

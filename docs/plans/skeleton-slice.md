@@ -27,7 +27,8 @@ Where the contracts define something, this plan does not repeat it.
 | 2. App shell on the phone | Done (merged 2026-10-28; phone check in ADR-0001) | `skeleton/02-app-shell` |
 | 3. Shared dates, units and contract schemas | Built 2026-10-28; waiting for CI and the phone check | `skeleton/03-shared-dates-units` |
 | 4. Database schema and migrations | Built 2026-10-28; waiting for CI and the owner's Supabase checks | `skeleton/04-database-schema` |
-| 5–10 | Not started | — |
+| 5. API foundations and account setup | Built 2026-10-28; waiting for CI and the owner's check on the PC | `skeleton/05-api-foundations` |
+| 6–10 | Not started | — |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)
