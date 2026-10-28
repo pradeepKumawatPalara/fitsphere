@@ -1,8 +1,8 @@
 # Definition of Done
 
-- Status: Draft — agreed when the owner approves the Skeleton plan
+- Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28
 
 A change is done only when every applicable item is true. "Not applicable" is allowed; skipping
 silently is not. The pull request (or commit message, while there are no pull requests) says
