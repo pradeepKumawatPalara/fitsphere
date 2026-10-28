@@ -146,7 +146,13 @@ does not fix triggers the revisit conditions; changing the decision needs a new 
 supersedes this one.
 
 ## Validation results
-None yet.
+- **Check 1 — passed on 2026-10-28** (Skeleton step 2). A blank TypeScript app on Expo SDK 58
+  (React Native 0.88), built as an EAS Android development build and installed from its EAS link
+  on the owner's OnePlus Nord CE4. The owner reported the step 2 phone check as passed: the
+  screen showed "API: ok", reaching the API on the PC through a Cloudflare Quick Tunnel (D-19
+  answer 6, Q-093). The build used 1 of the month's 15 EAS Android builds.
+- Checks 4 and 6: planned for Skeleton steps 8 and 10. Checks 2 and 3: not run yet.
+- Checks 5 and 7: not run in the first slice (D-20); backlog items B-24 and B-23.
 
 ## Revisit conditions
 - Check 6 shows visible lag that optimisation does not fix.
