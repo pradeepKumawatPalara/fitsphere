@@ -570,6 +570,23 @@
   ADR-0002, ADR-0004 and ADR-0007 (a note on their validation steps; ADR-0004's Q-082 row);
   product brief; user journeys; `CLAUDE.md`; `README.md`; docs index.
 
+## D-21 Skeleton steps run back to back (amends D-18 answer 14 and the Skeleton plan's workflow)
+- Status: **Accepted** (owner instruction in chat, 2026-10-28, after step 2 was merged).
+- Answers:
+  1. **Steps 3 to 10 run back to back.** Each step still has its own branch and pull request.
+     Claude Code does not wait for the owner between steps that need nothing from the owner, and
+     opens each pull request once its checks pass.
+  2. **Work stops only when the owner is needed:** something in Supabase or the owner's accounts,
+     a phone check, a cloud build, or a decision that touches privacy, security or a D- decision.
+     Questions are batched. Each stop lists the pull requests to merge, the phone checks with
+     exact steps, and what is needed from the owner.
+  3. **Open questions follow D-18 and D-20:** the simplest MVP default, recorded, with no
+     edge-case questions.
+  4. **The owner starts and stops the API, the tunnel and Expo;** Claude Code does not.
+- Unchanged: CI must pass before merge, the owner merges, and every phone check is run and
+  recorded before its step counts as done.
+- Doc changes: `docs/plans/skeleton-slice.md` (decision 2, progress); `CLAUDE.md` current phase.
+
 ---
 
 ## Proposed replacement wording for the two invariants
