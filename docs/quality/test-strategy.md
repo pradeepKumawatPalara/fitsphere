@@ -59,7 +59,12 @@ Also:
 - no route lets anyone write another user's weigh-ins;
 - a second user's sync never changes or returns the first user's weigh-ins, even with the same
   day and `changeId`;
-- logging a weight without the Personal Training User role is rejected (`ROLE_NOT_ENABLED`);
+- the same for steps, sleep, measurements and targets, even with the same day, kind and
+  `changeId` (Home and daily tracking slice, D-23);
+- logging a weight, steps, sleep or measurements, or setting a target, without the Personal
+  Training User role is rejected (`ROLE_NOT_ENABLED`);
+- a `target.set` change that names who set the target is refused; the server records the caller
+  (invariant #2 groundwork);
 - the route-listing test fails if a route has no access rule.
 
 **Post-MVP (D-20; backlog B-19 to B-21):** added with links, these cases from ADR-0002 step 4
@@ -78,6 +83,10 @@ coach-set target: refused (invariant #2).
 - Out-of-range and malformed values are rejected per change, without the value in the error.
 - The pull returns only the user's own weigh-ins from the last 90 IST days, pages at 500 with
   `hasMore`, and returns nothing new on a repeat with the latest cursor.
+- Steps, sleep, measurements and targets (D-23): each type is accepted and a second value
+  replaces the first; out-of-range values and a missing waist value are rejected; the 90-day
+  window applies to day data but not to targets; one cursor pages across all five kinds in the
+  order they changed.
 - On the phone (unit tests): a failed or offline sync keeps the outbox; a rejected change stays
   until the user fixes or discards it; synced entries older than 90 days are removed from the
   phone, pending and rejected ones never.
@@ -87,6 +96,8 @@ coach-set target: refused (invariant #2).
 - The shared date tests run twice in CI, with the process time zone set to `Asia/Kolkata` and to
   `America/Los_Angeles`, to prove nothing depends on the machine's time zone.
 - Kilograms entered with one decimal convert to grams and back to the same displayed value.
+- Hours of sleep with one decimal convert to minutes and back unchanged; centimetres and inches
+  with one decimal convert to millimetres and back unchanged (D-23).
 
 ### Account and sign-in (REQ-ACC-010, D-18)
 - `POST /v1/me` without `ageConfirmed: true` creates nothing and returns
@@ -109,7 +120,8 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
-and fails if it contains the weight value, the token, the email address or a query value.
+and fails if it contains the weight value, a measurement value or its notes, a target value, the
+token, the email address or a query value.
 
 ### Device checks for the Skeleton
 Recorded, with the date, under "Validation results" in the ADR named:

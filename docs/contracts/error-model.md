@@ -2,7 +2,9 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (Skeleton step 5: `details` is `null` outside `VALIDATION_FAILED`)
+- Last updated: 2026-10-29 (Home and daily tracking slice: rejected-change texts for steps, sleep,
+  measurements and targets; D-23). 2026-10-28 (Skeleton step 5: `details` is `null` outside
+  `VALIDATION_FAILED`)
 - Builds on: [`api-conventions.md`](api-conventions.md); invariants #1 and #7; REQ-ACC-010, REQ-NFR-001, REQ-NFR-004
 
 One error shape for the whole API, a fixed list of codes, and the rules for what an error may
@@ -69,8 +71,8 @@ never removes it automatically (ADR-0007 rule 2, D-14).
 
 | Code | When |
 |---|---|
-| `VALIDATION_FAILED` | The change's data is invalid, e.g. a weight outside 20–300 kg (Q-028) or a malformed day |
-| `DAY_IN_FUTURE` | The day is later than today in IST by the server's clock (REQ-DATE-001, Q-017, invariant #5) |
+| `VALIDATION_FAILED` | The change's data is invalid, e.g. a weight outside 20–300 kg (Q-028), a malformed day, a missing waist value, a target outside its range, or an unknown field |
+| `DAY_IN_FUTURE` | The day is later than today in IST by the server's clock (REQ-DATE-001, Q-017, invariant #5). Not used for targets, which have no day |
 | `ROLE_NOT_ENABLED` | The change needs a role the user has not turned on |
 | `NOT_ALLOWED` | The user may not change this data, e.g. the link it depended on has ended (T-02). Not reachable in the Skeleton, where users write only their own data |
 | `UNKNOWN_CHANGE_TYPE` | The server does not know the change `type` |
@@ -94,4 +96,5 @@ reveal whether an address is registered.
 | Sign-up without the 18+ box ticked | The button stays disabled; the box reads "I am 18 or older" | REQ-ACC-010, D-18 |
 | A step that needs internet while offline | "<Step> needs an internet connection." e.g. "Signing up needs an internet connection." | REQ-NFR-004, D-04, ADR-0007 rule 6 |
 | A rejected weigh-in | "This weight wasn't saved: <reason>. Edit or discard it." with the reason from the code, e.g. "the date is in the future" | ADR-0007 rule 2 |
+| A rejected steps, sleep, measurements or target change | The same, with its own subject: "These steps weren't saved: …", "This sleep wasn't saved: …", "These measurements weren't saved: …", "This target wasn't saved: …" | ADR-0007 rule 2; MVP default (D-23) |
 | `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE` | "Something went wrong. Your entries are kept on this phone and will sync later." | REQ-NFR-004 |

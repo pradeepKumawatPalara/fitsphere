@@ -187,6 +187,99 @@ describe('REQ-HOME-006 weigh_ins', () => {
   });
 });
 
+describe('Home and daily tracking tables (migration 0002)', () => {
+  const rejects = async (sql: string, params: unknown[], state: string) =>
+    expect(client.query(sql, params)).rejects.toSatisfy((error) => sqlState(error) === state);
+
+  it('Q-028 refuses steps outside 0–100,000 and sleep outside 0–24 h', async () => {
+    const user = await insertUser(client);
+    const insertSteps = 'insert into app.step_counts (user_id, day, steps, recorded_at) values ($1, $2, $3, now())';
+    const insertSleep = 'insert into app.sleep_logs (user_id, day, sleep_minutes, recorded_at) values ($1, $2, $3, now())';
+    await rejects(insertSteps, [user, '2026-10-01', -1], CHECK_VIOLATION);
+    await rejects(insertSteps, [user, '2026-10-01', 100_001], CHECK_VIOLATION);
+    await rejects(insertSleep, [user, '2026-10-01', 1_441], CHECK_VIOLATION);
+    await client.query(insertSteps, [user, '2026-10-01', 100_000]);
+    await client.query(insertSleep, [user, '2026-10-01', 1_440]);
+  });
+
+  it('Q-030 holds one steps, sleep and measurements value per user per day', async () => {
+    const [userA, userB] = [await insertUser(client), await insertUser(client)];
+    const insertSteps = 'insert into app.step_counts (user_id, day, steps, recorded_at) values ($1, $2, 10, now())';
+    const insertSleep = 'insert into app.sleep_logs (user_id, day, sleep_minutes, recorded_at) values ($1, $2, 10, now())';
+    const insertMeasurements = `insert into app.measurements (user_id, day, upper_waist_mm, lower_waist_mm, recorded_at)
+      values ($1, $2, 800, 820, now())`;
+    for (const sql of [insertSteps, insertSleep, insertMeasurements]) {
+      await client.query(sql, [userA, '2026-10-02']);
+      await client.query(sql, [userB, '2026-10-02']);
+      await rejects(sql, [userA, '2026-10-02'], UNIQUE_VIOLATION);
+    }
+  });
+
+  it('REQ-MEAS-004 requires both waist values; every length is 10–250 cm; notes are 1–500 characters', async () => {
+    const user = await insertUser(client);
+    const insert = (upper: number | null, chest: number | null, notes: string | null) =>
+      client.query(
+        `insert into app.measurements (user_id, day, upper_waist_mm, lower_waist_mm, chest_mm, notes, recorded_at)
+         values ($1, '2026-10-03', $2, 820, $3, $4, now())`,
+        [user, upper, chest, notes],
+      );
+    await expect(insert(null, null, null)).rejects.toSatisfy((error) => sqlState(error) === '23502');
+    await expect(insert(99, null, null)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await expect(insert(800, 2_501, null)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await expect(insert(800, null, '')).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await expect(insert(800, null, 'x'.repeat(501))).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await insert(800, 2_500, 'x'.repeat(500));
+  });
+
+  it('D-23 checks each target against its kind’s range and holds one value per kind', async () => {
+    const user = await insertUser(client);
+    const insert = (kind: string, value: number) =>
+      client.query(
+        `insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, $2, $3, $1, now())`,
+        [user, kind, value],
+      );
+    for (const [kind, low, high] of [
+      ['calories', 500, 10_000],
+      ['protein', 10, 500],
+      ['steps', 1, 100_000],
+      ['weekly_workouts', 1, 14],
+      ['body_weight', 20_000, 300_000],
+    ] as const) {
+      await expect(insert(kind, low - 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+      await expect(insert(kind, high + 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+      await insert(kind, high);
+      await expect(insert(kind, low)).rejects.toSatisfy((error) => sqlState(error) === UNIQUE_VIOLATION);
+    }
+    await expect(insert('carbs', 100)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+  });
+
+  it('REQ-ACC-009 deleting a user deletes their daily data and targets', async () => {
+    const user = await insertUser(client);
+    await client.query(`insert into app.step_counts (user_id, day, steps, recorded_at) values ($1, '2026-10-04', 10, now())`, [user]);
+    await client.query(`insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'steps', 10, $1, now())`, [user]);
+
+    await client.query('delete from app.users where id = $1', [user]);
+
+    for (const table of ['step_counts', 'targets']) {
+      const { rowCount } = await client.query(`select 1 from app.${table} where user_id = $1`, [user]);
+      expect(rowCount).toBe(0);
+    }
+  });
+
+  it('backlog E-02 a target outlives the account of the person who set it, without their ID', async () => {
+    const [trainee, setter] = [await insertUser(client), await insertUser(client)];
+    await client.query(`insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'calories', 2000, $2, now())`, [
+      trainee,
+      setter,
+    ]);
+
+    await client.query('delete from app.users where id = $1', [setter]);
+
+    const { rows } = await client.query('select value, set_by_user_id from app.targets where user_id = $1', [trainee]);
+    expect(rows).toEqual([{ value: 2_000, set_by_user_id: null }]);
+  });
+});
+
 describe('ADR-0002 second safety layer', () => {
   it('ADR-0002 every table in schema app has row level security on and no policies', async () => {
     const { rows } = await client.query<{ relname: string; relrowsecurity: boolean }>(
@@ -197,7 +290,11 @@ describe('ADR-0002 second safety layer', () => {
       'applied_changes',
       'head_coach_permission_answers',
       'links',
+      'measurements',
       'schema_migrations',
+      'sleep_logs',
+      'step_counts',
+      'targets',
       'user_roles',
       'users',
       'weigh_ins',

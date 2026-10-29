@@ -12,6 +12,8 @@ const requests: { label: string; path: string; headers: Record<string, string> }
   { label: 'REST root', path: '/rest/v1/', headers: {} },
   { label: 'app.users', path: '/rest/v1/users?select=id&limit=1', headers: { 'Accept-Profile': 'app' } },
   { label: 'app.weigh_ins', path: '/rest/v1/weigh_ins?select=id&limit=1', headers: { 'Accept-Profile': 'app' } },
+  { label: 'app.measurements', path: '/rest/v1/measurements?select=id&limit=1', headers: { 'Accept-Profile': 'app' } },
+  { label: 'app.targets', path: '/rest/v1/targets?select=id&limit=1', headers: { 'Accept-Profile': 'app' } },
 ];
 
 let anyData = false;

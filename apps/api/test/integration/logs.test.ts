@@ -3,7 +3,8 @@ import { AGE_CONFIRMATION_TEXT_VERSION } from '@fitsphere/shared';
 import { describe, expect, it } from 'vitest';
 import { startTestApi } from './app.ts';
 
-// ADR-0002 step 6, invariant #7: the log holds no token, email address, weight, query value or body.
+// ADR-0002 step 6, invariant #7: the log holds no token, email address, health value (weight,
+// measurements and their notes, targets), query value or body.
 
 describe('ADR-0002 step 6 log content', () => {
   it('ADR-0002 step 6 logs one line per request with the route pattern and no sensitive values', async () => {
@@ -32,6 +33,22 @@ describe('ADR-0002 step 6 log content', () => {
               type: 'weighIn.set',
               data: { day: '2026-10-01', weightGrams: 73_456, recordedAt: '2026-10-01T02:00:00.000Z' },
             },
+            {
+              changeId: randomUUID(),
+              type: 'measurements.set',
+              data: {
+                day: '2026-10-01',
+                upperWaistMm: 1_234,
+                lowerWaistMm: 1_235,
+                chestMm: null,
+                hipsMm: null,
+                armMm: null,
+                thighMm: null,
+                notes: 'synthetic-note-5c1d',
+                recordedAt: '2026-10-01T02:00:00.000Z',
+              },
+            },
+            { changeId: randomUUID(), type: 'target.set', data: { kind: 'calories', value: 2_345, setAt: '2026-10-01T02:00:00.000Z' } },
           ],
         },
       });
@@ -56,6 +73,9 @@ describe('ADR-0002 step 6 log content', () => {
       expect(log).not.toContain('probe');
       expect(log.toLowerCase()).not.toContain('authorization');
       expect(log).not.toContain('73456');
+      expect(log).not.toContain('1234');
+      expect(log).not.toContain('synthetic-note-5c1d');
+      expect(log).not.toContain('2345');
       expect(log).not.toContain('2026-09-17');
       expect(log).not.toContain('2026-10-01');
 

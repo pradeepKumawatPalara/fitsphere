@@ -94,8 +94,10 @@ describe('Migration runner (data model, "Changes")', () => {
   });
 
   it('applies the real migrations to an empty database', async () => {
-    expect(await migrate(client, await readMigrations())).toEqual(['0001_skeleton.sql']);
-    expect(await tableExists('weigh_ins')).toBe(true);
+    expect(await migrate(client, await readMigrations())).toEqual(['0001_skeleton.sql', '0002_daily_tracking.sql']);
+    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets']) {
+      expect(await tableExists(table)).toBe(true);
+    }
   });
 });
 

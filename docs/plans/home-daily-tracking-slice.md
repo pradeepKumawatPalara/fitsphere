@@ -22,8 +22,8 @@ Where the contracts define something, this plan does not repeat it.
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. `npm run dev:phone` | In progress | `home/01-dev-phone` |
-| 2. Server: daily data in the contracts, schema and sync | Not started | `home/02-server-daily-data` |
+| 1. `npm run dev:phone` | Pull request #11; its check is in the batch at the end | `home/01-dev-phone` |
+| 2. Server: daily data in the contracts, schema and sync | Built; automated checks pass. Migration 0002 runs on `fitsphere-dev` with the batch at the end | `home/02-server-daily-data` |
 | 3. Phone: local schema v2, store and sync client | Not started | `home/03-phone-daily-data` |
 | 4. Navigation shell | Not started | `home/04-navigation` |
 | 5. Own targets, calories and protein cards, workout tracker | Not started | `home/05-targets-and-cards` |

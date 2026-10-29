@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-20: the MVP is the Personal Training User view only)
+- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: MVP defaults for targets, sleep
+  and measurements; Q-014). 2026-10-28 (D-20: the MVP is the Personal Training User view only)
 
 Confirmed facts, assumptions and open questions are kept in separate sections. Nothing under
 **Assumptions** or **Open questions** is a requirement until the owner confirms it.
@@ -88,6 +89,11 @@ confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
 | App texts for failures (Skeleton step 6) | When Supabase or the API cannot answer: "Something went wrong. Try again later." A verify-email link opens "Your email is verified. Sign in to continue.", or, for an expired or used link, "This link has expired or was already used. Sign in, or sign up again for a new link." A request that never left the phone shows the named "needs an internet connection" warning instead of the neutral text, since it reveals nothing about the address. *Not yet confirmed* | REQ-ACC-010, error model |
 | Body-weight unit of a new account (Skeleton step 10, plan decision 6) | kg, as the BRD's "Weight (kg)"; Home and history show kg until the Settings slice adds the setting (REQ-ACC-003). Weights are typed with at most one decimal, with a dot or a comma | REQ-HOME-006, REQ-ACC-003 |
 | Sign-in email links (Skeleton steps 6 and 7) | Supabase's PKCE flow: links carry a one-time code, never tokens. The verify link only confirms the address; the app then asks the user to sign in. A reset link works only on the phone that asked for the reset; elsewhere, or once expired or used, the app says so and offers a new one. *Not yet confirmed* | REQ-ACC-010, ADR-0004 |
+| Q-014 Targets from a date or for past days (Home slice, D-23) | One current value per target, replaced when the user sets a new one; it applies to every day shown, past days included. No target history in the MVP. *Not yet confirmed* | REQ-ROLE-007, data model |
+| Target ranges (Home slice, D-23) | Daily calories 500–10,000 kcal; daily protein 10–500 g; daily steps 1–100,000; weekly workouts 1–14; target body weight 20–300 kg with one decimal (Q-028). *Not yet confirmed* | REQ-ROLE-007, data model |
+| Who set a target (Home slice, D-23) | The server records the caller from the sign-in token, never from the request, with the time it was set. Every target in the MVP is the user's own, labelled "Set by you"; "Set by <name>" comes with coaches (backlog B-21). A target can be changed but not removed. *Not yet confirmed* | REQ-ROLE-007, invariant #2 |
+| Storage units for sleep and measurements (Home slice, D-23) | Sleep in whole minutes (typed in hours with one decimal); body measurements in whole millimetres (typed in cm or in with one decimal; REQ-MEAS-003 left this to the contracts). Every measurement is 10–250 cm (Q-028) in either unit. *Not yet confirmed* | REQ-HOME-006, REQ-MEAS-003, invariant #6 |
+| Measurement notes (Home slice, D-23) | Up to 500 characters; empty notes are stored as no notes. A new entry for a day replaces the whole old one, so an optional field left empty clears its old value (Q-030). *Not yet confirmed* | REQ-MEAS-005, REQ-MEAS-006 |
 
 Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
 and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18
@@ -126,7 +132,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-020 | Navigation layout for Coach and Head Coach views. | Coach/Head Coach UI, ADR-0001 | Project owner | |
 | Q-021 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-06, D-08). What trainee "details" can a Head Coach see, and can they edit trainee plans/targets? *Targets: Q-075.* | REQ-ROLE-004, ADR-0004 | Project owner | |
 | Q-013 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18, D-20):** in the MVP the user sets their own weekly workout target, target body weight and daily steps target (D-20); once coaches exist, the Coach, and a Head Coach the trainee allows, set them. Who sets the weekly workout target and the Progress "Target row" (body weight, steps)? | REQ-HOME-007, PRG-005 | Project owner | |
-| Q-014 | Do target changes apply from a date forward or to past days too? | Data model, ADR-0003 | Project owner | |
+| Q-014 | **MVP default — [chosen under D-18](#mvp-defaults-d-18) (D-23):** one current value per target, applying to every day shown; no history in the MVP. Do target changes apply from a date forward or to past days too? | Data model, ADR-0003 | Project owner | |
 | Q-016 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18, extended by D-20):** a user without a coach sets their own daily calorie, protein and steps targets, weekly workout target and target body weight. Can a self-directed user set their own targets? | REQ-ROLE-007 | Project owner | |
 | Q-057 | What is the Head Coach "configuration functionality" in BRD §1.2? No requirement covers it yet. | Head Coach scope (no REQ yet) | Project owner | |
 | Q-058 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-10: the record is the link). Is a "Coach record" or "trainee record" the person's user account, or a separate record (e.g. the coaching assignment) linked to an account? Can a record exist before the person has an account? See the [glossary](../product/glossary.md). | REQ-ROLE-003/005, ADR-0004, data model | Project owner | |
