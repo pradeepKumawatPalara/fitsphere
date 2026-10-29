@@ -2,9 +2,9 @@
 
 - Status: **Accepted** — approved by the project owner on 2026-10-28 (D-18 answer 14)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-19: development on the owner's phone with EAS Build; no emulator.
-  D-20: the MVP is the Personal Training User view only; steps 11 and 12 moved to the backlog,
-  step 9 simplified to self-access)
+- Last updated: 2026-10-29 (phone check results of 2026-10-29). 2026-10-28: D-19, development
+  on the owner's phone with EAS Build, no emulator; D-20, the MVP is the Personal Training User
+  view only, steps 11 and 12 moved to the backlog, step 9 simplified to self-access
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) (D-18), the contracts in
   [`docs/contracts/`](../contracts/), [`test-strategy.md`](../quality/test-strategy.md),
   [`definition-of-done.md`](../quality/definition-of-done.md), ADR-0001 to ADR-0007
@@ -28,12 +28,43 @@ Where the contracts define something, this plan does not repeat it.
 | 3. Shared dates, units and contract schemas | Built 2026-10-28; CI green (PR #3); waiting for the phone check | `skeleton/03-shared-dates-units` |
 | 4. Database schema and migrations | Built 2026-10-28; CI green (PR #4). Owner's Supabase checks done 2026-10-28: migration applied, Data API check passed, growth measured (ADR-0002, ADR-0003) | `skeleton/04-database-schema` |
 | 5. API foundations and account setup | Built 2026-10-28; CI green (PR #5). Check on the PC passed 2026-10-28: `/v1/me` answered `401` with a request ID (ADR-0004) | `skeleton/05-api-foundations` |
-| 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; CI green (PR #6); waiting for the EAS build and the phone checks | `skeleton/06-sign-up-sign-in` |
+| 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; CI green (PR #6); EAS build done 2026-10-28; waiting for the phone checks | `skeleton/06-sign-up-sign-in` |
 | 7. Forgot password and set a new password | Built 2026-10-28; CI green (PR #7); waiting for the phone check | `skeleton/07-password-reset` |
-| 8. Encrypted phone database and outbox | Built 2026-10-28; CI green (PR #8); waiting for the EAS build and the phone checks | `skeleton/08-phone-database` |
+| 8. Encrypted phone database and outbox | Built 2026-10-28; CI green (PR #8); EAS build done 2026-10-28; waiting for the phone checks | `skeleton/08-phone-database` |
 | 9. Sync and weigh-in reads; the self-access authorization suite | Built 2026-10-28; CI green (PR #9) and the integration suite green on the PC: the step's check is done (no phone check) | `skeleton/09-sync-and-reads` |
-| 10. Log and view weight, online and offline; close-out | Built 2026-10-28; CI green (PR #10); waiting for the EAS build, `check:signup` and the phone checks. Automated results, and the Supabase results of steps 4 and 5, recorded in ADR-0001, 0002, 0003, 0004 and 0007; device results are added after the checks | `skeleton/10-weight-logging` |
+| 10. Log and view weight, online and offline; close-out | Built 2026-10-28; CI green (PR #10); EAS build done 2026-10-28. Phone checks partly passed 2026-10-29 (ADR-0001, ADR-0007); waiting for the rest and `check:signup`. Automated results, and the Supabase results of steps 4 and 5, recorded in ADR-0001, 0002, 0003, 0004 and 0007 | `skeleton/10-weight-logging` |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
+
+### Phone checks on 2026-10-29
+Owner's report. OnePlus Nord CE4 with the EAS development build of step 10 (commit `3441ad2`).
+The app code was `skeleton/10-weight-logging` (`0bd41bf`) with a local, test-only change to the
+sign-up and sign-in screens, which is in no pull request and does not touch the weight,
+phone-database or sync code. The API ran on the PC behind a Cloudflare Quick Tunnel; test data
+only. The previous day's tunnel had stopped ("Unauthorized: Tunnel not found"), so a new tunnel
+and address were used (runbook step 8).
+
+**Passed**
+- The app opens on the phone (ADR-0001 check 1, repeated with the Skeleton build).
+- "API: ok" on the screen, and `/v1/health` through the tunnel answers `{"status":"ok"}`.
+- A weight saved earlier is still shown after the app is reopened.
+- Offline (airplane mode, Wi-Fi off): saved weights are still shown, and a second weight is saved
+  and shown on the phone.
+- After reconnecting, the sync status shows synced (part of step 10's check 3; ADR-0007 step 1).
+
+**Pending**, by pull request:
+- **PR #3** (step 3): "Today (IST)", and the Los Angeles time zone keeping the IST date.
+- **PR #6** (step 6): checks 1 to 5 (sign up with your own address, refused before verifying,
+  the email link, account setup, log out); check 6 (a repeat sign-up and an address outside the
+  team show the same text; `check:signup`); check 7 (the saved token gets `401`).
+- **PR #7** (step 7): the reset email, and the same text for an address outside the team.
+- **PR #8** (step 8): the start-up check with its SQLCipher version (the app opened its database
+  on 2026-10-29, since saved weights were shown, but the version was not read); the 1,000-row
+  check in airplane mode, with its times; the database file copied off over USB is unreadable.
+- **PR #10** (step 10): checks 1 and 2 (replace a value; a past day with the banner; future days
+  blocked); the rest of check 3 (force-stop and reopen offline over USB; log out and sign in
+  restores exactly one value, which confirms the offline entry on the server); checks 4 to 7
+  (future date rejected, Los Angeles time zone, log-out warning, 200-row list); `check:signup`
+  (the same run as step 6's).
 
 ## Before step 1 (owner; no code)
 1. Install EAS CLI, sign in to Expo, and link the app to an EAS project

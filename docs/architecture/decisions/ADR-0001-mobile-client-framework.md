@@ -151,8 +151,14 @@ supersedes this one.
   on the owner's OnePlus Nord CE4. The owner reported the step 2 phone check as passed: the
   screen showed "API: ok", reaching the API on the PC through a Cloudflare Quick Tunnel (D-19
   answer 6, Q-093). The build used 1 of the month's 15 EAS Android builds.
+- **Check 1, repeated with the Skeleton build — passed on 2026-10-29.** The EAS development build
+  of Skeleton step 10 (commit `3441ad2`, built 2026-10-28; 2 of the month's 15 EAS Android builds
+  used) adds the native modules of steps 6, 8 and 10: `expo-secure-store`, `expo-sqlite` with
+  SQLCipher, `expo-crypto` and `expo-network`. The owner reported that it opens on the OnePlus
+  Nord CE4, shows "API: ok" through a Quick Tunnel, and passes the offline weight checks recorded
+  in ADR-0007.
 - Checks 4 and 6: built in Skeleton steps 8 and 10 (the 1,000-row check and the 200-row list,
-  development builds only); the phone checks have not run yet. Checks 2 and 3: not run yet.
+  development builds only); pending, not run on 2026-10-29. Checks 2 and 3: not run yet.
 - Checks 5 and 7: not run in the first slice (D-20); backlog items B-24 and B-23.
 
 ## Revisit conditions
