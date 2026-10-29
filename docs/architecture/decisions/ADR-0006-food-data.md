@@ -32,7 +32,8 @@ lookups may need internet (named warning, D-04). Budget: free.
   measure.
 - **Indian Food Composition Tables (IFCT 2017, National Institute of Nutrition):** the
   standard Indian reference for raw ingredients. Licence for reuse in an app: **not
-  checked** — must be confirmed before copying values.
+  checked** — must be confirmed before copying values. *Decided by the owner under D-25
+  (2026-10-29): FitSphere uses IFCT 2017 without NIN permission, accepted risk R-007.*
 - **USDA FoodData Central:** US government data; good for raw ingredients, weak on Indian
   dishes. Licence not checked here.
 - **Paid commercial food APIs:** not considered for MVP (cost).
@@ -44,7 +45,9 @@ Q-039 and, with ADR-0005, Q-063.
 
 Accepted while these were still open: the licence of the food-list source (blocks release, not
 development) and the ODbL share-alike question (Legal, Q-049). "Open questions and handling"
-below says how each is handled.
+below says how each is handled. *The food-list licence question was decided by the owner under
+D-25 (2026-10-29): IFCT 2017 is used without NIN permission, as accepted risk R-007, and is no
+longer a release blocker. This ADR's decision is unchanged.*
 
 ## Recommended option
 1. **FitSphere food list (own table)** for common foods — start with about 150–200 common
@@ -107,7 +110,7 @@ problem appears.
 | Q-039 data sources | Answered by this ADR |
 | Q-063 where nutrition values come from | Answered with ADR-0005: food list first, else the AI's estimate, marked |
 | Q-015 steps and sleep input | MVP default (D-18): typed in; health-platform sync is post-MVP |
-| IFCT / USDA licence | Check before release; blocks release, not development |
+| IFCT / USDA licence | IFCT: decided by the owner under D-25 (2026-10-29): used without NIN permission, accepted risk R-007; not a release blocker. See [`food-list-sources.md`](../../data/food-list-sources.md). USDA: not used |
 | Q-049 ODbL share-alike | Legal to confirm before release |
 
 ## References (checked 2026-10-27)
