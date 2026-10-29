@@ -1,9 +1,11 @@
-import { TARGET_SET, type IstDay, type TargetKind } from '@fitsphere/shared';
+import { addDays, istWeekStart, MEASUREMENTS_SET, TARGET_SET, type IstDay, type TargetKind } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
+import { MeasurementsCard } from '../components/MeasurementsCard';
+import { MeasurementsSheet } from '../components/MeasurementsSheet';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
@@ -13,7 +15,7 @@ import { WorkoutTracker } from '../components/WorkoutTracker';
 import { DAY_VALUE_ORDER, DAY_VALUES, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getEntry, listTargets, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
+import { getEntry, listEntries, listTargets, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { LogOut } from './LogOut';
@@ -39,6 +41,8 @@ export function HomeScreen() {
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [targets, setTargets] = useState<Targets>({});
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [weekMeasured, setWeekMeasured] = useState(true);
+  const [measurementsDay, setMeasurementsDay] = useState<IstDay | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -57,11 +61,13 @@ export function HomeScreen() {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
+    const monday = istWeekStart(selected);
     void Promise.all([
       Promise.all(DAY_VALUE_ORDER.map((kind) => getEntry(db, kind, selected))),
       rejectedChanges(db),
       listTargets(db),
-    ]).then(([entries, waiting, current]) => {
+      listEntries(db, 'measurements', monday, addDays(monday, 6)),
+    ]).then(([entries, waiting, current, weekMeasurements]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -74,6 +80,8 @@ export function HomeScreen() {
       setRejected(waiting);
       // A target applies to every day shown, past days included (Q-014 MVP default, D-23).
       setTargets(Object.fromEntries(current.map((target) => [target.kind, target.value])));
+      // Both waist values are required in every entry, so any entry that week counts (Q-026).
+      setWeekMeasured(weekMeasurements.length > 0);
     });
     return () => {
       active = false;
@@ -95,6 +103,7 @@ export function HomeScreen() {
     const data = entry.data as Record<string, unknown>;
     const kind = DAY_VALUE_ORDER.find((candidate) => DAY_VALUES[candidate].changeType === entry.type);
     if (kind) setSheet({ kind, day: String(data.day), initial: Number(data[DAY_VALUES[kind].field]) });
+    else if (entry.type === MEASUREMENTS_SET) setMeasurementsDay(String(data.day));
     else if (entry.type === TARGET_SET) openTargets();
   }
 
@@ -165,6 +174,16 @@ export function HomeScreen() {
         target={targets.weekly_workouts ?? null}
         onSetTarget={openTargets}
       />
+      {weekMeasured ? null : <MeasurementsCard onOpen={() => setMeasurementsDay(selected)} />}
+      {measurementsDay ? (
+        <MeasurementsSheet
+          initialDay={measurementsDay}
+          today={today}
+          firstDay={firstDay}
+          onSave={(input) => sync.save('measurements', input)}
+          onClose={() => setMeasurementsDay(null)}
+        />
+      ) : null}
       {sheet && sheetText ? (
         <NumberEntrySheet
           title={`${sheetText.label} · ${formatDay(sheet.day)}`}

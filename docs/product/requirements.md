@@ -2,7 +2,10 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-20: Coach and Head Coach requirements marked Post-MVP)
+- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: where targets are set; storage
+  units for sleep and measurements; parts of REQ-HOME-002, REQ-HOME-003/004, REQ-HOME-005 and
+  REQ-HOME-007 that wait for meals or workouts). 2026-10-28 (D-20: Coach and Head Coach requirements
+  marked Post-MVP)
 - Derived from: [`source/business-requirements.txt`](source/business-requirements.txt) (BRD). "BRD §x" points to the source section.
 - Scope: the MVP in [`mvp-scope.md`](mvp-scope.md) (D-18, D-20). Every requirement is in the MVP unless it, or part of it, is marked **Post-MVP**; post-MVP work is listed in [`backlog.md`](backlog.md). The MVP is the Personal Training User view only (D-20).
 
@@ -44,6 +47,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 
 ### REQ-NAV-003 — Quick-log button
 - Requirement: A floating "+" button on Home and Nutrition opens the Log meal screen (REQ-LOG-001).
+- Built in the Meal logging slice, with Log meal (D-23).
 - Acceptance criteria:
   - Given Home or Nutrition, then a floating "+" is visible; given Training or Progress, then it is not.
   - When "+" is tapped, then Log meal opens with the date chip set to the currently selected date (MVP default, Q-011; the BRD says the chip "defaults to Today").
@@ -135,7 +139,8 @@ B-22).
   - Given no coach, when the user sets a calorie target, then the calories card shows the percentage and kcal remaining against it.
   - Given no coach, when the user sets a weekly workout target, then the Home workout tracker counts against it (REQ-HOME-007); the target body weight and daily steps target appear in the Progress Target row (REQ-PRG-005).
   - Each target records who set it and when, so coach-set targets can be added later without changing the user's own (D-20).
-- MVP (D-20): every user is without a coach, so this requirement covers every account. Where the user sets their targets is decided in the Home and daily tracking slice plan (`mvp-scope.md` section 5).
+- MVP (D-20): every user is without a coach, so this requirement covers every account.
+- MVP default (D-23, Home and daily tracking slice): the user sets their targets on a "Your targets" screen, opened from Account (the profile avatar) and from "Set a target" on the calories, protein and workout cards when no target is set. One current value per target, applying to every day shown (Q-014); ranges, and who set it, are in the data model (`targets`).
 
 ### REQ-ROLE-008 — Invite a new email address
 - **Post-MVP** (D-20, backlog B-18).
@@ -283,6 +288,7 @@ B-22).
 ### REQ-HOME-002 — Week strip
 - Requirement: A Monday-to-Sunday strip shows a status box per day and highlights today and the selected day.
 - MVP default (D-18): a day's box is filled when at least one meal is logged that day (Q-019).
+- Built in the Home and daily tracking slice, except the status box, which comes with meals in the Meal logging slice (D-23).
 
 ### REQ-HOME-003 — Calories card
 - Requirement: Shows kcal eaten vs target with progress bar, percentage achieved and kcal remaining for the selected date.
@@ -292,10 +298,12 @@ B-22).
 
 ### REQ-HOME-004 — Protein card
 - Requirement: As REQ-HOME-003 for protein in grams (over target: "X g over").
+- REQ-HOME-003 and REQ-HOME-004 are built in the Home and daily tracking slice; the amount eaten is 0 until the Meal logging slice adds meals (D-23).
 
 ### REQ-HOME-005 — By-meal breakdown
 - Requirement: A "By meal" link opens the meal-wise breakdown for the selected day.
 - MVP default (D-18): it opens Nutrition › Consumed for that day (Q-023).
+- Built with Nutrition › Consumed in the Meal logging slice (D-23).
 
 ### REQ-HOME-006 — Quick tiles
 - Requirement: Tiles for Weight, Steps and Sleep show the logged value for the selected date, or "+ Add" when none.
@@ -304,11 +312,12 @@ B-22).
   - Weight displays in the body-weight unit setting (REQ-ACC-003; MVP default, Q-024 — the BRD says "Weight (kg)").
   - Values outside weight 20–300 kg, steps 0–100,000 and sleep 0–24 h cannot be saved (MVP default, Q-028).
   - Given a value already logged for that day, when a new one is saved, then it replaces the old one (MVP default, Q-030).
-- MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14). Weight is entered and shown with one decimal in the chosen unit and stored in whole grams (invariant #6).
+- MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14). Weight is entered and shown with one decimal in the chosen unit and stored in whole grams (invariant #6). Sleep is stored in whole minutes (MVP default, D-23).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
 - MVP default (D-18): an empty workout counts toward the weekly target (Q-025). The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
+- The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
 
 ### REQ-HOME-008 — Measurements prompt
 - Requirement: A Measurements card prompts weekly waist measurements and opens the measurements sheet (REQ-MEAS-001).
@@ -326,6 +335,7 @@ B-22).
 
 ### REQ-MEAS-003 — Unit toggle
 - Requirement: A cm/in toggle sets the unit for entered values; stored values are unit-consistent. *(Storage unit is a contract decision.)*
+- MVP default (D-23): stored in whole millimetres (data model, `measurements`); typed with one decimal. The toggle's last choice is remembered on the phone.
 
 ### REQ-MEAS-004 — Mandatory waist fields
 - Requirement: Upper waist (guidance "2 fingers above the navel") and lower waist (guidance "2 fingers below the navel") are mandatory.

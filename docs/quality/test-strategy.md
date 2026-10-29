@@ -154,6 +154,12 @@ Post-MVP (D-20): the push check (ADR-0001 step 7, backlog B-23), the iOS compile
 (ADR-0001 step 5, B-24), invitations, the push token removed at log out, the link cases and
 coach-phone removals (ADR-0002 step 4, ADR-0004 steps 4–6, ADR-0007 steps 2–3; B-18 to B-22).
 
+### Device checks for the Home and daily tracking slice (D-23)
+Batched at the end of the slice, on the existing development build, with `npm run dev:phone`. The
+exact steps are in the slice plan, "Owner's checks at the end of the slice": `dev:phone` itself,
+navigation and the calendar, targets, steps and sleep, measurements, offline logging of the new
+kinds (ADR-0007 step 1, extended), and weight still working.
+
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's
   health data appears in tests, fixtures, seed files, screenshots or bug reports.

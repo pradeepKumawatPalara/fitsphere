@@ -206,7 +206,8 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
   }
 }
 
-export type MetaKey = 'user_id' | 'cursor' | 'last_synced_at';
+/** `measurement_unit` is the cm/in choice in the measurements sheet, kept on this phone only (D-23). */
+export type MetaKey = 'user_id' | 'cursor' | 'last_synced_at' | 'measurement_unit';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);
