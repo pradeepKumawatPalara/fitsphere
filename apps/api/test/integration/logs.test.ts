@@ -49,6 +49,31 @@ describe('ADR-0002 step 6 log content', () => {
               },
             },
             { changeId: randomUUID(), type: 'target.set', data: { kind: 'calories', value: 2_345, setAt: '2026-10-01T02:00:00.000Z' } },
+            {
+              changeId: randomUUID(),
+              type: 'meal.set',
+              data: {
+                id: randomUUID(),
+                day: '2026-10-01',
+                mealType: 'lunch',
+                tags: [],
+                items: [
+                  {
+                    source: 'own',
+                    ref: null,
+                    name: 'synthetic-food-9d2e',
+                    amount: { unit: 'g', value: 123 },
+                    kcal: 456.7,
+                    proteinG: 8.9,
+                    carbsG: null,
+                    fatG: null,
+                    fibreG: null,
+                    estimated: false,
+                  },
+                ],
+                recordedAt: '2026-10-01T02:00:00.000Z',
+              },
+            },
           ],
         },
       });
@@ -76,6 +101,8 @@ describe('ADR-0002 step 6 log content', () => {
       expect(log).not.toContain('1234');
       expect(log).not.toContain('synthetic-note-5c1d');
       expect(log).not.toContain('2345');
+      expect(log).not.toContain('synthetic-food-9d2e');
+      expect(log).not.toContain('456.7');
       expect(log).not.toContain('2026-09-17');
       expect(log).not.toContain('2026-10-01');
 

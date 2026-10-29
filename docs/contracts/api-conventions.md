@@ -96,7 +96,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `GET /v1/health` | The API is running | None (no token) | — |
 | `GET /v1/me` | The signed-in user's account | Signed in | REQ-ACC-010, REQ-ROLE-001 |
 | `POST /v1/me` | Set up the FitSphere account after the first sign-in | Signed in, account not yet set up | REQ-ACC-010, D-18 |
-| `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, ADR-0007 |
+| `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
 
@@ -160,8 +160,15 @@ Request:
   | `steps.set` | `day`, `steps`, `recordedAt` | Whole steps, 0 to 100,000 (Q-028) |
   | `sleep.set` | `day`, `sleepMinutes`, `recordedAt` | Whole minutes, 0 to 1,440 (Q-028) |
   | `measurements.set` | `day`, `upperWaistMm`, `lowerWaistMm`, `chestMm`, `hipsMm`, `armMm`, `thighMm`, `notes`, `recordedAt` | Both waist values required; the others `null` when not entered. Whole millimetres, 100 to 2,500 (Q-028). `notes` 1 to 500 characters, or `null` |
+  | `meal.set` | `id`, `day`, `mealType`, `tags`, `items`, `recordedAt` | Creates the meal, or replaces the whole meal with this `id`. 1 to 30 items; each item's fields and limits are in the data model (`meals`). The server computes the totals; a change that sends them is refused as an unknown field |
+  | `meal.delete` | `id`, `deletedAt` | Deletes the meal. A meal the server never had is accepted and changes nothing |
+  | `savedMeal.set` | `id`, `name`, `mealType`, `tags`, `items`, `savedAt` | A copy of a meal, with no day. Name 1 to 60 characters |
+  | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
   | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
 
+- An `id` in a meal or saved-meal change is made on the phone and names only the caller's own
+  meal: the same `id` from another user creates or changes that user's own (invariant #1).
+- `meal.set` checks its `day` as below; the delete changes have no day.
 - The four types with a `day` set the user's value for that IST day. The day must be a valid day
   not later than today in IST (`DAY_IN_FUTURE` otherwise), and a value already stored for the day
   is replaced (Q-030 MVP default); for measurements the whole entry is replaced.
@@ -204,11 +211,15 @@ Response `200`:
   applied again (`applied_changes`, data model).
 - **Who wins:** for the same day, the change the server receives last wins; `recordedAt` does not
   decide (ADR-0007 rule 2).
-- **Pull:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST days, and
-  their current targets (ADR-0007 rule 1). With `cursor: null`, all of them; otherwise only those
-  changed since the cursor. All five share one change sequence, so one cursor covers them, and
-  they are returned in the order they changed. At most 500 entries per response, across the five
-  lists; when `hasMore` is `true`, the phone calls again with the new cursor and no changes.
+- **Pull:** the user's own weigh-ins, steps, sleep, measurements and meals for the last 90 IST
+  days, and their current targets and saved meals (ADR-0007 rule 1). With `cursor: null`, all of
+  them; otherwise only those changed since the cursor. All the lists share one change sequence, so
+  one cursor covers them, and entries are returned in the order they changed. At most 500 entries
+  per response, across the lists; when `hasMore` is `true`, the phone calls again with the new
+  cursor and no changes.
+- `meals` and `savedMeals` entries are `{ "deleted": false, … }` with the content and the
+  server's `totals`, or `{ "deleted": true, "id", … }` for one the user deleted, which the phone
+  then removes.
 - `setByUserId` is the FitSphere ID of whoever set the target. In the MVP it is always the user
   (D-20), and the app shows "Set by you". It is `null` only once that person's account is deleted
   (backlog E-02).

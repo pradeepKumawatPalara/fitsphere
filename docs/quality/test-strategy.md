@@ -122,6 +122,15 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - the database growth per 10,000 synthetic weigh-ins is measured on the Supabase project and
   recorded, to estimate when the 400 MB trigger is reached (R-005).
 
+### Meals and saved meals (Meal logging slice, D-26)
+- A meal is applied with totals computed by the server; Edit replaces it under the same ID;
+  Delete keeps an empty row that the pull reports as deleted; a change sent twice is applied
+  once; `DAY_IN_FUTURE`; out-of-range amounts, items and fields are rejected per change.
+- The 90-day window applies to meals; saved meals are always pulled.
+- Self-access: a second user using the first user's meal and saved-meal IDs only ever writes
+  their own; every meal change needs the Personal Training User role.
+- No meal content or value reaches the log.
+
 ### Food list (ADR-0006 rule 1; D-25, D-26)
 - The IFCT CSV is read whole and refused whole when any row is wrong, naming the line.
 - All 542 foods are imported with their printed values, and running the import again gives the
