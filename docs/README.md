@@ -17,7 +17,7 @@ Last updated: 2026-10-30
 | 2 | `docs/README.md` (this file) | Draft | Project owner | Index |
 | 3 | [`product/product-brief.md`](product/product-brief.md) | Draft | Project owner | Problem, users, scope, non-goals |
 | 3a | [`product/glossary.md`](product/glossary.md) | Draft | Project owner | Terms the documents use inconsistently or leave undefined |
-| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-28) and follow-ups |
+| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-29) and follow-ups |
 | 3c | [`product/mvp-scope.md`](product/mvp-scope.md) | Accepted | Project owner | What the MVP includes, what is post-MVP, MVP defaults for open questions (D-18), and the order of the MVP slices. Since D-20 the MVP is the Personal Training User view only |
 | 3d | [`product/backlog.md`](product/backlog.md) | Draft | Project owner | Post-MVP items and deferred edge cases (D-18), including Coach and Head Coach (D-20); release-blocking tasks and the Skeleton checks to run before release (D-22) |
 | 4 | [`product/requirements.md`](product/requirements.md) | Draft | Project owner | Testable REQ IDs |
@@ -36,6 +36,7 @@ Last updated: 2026-10-30
 | 13b | [`sources/README.md`](sources/README.md) | Draft | Project owner | The NIN documents read on 2026-10-29 and 2026-10-30: where each came from, its SHA-256 and its terms, for Legal's review (Q-049). The PDFs are kept outside the repository |
 | 14 | [`plans/home-daily-tracking-slice.md`](plans/home-daily-tracking-slice.md) | Accepted | Project owner | Slice 2, Home and daily tracking: scope, MVP defaults, steps, checks and progress (D-23), including `npm run dev:phone` (D-22). Built; the owner's checks are pending |
 | 15 | [`plans/meal-logging-slice.md`](plans/meal-logging-slice.md) | Accepted | Project owner | Slice 3, Meal logging (no AI): scope, decisions, steps, progress and phone checks (D-26). Step 8 (dishes, D-28) is built; a dish goes live only when its recipe row is measured and approved by the owner (none yet). Migrations, the food import, photo storage (`check:storage` 8 of 8 from the PC) and `OFF_CONTACT` are done on `fitsphere-dev`; the phone checks are pending |
+| 16 | [`plans/training-slice.md`](plans/training-slice.md) | Accepted | Project owner | Slice 4, Training: scope, MVP defaults, steps, checks and progress (D-29). Built in parallel with slice 3; in progress |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.
