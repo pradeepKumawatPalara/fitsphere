@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { AGE_CONFIRMATION_TEXT_VERSION } from '@fitsphere/shared';
 import { describe, expect, it } from 'vitest';
+import type { MediaStorage } from '../../src/storage/mediaStorage.ts';
 import { startTestApi } from './app.ts';
 
 // ADR-0002 step 6, invariant #7: the log holds no token, email address, health value (weight,
-// measurements and their notes, targets), query value or body.
+// measurements and their notes, targets, meals), media link, query value or body.
 
 describe('ADR-0002 step 6 log content', () => {
   it('ADR-0002 step 6 logs one line per request with the route pattern and no sensitive values', async () => {
@@ -114,6 +115,71 @@ describe('ADR-0002 step 6 log content', () => {
       expect(requests[0].requestId).toMatch(/^[0-9a-f-]{36}$/);
       expect(requests[1]).toMatchObject({ method: 'GET', route: '/v1/me', status: 200 });
       expect(requests[1].userId).toMatch(/^[0-9a-f-]{36}$/);
+    } finally {
+      await api.close();
+    }
+  });
+
+  it('ADR-0002 step 6 logs no media link, photo ID or public image link', async () => {
+    const lines: string[] = [];
+    const storage: MediaStorage = {
+      uploadLinks: async (keys) => keys.map((key) => `https://storage.test/${key}?X-Amz-Signature=upload-sig-4b7e`),
+      viewLinks: async (keys) => keys.map((key) => `https://storage.test/${key}?X-Amz-Signature=view-sig-9a1c`),
+      remove: async () => undefined,
+    };
+    const api = await startTestApi({ log: { level: 'info', stream: { write: (line) => lines.push(line) } }, storage });
+    try {
+      const user = await api.signUpWithAccount();
+      const auth = { authorization: `Bearer ${user.token}` };
+      const mediaId = randomUUID();
+      const meal = (photo: unknown) => ({
+        changeId: randomUUID(),
+        type: 'meal.set',
+        data: {
+          id: randomUUID(),
+          day: '2026-10-01',
+          mealType: 'lunch',
+          tags: [],
+          items: [
+            {
+              source: 'own',
+              ref: null,
+              name: 'Synthetic bar',
+              amount: { unit: 'g', value: 40 },
+              kcal: 180,
+              proteinG: 4,
+              carbsG: null,
+              fatG: null,
+              fibreG: null,
+              estimated: false,
+            },
+          ],
+          photo,
+          recordedAt: '2026-10-01T02:00:00.000Z',
+        },
+      });
+      await api.app.inject({
+        method: 'POST',
+        url: '/v1/sync',
+        headers: auth,
+        payload: {
+          cursor: null,
+          changes: [meal({ kind: 'photo', mediaId }), meal({ kind: 'link', url: 'https://images.example.com/private-link-8c3f.jpg' })],
+        },
+      });
+      const upload = await api.app.inject({ method: 'POST', url: `/v1/users/${user.id}/media/${mediaId}/upload`, headers: auth });
+      const view = await api.app.inject({ method: 'GET', url: `/v1/users/${user.id}/media/${mediaId}`, headers: auth });
+      expect([upload.statusCode, view.statusCode]).toEqual([200, 200]);
+
+      const log = lines.join('');
+      expect(log).not.toContain('storage.test');
+      expect(log).not.toContain('upload-sig-4b7e');
+      expect(log).not.toContain('view-sig-9a1c');
+      expect(log).not.toContain(mediaId);
+      expect(log).not.toContain('private-link-8c3f');
+      const routes = lines.map((line) => JSON.parse(line)).filter((entry) => entry.msg === 'request').map((entry) => entry.route);
+      expect(routes).toContain('/v1/users/:userId/media/:mediaId/upload');
+      expect(routes).toContain('/v1/users/:userId/media/:mediaId');
     } finally {
       await api.close();
     }

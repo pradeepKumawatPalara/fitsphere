@@ -7,20 +7,22 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Slice 3, Meal logging (no AI) — in progress (D-26, 2026-10-29).** Plan:
-`docs/plans/meal-logging-slice.md` (Accepted). Its pull requests build on #18 (D-24), which is
-merged first. The owner's actions (migrations and the food import, the Storage bucket and keys,
-the Open Food Facts contact, the EAS build) and the phone checks are batched at the end of the
-slice.
+**Slice 3, Meal logging (no AI) — built except dishes, waiting for the owner (D-26,
+2026-10-29).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Steps 1 to 7 and the close-out
+are pull requests #20, #21, #22, #24, #26, #29, #30, #31 and #32, on top of #18
+(D-24); the owner merges them in order once CI is green. Step 8 (dishes as cited raw portions)
+waits for the owner to provide the source document: NIN's Dietary Guidelines for Indians could not
+be read from here. The owner's actions — migrations 0002 to 0005 and `foods:import`, the Storage
+bucket and keys with `check:storage`, `OFF_CONTACT`, and an OK for the EAS build (expo-camera and
+the photo packages) — and the phone checks are listed in the plan.
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
 merged; step 8 (D-24: the Measurements card shows and edits a date's measurements, changing Q-026)
 is its own pull request. Then the owner applies migration 0002 to
 `fitsphere-dev` (`npm run migrate -w @fitsphere/api`) and runs the slice's batched phone checks,
-starting the API, the tunnel and Expo with `npm run dev:phone` (D-22). **Next:** slice 3, Meal
-logging (no AI); it gets its own plan in `docs/plans/`, approved before any code. One branch and
-pull request per step; CI must pass before merge.
+starting the API, the tunnel and Expo with `npm run dev:phone` (D-22). One branch and pull
+request per step; CI must pass before merge.
 
 **Skeleton slice — done with deferred checks (D-22, 2026-10-29).** Steps 1 to 10 are merged
 (`docs/plans/skeleton-slice.md`). Its pending phone checks are backlog SC-01 to SC-13, to run

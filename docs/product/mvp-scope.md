@@ -4,6 +4,8 @@
   don't ask deep edge cases; cover missed edge cases in future releases."
   Amended on 2026-10-28 by **D-20**: the MVP delivers only the Personal Training User view;
   Coach and Head Coach are post-MVP. Section 5 gives the order of the MVP slices.
+  Amended on 2026-10-29 by **D-26**: meal photos and public image links move from slice 7 into
+  slice 3.
 - Owner: Project owner
 - Applies to: all work until the MVP is released on Android.
 
@@ -94,11 +96,12 @@ slice's plan confirms its scope with the owner before work starts, as the Skelet
 |---|---|---|---|
 | 1 | Skeleton | Monorepo and CI; sign-up with 18+, verification, sign-in, reset, log out; IST dates; weight online and offline; self-access authorization. Plan: [`skeleton-slice.md`](../plans/skeleton-slice.md) | ACC-008, ACC-010, DATE-*, HOME-006 (weight), NFR-001, NFR-004 |
 | 2 | Home and daily tracking | Bottom navigation and header; Home: week strip, calories and protein cards, steps and sleep tiles, workout tracker, measurements card; the measurements sheet; own targets. Plan: [`home-daily-tracking-slice.md`](../plans/home-daily-tracking-slice.md) (D-23); HOME-005 and the week strip's status box come with meals in slice 3 | NAV-001, NAV-002, HOME-*, MEAS-*, ROLE-007 |
-| 3 | Meal logging (no AI) | Log meal: "+" button, date chip and day sheet, meal type and tags, food search, barcode, saved meals, tips; Nutrition: Consumed, the Diet plan empty state, Saved | NAV-003, LOG-001…003, LOG-007, LOG-008, NUT-*, PLAN-007, SAVED-*, ACC-005 |
+| 3 | Meal logging (no AI) | Log meal: "+" button, date chip and day sheet, meal type and tags, food search, barcode, saved meals, tips, meal photo or public image link with warning, "AI meal reading is coming soon"; Nutrition: Consumed, the Diet plan empty state, Saved. Plan: [`meal-logging-slice.md`](../plans/meal-logging-slice.md) (D-26) | NAV-003, LOG-001…003, LOG-006 (meal photos), LOG-007, LOG-008, LOG-010, NUT-*, PLAN-007, SAVED-*, ACC-005 |
 | 4 | Training | "No training plan yet", empty workout, sets × reps × weight, history, lifting unit; the Home workout count | TRN-002…005, HOME-007 |
 | 5 | Progress | 4-week weight, average calories, days logged, trend chart, week table with Target row, measurements list | PRG-001…006 |
 | 6 | Settings and account | Theme, units, change password, delete account and its web page | ACC-001…003, ACC-007, ACC-009 |
-| 7 | AI meal reading | Consent toggle and record; typed text, voice (recognised on the phone), meal and label photos, review before saving; public image link with warning. Paid AI use needs the owner's sign-off (C-008, Q-087) | ACC-004, LOG-004…006, LOG-009, LOG-010 |
+| 7 | AI meal reading | Consent toggle and record; typed text, voice (recognised on the phone), reading meal and label photos, review before saving. Paid AI use needs the owner's sign-off (C-008, Q-087) | ACC-004, LOG-004, LOG-005, LOG-006 (label photos, reading), LOG-009 |
 | 8 | Release | Resend with FitSphere's own domain for sign-up and reset emails; the API on Cloud Run (Q-087); Google Play listing and testing; Legal's review before real users (Q-049) | ACC-010, C-008 |
 
-Delete account (slice 6) covers the data that exists by then; slice 7 extends it to photos.
+Delete account (slice 6) covers the data that exists by then, meal photos included (D-26);
+slice 7 extends it to label photos.
