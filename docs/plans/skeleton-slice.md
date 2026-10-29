@@ -24,8 +24,9 @@ Where the contracts define something, this plan does not repeat it.
 | Step | Status | Branch |
 |---|---|---|
 | 1. Monorepo, tooling and CI | Done (merged 2026-10-28) | `skeleton/01-monorepo-ci` |
-| 2. App shell on the phone | Phone check passed 2026-10-28 (result in ADR-0001); pull request open, waiting for CI and the owner's merge | `skeleton/02-app-shell` |
-| 3–10 | Not started | — |
+| 2. App shell on the phone | Done (merged 2026-10-28; phone check in ADR-0001) | `skeleton/02-app-shell` |
+| 3. Shared dates, units and contract schemas | Built 2026-10-28; waiting for CI and the phone check | `skeleton/03-shared-dates-units` |
+| 4–10 | Not started | — |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)
@@ -68,10 +69,15 @@ recorded as D-18 answer 14. D-20 changed decision 5.
   React than the app's. So `apps/mobile` pins `react-dom` to the app's React version, and the
   root `overrides` pin both. Check with `npm ls react react-dom --all`: one version of each.
 
-**2. Workflow**
+**2. Workflow** (changed by D-21 on 2026-10-28)
 - One branch and one pull request per step.
 - The owner merges it on GitHub once CI is green and the step's check is done.
-- Work stops after every step, and its results are recorded.
+- Steps 3 to 10 run back to back. Work stops only when the owner is needed: Supabase or the
+  owner's accounts, a phone check, a cloud build, or a decision on privacy, security or a D-
+  decision. Each stop lists the pull requests to merge, the phone checks and what is needed.
+- Each pull request targets `main`. Until the step before it is merged, it also shows that step's
+  commits, so the pull requests are merged in step order.
+- *Before D-21: work stopped after every step.*
 
 **3. Minimum password length: 8.** Supabase's docs advise against less. There are no character
 rules; leaked-password checks need the Pro plan.

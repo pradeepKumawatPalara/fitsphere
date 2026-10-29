@@ -9,7 +9,9 @@ Coach and Head Coach are post-MVP.
 ## Current phase
 **Skeleton slice — the first implementation slice.** Plan approved by the owner on 2026-10-28:
 `docs/plans/skeleton-slice.md`. One branch and pull request per step; CI must pass before merge;
-stop after each step for the owner's check (D-18 answer 14).
+steps 3 to 10 run back to back, stopping only when the owner is needed — Supabase or accounts,
+a phone check, a cloud build, or a privacy, security or D- decision — with questions batched
+(D-21, amending D-18 answer 14).
 
 **Builds and devices (D-19).** No Android Studio, emulator or local Android builds. Development
 builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
