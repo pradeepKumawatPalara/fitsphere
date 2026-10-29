@@ -146,6 +146,17 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - Home: the cards use the day's meals; the status box (Q-019); "By meal" (Q-023); "+" on the
   selected date (Q-011); a rejected meal's text and Edit.
 
+### Log meal (app component tests)
+- The date and slot it opens with (Q-011); the day sheet's statuses (Q-037) and "Another day…";
+  a future date falls back to today.
+- Offline search with the IFCT acknowledgement; estimated oils; grams refused outside 1–2,000;
+  the needs-internet message before the list is downloaded; your own food; adding a saved
+  meal's foods.
+- Save needs a meal type and a food; the review changes amounts, removes foods and shows the
+  total; saving syncs the meal and goes back; the AI-coming-soon box and the tips.
+- Edit: filled in with its date fixed; saving replaces the same meal; a meal no longer on the
+  phone.
+
 ### Food list (ADR-0006 rule 1; D-25, D-26)
 - The IFCT CSV is read whole and refused whole when any row is wrong, naming the line.
 - All 542 foods are imported with their printed values, and running the import again gives the

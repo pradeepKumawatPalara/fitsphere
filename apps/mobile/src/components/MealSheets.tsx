@@ -25,13 +25,17 @@ export function ActionsSheet({
   title,
   actions,
   onClose,
+  children,
 }: {
   title: string;
   actions: { label: string; onPress(): void }[];
   onClose(): void;
+  /** Shown above the actions, e.g. a field an action uses. */
+  children?: ReactNode;
 }) {
   return (
     <Sheet title={title} onClose={onClose}>
+      {children}
       {actions.map((action) => (
         <Button
           key={action.label}
@@ -108,8 +112,8 @@ export function SaveMealSheet({
   );
 }
 
-/** Picks the meal slot; the one given is preselected (Q-036). */
-export function SlotPicker({ value, onChange }: { value: MealType; onChange(slot: MealType): void }) {
+/** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
+export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
   return (
     <View style={styles.slots}>
       {MEAL_TYPE_ORDER.map((slot) => (
