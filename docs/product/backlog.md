@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: E-09 to E-12). Earlier the same
+- Last updated: 2026-10-29 (D-25: the IFCT licence is not release-blocking). Earlier the same day
+  (Home and daily tracking slice, D-23: E-09 to E-12). Earlier the same
   day (D-22): release-blocking tasks, deferred Skeleton checks, B-25
 
 Work that is **not** in the MVP (D-18, D-20, [`mvp-scope.md`](mvp-scope.md)). Nothing here is built
@@ -14,6 +15,9 @@ not here. D- numbers refer to [`owner-decisions-2026-10-27.md`](owner-decisions-
 ## Release-blocking tasks (D-22)
 Security clean-up after the Skeleton phone checks. Not done yet: do them only when the owner says
 so, and before any real user (`CLAUDE.md`, "Before real users").
+
+The IFCT 2017 food-list licence is **not** release-blocking: the owner decided to use the list
+without NIN permission and accepted the risk (D-25, R-007).
 
 | ID | Task | Why |
 |---|---|---|

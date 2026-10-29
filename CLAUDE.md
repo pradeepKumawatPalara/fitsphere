@@ -91,6 +91,8 @@ email through Resend from FitSphere's domain (D-20).
 - Decisions: `docs/architecture/decisions/`
 - Always-on invariants: `.claude/rules/project-invariants.md`
 - Original business requirements (input, not edited): `docs/product/source/business-requirements.txt`
+- Food list sources (IFCT 2017; used without NIN permission, D-25, accepted risk R-007):
+  `docs/data/food-list-sources.md`
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
