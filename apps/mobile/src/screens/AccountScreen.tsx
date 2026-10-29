@@ -9,9 +9,10 @@ import { TodayIst } from '../components/TodayIst';
 import { useSync } from '../sync/SyncProvider';
 import { LogOut } from './LogOut';
 
-// Account, opened from the header's avatar (REQ-NAV-002). In this slice: the email and Log out
-// (REQ-ACC-008), and in development builds the tools the Skeleton's phone checks use (SC-02, SC-04,
-// SC-08, SC-13). The Settings slice adds the settings (MVP default, D-23).
+// Account, opened from the header's avatar (REQ-NAV-002). In this slice: the email, the user's
+// targets (REQ-ROLE-007), Log out (REQ-ACC-008), and in development builds the tools the
+// Skeleton's phone checks use (SC-02, SC-04, SC-08, SC-13). The Settings slice adds the settings
+// (MVP default, D-23).
 export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boolean }) {
   const { deps, email } = useAuth();
   const sync = useSync();
@@ -19,6 +20,7 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Text>Signed in as {email}</Text>
+      <Button title="Your targets" onPress={() => router.push('/targets')} />
       <LogOut />
       {showDevTools ? (
         <View style={styles.dev}>

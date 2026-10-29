@@ -33,6 +33,7 @@ export default function RootLayout() {
             {/* The tabs have their own header (REQ-NAV-002). */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="account" options={{ title: 'Account' }} />
+            <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
           </Stack>
           <StatusBar style="auto" />
         </SyncProvider>
