@@ -29,7 +29,7 @@ Where the contracts define something, this plan does not repeat it.
 | 7a. Meal photos and public links on the server | Pull request #30, CI green | `meals/07-photos-server` |
 | 7b. Meal photos and public links on the phone | Pull request #31, CI green | `meals/07b-photos-app` |
 | 8. Dishes (cited raw portions) | **Waiting for the owner:** the source document could not be read from here (see step 8) | `meals/08-dishes` |
-| 9. Close-out | Built | `meals/09-close-out` |
+| 9. Close-out | Pull request #32 | `meals/09-close-out` |
 
 The slice's pull requests build on pull request #18 (D-24), which must be merged first.
 
@@ -112,8 +112,8 @@ in the step that builds each one.
 9. **Close-out.** Documents, ADR results and the batched owner checks.
 
 ## Owner's actions and checks at the end of the slice
-1. Merge #18, then #20, #21, #22, #24, #26, #29, #30, #31 and the close-out, in order, each with
-   green CI.
+1. Merge #18, then #20, #21, #22, #24, #26, #29, #30, #31 and #32, in order, each with green
+   CI.
 2. Supabase, from `D:\fitsphere` on `main` after the merges:
    - `npm run migrate -w @fitsphere/api` (applies 0002 to 0005), then
      `npm run foods:import -w @fitsphere/api`;

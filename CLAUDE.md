@@ -9,7 +9,7 @@ Coach and Head Coach are post-MVP.
 ## Current phase
 **Slice 3, Meal logging (no AI) — built except dishes, waiting for the owner (D-26,
 2026-10-29).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Steps 1 to 7 and the close-out
-are pull requests #20, #21, #22, #24, #26, #29, #30, #31 and the close-out's, on top of #18
+are pull requests #20, #21, #22, #24, #26, #29, #30, #31 and #32, on top of #18
 (D-24); the owner merges them in order once CI is green. Step 8 (dishes as cited raw portions)
 waits for the owner to provide the source document: NIN's Dietary Guidelines for Indians could not
 be read from here. The owner's actions — migrations 0002 to 0005 and `foods:import`, the Storage
