@@ -98,6 +98,27 @@ export async function listWeighIns(db: SqlDb, fromDay: IstDay, toDay: IstDay): P
   return rows.map(toWeighIn);
 }
 
+/**
+ * Applies the server's weigh-ins from a sync pull. A day with a change still waiting in the outbox
+ * keeps the phone's value until that change is settled.
+ */
+export async function applyServerWeighIns(
+  db: SqlDb,
+  weighIns: { day: IstDay; weightGrams: number; recordedAt: string }[],
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (const entry of weighIns) {
+      if (await hasOutboxEntry(db, entry.day)) continue;
+      await db.runAsync(
+        `INSERT INTO weigh_ins (day, weight_grams, recorded_at, sync_state) VALUES (?, ?, ?, 'synced')
+         ON CONFLICT (day) DO UPDATE SET weight_grams = excluded.weight_grams,
+           recorded_at = excluded.recorded_at, sync_state = 'synced'`,
+        [entry.day, entry.weightGrams, entry.recordedAt],
+      );
+    }
+  });
+}
+
 /** Changes to send, oldest first. */
 export async function pendingChanges(db: SqlDb, limit: number): Promise<OutboxEntry[]> {
   const rows = await db.getAllAsync<OutboxRow>(

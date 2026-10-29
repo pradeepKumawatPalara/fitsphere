@@ -1,11 +1,11 @@
 // npm run db:growth -w @fitsphere/api: measures growth per 10,000 synthetic weigh-ins on
-// MIGRATION_DATABASE_URL, then rolls them back (R-005). Run it once, on an empty weigh_ins table.
+// DATABASE_URL, then rolls them back (R-005). Run it once, on an empty weigh_ins table.
 import pg from 'pg';
 import { measureWeighInGrowth } from '../src/db/growth.ts';
 
-const url = process.env.MIGRATION_DATABASE_URL;
+const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error('MIGRATION_DATABASE_URL is not set in apps/api/.env (runbook, "Configuration names").');
+  console.error('DATABASE_URL is not set in apps/api/.env (runbook, "Configuration names").');
   process.exit(1);
 }
 

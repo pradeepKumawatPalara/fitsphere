@@ -7,11 +7,12 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Skeleton slice — the first implementation slice.** Plan approved by the owner on 2026-10-28:
-`docs/plans/skeleton-slice.md`. One branch and pull request per step; CI must pass before merge;
-steps 3 to 10 run back to back, stopping only when the owner is needed — Supabase or accounts,
-a phone check, a cloud build, or a privacy, security or D- decision — with questions batched
-(D-21, amending D-18 answer 14).
+**Skeleton slice — done with deferred checks (D-22, 2026-10-29).** Steps 1 to 10 are merged
+(`docs/plans/skeleton-slice.md`). Its pending phone checks are backlog SC-01 to SC-13, to run
+before the release (accepted risk R-006). **Next:** the owner chooses the next MVP target; it gets
+its own plan in `docs/plans/`, approved before any code. That slice also builds
+`npm run dev:phone`, which starts the API, the tunnel and Expo and writes the tunnel's address
+into `apps/mobile/.env` (D-22). One branch and pull request per step; CI must pass before merge.
 
 **Builds and devices (D-19).** No Android Studio, emulator or local Android builds. Development
 builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
@@ -56,6 +57,17 @@ The validation steps of ADR-0001 to ADR-0007 run in the first slices.
 Not approved yet: audio/video media storage (ADR-0008).
 Do not scaffold an app, add dependencies or pick frameworks until the relevant ADRs in
 `docs/architecture/decisions/` are marked **Accepted** by the decision owner.
+
+## Before real users
+Release-blocking, not done yet (D-22; backlog "Release-blocking tasks"). Do them only when the
+owner says so:
+- RB-01: delete the GitHub copy of the branch `local/test-no-email`, which holds a test password.
+  Leave the owner's local branch alone.
+- RB-02: delete the Supabase test user that uses that password.
+- RB-03: make sure Supabase **Confirm email** is on.
+
+Also before the release: the Skeleton checks SC-01 to SC-13 (R-006), Legal's review (Q-049) and
+email through Resend from FitSphere's domain (D-20).
 
 ## Sources of truth
 - Documentation index and status: `docs/README.md`

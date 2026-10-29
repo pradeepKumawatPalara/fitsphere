@@ -11,7 +11,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
     "db:growth": "node --env-file-if-exists=.env scripts/db-growth.ts",
-    "check:data-api": "node --env-file-if-exists=.env scripts/check-data-api.ts"
+    "check:data-api": "node --env-file-if-exists=.env scripts/check-data-api.ts",
+    "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts"
   },
   "dependencies": {
     "@fitsphere/shared": "*",

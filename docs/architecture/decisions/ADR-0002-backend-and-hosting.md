@@ -335,7 +335,26 @@ documented fallback does not fix triggers the revisit conditions; changing the d
 new ADR that supersedes this one.
 
 ## Validation results
-None yet.
+Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreSQL 17, synthetic data); CI runs them on every pull request. Device and Supabase checks are recorded here once the owner has run them.
+- **Step 4 (MVP form, D-20) — passed in automated tests:** a user reads their own weigh-ins
+  (`200`); another user, and an unknown user ID, get the same `404`; no token, an expired token or
+  another key get `401`; a second user's sync never changes or returns the first user's
+  weigh-ins, even with the same day and change ID (`test/integration/sync.test.ts`,
+  `weigh-ins.test.ts`). The link cases wait for B-19.
+- **Step 6 — passed in automated tests:** the log holds one line per request with the route
+  pattern, and no token, email address, weight value, query value or body
+  (`test/integration/logs.test.ts`). Media links do not exist yet.
+- **Step 2, REST part — passed on `fitsphere-dev`, 2026-10-28 (owner):** with **Enable Data
+  API** off, the REST root, `app.users` and `app.weigh_ins` answered HTTP 404 (`PGRST125`) with
+  no data to the publishable key (`npm run check:data-api`). Skeleton step 6's phone checks, which
+  prove that Supabase Auth works with the Data API off, are pending: deferred to before the
+  release by D-22 (backlog SC-09). Storage waits for media, after the Skeleton.
+- **Step 3, PC part — passed, 2026-10-28:** the migration and `npm run db:growth` reached
+  `fitsphere-dev` from the PC through the session pooler (`DATABASE_URL`). The API uses the same
+  address; its first queries through it come with step 6's account setup. The Cloud Run part
+  waits for Q-087.
+- **Step 1:** not recorded yet (Mumbai region, Free plan, two-factor sign-in on the owner's
+  Supabase and Google Cloud accounts). Step 5 runs with media, after the Skeleton.
 
 ## Revisit conditions
 - An R-005 trigger is hit: database over 400 MB; files over 800 MB; monthly active users near

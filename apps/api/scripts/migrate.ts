@@ -1,10 +1,10 @@
-// npm run migrate -w @fitsphere/api: applies new migrations to MIGRATION_DATABASE_URL.
+// npm run migrate -w @fitsphere/api: applies new migrations to DATABASE_URL (the session pooler).
 import pg from 'pg';
 import { migrate, readMigrations } from '../src/db/migrate.ts';
 
-const url = process.env.MIGRATION_DATABASE_URL;
+const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error('MIGRATION_DATABASE_URL is not set in apps/api/.env (runbook, "Configuration names").');
+  console.error('DATABASE_URL is not set in apps/api/.env (runbook, "Configuration names").');
   process.exit(1);
 }
 

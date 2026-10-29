@@ -1,10 +1,12 @@
 # Skeleton slice plan
 
-- Status: **Accepted** — approved by the project owner on 2026-10-28 (D-18 answer 14)
+- Status: **Accepted** — approved by the project owner on 2026-10-28 (D-18 answer 14).
+  **Done (with deferred checks)** on 2026-10-29 (D-22)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-19: development on the owner's phone with EAS Build; no emulator.
-  D-20: the MVP is the Personal Training User view only; steps 11 and 12 moved to the backlog,
-  step 9 simplified to self-access)
+- Last updated: 2026-10-29 (phone check results; D-22, done with deferred checks). 2026-10-28:
+  D-19, development on the owner's phone with EAS Build, no emulator; D-20, the MVP is the
+  Personal Training User view only, steps 11 and 12 moved to the backlog, step 9 simplified to
+  self-access
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) (D-18), the contracts in
   [`docs/contracts/`](../contracts/), [`test-strategy.md`](../quality/test-strategy.md),
   [`definition-of-done.md`](../quality/definition-of-done.md), ADR-0001 to ADR-0007
@@ -25,15 +27,47 @@ Where the contracts define something, this plan does not repeat it.
 |---|---|---|
 | 1. Monorepo, tooling and CI | Done (merged 2026-10-28) | `skeleton/01-monorepo-ci` |
 | 2. App shell on the phone | Done (merged 2026-10-28; phone check in ADR-0001) | `skeleton/02-app-shell` |
-| 3. Shared dates, units and contract schemas | Built 2026-10-28; waiting for CI and the phone check | `skeleton/03-shared-dates-units` |
-| 4. Database schema and migrations | Built 2026-10-28; waiting for CI and the owner's Supabase checks | `skeleton/04-database-schema` |
-| 5. API foundations and account setup | Built 2026-10-28; waiting for CI and the owner's check on the PC | `skeleton/05-api-foundations` |
-| 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/06-sign-up-sign-in` |
-| 7. Forgot password and set a new password | Built 2026-10-28; waiting for CI and the phone check | `skeleton/07-password-reset` |
-| 8. Encrypted phone database and outbox | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/08-phone-database` |
-| 9. Sync and weigh-in reads; the self-access authorization suite | Built 2026-10-28; waiting for CI (no phone check) | `skeleton/09-sync-and-reads` |
-| 10 | Not started | — |
+| 3. Shared dates, units and contract schemas | Done (merged 2026-10-29). Phone check dropped for the MVP (D-22; backlog B-25) | `skeleton/03-shared-dates-units` |
+| 4. Database schema and migrations | Done (merged 2026-10-29). Owner's Supabase checks done 2026-10-28: migration applied, Data API check passed, growth measured (ADR-0002, ADR-0003) | `skeleton/04-database-schema` |
+| 5. API foundations and account setup | Done (merged 2026-10-29). Check on the PC passed 2026-10-28: `/v1/me` answered `401` with a request ID (ADR-0004) | `skeleton/05-api-foundations` |
+| 6. Sign-up, verify, sign in, account setup, log out | Done with deferred checks (merged 2026-10-29; D-22): phone checks SC-09 to SC-11 and SC-13 | `skeleton/06-sign-up-sign-in` |
+| 7. Forgot password and set a new password | Done with deferred checks (merged 2026-10-29; D-22): phone check SC-12 | `skeleton/07-password-reset` |
+| 8. Encrypted phone database and outbox | Done with deferred checks (merged 2026-10-29; D-22): phone checks SC-04, SC-07 and SC-08 | `skeleton/08-phone-database` |
+| 9. Sync and weigh-in reads; the self-access authorization suite | Done (merged 2026-10-29). Integration suite green on the PC and in CI (no phone check) | `skeleton/09-sync-and-reads` |
+| 10. Log and view weight, online and offline; close-out | Done with deferred checks (merged 2026-10-29; D-22). Phone checks partly passed 2026-10-29 (ADR-0001, ADR-0007); pending SC-01 to SC-03, SC-05, SC-06 and SC-11. Automated, Supabase and device results recorded in ADR-0001, 0002, 0003, 0004 and 0007 | `skeleton/10-weight-logging` |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
+
+### Phone checks on 2026-10-29
+Owner's report. OnePlus Nord CE4 with the EAS development build of step 10 (commit `3441ad2`).
+The app code was `skeleton/10-weight-logging` (`0bd41bf`) with a local, test-only change to the
+sign-up and sign-in screens, which is in no pull request and does not touch the weight,
+phone-database or sync code. The API ran on the PC behind a Cloudflare Quick Tunnel; test data
+only. The previous day's tunnel had stopped ("Unauthorized: Tunnel not found"), so a new tunnel
+and address were used (runbook step 8).
+
+**Passed**
+- The app opens on the phone (ADR-0001 check 1, repeated with the Skeleton build).
+- "API: ok" on the screen, and `/v1/health` through the tunnel answers `{"status":"ok"}`.
+- A weight saved earlier is still shown after the app is reopened.
+- Offline (airplane mode, Wi-Fi off): saved weights are still shown, and a second weight is saved
+  and shown on the phone.
+- After reconnecting, the sync status shows synced (part of step 10's check 3; ADR-0007 step 1).
+
+**Pending, deferred to before the release** (D-22; accepted risk R-006). The backlog section
+"Skeleton checks to run before release" lists each one with its ADR:
+- Step 6: checks 1 to 5 and 8 (SC-09); check 6 (SC-10, and `check:signup`, SC-11); check 7
+  (SC-13).
+- Step 7: the reset email, and the same text for an address outside the team (SC-12).
+- Step 8: the start-up check with its SQLCipher version (SC-08; the app opened its database on
+  2026-10-29, since saved weights were shown, but the version was not read); the 1,000-row check
+  in airplane mode, with its times (SC-04); the database file copied off over USB is unreadable
+  (SC-07).
+- Step 10: checks 1 and 2 (SC-01); the rest of check 3, which confirms the offline entry on the
+  server (SC-06); check 4 (SC-03); check 6 (SC-05); check 7 (SC-02); `check:signup` (SC-11, the
+  same run as step 6's).
+
+**Dropped for the MVP** (D-22; India only, D-09): step 3's phone check ("Today (IST)" with the
+Los Angeles time zone) and step 10's check 5. Post-MVP, backlog B-25.
 
 ## Before step 1 (owner; no code)
 1. Install EAS CLI, sign in to Expo, and link the app to an EAS project

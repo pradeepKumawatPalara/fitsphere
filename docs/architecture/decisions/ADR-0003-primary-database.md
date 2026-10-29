@@ -206,8 +206,18 @@ request.
 - **(c) recorded:** weekly averages over 10,000 synthetic weigh-ins for one user took 16.5 ms on
   the PC's PostgreSQL (no target, Q-050). Not yet measured on Supabase.
 - **(d) passed:** an ended link keeps its row, with its end time and reason.
-- **(e) and database growth:** the owner's checks on `fitsphere-dev` (`npm run check:data-api`,
-  `npm run db:growth`); not run yet.
+- **(e) passed on `fitsphere-dev`, 2026-10-28 (owner):** with **Enable Data API** off,
+  `npm run check:data-api` got HTTP 404 (`PGRST125`) and no data from the REST root,
+  `app.users` and `app.weigh_ins`, using only the publishable key, as anyone could.
+- **Database growth on `fitsphere-dev`, 2026-10-28 (owner, `npm run db:growth`):** PostgreSQL
+  17.11, the same major version as on the PC and in CI. 10,000 synthetic weigh-ins for 100
+  synthetic users, rolled back afterwards: the `weigh_ins` table and its indexes grew by
+  2,544 KB, and the database by 2,616 KB, about 0.26 KB per weigh-in. At that rate weigh-ins
+  alone would add 400 MB (the R-005 trigger) at roughly 1.5 million rows. That ignores the
+  database's starting size and the other kinds of entries (meals and others, from later
+  slices), which are not measured yet.
+- Migration `0001_skeleton.sql` was applied to `fitsphere-dev` on 2026-10-28, before these
+  checks; `db:growth` ran against its tables.
 
 ## Rejected approach: storing files inside the database
 Putting photos, audio or video directly in PostgreSQL would quickly exhaust the database

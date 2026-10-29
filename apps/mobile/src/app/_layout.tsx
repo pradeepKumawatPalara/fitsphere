@@ -5,6 +5,7 @@ import { Text, View } from 'react-native';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { createAuthDeps } from '../auth/supabase';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
+import { SyncProvider } from '../sync/SyncProvider';
 
 const authDeps = createAuthDeps();
 
@@ -27,8 +28,10 @@ export default function RootLayout() {
   return (
     <AuthProvider deps={authDeps}>
       <LocalDatabaseForUser>
-        <Stack screenOptions={{ title: 'FitSphere' }} />
-        <StatusBar style="auto" />
+        <SyncProvider>
+          <Stack screenOptions={{ title: 'FitSphere' }} />
+          <StatusBar style="auto" />
+        </SyncProvider>
       </LocalDatabaseForUser>
     </AuthProvider>
   );
