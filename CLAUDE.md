@@ -7,12 +7,15 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
+**Slice 2, Home and daily tracking — in progress (D-23, 2026-10-29).** Plan:
+`docs/plans/home-daily-tracking-slice.md` (Accepted). Step 1 builds `npm run dev:phone`, which
+starts the API, the tunnel and Expo and writes the tunnel's address into `apps/mobile/.env`
+(D-22). Steps run back to back (D-21); the phone checks are batched at the end of the slice. One
+branch and pull request per step; CI must pass before merge.
+
 **Skeleton slice — done with deferred checks (D-22, 2026-10-29).** Steps 1 to 10 are merged
 (`docs/plans/skeleton-slice.md`). Its pending phone checks are backlog SC-01 to SC-13, to run
-before the release (accepted risk R-006). **Next:** the owner chooses the next MVP target; it gets
-its own plan in `docs/plans/`, approved before any code. That slice also builds
-`npm run dev:phone`, which starts the API, the tunnel and Expo and writes the tunnel's address
-into `apps/mobile/.env` (D-22). One branch and pull request per step; CI must pass before merge.
+before the release (accepted risk R-006).
 
 **Builds and devices (D-19).** No Android Studio, emulator or local Android builds. Development
 builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
@@ -88,7 +91,8 @@ email through Resend from FitSphere's domain (D-20).
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
-- Current slice plan (Accepted): `docs/plans/skeleton-slice.md`
+- Current slice plan (Accepted): `docs/plans/home-daily-tracking-slice.md`; the Skeleton's,
+  done: `docs/plans/skeleton-slice.md`
 - Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.

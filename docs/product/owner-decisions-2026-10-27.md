@@ -613,6 +613,20 @@
   `docs/plans/skeleton-slice.md` (done with deferred checks); `CLAUDE.md` (current phase,
   "Before real users"); `docs/README.md`.
 
+## D-23 Home and daily tracking slice plan approved
+- Status: **Accepted** (owner approval in chat, 2026-10-29).
+- Answers:
+  1. **Slice 2 plan approved:** [`docs/plans/home-daily-tracking-slice.md`](../plans/home-daily-tracking-slice.md),
+     with its scope, its MVP defaults chosen under D-18 answer 3, and its seven steps.
+  2. **Workflow as D-21:** steps run back to back, with one branch and one pull request each, CI
+     green before merge, and the owner merging. The phone checks are batched at the end of the
+     slice.
+  3. **`npm run dev:phone`** (D-22 answer 5) is step 1.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: `docs/plans/home-daily-tracking-slice.md`; `CLAUDE.md` current phase;
+  `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
+  that builds each one.
+
 ---
 
 ## Proposed replacement wording for the two invariants
