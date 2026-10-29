@@ -3,7 +3,16 @@
 // because adding a field does not change the API version.
 import { z } from 'zod';
 import { addDays, isIstDay, type IstDay } from './dates.ts';
-import { WEIGHT_GRAMS_MAX, WEIGHT_GRAMS_MIN } from './units.ts';
+import {
+  MEASUREMENT_MM_MAX,
+  MEASUREMENT_MM_MIN,
+  SLEEP_MINUTES_MAX,
+  SLEEP_MINUTES_MIN,
+  STEPS_MAX,
+  STEPS_MIN,
+  WEIGHT_GRAMS_MAX,
+  WEIGHT_GRAMS_MIN,
+} from './units.ts';
 
 // --- Error codes (error-model, "Codes") ---
 
@@ -91,7 +100,8 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
 
 export const MAX_SYNC_CHANGES = 100;
 export const SYNC_PAGE_SIZE = 500;
-/** The phone keeps, and the pull returns, the last 90 IST days (ADR-0007 rule 1). */
+/** The phone keeps, and the pull returns, the last 90 IST days of day data (ADR-0007 rule 1).
+ * Targets are not day data: the pull always returns the current ones. */
 export const SYNC_WINDOW_DAYS = 90;
 
 /** The first IST day of the window that ends today: 90 days including today. */
@@ -107,6 +117,80 @@ export const weighInSetDataSchema = z.strictObject({
   recordedAt: instantSchema,
 });
 export type WeighInSetData = z.infer<typeof weighInSetDataSchema>;
+
+// Steps, sleep and measurements work like weigh-ins: one value per user per IST day, and a new
+// value replaces the day's value (Q-030).
+
+export const STEPS_SET = 'steps.set';
+
+export const stepsSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  steps: z.int().min(STEPS_MIN).max(STEPS_MAX),
+  recordedAt: instantSchema,
+});
+export type StepsSetData = z.infer<typeof stepsSetDataSchema>;
+
+export const SLEEP_SET = 'sleep.set';
+
+export const sleepSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  sleepMinutes: z.int().min(SLEEP_MINUTES_MIN).max(SLEEP_MINUTES_MAX),
+  recordedAt: instantSchema,
+});
+export type SleepSetData = z.infer<typeof sleepSetDataSchema>;
+
+export const MEASUREMENTS_SET = 'measurements.set';
+/** Notes on a measurements entry (MVP default, D-23). */
+export const MEASUREMENT_NOTES_MAX = 500;
+
+const measurementMmSchema = z.int().min(MEASUREMENT_MM_MIN).max(MEASUREMENT_MM_MAX);
+
+/** Upper and lower waist are required (REQ-MEAS-004); the others are optional (REQ-MEAS-005). */
+export const measurementsSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  upperWaistMm: measurementMmSchema,
+  lowerWaistMm: measurementMmSchema,
+  chestMm: measurementMmSchema.nullable(),
+  hipsMm: measurementMmSchema.nullable(),
+  armMm: measurementMmSchema.nullable(),
+  thighMm: measurementMmSchema.nullable(),
+  notes: z.string().min(1).max(MEASUREMENT_NOTES_MAX).nullable(),
+  recordedAt: instantSchema,
+});
+export type MeasurementsSetData = z.infer<typeof measurementsSetDataSchema>;
+
+// Targets (REQ-ROLE-007): the user's own, one current value per kind (Q-014 MVP default, D-23).
+// Who set a target comes from the sign-in token, never from the change, so it is not a field here.
+
+export const TARGET_SET = 'target.set';
+export const TARGET_KINDS = ['calories', 'protein', 'steps', 'weekly_workouts', 'body_weight'] as const;
+export type TargetKind = (typeof TARGET_KINDS)[number];
+
+/** Whole kcal, whole grams of protein, steps, workouts a week, and body weight in grams (D-23). */
+export const TARGET_RANGES: Record<TargetKind, { min: number; max: number }> = {
+  calories: { min: 500, max: 10_000 },
+  protein: { min: 10, max: 500 },
+  steps: { min: 1, max: STEPS_MAX },
+  weekly_workouts: { min: 1, max: 14 },
+  body_weight: { min: WEIGHT_GRAMS_MIN, max: WEIGHT_GRAMS_MAX },
+};
+
+function targetSchemaFor<K extends TargetKind>(kind: K) {
+  return z.strictObject({
+    kind: z.literal(kind),
+    value: z.int().min(TARGET_RANGES[kind].min).max(TARGET_RANGES[kind].max),
+    setAt: instantSchema,
+  });
+}
+
+export const targetSetDataSchema = z.discriminatedUnion('kind', [
+  targetSchemaFor('calories'),
+  targetSchemaFor('protein'),
+  targetSchemaFor('steps'),
+  targetSchemaFor('weekly_workouts'),
+  targetSchemaFor('body_weight'),
+]);
+export type TargetSetData = z.infer<typeof targetSetDataSchema>;
 
 /** The envelope of one change. Its `data` is checked per change type, so one bad change does
  * not fail the others. */
@@ -145,11 +229,55 @@ export const weighInSchema = z.object({
 });
 export type WeighIn = z.infer<typeof weighInSchema>;
 
+export const stepCountSchema = z.object({
+  day: istDaySchema,
+  steps: z.int(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type StepCount = z.infer<typeof stepCountSchema>;
+
+export const sleepLogSchema = z.object({
+  day: istDaySchema,
+  sleepMinutes: z.int(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type SleepLog = z.infer<typeof sleepLogSchema>;
+
+export const measurementSchema = z.object({
+  day: istDaySchema,
+  upperWaistMm: z.int(),
+  lowerWaistMm: z.int(),
+  chestMm: z.int().nullable(),
+  hipsMm: z.int().nullable(),
+  armMm: z.int().nullable(),
+  thighMm: z.int().nullable(),
+  notes: z.string().nullable(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Measurement = z.infer<typeof measurementSchema>;
+
+export const targetSchema = z.object({
+  kind: z.enum(TARGET_KINDS),
+  value: z.int(),
+  /** Null only once the person who set it has deleted their account (backlog E-02). */
+  setByUserId: idSchema.nullable(),
+  setAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Target = z.infer<typeof targetSchema>;
+
 export const syncResponseSchema = z.object({
   results: z.array(syncResultSchema),
   pull: z.object({
     weighIns: z.array(weighInSchema),
-    // Always empty in the Skeleton (ADR-0007 rule 3).
+    steps: z.array(stepCountSchema),
+    sleep: z.array(sleepLogSchema),
+    measurements: z.array(measurementSchema),
+    targets: z.array(targetSchema),
+    // Always empty in the MVP (ADR-0007 rule 3; D-20).
     removals: z.array(z.never()),
   }),
   cursor: z.string(),

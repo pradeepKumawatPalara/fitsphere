@@ -2,9 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import {
   errorBodySchema,
+  measurementsSetDataSchema,
   meSetupRequestSchema,
+  sleepSetDataSchema,
+  stepsSetDataSchema,
   syncRequestSchema,
   syncResponseSchema,
+  TARGET_KINDS,
+  TARGET_RANGES,
+  targetSetDataSchema,
   validationDetails,
   weighInSetDataSchema,
 } from './contracts.ts';
@@ -61,6 +67,112 @@ describe('REQ-HOME-006 weighIn.set data', () => {
   });
 });
 
+const RECORDED_AT = '2026-10-27T02:45:10.123Z';
+
+describe('REQ-HOME-006 steps.set and sleep.set data', () => {
+  it('Q-028 accepts 0–100,000 whole steps and refuses anything else', () => {
+    for (const steps of [0, 8_432, 100_000]) {
+      expect(stepsSetDataSchema.safeParse({ day: '2026-10-27', steps, recordedAt: RECORDED_AT }).success).toBe(true);
+    }
+    for (const steps of [-1, 100_001]) {
+      expect(detailsFor(stepsSetDataSchema, { day: '2026-10-27', steps, recordedAt: RECORDED_AT })).toEqual([
+        { field: 'steps', issue: 'out_of_range' },
+      ]);
+    }
+    expect(detailsFor(stepsSetDataSchema, { day: '2026-10-27', steps: 1.5, recordedAt: RECORDED_AT })).toEqual([
+      { field: 'steps', issue: 'invalid_format' },
+    ]);
+  });
+
+  it('Q-028 accepts 0–24 h of sleep in whole minutes and refuses anything else', () => {
+    for (const sleepMinutes of [0, 450, 1_440]) {
+      expect(sleepSetDataSchema.safeParse({ day: '2026-10-27', sleepMinutes, recordedAt: RECORDED_AT }).success).toBe(true);
+    }
+    expect(detailsFor(sleepSetDataSchema, { day: '2026-10-27', sleepMinutes: 1_441, recordedAt: RECORDED_AT })).toEqual([
+      { field: 'sleepMinutes', issue: 'out_of_range' },
+    ]);
+  });
+
+  it('REQ-NFR-001 refuses unknown fields', () => {
+    expect(
+      detailsFor(stepsSetDataSchema, { day: '2026-10-27', steps: 10, recordedAt: RECORDED_AT, userId: CHANGE_ID }),
+    ).toEqual([{ field: 'userId', issue: 'unknown_field' }]);
+  });
+});
+
+describe('REQ-MEAS-004…006 measurements.set data', () => {
+  const measurements = {
+    day: '2026-10-27',
+    upperWaistMm: 812,
+    lowerWaistMm: 845,
+    chestMm: null,
+    hipsMm: null,
+    armMm: null,
+    thighMm: null,
+    notes: null,
+    recordedAt: RECORDED_AT,
+  };
+
+  it('REQ-MEAS-004 accepts both waist values with the optional fields empty', () => {
+    expect(measurementsSetDataSchema.parse(measurements)).toEqual(measurements);
+  });
+
+  it('REQ-MEAS-005 accepts the optional fields and notes', () => {
+    const full = { ...measurements, chestMm: 990, hipsMm: 1_000, armMm: 330, thighMm: 560, notes: 'After a rest day' };
+    expect(measurementsSetDataSchema.parse(full)).toEqual(full);
+  });
+
+  it('REQ-MEAS-004 refuses a missing waist value', () => {
+    const withoutLower: Record<string, unknown> = { ...measurements };
+    delete withoutLower.lowerWaistMm;
+    expect(detailsFor(measurementsSetDataSchema, withoutLower)).toEqual([{ field: 'lowerWaistMm', issue: 'required' }]);
+  });
+
+  it('Q-028 refuses values outside 10–250 cm in any field', () => {
+    expect(detailsFor(measurementsSetDataSchema, { ...measurements, upperWaistMm: 99 })).toEqual([
+      { field: 'upperWaistMm', issue: 'out_of_range' },
+    ]);
+    expect(detailsFor(measurementsSetDataSchema, { ...measurements, thighMm: 2_501 })).toEqual([
+      { field: 'thighMm', issue: 'out_of_range' },
+    ]);
+  });
+
+  it('D-23 refuses notes over 500 characters, and empty notes (no value is null)', () => {
+    expect(detailsFor(measurementsSetDataSchema, { ...measurements, notes: 'x'.repeat(501) })).toEqual([
+      { field: 'notes', issue: 'out_of_range' },
+    ]);
+    expect(detailsFor(measurementsSetDataSchema, { ...measurements, notes: '' })).toEqual([
+      { field: 'notes', issue: 'out_of_range' },
+    ]);
+  });
+});
+
+describe('REQ-ROLE-007 target.set data', () => {
+  it('D-23 accepts each kind at both ends of its range and refuses one step outside', () => {
+    for (const kind of TARGET_KINDS) {
+      const { min, max } = TARGET_RANGES[kind];
+      for (const value of [min, max]) {
+        expect(targetSetDataSchema.safeParse({ kind, value, setAt: RECORDED_AT }).success).toBe(true);
+      }
+      for (const value of [min - 1, max + 1]) {
+        expect(targetSetDataSchema.safeParse({ kind, value, setAt: RECORDED_AT }).success).toBe(false);
+      }
+    }
+  });
+
+  it('D-23 checks the range of the kind given', () => {
+    expect(targetSetDataSchema.safeParse({ kind: 'weekly_workouts', value: 2_000, setAt: RECORDED_AT }).success).toBe(false);
+    expect(targetSetDataSchema.safeParse({ kind: 'calories', value: 2_000, setAt: RECORDED_AT }).success).toBe(true);
+  });
+
+  it('invariant #2 refuses a change that names who set the target, and an unknown kind', () => {
+    expect(
+      detailsFor(targetSetDataSchema, { kind: 'calories', value: 2_000, setAt: RECORDED_AT, setByUserId: CHANGE_ID }),
+    ).toEqual([{ field: 'setByUserId', issue: 'unknown_field' }]);
+    expect(targetSetDataSchema.safeParse({ kind: 'carbs', value: 200, setAt: RECORDED_AT }).success).toBe(false);
+  });
+});
+
 describe('REQ-NFR-004 sync request and response', () => {
   it('REQ-NFR-004 accepts the request from the contract', () => {
     const request = {
@@ -98,6 +210,10 @@ describe('REQ-NFR-004 sync request and response', () => {
       results: [{ changeId: CHANGE_ID, status: 'accepted', error: null }],
       pull: {
         weighIns: [{ ...validData, updatedAt: '2026-10-27T02:45:11.004Z', addedLater: 1 }],
+        steps: [],
+        sleep: [],
+        measurements: [],
+        targets: [],
         removals: [],
       },
       cursor: 'opaque-string',

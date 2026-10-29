@@ -115,6 +115,10 @@ describe('ADR-0007 sync', () => {
       weighIns: [
         { day: TODAY, weightGrams: 70_250, recordedAt: `${TODAY}T02:00:00.000Z`, updatedAt: expect.stringMatching(/Z$/) },
       ],
+      steps: [],
+      sleep: [],
+      measurements: [],
+      targets: [],
       removals: [],
     });
     expect(reply.hasMore).toBe(false);

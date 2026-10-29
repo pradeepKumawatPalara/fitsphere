@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   formatWeight,
   fromGrams,
+  fromMillimetres,
+  hoursToMinutes,
+  isMeasurementMmInRange,
   isWeightGramsInRange,
+  MEASUREMENT_MM_MAX,
+  MEASUREMENT_MM_MIN,
+  minutesToHours,
+  SLEEP_MINUTES_MAX,
   toGrams,
+  toMillimetres,
   WEIGHT_GRAMS_MAX,
   WEIGHT_GRAMS_MIN,
 } from './units.ts';
@@ -40,5 +48,48 @@ describe('REQ-HOME-006 body weight in whole grams (invariant #6)', () => {
     expect(isWeightGramsInRange(WEIGHT_GRAMS_MAX + 1)).toBe(false);
     expect(isWeightGramsInRange(70_250.5)).toBe(false);
     expect(isWeightGramsInRange(Number.NaN)).toBe(false);
+  });
+});
+
+describe('REQ-HOME-006 sleep in whole minutes', () => {
+  it('REQ-HOME-006 every one-decimal hour value from 0.0 to 24.0 converts to minutes and back unchanged', () => {
+    for (let tenths = 0; tenths <= 240; tenths += 1) {
+      const hours = tenths / 10;
+      const minutes = hoursToMinutes(hours);
+      expect(Number.isInteger(minutes)).toBe(true);
+      expect(minutesToHours(minutes)).toBe(hours);
+    }
+    expect(hoursToMinutes(24)).toBe(SLEEP_MINUTES_MAX);
+    expect(hoursToMinutes(7.5)).toBe(450);
+  });
+});
+
+describe('REQ-MEAS-003 measurements in whole millimetres (invariant #6)', () => {
+  it('REQ-MEAS-003 every one-decimal cm value from 10.0 to 250.0 converts to millimetres and back unchanged', () => {
+    for (let tenths = 100; tenths <= 2500; tenths += 1) {
+      const cm = tenths / 10;
+      const mm = toMillimetres(cm, 'cm');
+      expect(mm).toBe(tenths);
+      expect(fromMillimetres(mm, 'cm')).toBe(cm);
+    }
+  });
+
+  it('REQ-MEAS-003 every one-decimal inch value in range converts to millimetres and back unchanged', () => {
+    for (let tenths = 40; tenths <= 984; tenths += 1) {
+      const inches = tenths / 10;
+      const mm = toMillimetres(inches, 'in');
+      expect(isMeasurementMmInRange(mm)).toBe(true);
+      expect(fromMillimetres(mm, 'in')).toBe(inches);
+    }
+  });
+
+  it('Q-028 accepts 10–250 cm in whole millimetres and refuses anything else, in either unit', () => {
+    expect(isMeasurementMmInRange(MEASUREMENT_MM_MIN)).toBe(true);
+    expect(isMeasurementMmInRange(MEASUREMENT_MM_MAX)).toBe(true);
+    expect(isMeasurementMmInRange(MEASUREMENT_MM_MIN - 1)).toBe(false);
+    expect(isMeasurementMmInRange(MEASUREMENT_MM_MAX + 1)).toBe(false);
+    expect(isMeasurementMmInRange(812.5)).toBe(false);
+    expect(isMeasurementMmInRange(toMillimetres(3.9, 'in'))).toBe(false);
+    expect(isMeasurementMmInRange(toMillimetres(98.5, 'in'))).toBe(false);
   });
 });
