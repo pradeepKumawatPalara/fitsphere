@@ -29,7 +29,11 @@ export default function RootLayout() {
     <AuthProvider deps={authDeps}>
       <LocalDatabaseForUser>
         <SyncProvider>
-          <Stack screenOptions={{ title: 'FitSphere' }} />
+          <Stack screenOptions={{ title: 'FitSphere' }}>
+            {/* The tabs have their own header (REQ-NAV-002). */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="account" options={{ title: 'Account' }} />
+          </Stack>
           <StatusBar style="auto" />
         </SyncProvider>
       </LocalDatabaseForUser>

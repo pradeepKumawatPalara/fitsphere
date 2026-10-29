@@ -37,3 +37,57 @@ export function parseWeightInput(text: string): number | null {
   const grams = toGrams(Number(`${match[1]}.${match[2] ?? '0'}`), BODY_WEIGHT_UNIT);
   return isWeightGramsInRange(grams) ? grams : null;
 }
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+/** e.g. "Wednesday 28 October 2026", for the calendar's day buttons. */
+export function formatLongDay(day: IstDay): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  return `${WEEKDAY_NAMES[date.getUTCDay()]!} ${date.getUTCDate()} ${MONTH_NAMES[date.getUTCMonth()]!} ${date.getUTCFullYear()}`;
+}
+
+/** A month written YYYY-MM, e.g. "October 2026". */
+export function formatMonth(month: string): string {
+  const [year, number] = month.split('-').map(Number) as [number, number];
+  return `${MONTH_NAMES[number - 1]!} ${year}`;
+}
+
+/** The month `count` months after `month` (YYYY-MM). */
+export function addMonths(month: string, count: number): string {
+  const [year, number] = month.split('-').map(Number) as [number, number];
+  return new Date(Date.UTC(year, number - 1 + count, 1)).toISOString().slice(0, 7);
+}
+
+/** The weeks of a month, Monday first; days outside the month are null. */
+export function monthWeeks(month: string): (IstDay | null)[][] {
+  const [year, number] = month.split('-').map(Number) as [number, number];
+  const leading = (new Date(Date.UTC(year, number - 1, 1)).getUTCDay() + 6) % 7;
+  const length = new Date(Date.UTC(year, number, 0)).getUTCDate();
+  const cells: (IstDay | null)[] = [
+    ...Array.from({ length: leading }, () => null),
+    ...Array.from({ length }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  return Array.from({ length: cells.length / 7 }, (_, week) => cells.slice(week * 7, week * 7 + 7));
+}
+
+/**
+ * The name the header greets the user with (REQ-HOME-001). No name is collected at sign-up, so it
+ * is the part of the email before "@" (MVP default, D-23).
+ */
+export function nameFromEmail(email: string | null): string {
+  return email?.split('@')[0] ?? '';
+}

@@ -4,6 +4,8 @@ import { dayParts } from '../format';
 
 type Props = {
   today: IstDay;
+  /** The earliest day that can be picked (the phone's 90 days; MVP default, D-23). */
+  firstDay: IstDay;
   selected: IstDay;
   /** The Monday of the week shown. */
   weekStart: IstDay;
@@ -11,23 +13,26 @@ type Props = {
   onWeekChange(weekStart: IstDay): void;
 };
 
-// Mon–Sun IST week (REQ-HOME-002): today in blue (REQ-DATE-003), past days selectable
-// (REQ-DATE-001), future days disabled (Q-017).
-export function WeekStrip({ today, selected, weekStart, onSelect, onWeekChange }: Props) {
+// Mon–Sun IST week (REQ-HOME-002): today in blue (REQ-DATE-003), past days selectable back to
+// `firstDay` (REQ-DATE-001), future days disabled (Q-017).
+export function WeekStrip({ today, firstDay, selected, weekStart, onSelect, onWeekChange }: Props) {
   const nextWeek = addDays(weekStart, 7);
+  const canGoBack = addDays(weekStart, -1) >= firstDay;
   return (
     <View style={styles.row}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Previous week"
+        accessibilityState={{ disabled: !canGoBack }}
+        disabled={!canGoBack}
         onPress={() => onWeekChange(addDays(weekStart, -7))}
         style={styles.arrow}
       >
-        <Text style={styles.arrowText}>‹</Text>
+        <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
       </Pressable>
       {istWeekDays(weekStart).map((day) => {
         const parts = dayParts(day);
-        const future = day > today;
+        const outOfRange = day > today || day < firstDay;
         const isToday = day === today;
         const isSelected = day === selected;
         return (
@@ -35,13 +40,13 @@ export function WeekStrip({ today, selected, weekStart, onSelect, onWeekChange }
             key={day}
             accessibilityRole="button"
             accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}`}
-            accessibilityState={{ selected: isSelected, disabled: future }}
-            disabled={future}
+            accessibilityState={{ selected: isSelected, disabled: outOfRange }}
+            disabled={outOfRange}
             onPress={() => onSelect(day)}
             style={[styles.day, isToday && styles.today, isSelected && styles.selected]}
           >
-            <Text style={[styles.dayText, isToday && styles.todayText, future && styles.futureText]}>{parts.weekday}</Text>
-            <Text style={[styles.dayText, isToday && styles.todayText, future && styles.futureText]}>{parts.date}</Text>
+            <Text style={[styles.dayText, isToday && styles.todayText, outOfRange && styles.disabledText]}>{parts.weekday}</Text>
+            <Text style={[styles.dayText, isToday && styles.todayText, outOfRange && styles.disabledText]}>{parts.date}</Text>
           </Pressable>
         );
       })}
@@ -53,7 +58,7 @@ export function WeekStrip({ today, selected, weekStart, onSelect, onWeekChange }
         onPress={() => onWeekChange(nextWeek)}
         style={styles.arrow}
       >
-        <Text style={[styles.arrowText, nextWeek > today && styles.futureText]}>›</Text>
+        <Text style={[styles.arrowText, nextWeek > today && styles.disabledText]}>›</Text>
       </Pressable>
     </View>
   );
@@ -68,5 +73,5 @@ const styles = StyleSheet.create({
   selected: { borderColor: '#0d47a1' },
   dayText: { fontSize: 13 },
   todayText: { color: '#fff', fontWeight: '700' },
-  futureText: { color: '#bbb' },
+  disabledText: { color: '#bbb' },
 });

@@ -4,6 +4,7 @@ import { WEIGHT_RULE } from '../format';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
 import { migrateLocal } from '../local/store';
+import { SelectedDayProvider } from '../navigation/SelectedDayProvider';
 import { SyncProvider } from '../sync/SyncProvider';
 import { deps, fakeAuthClient, fakeSession } from '../testing/fakes';
 import { fakeServer } from '../testing/fakeServer';
@@ -34,7 +35,9 @@ async function renderApp(screenElement: 'home' | 'history' = 'home') {
     <AuthProvider deps={deps(client, server.fetchImpl)}>
       <LocalDatabaseProvider owner="user-1" open={async () => ({ db, cipherVersion: '4.6.1' })}>
         <SyncProvider now={clock} newId={newId} network={noNetworkEvents}>
-          {screenElement === 'home' ? <HomeScreen now={clock} showDevTools={false} /> : <HistoryScreen now={clock} />}
+          <SelectedDayProvider now={clock}>
+            {screenElement === 'home' ? <HomeScreen /> : <HistoryScreen now={clock} />}
+          </SelectedDayProvider>
         </SyncProvider>
       </LocalDatabaseProvider>
     </AuthProvider>,
