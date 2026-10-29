@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Home and daily tracking slice, step 2: steps, sleep, measurements and
+- Last updated: 2026-10-29 (Training slice, step 1: workouts through sync, and the workout history
+  route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps, sleep, measurements and
   targets through sync; D-23). 2026-10-28 (D-20: self-access only in the MVP; Resend with the
   Release slice)
 - Builds on: ADR-0002 (the Node API is the only path to the data), ADR-0004 (Supabase Auth, one
@@ -163,6 +164,8 @@ Request:
   | `steps.set` | `day`, `steps`, `recordedAt` | Whole steps, 0 to 100,000 (Q-028) |
   | `sleep.set` | `day`, `sleepMinutes`, `recordedAt` | Whole minutes, 0 to 1,440 (Q-028) |
   | `measurements.set` | `day`, `upperWaistMm`, `lowerWaistMm`, `chestMm`, `hipsMm`, `armMm`, `thighMm`, `notes`, `recordedAt` | Both waist values required; the others `null` when not entered. Whole millimetres, 100 to 2,500 (Q-028). `notes` 1 to 500 characters, or `null` |
+  | `workout.set` | `id`, `day`, `exercises`, `recordedAt` | `id` is a UUID made on the phone. 0 to 30 exercises, each `{ name, sets, reps, weightGrams, note }`: name 1 to 80 characters; sets 1 to 20; reps 1 to 200; `weightGrams` 100 to 500,000 or `null`; `note` 1 to 500 characters or `null` (data model, `workouts`) |
+  | `workout.delete` | `id`, `deletedAt` | Deletes the user's workout with that ID |
   | `meal.set` | `id`, `day`, `mealType`, `tags`, `items`, `photo`, `recordedAt` | Creates the meal, or replaces the whole meal with this `id`. 1 to 30 items; each item's fields and limits are in the data model (`meals`). The server computes the totals; a change that sends them is refused as an unknown field. `photo` is `{"kind": "photo", "mediaId": …}`, `{"kind": "link", "url": …}`, or null or left out for none; a photo ID already used by another meal, or deleted, is refused (data model, `media`). A dish item must be in portions and name a dish on the list, and every other item must be in grams; otherwise the change is `VALIDATION_FAILED` (D-28) |
   | `meal.delete` | `id`, `deletedAt` | Deletes the meal and its photo. A meal the server never had is accepted and changes nothing |
   | `savedMeal.set` | `id`, `name`, `mealType`, `tags`, `items`, `savedAt` | A copy of a meal, with no day. Name 1 to 60 characters. Its items follow the dish rule of `meal.set` |
@@ -177,6 +180,11 @@ Request:
   is replaced (Q-030 MVP default); for measurements the whole entry is replaced.
 - `target.set` sets the user's current target of that kind, replacing the old one (Q-014 MVP
   default, D-23).
+- `workout.set` creates the user's workout with that `id`, or replaces the whole workout; the day
+  rules above apply, but a day may hold several workouts. It also restores a deleted workout.
+  `workout.delete` keeps the workout's row without its content, so other phones learn of the
+  deletion; deleting an `id` the server never had is accepted and changes nothing. A workout `id`
+  only ever names the caller's own workout (invariant #1).
 
 Response `200`:
 ```json
@@ -198,6 +206,12 @@ Response `200`:
       { "day": "2026-10-27", "upperWaistMm": 812, "lowerWaistMm": 845, "chestMm": null, "hipsMm": null,
         "armMm": null, "thighMm": null, "notes": null, "recordedAt": "…", "updatedAt": "…" }
     ],
+    "workouts": [
+      { "deleted": false, "id": "0b9e1d2c-…", "day": "2026-10-27",
+        "exercises": [ { "name": "Squat", "sets": 3, "reps": 10, "weightGrams": 40000, "note": null } ],
+        "recordedAt": "…", "updatedAt": "…" },
+      { "deleted": true, "id": "7c2a9e40-…", "day": "2026-10-26", "updatedAt": "…" }
+    ],
     "targets": [
       { "kind": "calories", "value": 2000, "setByUserId": "0f8e5a1c-…", "setAt": "…", "updatedAt": "…" }
     ],
@@ -214,15 +228,17 @@ Response `200`:
   applied again (`applied_changes`, data model).
 - **Who wins:** for the same day, the change the server receives last wins; `recordedAt` does not
   decide (ADR-0007 rule 2).
-- **Pull:** the user's own weigh-ins, steps, sleep, measurements and meals for the last 90 IST
-  days, and their current targets and saved meals (ADR-0007 rule 1). With `cursor: null`, all of
-  them; otherwise only those changed since the cursor. All the lists share one change sequence, so
-  one cursor covers them, and entries are returned in the order they changed. At most 500 entries
-  per response, across the lists; when `hasMore` is `true`, the phone calls again with the new
-  cursor and no changes.
+- **Pull:** the user's own weigh-ins, steps, sleep, measurements, meals and workouts for the last
+  90 IST days, and their current targets and saved meals (ADR-0007 rule 1). With `cursor: null`,
+  all of them; otherwise only those changed since the cursor. All the lists share one change
+  sequence, so one cursor covers them, and entries are returned in the order they changed. At most
+  500 entries per response, across the lists; when `hasMore` is `true`, the phone calls again with
+  the new cursor and no changes.
 - `meals` and `savedMeals` entries are `{ "deleted": false, … }` with the content and the
   server's `totals`, or `{ "deleted": true, "id", … }` for one the user deleted, which the phone
   then removes.
+- A deleted workout comes back as `{ "deleted": true, "id", "day", "updatedAt" }`, with no
+  content; the phone removes its copy.
 - `setByUserId` is the FitSphere ID of whoever set the target. In the MVP it is always the user
   (D-20), and the app shows "Set by you". It is `null` only once that person's account is deleted
   (backlog E-02).
@@ -255,6 +271,28 @@ first.
   Coach rules above are post-MVP (backlog B-19, B-20) and are added to the access module then;
   the path keeps the user's ID so that no new route is needed. In the Skeleton the app uses this
   route only for the user's own history older than 90 days.
+
+### `GET /v1/users/{userId}/workouts`
+Query: `from` and `to` (IST days, inclusive, required), `limit`, `cursor`, as for weigh-ins.
+Sorted by day, oldest first; workouts on the same day by `id`. Deleted workouts are left out.
+
+`200`:
+```json
+{
+  "items": [
+    { "id": "0b9e1d2c-…", "day": "2026-07-01",
+      "exercises": [ { "name": "Squat", "sets": 3, "reps": 10, "weightGrams": 40000, "note": null } ],
+      "recordedAt": "…", "updatedAt": "…" }
+  ],
+  "nextCursor": null
+}
+```
+- Who may read it follows the permission matrix ("Workouts and Progress"), with the same rules
+  as the weigh-ins route above. **MVP (D-20):** only the user themselves; anyone else gets `404`.
+- The cursor holds the last day and `id` returned, since a day may hold several workouts; a
+  cursor from another route is `VALIDATION_FAILED`.
+- The app uses it for the user's own workouts older than the 90 days the phone holds, read online
+  (REQ-TRN-004; ADR-0007 rules 1 and 6).
 
 ### `GET /v1/foods`
 Query: `version` (optional), the version of the list the phone already holds.

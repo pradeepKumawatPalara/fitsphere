@@ -2,14 +2,15 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Meal logging slice, D-26: the food list, barcode products, meals and
-  saved meals). Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
+- Last updated: 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
+  same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
+  Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
   targets, migration 0002; D-23). 2026-10-28 (D-20: links and permission answers kept in the
   schema, unused in the MVP)
 - Builds on: ADR-0002, ADR-0003, ADR-0004, ADR-0007; invariants #1, #5, #6, #7
 
 Covers users, roles, links, Head Coach permission answers, weigh-ins, steps, sleep, measurements,
-targets, meals, saved meals and the food list, plus the sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
+targets, meals, saved meals, workouts and the food list, plus the sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
 permission answers are post-MVP, but their tables stay in the schema so links can be added later
 without rework. D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md). The permission
@@ -30,7 +31,8 @@ not repeated here.
   timestamp (invariant #5, REQ-DATE-004).
 - **Units:** one canonical unit per measure; conversion happens only for display and input
   (invariant #6). Body weight is stored as whole **grams**, sleep as whole **minutes**, and body
-  measurements as whole **millimetres** (MVP defaults, D-23).
+  measurements as whole **millimetres** (MVP defaults, D-23). Lifting weight is stored as whole
+  **grams** too (REQ-TRN-005; MVP default, D-29).
 - **Sensitivity:** columns marked **Health** hold sensitive data (REQ-NFR-002). They never
   appear in logs, analytics, error messages or fixtures; test data is synthetic (invariant #7).
   Database statement logging that captures values stays off (ADR-0003).
@@ -194,6 +196,35 @@ One measurements entry per user per IST day (REQ-MEAS-001…006). The same `id`,
   one decimal (REQ-MEAS-003, MVP default, D-23).
 - Unique (`user_id`, `day`): a new entry replaces the whole old one, so an optional field left
   empty clears the old value (Q-030).
+
+### `workouts` — Health
+Workouts the user logs themselves (REQ-TRN-003, REQ-TRN-004; D-20). Unlike the day values, a day
+may hold several workouts, and each counts toward the weekly target, even with no exercises
+(Q-025, REQ-HOME-007; MVP default, D-29).
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id` | `uuid` | References `users`, deleted with the user |
+| `id` | `uuid` | Made on the phone, so a workout can be started, edited and deleted offline. Primary key (`user_id`, `id`): an ID only ever names one user's workout, so no change can reach another user's workout (invariant #1) |
+| `day` | `date` | Not null. The IST day the user chose when starting it (invariant #5); not later than today in IST. Kept after a deletion |
+| `exercises` | `jsonb` | **Health**. An array of 0 to 30 exercises; null exactly when the workout is deleted |
+| `recorded_at` | `timestamptz` | Not null. When the workout was started on the phone (UTC); editing it keeps this time |
+| `deleted_at` | `timestamptz` | When the user deleted it; null while it exists |
+| `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
+| `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
+
+- Each exercise is `{ name, sets, reps, weightGrams, note }`: sets × reps × weight with an
+  optional note (Q-042). Name 1 to 80 characters; sets 1 to 20; reps 1 to 200, the same for every
+  set; `weightGrams` 100 to 500,000 (0.1–500 kg), or null when no weight is lifted; `note` 1 to
+  500 characters, or null (MVP defaults, D-29). The API checks these; the table checks the array.
+- A new change for the workout replaces the whole workout, and the change the server receives
+  last wins, also over an earlier deletion (ADR-0007 rule 2).
+- **Deleting** empties `exercises` and sets `deleted_at`, keeping the row and its day, so the
+  user's other phones learn of the deletion at their next sync.
+- Indexes (`user_id`, `change_seq`) for the sync pull and (`user_id`, `day`) for the history.
+- Who may read or write it: the
+  [permission matrix](../security/data-and-threat-model.md#permission-matrix) ("Workouts and
+  Progress"). In the MVP only the owner reads or writes it (D-20).
 
 ### `targets` — Health
 The user's own targets (REQ-ROLE-007, D-20): one current value per kind (Q-014 MVP default,
@@ -441,6 +472,7 @@ rule 5 and D-14 require.
 | `links` | Always, including ended links (D-07) | What happens to links on account deletion is decided with REQ-ACC-009 (Q-048 MVP default: links end; Legal confirms, Q-049) |
 | `head_coach_permission_answers` | While the trainee's account exists | With the trainee's account (Q-048 MVP default) |
 | `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
+| `workouts` | While the account exists, as above | With the account. A workout the user deletes keeps an empty row with its day and deletion time |
 | `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
 | `meals`, `saved_meals` | While the account exists; a deleted one keeps only its ID, its day (meals) and when it was deleted | With the account. Phase 1 has no backups (R-005) |
 | `foods`, `dishes`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`) |
@@ -449,4 +481,4 @@ rule 5 and D-14 require.
 
 ## Not in this document yet
 Added with the slice that needs them: invitations, Notifications list, push tokens, settings
-(units, theme, AI consent), plans, media, workouts, and the admin access log (REQ-NFR-005).
+(units, theme, AI consent), plans, media, and the admin access log (REQ-NFR-005).

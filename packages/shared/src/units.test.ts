@@ -4,8 +4,11 @@ import {
   fromGrams,
   fromMillimetres,
   hoursToMinutes,
+  isLiftWeightGramsInRange,
   isMeasurementMmInRange,
   isWeightGramsInRange,
+  LIFT_WEIGHT_GRAMS_MAX,
+  LIFT_WEIGHT_GRAMS_MIN,
   MEASUREMENT_MM_MAX,
   MEASUREMENT_MM_MIN,
   minutesToHours,
@@ -48,6 +51,25 @@ describe('REQ-HOME-006 body weight in whole grams (invariant #6)', () => {
     expect(isWeightGramsInRange(WEIGHT_GRAMS_MAX + 1)).toBe(false);
     expect(isWeightGramsInRange(70_250.5)).toBe(false);
     expect(isWeightGramsInRange(Number.NaN)).toBe(false);
+  });
+});
+
+describe('REQ-TRN-005 lifting weight in whole grams (invariant #6)', () => {
+  it('REQ-TRN-005 every one-decimal kg value from 0.1 to 500.0 converts to grams and back unchanged', () => {
+    for (let tenths = 1; tenths <= 5000; tenths += 1) {
+      const kg = tenths / 10;
+      const grams = toGrams(kg, 'kg');
+      expect(isLiftWeightGramsInRange(grams)).toBe(true);
+      expect(fromGrams(grams, 'kg')).toBe(kg);
+    }
+  });
+
+  it('D-29 accepts 0.1–500 kg in whole grams and refuses anything else', () => {
+    expect(isLiftWeightGramsInRange(LIFT_WEIGHT_GRAMS_MIN)).toBe(true);
+    expect(isLiftWeightGramsInRange(LIFT_WEIGHT_GRAMS_MAX)).toBe(true);
+    expect(isLiftWeightGramsInRange(LIFT_WEIGHT_GRAMS_MIN - 1)).toBe(false);
+    expect(isLiftWeightGramsInRange(LIFT_WEIGHT_GRAMS_MAX + 1)).toBe(false);
+    expect(isLiftWeightGramsInRange(40_000.5)).toBe(false);
   });
 });
 
