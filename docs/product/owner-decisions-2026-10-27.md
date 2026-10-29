@@ -704,6 +704,20 @@
 - Doc changes: `docs/plans/meal-logging-slice.md`; `CLAUDE.md` current phase; `docs/README.md`.
   `mvp-scope.md` and the other documents change in the step that builds each part.
 
+## D-27 Upload links last 10 minutes (amends ADR-0002 rule 3)
+- Status: **Accepted** (owner instruction in chat, 2026-10-29).
+- Answer: ADR-0002 rule 3's upload-link lifetime changes from "valid for 2 hours" to
+  **10 minutes (600 seconds)**, matching the code (`UPLOAD_LINK_SECONDS`,
+  `apps/api/src/storage/mediaStorage.ts`).
+- Reason: the 2 hours described Supabase's own upload links, which had no shorter option. The API
+  issues S3 presigned links (ADR-0002 rule 4), whose lifetime the API sets, so the limitation
+  accepted in D-16 no longer applies. A shorter link narrows the time a leaked upload link works.
+  Each link still allows one JPEG to one path and gives no viewing access.
+- Checked on `fitsphere-dev`, 2026-10-29: `npm run check:storage` passed 8 of 8.
+- Unchanged: viewing links at most 5 minutes (D-16), and the rest of ADR-0002.
+- Doc changes: ADR-0002 rule 3, its D-16 note and its validation results; threat T-08;
+  `constraints-and-assumptions.md` (meal photos on the server).
+
 ---
 
 ## Proposed replacement wording for the two invariants

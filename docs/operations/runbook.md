@@ -166,6 +166,14 @@ it when the Skeleton's database step starts.
      server only, never in the app.
    - Run `npm run check:storage -w @fitsphere/api`; every line should say PASS.
 
+   **Done on `fitsphere-dev`, 2026-10-29 (owner):**
+   - Bucket: private (Public bucket off), file size limit 1 MB, allowed type `image/jpeg`; its
+     name is in `STORAGE_BUCKET`. Menu path: *to be confirmed by the owner*.
+   - S3 connection on and an S3 access key created; the five `STORAGE_*` names are set in
+     `apps/api/.env`. Menu path: *to be confirmed by the owner*.
+   - `npm run check:storage -w @fitsphere/api`: **8 of 8 PASS**, exit code 0 (results in
+     ADR-0002, "Validation results").
+
 **Done on `fitsphere-dev`, 2026-10-28 (owner)**, with the dashboard's menu paths:
 - Items 3 and 4: **Authentication → Sign In / Providers → Email**. Confirm email is on, the
   link expiry is left at 1 hour and the minimum password length is 8. Phone sign-in is off and
