@@ -32,7 +32,9 @@ not repeated here.
   appear in logs, analytics, error messages or fixtures; test data is synthetic (invariant #7).
   Database statement logging that captures values stays off (ADR-0003).
 - **Changes:** every schema change is a numbered migration file in the repository, reviewed
-  like code. Nobody edits tables by hand in the Supabase dashboard (D-16).
+  like code. Nobody edits tables by hand in the Supabase dashboard (D-16). The runner applies
+  each file in one transaction and records it, with a checksum, in `app.schema_migrations`; a
+  file edited after it was applied is refused (`apps/api/migrations/`, runbook).
 
 ## Entities
 
