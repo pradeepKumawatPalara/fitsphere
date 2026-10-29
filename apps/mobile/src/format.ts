@@ -32,10 +32,29 @@ export const WEIGHT_RULE = `Enter a weight from ${fromGrams(WEIGHT_GRAMS_MIN, 'k
 
 /** Reads typed kg with at most one decimal ("70.3" or "70,3"); null when it cannot be saved. */
 export function parseWeightInput(text: string): number | null {
-  const match = /^(\d{1,3})(?:[.,](\d))?$/.exec(text.trim());
-  if (!match) return null;
-  const grams = toGrams(Number(`${match[1]}.${match[2] ?? '0'}`), BODY_WEIGHT_UNIT);
+  const value = parseOneDecimal(text);
+  if (value === null) return null;
+  const grams = toGrams(value, BODY_WEIGHT_UNIT);
   return isWeightGramsInRange(grams) ? grams : null;
+}
+
+/** Reads a number typed with at most one decimal, with a dot or a comma; null otherwise. */
+export function parseOneDecimal(text: string): number | null {
+  const match = /^(\d{1,4})(?:[.,](\d))?$/.exec(text.trim());
+  return match ? Number(`${match[1]}.${match[2] ?? '0'}`) : null;
+}
+
+/** Reads a whole number from `min` to `max`; spaces and thousands commas are ignored. */
+export function parseWholeNumber(text: string, min: number, max: number): number | null {
+  const digits = text.replace(/[\s,]/g, '');
+  if (!/^\d{1,7}$/.test(digits)) return null;
+  const value = Number(digits);
+  return value >= min && value <= max ? value : null;
+}
+
+/** e.g. 10000 → "10,000". */
+export function formatInteger(value: number): string {
+  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 const MONTH_NAMES = [
