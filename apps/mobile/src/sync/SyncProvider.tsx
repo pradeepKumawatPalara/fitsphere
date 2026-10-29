@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { discardRejected, saveWeighIn } from '../local/store';
+import { discardRejected, saveEntry, type ChangeData, type EntryKind } from '../local/store';
 import { syncNow, type SyncOutcome } from './syncClient';
 
 /** Calls `onReconnect` when the phone's connection comes back. */
@@ -22,10 +22,16 @@ const expoNetwork: NetworkWatcher = {
   },
 };
 
+/** What the user enters for each kind; the time it was saved is added when it is saved. */
+export type EntryInput = {
+  [K in EntryKind]: K extends 'target' ? Omit<ChangeData[K], 'setAt'> : Omit<ChangeData[K], 'recordedAt'>;
+};
+
 type SyncContextValue = {
   /** Changes whenever local data may have changed; screens read again. */
   version: number;
   status: SyncOutcome | 'idle' | 'syncing';
+  save<K extends EntryKind>(kind: K, input: EntryInput[K]): Promise<void>;
   saveWeight(day: string, weightGrams: number): Promise<void>;
   discard(changeId: string): Promise<void>;
 };
@@ -89,14 +95,21 @@ export function SyncProvider({
     };
   }, [db, run, network]);
 
-  const saveWeight = useCallback(
-    async (day: string, weightGrams: number) => {
+  const save = useCallback(
+    async <K extends EntryKind>(kind: K, input: EntryInput[K]) => {
       if (!db) throw new Error('The phone database is not open');
-      await saveWeighIn(db, { changeId: newId(), day, weightGrams, recordedAt: now().toISOString() });
+      const savedAt = now().toISOString();
+      const data = (kind === 'target' ? { ...input, setAt: savedAt } : { ...input, recordedAt: savedAt }) as ChangeData[K];
+      await saveEntry(db, kind, { changeId: newId(), data });
       setVersion((value) => value + 1);
       void run();
     },
     [db, newId, now, run],
+  );
+
+  const saveWeight = useCallback(
+    (day: string, weightGrams: number) => save('weighIn', { day, weightGrams }),
+    [save],
   );
 
   const discard = useCallback(
@@ -109,7 +122,7 @@ export function SyncProvider({
     [db, run],
   );
 
-  return <SyncContext.Provider value={{ version, status, saveWeight, discard }}>{children}</SyncContext.Provider>;
+  return <SyncContext.Provider value={{ version, status, save, saveWeight, discard }}>{children}</SyncContext.Provider>;
 }
 
 function defaultNow(): Date {

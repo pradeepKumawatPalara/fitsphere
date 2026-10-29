@@ -90,6 +90,10 @@ coach-set target: refused (invariant #2).
 - On the phone (unit tests): a failed or offline sync keeps the outbox; a rejected change stays
   until the user fixes or discards it; synced entries older than 90 days are removed from the
   phone, pending and rejected ones never.
+- On the phone, for steps, sleep, measurements and targets (D-23): the same outbox life cycle per
+  kind; a pull never overwrites a waiting change of the same kind and key but does update other
+  kinds for that day; targets are never pruned; the update from local schema version 1 keeps the
+  weigh-ins and the outbox and clears the cursor.
 
 ### Dates and units
 - 18:29:59Z is still the same IST day; 18:30:00Z is the next IST day (REQ-DATE-004).

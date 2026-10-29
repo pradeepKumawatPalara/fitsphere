@@ -1,5 +1,6 @@
 // The phone's side of POST /v1/sync (ADR-0007; api-conventions). Sends the outbox oldest first,
-// settles each result, applies the pull, and keeps everything that was not accepted.
+// settles each result, applies the pull for every kind, and keeps everything that was not
+// accepted.
 import {
   istToday,
   MAX_SYNC_CHANGES,
@@ -11,7 +12,7 @@ import { callApi } from '../api/client';
 import type { AuthDeps } from '../auth/service';
 import type { SqlDb } from '../local/sql';
 import {
-  applyServerWeighIns,
+  applyServerEntries,
   getMeta,
   markAccepted,
   markRejected,
@@ -48,7 +49,11 @@ export async function syncNow(db: SqlDb, auth: AuthDeps, now: () => Date = () =>
       if (result.status === 'accepted') await markAccepted(db, result.changeId);
       else await markRejected(db, result.changeId, result.error?.code ?? 'VALIDATION_FAILED');
     }
-    await applyServerWeighIns(db, reply.pull.weighIns);
+    await applyServerEntries(db, 'weighIn', reply.pull.weighIns);
+    await applyServerEntries(db, 'steps', reply.pull.steps);
+    await applyServerEntries(db, 'sleep', reply.pull.sleep);
+    await applyServerEntries(db, 'measurements', reply.pull.measurements);
+    await applyServerEntries(db, 'target', reply.pull.targets);
     await setMeta(db, 'cursor', reply.cursor);
     await setMeta(db, 'last_synced_at', now().toISOString());
 
