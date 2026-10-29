@@ -49,7 +49,8 @@ Page numbers are the printed ones, with the page of the PDF file where they diff
 **`IFCT2017.pdf`.** Raw foods, except eggs. The book says Indian food composition tables "have
 largely focussed on foods in their raw state" (printed page x), and "Except for eggs, all other food
 component data are for foods in the raw form" (printed page i). It does not say how its omelette
-(M007) was made. Its copyright page (unnumbered, page 3 of
+(M007) was made, and its tables do not say whether the poultry rows are raw or cooked. Its
+copyright page (unnumbered, page 3 of
 the PDF) says:
 
 > The use and dissemination of the data in this book is encouraged. This publication can be

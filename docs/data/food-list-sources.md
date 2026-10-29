@@ -285,25 +285,25 @@ The sheet: UTF-8 without a byte-order mark, LF line endings, one header row and 
 |---|---|
 | `dish` | Dish name |
 | `portion_unit` | `piece`, or `katori (200 ml)` |
-| `ingredient_1` … `ingredient_6` | An ingredient, named as printed in the IFCT list: raw, except the cooked entries below |
+| `ingredient_1` … `ingredient_6` | An ingredient, named as printed in the IFCT list: raw, except the cooked entry below (M004) |
 | `ifct_code_1` … `ifct_code_6` | Its IFCT code. Empty where there is a choice to make; the note lists the choices |
 | `raw_g_per_portion_1` … `raw_g_per_portion_6` | Raw grams of that ingredient in one portion: its raw grams in the weighed batch ÷ the batch's count |
 | `oil_or_ghee`, `oil_or_ghee_ifct_code` | The fat used: ghee T013, or an oil T001–T012 |
 | `oil_or_ghee_g_per_portion` | Grams of fat in one portion: the fat used in the batch ÷ the batch's count. For a fried dish, the fat the batch absorbs |
-| `cooked_g_per_piece` | Only for a dish that is one cooked IFCT entry (M004, M007): the cooked grams of one piece, the weighed cooked pieces' grams ÷ `pieces_per_batch` |
+| `cooked_g_per_piece` | Only for a dish that is one cooked IFCT entry (M004): the cooked grams of one piece, the weighed cooked pieces' grams ÷ `pieces_per_batch` |
 | `pieces_per_batch` | For a piece dish: how many pieces the weighed batch made |
 | `katoris_per_batch` | For a katori dish: how many 200 ml katoris the cooked batch filled |
 | `measured_by`, `date` | Who weighed the recipe, and the date (YYYY-MM-DD) |
 | `notes` | The counting rule, choices still to make, and anything else about the recipe |
 
 **Counting rule.** Grams per portion = the weighed batch's grams ÷ its count: `pieces_per_batch`
-for a piece dish, `katoris_per_batch` for a katori dish. Each row's note starts with the rule for
-its kind of dish.
+for a piece dish, `katoris_per_batch` for a katori dish. Each row's note gives the rule for its
+kind of dish. The chicken curry row's note starts with DO NOT FILL (below).
 
 **Cooked IFCT entries (the exception in D-26 answer 3).** Where IFCT publishes a cooked value for
 the whole item, that value is used per gram of the cooked item, and the sheet records the cooked
-grams per piece in `cooked_g_per_piece`. Two rows do this: M004 "Egg, poultry, whole, boiled" and
-M007 "Egg, poultry, omlet". The IFCT 2017 book says its egg values are not all for raw food:
+grams per piece in `cooked_g_per_piece`. One row does this: M004 "Egg, poultry, whole, boiled".
+The IFCT 2017 book says its egg values are not all for raw food:
 
 > Except for eggs, all other food component data are for foods in the raw form.
 
@@ -313,12 +313,26 @@ M007 "Egg, poultry, omlet". The IFCT 2017 book says its egg values are not all f
 
 (General information, printed page xx.)
 
-- **The omelette and oil: unclear.** The book does not say how M007 was prepared, or whether oil
-  was used. Its text, searched on 2026-10-30, does not describe how any egg was cooked; M007
-  appears only as a row in its tables. So it is not known whether the omelette row should add oil.
-- **Poultry: unclear.** Page xx names poultry as well as egg, but the preface names eggs only, and
-  the poultry entries' names do not say "cooked". The chicken curry row uses N002 or N003 as a raw
-  ingredient; whether IFCT's poultry values are raw is worth confirming.
+- **The omelette does not use M007 (owner, 2026-10-30).** The book does not say how M007 "Egg,
+  poultry, omlet" was prepared, or whether oil was used. Its text, searched on 2026-10-30, does not
+  describe how any egg was cooked; M007 appears only as a row in its tables. So the omelette row is
+  defined like other dishes: raw whole egg, M001 "Egg, poultry, whole, raw", plus the oil weighed
+  per omelette.
+- **Poultry: not confirmed raw, so the chicken curry row is marked DO NOT FILL (owner,
+  2026-10-30).** Checked in the IFCT 2017 tables on 2026-10-30:
+  - **Row names.** On Table 1's poultry page (printed page 20) the rows read "N001 Chicken,
+    poultry, leg, skinless", "N002 Chicken, poultry, thigh, skinless" and "N003 Chicken, poultry,
+    breast, skinless". None says raw or cooked. The egg rows on the same page do, e.g. "M001 Egg,
+    poultry, whole, raw" and "M004 Egg, poultry, whole, boiled".
+  - **Headings and footnotes.** Table 1's heading (printed page 3) reads "(All values are expressed
+    per 100g edible portion; All blank space in the table represent below detectable limit)",
+    which says nothing about raw or cooked food. The tables that list N001 to N003 (Tables 1, 2, 3,
+    5, 7 and 8) have no footnotes. On their pages, "raw" and "cooked" appear only in egg rows'
+    names.
+  - **Food descriptions.** The book's "Food Picture and Description" section (printed pages
+    427–500) describes foods in groups A to L and P to S only, so it has no entry for poultry.
+  - **General text.** The only statement is "All data except for poultry and egg pertains to raw
+    food" (printed page xx), while the preface (printed page i) names eggs only.
 
 ### Cooked-dish and portion sources considered and not used
 

@@ -58,9 +58,10 @@ box shows "AI meal reading is coming soon" until then (D-26).
      weighing raw ingredients, and approves it. NIN's guidelines, INDB data and USDA data are not
      used.
    - Its values are IFCT's values per 100 g × the raw grams, marked "estimated".
-   - Exception: where IFCT publishes a cooked value for the whole item (M004 boiled egg, M007
-     omelette), that value is used per gram of the cooked item, and the sheet records the cooked
-     grams per piece.
+   - Exception: where IFCT publishes a cooked value for the whole item (M004 boiled egg), that
+     value is used per gram of the cooked item, and the sheet records the cooked grams per piece.
+   - The omelette is raw whole egg (M001) plus the oil weighed per omelette, not IFCT's M007. The
+     chicken curry row is not filled until IFCT's poultry values are confirmed raw.
    - Units:
      - per piece for roti, phulka, paratha, puri, idli, dosa, egg and omelette;
      - per katori (200 ml) for the rest;

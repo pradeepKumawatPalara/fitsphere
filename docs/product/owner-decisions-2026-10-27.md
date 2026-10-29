@@ -692,9 +692,15 @@
        sheet is written by weighing raw ingredients, and the owner approves it. It replaces an
        outside document quoted with its page.
      - **Exception, cooked IFCT entries:** where IFCT publishes a cooked value for the whole item
-       (M004 boiled egg, M007 omelette), that value is used per gram of the cooked item, and the
-       sheet records the cooked grams per piece. Whether M007 includes cooking oil is unclear:
-       the IFCT 2017 book does not say how it was prepared (`food-list-sources.md`).
+       (M004 boiled egg), that value is used per gram of the cooked item, and the sheet records the
+       cooked grams per piece.
+     - **Omelette:** raw whole egg (M001) plus the oil weighed per omelette, like other dishes. It
+       does not use IFCT's omelette (M007): the IFCT 2017 book does not say how M007 was prepared
+       or whether it includes oil.
+     - **Chicken curry: do not fill** until IFCT's poultry values are confirmed raw. The IFCT
+       tables do not say whether N002 and N003 are raw or cooked, and the book's general text says
+       "All data except for poultry and egg pertains to raw food" (printed page xx;
+       `food-list-sources.md`).
      - **Not used as a source:** NIN's *Dietary Guidelines for Indians* (any edition), data from
        the Indian Nutrient Databank (INDB) and data from USDA FoodData Central. Why each was
        considered and not used: [`food-list-sources.md`](../data/food-list-sources.md).
