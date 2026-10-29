@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-27
+- Last updated: 2026-10-28 (Skeleton step 5: `details` is `null` outside `VALIDATION_FAILED`)
 - Builds on: [`api-conventions.md`](api-conventions.md); invariants #1 and #7; REQ-ACC-010, REQ-NFR-001, REQ-NFR-004
 
 One error shape for the whole API, a fixed list of codes, and the rules for what an error may
@@ -31,7 +31,7 @@ Every error response has this body:
 | `message` | Short, safe English text the app may show. Never contains health data, email addresses, tokens, SQL, stack traces or internal names |
 | `retryable` | `true` only when sending the same request again later can succeed |
 | `requestId` | The same value as the `X-Request-Id` response header; ties the error to the server log |
-| `details` | Optional. Only for `VALIDATION_FAILED`: the field path and an issue name (`required`, `invalid_format`, `out_of_range`, `unknown_field`, `too_many`). Never the submitted value |
+| `details` | Only for `VALIDATION_FAILED`: the field path and an issue name (`required`, `invalid_format`, `out_of_range`, `unknown_field`, `too_many`). Never the submitted value. `null` for every other code, and for a body that is not JSON |
 
 ## What errors may reveal
 - **Another person's data:** when the caller may not see a person or their data, the API answers
@@ -51,7 +51,7 @@ Every error response has this body:
 |---|---|---|---|---|
 | 400 | `VALIDATION_FAILED` | The request is malformed: wrong types, missing or unknown fields, a body that is not JSON | No | Fix the request; this is a bug if it happens in the app |
 | 400 | `AGE_CONFIRMATION_REQUIRED` | Account setup without `ageConfirmed: true` (REQ-ACC-010) | No | Show the "I am 18 or older" step |
-| 401 | `AUTH_REQUIRED` | No token, or the token is invalid, expired, for another project or audience, or anonymous | No | Refresh the session once and retry; if it fails again, go to sign-in |
+| 401 | `AUTH_REQUIRED` | No token, or the token is invalid, expired, for another project or audience, or anonymous. The response also carries `WWW-Authenticate: Bearer` | No | Refresh the session once and retry; if it fails again, go to sign-in |
 | 403 | `ACCOUNT_SETUP_REQUIRED` | Signed in, but the FitSphere account is not set up yet | No | Run account setup (`POST /v1/me`) |
 | 403 | `EMAIL_NOT_VERIFIED` | Account setup while Supabase Auth does not show the email as confirmed (Q-080) | No | Ask the user to verify their email |
 | 403 | `ROLE_NOT_ENABLED` | The caller's own function needs a role they have not turned on, e.g. logging weight without the Personal Training User role (REQ-ROLE-002) | No | Offer to turn the role on |
