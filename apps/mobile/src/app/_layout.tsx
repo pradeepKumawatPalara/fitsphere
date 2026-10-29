@@ -34,6 +34,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="account" options={{ title: 'Account' }} />
             <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
+            <Stack.Screen name="log-meal" options={{ title: 'Log meal' }} />
           </Stack>
           <StatusBar style="auto" />
         </SyncProvider>
