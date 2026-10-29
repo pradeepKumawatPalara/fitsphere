@@ -36,6 +36,8 @@ export type AuthDeps = { client: AuthClient; apiUrl: string | undefined; fetchIm
 
 /** Where the verify email's link opens the app (redirect URL `fitsphere://**` in Supabase). */
 export const VERIFIED_REDIRECT = 'fitsphere://verified';
+/** Where the reset email's link opens the app. */
+export const RESET_REDIRECT = 'fitsphere://reset-password';
 
 // supabase-js reports a request that never reached Supabase as AuthRetryableFetchError, status 0.
 function isOffline(error: ErrorLike): boolean {
@@ -133,6 +135,49 @@ export async function ensureAccount(deps: AuthDeps, ageConfirmedNow = false): Pr
   if (setup.code === 'EMAIL_NOT_VERIFIED') return { kind: 'emailNotVerified' };
   if (setup.code === 'AGE_CONFIRMATION_REQUIRED') return { kind: 'needsAgeConfirmation' };
   return { kind: 'unavailable' };
+}
+
+/** Forgot password: whatever Supabase answers, the app shows the same neutral text (D-11). */
+export async function requestPasswordReset(deps: AuthDeps, email: string): Promise<'sent' | 'offline'> {
+  try {
+    const { error } = await deps.client.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: RESET_REDIRECT,
+    });
+    return isOffline(error) ? 'offline' : 'sent';
+  } catch {
+    return 'offline';
+  }
+}
+
+/**
+ * Opens the reset link: trades its one-time code for a session. The code works only on the phone
+ * that asked for the reset, which holds the matching PKCE verifier (MVP default).
+ */
+export async function startPasswordReset(
+  deps: AuthDeps,
+  code: string | undefined,
+): Promise<'ready' | 'invalid' | 'offline'> {
+  if (!code) return 'invalid';
+  try {
+    const { data, error } = await deps.client.exchangeCodeForSession(code);
+    if (isOffline(error)) return 'offline';
+    return data.session ? 'ready' : 'invalid';
+  } catch {
+    return 'invalid';
+  }
+}
+
+export type NewPasswordResult = 'changed' | 'samePassword' | 'failed' | 'offline';
+
+export async function setNewPassword(deps: AuthDeps, password: string): Promise<NewPasswordResult> {
+  try {
+    const { error } = await deps.client.updateUser({ password });
+    if (!error) return 'changed';
+    if (isOffline(error)) return 'offline';
+    return error.code === 'same_password' ? 'samePassword' : 'failed';
+  } catch {
+    return 'offline';
+  }
 }
 
 export async function signOutLocally(deps: AuthDeps): Promise<{ kind: 'signedOut' }> {

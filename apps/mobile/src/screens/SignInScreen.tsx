@@ -41,6 +41,7 @@ export function SignInScreen() {
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />
       <Message text={message} />
       <Button title="Sign in" disabled={busy} onPress={() => void submit()} />
+      <Button title="Forgot password?" onPress={() => router.replace('/forgot-password')} />
       <Button title="Create an account" onPress={() => router.replace('/sign-up')} />
     </Screen>
   );

@@ -29,7 +29,8 @@ Where the contracts define something, this plan does not repeat it.
 | 4. Database schema and migrations | Built 2026-10-28; waiting for CI and the owner's Supabase checks | `skeleton/04-database-schema` |
 | 5. API foundations and account setup | Built 2026-10-28; waiting for CI and the owner's check on the PC | `skeleton/05-api-foundations` |
 | 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/06-sign-up-sign-in` |
-| 7–10 | Not started | — |
+| 7. Forgot password and set a new password | Built 2026-10-28; waiting for CI and the phone check | `skeleton/07-password-reset` |
+| 8–10 | Not started | — |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)
