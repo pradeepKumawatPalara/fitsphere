@@ -24,10 +24,16 @@ function newId() {
   return `00000000-0000-4000-9000-${String(ids).padStart(12, '0')}`;
 }
 
-export async function renderInApp(element: ReactElement, now: () => Date = () => NOW) {
+/** `before` runs once the phone database and the fake API exist, before the first render. */
+export async function renderInApp(
+  element: ReactElement,
+  now: () => Date = () => NOW,
+  before?: (db: SqlDb, server: ReturnType<typeof fakeServer>) => Promise<void>,
+) {
   const db: SqlDb = memoryDb();
   await migrateLocal(db);
   const server = fakeServer(now());
+  await before?.(db, server);
   const client = fakeAuthClient(fakeSession({ age_confirmed: true, age_confirmation_text_version: '2026-10-27' }));
   await render(
     <AuthProvider deps={deps(client, server.fetchImpl)}>

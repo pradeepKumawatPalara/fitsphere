@@ -136,6 +136,16 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   unknown; the food list is cached, refreshed only when its version changes, kept when offline,
   and searched offline by word and alias; the update from local version 2 keeps the data.
 
+### Nutrition and Home with meals (app component tests)
+- Consumed: dashes with nothing logged; the day's totals; meals in their slots with tag labels;
+  a slot's "+" opens Log meal for that slot and date.
+- The ••• menu: Delete asks first, then removes the meal and syncs the deletion; Cancel keeps
+  it; Edit opens Log meal; "Save to my meals" stores a named copy shown in Saved.
+- Saved: the empty state; re-logging to the selected date in the saved slot or a changed one;
+  Delete after confirming. Diet plan: the empty state.
+- Home: the cards use the day's meals; the status box (Q-019); "By meal" (Q-023); "+" on the
+  selected date (Q-011); a rejected meal's text and Edit.
+
 ### Food list (ADR-0006 rule 1; D-25, D-26)
 - The IFCT CSV is read whole and refused whole when any row is wrong, naming the line.
 - All 542 foods are imported with their printed values, and running the import again gives the
