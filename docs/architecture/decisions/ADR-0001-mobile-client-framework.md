@@ -158,7 +158,8 @@ supersedes this one.
   Nord CE4, shows "API: ok" through a Quick Tunnel, and passes the offline weight checks recorded
   in ADR-0007.
 - Checks 4 and 6: built in Skeleton steps 8 and 10 (the 1,000-row check and the 200-row list,
-  development builds only); pending, not run on 2026-10-29. Checks 2 and 3: not run yet.
+  development builds only); pending, deferred to before the release by D-22 (backlog SC-04 and
+  SC-02; accepted risk R-006). Checks 2 and 3: not run yet.
 - Checks 5 and 7: not run in the first slice (D-20); backlog items B-24 and B-23.
 
 ## Revisit conditions

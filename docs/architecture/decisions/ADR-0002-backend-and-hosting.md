@@ -346,8 +346,9 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   (`test/integration/logs.test.ts`). Media links do not exist yet.
 - **Step 2, REST part — passed on `fitsphere-dev`, 2026-10-28 (owner):** with **Enable Data
   API** off, the REST root, `app.users` and `app.weigh_ins` answered HTTP 404 (`PGRST125`) with
-  no data to the publishable key (`npm run check:data-api`). Skeleton step 6's phone checks prove
-  that Supabase Auth works with the Data API off. Storage waits for media, after the Skeleton.
+  no data to the publishable key (`npm run check:data-api`). Skeleton step 6's phone checks, which
+  prove that Supabase Auth works with the Data API off, are pending: deferred to before the
+  release by D-22 (backlog SC-09). Storage waits for media, after the Skeleton.
 - **Step 3, PC part — passed, 2026-10-28:** the migration and `npm run db:growth` reached
   `fitsphere-dev` from the PC through the session pooler (`DATABASE_URL`). The API uses the same
   address; its first queries through it come with step 6's account setup. The Cloud Run part

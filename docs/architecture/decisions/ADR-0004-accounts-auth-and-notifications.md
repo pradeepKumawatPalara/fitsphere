@@ -150,8 +150,9 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
 - **Signing key on `fitsphere-dev`, 2026-10-28 (owner):** the current JWT signing key is ECC
   (P-256), which the API accepts (ES256). The earlier shared secret (HS256) is listed under
   "Previously used keys" and is not revoked; the API refuses HS256 tokens either way.
-- **Steps 2 and 3, phone part:** Skeleton step 6's phone checks and `npm run check:signup`; not
-  run yet.
+- **Steps 2 and 3, phone part — pending,** deferred to before the release by D-22 (accepted risk
+  R-006): Skeleton step 6's phone checks (backlog SC-09, SC-10 and SC-13), `npm run check:signup`
+  (SC-11) and step 7's reset check (SC-12).
 - **Step 1** runs in the Release slice (Resend, D-20).
 
 ## Revisit conditions

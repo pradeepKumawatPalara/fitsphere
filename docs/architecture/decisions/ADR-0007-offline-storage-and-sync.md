@@ -126,18 +126,21 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   3; OnePlus Nord CE4, step 10's development build, API through a Quick Tunnel; owner's report).
   A weight saved earlier was still shown after the app was reopened. With airplane mode on and
   Wi-Fi off, saved weights were still shown, and a second weight was saved and shown on the
-  phone. After reconnecting, the sync status showed synced. **Pending:** force-stop and reopen
-  while offline (USB + adb), then log out and sign in to confirm that the server holds exactly
-  one value for the day. Until then, the offline entry is not confirmed on the server.
+  phone. After reconnecting, the sync status showed synced. **Pending, deferred to before the
+  release by D-22** (backlog SC-06; accepted risk R-006): force-stop and reopen while offline
+  (USB + adb), then log out and sign in to confirm that the server holds exactly one value for
+  the day. Until then, the offline entry is not confirmed on the server.
 - **Step 4, logic — passed in automated tests:** a rejected change stays, with its code, until a
   new value for the day replaces it or the user discards it, and is never pruned
-  (`store.test.ts`, `home.test.tsx`). Phone check 4 of step 10: pending.
+  (`store.test.ts`, `home.test.tsx`). Phone check 4 of step 10: pending, deferred to before the
+  release by D-22 (backlog SC-03).
 - **Step 5, logic — passed in automated tests:** the IST day comes from the UTC clock (shared
   date tests under `Asia/Kolkata` and `America/Los_Angeles`; the API accepts a day that is
-  already "today" at 00:10 IST). Phone check 5 of step 10: pending.
+  already "today" at 00:10 IST). Phone check 5 of step 10: dropped for the MVP, which serves
+  India only (D-22, D-09); post-MVP, backlog B-25.
 - **Step 6:** the app stops when SQLCipher is missing and never sets a key on a plain database
   (`database.test.ts`). The start-up check and the unreadable file are step 8's phone checks:
-  pending.
+  pending, deferred to before the release by D-22 (backlog SC-08 and SC-07).
 
 ## Revisit conditions
 Sync bugs grow costly to maintain; real-time features required; device storage problems.
