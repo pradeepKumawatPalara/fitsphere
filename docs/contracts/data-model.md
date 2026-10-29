@@ -2,12 +2,13 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-20: links and permission answers kept in the schema, unused in the
-  MVP)
+- Last updated: 2026-10-29 (Home and daily tracking slice, step 2: steps, sleep, measurements and
+  targets, migration 0002; D-23). 2026-10-28 (D-20: links and permission answers kept in the
+  schema, unused in the MVP)
 - Builds on: ADR-0002, ADR-0003, ADR-0004, ADR-0007; invariants #1, #5, #6, #7
 
-Covers users, roles, links, Head Coach permission answers and weigh-ins, plus the sync
-bookkeeping the Skeleton needs. The MVP is the Personal Training User view only (D-20): links and
+Covers users, roles, links, Head Coach permission answers, weigh-ins, steps, sleep, measurements
+and targets, plus the sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
 permission answers are post-MVP, but their tables stay in the schema so links can be added later
 without rework. D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md). The permission
@@ -27,12 +28,15 @@ not repeated here.
   stored as its own `date` column holding an Asia/Kolkata (IST) day and is never derived from a
   timestamp (invariant #5, REQ-DATE-004).
 - **Units:** one canonical unit per measure; conversion happens only for display and input
-  (invariant #6). Body weight is stored as whole **grams**.
+  (invariant #6). Body weight is stored as whole **grams**, sleep as whole **minutes**, and body
+  measurements as whole **millimetres** (MVP defaults, D-23).
 - **Sensitivity:** columns marked **Health** hold sensitive data (REQ-NFR-002). They never
   appear in logs, analytics, error messages or fixtures; test data is synthetic (invariant #7).
   Database statement logging that captures values stays off (ADR-0003).
 - **Changes:** every schema change is a numbered migration file in the repository, reviewed
-  like code. Nobody edits tables by hand in the Supabase dashboard (D-16).
+  like code. Nobody edits tables by hand in the Supabase dashboard (D-16). The runner applies
+  each file in one transaction and records it, with a checksum, in `app.schema_migrations`; a
+  file edited after it was applied is refused (`apps/api/migrations/`, runbook).
 
 ## Entities
 
@@ -148,6 +152,71 @@ One body-weight value per user per IST day (REQ-HOME-006, REQ-PRG-001).
 - No delete in the Skeleton: no requirement asks for deleting a weigh-in. Deleted with the
   account (REQ-ACC-009).
 
+### `step_counts` — Health
+One steps value per user per IST day (REQ-HOME-006). Typed in by the user; health-platform sync is
+post-MVP (Q-015, backlog B-14).
+
+| Column | Type | Rules |
+|---|---|---|
+| `id` | `uuid` | Primary key |
+| `user_id` | `uuid` | References `users`, deleted with the user |
+| `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
+| `steps` | `integer` | Not null, **Health**. 0 to 100,000 (Q-028 MVP default) |
+| `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
+| `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
+| `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
+
+- Unique (`user_id`, `day`): a new value replaces the old, and the change the server receives
+  last wins (Q-030, ADR-0007 rule 2). Index (`user_id`, `change_seq`) for the sync pull.
+
+### `sleep_logs` — Health
+One sleep value per user per IST day (REQ-HOME-006). The same columns and rules as `step_counts`,
+with `sleep_minutes` in place of `steps`:
+
+| Column | Type | Rules |
+|---|---|---|
+| `sleep_minutes` | `integer` | Not null, **Health**. 0 to 1,440 (0–24 h, Q-028). The app takes hours with one decimal, so values are multiples of 6 (MVP default, D-23) |
+
+- The day is the date selected when the sleep is logged (MVP default, D-23).
+
+### `measurements` — Health
+One measurements entry per user per IST day (REQ-MEAS-001…006). The same `id`, `user_id`, `day`,
+`recorded_at`, `change_seq` and server-time columns as `step_counts`, plus:
+
+| Column | Type | Rules |
+|---|---|---|
+| `upper_waist_mm`, `lower_waist_mm` | `integer` | Not null, **Health**. Required (REQ-MEAS-004) |
+| `chest_mm`, `hips_mm`, `arm_mm`, `thigh_mm` | `integer` | Null when not entered, **Health**. Optional (REQ-MEAS-005); one value each for arms and thighs (Q-027) |
+| `notes` | `text` | Null when empty, **Health**. 1 to 500 characters (MVP default, D-23) |
+
+- Every length is whole millimetres, 100 to 2,500 (10–250 cm, Q-028). The app takes cm or in with
+  one decimal (REQ-MEAS-003, MVP default, D-23).
+- Unique (`user_id`, `day`): a new entry replaces the whole old one, so an optional field left
+  empty clears the old value (Q-030).
+
+### `targets` — Health
+The user's own targets (REQ-ROLE-007, D-20): one current value per kind (Q-014 MVP default,
+D-23). They include a target body weight, so the values are treated as **Health** data.
+
+| Column | Type | Rules |
+|---|---|---|
+| `id` | `uuid` | Primary key |
+| `user_id` | `uuid` | References `users`, deleted with the user. Whose target it is |
+| `kind` | `text` | `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight` |
+| `value` | `integer` | Not null. kcal 500–10,000; protein in grams 10–500; steps 1–100,000; workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028) |
+| `set_by_user_id` | `uuid` | References `users`, `on delete set null`. Who set it: always the caller, from the sign-in token, never from the request. Null only once that person's account is deleted (backlog E-02) |
+| `set_at` | `timestamptz` | Not null. When it was set, on the phone (UTC) |
+| `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
+| `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
+
+- Unique (`user_id`, `kind`): a new value replaces the old, and the change the server receives
+  last wins (Q-075). No history in the MVP; a target applies to every day shown, past days
+  included (Q-014 MVP default, D-23).
+- In the MVP every target is set by its user (D-20), labelled "Set by you". Recording who set it
+  lets coach-set targets follow without rework (invariant #2): post-MVP, the API refuses a
+  trainee's change while an active coach's target applies (backlog B-21).
+- A target can be changed but not removed in the MVP (D-23).
+
 ### `applied_changes` — sync bookkeeping
 Makes the sync endpoint apply each phone change once (ADR-0007 option A). Holds no health
 values.
@@ -156,7 +225,7 @@ values.
 |---|---|---|
 | `user_id` | `uuid` | References `users`, deleted with the user |
 | `change_id` | `uuid` | Created on the phone |
-| `change_type` | `text` | e.g. `weighIn.set` |
+| `change_type` | `text` | e.g. `weighIn.set`, `steps.set`, `target.set` |
 | `status` | `text` | `accepted` or `rejected` |
 | `error_code` | `text` | Null when accepted; otherwise a code from the [error model](error-model.md) |
 | `applied_at` | `timestamptz` | Not null |
@@ -176,7 +245,8 @@ number.
 ## On the phone (ADR-0007)
 The phone keeps a **copy** in an encrypted Expo SQLite database; the server is the permanent
 record (D-14). The key is a random value kept in the phone's secure storage; the user never sees
-a password (ADR-0007 rule 5).
+a password (ADR-0007 rule 5). The key is 32 random bytes from `expo-crypto`, used as a raw
+SQLCipher key; the database file is `fitsphere.db`, and `PRAGMA user_version` numbers its schema.
 
 Encryption uses SQLCipher, which needs a development build, not Expo Go. Expo's docs warn that
 if SQLCipher is missing from the build, setting the key "has no effect and does not throw an
@@ -187,33 +257,47 @@ rule 5 and D-14 require.
 | Local table | Holds | Rules |
 |---|---|---|
 | `weigh_ins` | `day` (key), `weight_grams`, `recorded_at`, `sync_state` | `sync_state` is `synced`, `pending` or `rejected` |
-| `outbox` | `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected` |
+| `steps` | `day` (key), `steps`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
+| `sleep` | `day` (key), `sleep_minutes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
+| `measurements` | `day` (key), the six lengths in millimetres, `notes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
+| `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
+| `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id` | One signed-in user per local database |
 
-- **What is kept:** the user's own weigh-ins for the last 90 IST days (ADR-0007 rule 1).
-  Synced entries older than that are deleted from the phone when the app starts; older history
-  is read from the server when viewed online.
+- **What is kept:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST
+  days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
+  deleted from the phone at each sync; targets are never pruned. Older history is read from the
+  server when viewed online.
+- **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
+  each in a transaction. Version 2 (Home and daily tracking slice) adds `steps`, `sleep`,
+  `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor
+  so the next sync pulls the new kinds.
+- **Matching a change to its entry:** an outbox change is matched by its type and its key (`day`,
+  or `kind` for targets), so a waiting weight never holds back the server's steps for the same
+  day.
 - **Never deleted automatically:** `pending` and `rejected` entries and their outbox rows
   (D-14). A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2).
 - **30-day clear** (ADR-0007 rule 4): in the Skeleton there are no drafts and no other people's
   data on the phone, so nothing is cleared yet. The check is built with the first slice that
   stores either.
+- **Discarding a rejected change** removes it and that entry's local value, and clears the sync
+  cursor, so the next sync brings back what the server holds for it.
 - **Log out** (REQ-ACC-008; MVP default, D-18): when the outbox is empty, logging out deletes the
   local database and its key. When it is not, the app warns that the unsynced entries will be
   lost and offers to stay signed in; the entries are deleted only if the user confirms.
 
-## Retention and deletion (this slice)
+## Retention and deletion
 | Data | Kept | Deleted |
 |---|---|---|
 | `users`, `user_roles` | While the account exists | With the account (REQ-ACC-009, later slice) |
 | `links` | Always, including ended links (D-07) | What happens to links on account deletion is decided with REQ-ACC-009 (Q-048 MVP default: links end; Legal confirms, Q-049) |
 | `head_coach_permission_answers` | While the trainee's account exists | With the trainee's account (Q-048 MVP default) |
-| `weigh_ins` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
+| `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
+| `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |
 
 ## Not in this document yet
 Added with the slice that needs them: invitations, Notifications list, push tokens, settings
-(units, theme, AI consent), targets and plans, meals and food data, media, measurements, steps,
-sleep, workouts, and the admin access log (REQ-NFR-005). When targets are added, each target
-records who set it and when, so coach-set targets can follow without rework (D-20, invariant #2).
+(units, theme, AI consent), plans, meals and food data, media, workouts, and the admin access log
+(REQ-NFR-005).

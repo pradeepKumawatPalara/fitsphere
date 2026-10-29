@@ -7,9 +7,17 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Skeleton slice — the first implementation slice.** Plan approved by the owner on 2026-10-28:
-`docs/plans/skeleton-slice.md`. One branch and pull request per step; CI must pass before merge;
-stop after each step for the owner's check (D-18 answer 14).
+**Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
+`docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 are pull requests #11 to #17,
+merged in order by the owner once CI is green. Then the owner applies migration 0002 to
+`fitsphere-dev` (`npm run migrate -w @fitsphere/api`) and runs the slice's batched phone checks,
+starting the API, the tunnel and Expo with `npm run dev:phone` (D-22). **Next:** slice 3, Meal
+logging (no AI); it gets its own plan in `docs/plans/`, approved before any code. One branch and
+pull request per step; CI must pass before merge.
+
+**Skeleton slice — done with deferred checks (D-22, 2026-10-29).** Steps 1 to 10 are merged
+(`docs/plans/skeleton-slice.md`). Its pending phone checks are backlog SC-01 to SC-13, to run
+before the release (accepted risk R-006).
 
 **Builds and devices (D-19).** No Android Studio, emulator or local Android builds. Development
 builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
@@ -55,6 +63,17 @@ Not approved yet: audio/video media storage (ADR-0008).
 Do not scaffold an app, add dependencies or pick frameworks until the relevant ADRs in
 `docs/architecture/decisions/` are marked **Accepted** by the decision owner.
 
+## Before real users
+Release-blocking, not done yet (D-22; backlog "Release-blocking tasks"). Do them only when the
+owner says so:
+- RB-01: delete the GitHub copy of the branch `local/test-no-email`, which holds a test password.
+  Leave the owner's local branch alone.
+- RB-02: delete the Supabase test user that uses that password.
+- RB-03: make sure Supabase **Confirm email** is on.
+
+Also before the release: the Skeleton checks SC-01 to SC-13 (R-006), Legal's review (Q-049) and
+email through Resend from FitSphere's domain (D-20).
+
 ## Sources of truth
 - Documentation index and status: `docs/README.md`
 - Product scope: `docs/product/product-brief.md`
@@ -74,7 +93,8 @@ Do not scaffold an app, add dependencies or pick frameworks until the relevant A
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
-- Current slice plan (Accepted): `docs/plans/skeleton-slice.md`
+- Current slice plan (Accepted): `docs/plans/home-daily-tracking-slice.md`; the Skeleton's,
+  done: `docs/plans/skeleton-slice.md`
 - Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.

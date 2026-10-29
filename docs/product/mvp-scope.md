@@ -93,7 +93,7 @@ slice's plan confirms its scope with the owner before work starts, as the Skelet
 | # | Slice | Covers | Main REQs |
 |---|---|---|---|
 | 1 | Skeleton | Monorepo and CI; sign-up with 18+, verification, sign-in, reset, log out; IST dates; weight online and offline; self-access authorization. Plan: [`skeleton-slice.md`](../plans/skeleton-slice.md) | ACC-008, ACC-010, DATE-*, HOME-006 (weight), NFR-001, NFR-004 |
-| 2 | Home and daily tracking | Bottom navigation and header; Home: week strip, calories and protein cards, steps and sleep tiles, workout tracker, measurements card; the measurements sheet; own targets | NAV-001, NAV-002, HOME-*, MEAS-*, ROLE-007 |
+| 2 | Home and daily tracking | Bottom navigation and header; Home: week strip, calories and protein cards, steps and sleep tiles, workout tracker, measurements card; the measurements sheet; own targets. Plan: [`home-daily-tracking-slice.md`](../plans/home-daily-tracking-slice.md) (D-23); HOME-005 and the week strip's status box come with meals in slice 3 | NAV-001, NAV-002, HOME-*, MEAS-*, ROLE-007 |
 | 3 | Meal logging (no AI) | Log meal: "+" button, date chip and day sheet, meal type and tags, food search, barcode, saved meals, tips; Nutrition: Consumed, the Diet plan empty state, Saved | NAV-003, LOG-001…003, LOG-007, LOG-008, NUT-*, PLAN-007, SAVED-*, ACC-005 |
 | 4 | Training | "No training plan yet", empty workout, sets × reps × weight, history, lifting unit; the Home workout count | TRN-002…005, HOME-007 |
 | 5 | Progress | 4-week weight, average calories, days logged, trend chart, week table with Target row, measurements list | PRG-001…006 |

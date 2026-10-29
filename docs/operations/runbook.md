@@ -44,7 +44,8 @@ Read-only checks from VS Code; nothing was installed or changed.
   is restarted.
 - No PostgreSQL yet; the owner chose a native install of PostgreSQL 17 (D-18 answer 14). Docker
   Desktop is installed but is not used for the test database.
-- IPv6 works, so `MIGRATION_DATABASE_URL` can use the direct connection.
+- IPv6 works, but nothing needs it: every script connects through the session pooler
+  (`DATABASE_URL`, owner's decision, 2026-10-28).
 - Not stated by the owner: a real Android phone, a password manager, a Firebase project.
 
 ### 1. Node.js and Git
@@ -87,6 +88,16 @@ user `Path`.
 4. Run `adb devices`; the phone must be listed as `device`. If it is missing or `unauthorized`,
    install the phone maker's USB driver for Windows (Android's "Install OEM USB drivers" page)
    and accept the prompt again.
+
+**Copy the phone's database off the phone (Skeleton step 8, ADR-0007 step 6).** Development
+builds are debuggable, which `run-as` needs. The file holds synthetic test data only. In
+PowerShell, from any folder outside the repository:
+1. `cmd /c "adb exec-out run-as com.fitsphere.app cat files/SQLite/fitsphere.db > fitsphere-copy.db"`
+   (through `cmd`, because PowerShell 5.1 changes binary output when it redirects it).
+2. `[Text.Encoding]::ASCII.GetString((Get-Content .itsphere-copy.db -Encoding Byte -TotalCount 15))`
+   An unencrypted SQLite file starts with `SQLite format 3`; an encrypted one shows random
+   characters. A SQLite viewer, if one is installed, reports that the file is not a database.
+3. Delete the copy: `Remove-Item .itsphere-copy.db`.
 
 ### 4. Accounts and two-factor sign-in
 Turn on two-factor sign-in for every account below as soon as it exists (ADR-0002 step 1,
@@ -135,12 +146,24 @@ it when the Skeleton's database step starts.
    key (`sb_secret_…`) is for servers only and is not needed in the Skeleton. Supabase is
    retiring the legacy `anon` and `service_role` keys by the end of 2026, so neither is used.
 8. **Connection strings** (Connect button), saved in the password manager:
-   - **Session pooler** (port 5432): what the API uses on the PC. The shared pooler works over
-     IPv4.
-   - **Direct connection**: for migrations. It needs IPv6 unless the paid IPv4 add-on is bought;
-     if the PC's network has no IPv6, use the session pooler for migrations as well.
+   - **Session pooler** (port 5432): `DATABASE_URL`, used on the PC by the API, the migrations
+     and `db:growth`. The shared pooler works over IPv4.
+   - **Direct connection**: not used. The owner decided on 2026-10-28 that the migrations use
+     the session pooler too, so there is one database connection string.
    - The **transaction pooler** (port 6543) is for Cloud Run later (Q-087). It does not support
      prepared statements.
+
+**Done on `fitsphere-dev`, 2026-10-28 (owner)**, with the dashboard's menu paths:
+- Items 3 and 4: **Authentication → Sign In / Providers → Email**. Confirm email is on, the
+  link expiry is left at 1 hour and the minimum password length is 8. Phone sign-in is off and
+  Confirm phone is not turned on; `npm run check:signup` (ADR-0004 step 2) shows whether item 4
+  is still needed.
+- Item 5: **Project Settings → JWT Keys**. The current key is ECC (P-256). The legacy shared
+  secret (HS256) is under "Previously used keys", not revoked.
+- Item 6: **Authentication → URL Configuration**. `fitsphere://**` is added; the Site URL is
+  unchanged.
+- Item 2: Enable Data API is off and `check:data-api` passed; the menu path is not recorded yet.
+- Migration `0001_skeleton.sql` is applied, and `db:growth` has been run (ADR-0003).
 
 Sign-in emails in the Skeleton come from Supabase's built-in sender, which delivers only to
 members of the project's team, at most 2 emails an hour (`email_address_not_authorized` for
@@ -176,10 +199,22 @@ root:
 | `npm run lint` | ESLint over the whole repository |
 | `npm run typecheck` | TypeScript checks in each workspace; no files are written |
 | `npm test` | Unit tests in each workspace (Vitest) |
-| `npm run test:integration` | Database tests; they need `TEST_DATABASE_URL`. None exist yet (Skeleton step 4) |
+| `npm run test:integration` | Integration, authorization and database tests. They drop and recreate schema `app` in `TEST_DATABASE_URL` (from the environment, or else from `apps/api/.env`), and refuse a Supabase address |
 | `npm run dev -w @fitsphere/api` | Runs the API at `http://127.0.0.1:3000` and restarts it on changes; reads `apps/api/.env` if it exists |
+| `npm run migrate -w @fitsphere/api` | Applies new migration files from `apps/api/migrations/` to `DATABASE_URL`, each in one transaction; refuses a file that was edited after it was applied |
+| `npm run db:growth -w @fitsphere/api` | Writes 10,000 synthetic weigh-ins to `DATABASE_URL` inside one transaction, prints the PostgreSQL version and the growth, then rolls everything back (R-005) |
+| `npm run check:data-api -w @fitsphere/api` | Calls Supabase's auto-generated REST endpoint with the publishable key and prints PASS when it returns no data (ADR-0002 step 2) |
+| `npm run check:signup -w @fitsphere/api -- <address>` | Calls Supabase Auth's sign-up directly with the publishable key for an address that already has an account, and prints PASS when the answer does not say it is registered (ADR-0004 step 2). It may send one email |
 
-The API runs its TypeScript files directly on Node 24, with no build step. It listens only on
+`TEST_DATABASE_URL` must be a URL, `postgres://postgres:<password>@localhost:5432/fitsphere_test`.
+If the password holds `/`, `#`, `?`, `@`, `%` or a space, write those characters percent-encoded
+(for example `/` as `%2F`), or give the local `postgres` user a password without them. Create the
+database once with `createdb -U postgres fitsphere_test` (PostgreSQL's `bin` folder).
+
+The API runs its TypeScript files directly on Node 24, with no build step. From Skeleton step 5 it
+needs `DATABASE_URL`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `apps/api/.env`; without
+them it stops at start and names the missing ones. Every route except `/v1/health` needs a
+Supabase access token. It listens only on
 the PC's own loopback address, so nothing else on the network can reach it; how the phone reaches
 it is step 8. Check: `http://127.0.0.1:3000/v1/health` in a browser shows
 `{"status":"ok"}`. Use `127.0.0.1` rather than `localhost`: on this PC `localhost` resolves to the
@@ -203,9 +238,26 @@ back. Stop the API with Ctrl+C in its terminal.
    testing, with test data only, and close it when done. Its address is never committed: it
    goes only in `apps/mobile/.env`, which git ignores, and CI fails if a Quick Tunnel address is
    committed. The tunnel is Cloudflare's Quick Tunnel: no account, and a new address each run.
-   *Not yet verified on the phone.*
+   Verified on the owner's phone on 2026-10-28 (Skeleton step 2: "API: ok").
 
-   **Start**, in three terminals from the repository root:
+   **One command** (D-22 answer 5; *not yet run on the owner's PC*): from the repository root,
+   `npm run dev:phone`. It needs `apps/api/.env` and `apps/mobile/.env` filled in (step 6),
+   `cloudflared` on the `PATH`, and the Expo sign-in from step 2.
+   - It starts the API on `127.0.0.1:3000`, then the tunnel, and waits until the tunnel is
+     connected.
+   - It writes the tunnel's address into `apps/mobile/.env` as `EXPO_PUBLIC_API_URL`, keeping
+     every other line, and checks `/v1/health` through the tunnel.
+   - Then it starts the development server in the same terminal, with its QR code.
+   - The API's and the tunnel's output go to `.dev-phone/api.log` and `.dev-phone/tunnel.log`,
+     which git ignores. The script never prints the address.
+   - **Stop:** Ctrl+C once. It stops all three and empties `EXPO_PUBLIC_API_URL`. It does the same
+     when any of the three stops by itself, saying which one and where its log is.
+   - It refuses to start if an API already answers on port 3000, or if `apps/mobile/.env` is
+     missing.
+   - If the window is closed instead, the address can stay in `.env`. The next run replaces it;
+     otherwise, empty it by hand as in "Stop" below.
+
+   **By hand** (the fallback), in three terminals from the repository root:
    1. The API: `npm run dev -w @fitsphere/api`. It listens on `127.0.0.1:3000` only.
    2. The tunnel: `cloudflared tunnel --url http://127.0.0.1:3000`. It prints an address of the
       form `https://<random-words>.trycloudflare.com`.
@@ -232,7 +284,9 @@ back. Stop the API with Ctrl+C in its terminal.
 6. **"USB + adb" checks** (Skeleton plan, decision 8): connect the phone as in step 3, run
    `adb reverse tcp:8081 tcp:8081`, and from `apps/mobile` start the server with
    `npx expo start --dev-client --localhost`. The app then loads its code over USB, which keeps
-   working in airplane mode.
+   working in airplane mode. Then run `adb reverse --list`: it must show only `tcp:8081`. If
+   `tcp:3000` is listed, run `adb reverse --remove tcp:3000`, so the API cannot be reached over
+   USB while the phone is offline. Afterwards, `adb reverse --remove-all`.
 7. **Plain HTTP:** a development build is Gradle's debug build. The debug manifest that Expo
    generates allows plain HTTP; release builds do not. The tunnel's address is HTTPS, so the
    route to the API does not rely on this.
@@ -269,15 +323,14 @@ Names only. Values live in the password manager and in `.env` files that are nev
 
 | Name | Used by | What it holds | Secret? |
 |---|---|---|---|
-| `DATABASE_URL` | API | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later | **Yes** (contains the database password) |
-| `MIGRATION_DATABASE_URL` | API migrations | Direct connection, or the session pooler without IPv6 | **Yes** |
+| `DATABASE_URL` | API, `migrate` and `db:growth` | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later. The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
 | `SUPABASE_URL` | API | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
-| `PORT` | API | Port the API listens on, on the PC | No |
+| `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
 | `LOG_LEVEL` | API | `info` by default | No |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
-| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). Never committed | No (built into the app's code served by the development server) |
+| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it. Never committed | No (built into the app's code served by the development server) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
 Files with credentials, never committed. Both are for push, which is post-MVP (D-20, backlog

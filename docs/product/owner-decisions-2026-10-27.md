@@ -570,6 +570,63 @@
   ADR-0002, ADR-0004 and ADR-0007 (a note on their validation steps; ADR-0004's Q-082 row);
   product brief; user journeys; `CLAUDE.md`; `README.md`; docs index.
 
+## D-21 Skeleton steps run back to back (amends D-18 answer 14 and the Skeleton plan's workflow)
+- Status: **Accepted** (owner instruction in chat, 2026-10-28, after step 2 was merged).
+- Answers:
+  1. **Steps 3 to 10 run back to back.** Each step still has its own branch and pull request.
+     Claude Code does not wait for the owner between steps that need nothing from the owner, and
+     opens each pull request once its checks pass.
+  2. **Work stops only when the owner is needed:** something in Supabase or the owner's accounts,
+     a phone check, a cloud build, or a decision that touches privacy, security or a D- decision.
+     Questions are batched. Each stop lists the pull requests to merge, the phone checks with
+     exact steps, and what is needed from the owner.
+  3. **Open questions follow D-18 and D-20:** the simplest MVP default, recorded, with no
+     edge-case questions.
+  4. **The owner starts and stops the API, the tunnel and Expo;** Claude Code does not.
+- Unchanged: CI must pass before merge, the owner merges, and every phone check is run and
+  recorded before its step counts as done.
+- Doc changes: `docs/plans/skeleton-slice.md` (decision 2, progress); `CLAUDE.md` current phase.
+
+## D-22 Skeleton closed with deferred checks; security clean-up before release (amends D-21)
+- Status: **Accepted** (owner instruction in chat, 2026-10-29, after the phone checks that day).
+- Answers:
+  1. **Security clean-up, deferred and release-blocking** (backlog RB-01 to RB-03; `CLAUDE.md`
+     "Before real users"): delete the GitHub copy of the branch `local/test-no-email`, which
+     holds a test password; delete the Supabase test user that uses that password; make sure
+     Supabase **Confirm email** is on. Not done now.
+  2. **The pending Skeleton phone checks move to before the release** (backlog SC-01 to SC-13,
+     each linked to its ADR and step) and are marked pending in the ADRs and the Skeleton plan.
+     Accepted risk **R-006**: the Skeleton pull requests are merged with these checks pending.
+  3. **The Los Angeles time-zone check is dropped for the MVP**, which serves India only (D-09):
+     Skeleton step 3's phone check and step 10's check 5 (ADR-0007 step 5). Post-MVP, backlog
+     B-25.
+  4. **Merge now.** Claude Code merges pull requests #3 to #10 in step order, each only with
+     green CI and without forcing, then deletes the merged branches. The owner's local branch
+     `local/test-no-email` stays untouched.
+  5. **`npm run dev:phone`**, one command that starts the API, the tunnel and Expo and writes
+     the tunnel's address into `apps/mobile/.env`, is built in the next slice.
+- Amends D-21: phone checks still pending no longer stop a Skeleton step from counting as done,
+  and Claude Code merges the Skeleton pull requests at the owner's instruction (D-21: the owner
+  merges). CI must still pass before every merge.
+- Doc changes: `docs/product/backlog.md`; `docs/architecture/constraints-and-assumptions.md`
+  (R-006); "Validation results" in ADR-0001, ADR-0002, ADR-0004 and ADR-0007;
+  `docs/plans/skeleton-slice.md` (done with deferred checks); `CLAUDE.md` (current phase,
+  "Before real users"); `docs/README.md`.
+
+## D-23 Home and daily tracking slice plan approved
+- Status: **Accepted** (owner approval in chat, 2026-10-29).
+- Answers:
+  1. **Slice 2 plan approved:** [`docs/plans/home-daily-tracking-slice.md`](../plans/home-daily-tracking-slice.md),
+     with its scope, its MVP defaults chosen under D-18 answer 3, and its seven steps.
+  2. **Workflow as D-21:** steps run back to back, with one branch and one pull request each, CI
+     green before merge, and the owner merging. The phone checks are batched at the end of the
+     slice.
+  3. **`npm run dev:phone`** (D-22 answer 5) is step 1.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: `docs/plans/home-daily-tracking-slice.md`; `CLAUDE.md` current phase;
+  `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
+  that builds each one.
+
 ---
 
 ## Proposed replacement wording for the two invariants

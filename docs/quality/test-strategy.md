@@ -59,7 +59,12 @@ Also:
 - no route lets anyone write another user's weigh-ins;
 - a second user's sync never changes or returns the first user's weigh-ins, even with the same
   day and `changeId`;
-- logging a weight without the Personal Training User role is rejected (`ROLE_NOT_ENABLED`);
+- the same for steps, sleep, measurements and targets, even with the same day, kind and
+  `changeId` (Home and daily tracking slice, D-23);
+- logging a weight, steps, sleep or measurements, or setting a target, without the Personal
+  Training User role is rejected (`ROLE_NOT_ENABLED`);
+- a `target.set` change that names who set the target is refused; the server records the caller
+  (invariant #2 groundwork);
 - the route-listing test fails if a route has no access rule.
 
 **Post-MVP (D-20; backlog B-19 to B-21):** added with links, these cases from ADR-0002 step 4
@@ -78,15 +83,25 @@ coach-set target: refused (invariant #2).
 - Out-of-range and malformed values are rejected per change, without the value in the error.
 - The pull returns only the user's own weigh-ins from the last 90 IST days, pages at 500 with
   `hasMore`, and returns nothing new on a repeat with the latest cursor.
+- Steps, sleep, measurements and targets (D-23): each type is accepted and a second value
+  replaces the first; out-of-range values and a missing waist value are rejected; the 90-day
+  window applies to day data but not to targets; one cursor pages across all five kinds in the
+  order they changed.
 - On the phone (unit tests): a failed or offline sync keeps the outbox; a rejected change stays
   until the user fixes or discards it; synced entries older than 90 days are removed from the
   phone, pending and rejected ones never.
+- On the phone, for steps, sleep, measurements and targets (D-23): the same outbox life cycle per
+  kind; a pull never overwrites a waiting change of the same kind and key but does update other
+  kinds for that day; targets are never pruned; the update from local schema version 1 keeps the
+  weigh-ins and the outbox and clears the cursor.
 
 ### Dates and units
 - 18:29:59Z is still the same IST day; 18:30:00Z is the next IST day (REQ-DATE-004).
 - The shared date tests run twice in CI, with the process time zone set to `Asia/Kolkata` and to
   `America/Los_Angeles`, to prove nothing depends on the machine's time zone.
 - Kilograms entered with one decimal convert to grams and back to the same displayed value.
+- Hours of sleep with one decimal convert to minutes and back unchanged; centimetres and inches
+  with one decimal convert to millimetres and back unchanged (D-23).
 
 ### Account and sign-in (REQ-ACC-010, D-18)
 - `POST /v1/me` without `ageConfirmed: true` creates nothing and returns
@@ -109,7 +124,8 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
-and fails if it contains the weight value, the token, the email address or a query value.
+and fails if it contains the weight value, a measurement value or its notes, a target value, the
+token, the email address or a query value.
 
 ### Device checks for the Skeleton
 Recorded, with the date, under "Validation results" in the ADR named:
@@ -137,6 +153,12 @@ that builds the feature.
 Post-MVP (D-20): the push check (ADR-0001 step 7, backlog B-23), the iOS compile check
 (ADR-0001 step 5, B-24), invitations, the push token removed at log out, the link cases and
 coach-phone removals (ADR-0002 step 4, ADR-0004 steps 4–6, ADR-0007 steps 2–3; B-18 to B-22).
+
+### Device checks for the Home and daily tracking slice (D-23)
+Batched at the end of the slice, on the existing development build, with `npm run dev:phone`. The
+exact steps are in the slice plan, "Owner's checks at the end of the slice": `dev:phone` itself,
+navigation and the calendar, targets, steps and sleep, measurements, offline logging of the new
+kinds (ADR-0007 step 1, extended), and weight still working.
 
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's
@@ -176,9 +198,11 @@ above do not depend on the tools.
 | Unit, integration, authorization and database tests | Vitest | `packages/shared`, `apps/api` |
 | API requests in tests | Fastify's in-process request helper (`inject`); no network | `apps/api` |
 | App unit and component tests | Jest with the `jest-expo` preset, and React Native Testing Library | `apps/mobile`, from Skeleton step 2 |
+| The phone database in app tests | Node's built-in `node:sqlite`, in memory, behind the expo-sqlite methods the app uses, so the app's SQL runs unchanged; Supabase and the API are fakes | `apps/mobile/src/testing/`, from Skeleton step 8 |
 | Lint and types | ESLint with typescript-eslint; for the app also `eslint-plugin-react-hooks` and `eslint-plugin-expo`. TypeScript `~6.0` in strict mode, the version Expo SDK 58 uses | Whole repository |
 | Test database | PostgreSQL 17: installed natively on the PC (D-18 answer 14); a service container in CI | `TEST_DATABASE_URL` |
-| Device checks | An EAS development build (`development` profile) on the owner's phone; live code through Expo's tunnel; the API through a Cloudflare Quick Tunnel, only while testing (D-19 answer 6); `adb` only for checks marked "USB + adb" (D-19) | `apps/mobile/eas.json` |
+| Device checks | An EAS development build (`development` profile) on the owner's phone; live code through Expo's tunnel; the API through a Cloudflare Quick Tunnel, only while testing (D-19 answer 6), started with Expo by `npm run dev:phone` (D-22 answer 5); `adb` only for checks marked "USB + adb" (D-19) | `apps/mobile/eas.json`, `apps/api/scripts/dev-phone.ts` |
+| `dev:phone` helpers: reading the tunnel's address, rewriting `apps/mobile/.env`, the health wait | Vitest; sample addresses are built at run time, so CI's check for committed tunnel addresses stays clean | `apps/api/scripts/` |
 | CI | GitHub Actions: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | — |
 
 How to run each check: [runbook](../operations/runbook.md#7-install-the-code-and-run-the-checks).

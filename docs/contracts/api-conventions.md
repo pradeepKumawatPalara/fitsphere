@@ -2,7 +2,9 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-20: self-access only in the MVP; Resend with the Release slice)
+- Last updated: 2026-10-29 (Home and daily tracking slice, step 2: steps, sleep, measurements and
+  targets through sync; D-23). 2026-10-28 (D-20: self-access only in the MVP; Resend with the
+  Release slice)
 - Builds on: ADR-0002 (the Node API is the only path to the data), ADR-0004 (Supabase Auth, one
   access module), ADR-0007 (one sync endpoint); [`data-model.md`](data-model.md);
   [`error-model.md`](error-model.md)
@@ -29,8 +31,11 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
   | Day the user chose | `YYYY-MM-DD`, an IST day (invariant #5) | `"2026-10-27"` |
   | Instant | ISO 8601 in UTC with `Z` | `"2026-10-27T02:45:10.123Z"` |
   | Body weight | Whole grams, as an integer (invariant #6) | `70250` |
+  | Sleep | Whole minutes, as an integer (invariant #6; D-23) | `450` |
+  | Body measurement | Whole millimetres, as an integer (invariant #6; D-23) | `812` |
 
-  The API never accepts or returns kilograms or pounds; the app converts for display and input.
+  The API never accepts or returns kilograms, pounds, hours, centimetres or inches; the app
+  converts for display and input.
 - **"Today":** the API works out today's IST date from its own UTC clock with a fixed +05:30
   offset (Asia/Kolkata has no daylight saving), using the shared date functions. It never uses
   the server's local time zone (invariant #5, REQ-DATE-004).
@@ -84,14 +89,14 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
   `Authorization`), tokens, email addresses, health values, or error details that contain
   values. The logger removes these fields by configuration, and a test checks the output.
 
-## Endpoints in the Skeleton
+## Endpoints
 
 | Method and path | Purpose | Access rule | Requirements |
 |---|---|---|---|
 | `GET /v1/health` | The API is running | None (no token) | — |
 | `GET /v1/me` | The signed-in user's account | Signed in | REQ-ACC-010, REQ-ROLE-001 |
 | `POST /v1/me` | Set up the FitSphere account after the first sign-in | Signed in, account not yet set up | REQ-ACC-010, D-18 |
-| `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write weigh-ins | REQ-NFR-004, REQ-HOME-006, ADR-0007 |
+| `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 
 ### `GET /v1/health`
@@ -144,9 +149,23 @@ Request:
 ```
 - `cursor`: the value from the previous sync, or `null` on the phone's first sync.
 - `changes`: 0 to 100 changes, applied in the order sent. `changeId` is a UUID made on the phone.
-- `weighIn.set` sets the user's weight for that IST day; a value already stored for the day is
-  replaced (Q-030 MVP default). Each change is checked on its own: a valid day not later than
-  today in IST, and a whole number of grams from 20,000 to 300,000 (Q-028 MVP default).
+- Each change is checked on its own. Every type needs the Personal Training User role
+  (`ROLE_NOT_ENABLED` otherwise), and its `data` is strict: an unknown or missing field is
+  `VALIDATION_FAILED`. The change types:
+
+  | `type` | `data` | Rules |
+  |---|---|---|
+  | `weighIn.set` | `day`, `weightGrams`, `recordedAt` | Whole grams, 20,000 to 300,000 (Q-028) |
+  | `steps.set` | `day`, `steps`, `recordedAt` | Whole steps, 0 to 100,000 (Q-028) |
+  | `sleep.set` | `day`, `sleepMinutes`, `recordedAt` | Whole minutes, 0 to 1,440 (Q-028) |
+  | `measurements.set` | `day`, `upperWaistMm`, `lowerWaistMm`, `chestMm`, `hipsMm`, `armMm`, `thighMm`, `notes`, `recordedAt` | Both waist values required; the others `null` when not entered. Whole millimetres, 100 to 2,500 (Q-028). `notes` 1 to 500 characters, or `null` |
+  | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
+
+- The four types with a `day` set the user's value for that IST day. The day must be a valid day
+  not later than today in IST (`DAY_IN_FUTURE` otherwise), and a value already stored for the day
+  is replaced (Q-030 MVP default); for measurements the whole entry is replaced.
+- `target.set` sets the user's current target of that kind, replacing the old one (Q-014 MVP
+  default, D-23).
 
 Response `200`:
 ```json
@@ -157,6 +176,19 @@ Response `200`:
   "pull": {
     "weighIns": [
       { "day": "2026-10-27", "weightGrams": 70250, "recordedAt": "2026-10-27T02:45:10.123Z", "updatedAt": "2026-10-27T02:45:11.004Z" }
+    ],
+    "steps": [
+      { "day": "2026-10-27", "steps": 8432, "recordedAt": "…", "updatedAt": "…" }
+    ],
+    "sleep": [
+      { "day": "2026-10-27", "sleepMinutes": 450, "recordedAt": "…", "updatedAt": "…" }
+    ],
+    "measurements": [
+      { "day": "2026-10-27", "upperWaistMm": 812, "lowerWaistMm": 845, "chestMm": null, "hipsMm": null,
+        "armMm": null, "thighMm": null, "notes": null, "recordedAt": "…", "updatedAt": "…" }
+    ],
+    "targets": [
+      { "kind": "calories", "value": 2000, "setByUserId": "0f8e5a1c-…", "setAt": "…", "updatedAt": "…" }
     ],
     "removals": []
   },
@@ -171,13 +203,19 @@ Response `200`:
   applied again (`applied_changes`, data model).
 - **Who wins:** for the same day, the change the server receives last wins; `recordedAt` does not
   decide (ADR-0007 rule 2).
-- **Pull:** the user's own weigh-ins for the last 90 IST days (ADR-0007 rule 1). With
-  `cursor: null`, all of them; otherwise only those changed since the cursor. At most 500 per
-  response; when `hasMore` is `true`, the phone calls again with the new cursor and no changes.
+- **Pull:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST days, and
+  their current targets (ADR-0007 rule 1). With `cursor: null`, all of them; otherwise only those
+  changed since the cursor. All five share one change sequence, so one cursor covers them, and
+  they are returned in the order they changed. At most 500 entries per response, across the five
+  lists; when `hasMore` is `true`, the phone calls again with the new cursor and no changes.
+- `setByUserId` is the FitSphere ID of whoever set the target. In the MVP it is always the user
+  (D-20), and the app shows "Set by you". It is `null` only once that person's account is deleted
+  (backlog E-02).
 - **Re-checked every time:** every change is authorized when it arrives, never when it was
   queued (invariant #1, D-10).
-- `removals` is always empty in the Skeleton. Its contents are defined with the first slice that
-  puts other people's data on a phone (ADR-0007 rule 3).
+- `removals` is always empty in the MVP. Its contents are defined with the first slice that puts
+  other people's data on a phone (ADR-0007 rule 3; D-20).
+- Adding these lists did not change the version: a phone reads the lists it knows.
 - Errors for the whole request: [error model](error-model.md#whole-request-errors). After
   `500` or `503`, or with no connection, the phone keeps the outbox and tries again on the next
   save, when the app starts or comes back to the foreground, and when the connection returns.

@@ -1,0 +1,355 @@
+// Schemas shared by the app and the API (api-conventions, "Strict input"; error-model).
+// Request schemas are strict: unknown fields are refused. Response schemas accept added fields,
+// because adding a field does not change the API version.
+import { z } from 'zod';
+import { addDays, isIstDay, type IstDay } from './dates.ts';
+import {
+  MEASUREMENT_MM_MAX,
+  MEASUREMENT_MM_MIN,
+  SLEEP_MINUTES_MAX,
+  SLEEP_MINUTES_MIN,
+  STEPS_MAX,
+  STEPS_MIN,
+  WEIGHT_GRAMS_MAX,
+  WEIGHT_GRAMS_MIN,
+} from './units.ts';
+
+// --- Error codes (error-model, "Codes") ---
+
+export const REQUEST_ERROR_CODES = [
+  'VALIDATION_FAILED',
+  'AGE_CONFIRMATION_REQUIRED',
+  'AUTH_REQUIRED',
+  'ACCOUNT_SETUP_REQUIRED',
+  'EMAIL_NOT_VERIFIED',
+  'ROLE_NOT_ENABLED',
+  'NOT_FOUND',
+  'PAYLOAD_TOO_LARGE',
+  'RATE_LIMITED',
+  'INTERNAL_ERROR',
+  'SERVICE_UNAVAILABLE',
+] as const;
+export type RequestErrorCode = (typeof REQUEST_ERROR_CODES)[number];
+
+export const CHANGE_ERROR_CODES = [
+  'VALIDATION_FAILED',
+  'DAY_IN_FUTURE',
+  'ROLE_NOT_ENABLED',
+  'NOT_ALLOWED',
+  'UNKNOWN_CHANGE_TYPE',
+] as const;
+export type ChangeErrorCode = (typeof CHANGE_ERROR_CODES)[number];
+
+export const VALIDATION_ISSUES = [
+  'required',
+  'invalid_format',
+  'out_of_range',
+  'unknown_field',
+  'too_many',
+] as const;
+export type ValidationIssue = (typeof VALIDATION_ISSUES)[number];
+
+// --- Field types (api-conventions, "Types") ---
+
+export const istDaySchema = z.string().refine(isIstDay);
+/** ISO 8601 in UTC with `Z`. */
+export const instantSchema = z.iso.datetime();
+export const idSchema = z.uuid();
+export const weightGramsSchema = z.int().min(WEIGHT_GRAMS_MIN).max(WEIGHT_GRAMS_MAX);
+
+// --- Errors (error-model, "Error shape") ---
+
+export const validationDetailSchema = z.strictObject({
+  field: z.string(),
+  issue: z.enum(VALIDATION_ISSUES),
+});
+export type ValidationDetail = z.infer<typeof validationDetailSchema>;
+
+export const errorBodySchema = z.object({
+  error: z.object({
+    code: z.enum(REQUEST_ERROR_CODES),
+    message: z.string(),
+    retryable: z.boolean(),
+    requestId: z.string(),
+    details: z.array(validationDetailSchema).nullable(),
+  }),
+});
+export type ErrorBody = z.infer<typeof errorBodySchema>;
+
+// --- Account: GET and POST /v1/me ---
+
+/** Version of the "I am 18 or older" text the app shows (MVP default). */
+export const AGE_CONFIRMATION_TEXT_VERSION = '2026-10-27';
+
+export const meSetupRequestSchema = z.strictObject({
+  ageConfirmed: z.boolean(),
+  ageConfirmationTextVersion: z.string().min(1).max(32),
+});
+export type MeSetupRequest = z.infer<typeof meSetupRequestSchema>;
+
+export const ROLES = ['personal', 'coach', 'head_coach'] as const;
+export type Role = (typeof ROLES)[number];
+
+export const meResponseSchema = z.object({
+  user: z.object({ id: idSchema, email: z.string(), createdAt: instantSchema }),
+  roles: z.array(z.enum(ROLES)),
+});
+export type MeResponse = z.infer<typeof meResponseSchema>;
+
+// --- Sync: POST /v1/sync (ADR-0007) ---
+
+export const MAX_SYNC_CHANGES = 100;
+export const SYNC_PAGE_SIZE = 500;
+/** The phone keeps, and the pull returns, the last 90 IST days of day data (ADR-0007 rule 1).
+ * Targets are not day data: the pull always returns the current ones. */
+export const SYNC_WINDOW_DAYS = 90;
+
+/** The first IST day of the window that ends today: 90 days including today. */
+export function syncWindowStart(today: IstDay): IstDay {
+  return addDays(today, -(SYNC_WINDOW_DAYS - 1));
+}
+
+export const WEIGH_IN_SET = 'weighIn.set';
+
+export const weighInSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  weightGrams: weightGramsSchema,
+  recordedAt: instantSchema,
+});
+export type WeighInSetData = z.infer<typeof weighInSetDataSchema>;
+
+// Steps, sleep and measurements work like weigh-ins: one value per user per IST day, and a new
+// value replaces the day's value (Q-030).
+
+export const STEPS_SET = 'steps.set';
+
+export const stepsSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  steps: z.int().min(STEPS_MIN).max(STEPS_MAX),
+  recordedAt: instantSchema,
+});
+export type StepsSetData = z.infer<typeof stepsSetDataSchema>;
+
+export const SLEEP_SET = 'sleep.set';
+
+export const sleepSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  sleepMinutes: z.int().min(SLEEP_MINUTES_MIN).max(SLEEP_MINUTES_MAX),
+  recordedAt: instantSchema,
+});
+export type SleepSetData = z.infer<typeof sleepSetDataSchema>;
+
+export const MEASUREMENTS_SET = 'measurements.set';
+/** Notes on a measurements entry (MVP default, D-23). */
+export const MEASUREMENT_NOTES_MAX = 500;
+
+const measurementMmSchema = z.int().min(MEASUREMENT_MM_MIN).max(MEASUREMENT_MM_MAX);
+
+/** Upper and lower waist are required (REQ-MEAS-004); the others are optional (REQ-MEAS-005). */
+export const measurementsSetDataSchema = z.strictObject({
+  day: istDaySchema,
+  upperWaistMm: measurementMmSchema,
+  lowerWaistMm: measurementMmSchema,
+  chestMm: measurementMmSchema.nullable(),
+  hipsMm: measurementMmSchema.nullable(),
+  armMm: measurementMmSchema.nullable(),
+  thighMm: measurementMmSchema.nullable(),
+  notes: z.string().min(1).max(MEASUREMENT_NOTES_MAX).nullable(),
+  recordedAt: instantSchema,
+});
+export type MeasurementsSetData = z.infer<typeof measurementsSetDataSchema>;
+
+// Targets (REQ-ROLE-007): the user's own, one current value per kind (Q-014 MVP default, D-23).
+// Who set a target comes from the sign-in token, never from the change, so it is not a field here.
+
+export const TARGET_SET = 'target.set';
+export const TARGET_KINDS = ['calories', 'protein', 'steps', 'weekly_workouts', 'body_weight'] as const;
+export type TargetKind = (typeof TARGET_KINDS)[number];
+
+/** Whole kcal, whole grams of protein, steps, workouts a week, and body weight in grams (D-23). */
+export const TARGET_RANGES: Record<TargetKind, { min: number; max: number }> = {
+  calories: { min: 500, max: 10_000 },
+  protein: { min: 10, max: 500 },
+  steps: { min: 1, max: STEPS_MAX },
+  weekly_workouts: { min: 1, max: 14 },
+  body_weight: { min: WEIGHT_GRAMS_MIN, max: WEIGHT_GRAMS_MAX },
+};
+
+function targetSchemaFor<K extends TargetKind>(kind: K) {
+  return z.strictObject({
+    kind: z.literal(kind),
+    value: z.int().min(TARGET_RANGES[kind].min).max(TARGET_RANGES[kind].max),
+    setAt: instantSchema,
+  });
+}
+
+export const targetSetDataSchema = z.discriminatedUnion('kind', [
+  targetSchemaFor('calories'),
+  targetSchemaFor('protein'),
+  targetSchemaFor('steps'),
+  targetSchemaFor('weekly_workouts'),
+  targetSchemaFor('body_weight'),
+]);
+export type TargetSetData = z.infer<typeof targetSetDataSchema>;
+
+/** The envelope of one change. Its `data` is checked per change type, so one bad change does
+ * not fail the others. */
+export const syncChangeSchema = z.strictObject({
+  changeId: idSchema,
+  type: z.string().min(1).max(64),
+  data: z.unknown(),
+});
+export type SyncChange = z.infer<typeof syncChangeSchema>;
+
+export const syncRequestSchema = z.strictObject({
+  cursor: z.string().min(1).max(200).nullable(),
+  changes: z.array(syncChangeSchema).max(MAX_SYNC_CHANGES),
+});
+export type SyncRequest = z.infer<typeof syncRequestSchema>;
+
+export const changeErrorSchema = z.object({
+  code: z.enum(CHANGE_ERROR_CODES),
+  message: z.string(),
+  details: z.array(validationDetailSchema).nullable(),
+});
+export type ChangeError = z.infer<typeof changeErrorSchema>;
+
+export const syncResultSchema = z.object({
+  changeId: idSchema,
+  status: z.enum(['accepted', 'rejected']),
+  error: changeErrorSchema.nullable(),
+});
+export type SyncResult = z.infer<typeof syncResultSchema>;
+
+export const weighInSchema = z.object({
+  day: istDaySchema,
+  weightGrams: z.int(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type WeighIn = z.infer<typeof weighInSchema>;
+
+export const stepCountSchema = z.object({
+  day: istDaySchema,
+  steps: z.int(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type StepCount = z.infer<typeof stepCountSchema>;
+
+export const sleepLogSchema = z.object({
+  day: istDaySchema,
+  sleepMinutes: z.int(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type SleepLog = z.infer<typeof sleepLogSchema>;
+
+export const measurementSchema = z.object({
+  day: istDaySchema,
+  upperWaistMm: z.int(),
+  lowerWaistMm: z.int(),
+  chestMm: z.int().nullable(),
+  hipsMm: z.int().nullable(),
+  armMm: z.int().nullable(),
+  thighMm: z.int().nullable(),
+  notes: z.string().nullable(),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Measurement = z.infer<typeof measurementSchema>;
+
+export const targetSchema = z.object({
+  kind: z.enum(TARGET_KINDS),
+  value: z.int(),
+  /** Null only once the person who set it has deleted their account (backlog E-02). */
+  setByUserId: idSchema.nullable(),
+  setAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Target = z.infer<typeof targetSchema>;
+
+export const syncResponseSchema = z.object({
+  results: z.array(syncResultSchema),
+  pull: z.object({
+    weighIns: z.array(weighInSchema),
+    steps: z.array(stepCountSchema),
+    sleep: z.array(sleepLogSchema),
+    measurements: z.array(measurementSchema),
+    targets: z.array(targetSchema),
+    // Always empty in the MVP (ADR-0007 rule 3; D-20).
+    removals: z.array(z.never()),
+  }),
+  cursor: z.string(),
+  hasMore: z.boolean(),
+});
+export type SyncResponse = z.infer<typeof syncResponseSchema>;
+
+// --- Weigh-in history: GET /v1/users/{userId}/weigh-ins ---
+
+export const DEFAULT_LIST_LIMIT = 100;
+export const MAX_LIST_LIMIT = 500;
+
+/** Query values arrive as text; `limit` is a whole number from 1 to 500. */
+export const weighInsQuerySchema = z.strictObject({
+  from: istDaySchema,
+  to: istDaySchema,
+  limit: z
+    .string()
+    .regex(/^\d{1,3}$/)
+    .transform(Number)
+    .pipe(z.int().min(1).max(MAX_LIST_LIMIT))
+    .optional(),
+  cursor: z.string().min(1).max(200).optional(),
+});
+export type WeighInsQuery = z.input<typeof weighInsQuerySchema>;
+
+export const weighInsPageSchema = z.object({
+  items: z.array(weighInSchema),
+  nextCursor: z.string().nullable(),
+});
+export type WeighInsPage = z.infer<typeof weighInsPageSchema>;
+
+// --- Validation details ---
+
+/**
+ * Turns a schema failure into error-model details: the field path and an issue name, never the
+ * submitted value (invariant #7).
+ */
+export function validationDetails(error: z.ZodError, input: unknown): ValidationDetail[] {
+  return error.issues.flatMap((issue): ValidationDetail[] => {
+    const field = formatPath(issue.path);
+    switch (issue.code) {
+      case 'unrecognized_keys':
+        return issue.keys.map((key) => ({
+          field: formatPath([...issue.path, key]),
+          issue: 'unknown_field',
+        }));
+      case 'invalid_type':
+        return [{ field, issue: isMissing(input, issue.path) ? 'required' : 'invalid_format' }];
+      case 'too_big':
+        return [{ field, issue: issue.origin === 'array' ? 'too_many' : 'out_of_range' }];
+      case 'too_small':
+        return [{ field, issue: 'out_of_range' }];
+      default:
+        return [{ field, issue: 'invalid_format' }];
+    }
+  });
+}
+
+function formatPath(path: readonly PropertyKey[]): string {
+  return path
+    .map((key, index) =>
+      typeof key === 'number' ? `[${key}]` : `${index === 0 ? '' : '.'}${String(key)}`,
+    )
+    .join('');
+}
+
+function isMissing(input: unknown, path: readonly PropertyKey[]): boolean {
+  let current = input;
+  for (const key of path) {
+    if (typeof current !== 'object' || current === null || !(key in current)) return true;
+    current = (current as Record<PropertyKey, unknown>)[key];
+  }
+  return current === undefined || current === null;
+}

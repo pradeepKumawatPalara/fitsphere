@@ -2,12 +2,46 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-20: Coach and Head Coach are post-MVP)
+- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: E-09 to E-12). Earlier the same
+  day (D-22): release-blocking tasks, deferred Skeleton checks, B-25
 
 Work that is **not** in the MVP (D-18, D-20, [`mvp-scope.md`](mvp-scope.md)). Nothing here is built
-until the owner moves it into a release. MVP defaults chosen under D-18 are listed in
+until the owner moves it into a release. **Exception:** the first two sections list work that must
+be done **before the MVP release** (D-22). MVP defaults chosen under D-18 are listed in
 [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#mvp-defaults-d-18),
 not here. D- numbers refer to [`owner-decisions-2026-10-27.md`](owner-decisions-2026-10-27.md).
+
+## Release-blocking tasks (D-22)
+Security clean-up after the Skeleton phone checks. Not done yet: do them only when the owner says
+so, and before any real user (`CLAUDE.md`, "Before real users").
+
+| ID | Task | Why |
+|---|---|---|
+| RB-01 | Delete the GitHub copy of the branch `local/test-no-email` (`git push origin --delete local/test-no-email`). The owner's local branch is a separate decision | It holds a test password (`apps/mobile/src/auth/temporary-password.ts` on that branch) |
+| RB-02 | Delete the Supabase test user that uses that password on `fitsphere-dev`, and its FitSphere account row (E-07) | Its password is in the branch of RB-01 |
+| RB-03 | Make sure **Confirm email** is on: Authentication → Sign In / Providers → Email | An unverified account must not sign in (Q-080); the test branch needed it off |
+
+## Skeleton checks to run before release (D-22)
+Phone checks of the Skeleton slice still pending when its pull requests were merged on
+2026-10-29 (accepted risk R-006). Each must pass, and be recorded in its ADR and the Skeleton plan,
+before the MVP release. Run them on the merged code, not on `local/test-no-email`, with Confirm
+email on (RB-03). The exact steps are in the Skeleton plan.
+
+| ID | Check | ADR | Skeleton step |
+|---|---|---|---|
+| SC-01 | Replace a day's weight; pick a past day: the banner shows and Back to today returns; future days cannot be picked | — (REQ-HOME-006, REQ-DATE-001, REQ-DATE-003) | 10, checks 1–2 |
+| SC-02 | Scroll the 200-row history list; partial until a low-end phone is available | ADR-0001 check 6 | 10, check 7 |
+| SC-03 | With the phone's date a day ahead, that day's weight is rejected (`DAY_IN_FUTURE`) and stays, even after a restart, until discarded | ADR-0007 step 4 | 10, check 4 |
+| SC-04 | In airplane mode, the 1,000-row check passes; record its times | ADR-0001 check 4 | 8 |
+| SC-05 | Log out with a pending entry: the warning appears, and Stay signed in keeps you signed in | — (REQ-ACC-008) | 10, check 6 |
+| SC-06 | Offline, log a weight, force-stop and reopen the app (USB + adb): still pending. Back online: it syncs. Log out and sign in: the server restores exactly one value per day, including the offline entries of 2026-10-29 | ADR-0007 step 1 | 10, check 3 |
+| SC-07 | The phone's database file, copied off over USB + adb, is unreadable | ADR-0007 step 6 | 8 |
+| SC-08 | The start-up check shows the SQLCipher version. The app opened its database on 2026-10-29, but the version was not read | ADR-0007 step 6 (rule 5) | 8 |
+| SC-09 | Sign up with your own address: the neutral text; sign-in refused before verifying; the email link opens the app; sign in, account setup, Home shows the email; log out | ADR-0004 step 3, ADR-0002 step 2 | 6, checks 1–5 and 8 |
+| SC-10 | A repeat sign-up, and a sign-up with an address outside the team, show the same text | ADR-0004 step 2 | 6, check 6 |
+| SC-11 | `npm run check:signup -w @fitsphere/api -- <registered address>` prints PASS | ADR-0004 step 2 | 6, check 6; 10 |
+| SC-12 | Forgot password: the email link opens "Set a new password" on the phone that asked; sign in with the new password; an address outside the team shows the same text | ADR-0004 step 2 | 7 |
+| SC-13 | A token saved more than an hour earlier gets `401` from `/v1/me` | ADR-0004 step 3 | 6, check 7 |
 
 ## Post-MVP features
 From `mvp-scope.md` section 3, plus items the D-18 and D-20 answers moved out of the MVP.
@@ -38,6 +72,7 @@ From `mvp-scope.md` section 3, plus items the D-18 and D-20 answers moved out of
 | B-22 | The Notifications list and push notifications; the push token removed at log out | REQ-ROLE-016, ADR-0004 rule 6 and step 5 | D-20. Needs B-23 first |
 | B-23 | Push check on the phone (was Skeleton step 11) | ADR-0001 step 7, D-13 answer 9, Q-083 | D-20. Needs a free Firebase project with `com.fitsphere.app`, its FCM V1 key uploaded to EAS credentials, `expo-notifications` and a new EAS build. Send a notification with Expo's push tool; it arrives on the phone |
 | B-24 | iOS compile check (was Skeleton step 12) | ADR-0001 step 5, R-001 | D-20. One EAS iOS simulator build; uses 1 of the free plan's iOS builds and needs no Apple account. Before the iOS release (B-01) |
+| B-25 | Phone time-zone check: with the phone set to Los Angeles, "Today (IST)" keeps India's date and a weight gets the IST day (was Skeleton step 3's phone check and step 10's check 5) | ADR-0007 step 5, REQ-DATE-004, invariant #5 | D-22: dropped for the MVP, which serves India only (D-09). Automated tests cover it under `Asia/Kolkata` and `America/Los_Angeles`. Run with B-09 |
 
 ## Deferred edge cases
 Found while applying D-18. The MVP behaviour applies until an item is picked up. E-02 and E-03
@@ -50,3 +85,10 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-03 | Turning off a role that still has active links | REQ-ROLE-001 | The role cannot be turned off until those links have ended |
 | E-04 | A wrong or changed phone clock (the 30-day clear, "today") | ADR-0007 | The phone's clock is used, read in Asia/Kolkata |
 | E-05 | *Closed by D-20.* After a link ends, the old weekly workout, body-weight and steps targets stay read-only, because a user without a coach sets only calorie and protein targets (Q-016) | REQ-ROLE-007, Q-060 | D-20 lets every user set all five targets, so a user whose link has ended sets new ones (REQ-ROLE-007) |
+| E-06 | A password-reset link opened on another phone, or after reinstalling the app | REQ-ACC-010 | The link works only on the phone that asked for the reset (PKCE); elsewhere the app says so and offers a new link (Skeleton step 7) |
+| E-07 | Signing up again with an address whose old test account was deleted from Supabase Auth but not from the FitSphere database | REQ-ACC-010 | Account setup answers `500`; delete the old `app.users` row by hand on the development project (Skeleton plan, risks) |
+| E-08 | The phone's database belongs to another user when the app starts, e.g. after an interrupted log out | REQ-ACC-008 | It is deleted with its key and a new one is created; anything unsynced in it is lost (Skeleton step 8) |
+| E-09 | Removing a target, rather than changing it | REQ-ROLE-007 | A target can be changed but not removed (D-23) |
+| E-10 | Showing and editing Home for days older than the 90 days the phone holds, online | REQ-DATE-001, ADR-0007 rule 1 | The calendar and the week strip stop at 90 days; older history is viewed in Progress (D-23) |
+| E-11 | Target history: a target that applies from the day it was set, so past days keep the target they had (Q-014) | REQ-ROLE-007, REQ-PRG-005 | One current value per target, applying to every day shown (D-23) |
+| E-12 | Changing the measurements sheet's date after typing values | REQ-MEAS-002 | The fields show the new day's entry, or empty fields, so values typed for the old day are cleared (D-23) |

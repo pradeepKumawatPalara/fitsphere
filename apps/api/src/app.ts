@@ -1,16 +1,83 @@
-import Fastify, { LogController, type FastifyServerOptions } from 'fastify';
-import { API_BASE_PATH } from '@fitsphere/shared';
+import { randomUUID } from 'node:crypto';
+import { API_BASE_PATH, SYNC_PAGE_SIZE } from '@fitsphere/shared';
+import Fastify, { LogController } from 'fastify';
+import type pg from 'pg';
+import { registerAccess } from './access.ts';
+import type { Auth } from './auth.ts';
+import { errorBody, handleError } from './errors.ts';
+import { registerMeRoutes } from './routes/me.ts';
+import { registerSyncRoute } from './routes/sync.ts';
+import { registerWeighInsRoute } from './routes/weighIns.ts';
 
-export function buildApp(options: Pick<FastifyServerOptions, 'logger'> = {}) {
+export type LogOptions = { level: string; stream?: { write(line: string): void } };
+
+export type AppDeps = {
+  db: pg.Pool;
+  auth: Auth;
+  /** Leave out for no logs (most tests). */
+  log?: LogOptions;
+  /** The clock for "today in IST"; tests set it. */
+  now?: () => Date;
+  /** Weigh-ins per sync response (api-conventions: 500); tests use a small page. */
+  syncPageSize?: number;
+};
+
+// Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
+// Authorization, tokens, email addresses and query values. The API writes only its own fields,
+// and these paths are removed as a second guard.
+const REDACTED = ['req', 'res', 'headers', 'body', 'query', 'params', 'email', 'token', 'authorization'];
+
+export function buildApp(deps: AppDeps) {
   const app = Fastify({
-    logger: options.logger ?? false,
-    // Fastify's default request log includes the full URL with query values, which the
-    // log rule forbids (api-conventions, "Logging"). The API writes its own request line.
-    logController: new LogController({ disableRequestLogging: true }),
+    logger: deps.log
+      ? {
+          level: deps.log.level,
+          ...(deps.log.stream ? { stream: deps.log.stream } : {}),
+          redact: { paths: [...REDACTED, ...REDACTED.map((path) => `*.${path}`)], remove: true },
+        }
+      : false,
+    // Fastify's default request log includes the full URL with query values, which the log rule
+    // forbids. The API writes its own request line below.
+    logController: new LogController({ disableRequestLogging: true, requestIdLogLabel: 'requestId' }),
     bodyLimit: 100 * 1024,
+    // Every request gets a new UUID; a client cannot choose it.
+    genReqId: () => randomUUID(),
+    requestIdHeader: false,
+    exposeHeadRoutes: false,
   });
 
-  app.get(`${API_BASE_PATH}/health`, async () => ({ status: 'ok' }));
+  registerAccess(app, deps);
+  app.setErrorHandler(handleError);
+  app.setNotFoundHandler((request, reply) =>
+    reply.status(404).send(errorBody('NOT_FOUND', request.id)),
+  );
+  app.addHook('onSend', async (request, reply) => {
+    void reply.header('X-Request-Id', request.id);
+  });
+  // One line per request: the route pattern, never the filled-in path or query.
+  app.addHook('onResponse', async (request, reply) => {
+    request.log.info(
+      {
+        method: request.method,
+        route: request.is404 ? null : request.routeOptions.url,
+        status: reply.statusCode,
+        durationMs: Math.round(reply.elapsedTime),
+        userId: request.account?.id ?? null,
+      },
+      'request',
+    );
+  });
+
+  app.get(`${API_BASE_PATH}/health`, { config: { access: 'public' } }, async () => ({
+    status: 'ok',
+  }));
+  registerMeRoutes(app, deps);
+  registerSyncRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    syncPageSize: deps.syncPageSize ?? SYNC_PAGE_SIZE,
+  });
+  registerWeighInsRoute(app, deps);
 
   return app;
 }

@@ -118,7 +118,45 @@ above cannot fix triggers the revisit conditions; changing the decision needs a 
 supersedes this one.
 
 ## Validation results
-None yet.
+Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreSQL 17, synthetic data); CI runs them on every pull request. Device and Supabase checks are recorded here once the owner has run them.
+- **Step 1, server and phone logic — passed in automated tests:** a change sent twice is applied
+  once and gets the same reply; a sync that fails or has no connection keeps the outbox and
+  sends it again (`sync.test.ts`, `apps/mobile/src/sync/syncClient.test.ts`).
+- **Step 1, weight on the phone — partly passed on 2026-10-29** (Skeleton step 10's phone check
+  3; OnePlus Nord CE4, step 10's development build, API through a Quick Tunnel; owner's report).
+  A weight saved earlier was still shown after the app was reopened. With airplane mode on and
+  Wi-Fi off, saved weights were still shown, and a second weight was saved and shown on the
+  phone. After reconnecting, the sync status showed synced. **Pending, deferred to before the
+  release by D-22** (backlog SC-06; accepted risk R-006): force-stop and reopen while offline
+  (USB + adb), then log out and sign in to confirm that the server holds exactly one value for
+  the day. Until then, the offline entry is not confirmed on the server.
+- **Step 4, logic — passed in automated tests:** a rejected change stays, with its code, until a
+  new value for the day replaces it or the user discards it, and is never pruned
+  (`store.test.ts`, `home.test.tsx`). Phone check 4 of step 10: pending, deferred to before the
+  release by D-22 (backlog SC-03).
+- **Step 5, logic — passed in automated tests:** the IST day comes from the UTC clock (shared
+  date tests under `Asia/Kolkata` and `America/Los_Angeles`; the API accepts a day that is
+  already "today" at 00:10 IST). Phone check 5 of step 10: dropped for the MVP, which serves
+  India only (D-22, D-09); post-MVP, backlog B-25.
+- **Step 6:** the app stops when SQLCipher is missing and never sets a key on a plain database
+  (`database.test.ts`). The start-up check and the unreadable file are step 8's phone checks:
+  pending, deferred to before the release by D-22 (backlog SC-08 and SC-07).
+- **Step 1, extended to steps, sleep, measurements and targets — passed in automated tests on
+  2026-10-29** (Home and daily tracking slice, steps 2 and 3, D-23; PC with PostgreSQL 17,
+  synthetic data):
+  - each change type is applied once by its `changeId`;
+  - the pull pages across the five kinds with one cursor;
+  - the 90-day window applies to day data, never to targets;
+  - on the phone, the outbox life cycle, pruning and the rule that a waiting change holds back
+    only its own kind and key (`daily-tracking.test.ts`, `dailyStore.test.ts`,
+    `syncClient.test.ts`);
+  - local schema version 2 keeps a version 1 database's data and clears its cursor.
+
+  **Pending, in the slice's batched phone checks:** offline steps, sleep, measurements and a
+  target sync after reconnecting, and come back after log out and sign in (plan check 6).
+- **Step 4, extended — passed in automated tests on 2026-10-29:** rejected steps, sleep,
+  measurements and targets stay until fixed or discarded, each with its own text
+  (`tiles.test.tsx`, `measurements.test.tsx`, `dailyStore.test.ts`).
 
 ## Revisit conditions
 Sync bugs grow costly to maintain; real-time features required; device storage problems.

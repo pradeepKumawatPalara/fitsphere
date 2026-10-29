@@ -7,14 +7,21 @@
     "dev": "node --watch --env-file-if-exists=.env src/server.ts",
     "start": "node --env-file-if-exists=.env src/server.ts",
     "typecheck": "tsc --noEmit -p .",
-    "test": "vitest run src",
-    "test:integration": "vitest run test/integration --passWithNoTests"
+    "test": "vitest run src scripts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
+    "db:growth": "node --env-file-if-exists=.env scripts/db-growth.ts",
+    "check:data-api": "node --env-file-if-exists=.env scripts/check-data-api.ts",
+    "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts"
   },
   "dependencies": {
     "@fitsphere/shared": "*",
-    "fastify": "^5.12.7"
+    "fastify": "^5.12.7",
+    "jose": "^6.2.13",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@types/pg": "^8.23.1",
     "vitest": "^5.0.5"
   }
 }
