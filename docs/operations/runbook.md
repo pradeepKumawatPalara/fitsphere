@@ -240,7 +240,24 @@ back. Stop the API with Ctrl+C in its terminal.
    committed. The tunnel is Cloudflare's Quick Tunnel: no account, and a new address each run.
    Verified on the owner's phone on 2026-10-28 (Skeleton step 2: "API: ok").
 
-   **Start**, in three terminals from the repository root:
+   **One command** (D-22 answer 5; *not yet run on the owner's PC*): from the repository root,
+   `npm run dev:phone`. It needs `apps/api/.env` and `apps/mobile/.env` filled in (step 6),
+   `cloudflared` on the `PATH`, and the Expo sign-in from step 2.
+   - It starts the API on `127.0.0.1:3000`, then the tunnel, and waits until the tunnel is
+     connected.
+   - It writes the tunnel's address into `apps/mobile/.env` as `EXPO_PUBLIC_API_URL`, keeping
+     every other line, and checks `/v1/health` through the tunnel.
+   - Then it starts the development server in the same terminal, with its QR code.
+   - The API's and the tunnel's output go to `.dev-phone/api.log` and `.dev-phone/tunnel.log`,
+     which git ignores. The script never prints the address.
+   - **Stop:** Ctrl+C once. It stops all three and empties `EXPO_PUBLIC_API_URL`. It does the same
+     when any of the three stops by itself, saying which one and where its log is.
+   - It refuses to start if an API already answers on port 3000, or if `apps/mobile/.env` is
+     missing.
+   - If the window is closed instead, the address can stay in `.env`. The next run replaces it;
+     otherwise, empty it by hand as in "Stop" below.
+
+   **By hand** (the fallback), in three terminals from the repository root:
    1. The API: `npm run dev -w @fitsphere/api`. It listens on `127.0.0.1:3000` only.
    2. The tunnel: `cloudflared tunnel --url http://127.0.0.1:3000`. It prints an address of the
       form `https://<random-words>.trycloudflare.com`.
@@ -309,11 +326,11 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `DATABASE_URL` | API, `migrate` and `db:growth` | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later. The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
 | `SUPABASE_URL` | API | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
-| `PORT` | API | Port the API listens on, on the PC | No |
+| `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
 | `LOG_LEVEL` | API | `info` by default | No |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
-| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). Never committed | No (built into the app's code served by the development server) |
+| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it. Never committed | No (built into the app's code served by the development server) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
 Files with credentials, never committed. Both are for push, which is post-MVP (D-20, backlog
