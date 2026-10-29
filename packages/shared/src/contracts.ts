@@ -285,6 +285,45 @@ export const syncResponseSchema = z.object({
 });
 export type SyncResponse = z.infer<typeof syncResponseSchema>;
 
+// --- Food list: GET /v1/foods (ADR-0006 rule 1; D-25, D-26) ---
+
+/** Shown wherever IFCT values are shown (D-25; docs/data/food-list-sources.md). */
+export const IFCT_ACKNOWLEDGEMENT =
+  'Indian Food Composition Tables 2017, T. Longvah, R. Ananthan, K. Bhaskarachary and K. Venkaiah, National Institute of Nutrition, ICMR, Hyderabad.';
+
+export const FOOD_SOURCES = ['ifct2017'] as const;
+export type FoodSource = (typeof FOOD_SOURCES)[number];
+
+/** One food of the list, per 100 g edible portion. */
+export const foodSchema = z.object({
+  source: z.enum(FOOD_SOURCES),
+  code: z.string(),
+  name: z.string(),
+  foodGroup: z.string(),
+  /** Other spellings to search by. */
+  aliases: z.array(z.string()),
+  proteinG: z.number(),
+  fibreG: z.number(),
+  fatG: z.number(),
+  carbsG: z.number(),
+  kcal: z.number(),
+  /** The kcal value is estimated, not published (oils and fats: 9 kcal per g of fat, D-26). */
+  kcalEstimated: z.boolean(),
+});
+export type Food = z.infer<typeof foodSchema>;
+
+/** `version`: the list the phone already holds; the items are left out when it is current. */
+export const foodsQuerySchema = z.strictObject({
+  version: z.string().min(1).max(64).optional(),
+});
+
+export const foodsResponseSchema = z.object({
+  version: z.string(),
+  /** Null when the phone's `version` is already current. */
+  items: z.array(foodSchema).nullable(),
+});
+export type FoodsResponse = z.infer<typeof foodsResponseSchema>;
+
 // --- Weigh-in history: GET /v1/users/{userId}/weigh-ins ---
 
 export const DEFAULT_LIST_LIMIT = 100;

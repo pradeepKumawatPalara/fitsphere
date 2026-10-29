@@ -7,6 +7,12 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
+**Slice 3, Meal logging (no AI) — in progress (D-26, 2026-10-29).** Plan:
+`docs/plans/meal-logging-slice.md` (Accepted). Its pull requests build on #18 (D-24), which is
+merged first. The owner's actions (migrations and the food import, the Storage bucket and keys,
+the Open Food Facts contact, the EAS build) and the phone checks are batched at the end of the
+slice.
+
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
 merged; step 8 (D-24: the Measurements card shows and edits a date's measurements, changing Q-026)
@@ -96,8 +102,8 @@ email through Resend from FitSphere's domain (D-20).
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
-- Current slice plan (Accepted): `docs/plans/home-daily-tracking-slice.md`; the Skeleton's,
-  done: `docs/plans/skeleton-slice.md`
+- Current slice plan (Accepted): `docs/plans/meal-logging-slice.md`; earlier slices:
+  `docs/plans/home-daily-tracking-slice.md`, `docs/plans/skeleton-slice.md`
 - Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.

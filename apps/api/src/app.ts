@@ -5,6 +5,7 @@ import type pg from 'pg';
 import { registerAccess } from './access.ts';
 import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
+import { registerFoodsRoute } from './routes/foods.ts';
 import { registerMeRoutes } from './routes/me.ts';
 import { registerSyncRoute } from './routes/sync.ts';
 import { registerWeighInsRoute } from './routes/weighIns.ts';
@@ -78,6 +79,7 @@ export function buildApp(deps: AppDeps) {
     syncPageSize: deps.syncPageSize ?? SYNC_PAGE_SIZE,
   });
   registerWeighInsRoute(app, deps);
+  registerFoodsRoute(app, deps);
 
   return app;
 }

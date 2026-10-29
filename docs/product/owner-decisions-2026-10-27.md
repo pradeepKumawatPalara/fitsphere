@@ -672,6 +672,38 @@
 - Doc changes: `docs/data/food-list-sources.md`; `constraints-and-assumptions.md` (R-007, Q-039);
   `backlog.md`; ADR-0006; `docs/README.md`; `CLAUDE.md` (sources of truth).
 
+## D-26 Meal logging slice plan approved; photos move into slice 3; dishes and oil energy
+- Status: **Accepted** (owner approval in chat, 2026-10-29; the dish and oil answers were given
+  while planning).
+- Answers:
+  1. **Slice 3 plan approved:** [`docs/plans/meal-logging-slice.md`](../plans/meal-logging-slice.md),
+     with its scope, its MVP defaults chosen under D-18 answer 3, and its nine steps.
+  2. **Meal photos and public image links move into slice 3** (REQ-LOG-006 for meal photos,
+     REQ-LOG-010), from slice 7. Label photos and AI reading stay in slice 7. Until then, the
+     free-text, voice and photo-reading box shows "AI meal reading is coming soon".
+  3. **Cooked dishes: cited raw portions.**
+     - A dish such as "1 roti" is defined only by IFCT raw ingredients and grams, quoted word
+       for word with the page from a document the owner approves.
+     - Its values are IFCT's values per 100 g × the raw grams, marked "estimated".
+     - It is logged by portion count only. There are no per-100 g cooked values, since those
+       would need yield factors.
+     - The owner's OK on each source is the merge of the slice's dish pull request.
+  4. **Oils and fats: 9 kcal per g of fat**, the Atwater general factor (FAO Food and Nutrition
+     Paper 77, 2003), marked "estimated". IFCT publishes no energy value for them.
+  5. **New packages**:
+     - app: `expo-camera`, `expo-image-picker`, `expo-image-manipulator`, `expo-file-system`;
+     - API: `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, for the S3 interface of
+       ADR-0002 rule 4.
+
+     One EAS development build covers them, and Claude Code asks the owner before starting it
+     (D-19).
+  6. **Workflow as D-21**, with the owner's actions and phone checks batched at the end.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+  If Supabase's S3 interface cannot issue presigned links, the alternative changes ADR-0002 rule
+  4 and goes to the owner.
+- Doc changes: `docs/plans/meal-logging-slice.md`; `CLAUDE.md` current phase; `docs/README.md`.
+  `mvp-scope.md` and the other documents change in the step that builds each part.
+
 ---
 
 ## Proposed replacement wording for the two invariants

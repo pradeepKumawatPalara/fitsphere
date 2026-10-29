@@ -98,6 +98,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `POST /v1/me` | Set up the FitSphere account after the first sign-in | Signed in, account not yet set up | REQ-ACC-010, D-18 |
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
+| `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
 
 ### `GET /v1/health`
 `200` with `{ "status": "ok" }`. Says nothing about the database or configuration.
@@ -240,6 +241,25 @@ first.
   Coach rules above are post-MVP (backlog B-19, B-20) and are added to the access module then;
   the path keeps the user's ID so that no new route is needed. In the Skeleton the app uses this
   route only for the user's own history older than 90 days.
+
+### `GET /v1/foods`
+Query: `version` (optional), the version of the list the phone already holds.
+
+`200`:
+```json
+{
+  "version": "Qm9VZx1…",
+  "items": [
+    { "source": "ifct2017", "code": "T013", "name": "Ghee", "foodGroup": "Edible Oils and Fats",
+      "aliases": [], "proteinG": 0, "fibreG": 0, "fatG": 100, "carbsG": 0, "kcal": 900, "kcalEstimated": true }
+  ]
+}
+```
+- Values are per 100 g edible portion. Rows hidden until checked are left out.
+- `version` changes whenever any value the phone receives changes. When the query's `version` is
+  already current, `items` is `null`, so the phone downloads the list only when it changed.
+- The list is reference data, not personal, and is the same for every signed-in user. Where its
+  values are shown, the app shows the IFCT acknowledgement (D-25).
 
 ## Sign-in flows (Supabase Auth, ADR-0004)
 The app talks to Supabase Auth for these; the FitSphere API is not involved until account setup.

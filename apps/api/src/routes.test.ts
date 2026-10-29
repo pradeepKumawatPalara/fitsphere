@@ -13,6 +13,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'POST /v1/me': 'test/integration/me.test.ts',
   'POST /v1/sync': 'test/integration/sync.test.ts',
   'GET /v1/users/:userId/weigh-ins': 'test/integration/weigh-ins.test.ts',
+  'GET /v1/foods': 'test/integration/foods.test.ts',
 };
 
 describe('REQ-NFR-001 route listing', () => {
