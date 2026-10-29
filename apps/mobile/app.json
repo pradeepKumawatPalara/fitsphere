@@ -33,8 +33,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs.",
+          "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs and to take meal photos.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "FitSphere uses the photo you choose as a meal photo.",
+          "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs and to take meal photos.",
+          "microphonePermission": false
         }
       ]
     ],

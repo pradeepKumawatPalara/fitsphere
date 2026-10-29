@@ -3,9 +3,12 @@ import { ME } from './fakes';
 
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
 // the last change received wins, a future IST day is rejected, and the pull returns what changed
-// after the cursor, for every kind. It also serves the food list (GET /v1/foods) and barcode lookups.
+// after the cursor, for every kind. It also serves the food list (GET /v1/foods), barcode lookups,
+// and meal photo links with a fake storage behind them.
 
 type Stored = { item: Record<string, unknown>; seq: number };
+
+const STORAGE_HOST = 'storage.test';
 type Change = { changeId: string; type: string; data: Record<string, unknown> };
 
 /** Change type → the pull list it lands in, and the field that identifies an entry. */
@@ -40,6 +43,8 @@ export function fakeServer(now: Date) {
     barcodes: {} as Record<string, BarcodeProduct>,
     /** Answer barcode lookups with 503, as when Open Food Facts cannot answer. */
     barcodesUnavailable: false,
+    /** The files in the fake storage, by key ("<mediaId>.jpg", "<mediaId>-thumb.jpg"). */
+    files: new Map<string, Uint8Array>(),
   };
   const calls: { method: string; path: string; body: unknown }[] = [];
   let seq = 0;
@@ -80,6 +85,17 @@ export function fakeServer(now: Date) {
     if (state.offline) throw new TypeError('Network request failed');
     const url = new URL(String(input));
     const method = init?.method ?? 'GET';
+    // The fake storage behind upload and viewing links (ADR-0002 rule 3).
+    if (url.host === STORAGE_HOST) {
+      const [, purpose, key] = url.pathname.split('/') as [string, 'upload' | 'view', string];
+      calls.push({ method, path: `storage:${purpose}/${key}`, body: undefined });
+      if (purpose === 'upload' && method === 'PUT') {
+        state.files.set(key, new Uint8Array(init?.body as Uint8Array));
+        return new Response(null, { status: 200 });
+      }
+      const file = purpose === 'view' ? state.files.get(key) : undefined;
+      return file ? new Response(new Uint8Array(file), { status: 200 }) : new Response('NoSuchKey', { status: 404 });
+    }
     const path = url.pathname.replace(/^\/v1/, '');
     const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
     calls.push({ method, path, body });
@@ -100,6 +116,21 @@ export function fakeServer(now: Date) {
       }
       const product = state.barcodes[barcode] ?? null;
       return json(200, { barcode, found: product !== null, product });
+    }
+    // Meal photo links: only for a photo a synced meal names, and only for the user (D-20).
+    const media = /^\/users\/([^/]+)\/media\/([^/]+)(\/upload)?$/.exec(path);
+    if (media) {
+      const [, userId, mediaId, upload] = media as unknown as [string, string, string, string | undefined];
+      const named = [...entries('meals').values()].some((meal) => (meal.photo as { mediaId?: string } | null)?.mediaId === mediaId);
+      if (userId !== ME.user.id || !named || method !== (upload ? 'POST' : 'GET')) {
+        return json(404, { error: { code: 'NOT_FOUND', message: 'x', retryable: false, requestId: 'r', details: null } });
+      }
+      const purpose = upload ? 'upload' : 'view';
+      return json(200, {
+        photoUrl: `https://${STORAGE_HOST}/${purpose}/${mediaId}.jpg`,
+        thumbnailUrl: `https://${STORAGE_HOST}/${purpose}/${mediaId}-thumb.jpg`,
+        expiresAt: new Date(now.getTime() + (upload ? 600 : 300) * 1000).toISOString(),
+      });
     }
     if (method === 'POST' && path === '/sync') {
       const request = body as { cursor: string | null; changes: Change[] };

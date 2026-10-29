@@ -4,7 +4,9 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import { insertNewPhoto, type PhotoFiles } from '../local/photos';
 import { deleteEntry, discardRejected, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
+import { uploadPhotos } from './photoSync';
 import { refreshFoodList, syncNow, type SyncOutcome } from './syncClient';
 
 /** Calls `onReconnect` when the phone's connection comes back. */
@@ -35,7 +37,8 @@ type SyncContextValue = {
   /** Changes whenever local data may have changed; screens read again. */
   version: number;
   status: SyncOutcome | 'idle' | 'syncing';
-  save<K extends EntryKind>(kind: K, input: EntryInput[K]): Promise<void>;
+  /** `newPhoto`: the files of a photo just taken for this meal, saved with it (REQ-LOG-006). */
+  save<K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }): Promise<void>;
   /** Deletes a meal or saved meal (REQ-NUT-004). */
   remove(kind: DeletableKind, id: string): Promise<void>;
   /** A new ID for a meal or saved meal, made on the phone. */
@@ -81,8 +84,12 @@ export function SyncProvider({
       do {
         again.current = false;
         const outcome = await syncNow(db, deps, now).catch((): SyncOutcome => 'failed');
-        // The food list follows a sync that reached the server (ADR-0006 rule 1).
-        if (outcome === 'synced') await refreshFoodList(db, deps).catch(() => 'failed');
+        // The food list and photo uploads follow a sync that reached the server (ADR-0006 rule 1;
+        // REQ-LOG-006).
+        if (outcome === 'synced') {
+          await refreshFoodList(db, deps).catch(() => 'failed');
+          await uploadPhotos(db, deps).catch(() => 'offline');
+        }
         setStatus(outcome);
         setVersion((value) => value + 1);
       } while (again.current);
@@ -106,12 +113,18 @@ export function SyncProvider({
   }, [db, run, network]);
 
   const save = useCallback(
-    async <K extends EntryKind>(kind: K, input: EntryInput[K]) => {
+    async <K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }) => {
       if (!db) throw new Error('The phone database is not open');
       const savedAt = now().toISOString();
       const stamp = kind === 'target' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
       const data = { ...input, [stamp]: savedAt } as unknown as ChangeData[K];
-      await saveEntry(db, kind, { changeId: newId(), data });
+      const mealId = (input as { id?: string }).id;
+      await saveEntry(
+        db,
+        kind,
+        { changeId: newId(), data },
+        newPhoto && mealId ? () => insertNewPhoto(db, { id: newPhoto.id, mealId, createdAt: savedAt, files: newPhoto.files }) : undefined,
+      );
       setVersion((value) => value + 1);
       void run();
     },

@@ -17,6 +17,7 @@ import { Button, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from
 import { BarcodeSheet } from '../components/BarcodeSheet';
 import { DaySheet } from '../components/DaySheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
+import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { formatDay } from '../format';
@@ -29,8 +30,9 @@ import { useSync } from '../sync/SyncProvider';
 type Params = { day?: string; slot?: string; mealId?: string };
 type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number };
 
-// Log meal (REQ-LOG-001…003, REQ-LOG-007, REQ-LOG-008; REQ-ACC-005): the date, the meal type and
-// tags, foods added by search, barcode, your own food or a saved meal, and a review before saving.
+// Log meal (REQ-LOG-001…003, REQ-LOG-006…008, REQ-LOG-010; REQ-ACC-005): the date, the meal type
+// and tags, foods added by search, barcode, your own food or a saved meal, an optional photo or
+// image link, and a review before saving.
 // Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
@@ -51,6 +53,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   );
   const [tags, setTags] = useState<MealTag[]>([]);
   const [items, setItems] = useState<MealItem[]>([]);
+  const [photo, setPhoto] = useState<PhotoDraft>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Record<IstDay, number>>({});
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
@@ -73,6 +76,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
       setMealType(meal.mealType);
       setTags(meal.tags);
       setItems(meal.items);
+      setPhoto(meal.photo?.kind === 'photo' ? { kind: 'photo', mediaId: meal.photo.mediaId, files: null } : (meal.photo ?? null));
     });
     return () => {
       active = false;
@@ -104,7 +108,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   async function save() {
     if (!mealType || items.length === 0) return;
     setBusy(true);
-    await sync.save('meal', { id, day, mealType, tags, items });
+    const mealPhoto = photo === null ? null : photo.kind === 'photo' ? { kind: 'photo' as const, mediaId: photo.mediaId } : photo;
+    const newPhoto = photo?.kind === 'photo' && photo.files ? { id: photo.mediaId, files: photo.files } : undefined;
+    await sync.save('meal', { id, day, mealType, tags, items, photo: mealPhoto }, newPhoto);
     setBusy(false);
     router.back();
   }
@@ -178,6 +184,8 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           Tips: give amounts in grams; say whether a food is raw or cooked (cooked rice weighs about 3 times raw);
           add each food separately.
         </Text>
+
+        <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />
 
         <Text accessibilityRole="header" style={styles.heading}>
           Review

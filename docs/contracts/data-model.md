@@ -371,11 +371,12 @@ rule 5 and D-14 require.
 | `sleep` | `day` (key), `sleep_minutes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `measurements` | `day` (key), the six lengths in millimetres, `notes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
-| `meals` | `id` (key), `day`, `meal_type`, `tags` and `items` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3 |
+| `meals` | `id` (key), `day`, `meal_type`, `tags`, `items` and `photo` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3; `photo` version 4 |
 | `saved_meals` | `id` (key), `name`, `meal_type`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day. Schema version 3 |
 | `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3 |
+| `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
-| `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database |
+| `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
 - **What is kept:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST
   days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
@@ -393,6 +394,14 @@ rule 5 and D-14 require.
   already on the phone, and clears the sync cursor so the next sync pulls the meals.
 - **What is kept (meals):** the last 90 IST days of meals, like other day data; saved meals and
   the food list are always kept.
+- **Version 4** (Meal logging slice) adds `meals.photo` and `photos`, and clears the sync cursor
+  so the next sync pulls the meals' photos.
+- **Photos** (REQ-LOG-006; D-14): a new photo is saved in the same transaction as the meal that
+  names it. It is uploaded after a sync once its meal's change has been accepted; until then it
+  counts as unsynced (the log-out warning includes it) and is never cleared automatically, and
+  a meal whose photo waits is not pruned. A photo no meal names any more — the meal deleted here
+  or on another phone, its photo replaced or removed, the change discarded, or the meal pruned —
+  leaves the phone at once.
 - **Never deleted automatically:** `pending` and `rejected` entries and their outbox rows
   (D-14). A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2).
 - **30-day clear** (ADR-0007 rule 4): in the Skeleton there are no drafts and no other people's

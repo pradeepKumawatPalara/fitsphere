@@ -26,8 +26,8 @@ Where the contracts define something, this plan does not repeat it.
 | 4. Nutrition and Home | Pull request #24, CI green | `meals/04-nutrition` |
 | 5. Log meal | Pull request #26, CI green | `meals/05-log-meal` |
 | 6. Barcode | Pull request #29, CI green | `meals/06-barcode` |
-| 7a. Meal photos and public links on the server | Built; automated checks pass on the PC | `meals/07-photos-server` |
-| 7b. Meal photos and public links on the phone | Not started | `meals/07b-photos-app` |
+| 7a. Meal photos and public links on the server | Pull request #30, CI green | `meals/07-photos-server` |
+| 7b. Meal photos and public links on the phone | Built; automated checks pass on the PC | `meals/07b-photos-app` |
 | 8. Dishes (cited raw portions) | Not started | `meals/08-dishes` |
 | 9. Close-out | Not started | `meals/09-close-out` |
 

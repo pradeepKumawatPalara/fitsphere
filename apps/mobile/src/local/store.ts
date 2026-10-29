@@ -85,7 +85,7 @@ type KindSpec = {
   table: string;
   /** The field that identifies an entry: its column, and its path in a change's data. */
   key: 'day' | 'kind' | 'id';
-  /** Local columns and the field each holds, key first; `json` columns hold arrays as JSON text. */
+  /** Local columns and the field each holds, key first; `json` columns hold JSON text (null when absent). */
   columns: [column: string, field: string, json?: 'json'][];
   /** Fields worked out from the others when the row is written (a meal's totals). */
   derive?: (fields: Record<string, unknown>) => Record<string, BindValue>;
@@ -182,6 +182,7 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['meal_type', 'mealType'],
       ['tags', 'tags', 'json'],
       ['items', 'items', 'json'],
+      ['photo', 'photo', 'json'],
       ['recorded_at', 'recordedAt'],
       ...TOTAL_COLUMNS,
     ],
@@ -318,6 +319,22 @@ const MIGRATIONS = [
      PRIMARY KEY (source, code)
    );
    DELETE FROM sync_meta WHERE key = 'cursor';`,
+  // Meal photos (REQ-LOG-006, REQ-LOG-010). A meal's photo or public link, and the photo files,
+  // kept inside this encrypted database as the encrypted photo cache (ADR-0007 rule 5): the
+  // thumbnail, and the viewing copy once taken or viewed here. `uploaded` is 0 while the files wait
+  // to be uploaded; such a photo is an unsynced entry and is never cleared automatically (D-14).
+  // The cursor is cleared so the next sync pulls the meals' photos.
+  `ALTER TABLE meals ADD COLUMN photo TEXT;
+   CREATE TABLE photos (
+     id TEXT PRIMARY KEY,
+     meal_id TEXT NOT NULL,
+     thumbnail TEXT,
+     full TEXT,
+     uploaded INTEGER NOT NULL CHECK (uploaded IN (0, 1)),
+     created_at TEXT NOT NULL
+   );
+   CREATE INDEX photos_meal ON photos (meal_id);
+   DELETE FROM sync_meta WHERE key = 'cursor';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -330,8 +347,12 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
   }
 }
 
-/** `measurement_unit` is the cm/in choice in the measurements sheet, kept on this phone only (D-23). */
-export type MetaKey = 'user_id' | 'cursor' | 'last_synced_at' | 'measurement_unit' | 'food_list_version';
+/**
+ * `measurement_unit` is the cm/in choice in the measurements sheet, kept on this phone only (D-23).
+ * `user_id` is the signed-in user's sign-in ID; `account_id` their FitSphere ID, which the API's
+ * paths use (GET /v1/me).
+ */
+export type MetaKey = 'user_id' | 'account_id' | 'cursor' | 'last_synced_at' | 'measurement_unit' | 'food_list_version';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);
@@ -348,19 +369,23 @@ export async function setMeta(db: SqlDb, key: MetaKey, value: string | null): Pr
 /**
  * Saves an entry on the phone and queues it for the server, in one transaction. A new value
  * replaces the day's (or the target's) value (Q-030); it also replaces a rejected change for it,
- * which is how the user fixes one (ADR-0007 rule 2).
+ * which is how the user fixes one (ADR-0007 rule 2). `alsoFirst` runs in the same transaction (a
+ * new meal photo's files); a photo the meal no longer names is removed.
  */
 export async function saveEntry<K extends EntryKind>(
   db: SqlDb,
   kind: K,
   entry: { changeId: string; data: ChangeData[K] },
+  alsoFirst?: () => Promise<void>,
 ): Promise<void> {
   const spec = KINDS[kind];
   const fields = entry.data as Record<string, unknown>;
   const key = fields[spec.key] as string;
   const createdAt = (fields.recordedAt ?? fields.setAt ?? fields.savedAt) as string;
   await db.withTransactionAsync(async () => {
+    await alsoFirst?.();
     await upsert(db, spec, spec.columns, fields, 'pending');
+    if (kind === 'meal') await removeUnusedPhotos(db);
     await db.runAsync(
       `DELETE FROM outbox WHERE status = 'rejected' AND type IN (?, ?) AND json_extract(data, '$.${spec.key}') = ?`,
       [...typesOf(spec), key],
@@ -390,6 +415,8 @@ export async function deleteEntry(
   const spec = KINDS[kind];
   await db.withTransactionAsync(async () => {
     await db.runAsync(`DELETE FROM ${spec.table} WHERE id = ?`, [entry.data.id]);
+    // A deleted meal's photo leaves the phone at once, uploaded or not (REQ-LOG-006).
+    if (kind === 'meal') await removeUnusedPhotos(db);
     await db.runAsync(
       `DELETE FROM outbox WHERE status = 'rejected' AND type IN (?, ?) AND json_extract(data, '$.id') = ?`,
       [...typesOf(spec), entry.data.id],
@@ -443,6 +470,7 @@ export async function applyServerEntries<K extends EntryKind>(
       if (fields.deleted === true) await db.runAsync(`DELETE FROM ${spec.table} WHERE ${spec.key} = ?`, [key]);
       else await upsert(db, spec, columns, fields, 'synced');
     }
+    if (kind === 'meal') await removeUnusedPhotos(db);
   });
 }
 
@@ -519,29 +547,49 @@ export async function discardRejected(db: SqlDb, changeId: string): Promise<void
     if (target && !(await hasOutboxEntry(db, target.spec, target.key))) {
       await db.runAsync(`DELETE FROM ${target.spec.table} WHERE ${target.spec.key} = ?`, [target.key]);
     }
+    await removeUnusedPhotos(db);
     await setMeta(db, 'cursor', null);
   });
 }
 
 /**
  * Keeps the last 90 IST days of day data on the phone (ADR-0007 rule 1): synced entries older
- * than that are removed; pending and rejected ones never are (D-14). Targets are always kept.
+ * than that are removed; pending and rejected ones never are (D-14), nor a meal whose photo waits
+ * to be uploaded. Targets are always kept. Photos of removed meals go with them.
  */
 export async function pruneSynced(db: SqlDb, today: IstDay): Promise<number> {
   let removed = 0;
   for (const kind of DAY_KINDS) {
-    const result = await db.runAsync(`DELETE FROM ${KINDS[kind].table} WHERE sync_state = 'synced' AND day < ?`, [
+    const waitingPhoto = kind === 'meal' ? ' AND NOT EXISTS (SELECT 1 FROM photos WHERE photos.meal_id = meals.id AND uploaded = 0)' : '';
+    const result = await db.runAsync(`DELETE FROM ${KINDS[kind].table} WHERE sync_state = 'synced' AND day < ?${waitingPhoto}`, [
       syncWindowStart(today),
     ]);
     removed += result.changes;
   }
+  await removeUnusedPhotos(db);
   return removed;
 }
 
-/** Entries not yet on the server: pending or rejected. */
+/** Entries not yet on the server: pending or rejected changes, and photos waiting to be uploaded. */
 export async function unsyncedCount(db: SqlDb): Promise<number> {
-  const row = await db.getFirstAsync<{ n: number }>('SELECT count(*) AS n FROM outbox', []);
+  const row = await db.getFirstAsync<{ n: number }>(
+    'SELECT (SELECT count(*) FROM outbox) + (SELECT count(*) FROM photos WHERE uploaded = 0) AS n',
+    [],
+  );
   return row?.n ?? 0;
+}
+
+/**
+ * Removes photos no meal on the phone names any more: the meal was deleted, here or on another
+ * phone, its photo was replaced, or it left the 90 days (REQ-LOG-006, A-004).
+ */
+export async function removeUnusedPhotos(db: SqlDb): Promise<void> {
+  await db.runAsync(
+    `DELETE FROM photos WHERE NOT EXISTS (
+       SELECT 1 FROM meals WHERE meals.id = photos.meal_id AND json_extract(meals.photo, '$.mediaId') = photos.id
+     )`,
+    [],
+  );
 }
 
 /** Log out (REQ-ACC-008; MVP default): delete at once when nothing is waiting, otherwise warn. */
@@ -576,7 +624,7 @@ async function upsert(
     `INSERT INTO ${spec.table} (${names.join(', ')}, sync_state) VALUES (${names.map(() => '?').join(', ')}, ?)
      ON CONFLICT (${spec.key}) DO UPDATE SET ${[...updates, 'sync_state = excluded.sync_state'].join(', ')}`,
     [
-      ...columns.map(([, field, json]) => (json ? JSON.stringify(fields[field]) : ((fields[field] as BindValue) ?? null))),
+      ...columns.map(([, field, json]) => (json ? JSON.stringify(fields[field] ?? null) : ((fields[field] as BindValue) ?? null))),
       state,
     ],
   );
@@ -612,6 +660,11 @@ async function outboxTarget(db: SqlDb, changeId: string): Promise<{ spec: KindSp
   if (!row || !spec) return null;
   const key = (JSON.parse(row.data) as Record<string, unknown>)[spec.key];
   return typeof key === 'string' ? { spec, key } : null;
+}
+
+/** The entry has a change in the outbox, pending or rejected, so the server may not have it. */
+export async function entryWaiting(db: SqlDb, kind: EntryKind, key: string): Promise<boolean> {
+  return hasOutboxEntry(db, KINDS[kind], key);
 }
 
 async function hasOutboxEntry(db: SqlDb, spec: KindSpec, key: string): Promise<boolean> {
