@@ -1,10 +1,18 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
-import { AuthProvider } from '../auth/AuthProvider';
+import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { createAuthDeps } from '../auth/supabase';
+import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 
 const authDeps = createAuthDeps();
+
+// The signed-in user's encrypted database opens when the app starts with a session.
+function LocalDatabaseForUser({ children }: { children: ReactNode }) {
+  const { userId } = useAuth();
+  return <LocalDatabaseProvider owner={userId}>{children}</LocalDatabaseProvider>;
+}
 
 export default function RootLayout() {
   if (!authDeps) {
@@ -18,8 +26,10 @@ export default function RootLayout() {
   }
   return (
     <AuthProvider deps={authDeps}>
-      <Stack screenOptions={{ title: 'FitSphere' }} />
-      <StatusBar style="auto" />
+      <LocalDatabaseForUser>
+        <Stack screenOptions={{ title: 'FitSphere' }} />
+        <StatusBar style="auto" />
+      </LocalDatabaseForUser>
     </AuthProvider>
   );
 }

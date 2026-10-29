@@ -178,7 +178,8 @@ number.
 ## On the phone (ADR-0007)
 The phone keeps a **copy** in an encrypted Expo SQLite database; the server is the permanent
 record (D-14). The key is a random value kept in the phone's secure storage; the user never sees
-a password (ADR-0007 rule 5).
+a password (ADR-0007 rule 5). The key is 32 random bytes from `expo-crypto`, used as a raw
+SQLCipher key; the database file is `fitsphere.db`, and `PRAGMA user_version` numbers its schema.
 
 Encryption uses SQLCipher, which needs a development build, not Expo Go. Expo's docs warn that
 if SQLCipher is missing from the build, setting the key "has no effect and does not throw an
@@ -189,7 +190,7 @@ rule 5 and D-14 require.
 | Local table | Holds | Rules |
 |---|---|---|
 | `weigh_ins` | `day` (key), `weight_grams`, `recorded_at`, `sync_state` | `sync_state` is `synced`, `pending` or `rejected` |
-| `outbox` | `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected` |
+| `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id` | One signed-in user per local database |
 
 - **What is kept:** the user's own weigh-ins for the last 90 IST days (ADR-0007 rule 1).
@@ -200,6 +201,8 @@ rule 5 and D-14 require.
 - **30-day clear** (ADR-0007 rule 4): in the Skeleton there are no drafts and no other people's
   data on the phone, so nothing is cleared yet. The check is built with the first slice that
   stores either.
+- **Discarding a rejected change** removes it and that day's local value, and clears the sync
+  cursor, so the next sync brings back what the server holds for the day.
 - **Log out** (REQ-ACC-008; MVP default, D-18): when the outbox is empty, logging out deletes the
   local database and its key. When it is not, the app warns that the unsynced entries will be
   lost and offers to stay signed in; the entries are deleted only if the user confirms.

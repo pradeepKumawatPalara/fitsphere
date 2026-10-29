@@ -88,6 +88,16 @@ user `Path`.
    install the phone maker's USB driver for Windows (Android's "Install OEM USB drivers" page)
    and accept the prompt again.
 
+**Copy the phone's database off the phone (Skeleton step 8, ADR-0007 step 6).** Development
+builds are debuggable, which `run-as` needs. The file holds synthetic test data only. In
+PowerShell, from any folder outside the repository:
+1. `cmd /c "adb exec-out run-as com.fitsphere.app cat files/SQLite/fitsphere.db > fitsphere-copy.db"`
+   (through `cmd`, because PowerShell 5.1 changes binary output when it redirects it).
+2. `[Text.Encoding]::ASCII.GetString((Get-Content .itsphere-copy.db -Encoding Byte -TotalCount 15))`
+   An unencrypted SQLite file starts with `SQLite format 3`; an encrypted one shows random
+   characters. A SQLite viewer, if one is installed, reports that the file is not a database.
+3. Delete the copy: `Remove-Item .itsphere-copy.db`.
+
 ### 4. Accounts and two-factor sign-in
 Turn on two-factor sign-in for every account below as soon as it exists (ADR-0002 step 1,
 ADR-0004 rule 8, D-16):
