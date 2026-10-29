@@ -101,7 +101,8 @@ Record each result, with its date, under "Validation results".
 - **Rule 1, the food list — built (Meal logging slice, D-25, D-26):** IFCT 2017, 542 foods,
   imported by a tested `npm run foods:import`, cached on the phone and searched offline
   ([`food-list-sources.md`](../../data/food-list-sources.md)). Dishes (rule 1's common portions)
-  wait for the owner's source document (slice plan, step 8).
+  wait for the owner's weighed standard-recipe sheet: IFCT values × raw grams the owner measures,
+  marked "estimated" (D-26 answer 3, amended 2026-10-30; slice plan, step 8).
 - **Rule 2, Open Food Facts — behaviour checked live on 2026-10-29:** API v3 answers a found
   product with HTTP 200 and `status: "success"`, and an unknown barcode with HTTP 404. FitSphere
   sends the barcode only, with its User-Agent, and keeps every answer in `barcode_products`.

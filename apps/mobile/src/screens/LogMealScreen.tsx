@@ -181,8 +181,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           <Button title="Saved meals" onPress={() => setSheet('saved')} />
         </View>
         <Text style={styles.tips}>
-          Tips: give amounts in grams; say whether a food is raw or cooked (cooked rice weighs about 3 times raw);
-          add each food separately.
+          Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.
         </Text>
 
         <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />

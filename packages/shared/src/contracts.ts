@@ -490,9 +490,12 @@ function roundHundredths(value: number): number {
 
 // --- Food list: GET /v1/foods (ADR-0006 rule 1; D-25, D-26) ---
 
-/** Shown wherever IFCT values are shown (D-25; docs/data/food-list-sources.md). */
+/**
+ * The citation the IFCT 2017 book asks for, shown wherever IFCT values are shown (D-25;
+ * docs/data/food-list-sources.md).
+ */
 export const IFCT_ACKNOWLEDGEMENT =
-  'Indian Food Composition Tables 2017, T. Longvah, R. Ananthan, K. Bhaskarachary and K. Venkaiah, National Institute of Nutrition, ICMR, Hyderabad.';
+  'Longvah, T., Ananthan, R., Bhaskarachary, K. and Venkaiah, K. (2017). Indian Food Composition Tables 2017, National Institute of Nutrition, Indian Council of Medical Research, Hyderabad, Telangana, India.';
 
 export const FOOD_SOURCES = ['ifct2017'] as const;
 export type FoodSource = (typeof FOOD_SOURCES)[number];

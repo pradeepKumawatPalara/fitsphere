@@ -2,7 +2,8 @@
 
 - Status: **Accepted**, approved by the project owner on 2026-10-29 (D-26)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29
+- Last updated: 2026-10-30 (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
+  sheet)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 3 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); ADR-0002, ADR-0003, ADR-0006,
   ADR-0007; [`food-list-sources.md`](../data/food-list-sources.md) (D-25)
@@ -28,7 +29,7 @@ Where the contracts define something, this plan does not repeat it.
 | 6. Barcode | Pull request #29, CI green | `meals/06-barcode` |
 | 7a. Meal photos and public links on the server | Pull request #30, CI green | `meals/07-photos-server` |
 | 7b. Meal photos and public links on the phone | Pull request #31, CI green | `meals/07b-photos-app` |
-| 8. Dishes (cited raw portions) | **Waiting for the owner:** the source document could not be read from here (see step 8) | `meals/08-dishes` |
+| 8. Dishes (standard-recipe portions) | **Waiting for the owner:** the weighed standard-recipe sheet (D-26 answer 3, amended 2026-10-30; see step 8) | `meals/08-dishes` |
 | 9. Close-out | Pull request #32 | `meals/09-close-out` |
 
 The slice's pull requests build on pull request #18 (D-24), which must be merged first.
@@ -49,12 +50,24 @@ box shows "AI meal reading is coming soon" until then (D-26).
 ## Decisions (D-26)
 1. **Meal photos and public links move into this slice** from slice 7, at the owner's
    instruction. Label photos and AI reading stay in slice 7.
-2. **Cooked dishes: cited raw portions.**
-   - A dish such as "1 roti" is defined only by IFCT raw ingredients and grams quoted word for
-     word, with the page, from a document the owner approves.
+2. **Cooked dishes: raw portions from FitSphere's standard-recipe sheet** (D-26 answer 3,
+   amended 2026-10-30).
+   - A dish such as "1 roti" is defined only by IFCT raw ingredients and their raw grams for one
+     portion, from FitSphere's standard-recipe sheet
+     ([`standard-recipe-sheet.csv`](../data/standard-recipe-sheet.csv)). The owner writes it by
+     weighing raw ingredients, and approves it. NIN's guidelines, INDB data and USDA data are not
+     used.
    - Its values are IFCT's values per 100 g × the raw grams, marked "estimated".
-   - It is logged by portion count only. There are no per-100 g cooked values, since those would
-     need yield factors.
+   - Exception: where IFCT publishes a cooked value for the whole item (M004 boiled egg, M007
+     omelette), that value is used per gram of the cooked item, and the sheet records the cooked
+     grams per piece.
+   - Units:
+     - per piece for roti, phulka, paratha, puri, idli, dosa, egg and omelette;
+     - per katori (200 ml) for the rest;
+     - half portions allowed.
+   - It is logged by portion count only. There are no per-100 g cooked values and no logging by
+     cooked weight, since those would need yield factors.
+   - Curd and raita, masala chai, besan dishes and chole are deferred (backlog B-26).
 3. **Oils and fats: 9 kcal per g of fat**, marked "estimated". This is the Atwater general factor
    in FAO Food and Nutrition Paper 77, quoted in `food-list-sources.md`.
 4. **New packages:**
@@ -101,14 +114,17 @@ in the step that builds each one.
    - On the phone, a compressed copy of about 200 KB and a thumbnail, cached in the encrypted
      database.
    - The public link with its warning.
-8. **Dishes (cited raw portions).** Merging this pull request is the owner's OK on each quoted
-   source.
-   - **2026-10-29: waiting for the owner.** NIN's *Dietary Guidelines for Indians* (2024) could
-     not be read from here: the NIN link
-     (`nin.res.in/dietaryguidelines/pdfjs/locale/DGI24thJune2024fin.pdf`) answered HTTP 404, and
-     the ICMR copy's host did not resolve. Copies on other sites are not used, since D-26 asks for
-     a document the owner approves. The owner provides the PDF (or another document to use); the
-     step then quotes each dish's raw ingredients and grams with the page.
+8. **Dishes (standard-recipe portions).** Merging this pull request is the owner's OK on the
+   standard-recipe sheet.
+   - **2026-10-30: waiting for the owner's weighed recipes.** D-26 answer 3 was amended: dishes
+     come from FitSphere's standard-recipe sheet, not from an outside document. The sheet,
+     [`docs/data/standard-recipe-sheet.csv`](../data/standard-recipe-sheet.csv), lists 25 dishes
+     with their IFCT ingredients. Every gram field is empty until the owner weighs the recipe.
+   - The step then adds the dish list and its import. Each dish's values are computed from the
+     IFCT list and marked "estimated".
+   - *Before:* on 2026-10-29, NIN's *Dietary Guidelines for Indians* (2024) could not be read
+     from here. NIN's own copy was found on 2026-10-30, but it gives no weight for one dish
+     portion, so it is not used ([`food-list-sources.md`](../data/food-list-sources.md)).
 9. **Close-out.** Documents, ADR results and the batched owner checks.
 
 ## Owner's actions and checks at the end of the slice
@@ -126,7 +142,8 @@ in the step that builds each one.
 4. An OK to start the EAS development build (the 3rd of this month's 15). It carries
    `expo-camera`, `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`. **OK given
    2026-10-29**; the build was started.
-5. The source document for the dishes (step 8), then review of the quoted sources.
+5. The dishes (step 8): weigh each recipe and fill in the standard-recipe sheet, then approve it
+   by merging the dish pull request. **Method approved 2026-10-30** (D-26 answer 3, amended).
 6. The phone checks below.
 
 ## Phone checks (batched)

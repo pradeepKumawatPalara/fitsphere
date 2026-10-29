@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { IFCT_ACKNOWLEDGEMENT } from '@fitsphere/shared';
 import { describe, expect, it } from 'vitest';
 import { CsvError, parseCsv } from './csv.ts';
 import { FoodListError, IFCT_HEADER, readIfctCsv } from './ifct.ts';
@@ -6,7 +7,29 @@ import { FoodListError, IFCT_HEADER, readIfctCsv } from './ifct.ts';
 // The food-list import (ADR-0006 rule 1; D-25, D-26; docs/data/food-list-sources.md).
 
 const CSV = readFileSync(new URL('../../../../data/foods/ifct2017-foods.csv', import.meta.url), 'utf8');
+const SOURCES_DOC = readFileSync(new URL('../../../../docs/data/food-list-sources.md', import.meta.url), 'utf8');
 const HEADER = IFCT_HEADER.join(',');
+
+/** The text of each top-level block quote in a Markdown file, its lines joined with spaces. */
+function blockQuotes(markdown: string): string[] {
+  const quotes: string[] = [];
+  let lines: string[] = [];
+  for (const line of [...markdown.split(/\r?\n/), '']) {
+    if (line.startsWith('> ')) {
+      lines.push(line.slice(2));
+    } else if (lines.length > 0) {
+      quotes.push(lines.join(' '));
+      lines = [];
+    }
+  }
+  return quotes;
+}
+
+describe('D-25 the IFCT acknowledgement', () => {
+  it('is the citation food-list-sources.md gives, word for word', () => {
+    expect(blockQuotes(SOURCES_DOC)).toContain(IFCT_ACKNOWLEDGEMENT);
+  });
+});
 
 describe('CSV reader', () => {
   it('reads quoted fields with commas, doubled quotes and line breaks', () => {

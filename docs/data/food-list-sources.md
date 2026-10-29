@@ -2,14 +2,17 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (D-25: the owner decided to use the list without NIN permission;
-  accepted risk R-007)
+- Last updated: 2026-10-30 (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
+  sheet; the IFCT 2017 book's own terms read; the app's acknowledgement is now the book's
+  citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission; accepted
+  risk R-007)
 - Builds on: [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) (food data, Accepted —
   D-18); REQ-LOG-007, REQ-NUT-002
 
 Where the values in [`data/foods/ifct2017-foods.csv`](../../data/foods/ifct2017-foods.csv) come
 from, the licence condition on them and the owner's decision about it, how the file was made, and
-the checks it passed. D- numbers
+the checks it passed. The last section covers dishes, which FitSphere's own standard-recipe sheet
+defines (D-26, amended 2026-10-30). D- numbers
 refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md).
 
 ## Licence — owner decision D-25, accepted risk R-007
@@ -21,7 +24,9 @@ carries as **R-007** in
 may be used in development and in release builds. The app shows the acknowledgement text below
 wherever IFCT values are shown.
 
-The condition the decision was taken against, word for word from page 17 of the source PDF:
+The condition the decision was taken against, word for word from page 17 of the source PDF, the
+"Source and permissions" paragraph below the appendix. The PDF's printed page numbers match its
+page order.
 
 > **Source and permissions.** Indian Food Composition Tables 2017, T. Longvah, R. Ananthan,
 > K. Bhaskarachary and K. Venkaiah, National Institute of Nutrition, ICMR, Hyderabad.
@@ -34,8 +39,17 @@ The condition the decision was taken against, word for word from page 17 of the 
 Notes on the decision:
 - The quoted condition covers storing the data in electronic form "for creating a product", not
   only shipping it. D-25 accepts both, as risk R-007.
-- The quoted condition is the PDF compiler's summary of NIN's terms. The terms in the IFCT 2017
-  book itself were not read.
+- The quoted condition is the PDF compiler's summary of NIN's terms. **The IFCT 2017 book's own
+  terms were read on 2026-10-30**, in NIN's copy of the book (listed in
+  [`docs/sources/README.md`](../sources/README.md); the PDF is kept outside the repository). Its
+  copyright page (unnumbered, page 3 of the PDF) says:
+
+  > The use and dissemination of the data in this book is encouraged. This publication can be
+  > reproduced for personal use with full acknowledgment of the source. However, no part of this
+  > publication can be stored or reproduced in any electronic format for creating a product
+  > without the prior written permission of the National Institute of Nutrition, Hyderabad.
+
+  It matches the compiler's summary, so the condition D-25 was decided against is NIN's own.
 - ADR-0006 records that its licence question was decided by the owner under D-25.
 
 ## Source
@@ -48,7 +62,7 @@ Notes on the decision:
 | File used | `IFCT2017_Nutrient_Knowledge_Base (1).pdf`, 17 pages, SHA-256 `d91eed97bc387aa0695239f28b82581582cb9c65859048a10b0223ea71504061`. Kept outside the repository and not committed |
 | Coverage | 542 foods in 20 food groups, codes A001–T014 |
 
-What the PDF says about its values (page 1):
+What the PDF says about its values (page 1, first paragraph):
 - Values are per 100 g edible portion, "raw, as published". Protein, fibre, fat and carbohydrate
   are in grams.
 - **Calories are in kcal, "converted from the published kilojoule figure (1 kcal = 4.184 kJ)".**
@@ -64,17 +78,19 @@ What the PDF says about its values (page 1):
 
 ### Acknowledgement text
 
-The PDF gives this citation, quoted above in full:
+**Shown in the app (D-25):** wherever IFCT values are shown, the app shows the citation the IFCT
+2017 book asks for. The book's copyright page (unnumbered, page 3 of the PDF) introduces it with
+"Citation of this book should be given as-":
 
-> Indian Food Composition Tables 2017, T. Longvah, R. Ananthan, K. Bhaskarachary and K. Venkaiah,
-> National Institute of Nutrition, ICMR, Hyderabad.
+> Longvah, T., Ananthan, R., Bhaskarachary, K. and Venkaiah, K. (2017). Indian Food Composition
+> Tables 2017, National Institute of Nutrition, Indian Council of Medical Research, Hyderabad,
+> Telangana, India.
 
-Every page also has this footer: "Source: ICMR-NIN, Indian Food Composition Tables 2017". The
-PDF gives no other acknowledgement wording.
-
-**Shown in the app (D-25):** wherever IFCT values are shown, the app shows the citation above, as
-written: "Indian Food Composition Tables 2017, T. Longvah, R. Ananthan, K. Bhaskarachary and K.
-Venkaiah, National Institute of Nutrition, ICMR, Hyderabad."
+The owner chose this wording on 2026-10-30. Until then the app showed the shorter citation the PDF
+gives, quoted above in full: "Indian Food Composition Tables 2017, T. Longvah, R. Ananthan,
+K. Bhaskarachary and K. Venkaiah, National Institute of Nutrition, ICMR, Hyderabad." Every page of
+the PDF also has this footer: "Source: ICMR-NIN, Indian Food Composition Tables 2017". The PDF
+gives no other acknowledgement wording.
 
 ## The CSV
 
@@ -238,4 +254,90 @@ top of them:
 - Names keep the PDF's spelling, so searching for "gooseberry" or "quail" will not find E021,
   M014 or M015 without aliases.
 - The list holds ingredients, not dishes (roti, cooked dal, sabzi), and has no common portions
-  ("1 katori"). ADR-0006 asks for both, so they need another source or later work.
+  ("1 katori"). ADR-0006 asks for both. Dishes come from FitSphere's standard-recipe sheet (next
+  section).
+
+## Dishes: FitSphere's standard-recipe sheet (D-26, amended 2026-10-30)
+
+The IFCT list has raw ingredients, not cooked dishes, and no portions. A dish is therefore defined
+by FitSphere's own standard-recipe sheet, [`standard-recipe-sheet.csv`](standard-recipe-sheet.csv).
+The owner writes it by weighing raw ingredients, and approves it (D-26 answer 3, amended
+2026-10-30). NIN's guidelines, INDB data and USDA data are not used as sources (table below).
+
+- **Values:** for each ingredient, IFCT's values per 100 g × its raw grams in one portion, added up
+  and marked "estimated". Oils and ghee use the 9 kcal per gram of fat above.
+- **Portions:**
+  - per piece for roti, phulka, paratha, puri, idli, dosa, egg and omelette;
+  - per katori for every other dish, with 1 katori = 200 ml.
+  - Logged in half portions, 0.5 to 10.
+- **Portions only:** a dish has no per-100 g cooked values and cannot be logged by cooked weight,
+  since those would need yield factors.
+- **Status (2026-10-30): empty.** The sheet lists 25 dishes with their IFCT ingredients. Every gram,
+  count, "measured by" and date cell stays empty until the owner weighs the recipe. No dish values
+  exist yet.
+- **Deferred, not dropped (backlog B-26):** curd and raita, masala chai, besan dishes and chole.
+  The IFCT list has no curd, white sugar, tea or besan, and B002 "Bengal gram, whole" does not say
+  which chickpea it is.
+
+The sheet: UTF-8 without a byte-order mark, LF line endings, one header row and one row per dish.
+
+| Column | Meaning |
+|---|---|
+| `dish` | Dish name |
+| `portion_unit` | `piece`, or `katori (200 ml)` |
+| `ingredient_1` … `ingredient_6` | An ingredient, named as printed in the IFCT list: raw, except the cooked entries below |
+| `ifct_code_1` … `ifct_code_6` | Its IFCT code. Empty where there is a choice to make; the note lists the choices |
+| `raw_g_per_portion_1` … `raw_g_per_portion_6` | Raw grams of that ingredient in one portion: its raw grams in the weighed batch ÷ the batch's count |
+| `oil_or_ghee`, `oil_or_ghee_ifct_code` | The fat used: ghee T013, or an oil T001–T012 |
+| `oil_or_ghee_g_per_portion` | Grams of fat in one portion: the fat used in the batch ÷ the batch's count. For a fried dish, the fat the batch absorbs |
+| `cooked_g_per_piece` | Only for a dish that is one cooked IFCT entry (M004, M007): the cooked grams of one piece, the weighed cooked pieces' grams ÷ `pieces_per_batch` |
+| `pieces_per_batch` | For a piece dish: how many pieces the weighed batch made |
+| `katoris_per_batch` | For a katori dish: how many 200 ml katoris the cooked batch filled |
+| `measured_by`, `date` | Who weighed the recipe, and the date (YYYY-MM-DD) |
+| `notes` | The counting rule, choices still to make, and anything else about the recipe |
+
+**Counting rule.** Grams per portion = the weighed batch's grams ÷ its count: `pieces_per_batch`
+for a piece dish, `katoris_per_batch` for a katori dish. Each row's note starts with the rule for
+its kind of dish.
+
+**Cooked IFCT entries (the exception in D-26 answer 3).** Where IFCT publishes a cooked value for
+the whole item, that value is used per gram of the cooked item, and the sheet records the cooked
+grams per piece in `cooked_g_per_piece`. Two rows do this: M004 "Egg, poultry, whole, boiled" and
+M007 "Egg, poultry, omlet". The IFCT 2017 book says its egg values are not all for raw food:
+
+> Except for eggs, all other food component data are for foods in the raw form.
+
+(Preface, printed page i.)
+
+> All data except for poultry and egg pertains to raw food.
+
+(General information, printed page xx.)
+
+- **The omelette and oil: unclear.** The book does not say how M007 was prepared, or whether oil
+  was used. Its text, searched on 2026-10-30, does not describe how any egg was cooked; M007
+  appears only as a row in its tables. So it is not known whether the omelette row should add oil.
+- **Poultry: unclear.** Page xx names poultry as well as egg, but the preface names eggs only, and
+  the poultry entries' names do not say "cooked". The chicken curry row uses N002 or N003 as a raw
+  ingredient; whether IFCT's poultry values are raw is worth confirming.
+
+### Cooked-dish and portion sources considered and not used
+
+Searched and read on 2026-10-29 and 2026-10-30. Page numbers are the printed ones. The NIN
+documents are listed, with their hashes and terms, in [`docs/sources/README.md`](../sources/README.md);
+the PDFs are kept outside the repository.
+
+| Source | What it has for dishes | Why it is not used |
+|---|---|---|
+| NIN, *Dietary Guidelines for Indians*, 2024 | Raw food-group amounts; katori sizes (Annexure I, pp. 111–112); raw-food measures in household utensils (Annexure II, pp. 113–124); infant recipes | No weight for one adult dish portion. Its copyright page asks for NIN's written permission before electronic use in a product |
+| NIN, *Dietary Guidelines for Indians – A Manual*, 2011 | Approximate kcal per household serving of 56 cooked dishes (Annexure 8, pp. 106–107); sample meal plans (Annexure 2a, 2b, pp. 87–88) | No grams, protein or ingredients. Not to be reproduced for commercial purposes; NIN's approval is asked for |
+| NIN, *My Plate for the Day*; NIN's short guidelines booklet | Food-group amounts | No dish portions |
+| The IFCT 2017 book | Raw foods, except eggs (pp. i, x and xx; see "Cooked IFCT entries" above) | No cooked dishes or household measures |
+| Indian Nutrient Databank (INDB): Vijayakumar A, Dubasi HB, Awasthi A, Jaacks LM, "Development of an Indian Food Composition Database", *Curr Dev Nutr* 2024;8(7):103790; data on GitHub (`lindsayjaacks/Indian-Nutrient-Databank-INDB-`) | 1,014 recipes with ingredients, grams and servings; values per 100 g of the ingredients' total weight, with no cooking-yield correction | The data has no licence. It is built on IFCT 2017 and on recipes from two copyrighted cookbooks |
+| USDA FoodData Central | A few Indian dishes in US recipes (dal, dosa, sambar, cooked rice, a commercial chapati), with gram portions; public domain (CC0) | US recipes, not IFCT ingredients. The owner chose not to use it |
+| USDA *Table of Nutrient Retention Factors*, Release 6 (2007) | Nutrient retention in cooking | No weight yields |
+| USDA *Table of Cooking Yields for Meat and Poultry* (2014) | Cooking yields | Meat and poultry only |
+| Bognár (2002), tables of weight yield and retention factors (Bundesforschungsanstalt für Ernährung, Karlsruhe) | Weight yields of cooked foods, by its title | Not found on an official site |
+| FAO/INFOODS *Food Composition Study Guide* (module 8, recipes) and *Guidelines for Food Matching* 1.2 (2012) | Recipe-calculation and food-matching guidance | Guidance, not Indian dish data. FAO's website terms allow non-commercial use. Not read in full |
+| EuroFIR recipe-calculation reports (Reinivuo and Laitinen, 2007; Vásquez-Caicedo and others, 2008); USDA *Agriculture Handbook No. 102* (1975) | Methods; yields by stage of preparation, by title | Not read: methods, not Indian dish data |
+| *Indian Journal of Nutrition and Dietetics*: "Some Common Indian Recipes and their Nutritive Value" and "Standardisation and Nutrient Analysis of Nine Commonly Used South Indian Recipes"; "Enhancing FKG.in: automating Indian food composition analysis" (arXiv 2412.05248) | Recipe nutrient values, by title | Found in searches, not read; licences unknown |
+| A news report on the 2024 guidelines (*The Tribune*) | Says one roti is about 30 g of flour | Not a primary source; the claim is not in the guidelines' text |

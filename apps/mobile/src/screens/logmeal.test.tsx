@@ -236,7 +236,11 @@ describe('REQ-LOG-003 and the review before saving', () => {
     await render();
 
     expect(await screen.findByText('AI meal reading is coming soon')).toBeOnTheScreen();
-    expect(screen.getByText(/cooked rice weighs about 3 times raw/)).toBeOnTheScreen();
+    expect(
+      screen.getByText('Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.'),
+    ).toBeOnTheScreen();
+    // The cooked-rice example has no supporting source (D-26 answer 3, amended 2026-10-30).
+    expect(screen.queryByText(/cooked rice weighs/)).toBeNull();
   });
 });
 

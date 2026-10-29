@@ -2,7 +2,8 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (D-24: REQ-HOME-008, the Measurements card shows and edits a date's
+- Last updated: 2026-10-30 (D-26 answer 3, amended: REQ-LOG-008's cooked-rice example flagged as
+  unsupported). 2026-10-29 (D-24: REQ-HOME-008, the Measurements card shows and edits a date's
   measurements). Earlier the same day (Home and daily tracking slice, D-23): where targets are
   set; storage units for sleep and measurements; the parts of REQ-HOME-002, REQ-HOME-003/004,
   REQ-HOME-005 and REQ-HOME-007 that wait for meals or workouts. 2026-10-28 (D-20: Coach and Head
@@ -482,7 +483,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039).
 
 ### REQ-LOG-008 — Guidance
-- Requirement: Best-practice tips (amounts in grams; raw vs cooked, e.g. cooked rice weighs about 3× raw; name each food separately).
+- Requirement: Best-practice tips (amounts in grams; raw vs cooked; name each food separately).
+- **Unsupported example, flagged (D-26 answer 3, amended 2026-10-30):** the BRD's example (BRD §8), "rice weighs about three times more cooked", has no supporting source, so it is not part of this requirement. FitSphere logs dishes in portions, not by cooked weight. The example is removed from the Log meal screen's tips (`apps/mobile/src/screens/LogMealScreen.tsx`).
 - **Post-MVP:** a collapsible Examples section (Best, Vague, Say) with Hide (D-18, backlog B-04).
 
 ### REQ-LOG-009 — AI parsing

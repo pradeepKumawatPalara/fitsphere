@@ -2,7 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (D-25: the IFCT licence is not release-blocking). Earlier the same day
+- Last updated: 2026-10-30 (D-26 answer 3, amended: B-26, dishes deferred until their missing
+  ingredients have a source). 2026-10-29 (D-25: the IFCT licence is not release-blocking). Earlier
+  the same day
   (Home and daily tracking slice, D-23: E-09 to E-12). Earlier the same
   day (D-22): release-blocking tasks, deferred Skeleton checks, B-25
 
@@ -48,7 +50,7 @@ email on (RB-03). The exact steps are in the Skeleton plan.
 | SC-13 | A token saved more than an hour earlier gets `401` from `/v1/me` | ADR-0004 step 3 | 6, check 7 |
 
 ## Post-MVP features
-From `mvp-scope.md` section 3, plus items the D-18 and D-20 answers moved out of the MVP.
+From `mvp-scope.md` section 3, plus items the D-18, D-20 and D-26 answers moved out of the MVP.
 
 | ID | Item | Affects | Notes |
 |---|---|---|---|
@@ -77,6 +79,7 @@ From `mvp-scope.md` section 3, plus items the D-18 and D-20 answers moved out of
 | B-23 | Push check on the phone (was Skeleton step 11) | ADR-0001 step 7, D-13 answer 9, Q-083 | D-20. Needs a free Firebase project with `com.fitsphere.app`, its FCM V1 key uploaded to EAS credentials, `expo-notifications` and a new EAS build. Send a notification with Expo's push tool; it arrives on the phone |
 | B-24 | iOS compile check (was Skeleton step 12) | ADR-0001 step 5, R-001 | D-20. One EAS iOS simulator build; uses 1 of the free plan's iOS builds and needs no Apple account. Before the iOS release (B-01) |
 | B-25 | Phone time-zone check: with the phone set to Los Angeles, "Today (IST)" keeps India's date and a weight gets the IST day (was Skeleton step 3's phone check and step 10's check 5) | ADR-0007 step 5, REQ-DATE-004, invariant #5 | D-22: dropped for the MVP, which serves India only (D-09). Automated tests cover it under `Asia/Kolkata` and `America/Los_Angeles`. Run with B-09 |
+| B-26 | Dishes deferred until their missing ingredients have a source: curd and raita, masala chai, besan dishes (such as besan chilla, dhokla and pakora), and chole | REQ-LOG-007, ADR-0006 rule 1 | D-26 answer 3, amended 2026-10-30: deferred, not dropped. The IFCT list has no curd, white sugar, tea or besan, and B002 "Bengal gram, whole" does not say which chickpea it is. A source for those ingredients needs the owner's approval |
 
 ## Deferred edge cases
 Found while applying D-18. The MVP behaviour applies until an item is picked up. E-02 and E-03
