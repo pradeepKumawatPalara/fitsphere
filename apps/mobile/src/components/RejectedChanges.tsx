@@ -8,6 +8,8 @@ import {
   STEPS_SET,
   TARGET_SET,
   WEIGH_IN_SET,
+  WORKOUT_DELETE,
+  WORKOUT_SET,
   type ChangeErrorCode,
   type MealType,
   type TargetKind,
@@ -21,7 +23,7 @@ import { TARGETS } from '../targets';
 
 // A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2, D-14).
 // Text from the error model: "This weight wasn't saved: <reason>. Edit or discard it.", with its
-// own subject for steps, sleep, measurements and targets (MVP default, D-23).
+// own subject for steps, sleep, measurements and targets (MVP default, D-23) and workouts (D-29).
 const REASONS: Record<ChangeErrorCode, string> = {
   DAY_IN_FUTURE: 'the date is in the future',
   VALIDATION_FAILED: 'the value is not valid',
@@ -54,6 +56,11 @@ export function describeRejected(entry: OutboxEntry): { what: string; notSaved: 
       return { what: `Saved meal · ${String(data.name)}`, notSaved: "This saved meal wasn't saved" };
     case SAVED_MEAL_DELETE:
       return { what: 'A saved meal', notSaved: "This saved meal wasn't deleted" };
+    // A workout and its deletion (MVP default, D-29).
+    case WORKOUT_SET:
+      return { what: `${day} · workout`, notSaved: "This workout wasn't saved" };
+    case WORKOUT_DELETE:
+      return { what: 'A deleted workout', notSaved: "This workout wasn't saved" };
     case TARGET_SET: {
       const target = TARGETS[data.kind as TargetKind];
       return {
@@ -73,7 +80,8 @@ export function rejectedText(notSaved: string, code: string | null): string {
 
 type Props = {
   entries: OutboxEntry[];
-  onEdit(entry: OutboxEntry): void;
+  /** Left out where the entry is already being edited, e.g. on its workout's screen. */
+  onEdit?: (entry: OutboxEntry) => void;
   onDiscard(changeId: string): void;
 };
 
@@ -88,8 +96,8 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
             <Text style={styles.what}>{what}</Text>
             <Text>{rejectedText(notSaved, entry.errorCode)}</Text>
             <View style={styles.actions}>
-              {/* A deletion has nothing to edit: discarding it keeps the server's copy. */}
-              {entry.type === MEAL_DELETE || entry.type === SAVED_MEAL_DELETE ? null : (
+              {/* A meal's deletion has nothing to edit: discarding it keeps the server's copy. */}
+              {!onEdit || entry.type === MEAL_DELETE || entry.type === SAVED_MEAL_DELETE ? null : (
                 <Button title="Edit" onPress={() => onEdit(entry)} />
               )}
               <Button title="Discard" onPress={() => onDiscard(entry.changeId)} />
