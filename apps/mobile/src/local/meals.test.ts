@@ -260,7 +260,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 3 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 4 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);

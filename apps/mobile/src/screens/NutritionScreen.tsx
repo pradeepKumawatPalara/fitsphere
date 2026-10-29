@@ -149,6 +149,7 @@ export function NutritionScreen() {
                       tags={meal.tags}
                       totals={meal}
                       syncState={meal.syncState}
+                      photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
                       onMenu={() => setSheet({ kind: 'mealMenu', meal })}
                     />
                   ))}

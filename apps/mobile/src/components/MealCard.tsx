@@ -1,7 +1,8 @@
-import type { MealItem, MealTag, MealTotals } from '@fitsphere/shared';
+import type { MealItem, MealPhoto, MealTag, MealTotals } from '@fitsphere/shared';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SyncState } from '../local/store';
 import { describeItems, formatGrams, formatKcal, MEAL_TAG_LABELS } from '../meals';
+import { MealPhotoPreview } from './MealPhotoPreview';
 
 type Props = {
   /** What the ••• button is called for screen readers, e.g. "Lunch: Wheat flour, atta". */
@@ -10,13 +11,15 @@ type Props = {
   tags: MealTag[];
   totals: MealTotals;
   syncState: SyncState;
+  /** A logged meal's photo or image link (REQ-LOG-006, REQ-LOG-010); saved meals have none. */
+  photo?: { mealId: string; photo: MealPhoto } | null;
   onMenu(): void;
   onPress?(): void;
 };
 
 // One logged or saved meal (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001): its foods, kcal and protein,
-// a small label per tag (Q-031), and the ••• menu.
-export function MealCard({ title, items, tags, totals, syncState, onMenu, onPress }: Props) {
+// a small label per tag (Q-031), its photo or image link, and the ••• menu.
+export function MealCard({ title, items, tags, totals, syncState, photo, onMenu, onPress }: Props) {
   const note = syncState === 'pending' ? 'Waiting to sync' : syncState === 'rejected' ? 'Not saved' : null;
   return (
     <View style={styles.card}>
@@ -42,6 +45,7 @@ export function MealCard({ title, items, tags, totals, syncState, onMenu, onPres
         ) : null}
         {note ? <Text style={styles.note}>{note}</Text> : null}
       </Pressable>
+      {photo ? <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} /> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={`More for ${title}`} onPress={onMenu} style={styles.menu}>
         <Text style={styles.menuText}>•••</Text>
       </Pressable>

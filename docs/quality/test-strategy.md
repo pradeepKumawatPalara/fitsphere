@@ -195,6 +195,25 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   over-long links refused (also in the shared contract tests).
 - Against the real bucket: `npm run check:storage` (runbook), run by the owner.
 
+### Meal photos on the phone (REQ-LOG-006, REQ-LOG-010, REQ-NFR-006)
+- The phone store (unit tests): a new photo is saved with its meal and counts as unsynced until
+  uploaded; a link has no file; replacing, removing, deleting, a deletion from another phone and
+  discarding each remove the photo; pruning keeps a meal whose photo waits; files read from
+  storage are kept only for a photo a meal names; the update from local version 3.
+- Uploading and viewing (unit tests, fake API and storage): both files are put as JPEG once the
+  meal has synced, not before; offline keeps the photo for later; the FitSphere ID is read once;
+  a photo from another phone is read once and then shown offline; "unavailable" when the file is
+  not uploaded yet.
+- Shrinking (unit tests, fake camera and encoder): 1,280 px and lower quality until about
+  200 KB, a 240 px thumbnail, portrait and small photos, temporary files deleted and nothing
+  outside the cache, no camera permission, cancelled.
+- Screens (component tests): taking a photo, saving and uploading it; the camera-permission and
+  unusable-photo messages; Edit removing a photo; the link's https rule, warning, Cancel and Add
+  link; the thumbnail opening the photo with no download; a link opening in the browser and
+  never fetched.
+- On the phone (batched checks): the photo's size and thumbnail, no location data in the
+  uploaded file, temporary files gone, the viewing link expiring after 5 minutes.
+
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
 and fails if it contains the weight value, a measurement value or its notes, a target value, the
