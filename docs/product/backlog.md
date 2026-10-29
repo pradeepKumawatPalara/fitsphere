@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (D-22: release-blocking tasks, deferred Skeleton checks, B-25)
+- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: E-09 to E-12). Earlier the same
+  day (D-22): release-blocking tasks, deferred Skeleton checks, B-25
 
 Work that is **not** in the MVP (D-18, D-20, [`mvp-scope.md`](mvp-scope.md)). Nothing here is built
 until the owner moves it into a release. **Exception:** the first two sections list work that must
@@ -87,3 +88,7 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-06 | A password-reset link opened on another phone, or after reinstalling the app | REQ-ACC-010 | The link works only on the phone that asked for the reset (PKCE); elsewhere the app says so and offers a new link (Skeleton step 7) |
 | E-07 | Signing up again with an address whose old test account was deleted from Supabase Auth but not from the FitSphere database | REQ-ACC-010 | Account setup answers `500`; delete the old `app.users` row by hand on the development project (Skeleton plan, risks) |
 | E-08 | The phone's database belongs to another user when the app starts, e.g. after an interrupted log out | REQ-ACC-008 | It is deleted with its key and a new one is created; anything unsynced in it is lost (Skeleton step 8) |
+| E-09 | Removing a target, rather than changing it | REQ-ROLE-007 | A target can be changed but not removed (D-23) |
+| E-10 | Showing and editing Home for days older than the 90 days the phone holds, online | REQ-DATE-001, ADR-0007 rule 1 | The calendar and the week strip stop at 90 days; older history is viewed in Progress (D-23) |
+| E-11 | Target history: a target that applies from the day it was set, so past days keep the target they had (Q-014) | REQ-ROLE-007, REQ-PRG-005 | One current value per target, applying to every day shown (D-23) |
+| E-12 | Changing the measurements sheet's date after typing values | REQ-MEAS-002 | The fields show the new day's entry, or empty fields, so values typed for the old day are cleared (D-23) |

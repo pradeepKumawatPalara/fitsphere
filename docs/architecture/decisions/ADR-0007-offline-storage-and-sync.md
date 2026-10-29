@@ -141,6 +141,22 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
 - **Step 6:** the app stops when SQLCipher is missing and never sets a key on a plain database
   (`database.test.ts`). The start-up check and the unreadable file are step 8's phone checks:
   pending, deferred to before the release by D-22 (backlog SC-08 and SC-07).
+- **Step 1, extended to steps, sleep, measurements and targets — passed in automated tests on
+  2026-10-29** (Home and daily tracking slice, steps 2 and 3, D-23; PC with PostgreSQL 17,
+  synthetic data):
+  - each change type is applied once by its `changeId`;
+  - the pull pages across the five kinds with one cursor;
+  - the 90-day window applies to day data, never to targets;
+  - on the phone, the outbox life cycle, pruning and the rule that a waiting change holds back
+    only its own kind and key (`daily-tracking.test.ts`, `dailyStore.test.ts`,
+    `syncClient.test.ts`);
+  - local schema version 2 keeps a version 1 database's data and clears its cursor.
+
+  **Pending, in the slice's batched phone checks:** offline steps, sleep, measurements and a
+  target sync after reconnecting, and come back after log out and sign in (plan check 6).
+- **Step 4, extended — passed in automated tests on 2026-10-29:** rejected steps, sleep,
+  measurements and targets stay until fixed or discarded, each with its own text
+  (`tiles.test.tsx`, `measurements.test.tsx`, `dailyStore.test.ts`).
 
 ## Revisit conditions
 Sync bugs grow costly to maintain; real-time features required; device storage problems.

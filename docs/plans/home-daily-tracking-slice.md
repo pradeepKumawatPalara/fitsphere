@@ -2,7 +2,8 @@
 
 - Status: **Accepted**, approved by the project owner on 2026-10-29 (D-23)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29
+- Last updated: 2026-10-29 (steps 1 to 7 built and opened as pull requests #11 to #17; the owner's
+  checks are pending)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 2 (D-18, D-20); the
   [Skeleton slice](skeleton-slice.md); the contracts in [`docs/contracts/`](../contracts/);
   [`test-strategy.md`](../quality/test-strategy.md);
@@ -27,8 +28,9 @@ Where the contracts define something, this plan does not repeat it.
 | 3. Phone: local schema v2, store and sync client | Pull request #13 | `home/03-phone-daily-data` |
 | 4. Navigation shell | Pull request #14 | `home/04-navigation` |
 | 5. Own targets, calories and protein cards, workout tracker | Pull request #15. The generic number sheet is built here, for the targets, instead of in step 6 | `home/05-targets-and-cards` |
-| 6. Steps and sleep tiles | Built; automated checks pass | `home/06-steps-sleep` |
-| 7. Measurements card and sheet; close-out | Not started | `home/07-measurements` |
+| 6. Steps and sleep tiles | Pull request #16 | `home/06-steps-sleep` |
+| 7. Measurements card and sheet; close-out | Built; automated checks pass | `home/07-measurements` |
+| Owner's checks at the end of the slice | Pending: merge, migration 0002 on `fitsphere-dev`, phone checks 1 to 7 | — |
 
 ## Scope
 | In this slice | Requirements |

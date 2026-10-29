@@ -1,4 +1,17 @@
-import { fromGrams, toGrams, WEIGHT_GRAMS_MAX, WEIGHT_GRAMS_MIN, isWeightGramsInRange, type IstDay } from '@fitsphere/shared';
+import {
+  fromGrams,
+  fromMillimetres,
+  isMeasurementMmInRange,
+  isWeightGramsInRange,
+  MEASUREMENT_MM_MAX,
+  MEASUREMENT_MM_MIN,
+  toGrams,
+  toMillimetres,
+  WEIGHT_GRAMS_MAX,
+  WEIGHT_GRAMS_MIN,
+  type IstDay,
+  type LengthUnit,
+} from '@fitsphere/shared';
 
 // Display helpers. Days are IST days written YYYY-MM-DD; reading their parts in UTC keeps them
 // independent of the phone's time zone (invariant #5).
@@ -109,4 +122,25 @@ export function monthWeeks(month: string): (IstDay | null)[][] {
  */
 export function nameFromEmail(email: string | null): string {
   return email?.split('@')[0] ?? '';
+}
+
+/**
+ * The lowest and highest one-decimal values in `unit` that store within 10–250 cm (Q-028): 10.0 to
+ * 250.0 cm, and 4.0 to 98.4 in.
+ */
+export function measurementRange(unit: LengthUnit): { min: number; max: number } {
+  const step = (value: number, by: number) => Math.round((value + by) * 10) / 10;
+  let min = fromMillimetres(MEASUREMENT_MM_MIN, unit);
+  if (!isMeasurementMmInRange(toMillimetres(min, unit))) min = step(min, 0.1);
+  let max = fromMillimetres(MEASUREMENT_MM_MAX, unit);
+  if (!isMeasurementMmInRange(toMillimetres(max, unit))) max = step(max, -0.1);
+  return { min, max };
+}
+
+/** Reads a length typed with at most one decimal in `unit`: whole millimetres, or null. */
+export function parseLength(text: string, unit: LengthUnit): number | null {
+  const value = parseOneDecimal(text);
+  if (value === null) return null;
+  const mm = toMillimetres(value, unit);
+  return isMeasurementMmInRange(mm) ? mm : null;
 }

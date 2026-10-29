@@ -27,11 +27,11 @@ Last updated: 2026-10-29
 | 7 | [`architecture/system-context.md`](architecture/system-context.md) | Draft | Project owner | System boundary, externals, trust boundaries |
 | 8 | [`security/data-and-threat-model.md`](security/data-and-threat-model.md) | Draft | Project owner | Data categories, threats, controls |
 | 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 and 0003 are Accepted (D-17), ADR-0004 to 0007 are Accepted (D-18), ADR-0008 is a planned slot |
-| 10 | [`contracts/`](contracts/) | Draft | Project owner | For the Skeleton slice: [`data-model.md`](contracts/data-model.md), [`api-conventions.md`](contracts/api-conventions.md), [`error-model.md`](contracts/error-model.md). `integrations.md` is not needed yet |
+| 10 | [`contracts/`](contracts/) | Draft | Project owner | For the Skeleton and Home and daily tracking slices: [`data-model.md`](contracts/data-model.md), [`api-conventions.md`](contracts/api-conventions.md), [`error-model.md`](contracts/error-model.md). `integrations.md` is not needed yet |
 | 11 | [`quality/test-strategy.md`](quality/test-strategy.md), [`definition-of-done.md`](quality/definition-of-done.md) | Accepted | Project owner | Verification; agreed with the Skeleton plan (2026-10-28) |
 | 12 | [`operations/runbook.md`](operations/runbook.md) | Draft | Project owner | Local setup (install and check commands verified on the owner's PC; the rest not yet run), configuration names, paused project (D-16) |
 | 13 | [`plans/skeleton-slice.md`](plans/skeleton-slice.md) | Accepted | Project owner | The Skeleton slice: steps, checks and progress (D-18 answer 14; development on the phone with EAS Build, D-19; steps 11–12 moved to the backlog and self-access authorization, D-20; steps run back to back, D-21; done with deferred checks, D-22) |
-| 14 | [`plans/home-daily-tracking-slice.md`](plans/home-daily-tracking-slice.md) | Accepted | Project owner | Slice 2, Home and daily tracking: scope, MVP defaults, steps, checks and progress (D-23), including `npm run dev:phone` (D-22) |
+| 14 | [`plans/home-daily-tracking-slice.md`](plans/home-daily-tracking-slice.md) | Accepted | Project owner | Slice 2, Home and daily tracking: scope, MVP defaults, steps, checks and progress (D-23), including `npm run dev:phone` (D-22). Built; the owner's checks are pending |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.
