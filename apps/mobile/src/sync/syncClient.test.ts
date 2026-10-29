@@ -3,6 +3,7 @@ import { fakeServer } from '../testing/fakeServer';
 import { memoryDb } from '../testing/memoryDb';
 import type { SqlDb } from '../local/sql';
 import {
+  deleteEntry,
   getEntry,
   getMeta,
   getWeighIn,
@@ -12,10 +13,11 @@ import {
   rejectedChanges,
   saveEntry,
   saveWeighIn,
+  searchFoods,
   setMeta,
   unsyncedCount,
 } from '../local/store';
-import { syncNow } from './syncClient';
+import { refreshFoodList, syncNow } from './syncClient';
 
 // Wednesday 28 October 2026, 09:00 IST.
 const NOW = new Date('2026-10-28T03:30:00Z');
@@ -193,5 +195,81 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
     await syncNow(db, auth(server), clock);
 
     expect(await getEntry(db, 'steps', '2026-10-20')).toMatchObject({ steps: 4_000 });
+  });
+});
+
+describe('Meal logging: the sync client', () => {
+  const ATTA = {
+    source: 'ifct2017' as const,
+    ref: 'A019',
+    name: 'Wheat flour, atta',
+    amount: { unit: 'g' as const, value: 60 },
+    kcal: 192,
+    proteinG: 6.34,
+    carbsG: 38.5,
+    fatG: 0.92,
+    fibreG: 6.82,
+    estimated: false,
+  };
+  const MEAL_ID = '6a1f3c2e-0b7d-4c5e-9f8a-1b2c3d4e5f60';
+
+  it('REQ-NFR-004 a meal saved and then deleted offline reaches the server as deleted', async () => {
+    const server = fakeServer(NOW);
+    server.state.offline = true;
+    await saveEntry(db, 'meal', {
+      changeId: '00000000-0000-4000-8000-0000000000b1',
+      data: { id: MEAL_ID, day: '2026-10-28', mealType: 'lunch', tags: [], items: [ATTA], recordedAt: NOW.toISOString() },
+    });
+    await syncNow(db, auth(server), clock);
+    await deleteEntry(db, 'meal', { changeId: '00000000-0000-4000-8000-0000000000b2', data: { id: MEAL_ID, deletedAt: NOW.toISOString() } });
+    server.state.offline = false;
+
+    expect(await syncNow(db, auth(server), clock)).toBe('synced');
+
+    expect(await unsyncedCount(db)).toBe(0);
+    expect(server.entries('meals').get(MEAL_ID)).toMatchObject({ deleted: true });
+    expect(await getEntry(db, 'meal', MEAL_ID)).toBeNull();
+  });
+
+  it('ADR-0007 meals saved and deleted on another phone arrive and leave', async () => {
+    const server = fakeServer(NOW);
+    server.storeMealFromElsewhere({ id: MEAL_ID, day: '2026-10-27', mealType: 'dinner', tags: [], items: [ATTA], recordedAt: NOW.toISOString() });
+    await syncNow(db, auth(server), clock);
+    expect(await getEntry(db, 'meal', MEAL_ID)).toMatchObject({ mealType: 'dinner', kcal: 192, syncState: 'synced' });
+
+    server.deleteMealFromElsewhere(MEAL_ID);
+    await syncNow(db, auth(server), clock);
+
+    expect(await getEntry(db, 'meal', MEAL_ID)).toBeNull();
+  });
+
+  it('ADR-0006 rule 1 downloads the food list once, then only when its version changes', async () => {
+    const server = fakeServer(NOW);
+    server.state.foods = [
+      { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false },
+    ];
+
+    expect(await refreshFoodList(db, auth(server))).toBe('updated');
+    expect(await refreshFoodList(db, auth(server))).toBe('current');
+    expect(server.calls.filter((call) => call.path === '/foods')).toHaveLength(2);
+    expect((await searchFoods(db, 'atta')).map((food) => food.code)).toEqual(['A019']);
+
+    server.state.foodsVersion = 'foods-v2';
+    server.state.foods = [];
+    expect(await refreshFoodList(db, auth(server))).toBe('updated');
+    expect(await searchFoods(db, 'atta')).toEqual([]);
+  });
+
+  it('ADR-0006 rule 1 without a connection the food list on the phone is kept', async () => {
+    const server = fakeServer(NOW);
+    server.state.foods = [
+      { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true },
+    ];
+    await refreshFoodList(db, auth(server));
+    server.state.offline = true;
+
+    expect(await refreshFoodList(db, auth(server))).toBe('offline');
+
+    expect((await searchFoods(db, 'ghee')).map((food) => food.kcal)).toEqual([900]);
   });
 });

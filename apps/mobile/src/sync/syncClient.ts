@@ -2,6 +2,7 @@
 // settles each result, applies the pull for every kind, and keeps everything that was not
 // accepted.
 import {
+  foodsResponseSchema,
   istToday,
   MAX_SYNC_CHANGES,
   syncResponseSchema,
@@ -19,6 +20,7 @@ import {
   pendingChanges,
   pruneSynced,
   recordAttempt,
+  replaceFoods,
   setMeta,
 } from '../local/store';
 
@@ -54,12 +56,38 @@ export async function syncNow(db: SqlDb, auth: AuthDeps, now: () => Date = () =>
     await applyServerEntries(db, 'sleep', reply.pull.sleep);
     await applyServerEntries(db, 'measurements', reply.pull.measurements);
     await applyServerEntries(db, 'target', reply.pull.targets);
+    await applyServerEntries(db, 'meal', reply.pull.meals);
+    await applyServerEntries(db, 'savedMeal', reply.pull.savedMeals);
     await setMeta(db, 'cursor', reply.cursor);
     await setMeta(db, 'last_synced_at', now().toISOString());
 
     if (!reply.hasMore && changes.length < MAX_SYNC_CHANGES) return 'synced';
   }
   return 'synced';
+}
+
+export type FoodListOutcome = 'updated' | 'current' | 'offline' | 'failed';
+
+/**
+ * Keeps the phone's copy of the food list current (ADR-0006 rule 1): it sends the version it holds
+ * and stores the list only when the server's differs, so search keeps working offline. A failure
+ * keeps the copy already on the phone.
+ */
+export async function refreshFoodList(db: SqlDb, auth: AuthDeps): Promise<FoodListOutcome> {
+  const session = (await auth.client.getSession()).data.session;
+  if (!session) return 'failed';
+  const version = await getMeta(db, 'food_list_version');
+  const response = await callApi<unknown>(auth.apiUrl, `/foods${version ? `?version=${encodeURIComponent(version)}` : ''}`, {
+    token: session.access_token,
+    ...(auth.fetchImpl ? { fetchImpl: auth.fetchImpl } : {}),
+  });
+  if (response.kind === 'offline') return 'offline';
+  if (response.kind === 'error') return 'failed';
+  const parsed = foodsResponseSchema.safeParse(response.body);
+  if (!parsed.success) return 'failed';
+  if (parsed.data.items === null) return 'current';
+  await replaceFoods(db, parsed.data.version, parsed.data.items);
+  return 'updated';
 }
 
 /** One sync call, with one session refresh after a 401 (error model). */

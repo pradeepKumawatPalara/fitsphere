@@ -339,8 +339,11 @@ rule 5 and D-14 require.
 | `sleep` | `day` (key), `sleep_minutes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `measurements` | `day` (key), the six lengths in millimetres, `notes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
+| `meals` | `id` (key), `day`, `meal_type`, `tags` and `items` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3 |
+| `saved_meals` | `id` (key), `name`, `meal_type`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day. Schema version 3 |
+| `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3 |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
-| `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id` | One signed-in user per local database |
+| `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database |
 
 - **What is kept:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST
   days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
@@ -350,9 +353,14 @@ rule 5 and D-14 require.
   each in a transaction. Version 2 (Home and daily tracking slice) adds `steps`, `sleep`,
   `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor
   so the next sync pulls the new kinds.
-- **Matching a change to its entry:** an outbox change is matched by its type and its key (`day`,
-  or `kind` for targets), so a waiting weight never holds back the server's steps for the same
-  day.
+- **Matching a change to its entry:** an outbox change is matched by its kind's change types and
+  its key (`day`, `kind` for targets, `id` for meals and saved meals), so a waiting weight never
+  holds back the server's steps for the same day, and a waiting deletion is never undone by the
+  pull.
+- **Version 3** (Meal logging slice) adds `meals`, `saved_meals` and `foods`, keeps everything
+  already on the phone, and clears the sync cursor so the next sync pulls the meals.
+- **What is kept (meals):** the last 90 IST days of meals, like other day data; saved meals and
+  the food list are always kept.
 - **Never deleted automatically:** `pending` and `rejected` entries and their outbox rows
   (D-14). A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2).
 - **30-day clear** (ADR-0007 rule 4): in the Skeleton there are no drafts and no other people's

@@ -130,6 +130,11 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - Self-access: a second user using the first user's meal and saved-meal IDs only ever writes
   their own; every meal change needs the Personal Training User role.
 - No meal content or value reaches the log.
+- On the phone (unit tests): a meal's totals match the server's rule; Delete removes it at once
+  and queues the deletion, which the pull never undoes; a meal deleted on another phone leaves
+  this one; old synced meals are pruned, saved meals never; day totals leave unknown values
+  unknown; the food list is cached, refreshed only when its version changes, kept when offline,
+  and searched offline by word and alias; the update from local version 2 keeps the data.
 
 ### Food list (ADR-0006 rule 1; D-25, D-26)
 - The IFCT CSV is read whole and refused whole when any row is wrong, naming the line.

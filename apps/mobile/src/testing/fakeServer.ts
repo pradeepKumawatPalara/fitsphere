@@ -1,9 +1,9 @@
-import { istToday, type SyncResult, type TargetKind } from '@fitsphere/shared';
+import { istToday, mealTotals, type Food, type MealItem, type SyncResult, type TargetKind } from '@fitsphere/shared';
 import { ME } from './fakes';
 
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
 // the last change received wins, a future IST day is rejected, and the pull returns what changed
-// after the cursor, for every kind.
+// after the cursor, for every kind. It also serves the food list (GET /v1/foods).
 
 type Stored = { item: Record<string, unknown>; seq: number };
 type Change = { changeId: string; type: string; data: Record<string, unknown> };
@@ -15,6 +15,10 @@ const KINDS = {
   'sleep.set': { list: 'sleep', key: 'day' },
   'measurements.set': { list: 'measurements', key: 'day' },
   'target.set': { list: 'targets', key: 'kind' },
+  'meal.set': { list: 'meals', key: 'id' },
+  'meal.delete': { list: 'meals', key: 'id' },
+  'savedMeal.set': { list: 'savedMeals', key: 'id' },
+  'savedMeal.delete': { list: 'savedMeals', key: 'id' },
 } as const;
 type ChangeType = keyof typeof KINDS;
 type ListName = (typeof KINDS)[ChangeType]['list'];
@@ -29,27 +33,41 @@ export function fakeServer(now: Date) {
     /** Reject every change with this code. */
     rejectWith: null as string | null,
     older: [] as { day: string; weightGrams: number }[],
+    /** The food list GET /v1/foods serves, and its version. */
+    foods: [] as Food[],
+    foodsVersion: 'foods-v1',
   };
   const calls: { method: string; path: string; body: unknown }[] = [];
   let seq = 0;
 
   function store(type: ChangeType, data: Record<string, unknown>) {
-    seq += 1;
-    const { key } = KINDS[type];
+    const { list, key } = KINDS[type];
+    const slot = `${list}|${String(data[key])}`;
+    const updatedAt = now.toISOString();
     const { setAt, recordedAt, ...rest } = data;
-    const item =
-      type === 'target.set'
-        ? { ...rest, setByUserId: ME.user.id, setAt, updatedAt: now.toISOString() }
-        : { ...rest, recordedAt, updatedAt: now.toISOString() };
-    stored.set(`${type}|${String(data[key])}`, { item, seq });
+    let item: Record<string, unknown>;
+    if (type === 'target.set') {
+      item = { ...rest, setByUserId: ME.user.id, setAt, updatedAt };
+    } else if (type === 'meal.set' || type === 'savedMeal.set') {
+      // The server computes the totals from the items.
+      item = { deleted: false, ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
+    } else if (type === 'meal.delete' || type === 'savedMeal.delete') {
+      const previous = stored.get(slot)?.item;
+      if (!previous) return; // deleting something the server never had changes nothing
+      item = { deleted: true, id: data.id, ...(type === 'meal.delete' ? { day: previous.day } : {}), updatedAt };
+    } else {
+      item = { ...rest, recordedAt, updatedAt };
+    }
+    seq += 1;
+    stored.set(slot, { item, seq });
   }
 
-  /** The values stored for one list, keyed by day (or by kind for targets). */
+  /** The values stored for one list, keyed by day (by kind for targets, by ID for meals). */
   function entries(list: ListName): Map<string, Record<string, unknown>> {
     const result = new Map<string, Record<string, unknown>>();
-    for (const [id, { item }] of stored) {
-      const type = id.split('|')[0] as ChangeType;
-      if (KINDS[type].list === list) result.set(id.split('|')[1]!, item);
+    for (const [slot, { item }] of stored) {
+      const [slotList, key] = slot.split('|') as [string, string];
+      if (slotList === list) result.set(key, item);
     }
     return result;
   }
@@ -67,6 +85,10 @@ export function fakeServer(now: Date) {
       });
     }
     if (method === 'GET' && path === '/me') return json(200, ME);
+    if (method === 'GET' && path === '/foods') {
+      const current = url.searchParams.get('version') === state.foodsVersion;
+      return json(200, { version: state.foodsVersion, items: current ? null : state.foods });
+    }
     if (method === 'POST' && path === '/sync') {
       const request = body as { cursor: string | null; changes: Change[] };
       const results = request.changes.map((change) => {
@@ -87,7 +109,7 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull: Record<ListName | 'meals' | 'savedMeals' | 'removals', unknown[]> = {
+      const pull: Record<ListName | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],
@@ -98,7 +120,7 @@ export function fakeServer(now: Date) {
         removals: [],
       };
       const changed = [...stored.entries()].filter(([, entry]) => entry.seq > after).sort((a, b) => a[1].seq - b[1].seq);
-      for (const [id, { item }] of changed) pull[KINDS[id.split('|')[0] as ChangeType].list].push(item);
+      for (const [slot, { item }] of changed) pull[slot.split('|')[0] as ListName].push(item);
       return json(200, { results, pull, cursor: String(seq), hasMore: false });
     }
     if (method === 'GET' && /^\/users\/[^/]+\/weigh-ins$/.test(path)) {
@@ -127,6 +149,15 @@ export function fakeServer(now: Date) {
     store('target.set', { kind, value, setAt: now.toISOString() });
   }
 
+  /** A meal saved, or deleted, on another phone. */
+  function storeMealFromElsewhere(meal: Record<string, unknown>) {
+    store('meal.set', meal);
+  }
+
+  function deleteMealFromElsewhere(id: string) {
+    store('meal.delete', { id, deletedAt: now.toISOString() });
+  }
+
   return {
     fetchImpl: fetchImpl as unknown as typeof fetch,
     state,
@@ -139,6 +170,8 @@ export function fakeServer(now: Date) {
     storeFromElsewhere,
     storeStepsFromElsewhere,
     storeTargetFromElsewhere,
+    storeMealFromElsewhere,
+    deleteMealFromElsewhere,
   };
 }
 

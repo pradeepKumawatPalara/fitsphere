@@ -4,8 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { discardRejected, saveEntry, type ChangeData, type EntryKind } from '../local/store';
-import { syncNow, type SyncOutcome } from './syncClient';
+import { deleteEntry, discardRejected, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
+import { refreshFoodList, syncNow, type SyncOutcome } from './syncClient';
 
 /** Calls `onReconnect` when the phone's connection comes back. */
 export type NetworkWatcher = { watch(onReconnect: () => void): { remove(): void } };
@@ -24,7 +24,11 @@ const expoNetwork: NetworkWatcher = {
 
 /** What the user enters for each kind; the time it was saved is added when it is saved. */
 export type EntryInput = {
-  [K in EntryKind]: K extends 'target' ? Omit<ChangeData[K], 'setAt'> : Omit<ChangeData[K], 'recordedAt'>;
+  [K in EntryKind]: K extends 'target'
+    ? Omit<ChangeData[K], 'setAt'>
+    : K extends 'savedMeal'
+      ? Omit<ChangeData[K], 'savedAt'>
+      : Omit<ChangeData[K], 'recordedAt'>;
 };
 
 type SyncContextValue = {
@@ -32,6 +36,8 @@ type SyncContextValue = {
   version: number;
   status: SyncOutcome | 'idle' | 'syncing';
   save<K extends EntryKind>(kind: K, input: EntryInput[K]): Promise<void>;
+  /** Deletes a meal or saved meal (REQ-NUT-004). */
+  remove(kind: DeletableKind, id: string): Promise<void>;
   saveWeight(day: string, weightGrams: number): Promise<void>;
   discard(changeId: string): Promise<void>;
 };
@@ -73,6 +79,8 @@ export function SyncProvider({
       do {
         again.current = false;
         const outcome = await syncNow(db, deps, now).catch((): SyncOutcome => 'failed');
+        // The food list follows a sync that reached the server (ADR-0006 rule 1).
+        if (outcome === 'synced') await refreshFoodList(db, deps).catch(() => 'failed');
         setStatus(outcome);
         setVersion((value) => value + 1);
       } while (again.current);
@@ -99,8 +107,19 @@ export function SyncProvider({
     async <K extends EntryKind>(kind: K, input: EntryInput[K]) => {
       if (!db) throw new Error('The phone database is not open');
       const savedAt = now().toISOString();
-      const data = (kind === 'target' ? { ...input, setAt: savedAt } : { ...input, recordedAt: savedAt }) as ChangeData[K];
+      const stamp = kind === 'target' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
+      const data = { ...input, [stamp]: savedAt } as unknown as ChangeData[K];
       await saveEntry(db, kind, { changeId: newId(), data });
+      setVersion((value) => value + 1);
+      void run();
+    },
+    [db, newId, now, run],
+  );
+
+  const remove = useCallback(
+    async (kind: DeletableKind, id: string) => {
+      if (!db) throw new Error('The phone database is not open');
+      await deleteEntry(db, kind, { changeId: newId(), data: { id, deletedAt: now().toISOString() } });
       setVersion((value) => value + 1);
       void run();
     },
@@ -122,7 +141,7 @@ export function SyncProvider({
     [db, run],
   );
 
-  return <SyncContext.Provider value={{ version, status, save, saveWeight, discard }}>{children}</SyncContext.Provider>;
+  return <SyncContext.Provider value={{ version, status, save, remove, saveWeight, discard }}>{children}</SyncContext.Provider>;
 }
 
 function defaultNow(): Date {

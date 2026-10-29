@@ -1,3 +1,4 @@
+import type { MealItem } from '@fitsphere/shared';
 import { memoryDb } from '../testing/memoryDb';
 import type { SqlDb } from './sql';
 import {
@@ -21,12 +22,26 @@ import {
   type EntryKind,
 } from './store';
 
-// Steps, sleep, measurements and targets on the phone (Home and daily tracking slice, step 3;
-// ADR-0007 rules 1, 2 and 7; REQ-NFR-004). The weight cases are in store.test.ts.
+// Steps, sleep, measurements, targets, meals and saved meals on the phone (Home and daily tracking
+// slice, step 3; Meal logging slice, step 3; ADR-0007 rules 1, 2 and 7; REQ-NFR-004). The weight
+// cases are in store.test.ts; meal deletion, totals and the food list are in meals.test.ts.
 
 const DAY = '2026-10-27';
 const AT = `${DAY}T03:00:00.000Z`;
 const NO_OPTIONAL = { chestMm: null, hipsMm: null, armMm: null, thighMm: null, notes: null };
+const MEAL_ID = '6a1f3c2e-0b7d-4c5e-9f8a-1b2c3d4e5f60';
+const ATTA: MealItem = {
+  source: 'ifct2017',
+  ref: 'A019',
+  name: 'Wheat flour, atta',
+  amount: { unit: 'g', value: 60 },
+  kcal: 192,
+  proteinG: 6.34,
+  carbsG: 38.5,
+  fatG: 0.92,
+  fibreG: 6.82,
+  estimated: false,
+};
 
 let db: SqlDb;
 let next = 0;
@@ -61,6 +76,16 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     stored: { upperWaistMm: 812, chestMm: null, notes: 'Synthetic note' },
   },
   target: { key: 'calories', data: { kind: 'calories', value: 2_000, setAt: AT }, stored: { value: 2_000, setByUserId: null } },
+  meal: {
+    key: MEAL_ID,
+    data: { id: MEAL_ID, day: DAY, mealType: 'lunch', tags: ['dessert'], items: [ATTA], recordedAt: AT },
+    stored: { mealType: 'lunch', tags: ['dessert'], items: [ATTA], kcal: 192, proteinG: 6.34, fibreG: 6.82 },
+  },
+  savedMeal: {
+    key: MEAL_ID,
+    data: { id: MEAL_ID, name: 'Two rotis', mealType: 'dinner', tags: [], items: [ATTA], savedAt: AT },
+    stored: { name: 'Two rotis', items: [ATTA], kcal: 192 },
+  },
 };
 const KINDS = Object.keys(SAMPLES) as EntryKind[];
 
@@ -210,7 +235,7 @@ describe('Local schema version 2', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 2 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 3 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000, syncState: 'synced' });
       expect((await pendingChanges(old, 10)).map((entry) => entry.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
