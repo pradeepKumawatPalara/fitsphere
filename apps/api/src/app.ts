@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import { API_BASE_PATH } from '@fitsphere/shared';
+import { API_BASE_PATH, SYNC_PAGE_SIZE } from '@fitsphere/shared';
 import Fastify, { LogController } from 'fastify';
 import type pg from 'pg';
 import { registerAccess } from './access.ts';
 import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
 import { registerMeRoutes } from './routes/me.ts';
+import { registerSyncRoute } from './routes/sync.ts';
+import { registerWeighInsRoute } from './routes/weighIns.ts';
 
 export type LogOptions = { level: string; stream?: { write(line: string): void } };
 
@@ -14,6 +16,10 @@ export type AppDeps = {
   auth: Auth;
   /** Leave out for no logs (most tests). */
   log?: LogOptions;
+  /** The clock for "today in IST"; tests set it. */
+  now?: () => Date;
+  /** Weigh-ins per sync response (api-conventions: 500); tests use a small page. */
+  syncPageSize?: number;
 };
 
 // Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
@@ -66,6 +72,12 @@ export function buildApp(deps: AppDeps) {
     status: 'ok',
   }));
   registerMeRoutes(app, deps);
+  registerSyncRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    syncPageSize: deps.syncPageSize ?? SYNC_PAGE_SIZE,
+  });
+  registerWeighInsRoute(app, deps);
 
   return app;
 }
