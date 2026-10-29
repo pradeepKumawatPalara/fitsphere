@@ -2,22 +2,26 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29
+- Last updated: 2026-10-29 (D-25: the owner decided to use the list without NIN permission;
+  accepted risk R-007)
 - Builds on: [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) (food data, Accepted —
   D-18); REQ-LOG-007, REQ-NUT-002
 
 Where the values in [`data/foods/ifct2017-foods.csv`](../../data/foods/ifct2017-foods.csv) come
-from, the licence condition on them, how the file was made, and the checks it passed. D- numbers
+from, the licence condition on them and the owner's decision about it, how the file was made, and
+the checks it passed. D- numbers
 refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md).
 
-## RELEASE BLOCKER — licence
+## Licence — owner decision D-25, accepted risk R-007
 
-> **RELEASE BLOCKER.** Written permission from the National Institute of Nutrition (NIN) is
-> required before this data is used in a commercial app. Until that permission is received,
-> `ifct2017-foods.csv` is for **development and testing only**. It must not ship in a release
-> build, be served to real users, or be copied outside this private repository.
+**Decision (D-25, 2026-10-29):** FitSphere uses the IFCT 2017 food list, and the owner will not
+seek permission from the National Institute of Nutrition (NIN). The owner accepts the risk this
+carries as **R-007** in
+[`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#risks). The list
+may be used in development and in release builds. The app shows the acknowledgement text below
+wherever IFCT values are shown.
 
-The condition, word for word from page 17 of the source PDF:
+The condition the decision was taken against, word for word from page 17 of the source PDF:
 
 > **Source and permissions.** Indian Food Composition Tables 2017, T. Longvah, R. Ananthan,
 > K. Bhaskarachary and K. Venkaiah, National Institute of Nutrition, ICMR, Hyderabad.
@@ -27,17 +31,12 @@ The condition, word for word from page 17 of the source PDF:
 > (nin@ap.nic.in / ifct2017@gmail.com) is required before shipping this in a commercial
 > application.
 
-Points for the owner:
-- ADR-0006 lists the food-list licence as "blocks release, not development", which is why this
-  file can be kept for development. The ADR's options list, however, says the IFCT licence "must
-  be confirmed before copying values", and the NIN wording quoted above covers storing the data
-  "for creating a product", not only shipping it. Whether keeping it in the repository during
-  development is covered is a question for the owner or Legal.
+Notes on the decision:
+- The quoted condition covers storing the data in electronic form "for creating a product", not
+  only shipping it. D-25 accepts both, as risk R-007.
 - The quoted condition is the PDF compiler's summary of NIN's terms. The terms in the IFCT 2017
-  book itself were not read for this change.
-- This blocker is not yet recorded in
-  [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md), the
-  documentation index or ADR-0006's validation results. This change only adds new files.
+  book itself were not read.
+- ADR-0006 records that its licence question was decided by the owner under D-25.
 
 ## Source
 
@@ -71,8 +70,11 @@ The PDF gives this citation, quoted above in full:
 > National Institute of Nutrition, ICMR, Hyderabad.
 
 Every page also has this footer: "Source: ICMR-NIN, Indian Food Composition Tables 2017". The
-PDF gives no other acknowledgement wording. If NIN gives permission, use the wording they
-require.
+PDF gives no other acknowledgement wording.
+
+**Shown in the app (D-25):** wherever IFCT values are shown, the app shows the citation above, as
+written: "Indian Food Composition Tables 2017, T. Longvah, R. Ananthan, K. Bhaskarachary and K.
+Venkaiah, National Institute of Nutrition, ICMR, Hyderabad."
 
 ## The CSV
 

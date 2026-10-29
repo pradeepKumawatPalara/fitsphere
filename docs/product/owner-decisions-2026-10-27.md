@@ -627,6 +627,26 @@
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
   that builds each one.
 
+## D-25 The IFCT 2017 food list is used without NIN permission (accepted risk R-007)
+- Status: **Accepted** (owner decision in chat, 2026-10-29).
+- Decides the food-list licence question that ADR-0006 left open ("blocks release, not
+  development").
+- Answers:
+  1. **FitSphere uses the IFCT 2017 food list** (`data/foods/ifct2017-foods.csv`, described in
+     [`docs/data/food-list-sources.md`](../data/food-list-sources.md)) in development and in
+     release builds.
+  2. **The owner will not seek permission from the National Institute of Nutrition (NIN).** The
+     condition quoted in `food-list-sources.md` asks for NIN's written permission before the data
+     is stored or reproduced electronically to create a product.
+  3. **The owner accepts the risk** as R-007 in `constraints-and-assumptions.md`. The NIN licence
+     is not a release blocker.
+  4. **The app shows the IFCT acknowledgement text** given in `food-list-sources.md` wherever
+     IFCT values are shown.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+  ADR-0006's decision stands; it now notes that its licence question was decided here.
+- Doc changes: `docs/data/food-list-sources.md`; `constraints-and-assumptions.md` (R-007, Q-039);
+  `backlog.md`; ADR-0006; `docs/README.md`; `CLAUDE.md` (sources of truth).
+
 ---
 
 ## Proposed replacement wording for the two invariants
