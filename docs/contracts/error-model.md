@@ -96,5 +96,6 @@ reveal whether an address is registered.
 | Sign-up without the 18+ box ticked | The button stays disabled; the box reads "I am 18 or older" | REQ-ACC-010, D-18 |
 | A step that needs internet while offline | "<Step> needs an internet connection." e.g. "Signing up needs an internet connection." | REQ-NFR-004, D-04, ADR-0007 rule 6 |
 | A rejected weigh-in | "This weight wasn't saved: <reason>. Edit or discard it." with the reason from the code, e.g. "the date is in the future" | ADR-0007 rule 2 |
+| A rejected meal or saved-meal change | "This meal wasn't saved: …", "This meal wasn't deleted: …", "This saved meal wasn't saved: …", "This saved meal wasn't deleted: …". A rejected deletion offers Discard only | ADR-0007 rule 2; MVP default (D-26) |
 | A rejected steps, sleep, measurements or target change | The same, with its own subject: "These steps weren't saved: …", "This sleep wasn't saved: …", "These measurements weren't saved: …", "This target wasn't saved: …". For `ROLE_NOT_ENABLED` the reason reads "your account cannot log this" for every kind | ADR-0007 rule 2; MVP default (D-23) |
 | `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE` | "Something went wrong. Your entries are kept on this phone and will sync later." | REQ-NFR-004 |

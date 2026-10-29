@@ -1,16 +1,22 @@
 import {
+  MEAL_DELETE,
+  MEAL_SET,
   MEASUREMENTS_SET,
+  SAVED_MEAL_DELETE,
+  SAVED_MEAL_SET,
   SLEEP_SET,
   STEPS_SET,
   TARGET_SET,
   WEIGH_IN_SET,
   type ChangeErrorCode,
+  type MealType,
   type TargetKind,
 } from '@fitsphere/shared';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { DAY_VALUES } from '../dayValues';
 import { formatDay } from '../format';
 import type { OutboxEntry } from '../local/store';
+import { describeItems, MEAL_TYPE_LABELS } from '../meals';
 import { TARGETS } from '../targets';
 
 // A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2, D-14).
@@ -37,6 +43,17 @@ export function describeRejected(entry: OutboxEntry): { what: string; notSaved: 
       return { what: `${day} · ${DAY_VALUES.sleep.format(Number(data.sleepMinutes))}`, notSaved: DAY_VALUES.sleep.notSaved };
     case MEASUREMENTS_SET:
       return { what: `${day} · measurements`, notSaved: "These measurements weren't saved" };
+    case MEAL_SET:
+      return {
+        what: `${day} · ${MEAL_TYPE_LABELS[data.mealType as MealType] ?? 'Meal'} · ${describeItems((data.items as { name: string }[]) ?? [])}`,
+        notSaved: "This meal wasn't saved",
+      };
+    case MEAL_DELETE:
+      return { what: 'A meal', notSaved: "This meal wasn't deleted" };
+    case SAVED_MEAL_SET:
+      return { what: `Saved meal · ${String(data.name)}`, notSaved: "This saved meal wasn't saved" };
+    case SAVED_MEAL_DELETE:
+      return { what: 'A saved meal', notSaved: "This saved meal wasn't deleted" };
     case TARGET_SET: {
       const target = TARGETS[data.kind as TargetKind];
       return {
@@ -71,7 +88,10 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
             <Text style={styles.what}>{what}</Text>
             <Text>{rejectedText(notSaved, entry.errorCode)}</Text>
             <View style={styles.actions}>
-              <Button title="Edit" onPress={() => onEdit(entry)} />
+              {/* A deletion has nothing to edit: discarding it keeps the server's copy. */}
+              {entry.type === MEAL_DELETE || entry.type === SAVED_MEAL_DELETE ? null : (
+                <Button title="Edit" onPress={() => onEdit(entry)} />
+              )}
               <Button title="Discard" onPress={() => onDiscard(entry.changeId)} />
             </View>
           </View>

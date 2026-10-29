@@ -38,6 +38,8 @@ type SyncContextValue = {
   save<K extends EntryKind>(kind: K, input: EntryInput[K]): Promise<void>;
   /** Deletes a meal or saved meal (REQ-NUT-004). */
   remove(kind: DeletableKind, id: string): Promise<void>;
+  /** A new ID for a meal or saved meal, made on the phone. */
+  newId(): string;
   saveWeight(day: string, weightGrams: number): Promise<void>;
   discard(changeId: string): Promise<void>;
 };
@@ -141,7 +143,7 @@ export function SyncProvider({
     [db, run],
   );
 
-  return <SyncContext.Provider value={{ version, status, save, remove, saveWeight, discard }}>{children}</SyncContext.Provider>;
+  return <SyncContext.Provider value={{ version, status, save, remove, newId, saveWeight, discard }}>{children}</SyncContext.Provider>;
 }
 
 function defaultNow(): Date {
