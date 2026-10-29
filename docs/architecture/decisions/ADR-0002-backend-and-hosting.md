@@ -370,19 +370,20 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   `apps/mobile/src/photos/takePhoto.test.ts`.
 - **Step 2 (Storage part) — passed on `fitsphere-dev`, 2026-10-29 (`npm run check:storage`, run
   by Claude Code at the owner's request; the Data API was recorded as off on 2026-10-28):** with
-  the private bucket (file size limit 1 MB, allowed type `image/jpeg`) and an S3 access key, all
-  8 checks passed and the script exited 0:
+  the private bucket `meal-photos` (file size limit 1 MB, allowed type `image/jpeg`) and an S3
+  access key, all 8 checks passed and the script exited 0:
   - upload with an upload link: HTTP 200;
   - viewing links last at most 5 minutes: `X-Amz-Expires=300`;
   - read back with a viewing link: HTTP 200, same bytes;
   - no reading without a link (private bucket): HTTP 400;
   - only JPEG accepted (bucket rule): HTTP 415;
   - files over 1 MB refused (bucket rule): HTTP 413;
-  - an expired viewing link stops working: HTTP 400;
+  - an expired viewing link (signed for 1 second, used after 3) stops working: HTTP 400;
   - removed, the file is gone: HTTP 404.
 
   The bucket enforces the type and size limits on S3 uploads, so upload links need not sign the
-  content type.
+  content type. The script does not check the upload links' 10 minutes against Supabase;
+  `mediaStorage.test.ts` checks that they are signed for 600 seconds.
 - **Step 5 — storage part passed (above); phone part pending:** the ~200 KB copy, the thumbnail
   and the removal of location data are checked on the phone with the new development build
   (slice plan, phone check 5).

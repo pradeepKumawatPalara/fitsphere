@@ -33,7 +33,7 @@ Last updated: 2026-10-29
 | 13 | [`plans/skeleton-slice.md`](plans/skeleton-slice.md) | Accepted | Project owner | The Skeleton slice: steps, checks and progress (D-18 answer 14; development on the phone with EAS Build, D-19; steps 11–12 moved to the backlog and self-access authorization, D-20; steps run back to back, D-21; done with deferred checks, D-22) |
 | 13a | [`data/food-list-sources.md`](data/food-list-sources.md) | Draft | Project owner | Where the IFCT 2017 food list (`data/foods/ifct2017-foods.csv`) comes from, how it was made and checked, and its licence: used without NIN permission, D-25, accepted risk R-007 |
 | 14 | [`plans/home-daily-tracking-slice.md`](plans/home-daily-tracking-slice.md) | Accepted | Project owner | Slice 2, Home and daily tracking: scope, MVP defaults, steps, checks and progress (D-23), including `npm run dev:phone` (D-22). Built; the owner's checks are pending |
-| 15 | [`plans/meal-logging-slice.md`](plans/meal-logging-slice.md) | Accepted | Project owner | Slice 3, Meal logging (no AI): scope, decisions, steps, progress and phone checks (D-26). Built except step 8 (dishes, waiting for the owner's source document); the owner's actions and checks are pending |
+| 15 | [`plans/meal-logging-slice.md`](plans/meal-logging-slice.md) | Accepted | Project owner | Slice 3, Meal logging (no AI): scope, decisions, steps, progress and phone checks (D-26). Built except step 8 (dishes, waiting for the owner's source document). Migrations, the food import, photo storage (`check:storage` 8 of 8 from the PC) and `OFF_CONTACT` are done on `fitsphere-dev`; the phone checks are pending |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.

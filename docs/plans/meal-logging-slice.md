@@ -113,21 +113,29 @@ in the step that builds each one.
 
 ## Owner's actions and checks at the end of the slice
 1. Merge #18, then #20, #21, #22, #24, #26, #29, #30, #31 and #32, in order, each with green
-   CI.
+   CI. **Done 2026-10-29.**
 2. Supabase, from `D:\fitsphere` on `main` after the merges:
    - `npm run migrate -w @fitsphere/api` (applies 0002 to 0005), then
-     `npm run foods:import -w @fitsphere/api`;
+     `npm run foods:import -w @fitsphere/api`. **Done 2026-10-29.**
    - the meal-photo bucket, S3 connection and access key (runbook, step 5 item 9), then
-     `npm run check:storage -w @fitsphere/api`: every line should say PASS.
-3. `OFF_CONTACT` in `apps/api/.env`: a contact address for Open Food Facts' User-Agent.
+     `npm run check:storage -w @fitsphere/api`: every line should say PASS. **Done 2026-10-29:**
+     private bucket `meal-photos`, 8 of 8 PASS from the PC (runbook step 5, item 9; ADR-0002,
+     "Validation results").
+3. `OFF_CONTACT` in `apps/api/.env`: a contact address for Open Food Facts' User-Agent. **Done
+   2026-10-29.**
 4. An OK to start the EAS development build (the 3rd of this month's 15). It carries
-   `expo-camera`, `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`.
+   `expo-camera`, `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`. **OK given
+   2026-10-29**; the build was started.
 5. The source document for the dishes (step 8), then review of the quoted sources.
 6. The phone checks below.
 
 ## Phone checks (batched)
 On the new development build, with `npm run dev:phone`; synthetic values only. Record each result
 with its date here, and in the ADR it validates.
+
+**2026-10-29:** checks 1 to 6 are not run yet; they wait for the new build on the phone. Check 7
+runs on the PC and has passed, so photo storage is configured and checked, but no real photo has
+gone through it from the phone yet (check 5).
 1. **Food list offline** (ADR-0006 validation 2): after one sync, turn on aeroplane mode and
    search 20 common foods (e.g. atta, rice, dal, paneer, ghee); each is found, with the IFCT
    acknowledgement under the results.
@@ -145,5 +153,6 @@ with its date here, and in the ADR it validates.
    after the next sync the files are gone from the bucket.
 6. **Public link:** add an https image link; the warning shows; Cancel saves nothing; Add link
    saves it; tapping it opens the browser.
-7. **Storage with the Data API off** (ADR-0002 step 2): `npm run check:storage` above passed; it
-   also checks that an expired viewing link stops working.
+7. **Storage with the Data API off** (ADR-0002 step 2), on the PC: `npm run check:storage`; it
+   also checks that an expired viewing link stops working. **Passed 2026-10-29:** 8 of 8, exit
+   code 0 (results in the runbook, step 5 item 9).

@@ -359,7 +359,8 @@
   image, and it is really removed (A-004, Q-064). Account deletion stays with Q-048.
 - **Confirmed by the owner (2026-10-27):** media viewing links expire after at most 5 minutes.
   Supabase's 2-hour upload links are accepted as a known limitation — each allows uploading
-  one file to one path and gives no viewing access (T-08).
+  one file to one path and gives no viewing access (T-08). *Amended by D-27: upload links last
+  10 minutes (600 seconds).*
 - Doc changes: invariant #1; REQ-LOG-005, REQ-LOG-006, REQ-TRN-001, REQ-NFR-001, REQ-NFR-004
   and REQ-NFR-005 updated; REQ-LOG-010 (public links) and REQ-NFR-006 (view-only media) added;
   Q-041, Q-088 and Q-092 answered; Q-064 and Q-089 partly answered; notes on Q-038, Q-049 and

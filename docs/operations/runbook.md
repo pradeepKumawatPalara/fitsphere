@@ -164,15 +164,39 @@ it when the Skeleton's database step starts.
      into `STORAGE_S3_ACCESS_KEY_ID` and `STORAGE_S3_SECRET_ACCESS_KEY`. Supabase's docs say these
      keys "provide full access to all S3 operations across all buckets and bypass RLS policies":
      server only, never in the app.
+   - Copy the five names exactly from `apps/api/.env.example`: the four connection names contain
+     `_S3_`, `STORAGE_BUCKET` does not. With any of them missing, the API answers 503 for photo
+     links, and `check:storage` stops and lists the six names it needs (the five and
+     `SUPABASE_URL`).
    - Run `npm run check:storage -w @fitsphere/api`; every line should say PASS.
 
-   **Done on `fitsphere-dev`, 2026-10-29 (owner):**
-   - Bucket: private (Public bucket off), file size limit 1 MB, allowed type `image/jpeg`; its
-     name is in `STORAGE_BUCKET`. Menu path: *to be confirmed by the owner*.
-   - S3 connection on and an S3 access key created; the five `STORAGE_*` names are set in
-     `apps/api/.env`. Menu path: *to be confirmed by the owner*.
-   - `npm run check:storage -w @fitsphere/api`: **8 of 8 PASS**, exit code 0 (results in
-     ADR-0002, "Validation results").
+   **Done on `fitsphere-dev` (Mumbai), 2026-10-29 (owner).** Storage is configured and checked
+   from the PC; the checks with a real photo on the phone are still pending (below). The menu
+   paths are not recorded yet.
+   - **Bucket:** `meal-photos`, private (Public bucket off), file size limit 1 MB, allowed type
+     `image/jpeg`. Its name is in `STORAGE_BUCKET`.
+   - **S3 connection:** on; its endpoint and region are in `STORAGE_S3_ENDPOINT` and
+     `STORAGE_S3_REGION`.
+   - **Credentials:** an S3 access key, used by the API only; its ID and secret are in
+     `STORAGE_S3_ACCESS_KEY_ID` and `STORAGE_S3_SECRET_ACCESS_KEY` in `apps/api/.env` on the PC,
+     never in the app or the repository.
+   - **`npm run check:storage -w @fitsphere/api`, on the PC with the Data API off: 8 of 8 PASS,
+     exit code 0.** It wrote one small synthetic file under `checks/` and removed it:
+     - upload with an upload link: HTTP 200;
+     - viewing links last at most 5 minutes: `X-Amz-Expires=300`;
+     - read back with a viewing link: HTTP 200, same bytes;
+     - no reading without a link (private bucket): HTTP 400;
+     - only JPEG accepted (bucket rule): HTTP 415;
+     - files over 1 MB refused (bucket rule): HTTP 413;
+     - an expired viewing link (signed for 1 second, used after 3) stops working: HTTP 400;
+     - removed, the file is gone: HTTP 404.
+   - **Not checked against Supabase:** the upload links' 10 minutes (600 seconds, D-27). The API
+     sets it, and its unit tests check it (`apps/api/src/storage/mediaStorage.test.ts`).
+   - **Pending, on the phone** (new development build; meal-logging slice plan, phone check 5): a
+     real photo's ~200 KB copy and thumbnail in the bucket, no location data in the photo, the
+     photo shown in the app, and its files gone after a removal syncs.
+
+   Also recorded in ADR-0002, "Validation results".
 
 **Done on `fitsphere-dev`, 2026-10-28 (owner)**, with the dashboard's menu paths:
 - Items 3 and 4: **Authentication → Sign In / Providers → Email**. Confirm email is on, the
@@ -347,7 +371,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | Name | Used by | What it holds | Secret? |
 |---|---|---|---|
 | `DATABASE_URL` | API, `migrate` and `db:growth` | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later. The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
-| `SUPABASE_URL` | API | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
+| `SUPABASE_URL` | API, `check:data-api`, `check:signup` and `check:storage` | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
 | `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
 | `LOG_LEVEL` | API | `info` by default | No |
