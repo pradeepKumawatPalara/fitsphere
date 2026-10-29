@@ -1,23 +1,25 @@
-import type { IstDay, TargetKind } from '@fitsphere/shared';
+import { TARGET_SET, type IstDay, type TargetKind } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
-import { EntrySheet } from '../components/EntrySheet';
+import { NumberEntrySheet } from '../components/NumberEntrySheet';
+import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
-import { WeightTile } from '../components/WeightTile';
 import { WorkoutTracker } from '../components/WorkoutTracker';
+import { DAY_VALUE_ORDER, DAY_VALUES, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getWeighIn, listTargets, rejectedChanges, type LocalWeighIn, type OutboxEntry } from '../local/store';
+import { getEntry, listTargets, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { LogOut } from './LogOut';
 
-type Sheet = { day: string; initialGrams: number | null };
+type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
+type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState }>>;
 type Targets = Partial<Record<TargetKind, number>>;
 
 // Meals come with slice 3 and workouts with slice 4 (D-23): until then nothing is eaten and no
@@ -33,7 +35,7 @@ export function HomeScreen() {
   const sync = useSync();
   const router = useRouter();
   const { today, selected, firstDay, weekStart, select, showWeek } = useSelectedDay();
-  const [weighIn, setWeighIn] = useState<LocalWeighIn | null>(null);
+  const [values, setValues] = useState<DayValues>({});
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [targets, setTargets] = useState<Targets>({});
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -55,9 +57,20 @@ export function HomeScreen() {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([getWeighIn(db, selected), rejectedChanges(db), listTargets(db)]).then(([day, waiting, current]) => {
+    void Promise.all([
+      Promise.all(DAY_VALUE_ORDER.map((kind) => getEntry(db, kind, selected))),
+      rejectedChanges(db),
+      listTargets(db),
+    ]).then(([entries, waiting, current]) => {
       if (!active) return;
-      setWeighIn(day);
+      setValues(
+        Object.fromEntries(
+          DAY_VALUE_ORDER.flatMap((kind, index) => {
+            const entry = entries[index] as (Record<string, unknown> & { syncState: SyncState }) | null | undefined;
+            return entry ? [[kind, { value: Number(entry[DAY_VALUES[kind].field]), syncState: entry.syncState }]] : [];
+          }),
+        ),
+      );
       setRejected(waiting);
       // A target applies to every day shown, past days included (Q-014 MVP default, D-23).
       setTargets(Object.fromEntries(current.map((target) => [target.kind, target.value])));
@@ -69,6 +82,20 @@ export function HomeScreen() {
 
   function openTargets() {
     router.push('/targets');
+  }
+
+  function saveDayValue(kind: DayValueKind, day: IstDay, value: number) {
+    if (kind === 'weighIn') return sync.save('weighIn', { day, weightGrams: value });
+    if (kind === 'steps') return sync.save('steps', { day, steps: value });
+    return sync.save('sleep', { day, sleepMinutes: value });
+  }
+
+  /** Edit opens the rejected change's own sheet, with its value, to fix it (ADR-0007 rule 2). */
+  function editRejected(entry: OutboxEntry) {
+    const data = entry.data as Record<string, unknown>;
+    const kind = DAY_VALUE_ORDER.find((candidate) => DAY_VALUES[candidate].changeType === entry.type);
+    if (kind) setSheet({ kind, day: String(data.day), initial: Number(data[DAY_VALUES[kind].field]) });
+    else if (entry.type === TARGET_SET) openTargets();
   }
 
   // Never run unencrypted (ADR-0007 rule 5): stop, and leave only Log out.
@@ -85,6 +112,7 @@ export function HomeScreen() {
     );
   }
 
+  const sheetText = sheet ? DAY_VALUES[sheet.kind] : null;
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <WeekStrip
@@ -101,14 +129,7 @@ export function HomeScreen() {
           <Button title="Back to today" onPress={() => select(today)} />
         </View>
       ) : null}
-      <RejectedChanges
-        entries={rejected}
-        onEdit={(day) => {
-          const entry = rejected.find((item) => (item.data as { day: string }).day === day);
-          setSheet({ day, initialGrams: (entry?.data as { weightGrams?: number } | undefined)?.weightGrams ?? null });
-        }}
-        onDiscard={(changeId) => void sync.discard(changeId)}
-      />
+      <RejectedChanges entries={rejected} onEdit={editRejected} onDiscard={(changeId) => void sync.discard(changeId)} />
       <TargetProgressCard
         title="Calories"
         unit="kcal"
@@ -123,10 +144,20 @@ export function HomeScreen() {
         target={targets.protein ?? null}
         onSetTarget={openTargets}
       />
-      <WeightTile
-        weighIn={weighIn}
-        onPress={() => setSheet({ day: selected, initialGrams: weighIn?.weightGrams ?? null })}
-      />
+      <View style={styles.tiles}>
+        {DAY_VALUE_ORDER.map((kind) => {
+          const entry = values[kind];
+          return (
+            <QuickTile
+              key={kind}
+              label={DAY_VALUES[kind].label}
+              value={entry ? DAY_VALUES[kind].format(entry.value) : null}
+              syncState={entry?.syncState ?? null}
+              onPress={() => setSheet({ kind, day: selected, initial: entry?.value ?? null })}
+            />
+          );
+        })}
+      </View>
       <WorkoutTracker
         day={selected}
         workoutDays={NO_WORKOUT_DAYS}
@@ -134,11 +165,16 @@ export function HomeScreen() {
         target={targets.weekly_workouts ?? null}
         onSetTarget={openTargets}
       />
-      {sheet ? (
-        <EntrySheet
-          day={sheet.day}
-          initialGrams={sheet.initialGrams}
-          onSave={(grams) => sync.saveWeight(sheet.day, grams)}
+      {sheet && sheetText ? (
+        <NumberEntrySheet
+          title={`${sheetText.label} · ${formatDay(sheet.day)}`}
+          label={sheetText.inputLabel}
+          unit={sheetText.unit}
+          initialText={sheet.initial === null ? '' : sheetText.toText(sheet.initial)}
+          parse={sheetText.parse}
+          rule={sheetText.rule}
+          decimal={sheetText.decimal}
+          onSave={(value) => saveDayValue(sheet.kind, sheet.day, value)}
           onClose={() => setSheet(null)}
         />
       ) : null}
@@ -149,5 +185,6 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
   banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: '#fff4d6' },
+  tiles: { flexDirection: 'row', gap: 8 },
   stopped: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
 });
