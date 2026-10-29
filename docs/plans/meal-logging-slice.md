@@ -21,8 +21,8 @@ Where the contracts define something, this plan does not repeat it.
 | Step | Status | Branch |
 |---|---|---|
 | 1. Food list on the server | Pull request #20, CI green | `meals/01-food-list` |
-| 2. Meals and saved meals on the server | Built; unit tests pass on the PC, integration tests run in CI | `meals/02-server-meals` |
-| 3. Phone data | Not started | `meals/03-phone-meals` |
+| 2. Meals and saved meals on the server | Pull request #21, CI green | `meals/02-server-meals` |
+| 3. Phone data | Built; automated checks pass on the PC | `meals/03-phone-meals` |
 | 4. Nutrition and Home | Not started | `meals/04-nutrition` |
 | 5. Log meal | Not started | `meals/05-log-meal` |
 | 6. Barcode | Not started | `meals/06-barcode` |
