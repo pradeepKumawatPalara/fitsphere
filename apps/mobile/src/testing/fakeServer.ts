@@ -54,7 +54,7 @@ export function fakeServer(now: Date) {
       item = { ...rest, setByUserId: ME.user.id, setAt, updatedAt };
     } else if (type === 'meal.set' || type === 'savedMeal.set') {
       // The server computes the totals from the items.
-      item = { deleted: false, ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
+      item = { deleted: false, ...(type === 'meal.set' ? { photo: null } : {}), ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
     } else if (type === 'meal.delete' || type === 'savedMeal.delete') {
       const previous = stored.get(slot)?.item;
       if (!previous) return; // deleting something the server never had changes nothing

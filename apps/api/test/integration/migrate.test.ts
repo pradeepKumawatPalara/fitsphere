@@ -99,8 +99,9 @@ describe('Migration runner (data model, "Changes")', () => {
       '0002_daily_tracking.sql',
       '0003_food_list.sql',
       '0004_meals.sql',
+      '0005_meal_photos.sql',
     ]);
-    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products']) {
+    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media']) {
       expect(await tableExists(table)).toBe(true);
     }
   });

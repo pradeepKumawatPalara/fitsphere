@@ -83,6 +83,15 @@ export function authorizeWeighInRead(caller: Account, userId: string): void {
   if (caller.id !== userId) throw new ApiError('NOT_FOUND');
 }
 
+/**
+ * Who may upload or view a person's meal photos (permission matrix, meal logs). MVP (D-20): only
+ * the person themselves. Anyone else gets 404, exactly as for a photo that does not exist (T-01).
+ * Post-MVP (backlog B-19, B-20): their coach with an active link may view them.
+ */
+export function authorizeMealPhoto(caller: Account, userId: string): void {
+  if (caller.id !== userId) throw new ApiError('NOT_FOUND');
+}
+
 function bearerToken(request: FastifyRequest): string {
   const header = request.headers.authorization;
   const match = header ? /^Bearer ([^\s]+)$/i.exec(header) : null;

@@ -250,6 +250,32 @@ const mealTagsSchema = z
 export const MEAL_SET = 'meal.set';
 export const MEAL_DELETE = 'meal.delete';
 
+/** The longest public image link accepted (REQ-LOG-010). */
+export const PUBLIC_LINK_MAX = 2_000;
+
+/**
+ * A public link to an image the user keeps on another site (REQ-LOG-010): https only, with a host
+ * name and no user name or password in it. FitSphere never fetches it (ADR-0002 rule 8).
+ */
+const publicLinkSchema = z
+  .url({ protocol: /^https$/, hostname: /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i })
+  .max(PUBLIC_LINK_MAX)
+  .refine((text) => !/^https:\/\/[^/?#]*@/i.test(text));
+
+export function isPublicLink(text: string): boolean {
+  return publicLinkSchema.safeParse(text).success;
+}
+
+/**
+ * A meal's one photo or public image link (REQ-LOG-006, REQ-LOG-010; MVP default, D-26). A photo
+ * is named by an ID made on the phone; its files are reached only through the media routes.
+ */
+export const mealPhotoSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('photo'), mediaId: idSchema }),
+  z.strictObject({ kind: z.literal('link'), url: publicLinkSchema }),
+]);
+export type MealPhoto = z.infer<typeof mealPhotoSchema>;
+
 /** Creates a meal, or replaces the whole meal with this ID. */
 export const mealSetDataSchema = z.strictObject({
   id: idSchema,
@@ -257,6 +283,8 @@ export const mealSetDataSchema = z.strictObject({
   mealType: z.enum(MEAL_TYPES),
   tags: mealTagsSchema,
   items: z.array(mealItemSchema).min(1).max(MAX_MEAL_ITEMS),
+  /** Null, or left out, for no photo; the meal's previous photo is then removed. */
+  photo: mealPhotoSchema.nullable().optional(),
   recordedAt: instantSchema,
 });
 export type MealSetData = z.infer<typeof mealSetDataSchema>;
@@ -399,6 +427,7 @@ export const pulledMealSchema = z.discriminatedUnion('deleted', [
     tags: z.array(z.enum(MEAL_TAGS)),
     items: z.array(pulledItemSchema),
     totals: mealTotalsSchema,
+    photo: mealPhotoSchema.nullable(),
     recordedAt: instantSchema,
     updatedAt: instantSchema,
   }),
@@ -526,6 +555,20 @@ export const barcodeLookupSchema = z.object({
   product: barcodeProductSchema.nullable(),
 });
 export type BarcodeLookup = z.infer<typeof barcodeLookupSchema>;
+
+// --- Meal photo files: /v1/users/{userId}/media/{mediaId} (ADR-0002 rules 3 and 4) ---
+
+/**
+ * Links for one meal photo's viewing copy and thumbnail: to upload them (POST …/upload) or to view
+ * them (GET). A viewing link works for at most 5 minutes (D-16). The app never stores or logs a
+ * link; it asks again.
+ */
+export const mediaLinksSchema = z.object({
+  photoUrl: z.string(),
+  thumbnailUrl: z.string(),
+  expiresAt: instantSchema,
+});
+export type MediaLinks = z.infer<typeof mediaLinksSchema>;
 
 // --- Weigh-in history: GET /v1/users/{userId}/weigh-ins ---
 

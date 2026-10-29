@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import {
   errorBodySchema,
+  isPublicLink,
   mealItemSchema,
+  mealPhotoSchema,
   mealSetDataSchema,
   mealTotals,
   measurementsSetDataSchema,
@@ -323,5 +325,55 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
     expect(mealSetDataSchema.safeParse(meal).success).toBe(true);
     expect(mealSetDataSchema.safeParse({ ...meal, items: [] }).success).toBe(false);
     expect(detailsFor(mealSetDataSchema, { ...meal, totals: { kcal: 1 } })).toEqual([{ field: 'totals', issue: 'unknown_field' }]);
+  });
+});
+
+describe('REQ-LOG-006 and REQ-LOG-010 a meal’s photo or public link (D-26)', () => {
+  const meal = {
+    id: CHANGE_ID,
+    day: '2026-10-27',
+    mealType: 'lunch',
+    tags: [],
+    items: [
+      {
+        source: 'own',
+        ref: null,
+        name: 'Synthetic snack bar',
+        amount: { unit: 'g', value: 40 },
+        kcal: 180,
+        proteinG: 4,
+        carbsG: null,
+        fatG: null,
+        fibreG: null,
+        estimated: false,
+      },
+    ],
+    recordedAt: '2026-10-27T02:45:10.123Z',
+  };
+
+  it('a meal has no photo, one photo named by an ID, or one link; leaving it out means none', () => {
+    expect(mealSetDataSchema.safeParse(meal).success).toBe(true);
+    expect(mealSetDataSchema.safeParse({ ...meal, photo: null }).success).toBe(true);
+    expect(mealSetDataSchema.safeParse({ ...meal, photo: { kind: 'photo', mediaId: CHANGE_ID } }).success).toBe(true);
+    expect(mealSetDataSchema.safeParse({ ...meal, photo: { kind: 'link', url: 'https://images.example.com/a.jpg' } }).success).toBe(true);
+    expect(mealPhotoSchema.safeParse({ kind: 'photo', mediaId: 'photo-1' }).success).toBe(false);
+    expect(mealPhotoSchema.safeParse({ kind: 'photo', mediaId: CHANGE_ID, url: 'https://images.example.com/a.jpg' }).success).toBe(false);
+  });
+
+  it('a public link is https with a host name, no user name or password, and at most 2,000 characters', () => {
+    expect(isPublicLink('https://images.example.com/meal.jpg?size=large')).toBe(true);
+    expect(isPublicLink('HTTPS://Images.Example.COM/Meal.jpg')).toBe(true);
+    for (const text of [
+      'http://images.example.com/meal.jpg',
+      'javascript:alert(1)',
+      'data:image/jpeg;base64,AAAA',
+      'https://localhost/meal.jpg',
+      'https://name:secret@images.example.com/meal.jpg',
+      'https://name@images.example.com/meal.jpg',
+      'images.example.com/meal.jpg',
+      `https://images.example.com/${'a'.repeat(2_000)}`,
+    ]) {
+      expect(isPublicLink(text), text).toBe(false);
+    }
   });
 });

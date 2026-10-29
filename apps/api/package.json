@@ -13,9 +13,12 @@
     "db:growth": "node --env-file-if-exists=.env scripts/db-growth.ts",
     "check:data-api": "node --env-file-if-exists=.env scripts/check-data-api.ts",
     "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts",
+    "check:storage": "node --env-file-if-exists=.env scripts/check-storage.ts",
     "foods:import": "node --env-file-if-exists=.env scripts/foods-import.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1159.0",
+    "@aws-sdk/s3-request-presigner": "^3.1159.0",
     "@fitsphere/shared": "*",
     "fastify": "^5.12.7",
     "jose": "^6.2.13",

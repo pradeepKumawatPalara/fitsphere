@@ -180,6 +180,21 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   own food. The camera asks for permission, reads the four packaged-food formats only and
   reports one barcode per scan.
 
+### Meal photos on the server (REQ-LOG-006, REQ-LOG-010; ADR-0002)
+- The storage module (unit tests; presigning needs no network): viewing links last 300 s and
+  upload links 600 s, path-style, with no checksum parameter and no secret in the link; storage
+  stays off until all five configuration names are set.
+- The media routes (integration, with a fake storage): authorization (401, 403, 404 for another
+  user by either ID, 200); upload and viewing links for both files at keys made of IDs, with
+  their expiry; 404 for an unknown or malformed ID; 503 without storage.
+- Through sync: the photo is pulled with its meal; deleting the meal or replacing or removing
+  the photo stops its links and removes its files; keeping it keeps it; a photo ID used by
+  another meal, or deleted, is refused; another user's same ID is their own; files are removed
+  again until the upload-link window has passed; a storage failure never fails the sync.
+- Public links: stored and pulled with no file; http, `javascript:`, localhost, credentials and
+  over-long links refused (also in the shared contract tests).
+- Against the real bucket: `npm run check:storage` (runbook), run by the owner.
+
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
 and fails if it contains the weight value, a measurement value or its notes, a target value, the
