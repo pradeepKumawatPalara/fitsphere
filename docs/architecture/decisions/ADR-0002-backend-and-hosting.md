@@ -3,7 +3,8 @@
 - Status: **Accepted** by the project owner on 2026-10-27 (D-17), together with ADR-0003. The
   owner's D-16 confirmations (5-minute viewing links, the upload-link limitation, the scope of
   the retention rule, phase-1 public links for meal photos only) were applied in the same
-  change, before acceptance.
+  change, before acceptance. Rule 3's upload-link lifetime amended on 2026-10-29 by the owner
+  (D-27).
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-ROLE-* (links, invitations, permissions), REQ-ACC-004/010, REQ-LOG-005, REQ-LOG-006, REQ-LOG-009, REQ-LOG-010, REQ-TRN-001, REQ-NFR-001, REQ-NFR-002, REQ-NFR-003, REQ-NFR-004, REQ-NFR-005, REQ-NFR-006
@@ -193,9 +194,11 @@ Design rules (apply from phase 1):
    - Viewing (download) links expire after **at most 5 minutes** (D-16; Supabase lets the
      caller set the expiry in seconds). The app never stores a viewing link; it asks the API
      again.
-   - Upload links are valid for 2 hours (Supabase docs; no shorter option is documented).
-     They allow uploading one file to one path and give no viewing access. Accepted by the
-     owner as a known limitation (D-16).
+   - Upload links are valid for **10 minutes** (600 seconds; D-27). They allow uploading one
+     file to one path and give no viewing access. *Amended 2026-10-29 (D-27):* this rule first
+     said "valid for 2 hours (Supabase docs; no shorter option is documented)", a limitation the
+     owner accepted in D-16. That described Supabase's own upload links; the API issues S3
+     presigned links (rule 4), whose lifetime it sets, so the limitation no longer applies.
    - Links are kept out of logs (invariant #7). Threat T-08.
 4. **One storage module.** The API talks to storage through one module using the common
    S3-style interface, so the provider can be changed without changing the app.
@@ -292,8 +295,8 @@ YouTube's API, with quotas and Google sign-in) is not in phase 1; evaluate it in
 | Q-092 | Which videos may use YouTube links | Answered (D-16) | "External links" above | No |
 
 Confirmed by the owner before acceptance (D-16): the 5-minute maximum for viewing links; the
-2-hour upload links as a known limitation; phase-1 public links for meal photos only; "never
-fully delete" applying to automatic retention only.
+2-hour upload links as a known limitation (since replaced by 10-minute links, D-27); phase-1
+public links for meal photos only; "never fully delete" applying to automatic retention only.
 
 ## Consequences and accepted trade-offs
 - Easier: testing permission rules; moving providers; one language end to end.
@@ -360,14 +363,30 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   Version 4", once the S3 connection is enabled in Storage's settings, and lists PutObject,
   GetObject, DeleteObject and HeadObject as supported. It names no expiry limits. The API's one
   storage module presigns upload links for **10 minutes** and viewing links for **5 minutes**.
-  Rule 3's "Upload links are valid for 2 hours" described Supabase's own upload links, which are
-  not used, so the limitation accepted in D-16 is narrower in practice; no decision changes.
-- **Steps 2 (Storage part) and 5 — automated parts passed, real-project checks pending:** the
-  link lifetimes, keys made of IDs, self-access and deletion are covered by
-  `apps/api/src/storage/mediaStorage.test.ts` and `test/integration/media.test.ts`; shrinking on
-  the phone by `apps/mobile/src/photos/takePhoto.test.ts`. Against `fitsphere-dev`, `npm run
-  check:storage` (with the Data API off) and the slice's phone checks (size, thumbnail, no
-  location data) are the owner's, not run yet.
+  Rule 3 was amended to match (D-27).
+- **Steps 2 (Storage part) and 5 — automated parts passed:** the link lifetimes, keys made of
+  IDs, self-access and deletion are covered by `apps/api/src/storage/mediaStorage.test.ts` and
+  `test/integration/media.test.ts`; shrinking on the phone by
+  `apps/mobile/src/photos/takePhoto.test.ts`.
+- **Step 2 (Storage part) — passed on `fitsphere-dev`, 2026-10-29 (`npm run check:storage`, run
+  by Claude Code at the owner's request; the Data API was recorded as off on 2026-10-28):** with
+  the private bucket `meal-photos` (file size limit 1 MB, allowed type `image/jpeg`) and an S3
+  access key, all 8 checks passed and the script exited 0:
+  - upload with an upload link: HTTP 200;
+  - viewing links last at most 5 minutes: `X-Amz-Expires=300`;
+  - read back with a viewing link: HTTP 200, same bytes;
+  - no reading without a link (private bucket): HTTP 400;
+  - only JPEG accepted (bucket rule): HTTP 415;
+  - files over 1 MB refused (bucket rule): HTTP 413;
+  - an expired viewing link (signed for 1 second, used after 3) stops working: HTTP 400;
+  - removed, the file is gone: HTTP 404.
+
+  The bucket enforces the type and size limits on S3 uploads, so upload links need not sign the
+  content type. The script does not check the upload links' 10 minutes against Supabase;
+  `mediaStorage.test.ts` checks that they are signed for 600 seconds.
+- **Step 5 — storage part passed (above); phone part pending:** the ~200 KB copy, the thumbnail
+  and the removal of location data are checked on the phone with the new development build
+  (slice plan, phone check 5).
 - **Step 6, media links — passed in automated tests:** links are returned in response bodies
   only, which the log never contains, and the request line holds the route pattern only
   (`test/integration/logs.test.ts`).

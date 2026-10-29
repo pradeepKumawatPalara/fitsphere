@@ -7,14 +7,15 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Slice 3, Meal logging (no AI) — built except dishes, waiting for the owner (D-26,
+**Slice 3, Meal logging (no AI) — built except dishes; phone checks pending (D-26,
 2026-10-29).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Steps 1 to 7 and the close-out
-are pull requests #20, #21, #22, #24, #26, #29, #30, #31 and #32, on top of #18
-(D-24); the owner merges them in order once CI is green. Step 8 (dishes as cited raw portions)
-waits for the owner to provide the source document: NIN's Dietary Guidelines for Indians could not
-be read from here. The owner's actions — migrations 0002 to 0005 and `foods:import`, the Storage
-bucket and keys with `check:storage`, `OFF_CONTACT`, and an OK for the EAS build (expo-camera and
-the photo packages) — and the phone checks are listed in the plan.
+(pull requests #18 to #32) are merged. On `fitsphere-dev`, migrations 0002 to 0005 and
+`foods:import` are applied; photo storage (private bucket `meal-photos`, S3 connection and access
+key) is configured and passed `check:storage` 8 of 8 from the PC; `OFF_CONTACT` is set. Still
+open: the phone checks in the plan, on the new EAS development build (approved 2026-10-29), which
+are the first time a real photo goes through storage; and step 8 (dishes as cited raw portions),
+which waits for the owner to provide the source document: NIN's Dietary Guidelines for Indians
+could not be read from here.
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
