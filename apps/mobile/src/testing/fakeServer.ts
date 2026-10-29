@@ -87,12 +87,14 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull: Record<ListName | 'removals', unknown[]> = {
+      const pull: Record<ListName | 'meals' | 'savedMeals' | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],
         measurements: [],
         targets: [],
+        meals: [],
+        savedMeals: [],
         removals: [],
       };
       const changed = [...stored.entries()].filter(([, entry]) => entry.seq > after).sort((a, b) => a[1].seq - b[1].seq);

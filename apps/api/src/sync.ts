@@ -1,10 +1,19 @@
 // POST /v1/sync (api-conventions; ADR-0007 option A; REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*,
-// REQ-ROLE-007).
+// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001).
 import {
   isFutureIstDay,
   istToday,
+  MEAL_DELETE,
+  MEAL_SET,
+  mealDeleteDataSchema,
+  mealSetDataSchema,
+  mealTotals,
   MEASUREMENTS_SET,
   measurementsSetDataSchema,
+  SAVED_MEAL_DELETE,
+  SAVED_MEAL_SET,
+  savedMealDeleteDataSchema,
+  savedMealSetDataSchema,
   SLEEP_SET,
   sleepSetDataSchema,
   STEPS_SET,
@@ -17,6 +26,9 @@ import {
   type ChangeError,
   type ChangeErrorCode,
   type IstDay,
+  type MealItem,
+  type PulledMeal,
+  type PulledSavedMeal,
   type SyncChange,
   type SyncResponse,
   type SyncResult,
@@ -210,7 +222,90 @@ const HANDLERS = new Map<string, Handler>([
       return null;
     },
   ],
+  [
+    MEAL_SET,
+    // Creates the meal, or replaces the whole meal with this ID: the change received last wins
+    // (ADR-0007 rule 2), including over an earlier deletion. The totals are computed here from the
+    // items; a change cannot set them.
+    async (client, account, input, now) => {
+      const data = mealSetDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      if (isFutureIstDay(data.data.day, now)) return 'DAY_IN_FUTURE';
+      const meal = data.data;
+      const totals = mealTotals(meal.items);
+      await client.query(
+        `insert into app.meals (user_id, id, day, meal_type, tags, items, kcal, protein_g, carbs_g, fat_g, fibre_g,
+           recorded_at)
+         values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12)
+         on conflict (user_id, id) do update set
+           day = excluded.day, meal_type = excluded.meal_type, tags = excluded.tags, items = excluded.items,
+           kcal = excluded.kcal, protein_g = excluded.protein_g, carbs_g = excluded.carbs_g, fat_g = excluded.fat_g,
+           fibre_g = excluded.fibre_g, recorded_at = excluded.recorded_at, deleted_at = null`,
+        [account.id, meal.id, meal.day, meal.mealType, meal.tags, itemsJson(meal.items), ...totalValues(totals), meal.recordedAt],
+      );
+      return null;
+    },
+  ],
+  [
+    MEAL_DELETE,
+    // Removes the meal's content and keeps an empty row, so other phones learn of the deletion.
+    // Deleting a meal the server never had changes nothing.
+    async (client, account, input) => {
+      const data = mealDeleteDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      await client.query(
+        `update app.meals set deleted_at = $3, meal_type = null, tags = '{}', items = null, kcal = null,
+           protein_g = null, carbs_g = null, fat_g = null, fibre_g = null
+         where user_id = $1 and id = $2 and deleted_at is null`,
+        [account.id, data.data.id, data.data.deletedAt],
+      );
+      return null;
+    },
+  ],
+  [
+    SAVED_MEAL_SET,
+    async (client, account, input) => {
+      const data = savedMealSetDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      const saved = data.data;
+      const totals = mealTotals(saved.items);
+      await client.query(
+        `insert into app.saved_meals (user_id, id, name, meal_type, tags, items, kcal, protein_g, carbs_g, fat_g,
+           fibre_g, saved_at)
+         values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12)
+         on conflict (user_id, id) do update set
+           name = excluded.name, meal_type = excluded.meal_type, tags = excluded.tags, items = excluded.items,
+           kcal = excluded.kcal, protein_g = excluded.protein_g, carbs_g = excluded.carbs_g, fat_g = excluded.fat_g,
+           fibre_g = excluded.fibre_g, saved_at = excluded.saved_at, deleted_at = null`,
+        [account.id, saved.id, saved.name, saved.mealType, saved.tags, itemsJson(saved.items), ...totalValues(totals), saved.savedAt],
+      );
+      return null;
+    },
+  ],
+  [
+    SAVED_MEAL_DELETE,
+    async (client, account, input) => {
+      const data = savedMealDeleteDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      await client.query(
+        `update app.saved_meals set deleted_at = $3, name = null, meal_type = null, tags = '{}', items = null,
+           kcal = null, protein_g = null, carbs_g = null, fat_g = null, fibre_g = null
+         where user_id = $1 and id = $2 and deleted_at is null`,
+        [account.id, data.data.id, data.data.deletedAt],
+      );
+      return null;
+    },
+  ],
 ]);
+
+/** node-postgres turns a JavaScript array into a PostgreSQL array, so jsonb gets JSON text. */
+function itemsJson(items: MealItem[]): string {
+  return JSON.stringify(items);
+}
+
+function totalValues(totals: ReturnType<typeof mealTotals>) {
+  return [totals.kcal, totals.proteinG, totals.carbsG, totals.fatG, totals.fibreG];
+}
 
 function result(changeId: string, errorCode: ChangeErrorCode | null): SyncResult {
   // Details are left out, so a change sent again gets exactly the same reply.
@@ -229,12 +324,20 @@ type ChangedRow = { change_seq: string } & (
   | { kind: 'sleep'; item: { day: IstDay; sleepMinutes: number } & Times }
   | { kind: 'measurements'; item: SyncResponse['pull']['measurements'][number] }
   | { kind: 'target'; item: SyncResponse['pull']['targets'][number] }
+  | { kind: 'meal'; item: StoredMeal }
+  | { kind: 'savedMeal'; item: StoredSavedMeal }
 );
 
+type StoredTotals = { kcal: number | null; proteinG: number | null; carbsG: number | null; fatG: number | null; fibreG: number | null };
+type StoredMeal = Omit<Extract<PulledMeal, { deleted: false }>, 'totals' | 'mealType'> &
+  StoredTotals & { mealType: Extract<PulledMeal, { deleted: false }>['mealType'] | null };
+type StoredSavedMeal = Omit<Extract<PulledSavedMeal, { deleted: false }>, 'totals' | 'mealType' | 'name'> &
+  StoredTotals & { name: string | null; mealType: Extract<PulledSavedMeal, { deleted: false }>['mealType'] | null };
+
 /**
- * The user's rows changed after `afterSeq`, oldest change first, from all five tables. They share
- * `app.change_seq`, so one cursor covers them all. Day data is limited to the 90-day window;
- * targets are always included.
+ * The user's rows changed after `afterSeq`, oldest change first, from every synced table. They
+ * share `app.change_seq`, so one cursor covers them all. Day data, meals included, is limited to
+ * the 90-day window; targets and saved meals are always included.
  */
 async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigint, windowStart: IstDay, limit: number) {
   const { rows } = await client.query<ChangedRow>(
@@ -263,6 +366,18 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
          json_build_object('kind', kind, 'value', value, 'setByUserId', set_by_user_id,
            'setAt', set_at, 'updatedAt', updated_at)
        from app.targets where user_id = $1 and change_seq > $2
+       union all
+       select 'meal', change_seq,
+         json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'mealType', meal_type,
+           'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
+           'fibreG', fibre_g, 'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.meals where user_id = $1 and change_seq > $2 and day >= $3
+       union all
+       select 'savedMeal', change_seq,
+         json_build_object('id', id, 'deleted', deleted_at is not null, 'name', name, 'mealType', meal_type,
+           'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
+           'fibreG', fibre_g, 'savedAt', saved_at, 'updatedAt', updated_at)
+       from app.saved_meals where user_id = $1 and change_seq > $2
      ) as changed
      order by change_seq
      limit $4`,
@@ -272,7 +387,16 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
 }
 
 function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
-  const pull: SyncResponse['pull'] = { weighIns: [], steps: [], sleep: [], measurements: [], targets: [], removals: [] };
+  const pull: SyncResponse['pull'] = {
+    weighIns: [],
+    steps: [],
+    sleep: [],
+    measurements: [],
+    targets: [],
+    meals: [],
+    savedMeals: [],
+    removals: [],
+  };
   for (const row of rows) {
     switch (row.kind) {
       case 'weighIn':
@@ -290,9 +414,53 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
       case 'target':
         pull.targets.push({ ...row.item, setAt: utc(row.item.setAt), updatedAt: utc(row.item.updatedAt) });
         break;
+      case 'meal':
+        pull.meals.push(toPulledMeal(row.item));
+        break;
+      case 'savedMeal':
+        pull.savedMeals.push(toPulledSavedMeal(row.item));
+        break;
     }
   }
   return pull;
+}
+
+function toPulledMeal(meal: StoredMeal): PulledMeal {
+  if (meal.deleted || meal.mealType === null) {
+    return { deleted: true, id: meal.id, day: meal.day, updatedAt: utc(meal.updatedAt) };
+  }
+  return {
+    deleted: false,
+    id: meal.id,
+    day: meal.day,
+    mealType: meal.mealType,
+    tags: meal.tags,
+    items: meal.items,
+    totals: totalsOf(meal),
+    recordedAt: utc(meal.recordedAt),
+    updatedAt: utc(meal.updatedAt),
+  };
+}
+
+function toPulledSavedMeal(saved: StoredSavedMeal): PulledSavedMeal {
+  if (saved.deleted || saved.mealType === null || saved.name === null) {
+    return { deleted: true, id: saved.id, updatedAt: utc(saved.updatedAt) };
+  }
+  return {
+    deleted: false,
+    id: saved.id,
+    name: saved.name,
+    mealType: saved.mealType,
+    tags: saved.tags,
+    items: saved.items,
+    totals: totalsOf(saved),
+    savedAt: utc(saved.savedAt),
+    updatedAt: utc(saved.updatedAt),
+  };
+}
+
+function totalsOf(row: StoredTotals) {
+  return { kcal: row.kcal ?? 0, proteinG: row.proteinG ?? 0, carbsG: row.carbsG, fatG: row.fatG, fibreG: row.fibreG };
 }
 
 function withUtcTimes<T extends Times>(item: T): T {

@@ -7,8 +7,8 @@
   schema, unused in the MVP)
 - Builds on: ADR-0002, ADR-0003, ADR-0004, ADR-0007; invariants #1, #5, #6, #7
 
-Covers users, roles, links, Head Coach permission answers, weigh-ins, steps, sleep, measurements
-and targets, plus the sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
+Covers users, roles, links, Head Coach permission answers, weigh-ins, steps, sleep, measurements,
+targets, meals, saved meals and the food list, plus the sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
 permission answers are post-MVP, but their tables stay in the schema so links can be added later
 without rework. D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md). The permission
@@ -217,6 +217,48 @@ D-23). They include a target body weight, so the values are treated as **Health*
   trainee's change while an active coach's target applies (backlog B-21).
 - A target can be changed but not removed in the MVP (D-23).
 
+### `meals` — Health
+The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0004.
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id` | `uuid` | References `users`, deleted with the user |
+| `id` | `uuid` | Made on the phone, so a meal can be created, edited and deleted offline |
+| `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
+| `meal_type` | `text` | `breakfast`, `lunch`, `snack` or `dinner`; required (REQ-LOG-003). Null once deleted |
+| `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
+| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000, or portions 0.5–10 in halves), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
+| `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
+| `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
+| `deleted_at` | `timestamptz` | Set when the user deletes the meal |
+| `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
+| `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
+
+- Primary key (`user_id`, `id`): an ID only ever names one user's meal, so a change can never
+  reach another user's meal, even with the same ID (invariant #1).
+- A new `meal.set` for the same ID replaces the whole meal: the change the server receives last
+  wins (ADR-0007 rule 2), even over an earlier deletion.
+- **Deleting a meal** removes its content and totals and keeps a row holding only the ID, the day
+  and `deleted_at`, so the user's other phones learn of the deletion at their next sync. Deleting
+  a meal will also delete its photo (Q-032), from the slice's Photos step.
+- Indexes (`user_id`, `change_seq`) for the sync pull and (`user_id`, `day`) for day queries.
+  Nothing references `meals` by foreign key, so it can be partitioned by month later (ADR-0003).
+
+### `saved_meals` — Health
+Copies of meals kept for re-logging (REQ-SAVED-001, REQ-NUT-004 "Save to my meals").
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id`, `id` | `uuid` | Primary key together, as in `meals` |
+| `name` | `text` | 1 to 60 characters. Null once deleted |
+| `meal_type`, `tags`, `items`, totals | | As in `meals`: the slot it was saved from (Q-036) and its foods |
+| `saved_at` | `timestamptz` | Not null. When it was saved, on the phone |
+| `deleted_at`, `change_seq`, `created_at`, `updated_at` | | As in `meals` |
+
+- A saved meal is a copy: it has no day and no photo, and changing or deleting the meal it was
+  saved from does not change it. It can be deleted, in the same way as a meal.
+- Not seen by a coach (permission matrix, D-18).
+
 ### `foods` — reference data
 FitSphere's food list (ADR-0006 rule 1; D-25, D-26), loaded from
 `data/foods/ifct2017-foods.csv` by `npm run foods:import`
@@ -330,11 +372,11 @@ rule 5 and D-14 require.
 | `head_coach_permission_answers` | While the trainee's account exists | With the trainee's account (Q-048 MVP default) |
 | `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
 | `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
+| `meals`, `saved_meals` | While the account exists; a deleted one keeps only its ID, its day (meals) and when it was deleted | With the account. Phase 1 has no backups (R-005) |
 | `foods`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |
 
 ## Not in this document yet
 Added with the slice that needs them: invitations, Notifications list, push tokens, settings
-(units, theme, AI consent), plans, meals, media, workouts, and the admin access log
-(REQ-NFR-005).
+(units, theme, AI consent), plans, media, workouts, and the admin access log (REQ-NFR-005).

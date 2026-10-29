@@ -119,6 +119,8 @@ describe('ADR-0007 sync', () => {
       sleep: [],
       measurements: [],
       targets: [],
+      meals: [],
+      savedMeals: [],
       removals: [],
     });
     expect(reply.hasMore).toBe(false);

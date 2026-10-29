@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import {
   errorBodySchema,
+  mealItemSchema,
+  mealSetDataSchema,
+  mealTotals,
   measurementsSetDataSchema,
   meSetupRequestSchema,
   sleepSetDataSchema,
@@ -214,6 +217,8 @@ describe('REQ-NFR-004 sync request and response', () => {
         sleep: [],
         measurements: [],
         targets: [],
+        meals: [],
+        savedMeals: [],
         removals: [],
       },
       cursor: 'opaque-string',
@@ -254,5 +259,69 @@ describe('Error body', () => {
       },
     };
     expect(errorBodySchema.parse(body)).toEqual(body);
+  });
+});
+
+describe('REQ-LOG-007 meal items and totals (D-26)', () => {
+  const item = {
+    source: 'ifct2017' as const,
+    ref: 'A019',
+    name: 'Wheat flour, atta',
+    amount: { unit: 'g' as const, value: 60 },
+    kcal: 192,
+    proteinG: 6.34,
+    carbsG: 38.5,
+    fatG: 0.92,
+    fibreG: 6.82,
+    estimated: false,
+  };
+
+  it('accepts whole grams from 1 to 2,000 and portions in halves from 0.5 to 10', () => {
+    for (const amount of [
+      { unit: 'g', value: 1 },
+      { unit: 'g', value: 2_000 },
+      { unit: 'portion', value: 0.5 },
+      { unit: 'portion', value: 10 },
+    ]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
+    }
+    for (const amount of [
+      { unit: 'g', value: 0 },
+      { unit: 'g', value: 12.5 },
+      { unit: 'portion', value: 0.25 },
+      { unit: 'portion', value: 10.5 },
+      { unit: 'cup', value: 1 },
+    ]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
+    }
+  });
+
+  it('sums the known values, and gives null only when no item has that value', () => {
+    expect(mealTotals([item, { ...item, kcal: 45, proteinG: 0, carbsG: null, fatG: 5, fibreG: null }])).toEqual({
+      kcal: 237,
+      proteinG: 6.34,
+      carbsG: 38.5,
+      fatG: 5.92,
+      fibreG: 6.82,
+    });
+    expect(mealTotals([{ ...item, fibreG: null }]).fibreG).toBeNull();
+  });
+
+  it('rounds totals to hundredths, so float sums stay exact', () => {
+    expect(mealTotals([{ ...item, proteinG: 0.1 }, { ...item, proteinG: 0.2 }]).proteinG).toBe(0.3);
+  });
+
+  it('refuses a meal without items, or one that sets its own totals', () => {
+    const meal = {
+      id: CHANGE_ID,
+      day: '2026-10-27',
+      mealType: 'lunch',
+      tags: [],
+      items: [item],
+      recordedAt: '2026-10-27T02:45:10.123Z',
+    };
+    expect(mealSetDataSchema.safeParse(meal).success).toBe(true);
+    expect(mealSetDataSchema.safeParse({ ...meal, items: [] }).success).toBe(false);
+    expect(detailsFor(mealSetDataSchema, { ...meal, totals: { kcal: 1 } })).toEqual([{ field: 'totals', issue: 'unknown_field' }]);
   });
 });
