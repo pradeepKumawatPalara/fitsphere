@@ -257,19 +257,31 @@ rule 5 and D-14 require.
 | Local table | Holds | Rules |
 |---|---|---|
 | `weigh_ins` | `day` (key), `weight_grams`, `recorded_at`, `sync_state` | `sync_state` is `synced`, `pending` or `rejected` |
+| `steps` | `day` (key), `steps`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
+| `sleep` | `day` (key), `sleep_minutes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
+| `measurements` | `day` (key), the six lengths in millimetres, `notes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
+| `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id` | One signed-in user per local database |
 
-- **What is kept:** the user's own weigh-ins for the last 90 IST days (ADR-0007 rule 1).
-  Synced entries older than that are deleted from the phone when the app starts; older history
-  is read from the server when viewed online.
+- **What is kept:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST
+  days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
+  deleted from the phone at each sync; targets are never pruned. Older history is read from the
+  server when viewed online.
+- **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
+  each in a transaction. Version 2 (Home and daily tracking slice) adds `steps`, `sleep`,
+  `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor
+  so the next sync pulls the new kinds.
+- **Matching a change to its entry:** an outbox change is matched by its type and its key (`day`,
+  or `kind` for targets), so a waiting weight never holds back the server's steps for the same
+  day.
 - **Never deleted automatically:** `pending` and `rejected` entries and their outbox rows
   (D-14). A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2).
 - **30-day clear** (ADR-0007 rule 4): in the Skeleton there are no drafts and no other people's
   data on the phone, so nothing is cleared yet. The check is built with the first slice that
   stores either.
-- **Discarding a rejected change** removes it and that day's local value, and clears the sync
-  cursor, so the next sync brings back what the server holds for the day.
+- **Discarding a rejected change** removes it and that entry's local value, and clears the sync
+  cursor, so the next sync brings back what the server holds for it.
 - **Log out** (REQ-ACC-008; MVP default, D-18): when the outbox is empty, logging out deletes the
   local database and its key. When it is not, the app warns that the unsynced entries will be
   lost and offers to stay signed in; the entries are deleted only if the user confirms.

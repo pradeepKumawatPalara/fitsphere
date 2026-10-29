@@ -1,15 +1,26 @@
-import { istToday, type SyncResult } from '@fitsphere/shared';
+import { istToday, type SyncResult, type TargetKind } from '@fitsphere/shared';
 import { ME } from './fakes';
 
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
 // the last change received wins, a future IST day is rejected, and the pull returns what changed
-// after the cursor.
+// after the cursor, for every kind.
 
-type StoredWeighIn = { day: string; weightGrams: number; recordedAt: string; updatedAt: string; seq: number };
-type Change = { changeId: string; type: string; data: { day: string; weightGrams: number; recordedAt: string } };
+type Stored = { item: Record<string, unknown>; seq: number };
+type Change = { changeId: string; type: string; data: Record<string, unknown> };
+
+/** Change type → the pull list it lands in, and the field that identifies an entry. */
+const KINDS = {
+  'weighIn.set': { list: 'weighIns', key: 'day' },
+  'steps.set': { list: 'steps', key: 'day' },
+  'sleep.set': { list: 'sleep', key: 'day' },
+  'measurements.set': { list: 'measurements', key: 'day' },
+  'target.set': { list: 'targets', key: 'kind' },
+} as const;
+type ChangeType = keyof typeof KINDS;
+type ListName = (typeof KINDS)[ChangeType]['list'];
 
 export function fakeServer(now: Date) {
-  const weighIns = new Map<string, StoredWeighIn>();
+  const stored = new Map<string, Stored>();
   const seen = new Map<string, SyncResult>();
   const state = {
     offline: false,
@@ -21,6 +32,27 @@ export function fakeServer(now: Date) {
   };
   const calls: { method: string; path: string; body: unknown }[] = [];
   let seq = 0;
+
+  function store(type: ChangeType, data: Record<string, unknown>) {
+    seq += 1;
+    const { key } = KINDS[type];
+    const { setAt, recordedAt, ...rest } = data;
+    const item =
+      type === 'target.set'
+        ? { ...rest, setByUserId: ME.user.id, setAt, updatedAt: now.toISOString() }
+        : { ...rest, recordedAt, updatedAt: now.toISOString() };
+    stored.set(`${type}|${String(data[key])}`, { item, seq });
+  }
+
+  /** The values stored for one list, keyed by day (or by kind for targets). */
+  function entries(list: ListName): Map<string, Record<string, unknown>> {
+    const result = new Map<string, Record<string, unknown>>();
+    for (const [id, { item }] of stored) {
+      const type = id.split('|')[0] as ChangeType;
+      if (KINDS[type].list === list) result.set(id.split('|')[1]!, item);
+    }
+    return result;
+  }
 
   const fetchImpl = jest.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (state.offline) throw new TypeError('Network request failed');
@@ -40,11 +72,12 @@ export function fakeServer(now: Date) {
       const results = request.changes.map((change) => {
         const known = seen.get(change.changeId);
         if (known) return known;
-        const code = state.rejectWith ?? (change.data.day > istToday(now) ? 'DAY_IN_FUTURE' : null);
-        if (!code) {
-          seq += 1;
-          weighIns.set(change.data.day, { ...change.data, updatedAt: now.toISOString(), seq });
-        }
+        const type = change.type in KINDS ? (change.type as ChangeType) : null;
+        const day = change.data.day;
+        const code =
+          state.rejectWith ??
+          (!type ? 'UNKNOWN_CHANGE_TYPE' : typeof day === 'string' && day > istToday(now) ? 'DAY_IN_FUTURE' : null);
+        if (!code && type) store(type, change.data);
         const result = {
           changeId: change.changeId,
           status: code ? 'rejected' : 'accepted',
@@ -54,25 +87,17 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull = [...weighIns.values()].filter((entry) => entry.seq > after).sort((a, b) => a.seq - b.seq);
-      return json(200, {
-        results,
-        pull: {
-          weighIns: pull.map((entry) => ({
-            day: entry.day,
-            weightGrams: entry.weightGrams,
-            recordedAt: entry.recordedAt,
-            updatedAt: entry.updatedAt,
-          })),
-          steps: [],
-          sleep: [],
-          measurements: [],
-          targets: [],
-          removals: [],
-        },
-        cursor: String(seq),
-        hasMore: false,
-      });
+      const pull: Record<ListName | 'removals', unknown[]> = {
+        weighIns: [],
+        steps: [],
+        sleep: [],
+        measurements: [],
+        targets: [],
+        removals: [],
+      };
+      const changed = [...stored.entries()].filter(([, entry]) => entry.seq > after).sort((a, b) => a[1].seq - b[1].seq);
+      for (const [id, { item }] of changed) pull[KINDS[id.split('|')[0] as ChangeType].list].push(item);
+      return json(200, { results, pull, cursor: String(seq), hasMore: false });
     }
     if (method === 'GET' && /^\/users\/[^/]+\/weigh-ins$/.test(path)) {
       const items = state.older.map((entry) => ({
@@ -85,13 +110,34 @@ export function fakeServer(now: Date) {
     throw new Error(`No fake reply for ${method} ${path}`);
   });
 
-  /** A value saved from another phone. */
+  /** A weight saved from another phone. */
   function storeFromElsewhere(day: string, weightGrams: number) {
-    seq += 1;
-    weighIns.set(day, { day, weightGrams, recordedAt: `${day}T02:00:00.000Z`, updatedAt: now.toISOString(), seq });
+    store('weighIn.set', { day, weightGrams, recordedAt: `${day}T02:00:00.000Z` });
   }
 
-  return { fetchImpl: fetchImpl as unknown as typeof fetch, state, calls, weighIns, storeFromElsewhere };
+  /** Steps saved from another phone. */
+  function storeStepsFromElsewhere(day: string, steps: number) {
+    store('steps.set', { day, steps, recordedAt: `${day}T02:00:00.000Z` });
+  }
+
+  /** A target set from another phone. */
+  function storeTargetFromElsewhere(kind: TargetKind, value: number) {
+    store('target.set', { kind, value, setAt: now.toISOString() });
+  }
+
+  return {
+    fetchImpl: fetchImpl as unknown as typeof fetch,
+    state,
+    calls,
+    /** The weights stored now, by day. */
+    get weighIns() {
+      return entries('weighIns');
+    },
+    entries,
+    storeFromElsewhere,
+    storeStepsFromElsewhere,
+    storeTargetFromElsewhere,
+  };
 }
 
 function json(status: number, body: unknown) {
