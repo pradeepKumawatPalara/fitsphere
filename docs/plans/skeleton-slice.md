@@ -28,7 +28,8 @@ Where the contracts define something, this plan does not repeat it.
 | 3. Shared dates, units and contract schemas | Built 2026-10-28; waiting for CI and the phone check | `skeleton/03-shared-dates-units` |
 | 4. Database schema and migrations | Built 2026-10-28; waiting for CI and the owner's Supabase checks | `skeleton/04-database-schema` |
 | 5. API foundations and account setup | Built 2026-10-28; waiting for CI and the owner's check on the PC | `skeleton/05-api-foundations` |
-| 6–10 | Not started | — |
+| 6. Sign-up, verify, sign in, account setup, log out | Built 2026-10-28; waiting for CI, the EAS build and the phone checks | `skeleton/06-sign-up-sign-in` |
+| 7–10 | Not started | — |
 | 11 (push check) and 12 (iOS compile check) | Moved to the backlog by D-20: B-23 and B-24 | — |
 
 ## Before step 1 (owner; no code)
@@ -56,6 +57,7 @@ recorded as D-18 answer 14. D-20 changed decision 5.
 | `packages/shared` | `zod`; dev: `vitest` | One strict schema for the app and the API ("Strict input"); IST dates and units |
 | `apps/api` | `fastify`, `jose`, `pg`; dev: `vitest`, `@types/pg` | Fastify's built-in logger can remove fields by configuration (log rule), and its route hook supports the route-listing test. `jose` checks tokens against JWKS. `pg` with plain SQL |
 | `apps/mobile` | Expo SDK 58 (blank TypeScript), `expo-router`, `expo-dev-client`, `@supabase/supabase-js`, `expo-secure-store`, `expo-sqlite` (SQLCipher), `expo-crypto`, `expo-network`; dev: `jest-expo`, `jest`, `@types/jest`, `@testing-library/react-native`, `react-dom` (pinned to the app's React version, see below) | ADR-0001, ADR-0004 rule 3, ADR-0007; Expo's documented test path |
+| `apps/mobile`, added in step 6 | `react-native-url-polyfill` | JavaScript only, so no new build. supabase-js needs a full `URL` implementation, and Supabase's React Native guide installs this package for it |
 | Root (dev), for the app | `eslint-plugin-react-hooks`, `eslint-plugin-expo` | In place of `eslint-config-expo`: version 58 bundles a React plugin that fails on ESLint 10 (step 2). These are the two plugins from it that matter here, at the versions it uses |
 | The PC, globally (not a project dependency) | `eas-cli` (26.0.0 on 2026-10-28) | Development builds on EAS (D-19); installed globally as Expo's guide does, or run with `npx eas-cli@26`. `apps/mobile/eas.json` sets the minimum version |
 | The PC (not a project dependency) | `cloudflared`, from Cloudflare's GitHub releases | The development tunnel from the phone to the API (D-19 answer 6, Q-093): Cloudflare's Quick Tunnel, free and with no account |

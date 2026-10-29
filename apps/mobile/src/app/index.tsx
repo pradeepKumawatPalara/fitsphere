@@ -1,18 +1,15 @@
-import { StyleSheet, View } from 'react-native';
-import { checkApiHealth } from '../api/health';
-import { ApiStatus } from '../components/ApiStatus';
-import { TodayIst } from '../components/TodayIst';
-import { API_URL } from '../config';
+import { Redirect } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import { useAuth } from '../auth/AuthProvider';
 
-export default function HomeScreen() {
-  return (
-    <View style={styles.screen}>
-      <TodayIst />
-      <ApiStatus apiUrl={API_URL} check={checkApiHealth} />
-    </View>
-  );
+export default function Start() {
+  const { signedIn } = useAuth();
+  if (signedIn === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+  return <Redirect href={signedIn ? '/home' : '/sign-in'} />;
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 24, padding: 16 },
-});

@@ -85,6 +85,8 @@ confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
 | Log out and data on the phone | Logging out deletes the phone's local database and its key. If it holds entries not yet synced, the app warns first and deletes them only if the user confirms. *Not yet confirmed: added with the Skeleton contracts* | REQ-ACC-008, data model |
 | Weight entry precision | Body weight is entered and shown with one decimal in the chosen unit; it is stored in whole grams (invariant #6). *Not yet confirmed: added with the Skeleton contracts* | REQ-HOME-006, data model |
 | What each MVP slice covers | The REQs listed per slice in `mvp-scope.md` section 5; the owner set the order (D-20). Each slice's plan confirms its scope before work starts. *Not yet confirmed: added with D-20* | `mvp-scope.md` |
+| App texts for failures (Skeleton step 6) | When Supabase or the API cannot answer: "Something went wrong. Try again later." A verify-email link opens "Your email is verified. Sign in to continue.", or, for an expired or used link, "This link has expired or was already used. Sign in, or sign up again for a new link." A request that never left the phone shows the named "needs an internet connection" warning instead of the neutral text, since it reveals nothing about the address. *Not yet confirmed* | REQ-ACC-010, error model |
+| Sign-in email links (Skeleton step 6) | Supabase's PKCE flow: links carry a one-time code, never tokens. The verify link only confirms the address; the app then asks the user to sign in. *Not yet confirmed* | REQ-ACC-010, ADR-0004 |
 
 Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
 and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18
