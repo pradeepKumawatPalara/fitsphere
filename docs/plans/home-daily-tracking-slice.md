@@ -29,8 +29,9 @@ Where the contracts define something, this plan does not repeat it.
 | 4. Navigation shell | Pull request #14 | `home/04-navigation` |
 | 5. Own targets, calories and protein cards, workout tracker | Pull request #15. The generic number sheet is built here, for the targets, instead of in step 6 | `home/05-targets-and-cards` |
 | 6. Steps and sleep tiles | Pull request #16 | `home/06-steps-sleep` |
-| 7. Measurements card and sheet; close-out | Built; automated checks pass | `home/07-measurements` |
-| Owner's checks at the end of the slice | Pending: merge, migration 0002 on `fitsphere-dev`, phone checks 1 to 7 | — |
+| 7. Measurements card and sheet; close-out | Pull request #17. Pull requests #11 to #17 merged 2026-10-29, CI green on `main` | `home/07-measurements` |
+| 8. Measurements card shows and edits a date's measurements (D-24) | Built; automated checks pass | `home/08-measurements-history` |
+| Owner's checks at the end of the slice | Pending: migration 0002 on `fitsphere-dev`, phone checks 1 to 7 (check 5 as changed by D-24) | — |
 
 ## Scope
 | In this slice | Requirements |
@@ -84,7 +85,7 @@ and in each pull request.
 | Measurements storage (REQ-MEAS-003: "a contract decision") | Whole millimetres (invariant #6), typed with one decimal in cm or in. Every field is 10–250 cm (Q-028), in either unit |
 | The cm/in toggle | Starts at cm. The last choice is remembered on this phone only |
 | The measurements sheet's date | Opens on Home's selected date, as Q-011 does for "+". It can be changed to another past day within the window |
-| Q-026 "current week" | The Mon–Sun week of the selected date, since all on-screen data follows it (REQ-DATE-001) |
+| Q-026 "current week" | *Superseded by D-24 (step 8): the card is always shown.* It was the Mon–Sun week of the selected date |
 | Measurements validation | "Save measurements" needs both waist values to be valid, and every optional field that is filled. Notes are 500 characters or fewer. An existing entry for the day pre-fills the sheet |
 | Workout tracker texts | "N of T · K left"; "N of T · target reached" once N reaches T; with no target, "Set a weekly workout target" |
 | Rejected-change texts | One per type, as for weight: "These steps weren't saved: <reason>. Edit or discard it.", and likewise for sleep, measurements and targets |
@@ -286,6 +287,27 @@ tools.
   REQ-HOME-005 and REQ-NAV-003 come with slice 3.
 - Link this plan from `mvp-scope.md` slice 2; update `CLAUDE.md` and the docs index.
 
+### Step 8: Measurements card shows and edits a date's measurements (D-24; REQ-HOME-008, REQ-MEAS-001…006)
+Added after the slice was built, at the owner's request. It changes Q-026.
+
+**Builds**
+- `MeasurementsCard` is always on Home. It shows the selected date's entry (both waist values,
+  any optional values, the notes, and "Waiting to sync" or "Not saved"), in the cm/in unit last
+  chosen on the phone, with "Edit measurements". With no entry: "No measurements for <date>.",
+  the weekly prompt and "Add measurements".
+- `MeasurementsSheet` has two modes. Add is as before. Edit opens on the entry's date, pre-filled,
+  with the date fixed.
+- Edit on a rejected measurements change opens Edit.
+- No server, schema, API or sync change: one entry per date already holds on both sides (Q-030).
+
+**Tests:** the hiding test is replaced by D-24 cases:
+- the card stays and shows the values;
+- each date shows its own entry, or Add;
+- the unit shown;
+- "Waiting to sync";
+- Edit pre-fills everything and fixes the date;
+- an edit updates that date's entry, with no second one, and leaves today's alone.
+
 ## Owner's checks at the end of the slice
 1. Merge the seven pull requests in step order, each with green CI (D-21).
 2. Supabase: run `npm run migrate -w @fitsphere/api` against `fitsphere-dev`. It applies 0002.
@@ -302,11 +324,15 @@ tools.
       target remaining, and so does protein. The workout tracker shows "0 of T · T left".
    4. **Steps and sleep:** log both, then replace them. Out-of-range values are refused. On a
       past day picked from the calendar, the banner shows and the values belong to that day.
-   5. **Measurements:**
+   5. **Measurements** (as changed by D-24):
       - Save stays disabled until both waist values are entered;
       - values in inches, the optional fields and notes all save;
       - X saves nothing;
-      - the card hides for this week and shows again on a previous week.
+      - after saving, the card stays and shows the values, with "Edit measurements";
+      - "Edit measurements" opens the sheet pre-filled, with the date fixed; change a value and
+        save, and the card shows the new value;
+      - on a past date with no entry, add one, then go back to today: today's values are
+        unchanged.
    6. **Offline:** in airplane mode with the app open (no reload; Skeleton decision 8), log
       steps, sleep and measurements and change a target. After reconnecting, all of them sync.
       Log out and sign in again: everything comes back from the server.

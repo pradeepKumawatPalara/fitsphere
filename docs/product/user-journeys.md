@@ -40,8 +40,9 @@ REQ-HOME-006, HOME-008, MEAS-001..006, PRG-006
 1. Home → Weight tile "+ Add" → enters value (unit per setting).
 2. Home Measurements card → bottom sheet, date = today, chooses cm/in.
 3. Enters upper and lower waist (Save enables), optionally expands for chest/hips/arms/thighs/notes.
-4. Saves. Progress › Measurements shows the entry.
+4. Saves. The Home card now shows the entry with "Edit measurements" (D-24); Progress › Measurements shows it too.
 Alternate: taps X → exits, nothing saved.
+Alternate (D-24): picks a date on Home → the card shows that date's measurements → "Edit measurements" → the sheet opens pre-filled on that date → corrects a value → saves; that date's entry is updated, and no other date changes.
 
 ## J-05 Trainee reviews a past day
 REQ-DATE-001..003

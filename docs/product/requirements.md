@@ -2,10 +2,11 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: where targets are set; storage
-  units for sleep and measurements; parts of REQ-HOME-002, REQ-HOME-003/004, REQ-HOME-005 and
-  REQ-HOME-007 that wait for meals or workouts). 2026-10-28 (D-20: Coach and Head Coach requirements
-  marked Post-MVP)
+- Last updated: 2026-10-29 (D-24: REQ-HOME-008, the Measurements card shows and edits a date's
+  measurements). Earlier the same day (Home and daily tracking slice, D-23): where targets are
+  set; storage units for sleep and measurements; the parts of REQ-HOME-002, REQ-HOME-003/004,
+  REQ-HOME-005 and REQ-HOME-007 that wait for meals or workouts. 2026-10-28 (D-20: Coach and Head
+  Coach requirements marked Post-MVP)
 - Derived from: [`source/business-requirements.txt`](source/business-requirements.txt) (BRD). "BRD §x" points to the source section.
 - Scope: the MVP in [`mvp-scope.md`](mvp-scope.md) (D-18, D-20). Every requirement is in the MVP unless it, or part of it, is marked **Post-MVP**; post-MVP work is listed in [`backlog.md`](backlog.md). The MVP is the Personal Training User view only (D-20).
 
@@ -320,8 +321,13 @@ B-22).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
 
 ### REQ-HOME-008 — Measurements prompt
-- Requirement: A Measurements card prompts weekly waist measurements and opens the measurements sheet (REQ-MEAS-001).
-- MVP default (D-18): the card is hidden once both waist values are logged for the current Monday–Sunday week (Q-026).
+- Requirement: A Measurements card prompts weekly waist measurements and opens the measurements sheet (REQ-MEAS-001). It shows the selected date's measurements and lets the user correct them (D-24).
+- Acceptance criteria:
+  - Given no measurements for the selected date, then the card shows "Add measurements", which opens the sheet on that date.
+  - Given measurements for the selected date, then the card shows them (waist values, any optional values and notes) with "Edit measurements".
+  - When "Edit measurements" is tapped, then the sheet opens pre-filled with every saved value and the notes, on that date, which cannot be changed there.
+  - When an edit is saved, then that date's entry is updated: there is still one entry for the date, and no other date's entry changes.
+- MVP default (D-24, changes Q-026): the card is always shown. *Before D-24: hidden once both waist values were logged for the current Monday–Sunday week.*
 
 ---
 

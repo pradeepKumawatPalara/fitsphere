@@ -627,6 +627,31 @@
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
   that builds each one.
 
+## D-24 Measurements card shows and edits a date's measurements (changes the Q-026 MVP default)
+- Status: **Accepted** (owner instruction in chat, 2026-10-29; implementation plan approved the
+  same day).
+- Changes the owner's Q-026 MVP default in [`mvp-scope.md`](mvp-scope.md) section 4 ("hidden once
+  both waist values are logged for the current Mon–Sun week"), and D-23's reading of it (the
+  selected date's week). REQ-HOME-008 is updated.
+- Answers:
+  1. **The Measurements card stays on Home.** It is no longer hidden once both waist values are
+     logged for a week.
+  2. **It shows the selected date's measurements:** upper and lower waist, any optional values
+     entered, and the notes, in the cm/in unit last chosen on the phone. With no entry for that
+     date, it shows "Add measurements" and the weekly waist prompt.
+  3. **"Edit measurements"** opens the sheet pre-filled with the saved values, optional values
+     and notes included. Saving updates that date's entry: one entry per date (Q-030), never a
+     duplicate.
+  4. **A correction stays with its date.** In Edit the sheet's date is fixed, so editing a past
+     date never changes another date's entry (MVP default chosen under D-18 answer 3 with this
+     decision). Add keeps the date selector (REQ-MEAS-002).
+  5. **Unchanged:** validation (Q-028), the cm/in units, offline logging and sync (ADR-0007).
+     No server, schema or API change is needed.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: `mvp-scope.md` (Q-026); `requirements.md` (REQ-HOME-008);
+  `constraints-and-assumptions.md` (Q-026, MVP defaults); `docs/plans/home-daily-tracking-slice.md`
+  (step 8, phone check 5); `user-journeys.md` (J-04); `CLAUDE.md`; `docs/README.md`.
+
 ## D-25 The IFCT 2017 food list is used without NIN permission (accepted risk R-007)
 - Status: **Accepted** (owner decision in chat, 2026-10-29).
 - Decides the food-list licence question that ADR-0006 left open ("blocks release, not

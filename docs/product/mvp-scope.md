@@ -64,7 +64,7 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-023 "By meal" | Opens Nutrition › Consumed for that day |
 | Q-024 Weight tile | Follows the body-weight unit setting |
 | Q-025 Empty workout | Counts toward the weekly target |
-| Q-026 Measurements card | Hidden once both waist values are logged for the current Mon–Sun week |
+| Q-026 Measurements card | Always shown on Home: the selected date's measurements with "Edit measurements", or "Add measurements" when that date has none. Editing updates that date's entry. *Changed by D-24 (2026-10-29); was "Hidden once both waist values are logged for the current Mon–Sun week"* |
 | Q-027 Arms/thighs | One value each |
 | Q-028 Valid ranges | Weight 20–300 kg; steps 0–100,000; sleep 0–24 h (hours with one decimal); measurements 10–250 cm |
 | Q-029 Close (X) with input | Closes without warning |
