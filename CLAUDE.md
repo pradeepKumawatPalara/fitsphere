@@ -22,7 +22,7 @@ approve a recipe row without the owner's measurements; the chicken curry stays `
 
 **Slice 4, Training — built in parallel with slice 3, waiting for the owner (D-29, 2026-10-29).**
 Plan: `docs/plans/training-slice.md` (Accepted). Built in the worktree `D:\fitsphere-training`;
-steps 1 to 4 are pull requests #23, #25, #27 and the step 4 pull request, merged in order by the
+steps 1 to 4 are pull requests #23, #25, #27 and #28, merged in order by the
 owner after slice 3's step 8 (#38), once CI is green. Rebased onto #38 on 2026-10-30: the
 migration is `0007_workouts.sql`, the phone schema version 6 and the IDs D-29 and E-14 to E-17.
 The migration runs on Supabase only when the owner says so. Then the slice's batched phone checks.
