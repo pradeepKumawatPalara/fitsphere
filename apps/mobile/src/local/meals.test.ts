@@ -289,11 +289,12 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 5 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 6 });
       expect((await searchFoods(old, 'atta')).map((found) => found.code)).toEqual(['A019']);
       expect(await searchDishes(old, 'atta')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
-      expect(await getMeta(old, 'cursor')).toBe('42');
+      // Version 5 keeps the cursor; version 6 (workouts) then clears it.
+      expect(await getMeta(old, 'cursor')).toBeNull();
     } finally {
       await old.closeAsync();
     }
@@ -313,7 +314,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 5 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 6 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);

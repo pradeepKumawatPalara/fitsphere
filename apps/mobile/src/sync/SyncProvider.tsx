@@ -24,13 +24,18 @@ const expoNetwork: NetworkWatcher = {
   },
 };
 
-/** What the user enters for each kind; the time it was saved is added when it is saved. */
+/**
+ * What the user enters for each kind; the time it was saved is added when it is saved. A workout
+ * keeps the ID and start time it was given by `startWorkout`.
+ */
 export type EntryInput = {
   [K in EntryKind]: K extends 'target'
     ? Omit<ChangeData[K], 'setAt'>
     : K extends 'savedMeal'
       ? Omit<ChangeData[K], 'savedAt'>
-      : Omit<ChangeData[K], 'recordedAt'>;
+      : K extends 'workout'
+        ? ChangeData[K]
+        : Omit<ChangeData[K], 'recordedAt'>;
 };
 
 type SyncContextValue = {
@@ -39,11 +44,13 @@ type SyncContextValue = {
   status: SyncOutcome | 'idle' | 'syncing';
   /** `newPhoto`: the files of a photo just taken for this meal, saved with it (REQ-LOG-006). */
   save<K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }): Promise<void>;
-  /** Deletes a meal or saved meal (REQ-NUT-004). */
+  /** Deletes a meal, saved meal (REQ-NUT-004) or workout (REQ-TRN-003). */
   remove(kind: DeletableKind, id: string): Promise<void>;
   /** A new ID for a meal or saved meal, made on the phone. */
   newId(): string;
   saveWeight(day: string, weightGrams: number): Promise<void>;
+  /** Saves a new workout with no exercises on `day` (Q-025) and returns its ID. */
+  startWorkout(day: string): Promise<string>;
   discard(changeId: string): Promise<void>;
 };
 
@@ -117,7 +124,8 @@ export function SyncProvider({
       if (!db) throw new Error('The phone database is not open');
       const savedAt = now().toISOString();
       const stamp = kind === 'target' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
-      const data = { ...input, [stamp]: savedAt } as unknown as ChangeData[K];
+      // A workout keeps the start time `startWorkout` gave it.
+      const data = (kind === 'workout' ? input : { ...input, [stamp]: savedAt }) as unknown as ChangeData[K];
       const mealId = (input as { id?: string }).id;
       await saveEntry(
         db,
@@ -146,6 +154,15 @@ export function SyncProvider({
     [save],
   );
 
+  const startWorkout = useCallback(
+    async (day: string) => {
+      const id = newId();
+      await save('workout', { id, day, exercises: [], recordedAt: now().toISOString() });
+      return id;
+    },
+    [newId, now, save],
+  );
+
   const discard = useCallback(
     async (changeId: string) => {
       if (!db) return;
@@ -156,7 +173,11 @@ export function SyncProvider({
     [db, run],
   );
 
-  return <SyncContext.Provider value={{ version, status, save, remove, newId, saveWeight, discard }}>{children}</SyncContext.Provider>;
+  return (
+    <SyncContext.Provider value={{ version, status, save, remove, newId, saveWeight, startWorkout, discard }}>
+      {children}
+    </SyncContext.Provider>
+  );
 }
 
 function defaultNow(): Date {

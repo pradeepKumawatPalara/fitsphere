@@ -75,6 +75,16 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     data: { day: DAY, upperWaistMm: 812, lowerWaistMm: 845, ...NO_OPTIONAL, notes: 'Synthetic note', recordedAt: AT },
     stored: { upperWaistMm: 812, chestMm: null, notes: 'Synthetic note' },
   },
+  workout: {
+    key: '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b',
+    data: {
+      id: '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b',
+      day: DAY,
+      exercises: [{ name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null }],
+      recordedAt: AT,
+    },
+    stored: { day: DAY, exercises: [{ name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null }] },
+  },
   target: { key: 'calories', data: { kind: 'calories', value: 2_000, setAt: AT }, stored: { value: 2_000, setByUserId: null } },
   meal: {
     key: MEAL_ID,
@@ -235,7 +245,8 @@ describe('Local schema version 2', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 5 });
+      // Up to the latest version, which `db` was migrated to.
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual(await db.getFirstAsync('PRAGMA user_version', []));
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000, syncState: 'synced' });
       expect((await pendingChanges(old, 10)).map((entry) => entry.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();

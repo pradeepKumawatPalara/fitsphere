@@ -185,6 +185,39 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
     expect(await getEntry(db, 'target', 'weekly_workouts')).toMatchObject({ value: 4, syncState: 'synced' });
   });
 
+  it('REQ-TRN-003 a workout saved, edited and deleted on the phone reaches the server in order', async () => {
+    const server = fakeServer(NOW);
+    const at = NOW.toISOString();
+    const kept = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
+    const gone = '7c2a9e40-1d3b-4f5a-9e6d-2b1c0a9f8e7d';
+    const squat = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
+    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b1', data: { id: kept, day: '2026-10-28', exercises: [], recordedAt: at } });
+    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b2', data: { id: kept, day: '2026-10-28', exercises: [squat], recordedAt: at } });
+    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b3', data: { id: gone, day: '2026-10-28', exercises: [], recordedAt: at } });
+    await deleteEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b4', data: { id: gone, deletedAt: at } });
+
+    expect(await syncNow(db, auth(server), clock)).toBe('synced');
+
+    expect(await unsyncedCount(db)).toBe(0);
+    expect(await getEntry(db, 'workout', kept)).toMatchObject({ exercises: [squat], syncState: 'synced' });
+    expect(await getEntry(db, 'workout', gone)).toBeNull();
+    expect(server.entries('workouts').get(kept)).toMatchObject({ deleted: false, exercises: [squat] });
+    expect(server.entries('workouts').get(gone)).toMatchObject({ deleted: true });
+  });
+
+  it('REQ-TRN-004 workouts saved or deleted on another phone appear or go here', async () => {
+    const server = fakeServer(NOW);
+    const id = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
+    server.storeWorkoutFromElsewhere(id, '2026-10-26', []);
+    await syncNow(db, auth(server), clock);
+    expect(await getEntry(db, 'workout', id)).toMatchObject({ day: '2026-10-26', exercises: [], syncState: 'synced' });
+
+    server.deleteWorkoutFromElsewhere(id);
+    await syncNow(db, auth(server), clock);
+
+    expect(await getEntry(db, 'workout', id)).toBeNull();
+  });
+
   it('ADR-0007 with the cursor cleared by the version 2 update, the next sync pulls everything again', async () => {
     const server = fakeServer(NOW);
     server.storeFromElsewhere('2026-10-20', 70_000);

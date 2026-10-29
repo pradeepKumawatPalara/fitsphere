@@ -425,11 +425,12 @@ rule 5 and D-14 require.
 | `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3 |
 | `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
+| `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
-- **What is kept:** the user's own weigh-ins, steps, sleep and measurements for the last 90 IST
-  days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
+- **What is kept:** the user's own weigh-ins, steps, sleep, measurements and workouts for the last
+  90 IST days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
   deleted from the phone at each sync; targets are never pruned. Older history is read from the
   server when viewed online.
 - **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
@@ -437,9 +438,11 @@ rule 5 and D-14 require.
   `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor
   so the next sync pulls the new kinds.
 - **Matching a change to its entry:** an outbox change is matched by its kind's change types and
-  its key (`day`, `kind` for targets, `id` for meals and saved meals), so a waiting weight never
-  holds back the server's steps for the same day, and a waiting deletion is never undone by the
-  pull.
+  its key (`day`, `kind` for targets, `id` for meals, saved meals and workouts, whose saves and
+  deletions both count), so a waiting weight never holds back the server's steps for the same
+  day, and a waiting deletion is never undone by the pull.
+- **Deletions in the pull:** a meal, saved meal or workout the server marks `deleted` is removed
+  from the phone, unless a change for it is still waiting.
 - **Version 3** (Meal logging slice) adds `meals`, `saved_meals` and `foods`, keeps everything
   already on the phone, and clears the sync cursor so the next sync pulls the meals.
 - **What is kept (meals):** the last 90 IST days of meals, like other day data; saved meals and
@@ -448,6 +451,8 @@ rule 5 and D-14 require.
   so the next sync pulls the meals' photos.
 - **Version 5** (Meal logging slice, step 8; D-28) adds `dishes`, and clears
   `food_list_version` so the next download brings the dishes.
+- **Version 6** (Training slice, D-29) adds `workouts` and clears the sync cursor so the next
+  sync pulls them.
 - **Photos** (REQ-LOG-006; D-14): a new photo is saved in the same transaction as the meal that
   names it. It is uploaded after a sync once its meal's change has been accepted; until then it
   counts as unsynced (the log-out warning includes it) and is never cleared automatically, and
