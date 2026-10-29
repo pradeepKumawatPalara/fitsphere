@@ -471,6 +471,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - When a user deletes their own meal photo, then the file and its thumbnail are removed from file storage, no viewing link can be issued for it, and phones that cached it delete it on their next sync (D-16).
   - When a nutrition-label photo has been read, then it is deleted from file storage (MVP default, Q-064).
 - MVP default (D-18): deleting a meal deletes its photo (Q-032). The coach sees meal photos (REQ-ROLE-005, Q-059; post-MVP, D-20).
+- MVP (D-26): meal photos — taking or choosing one, the ~200 KB copy and thumbnail, storage, viewing and deletion — are built in slice 3, without AI. Label photos and reading photos with AI come with slice 7.
 - Open: how long media is kept (Q-089); once backups exist, how long they keep deleted media (Q-049).
 
 ### REQ-LOG-007 — Alternative methods
@@ -502,6 +503,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given a link between a trainee and their coach that has ended, when the former coach requests the trainee's data, then the server returns none of the trainee's external links (D-16).
 - Open: Legal to confirm the approach (Q-049). Proposed safeguards for links: threat model item T-09.
 - MVP (D-20): there are no coaches, so in FitSphere only the user sees the link; the privacy warning still applies, because anyone with the link can view the content. The second criterion applies post-MVP (backlog B-19).
+- MVP (D-26): built in slice 3 for meals, https only. The warning reads "Anyone who has this link can view it. FitSphere cannot delete content stored on other sites." (no coach clause, D-20).
 
 ---
 

@@ -27,9 +27,9 @@ Where the contracts define something, this plan does not repeat it.
 | 5. Log meal | Pull request #26, CI green | `meals/05-log-meal` |
 | 6. Barcode | Pull request #29, CI green | `meals/06-barcode` |
 | 7a. Meal photos and public links on the server | Pull request #30, CI green | `meals/07-photos-server` |
-| 7b. Meal photos and public links on the phone | Built; automated checks pass on the PC | `meals/07b-photos-app` |
-| 8. Dishes (cited raw portions) | Not started | `meals/08-dishes` |
-| 9. Close-out | Not started | `meals/09-close-out` |
+| 7b. Meal photos and public links on the phone | Pull request #31, CI green | `meals/07b-photos-app` |
+| 8. Dishes (cited raw portions) | **Waiting for the owner:** the source document could not be read from here (see step 8) | `meals/08-dishes` |
+| 9. Close-out | Built | `meals/09-close-out` |
 
 The slice's pull requests build on pull request #18 (D-24), which must be merged first.
 
@@ -103,14 +103,47 @@ in the step that builds each one.
    - The public link with its warning.
 8. **Dishes (cited raw portions).** Merging this pull request is the owner's OK on each quoted
    source.
+   - **2026-10-29: waiting for the owner.** NIN's *Dietary Guidelines for Indians* (2024) could
+     not be read from here: the NIN link
+     (`nin.res.in/dietaryguidelines/pdfjs/locale/DGI24thJune2024fin.pdf`) answered HTTP 404, and
+     the ICMR copy's host did not resolve. Copies on other sites are not used, since D-26 asks for
+     a document the owner approves. The owner provides the PDF (or another document to use); the
+     step then quotes each dish's raw ingredients and grams with the page.
 9. **Close-out.** Documents, ADR results and the batched owner checks.
 
 ## Owner's actions and checks at the end of the slice
-1. Merge #18 and the slice's pull requests in order, each with green CI.
-2. Supabase:
-   - `npm run migrate -w @fitsphere/api`, then `npm run foods:import -w @fitsphere/api`;
-   - a private bucket for meal photos, and S3 access keys in `apps/api/.env` (runbook).
-3. A contact address for Open Food Facts' User-Agent (`OFF_CONTACT`).
-4. An OK to start the EAS development build.
-5. Review of the dish sources (step 8).
-6. Phone checks, listed in step 9.
+1. Merge #18, then #20, #21, #22, #24, #26, #29, #30, #31 and the close-out, in order, each with
+   green CI.
+2. Supabase, from `D:\fitsphere` on `main` after the merges:
+   - `npm run migrate -w @fitsphere/api` (applies 0002 to 0005), then
+     `npm run foods:import -w @fitsphere/api`;
+   - the meal-photo bucket, S3 connection and access key (runbook, step 5 item 9), then
+     `npm run check:storage -w @fitsphere/api`: every line should say PASS.
+3. `OFF_CONTACT` in `apps/api/.env`: a contact address for Open Food Facts' User-Agent.
+4. An OK to start the EAS development build (the 3rd of this month's 15). It carries
+   `expo-camera`, `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`.
+5. The source document for the dishes (step 8), then review of the quoted sources.
+6. The phone checks below.
+
+## Phone checks (batched)
+On the new development build, with `npm run dev:phone`; synthetic values only. Record each result
+with its date here, and in the ADR it validates.
+1. **Food list offline** (ADR-0006 validation 2): after one sync, turn on aeroplane mode and
+   search 20 common foods (e.g. atta, rice, dal, paneer, ghee); each is found, with the IFCT
+   acknowledgement under the results.
+2. **Logging:** log a meal by search with grams; Edit it, Save it to my meals, re-log it from
+   Saved, then Delete one. Home's calories and protein, the week strip's box and "By meal" follow.
+3. **Barcodes** (ADR-0006 validation 1, ADR-0001 check 2): scan 20 Indian packaged foods; record
+   how many Open Food Facts finds. Log one found product in grams, and one not found as your own
+   food (ADR-0006 validation 4). Also type one barcode by hand.
+4. **Offline logging** (ADR-0007 step 1, meals): in aeroplane mode, log a meal by search; Home
+   shows it; reconnect; it syncs and shows on the Supabase table `app.meals`.
+5. **Meal photo** (ADR-0002 step 5, ADR-0001 check 3): take a photo for a meal and save it. In
+   Supabase Storage, the bucket holds `meals/<user>/<photo>.jpg` of about 200 KB and a
+   `-thumb.jpg`; download the photo on the PC and check that its properties show no GPS location.
+   The thumbnail shows on Nutrition and opens the photo. Remove the photo (or delete the meal):
+   after the next sync the files are gone from the bucket.
+6. **Public link:** add an https image link; the warning shows; Cancel saves nothing; Add link
+   saves it; tapping it opens the browser.
+7. **Storage with the Data API off** (ADR-0002 step 2): `npm run check:storage` above passed; it
+   also checks that an expired viewing link stops working.

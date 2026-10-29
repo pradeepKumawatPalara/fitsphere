@@ -98,7 +98,19 @@ on terms that allow use in the app.
 Record each result, with its date, under "Validation results".
 
 ## Validation results
-None yet.
+- **Rule 1, the food list — built (Meal logging slice, D-25, D-26):** IFCT 2017, 542 foods,
+  imported by a tested `npm run foods:import`, cached on the phone and searched offline
+  ([`food-list-sources.md`](../../data/food-list-sources.md)). Dishes (rule 1's common portions)
+  wait for the owner's source document (slice plan, step 8).
+- **Rule 2, Open Food Facts — behaviour checked live on 2026-10-29:** API v3 answers a found
+  product with HTTP 200 and `status: "success"`, and an unknown barcode with HTTP 404. FitSphere
+  sends the barcode only, with its User-Agent, and keeps every answer in `barcode_products`.
+  Open Food Facts limits product reads to 15 a minute per IP address (risk R-008).
+- **Validation 4 — passed in automated tests:** a barcode that is not found, or found without kcal
+  or protein, leads to "Enter your own food", which works with AI off
+  (`apps/mobile/src/screens/barcode.test.tsx`). The phone check is batched with the slice's.
+- **Validations 1 and 2:** phone checks at the end of the Meal logging slice, after the EAS build;
+  not run yet.
 
 ## Revisit conditions
 Barcode hit rate too low for users; food list needs grow beyond manual upkeep; a licence

@@ -355,6 +355,22 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   waits for Q-087.
 - **Step 1:** not recorded yet (Mumbai region, Free plan, two-factor sign-in on the owner's
   Supabase and Google Cloud accounts). Step 5 runs with media, after the Skeleton.
+- **Rule 4, documentation — read 2026-10-29 (Meal logging slice):** Supabase's S3 compatibility
+  page says "Storage supports presigning a URL using query parameters … using AWS Signature
+  Version 4", once the S3 connection is enabled in Storage's settings, and lists PutObject,
+  GetObject, DeleteObject and HeadObject as supported. It names no expiry limits. The API's one
+  storage module presigns upload links for **10 minutes** and viewing links for **5 minutes**.
+  Rule 3's "Upload links are valid for 2 hours" described Supabase's own upload links, which are
+  not used, so the limitation accepted in D-16 is narrower in practice; no decision changes.
+- **Steps 2 (Storage part) and 5 — automated parts passed, real-project checks pending:** the
+  link lifetimes, keys made of IDs, self-access and deletion are covered by
+  `apps/api/src/storage/mediaStorage.test.ts` and `test/integration/media.test.ts`; shrinking on
+  the phone by `apps/mobile/src/photos/takePhoto.test.ts`. Against `fitsphere-dev`, `npm run
+  check:storage` (with the Data API off) and the slice's phone checks (size, thumbnail, no
+  location data) are the owner's, not run yet.
+- **Step 6, media links — passed in automated tests:** links are returned in response bodies
+  only, which the log never contains, and the request line holds the route pattern only
+  (`test/integration/logs.test.ts`).
 
 ## Revisit conditions
 - An R-005 trigger is hit: database over 400 MB; files over 800 MB; monthly active users near

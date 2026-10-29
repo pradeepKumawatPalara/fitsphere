@@ -216,8 +216,9 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
-and fails if it contains the weight value, a measurement value or its notes, a target value, the
-token, the email address or a query value.
+and fails if it contains the weight value, a measurement value or its notes, a target value, a
+meal's food or values, the token, the email address or a query value. A second one fails if the
+log holds a storage link or its signature, a photo ID or a public image link (Meal logging slice).
 
 ### Device checks for the Skeleton
 Recorded, with the date, under "Validation results" in the ADR named:
@@ -251,6 +252,16 @@ Batched at the end of the slice, on the existing development build, with `npm ru
 exact steps are in the slice plan, "Owner's checks at the end of the slice": `dev:phone` itself,
 navigation and the calendar, targets, steps and sleep, measurements, offline logging of the new
 kinds (ADR-0007 step 1, extended), and weight still working.
+
+### Device checks for the Meal logging slice (D-26)
+Batched at the end of the slice, on a new EAS development build (expo-camera and the photo
+packages are native code), with `npm run dev:phone`, after the owner's Supabase steps. The exact
+steps are in the slice plan, "Phone checks": offline food search (ADR-0006 validation 2); logging,
+Edit, Delete, Save to my meals and re-logging; Home totals; 20 Indian packs scanned (ADR-0006
+validation 1, ADR-0001 check 2) and a not-found barcode as your own food (validation 4); offline
+logging and sync (ADR-0007 step 1, meals); a meal photo's size, thumbnail and missing location
+data (ADR-0002 step 5, ADR-0001 check 3); a public link; a deleted photo leaving the bucket; and
+`npm run check:storage` with the Data API off (ADR-0002 step 2).
 
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's
