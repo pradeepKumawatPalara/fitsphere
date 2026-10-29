@@ -27,6 +27,7 @@ import {
   type ChangeErrorCode,
   type IstDay,
   type MealItem,
+  type MealPhoto,
   type PulledMeal,
   type PulledSavedMeal,
   type SyncChange,
@@ -226,22 +227,54 @@ const HANDLERS = new Map<string, Handler>([
     MEAL_SET,
     // Creates the meal, or replaces the whole meal with this ID: the change received last wins
     // (ADR-0007 rule 2), including over an earlier deletion. The totals are computed here from the
-    // items; a change cannot set them.
+    // items; a change cannot set them. A new photo ID is claimed for this meal; an ID already used,
+    // or one whose photo was deleted, is refused, so a photo never moves between meals or comes
+    // back. A photo the meal no longer has is deleted (REQ-LOG-006).
     async (client, account, input, now) => {
       const data = mealSetDataSchema.safeParse(input);
       if (!data.success) return 'VALIDATION_FAILED';
       if (isFutureIstDay(data.data.day, now)) return 'DAY_IN_FUTURE';
       const meal = data.data;
+      const before = await client.query<{ photo: MealPhoto | null }>(
+        'select photo from app.meals where user_id = $1 and id = $2',
+        [account.id, meal.id],
+      );
+      const oldMediaId = mediaIdOf(before.rows[0]?.photo ?? null);
+      const newMediaId = mediaIdOf(meal.photo ?? null);
+      if (newMediaId && newMediaId !== oldMediaId) {
+        const claimed = await client.query(
+          'insert into app.media (user_id, id, meal_id) values ($1, $2, $3) on conflict (user_id, id) do nothing',
+          [account.id, newMediaId, meal.id],
+        );
+        if (claimed.rowCount === 0) return 'VALIDATION_FAILED';
+      }
+      if (oldMediaId && oldMediaId !== newMediaId) {
+        await client.query('update app.media set deleted_at = $3 where user_id = $1 and id = $2 and deleted_at is null', [
+          account.id,
+          oldMediaId,
+          now,
+        ]);
+      }
       const totals = mealTotals(meal.items);
       await client.query(
         `insert into app.meals (user_id, id, day, meal_type, tags, items, kcal, protein_g, carbs_g, fat_g, fibre_g,
-           recorded_at)
-         values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12)
+           photo, recorded_at)
+         values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb, $13)
          on conflict (user_id, id) do update set
            day = excluded.day, meal_type = excluded.meal_type, tags = excluded.tags, items = excluded.items,
            kcal = excluded.kcal, protein_g = excluded.protein_g, carbs_g = excluded.carbs_g, fat_g = excluded.fat_g,
-           fibre_g = excluded.fibre_g, recorded_at = excluded.recorded_at, deleted_at = null`,
-        [account.id, meal.id, meal.day, meal.mealType, meal.tags, itemsJson(meal.items), ...totalValues(totals), meal.recordedAt],
+           fibre_g = excluded.fibre_g, photo = excluded.photo, recorded_at = excluded.recorded_at, deleted_at = null`,
+        [
+          account.id,
+          meal.id,
+          meal.day,
+          meal.mealType,
+          meal.tags,
+          itemsJson(meal.items),
+          ...totalValues(totals),
+          meal.photo ? JSON.stringify(meal.photo) : null,
+          meal.recordedAt,
+        ],
       );
       return null;
     },
@@ -249,16 +282,22 @@ const HANDLERS = new Map<string, Handler>([
   [
     MEAL_DELETE,
     // Removes the meal's content and keeps an empty row, so other phones learn of the deletion.
-    // Deleting a meal the server never had changes nothing.
-    async (client, account, input) => {
+    // Its photo is deleted with it (REQ-NUT-004, Q-032). Deleting a meal the server never had
+    // changes nothing.
+    async (client, account, input, now) => {
       const data = mealDeleteDataSchema.safeParse(input);
       if (!data.success) return 'VALIDATION_FAILED';
       await client.query(
         `update app.meals set deleted_at = $3, meal_type = null, tags = '{}', items = null, kcal = null,
-           protein_g = null, carbs_g = null, fat_g = null, fibre_g = null
+           protein_g = null, carbs_g = null, fat_g = null, fibre_g = null, photo = null
          where user_id = $1 and id = $2 and deleted_at is null`,
         [account.id, data.data.id, data.data.deletedAt],
       );
+      await client.query('update app.media set deleted_at = $3 where user_id = $1 and meal_id = $2 and deleted_at is null', [
+        account.id,
+        data.data.id,
+        now,
+      ]);
       return null;
     },
   ],
@@ -297,6 +336,10 @@ const HANDLERS = new Map<string, Handler>([
     },
   ],
 ]);
+
+function mediaIdOf(photo: MealPhoto | null): string | null {
+  return photo?.kind === 'photo' ? photo.mediaId : null;
+}
 
 /** node-postgres turns a JavaScript array into a PostgreSQL array, so jsonb gets JSON text. */
 function itemsJson(items: MealItem[]): string {
@@ -370,7 +413,7 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
        select 'meal', change_seq,
          json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'mealType', meal_type,
            'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
-           'fibreG', fibre_g, 'recordedAt', recorded_at, 'updatedAt', updated_at)
+           'fibreG', fibre_g, 'photo', photo, 'recordedAt', recorded_at, 'updatedAt', updated_at)
        from app.meals where user_id = $1 and change_seq > $2 and day >= $3
        union all
        select 'savedMeal', change_seq,
@@ -437,6 +480,7 @@ function toPulledMeal(meal: StoredMeal): PulledMeal {
     tags: meal.tags,
     items: meal.items,
     totals: totalsOf(meal),
+    photo: meal.photo,
     recordedAt: utc(meal.recordedAt),
     updatedAt: utc(meal.updatedAt),
   };

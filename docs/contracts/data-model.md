@@ -230,6 +230,7 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
 | `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
 | `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000, or portions 0.5–10 in halves), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
 | `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
+| `photo` | `jsonb` | **Health.** The meal's one photo, `{"kind": "photo", "mediaId": …}` (see `media`), or one public image link, `{"kind": "link", "url": "https://…"}` (REQ-LOG-010), or null (MVP default, D-26). A link is https only, with a host name, no user name or password, and at most 2,000 characters; FitSphere never fetches it. Null once deleted |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
 | `deleted_at` | `timestamptz` | Set when the user deletes the meal |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
@@ -241,9 +242,32 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
   wins (ADR-0007 rule 2), even over an earlier deletion.
 - **Deleting a meal** removes its content and totals and keeps a row holding only the ID, the day
   and `deleted_at`, so the user's other phones learn of the deletion at their next sync. Deleting
-  a meal will also delete its photo (Q-032), from the slice's Photos step.
+  a meal also deletes its photo (Q-032; see `media`).
 - Indexes (`user_id`, `change_seq`) for the sync pull and (`user_id`, `day`) for day queries.
   Nothing references `meals` by foreign key, so it can be partitioned by month later (ADR-0003).
+
+### `media` — Health
+One row per meal photo (REQ-LOG-006; ADR-0002 rules 1–5). The files — a viewing copy of about
+200 KB and a thumbnail — are in a private storage bucket at `meals/<user_id>/<id>.jpg` and
+`meals/<user_id>/<id>-thumb.jpg`, never in the database. Keys are made of IDs only.
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id`, `id` | `uuid` | Primary key together. `id` is made on the phone, so a photo can be taken offline; the same `id` from another user is that user's own photo (invariant #1) |
+| `meal_id` | `uuid` | The meal that named it first. A photo never moves to another meal |
+| `created_at` | `timestamptz` | Not null. When the meal that names it was synced |
+| `deleted_at` | `timestamptz` | Server time the photo was removed from its meal, or its meal deleted. From then on no link is issued for it |
+| `files_removed_at` | `timestamptz` | When its files were last removed from storage, once every upload link issued before `deleted_at` had expired |
+
+- Created by `meal.set` when the meal names a photo ID the user has not used. An ID already used
+  by another meal, or already deleted, is refused (`VALIDATION_FAILED`), so a deleted photo
+  never comes back.
+- A `meal.set` with another photo or none, and a `meal.delete`, mark the old photo deleted.
+  After each sync, the API removes the files of the user's deleted photos from storage, and
+  repeats this at later syncs until no upload link issued before the deletion can still work
+  (10 minutes), so a late upload is removed too (REQ-LOG-006, ADR-0002 rule 5). If storage
+  fails, the sync still succeeds and the files wait for the next one.
+- Not seen by a coach in the MVP (D-20).
 
 ### `saved_meals` — Health
 Copies of meals kept for re-logging (REQ-SAVED-001, REQ-NUT-004 "Save to my meals").

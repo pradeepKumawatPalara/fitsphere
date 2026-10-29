@@ -100,6 +100,8 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
 | `GET /v1/barcodes/{barcode}` | A packaged product's values per 100 g, from Open Food Facts | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, ADR-0006 |
+| `POST /v1/users/{userId}/media/{mediaId}/upload` | Links to upload one meal photo's viewing copy and thumbnail straight to storage | The user, for their own photo | REQ-LOG-006, ADR-0002 |
+| `GET /v1/users/{userId}/media/{mediaId}` | Links to view one meal photo, valid for at most 5 minutes | The user. Post-MVP (D-20): also their coach with an active link | REQ-LOG-006, REQ-NFR-006, ADR-0002 |
 
 ### `GET /v1/health`
 `200` with `{ "status": "ok" }`. Says nothing about the database or configuration.
@@ -161,8 +163,8 @@ Request:
   | `steps.set` | `day`, `steps`, `recordedAt` | Whole steps, 0 to 100,000 (Q-028) |
   | `sleep.set` | `day`, `sleepMinutes`, `recordedAt` | Whole minutes, 0 to 1,440 (Q-028) |
   | `measurements.set` | `day`, `upperWaistMm`, `lowerWaistMm`, `chestMm`, `hipsMm`, `armMm`, `thighMm`, `notes`, `recordedAt` | Both waist values required; the others `null` when not entered. Whole millimetres, 100 to 2,500 (Q-028). `notes` 1 to 500 characters, or `null` |
-  | `meal.set` | `id`, `day`, `mealType`, `tags`, `items`, `recordedAt` | Creates the meal, or replaces the whole meal with this `id`. 1 to 30 items; each item's fields and limits are in the data model (`meals`). The server computes the totals; a change that sends them is refused as an unknown field |
-  | `meal.delete` | `id`, `deletedAt` | Deletes the meal. A meal the server never had is accepted and changes nothing |
+  | `meal.set` | `id`, `day`, `mealType`, `tags`, `items`, `photo`, `recordedAt` | Creates the meal, or replaces the whole meal with this `id`. 1 to 30 items; each item's fields and limits are in the data model (`meals`). The server computes the totals; a change that sends them is refused as an unknown field. `photo` is `{"kind": "photo", "mediaId": …}`, `{"kind": "link", "url": …}`, or null or left out for none; a photo ID already used by another meal, or deleted, is refused (data model, `media`) |
+  | `meal.delete` | `id`, `deletedAt` | Deletes the meal and its photo. A meal the server never had is accepted and changes nothing |
   | `savedMeal.set` | `id`, `name`, `mealType`, `tags`, `items`, `savedAt` | A copy of a meal, with no day. Name 1 to 60 characters |
   | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
   | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
@@ -299,6 +301,22 @@ VALIDATION_FAILED` with `details: [{"field": "barcode", "issue": "invalid_format
   offers your own food.
 - Wherever its values are shown, the app shows Open Food Facts' attribution: "Contains data
   from Open Food Facts, available under the Open Database License."
+
+### `POST /v1/users/{userId}/media/{mediaId}/upload` and `GET /v1/users/{userId}/media/{mediaId}`
+Meal photo files (REQ-LOG-006; ADR-0002 rules 3 and 4). The photo exists once a synced meal
+names its `mediaId`; until then, and once it is deleted, both answer `404`. In the MVP only the
+user themselves is allowed; anyone else gets `404` (D-20).
+
+`200`:
+```json
+{ "photoUrl": "https://…", "thumbnailUrl": "https://…", "expiresAt": "2026-10-28T03:35:00.000Z" }
+```
+- `POST …/upload`: each link allows one `PUT` of a JPEG (`Content-Type: image/jpeg`) to its own
+  key, for 10 minutes, and gives no viewing access. Asking again gives new links; a second
+  upload replaces the file. The bucket refuses anything that is not JPEG or is over 1 MB.
+- `GET`: each link allows reading its file for 5 minutes (D-16). The app never stores a link; it
+  asks again. Links are never written to logs (invariant #7).
+- `503 SERVICE_UNAVAILABLE` while storage is not set up on the API (runbook).
 
 ## Sign-in flows (Supabase Auth, ADR-0004)
 The app talks to Supabase Auth for these; the FitSphere API is not involved until account setup.

@@ -8,9 +8,11 @@ import { errorBody, handleError } from './errors.ts';
 import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerFoodsRoute } from './routes/foods.ts';
+import { registerMediaRoutes } from './routes/media.ts';
 import { registerMeRoutes } from './routes/me.ts';
 import { registerSyncRoute } from './routes/sync.ts';
 import { registerWeighInsRoute } from './routes/weighIns.ts';
+import type { MediaStorage } from './storage/mediaStorage.ts';
 
 export type LogOptions = { level: string; stream?: { write(line: string): void } };
 
@@ -25,6 +27,8 @@ export type AppDeps = {
   syncPageSize?: number;
   /** Open Food Facts (ADR-0006 rule 2); tests pass a fake. Without one, barcode lookups answer 503. */
   barcodes?: BarcodeSource;
+  /** File storage for meal photos (ADR-0002 rule 4); tests pass a fake. Without it, photo links answer 503. */
+  storage?: MediaStorage | null;
 };
 
 // Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
@@ -81,6 +85,7 @@ export function buildApp(deps: AppDeps) {
     db: deps.db,
     now: deps.now ?? (() => new Date()),
     syncPageSize: deps.syncPageSize ?? SYNC_PAGE_SIZE,
+    storage: deps.storage ?? null,
   });
   registerWeighInsRoute(app, deps);
   registerFoodsRoute(app, deps);
@@ -89,6 +94,7 @@ export function buildApp(deps: AppDeps) {
     barcodes: deps.barcodes ?? createOpenFoodFacts({ contact: undefined }),
     now: deps.now ?? (() => new Date()),
   });
+  registerMediaRoutes(app, { db: deps.db, storage: deps.storage ?? null, now: deps.now ?? (() => new Date()) });
 
   return app;
 }

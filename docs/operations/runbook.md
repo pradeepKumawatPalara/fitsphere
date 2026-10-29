@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Meal logging slice: `OFF_CONTACT`)
+- Last updated: 2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
 
 Only verified operational steps belong here (`docs/pre-development-guide.md` §5.10). Procedures
 not yet known are marked *Not yet written* rather than guessed. D- numbers refer to
@@ -152,6 +152,19 @@ it when the Skeleton's database step starts.
      the session pooler too, so there is one database connection string.
    - The **transaction pooler** (port 6543) is for Cloud Run later (Q-087). It does not support
      prepared statements.
+9. **Meal photo storage** (Meal logging slice; ADR-0002 rules 3 and 4). Menu names may differ;
+   record the actual path here.
+   - **Storage → New bucket:** name it (for example `meal-photos`) and put the name in
+     `STORAGE_BUCKET`. **Public bucket off.** Restrict the file size to **1 MB** and the allowed
+     types to **`image/jpeg`**.
+   - **Storage → Settings → S3 Connection:** turn the S3 connection on (Supabase's docs say
+     presigned links need it). Copy the **endpoint** into `STORAGE_S3_ENDPOINT` and the
+     **region** into `STORAGE_S3_REGION`.
+   - **New access key:** save the access key ID and the secret into the password manager, then
+     into `STORAGE_S3_ACCESS_KEY_ID` and `STORAGE_S3_SECRET_ACCESS_KEY`. Supabase's docs say these
+     keys "provide full access to all S3 operations across all buckets and bypass RLS policies":
+     server only, never in the app.
+   - Run `npm run check:storage -w @fitsphere/api`; every line should say PASS.
 
 **Done on `fitsphere-dev`, 2026-10-28 (owner)**, with the dashboard's menu paths:
 - Items 3 and 4: **Authentication → Sign In / Providers → Email**. Confirm email is on, the
@@ -204,6 +217,7 @@ root:
 | `npm run migrate -w @fitsphere/api` | Applies new migration files from `apps/api/migrations/` to `DATABASE_URL`, each in one transaction; refuses a file that was edited after it was applied |
 | `npm run db:growth -w @fitsphere/api` | Writes 10,000 synthetic weigh-ins to `DATABASE_URL` inside one transaction, prints the PostgreSQL version and the growth, then rolls everything back (R-005) |
 | `npm run check:data-api -w @fitsphere/api` | Calls Supabase's auto-generated REST endpoint with the publishable key and prints PASS when it returns no data (ADR-0002 step 2) |
+| `npm run check:storage -w @fitsphere/api` | Through the S3 connection, with the Data API off: uploads one small synthetic file with an upload link, reads it back with a viewing link (5 minutes), checks that it cannot be read without a link, that a non-JPEG and a file over 1 MB are refused, that an expired link stops working, and that removing it works. Prints status codes only (ADR-0002 steps 2 and 5) |
 | `npm run foods:import -w @fitsphere/api` | Loads `data/foods/ifct2017-foods.csv` into `app.foods` on `DATABASE_URL` (after `migrate`). Checks the whole file first; imports nothing if a row is wrong; running it again gives the same table (`docs/data/food-list-sources.md`) |
 | `npm run check:signup -w @fitsphere/api -- <address>` | Calls Supabase Auth's sign-up directly with the publishable key for an address that already has an account, and prints PASS when the answer does not say it is registered (ADR-0004 step 2). It may send one email |
 
@@ -329,6 +343,10 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
 | `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
 | `LOG_LEVEL` | API | `info` by default | No |
+| `STORAGE_S3_ENDPOINT`, `STORAGE_S3_REGION` | API, `check:storage` | Supabase Storage's S3 endpoint and region (step 5, item 9). Without all five storage names, photo links answer "not available" | No |
+| `STORAGE_BUCKET` | API, `check:storage` | The private meal-photo bucket | No |
+| `STORAGE_S3_ACCESS_KEY_ID` | API, `check:storage` | The S3 access key's ID | No, but kept in `.env` |
+| `STORAGE_S3_SECRET_ACCESS_KEY` | API, `check:storage` | The S3 access key's secret: full access to every bucket, bypassing storage policies. Server only, never in the app | **Yes** |
 | `OFF_CONTACT` | API | A contact email address for the owner, sent to Open Food Facts in the User-Agent (`FitSphere/1.0 (<address>)`), as Open Food Facts asks. Without it, barcode lookups answer "not available right now" and nothing is sent | No, but kept in `.env` and never committed |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |

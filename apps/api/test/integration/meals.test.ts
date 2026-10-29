@@ -117,6 +117,7 @@ describe('REQ-LOG-001 meals', () => {
         tags: ['before_training'],
         items: [ATTA, GHEE],
         totals: { kcal: 237, proteinG: 6.34, carbsG: 38.5, fatG: 5.92, fibreG: 6.82 },
+        photo: null,
         recordedAt: AT,
         updatedAt: expect.stringMatching(/Z$/),
       },

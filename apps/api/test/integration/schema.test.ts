@@ -294,6 +294,7 @@ describe('ADR-0002 second safety layer', () => {
       'links',
       'meals',
       'measurements',
+      'media',
       'saved_meals',
       'schema_migrations',
       'sleep_logs',
