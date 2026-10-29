@@ -29,6 +29,12 @@ const OPTIONAL: { key: LengthKey; label: string }[] = [
 const EMPTY: Texts = { upperWaistMm: '', lowerWaistMm: '', chestMm: '', hipsMm: '', armMm: '', thighMm: '' };
 
 type Props = {
+  /**
+   * `add`: opens on Home's selected date, which can be moved to other past days (REQ-MEAS-002).
+   * `edit`: corrects the entry of `initialDay`; the date is fixed, so a correction stays with its
+   * date (D-24).
+   */
+  mode: 'add' | 'edit';
   /** The day it opens on: Home's selected date (MVP default, D-23). */
   initialDay: IstDay;
   today: IstDay;
@@ -42,8 +48,9 @@ type Props = {
 // two mandatory waist values and, under "More measurements", chest, hips, arms, thighs (one value
 // each, Q-027) and notes. "Save measurements" is enabled only once both waist values are valid and
 // every other value entered is valid (10–250 cm, Q-028). X closes without saving or a warning
-// (Q-029). A day's existing entry fills the sheet; saving replaces it (Q-030).
-export function MeasurementsSheet({ initialDay, today, firstDay, onSave, onClose }: Props) {
+// (Q-029). A day's existing entry fills the sheet; saving replaces it (Q-030), so there is never
+// more than one entry for a date.
+export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, onClose }: Props) {
   const local = useLocalDatabase();
   const [day, setDay] = useState(initialDay);
   const [unit, setUnit] = useState<LengthUnit>('cm');
@@ -152,38 +159,44 @@ export function MeasurementsSheet({ initialDay, today, firstDay, onSave, onClose
         <View style={styles.sheet}>
           <View style={styles.headerRow}>
             <Text accessibilityRole="header" style={styles.title}>
-              Measurements
+              {mode === 'edit' ? 'Edit measurements' : 'Measurements'}
             </Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close without saving" onPress={onClose} style={styles.close}>
               <Text style={styles.closeText}>✕</Text>
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            <View style={styles.row}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Previous day"
-                accessibilityState={{ disabled: day <= firstDay }}
-                disabled={day <= firstDay}
-                onPress={() => setDay(addDays(day, -1))}
-                style={styles.arrow}
-              >
-                <Text style={[styles.arrowText, day <= firstDay && styles.disabledText]}>‹</Text>
-              </Pressable>
+            {mode === 'edit' ? (
               <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
                 {formatDay(day)}
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Next day"
-                accessibilityState={{ disabled: day >= today }}
-                disabled={day >= today}
-                onPress={() => setDay(addDays(day, 1))}
-                style={styles.arrow}
-              >
-                <Text style={[styles.arrowText, day >= today && styles.disabledText]}>›</Text>
-              </Pressable>
-            </View>
+            ) : (
+              <View style={styles.row}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous day"
+                  accessibilityState={{ disabled: day <= firstDay }}
+                  disabled={day <= firstDay}
+                  onPress={() => setDay(addDays(day, -1))}
+                  style={styles.arrow}
+                >
+                  <Text style={[styles.arrowText, day <= firstDay && styles.disabledText]}>‹</Text>
+                </Pressable>
+                <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
+                  {formatDay(day)}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Next day"
+                  accessibilityState={{ disabled: day >= today }}
+                  disabled={day >= today}
+                  onPress={() => setDay(addDays(day, 1))}
+                  style={styles.arrow}
+                >
+                  <Text style={[styles.arrowText, day >= today && styles.disabledText]}>›</Text>
+                </Pressable>
+              </View>
+            )}
             <View style={styles.row}>
               {(['cm', 'in'] as const).map((option) => (
                 <Pressable

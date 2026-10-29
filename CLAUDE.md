@@ -8,8 +8,9 @@ Coach and Head Coach are post-MVP.
 
 ## Current phase
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
-`docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 are pull requests #11 to #17,
-merged in order by the owner once CI is green. Then the owner applies migration 0002 to
+`docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
+merged; step 8 (D-24: the Measurements card shows and edits a date's measurements, changing Q-026)
+is its own pull request. Then the owner applies migration 0002 to
 `fitsphere-dev` (`npm run migrate -w @fitsphere/api`) and runs the slice's batched phone checks,
 starting the API, the tunnel and Expo with `npm run dev:phone` (D-22). **Next:** slice 3, Meal
 logging (no AI); it gets its own plan in `docs/plans/`, approved before any code. One branch and

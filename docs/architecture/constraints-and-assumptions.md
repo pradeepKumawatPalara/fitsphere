@@ -2,8 +2,10 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Home and daily tracking slice, D-23: MVP defaults for targets, sleep
-  and measurements; Q-014). 2026-10-28 (D-20: the MVP is the Personal Training User view only)
+- Last updated: 2026-10-29 (D-24: Q-026 answered; the Measurements card shows and edits a date's
+  measurements). Earlier the same day (Home and daily tracking slice, D-23): MVP defaults for
+  targets, sleep and measurements; Q-014. 2026-10-28 (D-20: the MVP is the Personal Training User
+  view only)
 
 Confirmed facts, assumptions and open questions are kept in separate sections. Nothing under
 **Assumptions** or **Open questions** is a requirement until the owner confirms it.
@@ -104,8 +106,8 @@ confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
 | Calories and protein cards before meals exist (Home slice, D-23) | They show 0 eaten until the Meal logging slice; with a target, "0 of T kcal", 0% and the whole target remaining. Numbers use a comma every three digits (10,000). *Not yet confirmed* | REQ-HOME-003, REQ-HOME-004 |
 | Steps and sleep tiles (Home slice, D-23) | Steps are whole numbers (a thousands comma may be typed) shown as "8,432 steps"; sleep is typed in hours with one decimal and shown as "7.5 h". Sleep belongs to the date selected when it is logged. *Not yet confirmed* | REQ-HOME-006 |
 | Rejected-change texts (Home slice, D-23) | One subject per kind: "This weight wasn't saved", "These steps weren't saved", "This sleep wasn't saved", "These measurements weren't saved", "This target wasn't saved", then the reason and "Edit or discard it." Edit opens the entry's own sheet; for a target, "Your targets". *Not yet confirmed* | ADR-0007 rule 2, error model |
-| Measurements sheet (Home slice, D-23) | Opens on Home's selected date, as Q-011 does for "+"; the date moves day by day to past days within the 90-day window. Changing the date shows that day's entry, or empty fields. The cm/in toggle starts at cm, converts what is typed when switched, and is remembered on this phone only. "Save measurements" needs both waist values valid and every optional value entered valid (10.0–250.0 cm, or 4.0–98.4 in); notes are up to 500 characters. *Not yet confirmed* | REQ-MEAS-002, REQ-MEAS-003, REQ-MEAS-006 |
-| Q-026 "current week" (Home slice, D-23) | The Mon–Sun week of the selected date, since all on-screen data follows it (REQ-DATE-001). Every entry has both waist values, so any entry that week hides the card. *Not yet confirmed* | REQ-HOME-008 |
+| Measurements sheet (Home slice, D-23; Edit added by D-24) | "Add measurements" opens on Home's selected date, as Q-011 does for "+"; the date moves day by day to past days within the 90-day window. "Edit measurements" opens on the entry's date, pre-filled, and the date is fixed there (D-24). Changing the date shows that day's entry, or empty fields. The cm/in toggle starts at cm, converts what is typed when switched, and is remembered on this phone only. "Save measurements" needs both waist values valid and every optional value entered valid (10.0–250.0 cm, or 4.0–98.4 in); notes are up to 500 characters. *Not yet confirmed* | REQ-MEAS-002, REQ-MEAS-003, REQ-MEAS-006 |
+| Q-026 "current week" (Home slice, D-23) | *Superseded by D-24: the card is no longer hidden, so no week is needed.* It was: the Mon–Sun week of the selected date; any entry that week hid the card | REQ-HOME-008 |
 
 Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
 and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18
@@ -192,7 +194,7 @@ Answered items keep their row as a record. *(F-nn)* marks a follow-up raised in 
 | Q-023 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** opens Nutrition › Consumed for that day. "By meal": Consumed tab or separate view? | REQ-HOME-005 | Project owner | |
 | Q-024 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** it follows the body-weight unit setting. BRD says "Weight (kg)" on Home; should it follow the kg/lb setting? | REQ-HOME-006 | Project owner | |
 | Q-025 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** yes. Does an empty (self-directed) workout count toward the weekly target? | REQ-HOME-007 | Project owner | |
-| Q-026 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** hidden once both waist values are logged for the current Monday–Sunday week. When is the Measurements prompt shown and hidden? | REQ-HOME-008 | Project owner | |
+| Q-026 | **Answered — see [owner-decisions-2026-10-27.md](../product/owner-decisions-2026-10-27.md)** (D-24: the card is always shown, with the selected date's measurements and "Edit measurements", or "Add measurements"; this replaces the D-18 MVP default "hidden once both waist values are logged for the current Monday–Sunday week"). When is the Measurements prompt shown and hidden? | REQ-HOME-008 | Project owner | |
 | Q-027 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** one value each. Arms/thighs: one value or left and right? | REQ-MEAS-005 | Project owner | |
 | Q-028 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** weight 20–300 kg; steps 0–100,000; sleep 0–24 h, in hours with one decimal; measurements 10–250 cm. Valid ranges for measurements, weight, steps, sleep. | Validation | Project owner | |
 | Q-029 | **MVP default — [mvp-scope.md](../product/mvp-scope.md#4-mvp-defaults-for-open-questions) (D-18):** no; X closes without a warning. Should X warn about unsaved input? | REQ-MEAS-006 | Project owner | |
