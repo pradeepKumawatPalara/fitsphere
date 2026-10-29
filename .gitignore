@@ -28,3 +28,7 @@ apps/mobile/ios/
 
 # npm run dev:phone: the API and tunnel output (the tunnel log holds its address)
 .dev-phone/
+
+# Source PDFs read for the food data: never committed, because of their publishers' terms. The
+# originals are kept outside the repository; docs/sources/README.md lists them with their hashes.
+docs/sources/*.pdf

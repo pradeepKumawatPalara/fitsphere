@@ -13,9 +13,10 @@ Coach and Head Coach are post-MVP.
 `foods:import` are applied; photo storage (private bucket `meal-photos`, S3 connection and access
 key) is configured and passed `check:storage` 8 of 8 from the PC; `OFF_CONTACT` is set. Still
 open: the phone checks in the plan, on the new EAS development build (approved 2026-10-29), which
-are the first time a real photo goes through storage; and step 8 (dishes as cited raw portions),
-which waits for the owner to provide the source document: NIN's Dietary Guidelines for Indians
-could not be read from here.
+are the first time a real photo goes through storage; and step 8 (dishes), which waits for the
+owner to weigh the recipes and fill in FitSphere's standard-recipe sheet,
+`docs/data/standard-recipe-sheet.csv` (D-26 answer 3, amended 2026-10-30: no NIN guideline, INDB
+or USDA data). Until then the sheet's gram fields stay empty and no dish values exist.
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
@@ -100,8 +101,11 @@ email through Resend from FitSphere's domain (D-20).
 - Decisions: `docs/architecture/decisions/`
 - Always-on invariants: `.claude/rules/project-invariants.md`
 - Original business requirements (input, not edited): `docs/product/source/business-requirements.txt`
-- Food list sources (IFCT 2017; used without NIN permission, D-25, accepted risk R-007):
-  `docs/data/food-list-sources.md`
+- Food list sources (IFCT 2017; used without NIN permission, D-25, accepted risk R-007), and
+  dishes from FitSphere's standard-recipe sheet (D-26, amended): `docs/data/food-list-sources.md`,
+  `docs/data/standard-recipe-sheet.csv`
+- Source documents read for the food data, for Legal's review (Q-049): `docs/sources/README.md`
+  (the PDFs are kept outside the repository)
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`

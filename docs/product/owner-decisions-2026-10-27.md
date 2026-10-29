@@ -675,20 +675,52 @@
 
 ## D-26 Meal logging slice plan approved; photos move into slice 3; dishes and oil energy
 - Status: **Accepted** (owner approval in chat, 2026-10-29; the dish and oil answers were given
-  while planning).
+  while planning). **Answer 3 amended** by the owner in chat on 2026-10-30.
 - Answers:
   1. **Slice 3 plan approved:** [`docs/plans/meal-logging-slice.md`](../plans/meal-logging-slice.md),
      with its scope, its MVP defaults chosen under D-18 answer 3, and its nine steps.
   2. **Meal photos and public image links move into slice 3** (REQ-LOG-006 for meal photos,
      REQ-LOG-010), from slice 7. Label photos and AI reading stay in slice 7. Until then, the
      free-text, voice and photo-reading box shows "AI meal reading is coming soon".
-  3. **Cooked dishes: cited raw portions.**
-     - A dish such as "1 roti" is defined only by IFCT raw ingredients and grams, quoted word
-       for word with the page from a document the owner approves.
-     - Its values are IFCT's values per 100 g × the raw grams, marked "estimated".
-     - It is logged by portion count only. There are no per-100 g cooked values, since those
-       would need yield factors.
-     - The owner's OK on each source is the merge of the slice's dish pull request.
+  3. **Cooked dishes: raw portions from FitSphere's standard-recipe sheet** (amended
+     2026-10-30; the original answer follows the new one).
+     - **Values (unchanged):** a dish's values are IFCT's values per 100 g × the raw grams of
+       each ingredient, marked "estimated".
+     - **Source (changed):** a dish such as "1 roti" is defined only by IFCT raw ingredients and
+       their raw grams for one portion (one exception, next), from FitSphere's standard-recipe
+       sheet, [`docs/data/standard-recipe-sheet.csv`](../data/standard-recipe-sheet.csv). The
+       sheet is written by weighing raw ingredients, and the owner approves it. It replaces an
+       outside document quoted with its page.
+     - **Exception, cooked IFCT entries:** where IFCT publishes a cooked value for the whole item
+       (M004 boiled egg), that value is used per gram of the cooked item, and the sheet records the
+       cooked grams per piece.
+     - **Omelette:** raw whole egg (M001) plus the oil weighed per omelette, like other dishes. It
+       does not use IFCT's omelette (M007): the IFCT 2017 book does not say how M007 was prepared
+       or whether it includes oil.
+     - **Chicken curry: do not fill** until IFCT's poultry values are confirmed raw. The IFCT
+       tables do not say whether N002 and N003 are raw or cooked, and the book's general text says
+       "All data except for poultry and egg pertains to raw food" (printed page xx;
+       `food-list-sources.md`).
+     - **Not used as a source:** NIN's *Dietary Guidelines for Indians* (any edition), data from
+       the Indian Nutrient Databank (INDB) and data from USDA FoodData Central. Why each was
+       considered and not used: [`food-list-sources.md`](../data/food-list-sources.md).
+     - **Portion units:**
+       - per piece for roti, phulka, paratha, puri, idli, dosa, egg and omelette;
+       - per katori for every other dish, with 1 katori = 200 ml, the size NIN's 2024
+         guidelines call medium;
+       - half portions allowed: 0.5 to 10 in halves, as the meal contract already accepts.
+     - **Deferred, not dropped:** curd and raita, masala chai, besan dishes and chole (backlog
+       B-26). The IFCT list has no curd, white sugar, tea or besan, and B002 "Bengal gram, whole"
+       does not say which chickpea it is.
+     - **Portions only:** a dish is logged by portion count only. There are no per-100 g cooked
+       values and no logging by cooked weight, since those would need yield factors.
+       REQ-LOG-008's example "cooked rice weighs about 3× raw" has no supporting source: it is
+       flagged there as unsupported and removed from the Log meal screen's tips.
+     - **The owner's OK** on the sheet is the merge of the slice's dish pull request.
+     - *Original answer (2026-10-29), replaced:* a dish such as "1 roti" is defined only by IFCT
+       raw ingredients and grams, quoted word for word with the page from a document the owner
+       approves. No document read on 2026-10-29 and 2026-10-30 gave the raw grams for one dish
+       portion under terms that allow use in the app.
   4. **Oils and fats: 9 kcal per g of fat**, the Atwater general factor (FAO Food and Nutrition
      Paper 77, 2003), marked "estimated". IFCT publishes no energy value for them.
   5. **New packages**:
@@ -701,9 +733,14 @@
   6. **Workflow as D-21**, with the owner's actions and phone checks batched at the end.
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
   If Supabase's S3 interface cannot issue presigned links, the alternative changes ADR-0002 rule
-  4 and goes to the owner.
+  4 and goes to the owner. Legal's review (Q-049) stays open and must be done before real users.
 - Doc changes: `docs/plans/meal-logging-slice.md`; `CLAUDE.md` current phase; `docs/README.md`.
-  `mvp-scope.md` and the other documents change in the step that builds each part.
+  `mvp-scope.md` and the other documents change in the step that builds each part. For the
+  amendment of 2026-10-30: `docs/data/food-list-sources.md`;
+  `docs/data/standard-recipe-sheet.csv` (new, every gram field empty); `docs/sources/README.md`
+  (new: the NIN documents read, with hashes and terms; the PDFs stay outside the repository);
+  `requirements.md` (REQ-LOG-008); `backlog.md` (B-26);
+  ADR-0006 (validation results); the plan's decision 2 and step 8; `CLAUDE.md`; `docs/README.md`.
 
 ## D-27 Upload links last 10 minutes (amends ADR-0002 rule 3)
 - Status: **Accepted** (owner instruction in chat, 2026-10-29).
