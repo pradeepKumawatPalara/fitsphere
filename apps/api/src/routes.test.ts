@@ -14,6 +14,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'POST /v1/sync': 'test/integration/sync.test.ts',
   'GET /v1/users/:userId/weigh-ins': 'test/integration/weigh-ins.test.ts',
   'GET /v1/foods': 'test/integration/foods.test.ts',
+  'GET /v1/barcodes/:barcode': 'test/integration/barcodes.test.ts',
 };
 
 describe('REQ-NFR-001 route listing', () => {

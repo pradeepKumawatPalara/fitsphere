@@ -165,6 +165,21 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   are left out of `GET /v1/foods`; the version leaves the items out when the phone's list is
   current.
 
+### Barcode lookup (ADR-0006 rule 2; D-26)
+- The Open Food Facts client (unit tests, against the shape of a live v3 response): only the
+  barcode is sent, with FitSphere's User-Agent; 404 is not found; errors, odd bodies and network
+  failures are unavailable; no call without `OFF_CONTACT`; a value in another unit or out of
+  range is dropped.
+- `GET /v1/barcodes/{barcode}` (integration): authorization (401, 403, 200); asked once, then
+  answered from the table for every user; "not found" kept 24 hours, then asked again;
+  unavailable is `503` with nothing stored; a malformed barcode is refused without asking; the
+  table has no user column.
+- The app (component tests, the camera replaced by a fake): a scanned or typed product with the
+  attribution, added in grams and saved with its source and barcode; only the barcode is sent;
+  not found, missing kcal or protein (name filled in), offline and unavailable each offer your
+  own food. The camera asks for permission, reads the four packaged-food formats only and
+  reports one barcode per scan.
+
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
 and fails if it contains the weight value, a measurement value or its notes, a target value, the

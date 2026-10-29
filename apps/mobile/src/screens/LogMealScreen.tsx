@@ -14,6 +14,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Button, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BarcodeSheet } from '../components/BarcodeSheet';
 import { DaySheet } from '../components/DaySheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
@@ -26,11 +27,11 @@ import { describeItems, formatAmount, formatGrams, formatKcal, MEAL_TAG_LABELS }
 import { useSync } from '../sync/SyncProvider';
 
 type Params = { day?: string; slot?: string; mealId?: string };
-type Sheet = 'day' | 'search' | 'own' | 'saved' | { change: number };
+type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number };
 
 // Log meal (REQ-LOG-001…003, REQ-LOG-007, REQ-LOG-008; REQ-ACC-005): the date, the meal type and
-// tags, foods added by search, your own food or a saved meal, and a review before saving. Works
-// offline and with AI off. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
+// tags, foods added by search, barcode, your own food or a saved meal, and a review before saving.
+// Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
   const local = useLocalDatabase();
@@ -54,6 +55,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [counts, setCounts] = useState<Record<IstDay, number>>({});
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [ownName, setOwnName] = useState('');
   const [gramsText, setGramsText] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -154,7 +156,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         {/* Typed, spoken and photo reading come with AI meal reading (slice 7; D-26). */}
         <View style={styles.ai}>
           <Text style={styles.aiTitle}>AI meal reading is coming soon</Text>
-          <Text style={styles.aiText}>For now, add foods by search, your own food or a saved meal.</Text>
+          <Text style={styles.aiText}>For now, add foods by search, barcode, your own food or a saved meal.</Text>
         </View>
 
         <Text accessibilityRole="header" style={styles.heading}>
@@ -162,7 +164,14 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         </Text>
         <View style={styles.methods}>
           <Button title="Search foods" onPress={() => setSheet('search')} />
-          <Button title="Enter your own food" onPress={() => setSheet('own')} />
+          <Button title="Scan barcode" onPress={() => setSheet('barcode')} />
+          <Button
+            title="Enter your own food"
+            onPress={() => {
+              setOwnName('');
+              setSheet('own');
+            }}
+          />
           <Button title="Saved meals" onPress={() => setSheet('saved')} />
         </View>
         <Text style={styles.tips}>
@@ -209,7 +218,17 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         <DaySheet today={today} firstDay={firstDay} selected={day} counts={counts} onSelect={setDay} onClose={() => setSheet(null)} />
       ) : null}
       {sheet === 'search' ? <FoodSearchSheet onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
-      {sheet === 'own' ? <OwnFoodSheet onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
+      {sheet === 'barcode' ? (
+        <BarcodeSheet
+          onAdd={(item) => addItems([item])}
+          onOwnFood={(name) => {
+            setOwnName(name);
+            setSheet('own');
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {sheet === 'own' ? <OwnFoodSheet initialName={ownName} onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
       {sheet === 'saved' ? (
         <ActionsSheet
           title={saved.length === 0 ? 'No saved meals yet' : 'Add a saved meal'}

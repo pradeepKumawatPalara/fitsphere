@@ -5,6 +5,8 @@ import type pg from 'pg';
 import { registerAccess } from './access.ts';
 import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
+import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
+import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerFoodsRoute } from './routes/foods.ts';
 import { registerMeRoutes } from './routes/me.ts';
 import { registerSyncRoute } from './routes/sync.ts';
@@ -21,6 +23,8 @@ export type AppDeps = {
   now?: () => Date;
   /** Weigh-ins per sync response (api-conventions: 500); tests use a small page. */
   syncPageSize?: number;
+  /** Open Food Facts (ADR-0006 rule 2); tests pass a fake. Without one, barcode lookups answer 503. */
+  barcodes?: BarcodeSource;
 };
 
 // Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
@@ -80,6 +84,11 @@ export function buildApp(deps: AppDeps) {
   });
   registerWeighInsRoute(app, deps);
   registerFoodsRoute(app, deps);
+  registerBarcodesRoute(app, {
+    db: deps.db,
+    barcodes: deps.barcodes ?? createOpenFoodFacts({ contact: undefined }),
+    now: deps.now ?? (() => new Date()),
+  });
 
   return app;
 }

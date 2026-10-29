@@ -1,6 +1,7 @@
 import pg from 'pg';
 import { buildApp } from './app.ts';
 import { createSupabaseAuth } from './auth.ts';
+import { createOpenFoodFacts } from './foods/openFoodFacts.ts';
 
 // Settings from apps/api/.env (runbook, "Configuration names").
 const required = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY'] as const;
@@ -25,6 +26,8 @@ const app = buildApp({
     publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY!,
   }),
   log: { level: process.env.LOG_LEVEL ?? 'info' },
+  // Optional: barcode lookups answer 503 until the owner sets the contact (runbook).
+  barcodes: createOpenFoodFacts({ contact: process.env.OFF_CONTACT }),
 });
 
 const port = Number(process.env.PORT ?? '3000');

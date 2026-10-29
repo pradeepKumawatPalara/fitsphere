@@ -29,6 +29,13 @@
         {
           "useSQLCipher": true
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs.",
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "extra": {

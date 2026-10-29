@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01); legal obligations: Legal (Q-049)
-- Last updated: 2026-10-28 (D-20: MVP scope of the matrix and threats; own targets)
+- Last updated: 2026-10-29 (Meal logging slice, D-26: what Open Food Facts receives). 2026-10-28
+  (D-20: MVP scope of the matrix and threats; own targets)
 
 Started with the items the owner has decided. Sections marked *Not yet written* are gaps, not
 statements that nothing is needed. This file does not show that FitSphere is secure or
@@ -34,6 +35,12 @@ comes only from an accepted link (project invariant 1).
 In phase 1 the project owner is the only operator, with no support staff; every admin access to
 user data is logged, and the owner reviews the log monthly (REQ-NFR-005, D-13, D-14). A Platform Admin role is future scope; which of its
 rights include health data is open (Q-086).
+
+**Open Food Facts (ADR-0006 rule 2).** Only the API calls it, never the phone, and it receives
+only the barcode number and FitSphere's User-Agent, which carries the owner's contact address
+(`OFF_CONTACT`) — never the user's identity, token, meal or anything else typed. What it sends
+back is reference data, stored in `barcode_products` without recording who asked. Its values
+are not trusted as given: a value in another unit or out of range is dropped.
 
 ## MVP scope (D-20)
 The MVP is the Personal Training User view only. No links, invitations or Head Coach permission

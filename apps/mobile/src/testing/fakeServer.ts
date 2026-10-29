@@ -1,9 +1,9 @@
-import { istToday, mealTotals, type Food, type MealItem, type SyncResult, type TargetKind } from '@fitsphere/shared';
+import { istToday, mealTotals, type BarcodeProduct, type Food, type MealItem, type SyncResult, type TargetKind } from '@fitsphere/shared';
 import { ME } from './fakes';
 
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
 // the last change received wins, a future IST day is rejected, and the pull returns what changed
-// after the cursor, for every kind. It also serves the food list (GET /v1/foods).
+// after the cursor, for every kind. It also serves the food list (GET /v1/foods) and barcode lookups.
 
 type Stored = { item: Record<string, unknown>; seq: number };
 type Change = { changeId: string; type: string; data: Record<string, unknown> };
@@ -36,6 +36,10 @@ export function fakeServer(now: Date) {
     /** The food list GET /v1/foods serves, and its version. */
     foods: [] as Food[],
     foodsVersion: 'foods-v1',
+    /** Products GET /v1/barcodes/{barcode} knows; any other barcode is not found. */
+    barcodes: {} as Record<string, BarcodeProduct>,
+    /** Answer barcode lookups with 503, as when Open Food Facts cannot answer. */
+    barcodesUnavailable: false,
   };
   const calls: { method: string; path: string; body: unknown }[] = [];
   let seq = 0;
@@ -88,6 +92,14 @@ export function fakeServer(now: Date) {
     if (method === 'GET' && path === '/foods') {
       const current = url.searchParams.get('version') === state.foodsVersion;
       return json(200, { version: state.foodsVersion, items: current ? null : state.foods });
+    }
+    const barcode = /^\/barcodes\/(\d+)$/.exec(path)?.[1];
+    if (method === 'GET' && barcode) {
+      if (state.barcodesUnavailable) {
+        return json(503, { error: { code: 'SERVICE_UNAVAILABLE', message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      const product = state.barcodes[barcode] ?? null;
+      return json(200, { barcode, found: product !== null, product });
     }
     if (method === 'POST' && path === '/sync') {
       const request = body as { cursor: string | null; changes: Change[] };

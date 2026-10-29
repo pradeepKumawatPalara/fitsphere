@@ -99,6 +99,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
+| `GET /v1/barcodes/{barcode}` | A packaged product's values per 100 g, from Open Food Facts | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, ADR-0006 |
 
 ### `GET /v1/health`
 `200` with `{ "status": "ok" }`. Says nothing about the database or configuration.
@@ -271,6 +272,33 @@ Query: `version` (optional), the version of the list the phone already holds.
   already current, `items` is `null`, so the phone downloads the list only when it changed.
 - The list is reference data, not personal, and is the same for every signed-in user. Where its
   values are shown, the app shows the IFCT acknowledgement (D-25).
+
+### `GET /v1/barcodes/{barcode}`
+`barcode`: 8 to 14 digits (EAN-8, UPC-A, EAN-13, GTIN-14); anything else is `400
+VALIDATION_FAILED` with `details: [{"field": "barcode", "issue": "invalid_format"}]`.
+
+`200`:
+```json
+{
+  "barcode": "8901234567890",
+  "found": true,
+  "product": { "name": "Synthetic biscuits", "brand": "Synthetic brand", "kcal": 480, "proteinG": 7,
+               "carbsG": 68, "fatG": 20, "fibreG": null,
+               "sourceUrl": "https://world.openfoodfacts.org/product/8901234567890" }
+}
+```
+- When Open Food Facts does not know the barcode: `200` with `found: false` and `product: null`.
+- Values are per 100 g; `null` when Open Food Facts gives none
+  ([data model](data-model.md#barcode_products--reference-data)). The app adds a product only
+  when it has kcal and protein; otherwise the user enters the food from the label.
+- Answered from `app.barcode_products` when it can be. Otherwise the API asks Open Food Facts
+  (API v3) with the barcode only and FitSphere's User-Agent, `FitSphere/1.0 (<OFF_CONTACT>)`,
+  and keeps the answer (ADR-0006 rule 2).
+- `503 SERVICE_UNAVAILABLE` when Open Food Facts cannot answer (an error, no answer within 8
+  seconds, or no `OFF_CONTACT` configured); the app says lookup is not available right now and
+  offers your own food.
+- Wherever its values are shown, the app shows Open Food Facts' attribution: "Contains data
+  from Open Food Facts, available under the Open Database License."
 
 ## Sign-in flows (Supabase Auth, ADR-0004)
 The app talks to Supabase Auth for these; the FitSphere API is not involved until account setup.
