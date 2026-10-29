@@ -12,7 +12,8 @@
     "migrate": "node --env-file-if-exists=.env scripts/migrate.ts",
     "db:growth": "node --env-file-if-exists=.env scripts/db-growth.ts",
     "check:data-api": "node --env-file-if-exists=.env scripts/check-data-api.ts",
-    "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts"
+    "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts",
+    "foods:import": "node --env-file-if-exists=.env scripts/foods-import.ts"
   },
   "dependencies": {
     "@fitsphere/shared": "*",

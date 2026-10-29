@@ -122,6 +122,14 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - the database growth per 10,000 synthetic weigh-ins is measured on the Supabase project and
   recorded, to estimate when the 400 MB trigger is reached (R-005).
 
+### Food list (ADR-0006 rule 1; D-25, D-26)
+- The IFCT CSV is read whole and refused whole when any row is wrong, naming the line.
+- All 542 foods are imported with their printed values, and running the import again gives the
+  same table; a failure part-way leaves the table as it was.
+- The 14 oils and fats get 9 kcal per g of fat, marked estimated; the 3 rows hidden until checked
+  are left out of `GET /v1/foods`; the version leaves the items out when the phone's list is
+  current.
+
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
 and fails if it contains the weight value, a measurement value or its notes, a target value, the

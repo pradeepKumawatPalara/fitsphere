@@ -217,6 +217,42 @@ D-23). They include a target body weight, so the values are treated as **Health*
   trainee's change while an active coach's target applies (backlog B-21).
 - A target can be changed but not removed in the MVP (D-23).
 
+### `foods` — reference data
+FitSphere's food list (ADR-0006 rule 1; D-25, D-26), loaded from
+`data/foods/ifct2017-foods.csv` by `npm run foods:import`
+([`food-list-sources.md`](../data/food-list-sources.md)). It is the same for every user and holds
+no personal data, so it has no `user_id` and no `change_seq`; the phone fetches it whole with
+`GET /v1/foods`.
+
+| Column | Type | Rules |
+|---|---|---|
+| `id` | `uuid` | Primary key |
+| `source`, `code` | `text` | Unique together. `source` is `ifct2017`; `code` is the IFCT code, e.g. `A019` |
+| `name`, `food_group` | `text` | Not null; as printed |
+| `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed |
+| `kcal` | `numeric(6,2)` | Not null. kcal per 100 g |
+| `kcal_source` | `text` | `published` (as printed) or `estimated_fat_factor` (oils and fats: 9 kcal per g of fat, D-26) |
+| `estimated` | `boolean` | True when `kcal` is estimated |
+| `needs_review`, `note` | `boolean`, `text` | The source PDF's review flag and its reason |
+| `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
+| `aliases` | `text[]` | Other spellings to search by |
+| `updated_at` | `timestamptz` | Server time of the last import that changed the row |
+
+### `barcode_products` — reference data
+Products looked up on Open Food Facts by barcode (ADR-0006 rule 2). Kept apart from `foods` and
+never merged into it, so the ODbL share-alike duty stays with this table (Legal to confirm,
+Q-049). Only the barcode is ever sent to Open Food Facts; the table holds no user data. The rules
+for filling it come with the slice's Barcode step.
+
+| Column | Type | Rules |
+|---|---|---|
+| `barcode` | `text` | Primary key; 8 to 14 digits |
+| `found` | `boolean` | False when Open Food Facts has no such product; then the values are null |
+| `name`, `brand` | `text` | As given by Open Food Facts |
+| `kcal_100g`, `protein_100g`, `carbs_100g`, `fat_100g`, `fibre_100g` | `numeric(7,2)` | Per 100 g; null when Open Food Facts gives none |
+| `source_url` | `text` | The product's Open Food Facts page, for attribution |
+| `fetched_at` | `timestamptz` | When it was looked up |
+
 ### `applied_changes` — sync bookkeeping
 Makes the sync endpoint apply each phone change once (ADR-0007 option A). Holds no health
 values.
@@ -294,10 +330,11 @@ rule 5 and D-14 require.
 | `head_coach_permission_answers` | While the trainee's account exists | With the trainee's account (Q-048 MVP default) |
 | `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
 | `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
+| `foods`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |
 
 ## Not in this document yet
 Added with the slice that needs them: invitations, Notifications list, push tokens, settings
-(units, theme, AI consent), plans, meals and food data, media, workouts, and the admin access log
+(units, theme, AI consent), plans, meals, media, workouts, and the admin access log
 (REQ-NFR-005).

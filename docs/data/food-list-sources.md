@@ -194,6 +194,37 @@ All checks passed.
    with 4 × protein + 9 × fat + 4 × carbs. The median gap is 2.5%. A misread column would show
    up as many large gaps. Only 3 rows differ by more than 25%. This check changed no values.
 
+## Use in FitSphere (D-26; meal logging slice, step 1)
+
+`npm run foods:import -w @fitsphere/api` loads the CSV into `app.foods`
+([data model](../contracts/data-model.md)), and `GET /v1/foods` serves it to the phone, which
+caches it for offline search. The import checks the whole file first and imports nothing if any
+row is wrong; running it again gives the same table. The values themselves are not changed. On
+top of them:
+- **Oils and fats (T001–T014) get estimated energy.** IFCT publishes no energy for them, so
+  FitSphere uses 9 kcal per gram of fat (D-26), marked "estimated" (`kcal_source =
+  estimated_fat_factor`). For example, ghee at 100.00 g fat gives 900.00 kcal, and corn oil at
+  100.01 g gives 900.09. The factor, word for word from FAO Food and Nutrition Paper 77, *Food
+  energy – methods of analysis and conversion factors* (Rome, 2003), chapter 3, section 3.5.1
+  "The Atwater general factor system"
+  (https://www.fao.org/4/Y5022e/y5022e04.htm, read 2026-10-29):
+
+  > It uses a single factor for each of the energy-yielding substrates (protein, fat,
+  > carbohydrate), regardless of the food in which it is found. The energy values are 17 kJ/g
+  > (4.0 kcal/g) for protein, 37 kJ/g (9.0 kcal/g) for fat and 17 kJ/g (4.0 kcal/g) for
+  > carbohydrates.
+- **N001, Q001 and S007 are hidden from search** until they are checked against the IFCT 2017
+  book (MVP default). Their published energy disagrees with their own macronutrients, for
+  example N001 "Chicken, poultry, leg, skinless" at 384 kcal from 19.44 g protein and 12.64 g fat.
+  They stay in the table, marked `hidden`.
+- **Spelling aliases**, so search finds the names below, which are kept as printed:
+  - E021 → Gooseberry;
+  - H006 → Coconut, kernel, dry;
+  - M007, M010, M013 → … omelette;
+  - M014, M015 → … quail ….
+- **The acknowledgement** above is the shared constant `IFCT_ACKNOWLEDGEMENT`. The app shows it
+  wherever IFCT values are shown (D-25).
+
 ## Notes on the data (values not changed)
 
 - **E033 "Lemon, juice"** has the largest gap in the list: 37 kcal printed, about 8 kcal from
