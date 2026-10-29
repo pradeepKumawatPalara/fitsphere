@@ -271,6 +271,14 @@ logging and sync (ADR-0007 step 1, meals); a meal photo's size, thumbnail and mi
 data (ADR-0002 step 5, ADR-0001 check 3); a public link; a deleted photo leaving the bucket; and
 `npm run check:storage` with the Data API off (ADR-0002 step 2).
 
+### Device checks for the Training slice (D-29)
+Batched at the end of the slice, once its pull requests are merged and the migration is applied,
+on the existing development build, with `npm run dev:phone`. The exact steps are in
+[`training-slice.md`](../plans/training-slice.md), "Owner's checks at the end of the slice": the
+Training tab, starting a workout and the Home count, exercises and their limits, a past date,
+deleting, offline workouts (ADR-0007 step 1, extended), "Load older", and the earlier kinds still
+working.
+
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's
   health data appears in tests, fixtures, seed files, screenshots or bug reports.

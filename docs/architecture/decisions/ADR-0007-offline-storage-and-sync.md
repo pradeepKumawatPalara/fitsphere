@@ -157,6 +157,21 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
 - **Step 4, extended — passed in automated tests on 2026-10-29:** rejected steps, sleep,
   measurements and targets stay until fixed or discarded, each with its own text
   (`tiles.test.tsx`, `measurements.test.tsx`, `dailyStore.test.ts`).
+- **Steps 1 and 4, extended to workouts — passed in automated tests on 2026-10-29** (Training
+  slice, D-29; PC with PostgreSQL 17, synthetic data):
+  - entries keyed by an ID made on the phone, several a day; `workout.set` applied once by its
+    `changeId`, replacing the whole workout;
+  - deletions as `workout.delete`, kept on the server as an empty row and pulled as deleted, so the
+    phone removes its copy, except while a change for it is waiting;
+  - the 90-day window and paging across kinds; self-access with the same workout ID and
+    `changeId`;
+  - on the phone, the outbox life cycle, pruning, a rejected save or deletion kept until discarded,
+    and local schema version 6 keeping the earlier data and clearing the cursor
+    (`workouts.test.ts`, `workoutStore.test.ts`, `syncClient.test.ts`, `workout.test.tsx`,
+    `training.test.tsx`).
+
+  **Pending, in the slice's batched phone checks:** a workout started and logged offline syncs
+  after reconnecting, and comes back after log out and sign in (plan check 6).
 
 ## Revisit conditions
 Sync bugs grow costly to maintain; real-time features required; device storage problems.

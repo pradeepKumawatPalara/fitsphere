@@ -36,7 +36,7 @@ Last updated: 2026-10-30
 | 13b | [`sources/README.md`](sources/README.md) | Draft | Project owner | The NIN documents read on 2026-10-29 and 2026-10-30: where each came from, its SHA-256 and its terms, for Legal's review (Q-049). The PDFs are kept outside the repository |
 | 14 | [`plans/home-daily-tracking-slice.md`](plans/home-daily-tracking-slice.md) | Accepted | Project owner | Slice 2, Home and daily tracking: scope, MVP defaults, steps, checks and progress (D-23), including `npm run dev:phone` (D-22). Built; the owner's checks are pending |
 | 15 | [`plans/meal-logging-slice.md`](plans/meal-logging-slice.md) | Accepted | Project owner | Slice 3, Meal logging (no AI): scope, decisions, steps, progress and phone checks (D-26). Step 8 (dishes, D-28) is built; a dish goes live only when its recipe row is measured and approved by the owner (none yet). Migrations, the food import, photo storage (`check:storage` 8 of 8 from the PC) and `OFF_CONTACT` are done on `fitsphere-dev`; the phone checks are pending |
-| 16 | [`plans/training-slice.md`](plans/training-slice.md) | Accepted | Project owner | Slice 4, Training: scope, MVP defaults, steps, checks and progress (D-29). Built in parallel with slice 3; in progress |
+| 16 | [`plans/training-slice.md`](plans/training-slice.md) | Accepted | Project owner | Slice 4, Training: scope, MVP defaults, steps, checks and progress (D-29). Built in parallel with slice 3; the owner's checks are pending |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.
