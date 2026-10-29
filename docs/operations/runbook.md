@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28
+- Last updated: 2026-10-29 (Meal logging slice: `OFF_CONTACT`)
 
 Only verified operational steps belong here (`docs/pre-development-guide.md` §5.10). Procedures
 not yet known are marked *Not yet written* rather than guessed. D- numbers refer to
@@ -329,6 +329,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
 | `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
 | `LOG_LEVEL` | API | `info` by default | No |
+| `OFF_CONTACT` | API | A contact email address for the owner, sent to Open Food Facts in the User-Agent (`FitSphere/1.0 (<address>)`), as Open Food Facts asks. Without it, barcode lookups answer "not available right now" and nothing is sent | No, but kept in `.env` and never committed |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
 | `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it. Never committed | No (built into the app's code served by the development server) |

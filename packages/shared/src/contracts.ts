@@ -498,6 +498,35 @@ export const foodsResponseSchema = z.object({
 });
 export type FoodsResponse = z.infer<typeof foodsResponseSchema>;
 
+// --- Barcode lookup: GET /v1/barcodes/{barcode} (ADR-0006 rule 2) ---
+
+/** Open Food Facts' own wording for attributing its data (openfoodfacts.org/data, read 2026-10-29). */
+export const OFF_ATTRIBUTION = 'Contains data from Open Food Facts, available under the Open Database License';
+
+/** EAN-8, UPC-A, EAN-13 and GTIN-14 barcodes: 8 to 14 digits. */
+export const barcodeSchema = z.string().regex(/^\d{8,14}$/);
+
+/** A packaged product's values per 100 g, as Open Food Facts gives them; null when it gives none. */
+export const barcodeProductSchema = z.object({
+  name: z.string(),
+  brand: z.string().nullable(),
+  kcal: z.number().nullable(),
+  proteinG: z.number().nullable(),
+  carbsG: z.number().nullable(),
+  fatG: z.number().nullable(),
+  fibreG: z.number().nullable(),
+  /** The product's page on Open Food Facts, for attribution. */
+  sourceUrl: z.string(),
+});
+export type BarcodeProduct = z.infer<typeof barcodeProductSchema>;
+
+export const barcodeLookupSchema = z.object({
+  barcode: z.string(),
+  found: z.boolean(),
+  product: barcodeProductSchema.nullable(),
+});
+export type BarcodeLookup = z.infer<typeof barcodeLookupSchema>;
+
 // --- Weigh-in history: GET /v1/users/{userId}/weigh-ins ---
 
 export const DEFAULT_LIST_LIMIT = 100;

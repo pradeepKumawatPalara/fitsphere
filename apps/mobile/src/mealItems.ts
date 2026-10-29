@@ -1,4 +1,4 @@
-import { MEAL_ITEM_GRAMS_MAX, type Food, type MealItem } from '@fitsphere/shared';
+import { MEAL_ITEM_GRAMS_MAX, type BarcodeProduct, type Food, type MealItem } from '@fitsphere/shared';
 import { parseOneDecimal, parseWholeNumber } from './format';
 
 // Turning a food and an amount into a meal item (REQ-LOG-007; MVP defaults, D-26). Values are per
@@ -67,6 +67,33 @@ export function itemFromLabel(name: string, values: LabelValues, grams: number):
     carbsG: forGrams(values.carbsG, grams),
     fatG: forGrams(values.fatG, grams),
     fibreG: values.fibreG === null ? null : forGrams(values.fibreG, grams),
+    estimated: false,
+  };
+}
+
+/** A packaged product can be added only when Open Food Facts gives its kcal and protein. */
+export function hasKcalAndProtein(product: BarcodeProduct): product is BarcodeProduct & { kcal: number; proteinG: number } {
+  return product.kcal !== null && product.proteinG !== null;
+}
+
+/** The product's name, with its brand when Open Food Facts gives one. */
+export function productName(product: BarcodeProduct): string {
+  return (product.brand ? `${product.name} (${product.brand})` : product.name).slice(0, 120);
+}
+
+/** A packaged product found by its barcode (ADR-0006 rule 2), eaten in `grams`. */
+export function itemFromBarcode(barcode: string, product: BarcodeProduct & { kcal: number; proteinG: number }, grams: number): MealItem {
+  const optional = (value: number | null) => (value === null ? null : forGrams(value, grams));
+  return {
+    source: 'barcode',
+    ref: barcode,
+    name: productName(product),
+    amount: { unit: 'g', value: grams },
+    kcal: forGrams(product.kcal, grams),
+    proteinG: forGrams(product.proteinG, grams),
+    carbsG: optional(product.carbsG),
+    fatG: optional(product.fatG),
+    fibreG: optional(product.fibreG),
     estimated: false,
   };
 }

@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Home and daily tracking slice, step 2: steps, sleep, measurements and
+- Last updated: 2026-10-29 (Meal logging slice, D-26: the food list, barcode products, meals and
+  saved meals). Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
   targets, migration 0002; D-23). 2026-10-28 (D-20: links and permission answers kept in the
   schema, unused in the MVP)
 - Builds on: ADR-0002, ADR-0003, ADR-0004, ADR-0007; invariants #1, #5, #6, #7
@@ -283,8 +284,15 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 ### `barcode_products` — reference data
 Products looked up on Open Food Facts by barcode (ADR-0006 rule 2). Kept apart from `foods` and
 never merged into it, so the ODbL share-alike duty stays with this table (Legal to confirm,
-Q-049). Only the barcode is ever sent to Open Food Facts; the table holds no user data. The rules
-for filling it come with the slice's Barcode step.
+Q-049). Only the barcode is ever sent to Open Food Facts; the table holds no user data and does
+not record who looked a barcode up. Filled only by `GET /v1/barcodes/{barcode}`
+([api-conventions](api-conventions.md#get-v1barcodesbarcode)), MVP defaults (D-26):
+- a product found is kept, with no refresh in the MVP;
+- a barcode Open Food Facts does not know is asked about again after 24 hours;
+- when Open Food Facts cannot answer, nothing is stored;
+- a value is kept only when Open Food Facts gives it in kcal or grams per 100 g and it is within
+  range (kcal 0–900, the others 0–100 g); otherwise it is null. The name is cut to 100
+  characters and the brand (the first one listed) to 60.
 
 | Column | Type | Rules |
 |---|---|---|

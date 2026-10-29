@@ -3,12 +3,15 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { AGE_CONFIRMATION_TEXT_VERSION } from '@fitsphere/shared';
 import { buildApp, type LogOptions } from '../../src/app.ts';
+import type { BarcodeSource } from '../../src/foods/openFoodFacts.ts';
 import { createTestAuth, signToken } from '../helpers/auth.ts';
 import { testDatabaseUrl } from './database.ts';
 
 export type TestUser = { subject: string; email: string; token: string };
 
-export async function startTestApi(options: { log?: LogOptions; now?: () => Date; syncPageSize?: number } = {}) {
+export async function startTestApi(
+  options: { log?: LogOptions; now?: () => Date; syncPageSize?: number; barcodes?: BarcodeSource } = {},
+) {
   const { auth, keys, supabase } = await createTestAuth();
   const db = new pg.Pool({ connectionString: testDatabaseUrl(), max: 4 });
   const app = buildApp({ db, auth, ...options });
