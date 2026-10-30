@@ -14,8 +14,7 @@ slice 6 (Settings and account) is built in `D:\fitsphere-settings`. Progress onl
 data: no server change, no migration, no phone schema version. Colours come from slice 6's
 `src/theme.tsx` (`useTheme().colors`) and body weights go through `useProgressWeightUnit()`, which
 switches to slice 6's `useBodyWeightUnit()` when both are on main. D-P1 and E-P1 to E-P3 are
-temporary IDs until merged. Steps 1 to 3 are pull requests #41, #42 and step 3's, stacked in that
-order; the owner merges them, then runs the plan's phone checks (no new build).
+temporary IDs until merged. Steps 1 to 3 are pull requests #41, #42 and #44, stacked in that order; the owner merges them, then runs the plan's phone checks (no new build).
 
 **Slice 3, Meal logging (no AI) — merged; dish recipes and phone checks pending (D-26,
 2026-10-29; D-28, 2026-10-30).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Every step is
