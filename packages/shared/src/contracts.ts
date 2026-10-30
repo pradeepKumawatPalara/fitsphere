@@ -14,6 +14,7 @@ import {
   STEPS_MIN,
   WEIGHT_GRAMS_MAX,
   WEIGHT_GRAMS_MIN,
+  WEIGHT_UNITS,
 } from './units.ts';
 
 // --- Error codes (error-model, "Codes") ---
@@ -97,6 +98,34 @@ export const meResponseSchema = z.object({
   roles: z.array(z.enum(ROLES)),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
+
+// --- AI meal-reading consent: GET and PUT /v1/me/ai-consent (REQ-ACC-004) ---
+
+/**
+ * The consent text the app shows beside the "AI meal reading" switch, and its version (MVP default,
+ * D-S1; Legal reviews it, Q-049). Each change of consent records the version shown. A new text gets
+ * a new version, and the request schema then accepts both while older apps are in use.
+ */
+export const AI_CONSENT_TEXT_VERSION = '2026-10-30';
+export const AI_CONSENT_TEXT =
+  'When it is on, the meal text you type or speak, and the meal and label photos you choose to read, ' +
+  "are sent to Google's Gemini AI service to estimate what you ate. They may be processed outside " +
+  'India. You check the result before it is saved. Voice is turned into text on your phone; ' +
+  'recordings are not sent. Off by default; you can turn it off at any time.';
+
+export const aiConsentRequestSchema = z.strictObject({
+  consented: z.boolean(),
+  textVersion: z.literal(AI_CONSENT_TEXT_VERSION),
+});
+export type AiConsentRequest = z.infer<typeof aiConsentRequestSchema>;
+
+/** The latest consent record, or null when the user has never chosen (AI is then off, A-007). */
+export const aiConsentResponseSchema = z.object({
+  aiConsent: z
+    .object({ consented: z.boolean(), textVersion: z.string(), recordedAt: instantSchema })
+    .nullable(),
+});
+export type AiConsentResponse = z.infer<typeof aiConsentResponseSchema>;
 
 // --- Sync: POST /v1/sync (ADR-0007) ---
 
@@ -234,6 +263,35 @@ export const targetSetDataSchema = z.discriminatedUnion('kind', [
   targetSchemaFor('body_weight'),
 ]);
 export type TargetSetData = z.infer<typeof targetSetDataSchema>;
+
+// Settings (REQ-ACC-001…003): the user's own, one current value per name, synced like targets so
+// they work offline and follow the account to another phone (MVP default, D-S1). The units are
+// display settings: weights stay stored in grams (invariant #6).
+
+export const SETTING_SET = 'setting.set';
+export const THEME_PREFERENCES = ['system', 'light', 'dark'] as const;
+export type ThemePreference = (typeof THEME_PREFERENCES)[number];
+export const SETTING_NAMES = ['theme', 'body_weight_unit', 'lifting_weight_unit'] as const;
+export type SettingName = (typeof SETTING_NAMES)[number];
+export const SETTING_VALUES = {
+  theme: THEME_PREFERENCES,
+  body_weight_unit: WEIGHT_UNITS,
+  lifting_weight_unit: WEIGHT_UNITS,
+} as const satisfies Record<SettingName, readonly string[]>;
+export type Settings = { [N in SettingName]: (typeof SETTING_VALUES)[N][number] };
+/** Before the user chooses: the phone's theme, and kg as the BRD's "Weight (kg)". */
+export const DEFAULT_SETTINGS: Settings = { theme: 'system', body_weight_unit: 'kg', lifting_weight_unit: 'kg' };
+
+function settingSchemaFor<N extends SettingName>(name: N) {
+  return z.strictObject({ name: z.literal(name), value: z.enum(SETTING_VALUES[name]), setAt: instantSchema });
+}
+
+export const settingSetDataSchema = z.discriminatedUnion('name', [
+  settingSchemaFor('theme'),
+  settingSchemaFor('body_weight_unit'),
+  settingSchemaFor('lifting_weight_unit'),
+]);
+export type SettingSetData = z.infer<typeof settingSetDataSchema>;
 
 // Meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*) and saved meals (REQ-SAVED-*). A meal's ID is
 // made on the phone, so it can be created, edited and deleted offline; IDs are per user, so a
@@ -467,6 +525,14 @@ export const targetSchema = z.object({
 });
 export type Target = z.infer<typeof targetSchema>;
 
+export const settingSchema = z.object({
+  name: z.enum(SETTING_NAMES),
+  value: z.string(),
+  setAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Setting = z.infer<typeof settingSchema>;
+
 /** A meal's totals, computed by the server from its items: the sum of the known values, or null
  * when no item has that value (MVP default, D-26). */
 export const mealTotalsSchema = z.object({
@@ -534,6 +600,7 @@ export const syncResponseSchema = z.object({
     measurements: z.array(measurementSchema),
     workouts: z.array(pulledWorkoutSchema),
     targets: z.array(targetSchema),
+    settings: z.array(settingSchema),
     meals: z.array(pulledMealSchema),
     savedMeals: z.array(pulledSavedMealSchema),
     // Always empty in the MVP (ADR-0007 rule 3; D-20).

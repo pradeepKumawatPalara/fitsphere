@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import {
+  AI_CONSENT_TEXT_VERSION,
+  aiConsentRequestSchema,
+  DEFAULT_SETTINGS,
   errorBodySchema,
   foodsResponseSchema,
   isPublicLink,
@@ -11,6 +14,9 @@ import {
   measurementsSetDataSchema,
   meSetupRequestSchema,
   pulledWorkoutSchema,
+  SETTING_NAMES,
+  SETTING_VALUES,
+  settingSetDataSchema,
   sleepSetDataSchema,
   stepsSetDataSchema,
   syncRequestSchema,
@@ -245,6 +251,53 @@ describe('REQ-ROLE-007 target.set data', () => {
   });
 });
 
+describe('REQ-ACC-001…003 setting.set data', () => {
+  it('REQ-ACC-001 accepts every value of every setting', () => {
+    for (const name of SETTING_NAMES) {
+      for (const value of SETTING_VALUES[name]) {
+        expect(settingSetDataSchema.safeParse({ name, value, setAt: RECORDED_AT }).success).toBe(true);
+      }
+    }
+  });
+
+  it('REQ-ACC-002 checks the value against the setting named, and refuses an unknown name', () => {
+    expect(settingSetDataSchema.safeParse({ name: 'theme', value: 'lb', setAt: RECORDED_AT }).success).toBe(false);
+    expect(settingSetDataSchema.safeParse({ name: 'body_weight_unit', value: 'dark', setAt: RECORDED_AT }).success).toBe(false);
+    expect(settingSetDataSchema.safeParse({ name: 'lifting_weight_unit', value: 'st', setAt: RECORDED_AT }).success).toBe(false);
+    expect(settingSetDataSchema.safeParse({ name: 'language', value: 'en', setAt: RECORDED_AT }).success).toBe(false);
+  });
+
+  it('REQ-NFR-001 refuses a change that names a user, and one without its time', () => {
+    expect(detailsFor(settingSetDataSchema, { name: 'theme', value: 'dark', setAt: RECORDED_AT, userId: CHANGE_ID })).toEqual([
+      { field: 'userId', issue: 'unknown_field' },
+    ]);
+    expect(detailsFor(settingSetDataSchema, { name: 'theme', value: 'dark' })).toEqual([{ field: 'setAt', issue: 'required' }]);
+  });
+
+  it('REQ-ACC-003 the defaults are the phone’s theme and kg for both units', () => {
+    expect(DEFAULT_SETTINGS).toEqual({ theme: 'system', body_weight_unit: 'kg', lifting_weight_unit: 'kg' });
+  });
+});
+
+describe('REQ-ACC-004 AI consent request', () => {
+  it('REQ-ACC-004 accepts on or off with the version of the text shown', () => {
+    for (const consented of [true, false]) {
+      const body = { consented, textVersion: AI_CONSENT_TEXT_VERSION };
+      expect(aiConsentRequestSchema.parse(body)).toEqual(body);
+    }
+  });
+
+  it('Q-065 refuses another text version, a missing choice and unknown fields', () => {
+    expect(aiConsentRequestSchema.safeParse({ consented: true, textVersion: '2020-01-01' }).success).toBe(false);
+    expect(detailsFor(aiConsentRequestSchema, { textVersion: AI_CONSENT_TEXT_VERSION })).toEqual([
+      { field: 'consented', issue: 'required' },
+    ]);
+    expect(detailsFor(aiConsentRequestSchema, { consented: true, textVersion: AI_CONSENT_TEXT_VERSION, recordedAt: RECORDED_AT })).toEqual([
+      { field: 'recordedAt', issue: 'unknown_field' },
+    ]);
+  });
+});
+
 describe('REQ-NFR-004 sync request and response', () => {
   it('REQ-NFR-004 accepts the request from the contract', () => {
     const request = {
@@ -287,6 +340,7 @@ describe('REQ-NFR-004 sync request and response', () => {
         measurements: [],
         workouts: [],
         targets: [],
+        settings: [],
         meals: [],
         savedMeals: [],
         removals: [],

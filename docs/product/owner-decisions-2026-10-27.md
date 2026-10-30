@@ -832,6 +832,39 @@ final D- number, with its backlog cases E-P1 to E-P3, when it is merged.*
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step that
   builds each one.
 
+## D-S1 Settings and account slice plan approved, built beside slice 5
+*Temporary ID: slice 6 is built in parallel with slice 5 (Progress), and gets its final number when
+it is merged. Its backlog cases and release-blocking item are E-S1… and RB-S1 until then.*
+- Status: **Accepted** (owner approval in chat, 2026-10-30).
+- Answers:
+  1. **Slice 6 plan approved:** [`docs/plans/settings-slice.md`](../plans/settings-slice.md), with
+     its scope, its MVP defaults chosen under D-18 answer 3, and its five steps.
+  2. **AI consent moves into slice 6:** the "AI meal reading" switch and its record (REQ-ACC-004:
+     on or off, the server's time and the consent text's version) are built in slice 6, with no AI
+     call. Slice 7 keeps the AI calls and the server's consent check before each one (invariant
+     #3).
+  3. **"India · Kolkata" is shown** in Settings as fixed text (D-09: the owner's choice between
+     showing and hiding it). REQ-ACC-006 stays *Won't* for this release: nothing can be changed.
+  4. **Deleting the sign-in account uses a Supabase secret key, on the server only.** The owner
+     creates a secret key (`sb_secret_…`) and puts it in the API's configuration as
+     `SUPABASE_SECRET_KEY`. Only the API's auth module uses it, for Supabase Auth's admin
+     "delete user" call; it never goes in the app, logs or tests. Without it, Delete account
+     answers that it is not available and deletes nothing. (Chosen over deleting the row from
+     Supabase's internal `auth.users` table, and over deleting the data only.)
+  5. **Built in parallel with slice 5** in a separate worktree, as D-29 answer 2: shared files get
+     small changes only; migration `0008_settings.sql` and phone schema version 7, renumbered
+     before merging if they collide; the migration runs on Supabase only when the owner says so;
+     new IDs are temporary until merged. Slice 6 owns the theme and unit modules, and slice 5's
+     Progress screens read them.
+  6. **Workflow as D-21**, and **no new native packages** without asking the owner first (cloud
+     build, D-19); none is planned.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs. Legal's
+  review (Q-049) covers the consent text and what account deletion deletes and keeps.
+- Doc changes: `docs/plans/settings-slice.md`; `mvp-scope.md` section 5 (slices 6 and 7);
+  REQ-ACC-004 and REQ-ACC-006 in `requirements.md`; J-10 in `user-journeys.md`; `CLAUDE.md`;
+  `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
+  that builds each one.
+
 ---
 
 ## Proposed replacement wording for the two invariants

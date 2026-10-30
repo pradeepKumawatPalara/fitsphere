@@ -2,10 +2,11 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Training slice, step 1: workouts through sync, and the workout history
-  route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps, sleep, measurements and
-  targets through sync; D-23). 2026-10-28 (D-20: self-access only in the MVP; Resend with the
-  Release slice)
+- Last updated: 2026-10-30 (Settings slice, step 1: `setting.set` and the settings in the pull,
+  and the AI consent routes; D-S1). 2026-10-29 (Training slice, step 1: workouts through sync, and
+  the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
+  sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
+  MVP; Resend with the Release slice)
 - Builds on: ADR-0002 (the Node API is the only path to the data), ADR-0004 (Supabase Auth, one
   access module), ADR-0007 (one sync endpoint); [`data-model.md`](data-model.md);
   [`error-model.md`](error-model.md)
@@ -97,8 +98,11 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `GET /v1/health` | The API is running | None (no token) | — |
 | `GET /v1/me` | The signed-in user's account | Signed in | REQ-ACC-010, REQ-ROLE-001 |
 | `POST /v1/me` | Set up the FitSphere account after the first sign-in | Signed in, account not yet set up | REQ-ACC-010, D-18 |
-| `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, ADR-0007 |
+| `GET /v1/me/ai-consent` | The user's current AI meal-reading consent | The user, for their own record only | REQ-ACC-004 |
+| `PUT /v1/me/ai-consent` | Record a change of AI meal-reading consent | The user, for their own record only | REQ-ACC-004, C-004 |
+| `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
+| `GET /v1/users/{userId}/workouts` | Read workouts online: the user's own history older than the phone holds | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-TRN-004, REQ-NFR-001 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
 | `GET /v1/barcodes/{barcode}` | A packaged product's values per 100 g, from Open Food Facts | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, ADR-0006 |
 | `POST /v1/users/{userId}/media/{mediaId}/upload` | Links to upload one meal photo's viewing copy and thumbnail straight to storage | The user, for their own photo | REQ-LOG-006, ADR-0002 |
@@ -134,6 +138,27 @@ Request:
 - The app sends the confirmation the user gave at sign-up. It keeps it in the Supabase user's
   metadata, so a sign-in on another phone does not ask again; if it is missing, the app shows
   the "I am 18 or older" step before calling this endpoint.
+
+### `GET /v1/me/ai-consent` and `PUT /v1/me/ai-consent` (REQ-ACC-004)
+`GET` returns the latest record, or `null` when the user has never chosen, which means AI is off
+(A-007):
+```json
+{ "aiConsent": { "consented": true, "textVersion": "2026-10-30", "recordedAt": "2026-10-30T04:00:00.000Z" } }
+```
+`PUT` records a change and returns the same body:
+```json
+{ "consented": false, "textVersion": "2026-10-30" }
+```
+- `textVersion` is the version of the consent text the app showed (`AI_CONSENT_TEXT_VERSION`,
+  shared); any other value is `400 VALIDATION_FAILED`, as is a missing or unknown field. The
+  server records its own time; every change is kept (Q-065 MVP default; data model,
+  `ai_consents`).
+- Only the caller's own record: the path names no user, and a body that names one is refused as
+  an unknown field (invariant #1).
+- Online only: consent is not a sync change, so the time recorded is when the server received
+  it (MVP default, D-S1). Neither route calls an AI service; the AI module checks the latest
+  record immediately before each call (invariant #3, slice 7).
+- `401`, `403 ACCOUNT_SETUP_REQUIRED`, and the other whole-request errors as for `GET /v1/me`.
 
 ### `POST /v1/sync` (ADR-0007)
 Writes go through the outbox and this endpoint, online or offline. When the phone is online,
@@ -171,6 +196,7 @@ Request:
   | `savedMeal.set` | `id`, `name`, `mealType`, `tags`, `items`, `savedAt` | A copy of a meal, with no day. Name 1 to 60 characters. Its items follow the dish rule of `meal.set` |
   | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
   | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
+  | `setting.set` | `name`, `value`, `setAt` | `name` is `theme` (`system`, `light` or `dark`), `body_weight_unit` or `lifting_weight_unit` (`kg` or `lb`); a value another name allows is refused (data model, `settings`) |
 
 - An `id` in a meal or saved-meal change is made on the phone and names only the caller's own
   meal: the same `id` from another user creates or changes that user's own (invariant #1).
@@ -180,6 +206,8 @@ Request:
   is replaced (Q-030 MVP default); for measurements the whole entry is replaced.
 - `target.set` sets the user's current target of that kind, replacing the old one (Q-014 MVP
   default, D-23).
+- `setting.set` sets the user's current value of that setting, replacing the old one; the change
+  received last wins, as for targets (MVP default, D-S1).
 - `workout.set` creates the user's workout with that `id`, or replaces the whole workout; the day
   rules above apply, but a day may hold several workouts. It also restores a deleted workout.
   `workout.delete` keeps the workout's row without its content, so other phones learn of the
@@ -215,6 +243,9 @@ Response `200`:
     "targets": [
       { "kind": "calories", "value": 2000, "setByUserId": "0f8e5a1c-…", "setAt": "…", "updatedAt": "…" }
     ],
+    "settings": [
+      { "name": "body_weight_unit", "value": "lb", "setAt": "…", "updatedAt": "…" }
+    ],
     "removals": []
   },
   "cursor": "opaque-string",
@@ -229,7 +260,7 @@ Response `200`:
 - **Who wins:** for the same day, the change the server receives last wins; `recordedAt` does not
   decide (ADR-0007 rule 2).
 - **Pull:** the user's own weigh-ins, steps, sleep, measurements, meals and workouts for the last
-  90 IST days, and their current targets and saved meals (ADR-0007 rule 1). With `cursor: null`,
+  90 IST days, and their current targets, settings and saved meals (ADR-0007 rule 1). With `cursor: null`,
   all of them; otherwise only those changed since the cursor. All the lists share one change
   sequence, so one cursor covers them, and entries are returned in the order they changed. At most
   500 entries per response, across the lists; when `hasMore` is `true`, the phone calls again with

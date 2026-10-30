@@ -176,13 +176,15 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull: Record<ListName | 'removals', unknown[]> = {
+      // The phone stores no settings yet (Settings slice, step 3), so that list stays empty.
+      const pull: Record<ListName | 'settings' | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],
         measurements: [],
         workouts: [],
         targets: [],
+        settings: [],
         meals: [],
         savedMeals: [],
         removals: [],

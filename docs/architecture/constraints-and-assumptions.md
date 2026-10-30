@@ -2,8 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Meal logging slice, step 8, D-28: MVP defaults for dishes in the app
-  and for recipe rows going live one by one). Earlier the same day (Q-049: the brief for Legal,
+- Last updated: 2026-10-30 (Settings slice, step 1, D-S1: MVP defaults for where settings live
+  and for the AI consent record). Earlier the same day (Meal logging slice, step 8, D-28: MVP
+  defaults for dishes in the app and for recipe rows going live one by one). Earlier the same day (Q-049: the brief for Legal,
   and the food-data items Q-049 covers).
   2026-10-29 (Training slice, D-29: MVP defaults for workouts). Earlier the same day (Meal logging
   slice, D-26: barcode lookup and meal photo MVP defaults, meal photos on the phone, risk R-008).
@@ -140,6 +141,9 @@ confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
 | Progress measurements (Progress slice, D-P1) | The phone's 90 days, newest first, each as Home's measurements card with "Edit measurements", under "Add measurements"; with none, "No measurements yet.", "Track your upper and lower waist once a week." and "Add first". Adding opens the sheet on today. Older entries are backlog E-P1. *Not yet confirmed* | REQ-PRG-006 |
 | The weight history (Progress slice, D-P1) | Unchanged, on its own screen ("Weight history"), opened by "All weigh-ins" under the chart. *Not yet confirmed* | REQ-PRG-001, ADR-0007 rule 1 |
 | Q-026 "current week" (Home slice, D-23) | *Superseded by D-24: the card is no longer hidden, so no week is needed.* It was: the Mon–Sun week of the selected date; any entry that week hid the card | REQ-HOME-008 |
+| Where settings live (Settings slice, D-S1) | Per account: theme, body-weight unit and lifting-weight unit sync through the outbox like targets (`setting.set`), so they work offline and come back after logging out and signing in. With nothing chosen: System, kg, kg. Before sign-in the app follows the phone's theme. *Not yet confirmed* | REQ-ACC-001…003, ADR-0007 |
+| Changing AI consent (Settings slice, D-S1) | Online only, through `PUT /v1/me/ai-consent`; the server records its own time and keeps every change (Q-065). Offline, the switch shows the last known choice, disabled, with "Changing this needs an internet connection." *Not yet confirmed* | REQ-ACC-004, C-004 |
+| AI consent text (Settings slice, D-S1) | Version `2026-10-30`: "When it is on, the meal text you type or speak, and the meal and label photos you choose to read, are sent to Google's Gemini AI service to estimate what you ate. They may be processed outside India. You check the result before it is saved. Voice is turned into text on your phone; recordings are not sent. Off by default; you can turn it off at any time." Legal reviews it (Q-049). *Not yet confirmed* | REQ-ACC-004, ADR-0005 |
 
 Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
 and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18
