@@ -7,6 +7,10 @@ import { startTestApi } from './app.ts';
 // ADR-0002 step 6, invariant #7: the log holds no token, email address, health value (weight,
 // measurements and their notes, targets, meals), media link, query value or body.
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** Fields the logger (time, process, host) and the API (request and user IDs, duration) fill in. */
+const OWN_FIELDS = new Set(['time', 'pid', 'hostname', 'requestId', 'userId', 'durationMs']);
+
 describe('ADR-0002 step 6 log content', () => {
   it('ADR-0002 step 6 logs one line per request with the route pattern and no sensitive values', async () => {
     const lines: string[] = [];
@@ -98,14 +102,30 @@ describe('ADR-0002 step 6 log content', () => {
       expect(log).not.toContain('query-value-7f3a');
       expect(log).not.toContain('probe');
       expect(log.toLowerCase()).not.toContain('authorization');
-      expect(log).not.toContain('73456');
-      expect(log).not.toContain('1234');
       expect(log).not.toContain('synthetic-note-5c1d');
-      expect(log).not.toContain('2345');
       expect(log).not.toContain('synthetic-food-9d2e');
-      expect(log).not.toContain('456.7');
       expect(log).not.toContain('2026-09-17');
       expect(log).not.toContain('2026-10-01');
+
+      // The short numbers are looked for outside the fields the logger and the API fill in
+      // themselves. Those are random or depend on the machine (a request ID once held "2345"), so
+      // they are checked by their form instead, and no value can hide in them.
+      const entries: Record<string, unknown>[] = lines.map((line) => JSON.parse(line));
+      for (const { time, pid, hostname, requestId, userId, durationMs } of entries) {
+        expect(typeof time).toBe('number');
+        if (pid !== undefined) expect(Number.isInteger(pid)).toBe(true);
+        if (hostname !== undefined) expect(typeof hostname).toBe('string');
+        if (requestId !== undefined) expect(requestId).toMatch(UUID);
+        if (userId !== undefined && userId !== null) expect(userId).toMatch(UUID);
+        if (durationMs !== undefined) expect(Number.isInteger(durationMs)).toBe(true);
+      }
+      const content = JSON.stringify(
+        entries.map((entry) => Object.fromEntries(Object.entries(entry).filter(([field]) => !OWN_FIELDS.has(field)))),
+      );
+      expect(content).not.toContain('73456');
+      expect(content).not.toContain('1234');
+      expect(content).not.toContain('2345');
+      expect(content).not.toContain('456.7');
 
       const requests = lines.map((line) => JSON.parse(line)).filter((entry) => entry.msg === 'request');
       expect(requests).toHaveLength(5);
