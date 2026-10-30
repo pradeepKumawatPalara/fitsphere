@@ -1,13 +1,15 @@
-// GET and POST /v1/me (api-conventions; REQ-ACC-010, REQ-ROLE-001, D-18).
+// GET, POST and DELETE /v1/me (api-conventions; REQ-ACC-010, REQ-ROLE-001, REQ-ACC-009, D-18).
 import { API_BASE_PATH, meSetupRequestSchema, validationDetails } from '@fitsphere/shared';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
+import { deleteAccount } from '../accountDeletion.ts';
 import { requireIdentity } from '../access.ts';
 import { createAccount, findAccount, meBody } from '../accounts.ts';
 import type { Auth } from '../auth.ts';
 import { ApiError } from '../errors.ts';
+import type { MediaStorage } from '../storage/mediaStorage.ts';
 
-export function registerMeRoutes(app: FastifyInstance, deps: { auth: Auth; db: pg.Pool }) {
+export function registerMeRoutes(app: FastifyInstance, deps: { auth: Auth; db: pg.Pool; storage?: MediaStorage | null }) {
   app.get(`${API_BASE_PATH}/me`, { config: { access: 'signedIn' } }, async (request) => {
     const account = await findAccount(deps.db, requireIdentity(request).subject);
     if (!account) throw new ApiError('ACCOUNT_SETUP_REQUIRED');
@@ -49,5 +51,17 @@ export function registerMeRoutes(app: FastifyInstance, deps: { auth: Auth; db: p
     if (!account) throw new Error('Account missing after setup');
     request.account = account;
     return reply.status(created ? 201 : 200).send(meBody(account));
+  });
+
+  // Delete account (REQ-ACC-009; ADR-0004 rule 7). Only the caller's own: the path names no user.
+  // Access is `signedIn`, not `account`, so a deletion stopped after the account's rows were
+  // deleted can still delete the sign-in account when called again.
+  app.delete(`${API_BASE_PATH}/me`, { config: { access: 'signedIn' } }, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const account = await deleteAccount({ db: deps.db, auth: deps.auth, storage: deps.storage ?? null }, identity);
+    // The request line names the deleted account's ID; no email address or health data is logged.
+    if (account) request.account = account;
+    request.log.info('account deleted');
+    return reply.status(204).send();
   });
 }

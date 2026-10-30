@@ -11,11 +11,20 @@ import { testDatabaseUrl } from './database.ts';
 export type TestUser = { subject: string; email: string; token: string };
 
 export async function startTestApi(
-  options: { log?: LogOptions; now?: () => Date; syncPageSize?: number; barcodes?: BarcodeSource; storage?: MediaStorage | null } = {},
+  options: {
+    log?: LogOptions;
+    now?: () => Date;
+    syncPageSize?: number;
+    barcodes?: BarcodeSource;
+    storage?: MediaStorage | null;
+    /** The Supabase secret key; null for a server without one. */
+    secretKey?: string | null;
+  } = {},
 ) {
-  const { auth, keys, supabase } = await createTestAuth();
+  const { secretKey, ...appOptions } = options;
+  const { auth, keys, supabase } = await createTestAuth({ secretKey });
   const db = new pg.Pool({ connectionString: testDatabaseUrl(), max: 4 });
-  const app = buildApp({ db, auth, ...options });
+  const app = buildApp({ db, auth, ...appOptions });
   await app.ready();
 
   /** A user who signed up with Supabase Auth; no FitSphere account yet. */
@@ -43,6 +52,7 @@ export async function startTestApi(
     app,
     db,
     keys,
+    supabase,
     signUp,
     signUpWithAccount,
     async close() {

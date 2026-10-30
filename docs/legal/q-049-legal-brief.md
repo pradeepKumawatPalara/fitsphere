@@ -77,7 +77,9 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   AI call (invariant #3). Each change records on, off, the time and the version of the consent
   text; one toggle covers typed or spoken text, photos and labels (Q-065, MVP default). The
   provider may process requests outside India, and how long it keeps them is to be checked
-  against its terms (ADR-0005). The consent text is not written yet.
+  against its terms (ADR-0005). The consent text is written, version `2026-10-30`
+  (`AI_CONSENT_TEXT`, E-19); the switch and its record come with slice 6 and the AI calls with
+  slice 7 (D-S1).
 - Question: is this consent record enough, and what must the consent text say?
 
 **L-04 Deleting an account (MVP).**
@@ -85,6 +87,8 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   security logs required by REQ-NFR-005 are kept, without health data. A public web page will
   explain how to ask for deletion by email (Q-048 MVP default, REQ-ACC-009). There are no backups
   in phase 1 (R-005). Once backups exist, how long they keep deleted data is open (REQ-LOG-006).
+  The page's draft text, with its open points marked, is
+  [`account-deletion-page.md`](account-deletion-page.md) (D-S1).
 - Question: is this what the Act requires to be deleted and kept, and on what timeline?
 
 **L-05 How long data is kept (MVP).**
@@ -227,8 +231,8 @@ or "Not written yet" are not available yet.
 | E-15 | Texts the app shows: the IFCT citation and Open Food Facts' attribution (`IFCT_ACKNOWLEDGEMENT`, `OFF_ATTRIBUTION` in `packages/shared/src/contracts.ts`); the public-link warning (`LINK_WARNING` in `apps/mobile/src/components/MealPhotoField.tsx`); "I am 18 or older" (`apps/mobile/src/auth/texts.ts`) | The code | L-06, L-07, L-09, L-13 | In the repository |
 | E-16 | The licences and terms of IFCT 2017 and Open Food Facts | Quoted in E-11 and E-12; [ODbL page](https://wiki.openfoodfacts.org/ODBL_License) | L-09 to L-13 | Read 2026-10-27 to 2026-10-30; current text to obtain for the review |
 | E-17 | Each provider's data-processing terms: Supabase, Google Cloud (Cloud Run, Gemini), Resend, Expo, Open Food Facts | — | L-01, L-03, L-14 | To obtain |
-| E-18 | The privacy notice, terms of use, deletion-request page, complaints contact | — | L-02, L-04, L-14 | Not written yet |
-| E-19 | The AI consent text | — | L-03 | Not written yet (slice 7) |
+| E-18 | The privacy notice, terms of use, deletion-request page, complaints contact | Deletion page draft: [`account-deletion-page.md`](account-deletion-page.md) | L-02, L-04, L-14 | Deletion page drafted 2026-10-30 (D-S1), with its open points marked; the others not written yet |
+| E-19 | The AI consent text | `AI_CONSENT_TEXT` in `packages/shared/src/contracts.ts` | L-03 | Written 2026-10-30, version `2026-10-30` (D-S1); not yet reviewed |
 
 ## 4. How answers are recorded
 

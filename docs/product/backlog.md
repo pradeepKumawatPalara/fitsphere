@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
+- Last updated: 2026-10-30 (Settings slice, step 2, D-S1: RB-S1 and E-S1). Earlier the same day
+  (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
   answer 3, amended: B-26, dishes deferred until their missing ingredients have a source).
   2026-10-29 (Training slice, D-29: E-14 to E-17). Earlier the same day (D-25: the IFCT licence is
   not release-blocking). Earlier the same day
@@ -27,6 +28,7 @@ without NIN permission and accepted the risk (D-25, R-007).
 | RB-01 | Delete the GitHub copy of the branch `local/test-no-email` (`git push origin --delete local/test-no-email`). The owner's local branch is a separate decision | It holds a test password (`apps/mobile/src/auth/temporary-password.ts` on that branch) |
 | RB-02 | Delete the Supabase test user that uses that password on `fitsphere-dev`, and its FitSphere account row (E-07) | Its password is in the branch of RB-01 |
 | RB-03 | Make sure **Confirm email** is on: Authentication → Sign In / Providers → Email | An unverified account must not sign in (Q-080); the test branch needed it off |
+| RB-S1 | Build the owner's logged admin path for deleting an account on an emailed request: an owner-only API command that runs the same deletion as `DELETE /v1/me` and writes the admin access log (REQ-NFR-005). Then publish the deletion page (`docs/legal/account-deletion-page.md`) and give its address in the Google Play listing. Temporary ID (D-S1) | The page promises deletion by email (REQ-ACC-009, Google Play), and the owner may act only through the logged admin path (ADR-0004 rules 7 and 8, D-16) |
 
 ## Skeleton checks to run before release (D-22)
 Phone checks of the Skeleton slice still pending when its pull requests were merged on
@@ -108,3 +110,4 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-P1 | Progress's week table and measurements for weeks older than the 90 days the phone holds, online | REQ-PRG-005, REQ-PRG-006, ADR-0007 rule 1 | The table shows this week and the 11 before it, and the measurements of the last 90 days; older weights are in the chart (26W, All) and "All weigh-ins" (D-P1). Needs read routes for meals, steps and measurements |
 | E-P2 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-P1) |
 | E-P3 | The target body weight as a line on the weight chart | REQ-PRG-004, REQ-PRG-005 | The target body weight is in the week table's Target row (D-P1) |
+| E-S1 | A photo upload link issued less than 10 minutes before the account is deleted can still put one file in storage afterwards. Temporary ID (D-S1) | REQ-ACC-009, ADR-0002 rule 5 | The deletion removes every file the database knows of; post-MVP, the user's folder is swept again 10 minutes later |

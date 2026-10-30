@@ -59,7 +59,7 @@ One row per FitSphere account. Account data (threat model, "Assets").
 
 - A row exists only once the user has confirmed they are 18 or older: the two `age_` columns
   are not null, so the API cannot set up an account without the confirmation.
-- Deleted by the delete-account flow (REQ-ACC-009, later slice), with everything that belongs
+- Deleted by the delete-account flow (REQ-ACC-009, `DELETE /v1/me`; D-S1), with everything that belongs
   only to the user.
 
 ### `user_roles`
@@ -510,8 +510,8 @@ rule 5 and D-14 require.
 ## Retention and deletion
 | Data | Kept | Deleted |
 |---|---|---|
-| `users`, `user_roles` | While the account exists | With the account (REQ-ACC-009, later slice) |
-| `links` | Always, including ended links (D-07) | What happens to links on account deletion is decided with REQ-ACC-009 (Q-048 MVP default: links end; Legal confirms, Q-049) |
+| `users`, `user_roles` | While the account exists | With the account (REQ-ACC-009, `DELETE /v1/me`; D-S1) |
+| `links` | Always, including ended links (D-07) | Deleted with the account of either person (MVP default, D-S1; no links exist in the MVP, D-20). Post-MVP the other side gets the neutral message (B-19). Legal confirms, Q-049 |
 | `head_coach_permission_answers` | While the trainee's account exists | With the trainee's account (Q-048 MVP default) |
 | `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
 | `workouts` | While the account exists, as above | With the account. A workout the user deletes keeps an empty row with its day and deletion time |
@@ -520,6 +520,7 @@ rule 5 and D-14 require.
 | `foods`, `dishes`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`) |
 | `settings` | While the account exists | With the account |
 | `ai_consents` | While the account exists, every change kept | With the account (REQ-ACC-009; Legal confirms, Q-049) |
+| `media` | While the account exists; a deleted photo's files leave storage after the next sync | With the account: every file of the user's photos is removed from storage first, deleted photos included (REQ-ACC-009) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |
 

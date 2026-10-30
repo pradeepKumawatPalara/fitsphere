@@ -16,11 +16,20 @@ export type Auth = {
   /** Reads the signed-in user from Supabase Auth with the caller's own token. Used only at
    * account setup, for the confirmed email (Supabase tokens carry no "email verified" claim). */
   readSignedInUser(identity: Identity): Promise<SignedInUser>;
+  /** Whether sign-in accounts can be deleted: only with the secret key (D-S1 answer 4). */
+  readonly canDeleteUsers: boolean;
+  /** Deletes the Supabase sign-in account for good (REQ-ACC-009). A user already gone counts as
+   * deleted. Throws SERVICE_UNAVAILABLE without the secret key, or when Supabase does not delete
+   * it. */
+  deleteUser(subject: string): Promise<void>;
 };
 
 type Options = {
   supabaseUrl: string;
   publishableKey: string;
+  /** The secret key (`sb_secret_…`): server only, used for nothing but deleting a sign-in account
+   * (D-S1 answer 4). Without it, accounts cannot be deleted. Never logged. */
+  secretKey?: string;
   /** The project's signing keys; tests pass their own. */
   keySet?: JWTVerifyGetKey;
   fetch?: typeof fetch;
@@ -73,6 +82,28 @@ export function createSupabaseAuth(options: Options): Auth {
         email: typeof user.email === 'string' && user.email !== '' ? user.email.toLowerCase() : null,
         emailConfirmed: typeof user.email_confirmed_at === 'string' && user.email_confirmed_at !== '',
       };
+    },
+
+    canDeleteUsers: Boolean(options.secretKey),
+
+    // Supabase Auth's admin "delete user", as supabase-js's `auth.admin.deleteUser(id)` sends it:
+    // a hard delete, not a soft one. Supabase's API-keys guide says a secret key goes on the
+    // `apikey` header, never as a Bearer token, because it is not a JWT.
+    async deleteUser(subject) {
+      if (!options.secretKey) throw new ApiError('SERVICE_UNAVAILABLE');
+      let response: Response;
+      try {
+        response = await fetchImpl(`${authUrl}/admin/users/${encodeURIComponent(subject)}`, {
+          method: 'DELETE',
+          headers: { apikey: options.secretKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ should_soft_delete: false }),
+          signal: AbortSignal.timeout(SUPABASE_TIMEOUT_MS),
+        });
+      } catch {
+        throw new ApiError('SERVICE_UNAVAILABLE');
+      }
+      if (response.ok || response.status === 404) return;
+      throw new ApiError('SERVICE_UNAVAILABLE');
     },
   };
 }

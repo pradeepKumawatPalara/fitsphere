@@ -120,3 +120,52 @@ describe('REQ-ACC-010 reading the signed-in user', () => {
     expect(await codeOf(down.readSignedInUser({ subject: 's', token }))).toBe('SERVICE_UNAVAILABLE');
   });
 });
+
+describe('REQ-ACC-009 deleting a sign-in account (D-S1 answer 4)', () => {
+  it('D-S1 answer 4 without the secret key nothing can be deleted, and Supabase is not called', async () => {
+    let called = false;
+    const auth = createSupabaseAuth({
+      supabaseUrl: TEST_SUPABASE_URL,
+      publishableKey: 'sb_publishable_test',
+      fetch: async () => {
+        called = true;
+        return Response.json({});
+      },
+    });
+
+    expect(auth.canDeleteUsers).toBe(false);
+    expect(await codeOf(auth.deleteUser('subject-1'))).toBe('SERVICE_UNAVAILABLE');
+    expect(called).toBe(false);
+  });
+
+  it('REQ-ACC-009 deletes the user, and a user already gone counts as deleted', async () => {
+    const { auth, supabase } = await createTestAuth();
+    supabase.users.set('subject-1', { email: 'someone@example.test', confirmed: true });
+
+    expect(auth.canDeleteUsers).toBe(true);
+    expect(await codeOf(auth.deleteUser('subject-1'))).toBe('accepted');
+    expect(supabase.users.has('subject-1')).toBe(false);
+    expect(await codeOf(auth.deleteUser('subject-1'))).toBe('accepted');
+  });
+
+  it('REQ-ACC-009 Supabase refusing, failing or not answering gives 503', async () => {
+    const { auth, supabase } = await createTestAuth({ secretKey: 'sb_secret_wrong' });
+    supabase.users.set('subject-1', { email: 'someone@example.test', confirmed: true });
+    expect(await codeOf(auth.deleteUser('subject-1'))).toBe('SERVICE_UNAVAILABLE');
+
+    const failing = await createTestAuth();
+    failing.supabase.users.set('subject-1', { email: 'someone@example.test', confirmed: true });
+    failing.supabase.state.adminFailure = 500;
+    expect(await codeOf(failing.auth.deleteUser('subject-1'))).toBe('SERVICE_UNAVAILABLE');
+
+    const down = createSupabaseAuth({
+      supabaseUrl: TEST_SUPABASE_URL,
+      publishableKey: 'sb_publishable_test',
+      secretKey: 'sb_secret_test',
+      fetch: async () => {
+        throw new TypeError('fetch failed');
+      },
+    });
+    expect(await codeOf(down.deleteUser('subject-1'))).toBe('SERVICE_UNAVAILABLE');
+  });
+});

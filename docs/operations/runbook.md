@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (the dashboard paths still to confirm, with what Supabase's docs say).
+- Last updated: 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-S1). Earlier the
+  same day (the dashboard paths still to confirm, with what Supabase's docs say).
   2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
 
 Only verified operational steps belong here (`docs/pre-development-guide.md` §5.10). Procedures
@@ -144,8 +145,13 @@ it when the Skeleton's database step starts.
 6. **Redirect URLs:** add `fitsphere://**` so links in sign-in emails can open the app
    (`fitsphere` is the app's link scheme, set in the Skeleton).
 7. **API keys:** use the new **publishable** key (`sb_publishable_…`) in the app. The **secret**
-   key (`sb_secret_…`) is for servers only and is not needed in the Skeleton. Supabase is
-   retiring the legacy `anon` and `service_role` keys by the end of 2026, so neither is used.
+   key (`sb_secret_…`) is for servers only: from the Settings slice, the API uses it for one call,
+   deleting a user's sign-in account when they delete their account (D-S1 answer 4). Create a
+   secret key for the API under Settings → API Keys, keep it in the password manager, and put it
+   only in `apps/api/.env` as `SUPABASE_SECRET_KEY` (later a Cloud Run secret). Supabase's
+   API-keys guide says a secret key goes on the `apikey` header, never as a Bearer token, and
+   that Supabase refuses it from a browser. Supabase is retiring the legacy `anon` and
+   `service_role` keys by the end of 2026, so neither is used.
 8. **Connection strings** (Connect button), saved in the password manager:
    - **Session pooler** (port 5432): `DATABASE_URL`, used on the PC by the API, the migrations
      and `db:growth`. The shared pooler works over IPv4.
@@ -402,6 +408,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `DATABASE_URL` | API, `migrate` and `db:growth` | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later. The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
 | `SUPABASE_URL` | API, `check:data-api`, `check:signup` and `check:storage` | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
+| `SUPABASE_SECRET_KEY` | API | The secret key (`sb_secret_…`, step 5, item 7), used only to delete a user's sign-in account (D-S1). Without it, Delete account answers "not available" and deletes nothing. Server only, never in the app, logs or tests | **Yes** |
 | `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
 | `LOG_LEVEL` | API | `info` by default | No |
 | `STORAGE_S3_ENDPOINT`, `STORAGE_S3_REGION` | API, `check:storage` | Supabase Storage's S3 endpoint and region (step 5, item 9). Without all five storage names, photo links answer "not available" | No |
