@@ -11,6 +11,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'GET /v1/health': 'src/app.test.ts',
   'GET /v1/me': 'test/integration/me.test.ts',
   'POST /v1/me': 'test/integration/me.test.ts',
+  'DELETE /v1/me': 'test/integration/delete-account.test.ts',
   'GET /v1/me/ai-consent': 'test/integration/ai-consent.test.ts',
   'PUT /v1/me/ai-consent': 'test/integration/ai-consent.test.ts',
   'POST /v1/sync': 'test/integration/sync.test.ts',

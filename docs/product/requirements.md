@@ -638,6 +638,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - A public web page explains how to request deletion by email. The owner acts on a request only after confirming it from the account's registered address, and only through the logged admin path (ADR-0004).
 - Status: unblocked — Q-048 answered for the MVP (D-18). Before real users, Legal confirms what is deleted and what is kept (Q-049). Asking for the password again is post-MVP (backlog E-01).
 - MVP (D-20): no links exist, so ending links and the neutral message apply post-MVP (backlog B-19).
+- MVP (D-S1): built in the Settings slice as `DELETE /v1/me` (api-conventions): the photo files, then the user's rows, then the Supabase sign-in account, deleted with a secret key only the API holds. The page's text is [`docs/legal/account-deletion-page.md`](../legal/account-deletion-page.md) (draft). Acting on an emailed request needs the logged admin path, which is release-blocking task RB-S1.
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security

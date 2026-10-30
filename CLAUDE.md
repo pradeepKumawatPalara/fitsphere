@@ -109,6 +109,8 @@ owner says so:
   Leave the owner's local branch alone.
 - RB-02: delete the Supabase test user that uses that password.
 - RB-03: make sure Supabase **Confirm email** is on.
+- RB-S1 (temporary ID, D-S1): the owner's logged admin path for deleting an account on an emailed
+  request, then publishing the deletion page (`docs/legal/account-deletion-page.md`).
 
 Also before the release: the Skeleton checks SC-01 to SC-13 (R-006), Legal's review (Q-049) and
 email through Resend from FitSphere's domain (D-20).

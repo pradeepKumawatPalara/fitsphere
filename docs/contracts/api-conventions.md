@@ -2,8 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 1: `setting.set` and the settings in the pull,
-  and the AI consent routes; D-S1). 2026-10-29 (Training slice, step 1: workouts through sync, and
+- Last updated: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-S1). Earlier the same day
+  (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
   MVP; Resend with the Release slice)
@@ -98,6 +98,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `GET /v1/health` | The API is running | None (no token) | — |
 | `GET /v1/me` | The signed-in user's account | Signed in | REQ-ACC-010, REQ-ROLE-001 |
 | `POST /v1/me` | Set up the FitSphere account after the first sign-in | Signed in, account not yet set up | REQ-ACC-010, D-18 |
+| `DELETE /v1/me` | Delete the user's account: their data, files and sign-in account | Signed in; the caller's own account only | REQ-ACC-009, ADR-0004 rule 7 |
 | `GET /v1/me/ai-consent` | The user's current AI meal-reading consent | The user, for their own record only | REQ-ACC-004 |
 | `PUT /v1/me/ai-consent` | Record a change of AI meal-reading consent | The user, for their own record only | REQ-ACC-004, C-004 |
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, ADR-0007 |
@@ -138,6 +139,23 @@ Request:
 - The app sends the confirmation the user gave at sign-up. It keeps it in the Supabase user's
   metadata, so a sign-in on another phone does not ask again; if it is missing, the app shows
   the "I am 18 or older" step before calling this endpoint.
+
+### `DELETE /v1/me` — delete account (REQ-ACC-009)
+No body. `204` with no body once the account is deleted:
+1. the files of every meal photo the user has, deleted ones included, are removed from storage;
+2. the user's rows in every table are deleted, with any links and Head Coach permission answers
+   (none exist in the MVP, D-20);
+3. the Supabase sign-in account is deleted, with the server's secret key (D-S1 answer 4).
+
+- The caller's own account only: the path names no user (invariant #1).
+- Access is "signed in", not "account set up": a deletion stopped after step 2 is finished by
+  calling again, which then deletes only the sign-in account. Calling it for an account already
+  deleted answers `204`.
+- `503 SERVICE_UNAVAILABLE`, retryable, when the server has no secret key or no storage (nothing is
+  deleted), when a file cannot be removed (nothing is deleted), or when Supabase Auth does not
+  delete the sign-in account (the data is already gone; call again).
+- Logged: the request line with the account's ID, and "account deleted". Never the email address,
+  the key or any health data (invariant #7).
 
 ### `GET /v1/me/ai-consent` and `PUT /v1/me/ai-consent` (REQ-ACC-004)
 `GET` returns the latest record, or `null` when the user has never chosen, which means AI is off
@@ -404,6 +422,7 @@ The app talks to Supabase Auth for these; the FitSphere API is not involved unti
 | Verify email | The link in the email confirms the address, then opens the app, which asks the user to sign in. An unverified account cannot sign in. Links expire within 24 hours | REQ-ACC-010; Q-080 MVP default |
 | Sign in | Email and password. Then `GET /v1/me`, and `POST /v1/me` if the account is not set up | REQ-ACC-010 |
 | Forgot password | The app always shows the neutral reset text. The link opens the app on a "Set a new password" screen | REQ-ACC-010, D-11 |
+| Delete account | "Delete account" in Settings, after a confirmation, calls `DELETE /v1/me`; then the phone deletes its local database and signs out. Online only | REQ-ACC-009; MVP default, D-S1 |
 | Log out | Ends the session on this phone. The local database is deleted; if it holds unsynced entries, the app warns first (data model, "On the phone") | REQ-ACC-008; MVP default, D-18 |
 
 - Session tokens are kept in the phone's secure storage (ADR-0004 rule 3). Expo sets no size

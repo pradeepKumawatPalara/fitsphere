@@ -3,7 +3,7 @@
 - Status: **Accepted**, approved by the project owner on 2026-10-30 (D-S1, a temporary ID until
   the slice is merged)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (step 1 built)
+- Last updated: 2026-10-30 (step 2 built; step 1 is pull request #43)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 6 (D-18, D-20); the
   [Training slice](training-slice.md); the contracts in [`docs/contracts/`](../contracts/);
   [`test-strategy.md`](../quality/test-strategy.md);
@@ -26,8 +26,8 @@ something, this plan does not repeat it.
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Server: settings sync and the consent record | Built; pull request to open | `settings/01-server-settings` |
-| 2. Server: delete account | Not started | `settings/02-delete-account` |
+| 1. Server: settings sync and the consent record | Pull request #43 | `settings/01-server-settings` |
+| 2. Server: delete account | Built; pull request to open (after #43) | `settings/02-delete-account` |
 | 3. Phone: settings on the phone and units everywhere | Not started | `settings/03-phone-units` |
 | 4. Phone: light and dark theme | Not started | `settings/04-theme` |
 | 5. Settings screen, change password, delete account; close-out | Not started | `settings/05-settings-screen` |
