@@ -2,7 +2,7 @@
 
 - Status: **Accepted**, approved by the project owner on 2026-10-29 (D-29)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (steps 1 and 2 built)
+- Last updated: 2026-10-29 (steps 1 to 3 built)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 4 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); the contracts in
   [`docs/contracts/`](../contracts/); [`test-strategy.md`](../quality/test-strategy.md);
@@ -24,8 +24,8 @@ contracts define something, this plan does not repeat it.
 | Step | Status | Branch |
 |---|---|---|
 | 1. Server: workouts in the contracts, schema, sync and history route | Pull request #23 | `training/01-server-workouts` |
-| 2. Phone: local schema, store and sync client | Built; all checks pass on the PC | `training/02-phone-workouts` |
-| 3. Training tab and workout screen | Not started | `training/03-training-screens` |
+| 2. Phone: local schema, store and sync client | Pull request #25 | `training/02-phone-workouts` |
+| 3. Training tab and workout screen | Built; all checks pass on the PC | `training/03-training-screens` |
 | 4. Home workout tracker; close-out | Not started | `training/04-home-tracker` |
 | Owner's checks at the end of the slice | Not started | — |
 
