@@ -397,9 +397,17 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
 /**
  * `measurement_unit` is the cm/in choice in the measurements sheet, kept on this phone only (D-23).
  * `user_id` is the signed-in user's sign-in ID; `account_id` their FitSphere ID, which the API's
- * paths use (GET /v1/me).
+ * paths use (GET /v1/me). `account_created_day` is the IST day the account was created, for
+ * Progress's "Meals logged" (Q-044).
  */
-export type MetaKey = 'user_id' | 'account_id' | 'cursor' | 'last_synced_at' | 'measurement_unit' | 'food_list_version';
+export type MetaKey =
+  | 'user_id'
+  | 'account_id'
+  | 'cursor'
+  | 'last_synced_at'
+  | 'measurement_unit'
+  | 'food_list_version'
+  | 'account_created_day';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);
@@ -784,6 +792,20 @@ export async function mealCounts(db: SqlDb, fromDay: IstDay, toDay: IstDay): Pro
     [fromDay, toDay],
   );
   return Object.fromEntries(rows.map((row) => [row.day, row.n]));
+}
+
+/** Each day's kcal and protein between two IST days, for days with at least one meal (REQ-PRG-002, REQ-PRG-005). */
+export async function dailyNutrition(
+  db: SqlDb,
+  fromDay: IstDay,
+  toDay: IstDay,
+): Promise<Record<IstDay, { kcal: number; proteinG: number }>> {
+  const rows = await db.getAllAsync<{ day: string; kcal: number | null; protein_g: number | null }>(
+    'SELECT day, sum(kcal) AS kcal, sum(protein_g) AS protein_g FROM meals WHERE day BETWEEN ? AND ? GROUP BY day',
+    [fromDay, toDay],
+  );
+  const round = (value: number | null) => Math.round((value ?? 0) * 100) / 100;
+  return Object.fromEntries(rows.map((row) => [row.day, { kcal: round(row.kcal), proteinG: round(row.protein_g) }]));
 }
 
 /** Saved meals, by name (REQ-SAVED-001). */
