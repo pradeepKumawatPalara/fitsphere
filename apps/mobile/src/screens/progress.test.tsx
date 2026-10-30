@@ -60,8 +60,9 @@ describe('REQ-PRG-001 weight over 4 weeks', () => {
       await applyServerEntries(db, 'weighIn', weighIns({ '2026-09-30': 80_000, '2026-10-14': 79_000, '2026-10-28': 78_800 }));
     });
 
-    expect(await screen.findByText('78.8 kg')).toBeOnTheScreen();
-    expect(screen.getByText('Latest weigh-in · Wed 28 Oct')).toBeOnTheScreen();
+    expect(await screen.findByText('Latest weigh-in · Wed 28 Oct')).toBeOnTheScreen();
+    // On the card, and as the lowest value on the chart's scale.
+    expect(screen.getAllByText('78.8 kg')).toHaveLength(2);
     expect(screen.getByText('Down 1.2 kg since Wed 30 Sep')).toBeOnTheScreen();
     expect(screen.getByText('Down 0.3 kg a week')).toBeOnTheScreen();
   });

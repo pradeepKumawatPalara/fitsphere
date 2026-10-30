@@ -222,6 +222,17 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - On the phone (batched checks): the photo's size and thumbnail, no location data in the
   uploaded file, temporary files gone, the viewing link expiring after 5 minutes.
 
+### Progress (app tests; Progress slice, D-P1)
+- Calculations: the weigh-in nearest 28 days back, ties, and one a week or more earlier; the rate
+  over 4 weeks and over fewer; less than a week; averages over the days with entries; days logged
+  against the account's creation day; the 12 weeks; the chart's points, weekly averages, which
+  ranges read online, and the phone winning over the server for a day.
+- Screen: each card with data and empty; the Target row; "Add first" and Edit in Measurements; with
+  the body-weight unit set to lb, every weight in lb and no "kg" anywhere on the screen.
+- Chart: the phone's ranges with no server call; 26W and All online, read once, across pages; the
+  named warning offline and the try-later text on a failure; an account newer than 90 days works
+  offline.
+
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
 and fails if it contains the weight value, a measurement value or its notes, a target value, a
@@ -278,6 +289,13 @@ on the existing development build, with `npm run dev:phone`. The exact steps are
 Training tab, starting a workout and the Home count, exercises and their limits, a past date,
 deleting, offline workouts (ADR-0007 step 1, extended), "Load older", and the earlier kinds still
 working.
+
+### Device checks for the Progress slice (D-P1)
+Batched at the end of the slice, once its pull requests are merged, on the existing development
+build, with `npm run dev:phone`. The exact steps are in
+[`progress-slice.md`](../plans/progress-slice.md), "Owner's checks at the end of the slice": the
+cards, the not-enough-data text, the chart's ranges online and offline, measurements, targets in
+the Target row, "All weigh-ins", and fitting a small screen.
 
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's

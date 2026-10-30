@@ -105,3 +105,6 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-15 | Changing a workout's date after it was started | REQ-TRN-003, REQ-LOG-002 | The date is fixed when the workout starts; to log another day, the user picks that date first, or deletes the workout and starts again (D-29) |
 | E-16 | Editing or deleting workouts older than the 90 days the phone holds, online | REQ-TRN-004, ADR-0007 rule 1 | Older workouts are read with "Load older" and only viewed (D-29) |
 | E-17 | Exercise names suggested from past workouts, or an exercise list | REQ-TRN-003 | Names are typed freely each time (D-29) |
+| E-P1 | Progress's week table and measurements for weeks older than the 90 days the phone holds, online | REQ-PRG-005, REQ-PRG-006, ADR-0007 rule 1 | The table shows this week and the 11 before it, and the measurements of the last 90 days; older weights are in the chart (26W, All) and "All weigh-ins" (D-P1). Needs read routes for meals, steps and measurements |
+| E-P2 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-P1) |
+| E-P3 | The target body weight as a line on the weight chart | REQ-PRG-004, REQ-PRG-005 | The target body weight is in the week table's Target row (D-P1) |

@@ -12,6 +12,7 @@ export const PROGRESS_TEXTS = {
   noMeasurements: 'No measurements yet.',
   measurementsHint: 'Track your upper and lower waist once a week.',
   chartEmpty: 'Your trend shows once you have 2 weigh-ins in this range.',
+  chartLoading: 'Loading older weigh-ins…',
   /** The step named in "… needs an internet connection." for the ranges read online (ADR-0007 rule 6). */
   chartStep: { '26W': 'Showing 26 weeks of weight', All: 'Showing all your weight' },
 } as const;

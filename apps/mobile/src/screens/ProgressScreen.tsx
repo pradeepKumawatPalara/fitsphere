@@ -1,16 +1,17 @@
 import { istWeekStart, type IstDay } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { MeasurementsSheet } from '../components/MeasurementsSheet';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { weekRows } from '../progress/calculations';
 import { MeasurementsSection } from '../progress/MeasurementsSection';
 import { NutritionCard } from '../progress/NutritionCard';
 import { useProgressWeightUnit } from '../progress/units';
-import { useAccountStart, useProgressData } from '../progress/useProgressData';
+import { useProgressData } from '../progress/useProgressData';
 import { WeekTable } from '../progress/WeekTable';
 import { WeightCard } from '../progress/WeightCard';
+import { WeightTrend } from '../progress/WeightTrend';
 import { useSync } from '../sync/SyncProvider';
 import { useTheme } from '../theme';
 
@@ -26,14 +27,20 @@ export function ProgressScreen() {
   const [sheet, setSheet] = useState<{ mode: 'add' | 'edit'; day: IstDay } | null>(null);
   // Read again when the measurements sheet closes, which may change the cm/in choice.
   const data = useProgressData(today, sheet);
-  const accountStart = useAccountStart();
 
   if (!data) return <View style={[styles.screen, { backgroundColor: colors.background }]} />;
+  const { accountStart } = data;
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <WeightCard weighIns={data.weighIns} unit={unit} />
-        <Button title="All weigh-ins" onPress={() => router.push('/weight-history')} />
+        <WeightTrend
+          weighIns={data.weighIns}
+          today={today}
+          accountStart={accountStart}
+          unit={unit}
+          onAllWeighIns={() => router.push('/weight-history')}
+        />
         <NutritionCard
           nutrition={data.nutrition}
           today={today}
