@@ -2,7 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Q-049: the brief for Legal, and the food-data items Q-049 covers).
+- Last updated: 2026-10-30 (Meal logging slice, step 8, D-28: MVP defaults for dishes in the app
+  and for recipe rows going live one by one). Earlier the same day (Q-049: the brief for Legal,
+  and the food-data items Q-049 covers).
   2026-10-29 (Meal logging slice, D-26: barcode lookup and meal photo MVP
   defaults, meal photos on the phone, risk R-008).
   Earlier the same day (D-25: IFCT 2017 used without NIN permission, accepted risk R-007;

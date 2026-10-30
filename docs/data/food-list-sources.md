@@ -2,11 +2,13 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30, later (poultry checked again: still not confirmed raw; other recipe
-  sources searched: none can replace weighing). 2026-10-30 (D-26 answer 3 amended: dishes come
-  from FitSphere's standard-recipe sheet; the IFCT 2017 book's own terms read; the app's
-  acknowledgement is now the book's citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission; accepted
-  risk R-007)
+- Last updated: 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
+  columns, the starter set, and how a recipe goes live). Earlier the same day (poultry checked
+  again: still not confirmed raw; other recipe sources searched: none can replace weighing).
+  Earlier the same day (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
+  sheet; the IFCT 2017 book's own terms read; the app's acknowledgement is now the book's
+  citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission;
+  accepted risk R-007)
 - Builds on: [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) (food data, Accepted —
   D-18); REQ-LOG-007, REQ-NUT-002
 
