@@ -1,2 +1,3 @@
-// Until the Progress slice (slice 5), Progress shows the weight history (MVP default, D-23).
-export { HistoryScreen as default } from '../../screens/HistoryScreen';
+// Progress (REQ-PRG-001…006; D-P1). The weight history it showed until slice 5 is now "All
+// weigh-ins" (app/weight-history.tsx).
+export { ProgressScreen as default } from '../../screens/ProgressScreen';

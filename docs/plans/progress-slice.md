@@ -3,7 +3,7 @@
 - Status: **Accepted**, approved by the project owner on 2026-10-30 (D-P1, a temporary ID until
   merged)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (step 1 built)
+- Last updated: 2026-10-30 (step 1 opened as #41; step 2 built)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 5 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); the
   [Meal logging slice](meal-logging-slice.md); [`test-strategy.md`](../quality/test-strategy.md);
@@ -26,8 +26,8 @@ no migration and no new phone schema version.
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Calculations, range query, account start day | Built | `progress/01-calculations` |
-| 2. The Progress screen | Not started | `progress/02-screen` |
+| 1. Calculations, range query, account start day | Pull request #41 | `progress/01-calculations` |
+| 2. The Progress screen | Built | `progress/02-screen` |
 | 3. Weight trend chart; close-out | Not started | `progress/03-chart` |
 | Owner's checks at the end of the slice | Not started | — |
 
