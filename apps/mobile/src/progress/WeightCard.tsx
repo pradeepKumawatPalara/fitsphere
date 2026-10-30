@@ -1,5 +1,6 @@
 import type { BodyWeightUnit } from '@fitsphere/shared';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Text } from '../components/ui';
 import { formatDay } from '../format';
 import { useTheme } from '../theme';
 import { fourWeekWeight, type WeighInPoint } from './calculations';

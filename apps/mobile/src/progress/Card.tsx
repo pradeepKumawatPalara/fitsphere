@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/ui';
 import { useTheme } from '../theme';
 
 /** A Progress card: a titled panel in the theme's surface colour. */

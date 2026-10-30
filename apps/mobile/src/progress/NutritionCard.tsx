@@ -1,5 +1,6 @@
 import type { IstDay } from '@fitsphere/shared';
-import { Button, StyleSheet, Text } from 'react-native';
+import { Button, StyleSheet } from 'react-native';
+import { Text } from '../components/ui';
 import { formatInteger } from '../format';
 import { useTheme } from '../theme';
 import { averageCalories, daysLogged, type DayNutrition } from './calculations';

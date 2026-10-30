@@ -1,6 +1,7 @@
 import type { IstDay, LengthUnit } from '@fitsphere/shared';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, StyleSheet, View } from 'react-native';
 import { MeasurementsCard } from '../components/MeasurementsCard';
+import { Text } from '../components/ui';
 import type { LocalMeasurements } from '../local/store';
 import { useTheme } from '../theme';
 import { Card } from './Card';

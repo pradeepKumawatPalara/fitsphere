@@ -1,6 +1,7 @@
 import type { BodyWeightUnit } from '@fitsphere/shared';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/ui';
 import { formatDay } from '../format';
 import { useTheme } from '../theme';
 import type { WeighInPoint } from './calculations';

@@ -1,5 +1,6 @@
 import type { BodyWeightUnit, IstDay, TargetKind } from '@fitsphere/shared';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/ui';
 import { useTheme } from '../theme';
 import type { WeekRow } from './calculations';
 import { Card } from './Card';
