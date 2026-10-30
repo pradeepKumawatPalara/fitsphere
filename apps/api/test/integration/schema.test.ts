@@ -280,6 +280,57 @@ describe('Home and daily tracking tables (migration 0002)', () => {
   });
 });
 
+describe('Settings and consent tables (migration 0008)', () => {
+  it('REQ-ACC-001…003 holds one value per setting name and refuses unknown names and values', async () => {
+    const user = await insertUser(client);
+    const insert = (name: string, value: string) =>
+      client.query(`insert into app.settings (user_id, name, value, set_at) values ($1, $2, $3, now())`, [user, name, value]);
+    for (const [name, value, bad] of [
+      ['theme', 'dark', 'blue'],
+      ['body_weight_unit', 'lb', 'st'],
+      ['lifting_weight_unit', 'kg', 'dark'],
+    ] as const) {
+      await expect(insert(name, bad)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+      await insert(name, value);
+      await expect(insert(name, value)).rejects.toSatisfy((error) => sqlState(error) === UNIQUE_VIOLATION);
+    }
+    await expect(insert('language', 'en')).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+  });
+
+  it('REQ-ACC-004 keeps every consent change and refuses an empty or long text version', async () => {
+    const user = await insertUser(client);
+    const insert = (consented: boolean, version: string) =>
+      client.query(`insert into app.ai_consents (user_id, consented, text_version, recorded_at) values ($1, $2, $3, now())`, [
+        user,
+        consented,
+        version,
+      ]);
+    await insert(true, '2026-10-30');
+    await insert(false, '2026-10-30');
+    await expect(insert(true, '')).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await expect(insert(true, 'x'.repeat(33))).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+
+    const { rows } = await client.query('select consented from app.ai_consents where user_id = $1 order by id', [user]);
+    expect(rows).toEqual([{ consented: true }, { consented: false }]);
+  });
+
+  it('REQ-ACC-009 deleting a user deletes their settings and consent records', async () => {
+    const user = await insertUser(client);
+    await client.query(`insert into app.settings (user_id, name, value, set_at) values ($1, 'theme', 'dark', now())`, [user]);
+    await client.query(
+      `insert into app.ai_consents (user_id, consented, text_version, recorded_at) values ($1, true, '2026-10-30', now())`,
+      [user],
+    );
+
+    await client.query('delete from app.users where id = $1', [user]);
+
+    for (const table of ['settings', 'ai_consents']) {
+      const { rowCount } = await client.query(`select 1 from app.${table} where user_id = $1`, [user]);
+      expect(rowCount).toBe(0);
+    }
+  });
+});
+
 describe('ADR-0002 second safety layer', () => {
   it('ADR-0002 every table in schema app has row level security on and no policies', async () => {
     const { rows } = await client.query<{ relname: string; relrowsecurity: boolean }>(
@@ -287,6 +338,7 @@ describe('ADR-0002 second safety layer', () => {
        where n.nspname = 'app' and c.relkind = 'r'`,
     );
     expect(rows.map((row) => row.relname).sort()).toEqual([
+      'ai_consents',
       'applied_changes',
       'barcode_products',
       'dishes',
@@ -298,6 +350,7 @@ describe('ADR-0002 second safety layer', () => {
       'media',
       'saved_meals',
       'schema_migrations',
+      'settings',
       'sleep_logs',
       'step_counts',
       'targets',

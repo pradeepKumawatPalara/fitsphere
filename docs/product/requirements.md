@@ -2,9 +2,10 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Progress slice, D-P1: MVP notes on REQ-PRG-001 to REQ-PRG-006, and the
-  weekly rate refined). Earlier the same day (D-26 answer 3, amended: REQ-LOG-008's cooked-rice example flagged as
-  unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
+- Last updated: 2026-10-30 (Settings slice, D-S1: REQ-ACC-004's switch and record come with slice
+  6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-P1: MVP notes on
+  REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
+  cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
   REQ-HOME-007). Earlier the same day (D-24: REQ-HOME-008, the Measurements card shows and edits a
   date's measurements). Earlier the same day (Home and daily tracking slice, D-23): where targets
   are set; storage units for sleep and measurements; the parts of REQ-HOME-002, REQ-HOME-003/004,
@@ -608,6 +609,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - When consent is withdrawn, then no further data is sent to AI.
   - Consent changes are recorded with a timestamp. *(A-007.)*
 - MVP default (D-18): each change records on/off, the time and the version of the consent text shown; one toggle covers typed or spoken text, photos and labels (Q-065; ADR-0005). Legal confirms (Q-049).
+- MVP (D-S1): the switch and the record are built in the Settings slice (slice 6), with no AI call: each change goes to `PUT /v1/me/ai-consent`, online only, and the server records its own time (data model, `ai_consents`). The consent text and its version are in the shared package (`AI_CONSENT_TEXT`). The check before each AI call comes with slice 7 (invariant #3).
 
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
@@ -615,7 +617,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-ACC-006 — Country and time zone
 - Priority: **Won't** for this release (D-09). Phase 1 uses Asia/Kolkata for everyone (REQ-DATE-004).
 - Requirement: Country and time zone are configurable (e.g. India · Kolkata) and drive REQ-DATE-004.
-- MVP (D-18): the setting is not shown; the MVP Settings list is theme, units and AI consent (`mvp-scope.md` section 2).
+- MVP (D-18, D-S1): nothing can be changed. Settings shows "Country and time zone: India · Kolkata" as fixed text (D-09: the owner chose to show it). The MVP Settings list is theme, units and AI consent (`mvp-scope.md` section 2).
 
 ### REQ-ACC-007 — Change password
 - Type: Security

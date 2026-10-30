@@ -6,6 +6,8 @@
   Coach and Head Coach are post-MVP. Section 5 gives the order of the MVP slices.
   Amended on 2026-10-29 by **D-26**: meal photos and public image links move from slice 7 into
   slice 3.
+  Amended on 2026-10-30 by **D-S1**: the AI consent switch and its record move from slice 7 into
+  slice 6, and Settings shows "India · Kolkata" as fixed text.
 - Owner: Project owner
 - Applies to: all work until the MVP is released on Android.
 
@@ -99,8 +101,8 @@ slice's plan confirms its scope with the owner before work starts, as the Skelet
 | 3 | Meal logging (no AI) | Log meal: "+" button, date chip and day sheet, meal type and tags, food search, barcode, saved meals, tips, meal photo or public image link with warning, "AI meal reading is coming soon"; Nutrition: Consumed, the Diet plan empty state, Saved. Plan: [`meal-logging-slice.md`](../plans/meal-logging-slice.md) (D-26) | NAV-003, LOG-001…003, LOG-006 (meal photos), LOG-007, LOG-008, LOG-010, NUT-*, PLAN-007, SAVED-*, ACC-005 |
 | 4 | Training | "No training plan yet", empty workout, sets × reps × weight, history, lifting unit; the Home workout count. Plan: [`training-slice.md`](../plans/training-slice.md) (D-29); the lifting-unit setting comes with slice 6 | TRN-002…005, HOME-007 |
 | 5 | Progress | 4-week weight, average calories, days logged, trend chart, week table with Target row, measurements list. Plan: [`progress-slice.md`](../plans/progress-slice.md) (D-P1), built beside slice 6 | PRG-001…006 |
-| 6 | Settings and account | Theme, units, change password, delete account and its web page | ACC-001…003, ACC-007, ACC-009 |
-| 7 | AI meal reading | Consent toggle and record; typed text, voice (recognised on the phone), reading meal and label photos, review before saving. Paid AI use needs the owner's sign-off (C-008, Q-087) | ACC-004, LOG-004, LOG-005, LOG-006 (label photos, reading), LOG-009 |
+| 6 | Settings and account | Theme, units, the AI consent switch and record (no AI call), "India · Kolkata" as fixed text, change password, delete account and its web page. Plan: [`settings-slice.md`](../plans/settings-slice.md) (D-S1) | ACC-001…004, ACC-006 (fixed text), ACC-007, ACC-009 |
+| 7 | AI meal reading | The consent check before each AI call (the switch and record come with slice 6, D-S1); typed text, voice (recognised on the phone), reading meal and label photos, review before saving. Paid AI use needs the owner's sign-off (C-008, Q-087) | ACC-004, LOG-004, LOG-005, LOG-006 (label photos, reading), LOG-009 |
 | 8 | Release | Resend with FitSphere's own domain for sign-up and reset emails; the API on Cloud Run (Q-087); Google Play listing and testing; Legal's review before real users (Q-049) | ACC-010, C-008 |
 
 Delete account (slice 6) covers the data that exists by then, meal photos included (D-26);

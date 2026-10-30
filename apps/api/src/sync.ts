@@ -1,5 +1,5 @@
 // POST /v1/sync (api-conventions; ADR-0007 option A; REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*,
-// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003).
+// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003).
 import {
   isFutureIstDay,
   istToday,
@@ -14,6 +14,8 @@ import {
   SAVED_MEAL_SET,
   savedMealDeleteDataSchema,
   savedMealSetDataSchema,
+  SETTING_SET,
+  settingSetDataSchema,
   SLEEP_SET,
   sleepSetDataSchema,
   STEPS_SET,
@@ -66,10 +68,10 @@ type Options = { now: Date; pageSize: number };
 
 /**
  * Applies the changes in the order sent, each once, then returns the user's own data changed after
- * the cursor: the last 90 IST days of day data, and the current targets. One transaction that
- * first locks the user's row, so the user's change numbers commit in order and the pull misses
- * nothing (data-model "Ordering rule"). Every change is checked when it arrives, never when it was
- * queued (invariant #1).
+ * the cursor: the last 90 IST days of day data, and the current targets and settings. One
+ * transaction that first locks the user's row, so the user's change numbers commit in order and the
+ * pull misses nothing (data-model "Ordering rule"). Every change is checked when it arrives, never
+ * when it was queued (invariant #1).
  */
 export async function runSync(
   db: pg.Pool,
@@ -260,6 +262,20 @@ const HANDLERS = new Map<string, Handler>([
     },
   ],
   [
+    SETTING_SET,
+    // The user's own setting (REQ-ACC-001…003): the change received last wins, as for targets.
+    async (client, account, input) => {
+      const data = settingSetDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      await client.query(
+        `insert into app.settings (user_id, name, value, set_at) values ($1, $2, $3, $4)
+         on conflict (user_id, name) do update set value = excluded.value, set_at = excluded.set_at`,
+        [account.id, data.data.name, data.data.value, data.data.setAt],
+      );
+      return null;
+    },
+  ],
+  [
     MEAL_SET,
     // Creates the meal, or replaces the whole meal with this ID: the change received last wins
     // (ADR-0007 rule 2), including over an earlier deletion. The totals are computed here from the
@@ -421,6 +437,7 @@ type ChangedRow = { change_seq: string } & (
   | { kind: 'measurements'; item: SyncResponse['pull']['measurements'][number] }
   | { kind: 'workout'; item: StoredWorkout }
   | { kind: 'target'; item: SyncResponse['pull']['targets'][number] }
+  | { kind: 'setting'; item: SyncResponse['pull']['settings'][number] }
   | { kind: 'meal'; item: StoredMeal }
   | { kind: 'savedMeal'; item: StoredSavedMeal }
 );
@@ -435,7 +452,7 @@ type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises:
 /**
  * The user's rows changed after `afterSeq`, oldest change first, from every synced table. They
  * share `app.change_seq`, so one cursor covers them all. Day data, meals and workouts included, is
- * limited to the 90-day window; targets and saved meals are always included.
+ * limited to the 90-day window; targets, settings and saved meals are always included.
  */
 async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigint, windowStart: IstDay, limit: number) {
   const { rows } = await client.query<ChangedRow>(
@@ -470,6 +487,10 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
            'setAt', set_at, 'updatedAt', updated_at)
        from app.targets where user_id = $1 and change_seq > $2
        union all
+       select 'setting', change_seq,
+         json_build_object('name', name, 'value', value, 'setAt', set_at, 'updatedAt', updated_at)
+       from app.settings where user_id = $1 and change_seq > $2
+       union all
        select 'meal', change_seq,
          json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'mealType', meal_type,
            'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
@@ -497,6 +518,7 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
     measurements: [],
     workouts: [],
     targets: [],
+    settings: [],
     meals: [],
     savedMeals: [],
     removals: [],
@@ -520,6 +542,9 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
         break;
       case 'target':
         pull.targets.push({ ...row.item, setAt: utc(row.item.setAt), updatedAt: utc(row.item.updatedAt) });
+        break;
+      case 'setting':
+        pull.settings.push({ ...row.item, setAt: utc(row.item.setAt), updatedAt: utc(row.item.updatedAt) });
         break;
       case 'meal':
         pull.meals.push(toPulledMeal(row.item));

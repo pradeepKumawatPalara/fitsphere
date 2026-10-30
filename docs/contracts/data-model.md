@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
+- Last updated: 2026-10-30 (Settings slice, step 1: settings and the AI consent record, migration
+  0008; D-S1). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
   same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
   Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
   targets, migration 0002; D-23). 2026-10-28 (D-20: links and permission answers kept in the
@@ -10,7 +11,8 @@
 - Builds on: ADR-0002, ADR-0003, ADR-0004, ADR-0007; invariants #1, #5, #6, #7
 
 Covers users, roles, links, Head Coach permission answers, weigh-ins, steps, sleep, measurements,
-targets, meals, saved meals, workouts and the food list, plus the sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
+targets, meals, saved meals, workouts, settings, the AI consent record and the food list, plus the
+sync bookkeeping. The MVP is the Personal Training User view only (D-20): links and
 permission answers are post-MVP, but their tables stay in the schema so links can be added later
 without rework. D- numbers refer to
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md). The permission
@@ -249,6 +251,41 @@ D-23). They include a target body weight, so the values are treated as **Health*
   trainee's change while an active coach's target applies (backlog B-21).
 - A target can be changed but not removed in the MVP (D-23).
 
+### `settings` — personal
+The user's own settings (REQ-ACC-001…003; MVP default, D-S1): one current value per name, synced
+like targets, so they work offline and follow the account to another phone. Coaches and Head
+Coaches never see them (REQ-NFR-001, D-13).
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id` | `uuid` | References `users`, deleted with the user. Primary key with `name` |
+| `name` | `text` | `theme`, `body_weight_unit` or `lifting_weight_unit` |
+| `value` | `text` | Not null. `theme`: `system`, `light` or `dark`; each unit: `kg` or `lb` |
+| `set_at` | `timestamptz` | Not null. When it was set, on the phone (UTC) |
+| `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
+| `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
+
+- A new value replaces the old, and the change the server receives last wins, as for targets.
+- With no row the defaults apply: `system`, `kg`, `kg` (`DEFAULT_SETTINGS`, shared). The units are
+  display settings only: weights stay stored in grams (invariant #6).
+
+### `ai_consents` — personal
+Each change of the user's AI meal-reading consent (REQ-ACC-004; Q-065 MVP default, D-18): on or
+off, when and which version of the consent text was shown. The latest row is the current choice;
+with no row, AI is off (A-007). Not synced: a change goes through `PUT /v1/me/ai-consent`, online
+only (MVP default, D-S1).
+
+| Column | Type | Rules |
+|---|---|---|
+| `id` | `bigint` | Primary key, generated |
+| `user_id` | `uuid` | References `users`, deleted with the user |
+| `consented` | `boolean` | Not null. On or off |
+| `text_version` | `text` | Not null, 1–32 characters. The consent text's version shown (`AI_CONSENT_TEXT_VERSION`, shared) |
+| `recorded_at` | `timestamptz` | Not null. Server time when the API received the change |
+
+- Rows are only added, never changed. Two changes at the same time are ordered by `id`.
+- Before each AI call, the AI module reads the latest row (invariant #3; slice 7).
+
 ### `meals` — Health
 The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0004.
 
@@ -481,9 +518,11 @@ rule 5 and D-14 require.
 | `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
 | `meals`, `saved_meals` | While the account exists; a deleted one keeps only its ID, its day (meals) and when it was deleted | With the account. Phase 1 has no backups (R-005) |
 | `foods`, `dishes`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`) |
+| `settings` | While the account exists | With the account |
+| `ai_consents` | While the account exists, every change kept | With the account (REQ-ACC-009; Legal confirms, Q-049) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |
 
 ## Not in this document yet
-Added with the slice that needs them: invitations, Notifications list, push tokens, settings
-(units, theme, AI consent), plans, media, and the admin access log (REQ-NFR-005).
+Added with the slice that needs them: invitations, Notifications list, push tokens, plans, and the
+admin access log (REQ-NFR-005).

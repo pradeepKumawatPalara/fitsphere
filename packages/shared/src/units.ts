@@ -2,6 +2,8 @@
 // for display and input, with one decimal.
 
 export type BodyWeightUnit = 'kg' | 'lb';
+/** The units a weight can be typed and shown in; the lifting unit uses the same two (REQ-ACC-002). */
+export const WEIGHT_UNITS = ['kg', 'lb'] as const satisfies readonly BodyWeightUnit[];
 
 /** 20–300 kg (Q-028 MVP default). */
 export const WEIGHT_GRAMS_MIN = 20_000;

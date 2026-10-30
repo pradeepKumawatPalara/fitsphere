@@ -37,6 +37,15 @@ and merged on 2026-10-30: steps 1 to 4 are pull requests #23, #25, #27 and #28. 
 migration 0007 on `fitsphere-dev` (after slice 3's 0006), run only when the owner says so; then the
 slice's batched phone checks, on the current development build (no new build).
 
+**Slice 6, Settings and account — being built (D-S1, 2026-10-30).** Plan:
+`docs/plans/settings-slice.md` (Accepted). Built in parallel with slice 5 (Progress) in the worktree
+`D:itsphere-settings`, one branch and pull request per step (`settings/01-…` to `settings/05-…`).
+Migration `0008_settings.sql`, phone schema version 7, and temporary IDs D-S1, E-S1… and RB-S1,
+renumbered at merge. Slice 6 owns the theme module (`apps/mobile/src/theme.tsx`) and the unit
+hooks (`apps/mobile/src/settings/SettingsProvider.tsx`) that slice 5's Progress screens read; it
+does not edit the Progress screens. Deleting the sign-in account uses a Supabase secret key on the
+server only (`SUPABASE_SECRET_KEY`, D-S1 answer 4), which the owner adds before the phone checks.
+
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
 merged; step 8 (D-24: the Measurements card shows and edits a date's measurements, changing Q-026)
@@ -131,7 +140,9 @@ email through Resend from FitSphere's domain (D-20).
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
 - Current slice plan (Accepted): `docs/plans/progress-slice.md` (slice 5, built beside slice 6);
-  `docs/plans/meal-logging-slice.md`; slice 4, built in parallel: `docs/plans/training-slice.md`; earlier slices: `docs/plans/home-daily-tracking-slice.md`,
+  `docs/plans/meal-logging-slice.md`; slice 4, built in parallel: `docs/plans/training-slice.md`;
+  slice 6, built in parallel with slice 5: `docs/plans/settings-slice.md`; earlier slices:
+  `docs/plans/home-daily-tracking-slice.md`,
   `docs/plans/skeleton-slice.md`
 - Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 

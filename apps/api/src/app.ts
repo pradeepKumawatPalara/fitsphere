@@ -6,6 +6,7 @@ import { registerAccess } from './access.ts';
 import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
 import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
+import { registerAiConsentRoutes } from './routes/aiConsent.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerFoodsRoute } from './routes/foods.ts';
 import { registerMediaRoutes } from './routes/media.ts';
@@ -82,6 +83,7 @@ export function buildApp(deps: AppDeps) {
     status: 'ok',
   }));
   registerMeRoutes(app, deps);
+  registerAiConsentRoutes(app, { db: deps.db, now: deps.now ?? (() => new Date()) });
   registerSyncRoute(app, {
     db: deps.db,
     now: deps.now ?? (() => new Date()),
