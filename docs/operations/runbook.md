@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
+- Last updated: 2026-10-30 (the dashboard paths still to confirm, with what Supabase's docs say).
+  2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
 
 Only verified operational steps belong here (`docs/pre-development-guide.md` §5.10). Procedures
 not yet known are marked *Not yet written* rather than guessed. D- numbers refer to
@@ -157,9 +158,10 @@ it when the Skeleton's database step starts.
    - **Storage → New bucket:** name it (for example `meal-photos`) and put the name in
      `STORAGE_BUCKET`. **Public bucket off.** Restrict the file size to **1 MB** and the allowed
      types to **`image/jpeg`**.
-   - **Storage → Settings → S3 Connection:** turn the S3 connection on (Supabase's docs say
-     presigned links need it). Copy the **endpoint** into `STORAGE_S3_ENDPOINT` and the
-     **region** into `STORAGE_S3_REGION`.
+   - **Storage → Settings → S3 Connection:** turn the S3 connection on. Supabase's docs say
+     presigned links need it: "To enable this feature, enable the S3 connection via S3 protocol
+     in the Settings page for Supabase Storage." Copy the **endpoint** into
+     `STORAGE_S3_ENDPOINT` and the **region** into `STORAGE_S3_REGION`.
    - **New access key:** save the access key ID and the secret into the password manager, then
      into `STORAGE_S3_ACCESS_KEY_ID` and `STORAGE_S3_SECRET_ACCESS_KEY`. Supabase's docs say these
      keys "provide full access to all S3 operations across all buckets and bypass RLS policies":
@@ -172,7 +174,7 @@ it when the Skeleton's database step starts.
 
    **Done on `fitsphere-dev` (Mumbai), 2026-10-29 (owner).** Storage is configured and checked
    from the PC; the checks with a real photo on the phone are still pending (below). The menu
-   paths are not recorded yet.
+   paths are not recorded yet ("Dashboard paths still to confirm", below).
    - **Bucket:** `meal-photos`, private (Public bucket off), file size limit 1 MB, allowed type
      `image/jpeg`. Its name is in `STORAGE_BUCKET`.
    - **S3 connection:** on; its endpoint and region are in `STORAGE_S3_ENDPOINT` and
@@ -207,8 +209,29 @@ it when the Skeleton's database step starts.
   secret (HS256) is under "Previously used keys", not revoked.
 - Item 6: **Authentication → URL Configuration**. `fitsphere://**` is added; the Site URL is
   unchanged.
-- Item 2: Enable Data API is off and `check:data-api` passed; the menu path is not recorded yet.
+- Item 2: Enable Data API is off and `check:data-api` passed; the menu path is not recorded yet
+  (below).
 - Migration `0001_skeleton.sql` is applied, and `db:growth` has been run (ADR-0003).
+
+**Dashboard paths still to confirm (owner).** Nobody has recorded these paths from the dashboard.
+Item 9's setup steps give the paths expected when they were written; item 2 gives none. The table
+quotes Supabase's documentation, read on 2026-10-30. The documentation names two places for the S3
+settings, a "Settings page for Supabase Storage" and an "S3 configuration page", so check rather
+than assume. Next time you are in the dashboard, write each path in the last column exactly as the
+dashboard shows it.
+
+| Item | Setting | Supabase's documentation (read 2026-10-30) | Path in the dashboard |
+|---|---|---|---|
+| 2 | Enable Data API off | "Open the [Data API integration overview](https://supabase.com/dashboard/project/_/integrations/data_api/overview) in the Dashboard", then "Turn **Enable Data API** off." | Not recorded |
+| 9 | The bucket `meal-photos` | "Go to the [Storage](https://supabase.com/dashboard/project/_/storage/buckets) page in the Dashboard", then "Click **New Bucket** and enter a name for the bucket." Where a bucket's file size limit and allowed types are set: not stated | Not recorded |
+| 9 | S3 connection on | "enable the S3 connection via S3 protocol in the Settings page for Supabase Storage" | Not recorded |
+| 9 | Endpoint and region | "copy the endpoint and region from the [S3 configuration page](https://supabase.com/dashboard/project/_/storage/s3)" | Not recorded |
+| 9 | S3 access key | "generate a pair of credentials (Access Key ID and Secret Access Key)", the keys coming from "your [project settings](https://supabase.com/dashboard/project/_/storage/settings)" | Not recorded |
+
+The links are the documentation's own; `_` stands for the project, so they name none. Also to
+confirm: the S3 access key's ID and secret are saved in the password manager, as item 9 asks.
+The record above does not say so yet. Write only menu paths here, never a key, an ID or any other
+value.
 
 Sign-in emails in the Skeleton come from Supabase's built-in sender, which delivers only to
 members of the project's team, at most 2 emails an hour (`email_address_not_authorized` for
@@ -358,6 +381,12 @@ Checked 2026-10-27:
 - Supabase built-in email limits: https://supabase.com/docs/guides/auth/auth-smtp
 - Supabase signing keys and JWKS: https://supabase.com/docs/guides/auth/signing-keys and https://supabase.com/docs/guides/auth/jwts
 - Supabase API keys: https://supabase.com/docs/guides/api/api-keys
+- Supabase Storage and the Data API, checked 2026-10-30 (step 5, items 2 and 9): S3 access keys,
+  endpoint and region https://supabase.com/docs/guides/storage/s3/authentication; presigned links
+  and the S3 connection https://supabase.com/docs/guides/storage/s3/compatibility; creating buckets
+  https://supabase.com/docs/guides/storage/buckets/creating-buckets; file size limits
+  https://supabase.com/docs/guides/storage/uploads/file-limits; turning off the Data API
+  https://supabase.com/docs/guides/database/hardening-data-api
 - Supabase email link expiry: https://supabase.com/docs/guides/auth/auth-email-passwordless
 - Supabase password security: https://supabase.com/docs/guides/auth/password-security
 - Supabase sign-up response for existing emails: https://supabase.com/docs/reference/javascript/auth-signup
