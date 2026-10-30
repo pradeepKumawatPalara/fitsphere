@@ -559,7 +559,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Requirement: Shows weight change over the last 4 weeks and the weekly rate, in the body-weight unit (REQ-ACC-003).
 - Acceptance criteria:
   - Given less than one week of weigh-ins, then the weekly rate is replaced by a not-enough-data message.
-- MVP default (D-18): the 4-week change is the latest weigh-in minus the weigh-in nearest to 28 days earlier; the weekly rate is that change ÷ 4 (Q-043).
+- MVP default (D-18): the 4-week change is the latest weigh-in minus the weigh-in nearest to 28 days earlier; the weekly rate is that change ÷ the weeks between the two weigh-ins, which is ÷ 4 at 28 days (Q-043, refined by D-P1).
 
 ### REQ-PRG-002 — Average calories
 - Requirement: Shows average daily calories vs target.

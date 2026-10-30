@@ -79,7 +79,7 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-036 Re-log saved meal | Goes to the meal slot it was saved from; user can change it |
 | Q-037 Day status labels | "Nothing logged" or "N meals logged" |
 | Q-042 Workout fields | Per exercise: sets × reps × weight; optional note |
-| Q-043 Progress formulas | 4-week change = latest weigh-in minus the weigh-in nearest 28 days earlier; weekly rate = change ÷ 4; weekly table = averages over days that have entries; chart needs 2+ weigh-ins |
+| Q-043 Progress formulas | 4-week change = latest weigh-in minus the weigh-in nearest 28 days earlier; weekly rate = change ÷ the weeks between the two weigh-ins (÷ 4 when they are 28 days apart); weekly table = averages over days that have entries; chart needs 2+ weigh-ins. *Weekly rate refined by D-P1 (2026-10-30); was "change ÷ 4"* |
 | Q-044 Days logged | Out of days since the account was created, capped at the last 28 days |
 | Q-045 / Q-046 | "Pre" row and week details are post-MVP |
 | Q-048 Delete account | Deletes the user's data from the database and file storage, ends all links (others get the neutral message; no links exist in the MVP, D-20), deletes the sign-in account. Only security logs required by REQ-NFR-005 are kept, without health data (Legal to confirm, Q-049). A simple web page explains how to request deletion by email, as Google Play requires |
