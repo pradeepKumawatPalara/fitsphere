@@ -32,7 +32,7 @@ something, this plan does not repeat it.
 | 2. Server: delete account | Pull request #45 (after #43) | `settings/02-delete-account` |
 | 3. Phone: settings on the phone and units everywhere | Pull request #46 (after #45) | `settings/03-phone-units` |
 | 4. Phone: light and dark theme | Pull request #47 (after #46) | `settings/04-theme` |
-| 5. Settings screen, change password, delete account; close-out | Built; pull request to open (after #47) | `settings/05-settings-screen` |
+| 5. Settings screen, change password, delete account; close-out | Pull request #48 (after #47) | `settings/05-settings-screen` |
 | Owner's actions and checks at the end of the slice | Pending: the secret key, migration 0008 on `fitsphere-dev`, phone checks 1 to 9 | — |
 
 ## Scope

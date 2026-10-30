@@ -7,14 +7,15 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Slice 5, Progress — built, waiting for the owner, beside slice 6 (D-P1, 2026-10-30).** Plan:
+**Slice 5, Progress — merged; phone checks pending (D-P1, 2026-10-30).** Plan:
 `docs/plans/progress-slice.md` (Accepted). Built in `D:\fitsphere` on `slice5/progress`, one pull
 request per step (`progress/01-calculations`, `progress/02-screen`, `progress/03-chart`), while
 slice 6 (Settings and account) is built in `D:\fitsphere-settings`. Progress only reads existing
 data: no server change, no migration, no phone schema version. Colours come from slice 6's
 `src/theme.tsx` (`useTheme().colors`) and body weights go through `useProgressWeightUnit()`, which
 switches to slice 6's `useBodyWeightUnit()` when both are on main. D-P1 and E-P1 to E-P3 are
-temporary IDs until merged. Steps 1 to 3 are pull requests #41, #42 and #44, stacked in that order; the owner merges them, then runs the plan's phone checks (no new build).
+temporary IDs until merged. Steps 1 to 3 are pull requests #41, #42 and #44, merged on 2026-10-30;
+the owner runs the plan's phone checks next (no new build).
 
 **Slice 3, Meal logging (no AI) — merged; dish recipes and phone checks pending (D-26,
 2026-10-29; D-28, 2026-10-30).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Every step is
