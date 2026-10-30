@@ -2,8 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-26 answer 3, amended: B-26, dishes deferred until their missing
-  ingredients have a source). 2026-10-29 (D-25: the IFCT licence is not release-blocking). Earlier
+- Last updated: 2026-10-30 (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
+  answer 3, amended: B-26, dishes deferred until their missing ingredients have a source). 2026-10-29 (D-25: the IFCT licence is not release-blocking). Earlier
   the same day
   (Home and daily tracking slice, D-23: E-09 to E-12). Earlier the same
   day (D-22): release-blocking tasks, deferred Skeleton checks, B-25
@@ -99,3 +99,4 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-10 | Showing and editing Home for days older than the 90 days the phone holds, online | REQ-DATE-001, ADR-0007 rule 1 | The calendar and the week strip stop at 90 days; older history is viewed in Progress (D-23) |
 | E-11 | Target history: a target that applies from the day it was set, so past days keep the target they had (Q-014) | REQ-ROLE-007, REQ-PRG-005 | One current value per target, applying to every day shown (D-23) |
 | E-12 | Changing the measurements sheet's date after typing values | REQ-MEAS-002 | The fields show the new day's entry, or empty fields, so values typed for the old day are cleared (D-23) |
+| E-13 | A dish removed from the list (no longer approved) while a phone still has a meal or saved meal naming it waiting to sync, or one is re-logged later | REQ-LOG-007, D-28 | The change is refused (`VALIDATION_FAILED`) and shown as rejected; meals already on the server keep their snapshot. Keep a withdrawn dish on the list, hidden from search, if this happens in practice |

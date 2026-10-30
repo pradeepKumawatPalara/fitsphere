@@ -69,9 +69,9 @@ export async function syncNow(db: SqlDb, auth: AuthDeps, now: () => Date = () =>
 export type FoodListOutcome = 'updated' | 'current' | 'offline' | 'failed';
 
 /**
- * Keeps the phone's copy of the food list current (ADR-0006 rule 1): it sends the version it holds
- * and stores the list only when the server's differs, so search keeps working offline. A failure
- * keeps the copy already on the phone.
+ * Keeps the phone's copy of the food list and its dishes current (ADR-0006 rule 1; D-28): it sends
+ * the version it holds and stores the list only when the server's differs, so search keeps working
+ * offline. A failure keeps the copy already on the phone.
  */
 export async function refreshFoodList(db: SqlDb, auth: AuthDeps): Promise<FoodListOutcome> {
   const session = (await auth.client.getSession()).data.session;
@@ -86,7 +86,7 @@ export async function refreshFoodList(db: SqlDb, auth: AuthDeps): Promise<FoodLi
   const parsed = foodsResponseSchema.safeParse(response.body);
   if (!parsed.success) return 'failed';
   if (parsed.data.items === null) return 'current';
-  await replaceFoods(db, parsed.data.version, parsed.data.items);
+  await replaceFoods(db, parsed.data.version, parsed.data.items, parsed.data.dishes ?? []);
   return 'updated';
 }
 

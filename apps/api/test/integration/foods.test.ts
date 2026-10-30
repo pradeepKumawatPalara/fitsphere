@@ -2,15 +2,22 @@ import { readFileSync } from 'node:fs';
 import type { FoodsResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
-import { importFoods } from '../../src/foods/importFoods.ts';
+import { importDishes, importFoods } from '../../src/foods/importFoods.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 import { connect } from './database.ts';
 
-// The food-list import into PostgreSQL and GET /v1/foods (ADR-0006 rule 1; D-25, D-26).
+// The food-list import into PostgreSQL and GET /v1/foods (ADR-0006 rule 1; D-25, D-26), with the
+// approved dishes of the standard-recipe sheet (D-28).
 
 const FOODS = readIfctCsv(readFileSync(new URL('../../../../data/foods/ifct2017-foods.csv', import.meta.url), 'utf8'));
+const SHEET = readRecipeSheet(readFileSync(new URL('../../../../docs/data/standard-recipe-sheet.csv', import.meta.url), 'utf8'), FOODS);
+
+// Synthetic dishes: made-up values, not recipe data.
+const TEST_DAL: ImportedDish = { code: 'test_dal', name: 'Test dal', portionUnit: 'katori', kcal: 138.82, proteinG: 7.42, carbsG: 19.6, fatG: 3.05, fibreG: 3.33 };
+const TEST_FLATBREAD: ImportedDish = { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 173, proteinG: 4.23, carbsG: 25.67, fatG: 5.61, fibreG: 4.54 };
 
 let client: pg.Client;
 let api: Awaited<ReturnType<typeof startTestApi>>;
@@ -18,6 +25,7 @@ let api: Awaited<ReturnType<typeof startTestApi>>;
 beforeAll(async () => {
   client = await connect();
   await importFoods(client, FOODS);
+  await importDishes(client, SHEET.dishes);
   api = await startTestApi();
 });
 
@@ -131,7 +139,7 @@ describe('ADR-0006 rule 1 the list version', () => {
     const first: FoodsResponse = (await getFoods(user.token)).json();
 
     const same: FoodsResponse = (await getFoods(user.token, `?version=${first.version}`)).json();
-    expect(same).toEqual({ version: first.version, items: null });
+    expect(same).toEqual({ version: first.version, items: null, dishes: null });
 
     await client.query(`update app.foods set name = 'Gooseberry' where code = 'E021'`);
     try {
@@ -143,6 +151,20 @@ describe('ADR-0006 rule 1 the list version', () => {
     }
   });
 
+  it('D-28 changes when a dish changes', async () => {
+    const user = await api.signUpWithAccount();
+    const first: FoodsResponse = (await getFoods(user.token)).json();
+
+    await importDishes(client, [TEST_DAL]);
+    try {
+      const changed: FoodsResponse = (await getFoods(user.token, `?version=${first.version}`)).json();
+      expect(changed.version).not.toBe(first.version);
+      expect(changed.dishes).toHaveLength(1);
+    } finally {
+      await importDishes(client, SHEET.dishes);
+    }
+  });
+
   it('error model: an unknown query field is refused', async () => {
     const user = await api.signUpWithAccount();
 
@@ -150,5 +172,49 @@ describe('ADR-0006 rule 1 the list version', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json().error.details).toEqual([{ field: 'limit', issue: 'unknown_field' }]);
+  });
+});
+
+describe('D-28 dishes: foods:import and GET /v1/foods', () => {
+  it('imports exactly the approved rows of the committed sheet; pending and blocked rows stay out', async () => {
+    const { rows } = await client.query<{ code: string }>('select code from app.dishes order by code');
+    expect(rows.map((row) => row.code)).toEqual(SHEET.dishes.map((dish) => dish.code).sort());
+    expect(rows.map((row) => row.code)).not.toContain('chicken_curry');
+  });
+
+  it('serves each dish with its values for one portion, and no ingredients or grams', async () => {
+    const user = await api.signUpWithAccount();
+    await importDishes(client, [TEST_FLATBREAD, TEST_DAL]);
+    try {
+      const body: FoodsResponse = (await getFoods(user.token)).json();
+
+      expect(body.dishes).toEqual([
+        { code: 'test_dal', name: 'Test dal', portionUnit: 'katori', kcal: 138.82, proteinG: 7.42, carbsG: 19.6, fatG: 3.05, fibreG: 3.33 },
+        { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 173, proteinG: 4.23, carbsG: 25.67, fatG: 5.61, fibreG: 4.54 },
+      ]);
+      expect(body.items).toHaveLength(539);
+    } finally {
+      await importDishes(client, SHEET.dishes);
+    }
+  });
+
+  it('a dish no longer approved is removed at the next import, so the phones stop offering it', async () => {
+    await importDishes(client, [TEST_FLATBREAD, TEST_DAL]);
+
+    expect(await importDishes(client, [TEST_DAL])).toBe(1);
+
+    const { rows } = await client.query<{ code: string }>('select code from app.dishes order by code');
+    expect(rows).toEqual([{ code: 'test_dal' }]);
+    await importDishes(client, SHEET.dishes);
+  });
+
+  it('a failure part-way leaves the dishes as they were', async () => {
+    await importDishes(client, [TEST_DAL]);
+
+    await expect(importDishes(client, [TEST_FLATBREAD, { ...TEST_DAL, kcal: -1 }])).rejects.toThrow();
+
+    const { rows } = await client.query<{ code: string }>('select code from app.dishes order by code');
+    expect(rows).toEqual([{ code: 'test_dal' }]);
+    await importDishes(client, SHEET.dishes);
   });
 });

@@ -1,4 +1,4 @@
-import { MEAL_ITEM_GRAMS_MAX, type BarcodeProduct, type Food, type MealItem } from '@fitsphere/shared';
+import { MEAL_ITEM_GRAMS_MAX, MEAL_ITEM_PORTIONS_MAX, type BarcodeProduct, type Dish, type Food, type MealItem } from '@fitsphere/shared';
 import { parseOneDecimal, parseWholeNumber } from './format';
 
 // Turning a food and an amount into a meal item (REQ-LOG-007; MVP defaults, D-26). Values are per
@@ -38,6 +38,52 @@ export function withGrams(item: MealItem, grams: number): MealItem {
   return {
     ...item,
     amount: { unit: 'g', value: grams },
+    kcal: scale(item.kcal) ?? 0,
+    proteinG: scale(item.proteinG) ?? 0,
+    carbsG: scale(item.carbsG),
+    fatG: scale(item.fatG),
+    fibreG: scale(item.fibreG),
+  };
+}
+
+/** Portions of a dish go up and down in halves, from 0.5 to 10 (MVP default, D-26). */
+export const PORTION_STEP = 0.5;
+export const PORTIONS_MIN = PORTION_STEP;
+export const PORTIONS_MAX = MEAL_ITEM_PORTIONS_MAX;
+
+/** Half a portion more or fewer, kept from 0.5 to 10. */
+export function stepPortions(portions: number, direction: 1 | -1): number {
+  return Math.min(PORTIONS_MAX, Math.max(PORTIONS_MIN, portions + direction * PORTION_STEP));
+}
+
+/** A value for one portion × the portions, in exact hundredths: values have two decimals and portions are halves. */
+function forPortions(perPortion: number, portions: number): number {
+  return Math.round((Math.round(perPortion * 100) * Math.round(portions * 2)) / 2) / 100;
+}
+
+/** A dish (D-28), eaten in `portions`; its values are always estimated. */
+export function itemFromDish(dish: Dish, portions: number): MealItem {
+  return {
+    source: 'dish',
+    ref: dish.code,
+    name: dish.name,
+    amount: { unit: 'portion', value: portions },
+    kcal: forPortions(dish.kcal, portions),
+    proteinG: forPortions(dish.proteinG, portions),
+    carbsG: forPortions(dish.carbsG, portions),
+    fatG: forPortions(dish.fatG, portions),
+    fibreG: forPortions(dish.fibreG, portions),
+    estimated: true,
+  };
+}
+
+/** The same dish for another number of portions, from the values it already has. */
+export function withPortions(item: MealItem, portions: number): MealItem {
+  if (item.amount.unit !== 'portion') return item;
+  const scale = (value: number | null) => (value === null ? null : Math.round((value * portions * 100) / item.amount.value) / 100);
+  return {
+    ...item,
+    amount: { unit: 'portion', value: portions },
     kcal: scale(item.kcal) ?? 0,
     proteinG: scale(item.proteinG) ?? 0,
     carbsG: scale(item.carbsG),

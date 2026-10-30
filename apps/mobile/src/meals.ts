@@ -1,4 +1,4 @@
-import { SAVED_MEAL_NAME_MAX, type MealItem, type MealTag, type MealType } from '@fitsphere/shared';
+import { SAVED_MEAL_NAME_MAX, type DishPortionUnit, type MealItem, type MealTag, type MealType } from '@fitsphere/shared';
 import { formatInteger } from './format';
 
 // Display helpers for meals (REQ-NUT-*, REQ-LOG-*). English only (Q-054).
@@ -30,8 +30,19 @@ export function formatGrams(grams: number | null): string {
 /** e.g. "60 g" or "1.5 portions". */
 export function formatAmount(amount: MealItem['amount']): string {
   if (amount.unit === 'g') return `${formatInteger(amount.value)} g`;
-  return `${amount.value} ${amount.value === 1 ? 'portion' : 'portions'}`;
+  return formatPortions(amount.value);
 }
+
+/** e.g. "1 portion", "2.5 portions". */
+export function formatPortions(portions: number): string {
+  return `${portions} ${portions === 1 ? 'portion' : 'portions'}`;
+}
+
+/** What one portion of a dish is (D-26 answer 3, amended): one piece, or one 200 ml katori. */
+export const PORTION_UNIT_LABELS: Record<DishPortionUnit, string> = {
+  piece: 'piece',
+  katori: 'katori (200 ml)',
+};
 
 /** A short line naming a meal's foods, e.g. "Wheat flour, atta + 2 more". */
 export function describeItems(items: readonly Pick<MealItem, 'name'>[]): string {

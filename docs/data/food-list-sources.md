@@ -2,11 +2,13 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30, later (poultry checked again: still not confirmed raw; other recipe
-  sources searched: none can replace weighing). 2026-10-30 (D-26 answer 3 amended: dishes come
-  from FitSphere's standard-recipe sheet; the IFCT 2017 book's own terms read; the app's
-  acknowledgement is now the book's citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission; accepted
-  risk R-007)
+- Last updated: 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
+  columns, the starter set, and how a recipe goes live). Earlier the same day (poultry checked
+  again: still not confirmed raw; other recipe sources searched: none can replace weighing).
+  Earlier the same day (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
+  sheet; the IFCT 2017 book's own terms read; the app's acknowledgement is now the book's
+  citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission;
+  accepted risk R-007)
 - Builds on: [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) (food data, Accepted —
   D-18); REQ-LOG-007, REQ-NUT-002
 
@@ -275,7 +277,8 @@ The owner writes it by weighing raw ingredients, and approves it (D-26 answer 3,
   since those would need yield factors.
 - **Status (2026-10-30): empty.** The sheet lists 25 dishes with their IFCT ingredients. Every gram,
   count, "measured by" and date cell stays empty until the owner weighs the recipe. No dish values
-  exist yet.
+  exist yet. The owner's starter set (D-28): boiled egg, roti, phulka, plain rice, toor dal, moong
+  dal, aloo gobi, idli and plain dosa.
 - **Deferred, not dropped (backlog B-26):** curd and raita, masala chai, besan dishes and chole.
   The IFCT list has no curd, white sugar, tea or besan, and B002 "Bengal gram, whole" does not say
   which chickpea it is.
@@ -284,8 +287,10 @@ The sheet: UTF-8 without a byte-order mark, LF line endings, one header row and 
 
 | Column | Meaning |
 |---|---|
-| `dish` | Dish name |
+| `code` | The dish's stable code, e.g. `roti`: what a logged meal records as the dish. Never changed once a dish is live |
+| `dish` | Dish name, as the app shows it |
 | `portion_unit` | `piece`, or `katori (200 ml)` |
+| `status` | `pending` (not yet measured or approved; not imported), `approved` (the owner's OK; imported) or `blocked` (must stay empty: the chicken curry, D-28) |
 | `ingredient_1` … `ingredient_6` | An ingredient, named as printed in the IFCT list: raw, except the cooked entry below (M004) |
 | `ifct_code_1` … `ifct_code_6` | Its IFCT code. Empty where there is a choice to make; the note lists the choices |
 | `raw_g_per_portion_1` … `raw_g_per_portion_6` | Raw grams of that ingredient in one portion: its raw grams in the weighed batch ÷ the batch's count |
@@ -300,6 +305,26 @@ The sheet: UTF-8 without a byte-order mark, LF line endings, one header row and 
 **Counting rule.** Grams per portion = the weighed batch's grams ÷ its count: `pieces_per_batch`
 for a piece dish, `katoris_per_batch` for a katori dish. Each row's note gives the rule for its
 kind of dish. The chicken curry row's note starts with DO NOT FILL (below).
+
+**How a recipe goes live (D-28).** `npm run foods:import -w @fitsphere/api` reads the sheet with
+the IFCT list ([`apps/api/src/foods/dishes.ts`](../../apps/api/src/foods/dishes.ts)). It checks the
+whole sheet first and imports nothing if any row is wrong, naming the line:
+- **Every row:** the code and dish name appear once; each filled IFCT code is in the list, under
+  the name the sheet gives; the fat is an oil or fat (T001–T014); grams have at most two decimals
+  (more than 0, at most 1,000); `pieces_per_batch` is a whole number; `date` is a real date.
+- **`approved` rows** must be complete: each ingredient listed has its name, code and raw grams;
+  the fat has its code and grams, or all three fat cells are empty; the count for its unit (and
+  not the other); `measured_by` and `date`. One portion may hold at most 2,000 kcal and 500 g of
+  each nutrient, so 10 portions fit one meal item. A hidden food (N001, Q001, S007) and IFCT's
+  poultry (group N, not confirmed raw) are refused.
+- **`pending` rows** may be part-filled while being measured; they are not imported.
+- **`blocked` rows** must keep every gram, count, `measured_by` and `date` cell empty.
+
+Each approved dish's values for one portion are the sum of value per 100 g × grams ÷ 100 over its
+ingredients and fat, worked out in exact hundredths and rounded once, and always marked
+"estimated". `app.dishes` then holds exactly the approved dishes: a dish no longer approved is
+removed. Only these values reach the phone (`GET /v1/foods`); the ingredients and grams stay in
+this sheet.
 
 **Cooked IFCT entries (the exception in D-26 answer 3).** Where IFCT publishes a cooked value for
 the whole item, that value is used per gram of the cooked item, and the sheet records the cooked

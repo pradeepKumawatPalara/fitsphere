@@ -756,6 +756,35 @@
 - Doc changes: ADR-0002 rule 3, its D-16 note and its validation results; threat T-08;
   `constraints-and-assumptions.md` (meal photos on the server).
 
+## D-28 Dishes go live recipe by recipe, from a starter set (step 8 of the meal logging slice)
+- Status: **Accepted** (owner instruction in chat, 2026-10-30).
+- Builds on D-26 answer 3 (amended 2026-10-30): dishes are defined by FitSphere's measured
+  standard-recipe sheet, `docs/data/standard-recipe-sheet.csv`.
+- Answers:
+  1. **Starter set.** The first recipes to measure: Boiled egg, Roti / chapati, Phulka, Plain
+     rice, Toor dal, Moong dal, Aloo gobi, Idli and Plain dosa. The engineering is built now and
+     does not wait for all 24 recipes; each dish goes live once its recipe is measured and approved.
+  2. **Single IFCT foods stay in grams.** Only dishes are logged in portions (0.5 to 10, in
+     halves). The app never asks a user for a recipe's ingredient weights.
+  3. **INDB stays excluded**, with NIN's guidelines and USDA data: the measured-recipe method of
+     D-26 answer 3 continues.
+  4. **Chicken curry stays DO NOT FILL** until IFCT's poultry values are confirmed raw.
+- How a recipe goes live (step 8):
+  - Each row of the sheet has a `status`: `pending`, `approved` or `blocked`. `npm run
+    foods:import` imports only `approved` rows, and refuses an `approved` row that is not complete
+    (grams, count, `measured_by`, `date`).
+  - The owner sets `approved` in the pull request that adds the measurements; the merge of that
+    pull request stays the owner's OK (D-26).
+  - The chicken curry row is `blocked`; the import refuses any value in it, and refuses poultry
+    (IFCT group N) in any approved recipe.
+  - The API serves each dish's values for one portion, never its ingredients or grams.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs. Legal's
+  review (Q-049) stays open and must be done before real users.
+- Doc changes: `docs/plans/meal-logging-slice.md` (step 8); `docs/data/food-list-sources.md`;
+  `docs/contracts/data-model.md`; `docs/contracts/api-conventions.md`;
+  `constraints-and-assumptions.md` (MVP defaults); `backlog.md` (E-13); ADR-0006 (validation
+  results); `CLAUDE.md`; `docs/README.md`.
+
 ---
 
 ## Proposed replacement wording for the two invariants

@@ -14,6 +14,7 @@ import {
   TARGET_SET,
   WEIGH_IN_SET,
   type ChangeErrorCode,
+  type Dish,
   type Food,
   type IstDay,
   type MealItem,
@@ -335,6 +336,19 @@ const MIGRATIONS = [
    );
    CREATE INDEX photos_meal ON photos (meal_id);
    DELETE FROM sync_meta WHERE key = 'cursor';`,
+  // Dishes (D-28): the approved dishes of the food list, with their values for one portion. The food
+  // list's version is cleared, so the next download brings the dishes.
+  `CREATE TABLE dishes (
+     code TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     portion_unit TEXT NOT NULL,
+     kcal REAL NOT NULL,
+     protein_g REAL NOT NULL,
+     carbs_g REAL NOT NULL,
+     fat_g REAL NOT NULL,
+     fibre_g REAL NOT NULL
+   );
+   DELETE FROM sync_meta WHERE key = 'food_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -745,9 +759,19 @@ export async function listSavedMeals(db: SqlDb): Promise<LocalSavedMeal[]> {
   return rows.map((row) => toEntry(KINDS.savedMeal, row) as LocalSavedMeal);
 }
 
-/** Replaces the cached food list (ADR-0006 rule 1) and records its version, in one transaction. */
-export async function replaceFoods(db: SqlDb, version: string, foods: Food[]): Promise<void> {
+/**
+ * Replaces the cached food list (ADR-0006 rule 1) and its dishes (D-28), and records its version, in
+ * one transaction.
+ */
+export async function replaceFoods(db: SqlDb, version: string, foods: Food[], dishes: readonly Dish[] = []): Promise<void> {
   await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM dishes', []);
+    for (const dish of dishes) {
+      await db.runAsync(
+        `INSERT INTO dishes (code, name, portion_unit, kcal, protein_g, carbs_g, fat_g, fibre_g) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [dish.code, dish.name, dish.portionUnit, dish.kcal, dish.proteinG, dish.carbsG, dish.fatG, dish.fibreG],
+      );
+    }
     await db.runAsync('DELETE FROM foods', []);
     for (const food of foods) {
       await db.runAsync(
@@ -777,13 +801,8 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[]): P
  * the name or an alias, ignoring case; names starting with the first word come first.
  */
 export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise<Food[]> {
-  const words = query
-    .toLowerCase()
-    .split(/[\s,]+/)
-    .filter((word) => word.length > 0)
-    .slice(0, 5);
+  const words = searchWords(query);
   if (words.length === 0) return [];
-  const like = (word: string) => `%${word.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
   const conditions = words.map(() => `(lower(name) LIKE ? ESCAPE '\\' OR lower(aliases) LIKE ? ESCAPE '\\')`);
   const rows = await db.getAllAsync<{
     source: Food['source'];
@@ -800,7 +819,7 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
   }>(
     `SELECT * FROM foods WHERE ${conditions.join(' AND ')}
      ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.flatMap((word) => [like(word), like(word)]), `${words[0]!.replace(/[\\%_]/g, (char) => `\\${char}`)}%`, limit],
+    [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), limit],
   );
   return rows.map((row) => ({
     source: row.source,
@@ -816,3 +835,49 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     kcalEstimated: row.kcal_estimated === 1,
   }));
 }
+
+/**
+ * Searches the cached dishes, offline (D-28), with the words of a food search: every word must
+ * appear in the name, ignoring case; names starting with the first word come first.
+ */
+export async function searchDishes(db: SqlDb, query: string, limit = 10): Promise<Dish[]> {
+  const words = searchWords(query);
+  if (words.length === 0) return [];
+  const rows = await db.getAllAsync<{
+    code: string;
+    name: string;
+    portion_unit: Dish['portionUnit'];
+    kcal: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fibre_g: number;
+  }>(
+    `SELECT * FROM dishes WHERE ${words.map(() => `lower(name) LIKE ? ESCAPE '\\'`).join(' AND ')}
+     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
+    [...words.map(like), startsWith(words[0]!), limit],
+  );
+  return rows.map((row) => ({
+    code: row.code,
+    name: row.name,
+    portionUnit: row.portion_unit,
+    kcal: row.kcal,
+    proteinG: row.protein_g,
+    carbsG: row.carbs_g,
+    fatG: row.fat_g,
+    fibreG: row.fibre_g,
+  }));
+}
+
+/** At most five lowercase words of a search. */
+function searchWords(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/[\s,]+/)
+    .filter((word) => word.length > 0)
+    .slice(0, 5);
+}
+
+const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char}`);
+const like = (word: string) => `%${escapeLike(word)}%`;
+const startsWith = (word: string) => `${escapeLike(word)}%`;

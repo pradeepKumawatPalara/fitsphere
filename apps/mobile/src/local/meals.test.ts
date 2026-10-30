@@ -1,4 +1,4 @@
-import type { Food, MealItem } from '@fitsphere/shared';
+import type { Dish, Food, MealItem } from '@fitsphere/shared';
 import { memoryDb } from '../testing/memoryDb';
 import type { SqlDb } from './sql';
 import {
@@ -18,6 +18,7 @@ import {
   pruneSynced,
   replaceFoods,
   saveEntry,
+  searchDishes,
   searchFoods,
   setMeta,
 } from './store';
@@ -247,6 +248,58 @@ describe('ADR-0006 rule 1 the cached food list', () => {
   });
 });
 
+describe('D-28 the cached dishes', () => {
+  // Synthetic dishes: made-up values for one portion.
+  const FLATBREAD: Dish = { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 173, proteinG: 4.23, carbsG: 25.67, fatG: 5.61, fibreG: 4.54 };
+  const DAL: Dish = { code: 'test_dal', name: 'Test dal', portionUnit: 'katori', kcal: 138.82, proteinG: 7.42, carbsG: 19.6, fatG: 3.05, fibreG: 3.33 };
+
+  it('keeps the dishes with the food list, and replaces them whole with it', async () => {
+    await replaceFoods(db, 'v1', [], [FLATBREAD, DAL]);
+    expect(await searchDishes(db, 'test')).toEqual([DAL, FLATBREAD]);
+
+    await replaceFoods(db, 'v2', []);
+
+    expect(await searchDishes(db, 'test')).toEqual([]);
+    expect(await getMeta(db, 'food_list_version')).toBe('v2');
+  });
+
+  it('REQ-LOG-007 finds dishes offline by every word of the search, ignoring case', async () => {
+    await replaceFoods(db, 'v1', [], [FLATBREAD, DAL]);
+
+    expect(await searchDishes(db, 'DAL')).toEqual([DAL]);
+    expect(await searchDishes(db, 'flatbread test')).toEqual([FLATBREAD]);
+    expect(await searchDishes(db, 'roti')).toEqual([]);
+    expect(await searchDishes(db, '  ')).toEqual([]);
+  });
+});
+
+describe('Local schema version 5', () => {
+  it('D-28 the update from version 4 adds the dishes, keeps the meals and foods, and asks for the food list again', async () => {
+    const old = memoryDb();
+    try {
+      await old.execAsync(`
+        CREATE TABLE sync_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE foods (source TEXT NOT NULL, code TEXT NOT NULL, name TEXT NOT NULL, food_group TEXT NOT NULL,
+          aliases TEXT NOT NULL, protein_g REAL NOT NULL, fibre_g REAL NOT NULL, fat_g REAL NOT NULL, carbs_g REAL NOT NULL,
+          kcal REAL NOT NULL, kcal_estimated INTEGER NOT NULL, PRIMARY KEY (source, code));
+        PRAGMA user_version = 4;`);
+      await old.runAsync(`INSERT INTO foods VALUES ('ifct2017', 'A019', 'Wheat flour, atta', 'Synthetic group', '[]', 1, 1, 1, 1, 10, 0)`, []);
+      await setMeta(old, 'food_list_version', 'v1');
+      await setMeta(old, 'cursor', '42');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 5 });
+      expect((await searchFoods(old, 'atta')).map((found) => found.code)).toEqual(['A019']);
+      expect(await searchDishes(old, 'atta')).toEqual([]);
+      expect(await getMeta(old, 'food_list_version')).toBeNull();
+      expect(await getMeta(old, 'cursor')).toBe('42');
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
 describe('Local schema version 3', () => {
   it('ADR-0007 the update from version 2 keeps what is on the phone and clears the cursor', async () => {
     const old = memoryDb();
@@ -260,7 +313,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 4 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 5 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);

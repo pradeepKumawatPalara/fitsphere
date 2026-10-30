@@ -2,8 +2,8 @@
 
 - Status: **Accepted**, approved by the project owner on 2026-10-29 (D-26)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
-  sheet)
+- Last updated: 2026-10-30 (D-28: step 8 built; dishes go live recipe by recipe). Earlier the same
+  day (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe sheet)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 3 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); ADR-0002, ADR-0003, ADR-0006,
   ADR-0007; [`food-list-sources.md`](../data/food-list-sources.md) (D-25)
@@ -29,7 +29,7 @@ Where the contracts define something, this plan does not repeat it.
 | 6. Barcode | Pull request #29, CI green | `meals/06-barcode` |
 | 7a. Meal photos and public links on the server | Pull request #30, CI green | `meals/07-photos-server` |
 | 7b. Meal photos and public links on the phone | Pull request #31, CI green | `meals/07b-photos-app` |
-| 8. Dishes (standard-recipe portions) | **Waiting for the owner:** the weighed standard-recipe sheet (D-26 answer 3, amended 2026-10-30; see step 8) | `meals/08-dishes` |
+| 8. Dishes (standard-recipe portions) | Built (D-28); its pull request waits for CI and the owner. No dish is live until its recipe is measured and approved | `meals/08-dishes` |
 | 9. Close-out | Pull request #32 | `meals/09-close-out` |
 
 The slice's pull requests build on pull request #18 (D-24), which must be merged first.
@@ -115,14 +115,20 @@ in the step that builds each one.
    - On the phone, a compressed copy of about 200 KB and a thumbnail, cached in the encrypted
      database.
    - The public link with its warning.
-8. **Dishes (standard-recipe portions).** Merging this pull request is the owner's OK on the
-   standard-recipe sheet.
-   - **2026-10-30: waiting for the owner's weighed recipes.** D-26 answer 3 was amended: dishes
-     come from FitSphere's standard-recipe sheet, not from an outside document. The sheet,
-     [`docs/data/standard-recipe-sheet.csv`](../data/standard-recipe-sheet.csv), lists 25 dishes
-     with their IFCT ingredients. Every gram field is empty until the owner weighs the recipe.
-   - The step then adds the dish list and its import. Each dish's values are computed from the
-     IFCT list and marked "estimated".
+8. **Dishes (standard-recipe portions)** (D-28). Built before the recipes are measured; each dish
+   goes live when its recipe is.
+   - The sheet, [`docs/data/standard-recipe-sheet.csv`](../data/standard-recipe-sheet.csv), lists
+     25 dishes with their IFCT ingredients, a stable `code` and a `status`. Every gram field is
+     empty until the owner weighs the recipe.
+   - Migration 0006 (`dishes`). `npm run foods:import` also imports the `approved` rows, works out
+     each dish's values for one portion from the IFCT list (estimated), and refuses an incomplete
+     approved row or any value in a `blocked` row. Pending rows stay hidden.
+   - `GET /v1/foods` serves the dishes per portion, never their ingredients or grams. Sync refuses
+     a dish that is not on the list, a dish in grams, or any other food in portions.
+   - On the phone: local schema version 5 (`dishes`); food search lists matching dishes first;
+     a dish is added, and changed in the review, in portions from 0.5 to 10, in halves.
+   - The owner's OK on a recipe is the merge of the pull request that measures it and marks it
+     `approved`.
    - *Before:* on 2026-10-29, NIN's *Dietary Guidelines for Indians* (2024) could not be read
      from here. NIN's own copy was found on 2026-10-30, but it gives no weight for one dish
      portion, so it is not used ([`food-list-sources.md`](../data/food-list-sources.md)).
@@ -143,8 +149,13 @@ in the step that builds each one.
 4. An OK to start the EAS development build (the 3rd of this month's 15). It carries
    `expo-camera`, `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`. **OK given
    2026-10-29**; the build was started.
-5. The dishes (step 8): weigh each recipe and fill in the standard-recipe sheet, then approve it
-   by merging the dish pull request. **Method approved 2026-10-30** (D-26 answer 3, amended).
+5. The dishes (step 8; D-28):
+   - merge the step 8 pull request, then apply migration 0006 to `fitsphere-dev`
+     (`npm run migrate -w @fitsphere/api`) and run `npm run foods:import -w @fitsphere/api`. It
+     imports 0 dishes until a recipe is approved;
+   - weigh the starter set (boiled egg, roti, phulka, plain rice, toor dal, moong dal, aloo gobi,
+     idli, plain dosa), fill in their rows and mark them `approved`, in a pull request; after the
+     merge, run `foods:import` again. **Method approved 2026-10-30** (D-26 answer 3, amended).
 6. The phone checks below.
 
 ## Phone checks (batched)
@@ -174,3 +185,7 @@ gone through it from the phone yet (check 5).
 7. **Storage with the Data API off** (ADR-0002 step 2), on the PC: `npm run check:storage`; it
    also checks that an expired viewing link stops working. **Passed 2026-10-29:** 8 of 8, exit
    code 0 (results in the runbook, step 5 item 9).
+8. **Dishes** (D-28), once at least one recipe is approved and imported: search finds the dish,
+   marked "estimated", per piece or per katori; add 1.5 portions; − stops at 0.5 and + at 10;
+   change the portions in the review; save; Home's calories and protein follow. A pending or
+   blocked dish (e.g. chicken curry) is not found.
