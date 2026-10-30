@@ -2,8 +2,10 @@
 
 - Status: **Accepted**, approved by the project owner on 2026-10-29 (D-26)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-28: step 8 built; dishes go live recipe by recipe). Earlier the same
-  day (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe sheet)
+- Last updated: 2026-10-30 (every step merged, step 8 as #38; migration 0006 and `foods:import` on
+  `fitsphere-dev` still to run). Earlier the same day (D-28: step 8 built; dishes go live recipe by
+  recipe). Earlier the same day (D-26 answer 3 amended: dishes come from FitSphere's
+  standard-recipe sheet)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 3 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); ADR-0002, ADR-0003, ADR-0006,
   ADR-0007; [`food-list-sources.md`](../data/food-list-sources.md) (D-25)
@@ -21,16 +23,16 @@ Where the contracts define something, this plan does not repeat it.
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Food list on the server | Pull request #20, CI green | `meals/01-food-list` |
-| 2. Meals and saved meals on the server | Pull request #21, CI green | `meals/02-server-meals` |
-| 3. Phone data | Pull request #22, CI green | `meals/03-phone-meals` |
-| 4. Nutrition and Home | Pull request #24, CI green | `meals/04-nutrition` |
-| 5. Log meal | Pull request #26, CI green | `meals/05-log-meal` |
-| 6. Barcode | Pull request #29, CI green | `meals/06-barcode` |
-| 7a. Meal photos and public links on the server | Pull request #30, CI green | `meals/07-photos-server` |
-| 7b. Meal photos and public links on the phone | Pull request #31, CI green | `meals/07b-photos-app` |
-| 8. Dishes (standard-recipe portions) | Built (D-28); its pull request waits for CI and the owner. No dish is live until its recipe is measured and approved | `meals/08-dishes` |
-| 9. Close-out | Pull request #32 | `meals/09-close-out` |
+| 1. Food list on the server | Merged (#20, 2026-10-29) | `meals/01-food-list` |
+| 2. Meals and saved meals on the server | Merged (#21, 2026-10-29) | `meals/02-server-meals` |
+| 3. Phone data | Merged (#22, 2026-10-29) | `meals/03-phone-meals` |
+| 4. Nutrition and Home | Merged (#24, 2026-10-29) | `meals/04-nutrition` |
+| 5. Log meal | Merged (#26, 2026-10-29) | `meals/05-log-meal` |
+| 6. Barcode | Merged (#29, 2026-10-29) | `meals/06-barcode` |
+| 7a. Meal photos and public links on the server | Merged (#30, 2026-10-29) | `meals/07-photos-server` |
+| 7b. Meal photos and public links on the phone | Merged (#31, 2026-10-29) | `meals/07b-photos-app` |
+| 8. Dishes (standard-recipe portions) | Merged (#38, 2026-10-30; D-28). No dish is live until its recipe is measured and approved | `meals/08-dishes` |
+| 9. Close-out | Merged (#32, 2026-10-29) | `meals/09-close-out` |
 
 The slice's pull requests build on pull request #18 (D-24), which must be merged first.
 
@@ -150,9 +152,10 @@ in the step that builds each one.
    `expo-camera`, `expo-image-picker`, `expo-image-manipulator` and `expo-file-system`. **OK given
    2026-10-29**; the build was started.
 5. The dishes (step 8; D-28):
-   - merge the step 8 pull request, then apply migration 0006 to `fitsphere-dev`
-     (`npm run migrate -w @fitsphere/api`) and run `npm run foods:import -w @fitsphere/api`. It
-     imports 0 dishes until a recipe is approved;
+   - merge the step 8 pull request (**done 2026-10-30, #38**), then apply migration 0006 to
+     `fitsphere-dev` (`npm run migrate -w @fitsphere/api`; it also applies the Training slice's
+     0007) and run `npm run foods:import -w @fitsphere/api`. It imports 0 dishes until a recipe is
+     approved (**still to run**);
    - weigh the starter set (boiled egg, roti, phulka, plain rice, toor dal, moong dal, aloo gobi,
      idli, plain dosa), fill in their rows and mark them `approved`, in a pull request; after the
      merge, run `foods:import` again. **Method approved 2026-10-30** (D-26 answer 3, amended).

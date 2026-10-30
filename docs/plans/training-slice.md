@@ -2,9 +2,10 @@
 
 - Status: **Accepted**, approved by the project owner on 2026-10-29 (D-29)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (rebased onto slice 3's step 8, #38: migration 0007, phone schema
-  version 6, IDs D-29 and E-14 to E-17). 2026-10-29 (steps 1 to 4 built; the owner's checks are
-  pending)
+- Last updated: 2026-10-30 (steps 1 to 4 merged after #38: #23, #25, #27 and #28; migration 0007
+  on `fitsphere-dev` still to run). Earlier the same day (rebased onto slice 3's step 8, #38:
+  migration 0007, phone schema version 6, IDs D-29 and E-14 to E-17). 2026-10-29 (steps 1 to 4
+  built; the owner's checks are pending)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 4 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); the contracts in
   [`docs/contracts/`](../contracts/); [`test-strategy.md`](../quality/test-strategy.md);
@@ -19,17 +20,17 @@ This is the fourth MVP slice, for the Personal Training User only (D-20). It bui
   of the other kinds (ADR-0007);
 - the real count and dots in the Home workout tracker (REQ-HOME-007).
 
-It is built **in parallel with slice 3, Meal logging** (D-26), in its own worktree. Where the
-contracts define something, this plan does not repeat it.
+It was built **in parallel with slice 3, Meal logging** (D-26), in its own worktree, and merged
+after slice 3 on 2026-10-30. Where the contracts define something, this plan does not repeat it.
 
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Server: workouts in the contracts, schema, sync and history route | Pull request #23 | `training/01-server-workouts` |
-| 2. Phone: local schema, store and sync client | Pull request #25 | `training/02-phone-workouts` |
-| 3. Training tab and workout screen | Pull request #27 | `training/03-training-screens` |
-| 4. Home workout tracker; close-out | Pull request #28 | `training/04-home-tracker` |
-| Owner's checks at the end of the slice | Pending: merge after #38 (rebased onto it on 2026-10-30, numbers final), migration 0007 on `fitsphere-dev`, phone checks 1 to 8 | — |
+| 1. Server: workouts in the contracts, schema, sync and history route | Merged (#23, 2026-10-30) | `training/01-server-workouts` |
+| 2. Phone: local schema, store and sync client | Merged (#25, 2026-10-30) | `training/02-phone-workouts` |
+| 3. Training tab and workout screen | Merged (#27, 2026-10-30) | `training/03-training-screens` |
+| 4. Home workout tracker; close-out | Merged (#28, 2026-10-30) | `training/04-home-tracker` |
+| Owner's checks at the end of the slice | Merge done (2026-10-30, after #38). Pending: migration 0007 on `fitsphere-dev`, phone checks 1 to 8 | — |
 
 ## Scope
 | In this slice | Requirements |
@@ -174,9 +175,10 @@ online; E-17 exercise-name suggestions from past workouts.
 ## Owner's checks at the end of the slice
 1. Merge the four pull requests in step order, each with green CI, after slice 3's step 8 (#38).
    They are rebased onto it, with the migration number, the phone schema version and the IDs made
-   final.
+   final. **Done 2026-10-30.**
 2. When the owner says so: `npm run migrate -w @fitsphere/api` against `fitsphere-dev`, only once
-   the migration has its final number on main.
+   the migration has its final number on main. The number is final: `0007_workouts.sql`, after
+   slice 3's `0006_dishes.sql`; one `migrate` run applies both. **Still to run.**
 3. Phone checks on the existing development build (no new build), with test data only; the owner
    starts `npm run dev:phone`:
    1. Training shows "No training plan yet.", "Start an empty workout" and an empty history.
