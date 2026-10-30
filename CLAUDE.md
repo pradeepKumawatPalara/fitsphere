@@ -7,16 +7,18 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Slice 3, Meal logging (no AI) — built except dishes; phone checks pending (D-26,
-2026-10-29).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Steps 1 to 7 and the close-out
-(pull requests #18 to #32) are merged. On `fitsphere-dev`, migrations 0002 to 0005 and
-`foods:import` are applied; photo storage (private bucket `meal-photos`, S3 connection and access
-key) is configured and passed `check:storage` 8 of 8 from the PC; `OFF_CONTACT` is set. Still
-open: the phone checks in the plan, on the new EAS development build (approved 2026-10-29), which
-are the first time a real photo goes through storage; and step 8 (dishes), which waits for the
-owner to weigh the recipes and fill in FitSphere's standard-recipe sheet,
-`docs/data/standard-recipe-sheet.csv` (D-26 answer 3, amended 2026-10-30: no NIN guideline, INDB
-or USDA data). Until then the sheet's gram fields stay empty and no dish values exist.
+**Slice 3, Meal logging (no AI) — built; dish recipes and phone checks pending (D-26,
+2026-10-29; D-28, 2026-10-30).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Steps 1 to 7
+and the close-out (pull requests #18 to #32) are merged. On `fitsphere-dev`, migrations 0002 to
+0005 and `foods:import` are applied; photo storage (private bucket `meal-photos`, S3 connection
+and access key) is configured and passed `check:storage` 8 of 8 from the PC; `OFF_CONTACT` is set.
+Step 8 (dishes, D-28) is built in its own pull request: the dish import, `GET /v1/foods` dishes and
+logging dishes in portions. Still open: migration 0006 and `foods:import` on `fitsphere-dev`; the
+phone checks in the plan, on the new EAS development build (approved 2026-10-29); and the
+recipes. A dish goes live only when its row in `docs/data/standard-recipe-sheet.csv` is measured
+and marked `approved` by the owner (starter set first: boiled egg, roti, phulka, plain rice, toor
+dal, moong dal, aloo gobi, idli, plain dosa). Until then no dish values exist. Never fill in or
+approve a recipe row without the owner's measurements; the chicken curry stays `blocked`.
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are

@@ -14,11 +14,20 @@ const AT = `${TODAY}T02:00:00.000Z`;
 
 let api: Awaited<ReturnType<typeof startTestApi>>;
 
+// A synthetic dish on the dish list (D-28), with made-up values for one portion.
+const TEST_DISH_CODE = 'test_flatbread_meals';
+
 beforeAll(async () => {
   api = await startTestApi({ now: () => NOW });
+  await api.db.query(
+    `insert into app.dishes (code, name, portion_unit, kcal, protein_g, carbs_g, fat_g, fibre_g)
+     values ($1, 'Test flatbread', 'piece', 173, 4.23, 25.67, 5.61, 4.54) on conflict (code) do nothing`,
+    [TEST_DISH_CODE],
+  );
 });
 
 afterAll(async () => {
+  await api.db.query('delete from app.dishes where code = $1', [TEST_DISH_CODE]);
   await api.close();
 });
 
@@ -222,13 +231,62 @@ describe('REQ-LOG-001 meals', () => {
     expect(await storedMeals(user.id)).toEqual([]);
   });
 
-  it('REQ-LOG-007 a portion of a dish in halves is accepted', async () => {
+  it('D-28 a listed dish in halves of a portion is accepted, and keeps the values it was logged with', async () => {
     const user = await api.signUpWithAccount();
-    const dish: MealItem = { ...ATTA, source: 'dish', ref: 'D-ROTI', amount: { unit: 'portion', value: 1.5 }, estimated: true };
+    // 1.5 portions of the synthetic dish: the phone's snapshot of its values for that amount.
+    const dish: MealItem = {
+      source: 'dish',
+      ref: TEST_DISH_CODE,
+      name: 'Test flatbread',
+      amount: { unit: 'portion', value: 1.5 },
+      kcal: 259.5,
+      proteinG: 6.35,
+      carbsG: 38.51,
+      fatG: 8.42,
+      fibreG: 6.81,
+      estimated: true,
+    };
+
+    const reply = await syncOk(user, [mealSet(randomUUID(), { items: [dish, GHEE] })]);
+
+    expect(reply.results[0]?.status).toBe('accepted');
+    const [meal] = reply.pull.meals;
+    expect(meal?.deleted === false && meal.items).toEqual([dish, GHEE]);
+    expect(meal?.deleted === false && meal.totals).toEqual({ kcal: 304.5, proteinG: 6.35, carbsG: 38.51, fatG: 13.42, fibreG: 6.81 });
+  });
+
+  it.each<[string, Partial<MealItem>]>([
+    ['a dish that is not on the dish list', { ref: 'not_a_listed_dish' }],
+    ['a dish with no code', { ref: null }],
+    ['a dish in grams', { amount: { unit: 'g', value: 60 } }],
+  ])('D-28 %s is rejected', async (_case, change) => {
+    const user = await api.signUpWithAccount();
+    const dish: MealItem = { ...ATTA, source: 'dish', ref: TEST_DISH_CODE, amount: { unit: 'portion', value: 1 }, estimated: true, ...change };
 
     const reply = await syncOk(user, [mealSet(randomUUID(), { items: [dish] })]);
 
-    expect(reply.results[0]?.status).toBe('accepted');
+    expect(reply.results[0]?.error?.code).toBe('VALIDATION_FAILED');
+    expect(await storedMeals(user.id)).toEqual([]);
+  });
+
+  it('D-28 a listed food in portions is rejected: single foods stay in grams', async () => {
+    const user = await api.signUpWithAccount();
+
+    const reply = await syncOk(user, [mealSet(randomUUID(), { items: [{ ...ATTA, amount: { unit: 'portion', value: 1 } }] })]);
+
+    expect(reply.results[0]?.error?.code).toBe('VALIDATION_FAILED');
+  });
+
+  it('D-28 a saved meal can hold a listed dish, but not an unlisted one', async () => {
+    const user = await api.signUpWithAccount();
+    const dish: MealItem = { ...ATTA, source: 'dish', ref: TEST_DISH_CODE, amount: { unit: 'portion', value: 2 }, estimated: true };
+
+    const reply = await syncOk(user, [
+      savedSet(randomUUID(), { items: [dish] }),
+      savedSet(randomUUID(), { items: [{ ...dish, ref: 'not_a_listed_dish' }] }),
+    ]);
+
+    expect(reply.results.map((result) => result.error?.code ?? result.status)).toEqual(['accepted', 'VALIDATION_FAILED']);
   });
 
   it('ADR-0007 rule 1 the pull holds the last 90 IST days of meals, deletions included', async () => {

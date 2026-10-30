@@ -1,7 +1,8 @@
-// Writes the IFCT food list into app.foods (ADR-0006 rule 1). One transaction: every row is
-// inserted or updated by its code, and rows no longer in the file are removed, so running it again
-// gives the same table.
+// Writes the IFCT food list into app.foods (ADR-0006 rule 1), and the approved dishes into
+// app.dishes (D-28). One transaction each: every row is inserted or updated by its code, and rows no
+// longer in the file are removed, so running it again gives the same table.
 import type pg from 'pg';
+import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
 
 export type ImportResult = { total: number; hidden: number; estimated: number };
@@ -52,4 +53,31 @@ export async function importFoods(client: pg.ClientBase, foods: ImportedFood[]):
     hidden: foods.filter((food) => food.hidden).length,
     estimated: foods.filter((food) => food.estimated).length,
   };
+}
+
+/**
+ * Makes app.dishes hold exactly the approved dishes: a dish no longer approved is removed, so the
+ * phones stop offering it at their next food-list download.
+ */
+export async function importDishes(client: pg.ClientBase, dishes: ImportedDish[]): Promise<number> {
+  await client.query('begin');
+  try {
+    for (const dish of dishes) {
+      await client.query(
+        `insert into app.dishes (code, name, portion_unit, kcal, protein_g, carbs_g, fat_g, fibre_g)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)
+         on conflict (code) do update set
+           name = excluded.name, portion_unit = excluded.portion_unit, kcal = excluded.kcal,
+           protein_g = excluded.protein_g, carbs_g = excluded.carbs_g, fat_g = excluded.fat_g,
+           fibre_g = excluded.fibre_g, updated_at = now()`,
+        [dish.code, dish.name, dish.portionUnit, dish.kcal, dish.proteinG, dish.carbsG, dish.fatG, dish.fibreG],
+      );
+    }
+    await client.query('delete from app.dishes where not (code = any($1::text[]))', [dishes.map((dish) => dish.code)]);
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  }
+  return dishes.length;
 }

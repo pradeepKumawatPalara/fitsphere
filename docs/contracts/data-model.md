@@ -228,7 +228,7 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
 | `meal_type` | `text` | `breakfast`, `lunch`, `snack` or `dinner`; required (REQ-LOG-003). Null once deleted |
 | `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
-| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000, or portions 0.5–10 in halves), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
+| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000, or portions 0.5–10 in halves), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
 | `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
 | `photo` | `jsonb` | **Health.** The meal's one photo, `{"kind": "photo", "mediaId": …}` (see `media`), or one public image link, `{"kind": "link", "url": "https://…"}` (REQ-LOG-010), or null (MVP default, D-26). A link is https only, with a host name, no user name or password, and at most 2,000 characters; FitSphere never fetches it. Null once deleted |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
@@ -305,6 +305,24 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | `aliases` | `text[]` | Other spellings to search by |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 
+### `dishes` — reference data
+FitSphere's dishes (D-26 answer 3, amended; D-28): the `approved` rows of
+`docs/data/standard-recipe-sheet.csv`, loaded by `npm run foods:import`
+([`food-list-sources.md`](../data/food-list-sources.md), "Dishes"). Migration 0006. Not personal
+data, so no `user_id` and no `change_seq`; the phone fetches it with the food list. A row exists
+only while its recipe is approved; the recipe's ingredients and grams are not stored here.
+
+| Column | Type | Rules |
+|---|---|---|
+| `code` | `text` | Primary key: the sheet's code, e.g. `roti`; lowercase letters, digits and `_` |
+| `name` | `text` | Not null, not empty: the sheet's dish name |
+| `portion_unit` | `text` | `piece` or `katori` (200 ml) |
+| `kcal` | `numeric(7,2)` | Not null, 0 or more: kcal in one portion |
+| `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(6,2)` | Not null, 0 or more: grams in one portion |
+| `updated_at` | `timestamptz` | Server time of the last import that changed the row |
+
+The values are IFCT values per 100 g × the recipe's measured grams, so a dish is always estimated.
+
 ### `barcode_products` — reference data
 Products looked up on Open Food Facts by barcode (ADR-0006 rule 2). Kept apart from `foods` and
 never merged into it, so the ODbL share-alike duty stays with this table (Legal to confirm,
@@ -374,6 +392,7 @@ rule 5 and D-14 require.
 | `meals` | `id` (key), `day`, `meal_type`, `tags`, `items` and `photo` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3; `photo` version 4 |
 | `saved_meals` | `id` (key), `name`, `meal_type`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day. Schema version 3 |
 | `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3 |
+| `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
@@ -396,6 +415,8 @@ rule 5 and D-14 require.
   the food list are always kept.
 - **Version 4** (Meal logging slice) adds `meals.photo` and `photos`, and clears the sync cursor
   so the next sync pulls the meals' photos.
+- **Version 5** (Meal logging slice, step 8; D-28) adds `dishes`, and clears
+  `food_list_version` so the next download brings the dishes.
 - **Photos** (REQ-LOG-006; D-14): a new photo is saved in the same transaction as the meal that
   names it. It is uploaded after a sync once its meal's change has been accepted; until then it
   counts as unsynced (the log-out warning includes it) and is never cleared automatically, and
@@ -422,7 +443,7 @@ rule 5 and D-14 require.
 | `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
 | `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
 | `meals`, `saved_meals` | While the account exists; a deleted one keeps only its ID, its day (meals) and when it was deleted | With the account. Phase 1 has no backups (R-005) |
-| `foods`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`) |
+| `foods`, `dishes`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |
 

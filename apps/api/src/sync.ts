@@ -227,14 +227,16 @@ const HANDLERS = new Map<string, Handler>([
     MEAL_SET,
     // Creates the meal, or replaces the whole meal with this ID: the change received last wins
     // (ADR-0007 rule 2), including over an earlier deletion. The totals are computed here from the
-    // items; a change cannot set them. A new photo ID is claimed for this meal; an ID already used,
-    // or one whose photo was deleted, is refused, so a photo never moves between meals or comes
-    // back. A photo the meal no longer has is deleted (REQ-LOG-006).
+    // items; a change cannot set them. A dish must be on the dish list (D-28). A new photo ID is
+    // claimed for this meal; an ID already used, or one whose photo was deleted, is refused, so a
+    // photo never moves between meals or comes back. A photo the meal no longer has is deleted
+    // (REQ-LOG-006).
     async (client, account, input, now) => {
       const data = mealSetDataSchema.safeParse(input);
       if (!data.success) return 'VALIDATION_FAILED';
       if (isFutureIstDay(data.data.day, now)) return 'DAY_IN_FUTURE';
       const meal = data.data;
+      if (!(await dishesListed(client, meal.items))) return 'VALIDATION_FAILED';
       const before = await client.query<{ photo: MealPhoto | null }>(
         'select photo from app.meals where user_id = $1 and id = $2',
         [account.id, meal.id],
@@ -307,6 +309,7 @@ const HANDLERS = new Map<string, Handler>([
       const data = savedMealSetDataSchema.safeParse(input);
       if (!data.success) return 'VALIDATION_FAILED';
       const saved = data.data;
+      if (!(await dishesListed(client, saved.items))) return 'VALIDATION_FAILED';
       const totals = mealTotals(saved.items);
       await client.query(
         `insert into app.saved_meals (user_id, id, name, meal_type, tags, items, kcal, protein_g, carbs_g, fat_g,
@@ -339,6 +342,20 @@ const HANDLERS = new Map<string, Handler>([
 
 function mediaIdOf(photo: MealPhoto | null): string | null {
   return photo?.kind === 'photo' ? photo.mediaId : null;
+}
+
+/**
+ * Every dish the items name is on FitSphere's dish list (D-28), so a meal can hold only approved
+ * dishes. The item keeps its own values: they are the snapshot taken when it was logged.
+ */
+async function dishesListed(client: pg.PoolClient, items: MealItem[]): Promise<boolean> {
+  const refs = new Set(items.filter((item) => item.source === 'dish').map((item) => item.ref));
+  if (refs.size === 0) return true;
+  if (refs.has(null)) return false;
+  const { rows } = await client.query<{ n: number }>('select count(*)::int as n from app.dishes where code = any($1::text[])', [
+    [...refs],
+  ]);
+  return rows[0]?.n === refs.size;
 }
 
 /** node-postgres turns a JavaScript array into a PostgreSQL array, so jsonb gets JSON text. */

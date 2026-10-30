@@ -1,4 +1,4 @@
-import { istToday, mealTotals, type BarcodeProduct, type Food, type MealItem, type SyncResult, type TargetKind } from '@fitsphere/shared';
+import { istToday, mealTotals, type BarcodeProduct, type Dish, type Food, type MealItem, type SyncResult, type TargetKind } from '@fitsphere/shared';
 import { ME } from './fakes';
 
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
@@ -36,8 +36,9 @@ export function fakeServer(now: Date) {
     /** Reject every change with this code. */
     rejectWith: null as string | null,
     older: [] as { day: string; weightGrams: number }[],
-    /** The food list GET /v1/foods serves, and its version. */
+    /** The food list GET /v1/foods serves, with its dishes, and its version. */
     foods: [] as Food[],
+    dishes: [] as Dish[],
     foodsVersion: 'foods-v1',
     /** Products GET /v1/barcodes/{barcode} knows; any other barcode is not found. */
     barcodes: {} as Record<string, BarcodeProduct>,
@@ -107,7 +108,7 @@ export function fakeServer(now: Date) {
     if (method === 'GET' && path === '/me') return json(200, ME);
     if (method === 'GET' && path === '/foods') {
       const current = url.searchParams.get('version') === state.foodsVersion;
-      return json(200, { version: state.foodsVersion, items: current ? null : state.foods });
+      return json(200, { version: state.foodsVersion, items: current ? null : state.foods, dishes: current ? null : state.dishes });
     }
     const barcode = /^\/barcodes\/(\d+)$/.exec(path)?.[1];
     if (method === 'GET' && barcode) {

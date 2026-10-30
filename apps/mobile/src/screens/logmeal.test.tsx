@@ -1,4 +1,4 @@
-import { IFCT_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
@@ -283,5 +283,109 @@ describe('REQ-NUT-004 Edit', () => {
     await render({ mealId: '00000000-0000-4000-c000-00000000dead' });
 
     expect(await screen.findByText('This meal is no longer on this phone.')).toBeOnTheScreen();
+  });
+});
+
+describe('D-28 dishes, logged in portions', () => {
+  // Synthetic dishes: made-up values for one portion, not recipe data.
+  const DISHES: Dish[] = [
+    { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 120, proteinG: 3.6, carbsG: 20, fatG: 3, fibreG: 2 },
+    { code: 'test_dal', name: 'Test dal', portionUnit: 'katori', kcal: 150, proteinG: 8, carbsG: 20, fatG: 4, fibreG: 5 },
+  ];
+
+  async function withDishes(db: SqlDb, server: FakeServer) {
+    server.state.foods = FOODS;
+    server.state.dishes = DISHES;
+    await replaceFoods(db, server.state.foodsVersion, FOODS, DISHES);
+  }
+
+  async function chooseDish(search: string, name: RegExp) {
+    await fireEvent.press(screen.getByRole('button', { name: 'Search foods' }));
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), search);
+    await fireEvent.press(await screen.findByRole('button', { name }));
+  }
+
+  it('REQ-LOG-007 search finds the dishes on the phone, each per piece or per katori, estimated', async () => {
+    await render({ day: TODAY }, withDishes);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
+
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'test');
+    expect(await screen.findByRole('button', { name: 'Test flatbread, dish, 120 kcal per piece, estimated' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Test dal, dish, 150 kcal per katori (200 ml), estimated' })).toBeOnTheScreen();
+
+    // A dish the server does not list (not approved, or blocked) is never on the phone.
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'chicken curry');
+    expect(await screen.findByText('No foods found. Try another word, or enter your own food.')).toBeOnTheScreen();
+  });
+
+  it('a dish is added in portions, in halves from 0.5 to 10, with its values for that many', async () => {
+    await render({ day: TODAY }, withDishes);
+    await screen.findByRole('button', { name: 'Search foods' });
+    await chooseDish('flatbread', /^Test flatbread, dish/);
+
+    expect(screen.getByText('One portion is one piece: 120 kcal · 3.6 g protein (estimated)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Portions: 1')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Grams eaten')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Half a portion fewer' }));
+    expect(screen.getByLabelText('Portions: 0.5')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Half a portion fewer' })).toBeDisabled();
+    expect(screen.getByLabelText('Adds 60 kcal and 1.8 g protein')).toBeOnTheScreen();
+
+    for (let press = 0; press < 25; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a portion more' }));
+    expect(screen.getByLabelText('Portions: 10')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Half a portion more' })).toBeDisabled();
+    expect(screen.getByLabelText('Adds 1,200 kcal and 36.0 g protein')).toBeOnTheScreen();
+
+    for (let press = 0; press < 17; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a portion fewer' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByLabelText('Test flatbread: 1.5 portions, 180 kcal, 5.4 g protein')).toBeOnTheScreen();
+    expect(screen.getByText('1.5 portions · 180 kcal · 5.4 g protein · estimated')).toBeOnTheScreen();
+  });
+
+  it('the review can change a dish’s portions, and a food’s grams as before', async () => {
+    await render({ day: TODAY }, withDishes);
+    await screen.findByRole('button', { name: 'Search foods' });
+    await chooseDish('dal', /^Test dal, dish/);
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    expect(screen.getByLabelText('Total: 342 kcal, 14.3 g protein')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Test dal' }));
+    expect(screen.getByLabelText('Portions: 1')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Half a portion more' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Change to 1.5 portions' }));
+
+    expect(screen.getByLabelText('Test dal: 1.5 portions, 225 kcal, 12.0 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Total: 417 kcal, 18.3 g protein')).toBeOnTheScreen();
+  });
+
+  it('saving keeps the dish as logged: its code, the portions and their values, estimated', async () => {
+    const { db, server } = await render({ day: TODAY }, withDishes);
+    await screen.findByRole('button', { name: 'Search foods' });
+    await chooseDish('dal', /^Test dal, dish/);
+    await fireEvent.press(screen.getByRole('button', { name: 'Half a portion more' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Dinner' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
+    const dish: MealItem = {
+      source: 'dish',
+      ref: 'test_dal',
+      name: 'Test dal',
+      amount: { unit: 'portion', value: 1.5 },
+      kcal: 225,
+      proteinG: 12,
+      carbsG: 30,
+      fatG: 6,
+      fibreG: 7.5,
+      estimated: true,
+    };
+    expect(await getEntry(db, 'meal', row!.id)).toMatchObject({ items: [dish], kcal: 225 });
+    await waitFor(() => expect(server.entries('meals').get(row!.id)).toMatchObject({ items: [dish], totals: { kcal: 225, proteinG: 12 } }));
   });
 });

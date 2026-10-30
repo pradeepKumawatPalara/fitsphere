@@ -1,39 +1,48 @@
-import { IFCT_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
 import { Button, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getMeta, searchFoods } from '../local/store';
-import { GRAMS_RULE, itemFromFood, parseGrams } from '../mealItems';
-import { formatGrams, formatKcal } from '../meals';
+import { getMeta, searchDishes, searchFoods } from '../local/store';
+import { GRAMS_RULE, itemFromDish, itemFromFood, parseGrams } from '../mealItems';
+import { formatGrams, formatKcal, PORTION_UNIT_LABELS } from '../meals';
+import { PortionStepper } from './PortionStepper';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
-// (ADR-0006 rule 1), then the grams eaten. Food values are per 100 g; IFCT's acknowledgement is
-// shown under the results (D-25).
+// (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g; a dish (D-28)
+// in portions, from its values for one portion, which are estimated. IFCT's acknowledgement is shown
+// under the results (D-25): the dishes' values come from IFCT too.
+
+type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food };
+
 export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
   const local = useLocalDatabase();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Food[]>([]);
+  const [results, setResults] = useState<Result[]>([]);
   const [listCached, setListCached] = useState(true);
-  const [chosen, setChosen] = useState<Food | null>(null);
+  const [chosen, setChosen] = useState<Result | null>(null);
   const [gramsText, setGramsText] = useState('100');
+  const [portions, setPortions] = useState(1);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([searchFoods(db, query), getMeta(db, 'food_list_version')]).then(([found, version]) => {
-      if (!active) return;
-      setResults(found);
-      setListCached(version !== null);
-    });
+    void Promise.all([searchDishes(db, query), searchFoods(db, query), getMeta(db, 'food_list_version')]).then(
+      ([dishes, foods, version]) => {
+        if (!active) return;
+        setResults([...dishes.map((dish): Result => ({ kind: 'dish', dish })), ...foods.map((food): Result => ({ kind: 'food', food }))]);
+        setListCached(version !== null);
+      },
+    );
     return () => {
       active = false;
     };
   }, [local.state, query]);
 
   const grams = parseGrams(gramsText);
-  const preview = chosen && grams !== null ? itemFromFood(chosen, grams) : null;
+  const preview =
+    chosen?.kind === 'dish' ? itemFromDish(chosen.dish, portions) : chosen && grams !== null ? itemFromFood(chosen.food, grams) : null;
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -42,23 +51,35 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           {chosen ? (
             <>
               <Text accessibilityRole="header" style={styles.title}>
-                {chosen.name}
+                {chosen.kind === 'dish' ? chosen.dish.name : chosen.food.name}
               </Text>
-              <Text>
-                Per 100 g: {formatKcal(chosen.kcal)}
-                {chosen.kcalEstimated ? ' (estimated)' : ''} · {formatGrams(chosen.proteinG)} protein
-              </Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  accessibilityLabel="Grams eaten"
-                  value={gramsText}
-                  onChangeText={setGramsText}
-                  keyboardType="number-pad"
-                  autoFocus
-                  style={styles.input}
-                />
-                <Text>g</Text>
-              </View>
+              {chosen.kind === 'dish' ? (
+                <>
+                  <Text>
+                    One portion is one {PORTION_UNIT_LABELS[chosen.dish.portionUnit]}: {formatKcal(chosen.dish.kcal)} ·{' '}
+                    {formatGrams(chosen.dish.proteinG)} protein (estimated)
+                  </Text>
+                  <PortionStepper value={portions} onChange={setPortions} />
+                </>
+              ) : (
+                <>
+                  <Text>
+                    Per 100 g: {formatKcal(chosen.food.kcal)}
+                    {chosen.food.kcalEstimated ? ' (estimated)' : ''} · {formatGrams(chosen.food.proteinG)} protein
+                  </Text>
+                  <View style={styles.inputRow}>
+                    <TextInput
+                      accessibilityLabel="Grams eaten"
+                      value={gramsText}
+                      onChangeText={setGramsText}
+                      keyboardType="number-pad"
+                      autoFocus
+                      style={styles.input}
+                    />
+                    <Text>g</Text>
+                  </View>
+                </>
+              )}
               {preview ? (
                 <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`}>
                   = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
@@ -99,25 +120,42 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               ) : null}
               <FlatList
                 data={results}
-                keyExtractor={(food) => `${food.source}:${food.code}`}
+                keyExtractor={(result) => (result.kind === 'dish' ? `dish:${result.dish.code}` : `${result.food.source}:${result.food.code}`)}
                 style={styles.list}
                 keyboardShouldPersistTaps="handled"
-                renderItem={({ item: food }) => (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`${food.name}, ${formatKcal(food.kcal)} per 100 g${food.kcalEstimated ? ', estimated' : ''}`}
-                    onPress={() => {
-                      setChosen(food);
-                      setGramsText('100');
-                    }}
-                    style={styles.row}
-                  >
-                    <Text style={styles.name}>{food.name}</Text>
-                    <Text style={styles.detail}>
-                      {formatKcal(food.kcal)} per 100 g{food.kcalEstimated ? ' · estimated' : ''}
-                    </Text>
-                  </Pressable>
-                )}
+                renderItem={({ item: result }) =>
+                  result.kind === 'dish' ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${result.dish.name}, dish, ${formatKcal(result.dish.kcal)} per ${PORTION_UNIT_LABELS[result.dish.portionUnit]}, estimated`}
+                      onPress={() => {
+                        setChosen(result);
+                        setPortions(1);
+                      }}
+                      style={styles.row}
+                    >
+                      <Text style={styles.name}>{result.dish.name}</Text>
+                      <Text style={styles.detail}>
+                        Dish · {formatKcal(result.dish.kcal)} per {PORTION_UNIT_LABELS[result.dish.portionUnit]} · estimated
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${result.food.name}, ${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
+                      onPress={() => {
+                        setChosen(result);
+                        setGramsText('100');
+                      }}
+                      style={styles.row}
+                    >
+                      <Text style={styles.name}>{result.food.name}</Text>
+                      <Text style={styles.detail}>
+                        {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
+                      </Text>
+                    </Pressable>
+                  )
+                }
               />
               <Text style={styles.acknowledgement}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
               <Button title="Close" onPress={onClose} />

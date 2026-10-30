@@ -206,40 +206,46 @@ export const MAX_MEAL_ITEMS = 30;
 export const MEAL_ITEM_GRAMS_MAX = 2_000;
 /** Portions of a dish, in halves (MVP default, D-26). */
 export const MEAL_ITEM_PORTIONS_MAX = 10;
+/** The most one item can hold, whatever its amount. */
+export const MEAL_ITEM_KCAL_MAX = 20_000;
+export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
 export const MEAL_ITEM_SOURCES = ['ifct2017', 'dish', 'barcode', 'own'] as const;
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
 
-const nutrientSchema = z.number().min(0).max(5_000);
+const nutrientSchema = z.number().min(0).max(MEAL_ITEM_NUTRIENT_MAX);
 
 /**
  * One food in a meal, with its values for the amount eaten. The values are a snapshot taken when
  * the meal is saved, so a later change to the food list never changes a past meal. kcal and protein
  * are always known; carbs, fat and fibre are null when the source gives none.
  */
-export const mealItemSchema = z.strictObject({
-  source: z.enum(MEAL_ITEM_SOURCES),
-  /** The IFCT code, dish code or barcode; null for your own food. */
-  ref: z.string().min(1).max(64).nullable(),
-  name: z.string().trim().min(1).max(120),
-  amount: z.discriminatedUnion('unit', [
-    z.strictObject({ unit: z.literal('g'), value: z.int().min(1).max(MEAL_ITEM_GRAMS_MAX) }),
-    z.strictObject({
-      unit: z.literal('portion'),
-      value: z
-        .number()
-        .min(0.5)
-        .max(MEAL_ITEM_PORTIONS_MAX)
-        .refine((value) => Number.isInteger(value * 2)),
-    }),
-  ]),
-  kcal: z.number().min(0).max(20_000),
-  proteinG: nutrientSchema,
-  carbsG: nutrientSchema.nullable(),
-  fatG: nutrientSchema.nullable(),
-  fibreG: nutrientSchema.nullable(),
-  /** Any value is estimated rather than published (oils and fats, dishes). */
-  estimated: z.boolean(),
-});
+export const mealItemSchema = z
+  .strictObject({
+    source: z.enum(MEAL_ITEM_SOURCES),
+    /** The IFCT code, dish code or barcode; null for your own food. */
+    ref: z.string().min(1).max(64).nullable(),
+    name: z.string().trim().min(1).max(120),
+    amount: z.discriminatedUnion('unit', [
+      z.strictObject({ unit: z.literal('g'), value: z.int().min(1).max(MEAL_ITEM_GRAMS_MAX) }),
+      z.strictObject({
+        unit: z.literal('portion'),
+        value: z
+          .number()
+          .min(0.5)
+          .max(MEAL_ITEM_PORTIONS_MAX)
+          .refine((value) => Number.isInteger(value * 2)),
+      }),
+    ]),
+    kcal: z.number().min(0).max(MEAL_ITEM_KCAL_MAX),
+    proteinG: nutrientSchema,
+    carbsG: nutrientSchema.nullable(),
+    fatG: nutrientSchema.nullable(),
+    fibreG: nutrientSchema.nullable(),
+    /** Any value is estimated rather than published (oils and fats, dishes). */
+    estimated: z.boolean(),
+  })
+  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28).
+  .refine((item) => (item.source === 'dish') === (item.amount.unit === 'portion'), { path: ['amount'] });
 export type MealItem = z.infer<typeof mealItemSchema>;
 
 const mealTagsSchema = z
@@ -518,6 +524,27 @@ export const foodSchema = z.object({
 });
 export type Food = z.infer<typeof foodSchema>;
 
+/** How a dish's portion is counted: one piece, or one 200 ml katori (D-26 answer 3, amended). */
+export const DISH_PORTION_UNITS = ['piece', 'katori'] as const;
+export type DishPortionUnit = (typeof DISH_PORTION_UNITS)[number];
+
+/**
+ * One dish, with its values for one portion: IFCT values × the measured grams of FitSphere's
+ * standard-recipe sheet, so always estimated (D-26 answer 3; D-28). Only approved recipes are
+ * listed; their ingredients and grams stay on the server.
+ */
+export const dishSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  portionUnit: z.enum(DISH_PORTION_UNITS),
+  kcal: z.number(),
+  proteinG: z.number(),
+  carbsG: z.number(),
+  fatG: z.number(),
+  fibreG: z.number(),
+});
+export type Dish = z.infer<typeof dishSchema>;
+
 /** `version`: the list the phone already holds; the items are left out when it is current. */
 export const foodsQuerySchema = z.strictObject({
   version: z.string().min(1).max(64).optional(),
@@ -527,6 +554,8 @@ export const foodsResponseSchema = z.object({
   version: z.string(),
   /** Null when the phone's `version` is already current. */
   items: z.array(foodSchema).nullable(),
+  /** The dishes, per portion; null exactly when `items` is. */
+  dishes: z.array(dishSchema).nullable(),
 });
 export type FoodsResponse = z.infer<typeof foodsResponseSchema>;
 

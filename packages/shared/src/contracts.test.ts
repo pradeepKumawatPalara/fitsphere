@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import {
   errorBodySchema,
+  foodsResponseSchema,
   isPublicLink,
   mealItemSchema,
   mealPhotoSchema,
@@ -278,24 +279,56 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
     estimated: false,
   };
 
+  // A synthetic dish (D-28): made-up values.
+  const dish = { ...item, source: 'dish' as const, ref: 'test_dal', name: 'Test dal', estimated: true };
+
   it('accepts whole grams from 1 to 2,000 and portions in halves from 0.5 to 10', () => {
     for (const amount of [
       { unit: 'g', value: 1 },
       { unit: 'g', value: 2_000 },
-      { unit: 'portion', value: 0.5 },
-      { unit: 'portion', value: 10 },
     ]) {
       expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
     }
     for (const amount of [
+      { unit: 'portion', value: 0.5 },
+      { unit: 'portion', value: 10 },
+    ]) {
+      expect(mealItemSchema.safeParse({ ...dish, amount }).success).toBe(true);
+    }
+    for (const amount of [
       { unit: 'g', value: 0 },
       { unit: 'g', value: 12.5 },
-      { unit: 'portion', value: 0.25 },
-      { unit: 'portion', value: 10.5 },
       { unit: 'cup', value: 1 },
     ]) {
       expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
     }
+    for (const amount of [
+      { unit: 'portion', value: 0.25 },
+      { unit: 'portion', value: 10.5 },
+    ]) {
+      expect(mealItemSchema.safeParse({ ...dish, amount }).success).toBe(false);
+    }
+  });
+
+  it('D-28 a dish is in portions, and every other food in grams', () => {
+    expect(mealItemSchema.safeParse({ ...dish, amount: { unit: 'portion', value: 1.5 } }).success).toBe(true);
+    for (const [source, amount] of [
+      ['dish', { unit: 'g', value: 60 }],
+      ['ifct2017', { unit: 'portion', value: 1 }],
+      ['barcode', { unit: 'portion', value: 1 }],
+      ['own', { unit: 'portion', value: 1 }],
+    ] as const) {
+      const result = mealItemSchema.safeParse({ ...item, source, amount });
+      expect(result.success).toBe(false);
+      expect(result.error && validationDetails(result.error, {})).toEqual([{ field: 'amount', issue: 'invalid_format' }]);
+    }
+  });
+
+  it('D-28 the food list carries the dishes, per portion; both are null when the phone is current', () => {
+    const flatbread = { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 120, proteinG: 3.6, carbsG: 20, fatG: 3, fibreG: 2 };
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [flatbread] }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: null, dishes: null }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [{ ...flatbread, portionUnit: 'cup' }] }).success).toBe(false);
   });
 
   it('sums the known values, and gives null only when no item has that value', () => {

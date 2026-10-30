@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
-import { API_BASE_PATH, foodsQuerySchema, validationDetails, type FoodsResponse } from '@fitsphere/shared';
+import { API_BASE_PATH, foodsQuerySchema, validationDetails, type DishPortionUnit, type FoodsResponse } from '@fitsphere/shared';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { ApiError } from '../errors.ts';
 
 // GET /v1/foods (ADR-0006 rule 1): FitSphere's food list, for the phone to cache and search
-// offline. Reference data, the same for every signed-in user. Rows hidden until checked are left
-// out. The version changes whenever any value in the list changes.
+// offline, with the approved dishes and their values for one portion (D-28). Reference data, the
+// same for every signed-in user. Rows hidden until checked are left out, and so are the recipes'
+// ingredients and grams. The version changes whenever any value in the list changes.
 export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Pool, 'query'> }) {
   app.get(`${API_BASE_PATH}/foods`, { config: { access: 'account' } }, async (request) => {
     const parsed = foodsQuerySchema.safeParse(request.query);
@@ -28,8 +29,18 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       `select source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, estimated
        from app.foods where not hidden order by source, code`,
     );
-    const version = foodListVersion(rows);
-    if (parsed.data.version === version) return { version, items: null } satisfies FoodsResponse;
+    const dishes = await deps.db.query<{
+      code: string;
+      name: string;
+      portion_unit: DishPortionUnit;
+      kcal: string;
+      protein_g: string;
+      carbs_g: string;
+      fat_g: string;
+      fibre_g: string;
+    }>('select code, name, portion_unit, kcal, protein_g, carbs_g, fat_g, fibre_g from app.dishes order by code');
+    const version = foodListVersion({ foods: rows, dishes: dishes.rows });
+    if (parsed.data.version === version) return { version, items: null, dishes: null } satisfies FoodsResponse;
 
     const body: FoodsResponse = {
       version,
@@ -46,12 +57,22 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         kcal: Number(row.kcal),
         kcalEstimated: row.estimated,
       })),
+      dishes: dishes.rows.map((row) => ({
+        code: row.code,
+        name: row.name,
+        portionUnit: row.portion_unit,
+        kcal: Number(row.kcal),
+        proteinG: Number(row.protein_g),
+        carbsG: Number(row.carbs_g),
+        fatG: Number(row.fat_g),
+        fibreG: Number(row.fibre_g),
+      })),
     };
     return body;
   });
 }
 
 /** A short hash of every value the phone receives, so any change gives a new version. */
-function foodListVersion(rows: object[]): string {
-  return createHash('sha256').update(JSON.stringify(rows)).digest('base64url').slice(0, 22);
+function foodListVersion(list: { foods: object[]; dishes: object[] }): string {
+  return createHash('sha256').update(JSON.stringify(list)).digest('base64url').slice(0, 22);
 }

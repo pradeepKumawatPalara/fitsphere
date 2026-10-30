@@ -20,11 +20,12 @@ import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
+import { PortionStepper } from '../components/PortionStepper';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
-import { GRAMS_RULE, parseGrams, withGrams } from '../mealItems';
-import { describeItems, formatAmount, formatGrams, formatKcal, MEAL_TAG_LABELS } from '../meals';
+import { GRAMS_RULE, parseGrams, withGrams, withPortions } from '../mealItems';
+import { describeItems, formatAmount, formatGrams, formatKcal, formatPortions, MEAL_TAG_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 
 type Params = { day?: string; slot?: string; mealId?: string };
@@ -60,6 +61,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [ownName, setOwnName] = useState('');
   const [gramsText, setGramsText] = useState('');
+  const [portions, setPortions] = useState(1);
   const [busy, setBusy] = useState(false);
 
   // Edit: the meal as it is on the phone.
@@ -204,6 +206,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
               accessibilityLabel={`Change ${item.name}`}
               onPress={() => {
                 setGramsText(item.amount.unit === 'g' ? String(item.amount.value) : '');
+                setPortions(item.amount.unit === 'portion' ? item.amount.value : 1);
                 setSheet({ change: index });
               }}
               style={styles.itemAction}
@@ -262,6 +265,17 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                   },
                 ]
               : []),
+            ...(changing.amount.unit === 'portion' && portions !== changing.amount.value
+              ? [
+                  {
+                    label: `Change to ${formatPortions(portions)}`,
+                    onPress: () =>
+                      setItems((current) =>
+                        current.map((item, index) => (index === (sheet as { change: number }).change ? withPortions(item, portions) : item)),
+                      ),
+                  },
+                ]
+              : []),
             {
               label: 'Remove',
               onPress: () => setItems((current) => current.filter((_, index) => index !== (sheet as { change: number }).change)),
@@ -281,7 +295,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
               <Text>g</Text>
               {newGrams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
             </View>
-          ) : null}
+          ) : (
+            <PortionStepper value={portions} onChange={setPortions} />
+          )}
         </ActionsSheet>
       ) : null}
     </View>

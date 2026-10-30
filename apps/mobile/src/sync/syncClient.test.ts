@@ -13,6 +13,7 @@ import {
   rejectedChanges,
   saveEntry,
   saveWeighIn,
+  searchDishes,
   searchFoods,
   setMeta,
   unsyncedCount,
@@ -258,6 +259,21 @@ describe('Meal logging: the sync client', () => {
     server.state.foods = [];
     expect(await refreshFoodList(db, auth(server))).toBe('updated');
     expect(await searchFoods(db, 'atta')).toEqual([]);
+  });
+
+  it('D-28 downloads the dishes with the food list, and drops one the server no longer lists', async () => {
+    const server = fakeServer(NOW);
+    // A synthetic dish: made-up values for one portion.
+    const dish = { code: 'test_dal', name: 'Test dal', portionUnit: 'katori' as const, kcal: 138.82, proteinG: 7.42, carbsG: 19.6, fatG: 3.05, fibreG: 3.33 };
+    server.state.dishes = [dish];
+
+    expect(await refreshFoodList(db, auth(server))).toBe('updated');
+    expect(await searchDishes(db, 'dal')).toEqual([dish]);
+
+    server.state.foodsVersion = 'foods-v2';
+    server.state.dishes = [];
+    expect(await refreshFoodList(db, auth(server))).toBe('updated');
+    expect(await searchDishes(db, 'dal')).toEqual([]);
   });
 
   it('ADR-0006 rule 1 without a connection the food list on the phone is kept', async () => {
