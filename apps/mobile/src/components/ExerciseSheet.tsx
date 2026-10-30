@@ -1,7 +1,8 @@
 import type { WorkoutExercise } from '@fitsphere/shared';
 import { useState } from 'react';
 import { Button, Modal, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { LIFTING_WEIGHT_UNIT, parseExercise, type ExerciseText } from '../workouts';
+import { useLiftingWeightUnit } from '../settings/SettingsProvider';
+import { parseExercise, type ExerciseText } from '../workouts';
 
 type Props = {
   title: string;
@@ -13,9 +14,10 @@ type Props = {
 };
 
 // A bottom sheet for one exercise: sets × reps × weight with an optional note (REQ-TRN-003, Q-042),
-// the weight in kg until the Settings slice (REQ-TRN-005). Nothing is saved until every field is
-// valid; Cancel closes without saving (as Q-029).
+// the weight in the lifting-weight unit setting (REQ-TRN-005, REQ-ACC-002). Nothing is saved until
+// every field is valid; Cancel closes without saving (as Q-029).
 export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Props) {
+  const unit = useLiftingWeightUnit();
   const [text, setText] = useState(initial);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,7 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
   }
 
   function save() {
-    const parsed = parseExercise(text);
+    const parsed = parseExercise(text, unit);
     if ('problem' in parsed) {
       setProblem(parsed.problem);
       return;
@@ -52,7 +54,7 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
             <Input label="Sets" keyboardType="number-pad" style={styles.number} {...field('sets')} />
             <Input label="Reps" keyboardType="number-pad" style={styles.number} {...field('reps')} />
             <Input
-              label={`Weight in ${LIFTING_WEIGHT_UNIT} (optional)`}
+              label={`Weight in ${unit} (optional)`}
               keyboardType="decimal-pad"
               style={styles.number}
               {...field('weight')}

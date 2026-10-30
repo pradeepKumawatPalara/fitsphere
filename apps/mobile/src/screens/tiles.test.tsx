@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { describeRejected, rejectedText } from '../components/RejectedChanges';
-import { DAY_VALUES } from '../dayValues';
+import { dayValues } from '../dayValues';
 import type { OutboxEntry } from '../local/store';
 import { renderInApp } from '../testing/appHarness';
 import { HomeScreen } from './HomeScreen';
@@ -53,7 +53,7 @@ describe('REQ-HOME-006 Steps and Sleep tiles', () => {
 
     await log('Steps', text);
 
-    expect(await screen.findByText(DAY_VALUES.steps.rule)).toBeOnTheScreen();
+    expect(await screen.findByText(dayValues('kg').steps.rule)).toBeOnTheScreen();
     expect(await db.getFirstAsync('SELECT * FROM steps', [])).toBeNull();
   });
 
@@ -62,7 +62,7 @@ describe('REQ-HOME-006 Steps and Sleep tiles', () => {
 
     await log('Sleep', text);
 
-    expect(await screen.findByText(DAY_VALUES.sleep.rule)).toBeOnTheScreen();
+    expect(await screen.findByText(dayValues('kg').sleep.rule)).toBeOnTheScreen();
     expect(await db.getFirstAsync('SELECT * FROM sleep', [])).toBeNull();
   });
 
@@ -148,11 +148,11 @@ describe('ADR-0007 rule 2 rejected changes of every kind', () => {
       errorCode: 'DAY_IN_FUTURE',
     });
 
-    expect(describeRejected(entry('weighIn.set', { day: '2026-10-28', weightGrams: 70_300 }))).toEqual({
+    expect(describeRejected(entry('weighIn.set', { day: '2026-10-28', weightGrams: 70_300 }), 'kg')).toEqual({
       what: 'Wed 28 Oct · 70.3 kg',
       notSaved: "This weight wasn't saved",
     });
-    expect(describeRejected(entry('measurements.set', { day: '2026-10-28', upperWaistMm: 812 })).notSaved).toBe(
+    expect(describeRejected(entry('measurements.set', { day: '2026-10-28', upperWaistMm: 812 }), 'kg').notSaved).toBe(
       "These measurements weren't saved",
     );
     expect(rejectedText("These steps weren't saved", 'ROLE_NOT_ENABLED')).toBe(

@@ -22,8 +22,9 @@ import {
   type EntryKind,
 } from './store';
 
-// Steps, sleep, measurements, targets, meals and saved meals on the phone (Home and daily tracking
-// slice, step 3; Meal logging slice, step 3; ADR-0007 rules 1, 2 and 7; REQ-NFR-004). The weight
+// Steps, sleep, measurements, targets, settings, meals and saved meals on the phone (Home and daily
+// tracking slice, step 3; Meal logging slice, step 3; Settings slice, step 3; ADR-0007 rules 1, 2
+// and 7; REQ-NFR-004). The weight
 // cases are in store.test.ts; meal deletion, totals and the food list are in meals.test.ts.
 
 const DAY = '2026-10-27';
@@ -86,6 +87,7 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     stored: { day: DAY, exercises: [{ name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null }] },
   },
   target: { key: 'calories', data: { kind: 'calories', value: 2_000, setAt: AT }, stored: { value: 2_000, setByUserId: null } },
+  setting: { key: 'body_weight_unit', data: { name: 'body_weight_unit', value: 'lb', setAt: AT }, stored: { value: 'lb' } },
   meal: {
     key: MEAL_ID,
     data: { id: MEAL_ID, day: DAY, mealType: 'lunch', tags: ['dessert'], items: [ATTA], recordedAt: AT },

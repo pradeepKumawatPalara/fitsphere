@@ -7,6 +7,7 @@ import { RejectedChanges } from '../components/RejectedChanges';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
+import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { EMPTY_EXERCISE, formatSets, toExerciseText } from '../workouts';
 
@@ -22,6 +23,7 @@ export function WorkoutScreen() {
   const router = useRouter();
   const local = useLocalDatabase();
   const sync = useSync();
+  const unit = useLiftingWeightUnit();
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -73,12 +75,12 @@ export function WorkoutScreen() {
         <Pressable
           key={index}
           accessibilityRole="button"
-          accessibilityLabel={`${exercise.name}: ${formatSets(exercise)}`}
+          accessibilityLabel={`${exercise.name}: ${formatSets(exercise, unit)}`}
           onPress={() => setSheet({ index })}
           style={styles.exercise}
         >
           <Text style={styles.name}>{exercise.name}</Text>
-          <Text>{formatSets(exercise)}</Text>
+          <Text>{formatSets(exercise, unit)}</Text>
           {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
         </Pressable>
       ))}
@@ -102,7 +104,7 @@ export function WorkoutScreen() {
       {sheet ? (
         <ExerciseSheet
           title={editing ? 'Edit exercise' : 'Add exercise'}
-          initial={editing ? toExerciseText(editing) : EMPTY_EXERCISE}
+          initial={editing ? toExerciseText(editing, unit) : EMPTY_EXERCISE}
           onSave={(exercise) =>
             saveExercises(
               sheet.index === null

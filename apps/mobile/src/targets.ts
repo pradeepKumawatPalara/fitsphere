@@ -1,5 +1,5 @@
-import { fromGrams, TARGET_KINDS, TARGET_RANGES, type TargetKind } from '@fitsphere/shared';
-import { BODY_WEIGHT_UNIT, formatInteger, parseWeightInput, parseWholeNumber, WEIGHT_RULE } from './format';
+import { fromGrams, TARGET_KINDS, TARGET_RANGES, type BodyWeightUnit, type TargetKind } from '@fitsphere/shared';
+import { formatInteger, parseWeightInput, parseWholeNumber, weightRule } from './format';
 
 // The user's own targets for display and input (REQ-ROLE-007; MVP defaults, D-23). Values are
 // stored in canonical units (invariant #6): kcal, grams of protein, steps, workouts a week, and
@@ -30,23 +30,30 @@ function wholeNumber(label: string, kind: TargetKind, unit: string, valueUnit: (
   };
 }
 
-export const TARGETS: Record<TargetKind, TargetText> = {
+const WHOLE_NUMBER_TARGETS = {
   calories: wholeNumber('Daily calories', 'calories', 'kcal', () => 'kcal'),
   protein: wholeNumber('Daily protein', 'protein', 'g', () => 'g'),
   steps: wholeNumber('Daily steps', 'steps', 'steps', () => 'steps'),
   weekly_workouts: wholeNumber('Weekly workouts', 'weekly_workouts', 'workouts', (value) =>
     value === 1 ? 'workout' : 'workouts',
   ),
-  body_weight: {
-    label: 'Target body weight',
-    unit: BODY_WEIGHT_UNIT,
-    format: (grams) => `${fromGrams(grams, BODY_WEIGHT_UNIT).toFixed(1)} ${BODY_WEIGHT_UNIT}`,
-    toText: (grams) => fromGrams(grams, BODY_WEIGHT_UNIT).toFixed(1),
-    parse: parseWeightInput,
-    rule: WEIGHT_RULE,
-    decimal: true,
-  },
 };
+
+/** The targets' texts, with the target body weight in the body-weight unit setting (REQ-ACC-003). */
+export function targetTexts(bodyWeightUnit: BodyWeightUnit): Record<TargetKind, TargetText> {
+  return {
+    ...WHOLE_NUMBER_TARGETS,
+    body_weight: {
+      label: 'Target body weight',
+      unit: bodyWeightUnit,
+      format: (grams) => `${fromGrams(grams, bodyWeightUnit).toFixed(1)} ${bodyWeightUnit}`,
+      toText: (grams) => fromGrams(grams, bodyWeightUnit).toFixed(1),
+      parse: (text) => parseWeightInput(text, bodyWeightUnit),
+      rule: weightRule(bodyWeightUnit),
+      decimal: true,
+    },
+  };
+}
 
 /** The order the targets are listed in. */
 export const TARGET_ORDER: readonly TargetKind[] = TARGET_KINDS;

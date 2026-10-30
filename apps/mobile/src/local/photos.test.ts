@@ -217,7 +217,7 @@ describe('Local schema version 4', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 6 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
       expect(await getEntry(old, 'meal', mealId)).toMatchObject({ id: mealId, photo: null });
       expect(await getMeta(old, 'cursor')).toBeNull();
     } finally {

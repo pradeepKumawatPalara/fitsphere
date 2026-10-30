@@ -1,5 +1,4 @@
 import {
-  fromGrams,
   fromMillimetres,
   isMeasurementMmInRange,
   isWeightGramsInRange,
@@ -9,6 +8,8 @@ import {
   toMillimetres,
   WEIGHT_GRAMS_MAX,
   WEIGHT_GRAMS_MIN,
+  weightRangeIn,
+  type BodyWeightUnit,
   type IstDay,
   type LengthUnit,
 } from '@fitsphere/shared';
@@ -35,19 +36,23 @@ export function formatDay(day: IstDay): string {
   return `${parts.weekday} ${parts.date} ${parts.month}`;
 }
 
-/** The body-weight unit until the Settings slice adds the setting (Skeleton decision 6, REQ-ACC-003). */
-export const BODY_WEIGHT_UNIT = 'kg';
+// Body weight is typed and shown in the body-weight unit setting (REQ-ACC-003, Q-024), with one
+// decimal, and stored in grams (invariant #6). The limits are 20–300 kg in either unit, rounded
+// inwards to one decimal (MVP default, D-S1).
 
-export const WEIGHT_RULE = `Enter a weight from ${fromGrams(WEIGHT_GRAMS_MIN, 'kg').toFixed(1)} to ${fromGrams(
-  WEIGHT_GRAMS_MAX,
-  'kg',
-).toFixed(1)} kg, with at most one decimal.`;
+/** e.g. "Enter a weight from 44.1 to 661.3 lb, with at most one decimal." */
+export function weightRule(unit: BodyWeightUnit): string {
+  const { min, max } = weightRangeIn(unit, WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX);
+  return `Enter a weight from ${min.toFixed(1)} to ${max.toFixed(1)} ${unit}, with at most one decimal.`;
+}
 
-/** Reads typed kg with at most one decimal ("70.3" or "70,3"); null when it cannot be saved. */
-export function parseWeightInput(text: string): number | null {
+/** Reads a weight typed in `unit` with at most one decimal ("70.3" or "70,3") as grams; null when it
+ * cannot be saved. */
+export function parseWeightInput(text: string, unit: BodyWeightUnit): number | null {
   const value = parseOneDecimal(text);
-  if (value === null) return null;
-  const grams = toGrams(value, BODY_WEIGHT_UNIT);
+  const { min, max } = weightRangeIn(unit, WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX);
+  if (value === null || value < min || value > max) return null;
+  const grams = toGrams(value, unit);
   return isWeightGramsInRange(grams) ? grams : null;
 }
 

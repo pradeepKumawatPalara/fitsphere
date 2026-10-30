@@ -17,6 +17,7 @@ import {
   toMillimetres,
   WEIGHT_GRAMS_MAX,
   WEIGHT_GRAMS_MIN,
+  weightRangeIn,
 } from './units.ts';
 
 describe('REQ-HOME-006 body weight in whole grams (invariant #6)', () => {
@@ -113,5 +114,32 @@ describe('REQ-MEAS-003 measurements in whole millimetres (invariant #6)', () => 
     expect(isMeasurementMmInRange(812.5)).toBe(false);
     expect(isMeasurementMmInRange(toMillimetres(3.9, 'in'))).toBe(false);
     expect(isMeasurementMmInRange(toMillimetres(98.5, 'in'))).toBe(false);
+  });
+});
+
+describe('REQ-ACC-002 and REQ-ACC-003 limits in the chosen unit (MVP default, D-S1)', () => {
+  it('REQ-ACC-003 body weight is 20.0–300.0 kg or 44.1–661.3 lb', () => {
+    expect(weightRangeIn('kg', WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX)).toEqual({ min: 20, max: 300 });
+    expect(weightRangeIn('lb', WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX)).toEqual({ min: 44.1, max: 661.3 });
+  });
+
+  it('REQ-ACC-002 lifting weight is 0.1–500.0 kg or 0.3–1102.3 lb', () => {
+    expect(weightRangeIn('kg', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.1, max: 500 });
+    expect(weightRangeIn('lb', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.3, max: 1102.3 });
+  });
+
+  it('D-S1 every limit is within the range in grams, and one step outside it is not', () => {
+    for (const unit of ['kg', 'lb'] as const) {
+      for (const [low, high, inRange] of [
+        [WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX, isWeightGramsInRange],
+        [LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX, isLiftWeightGramsInRange],
+      ] as const) {
+        const { min, max } = weightRangeIn(unit, low, high);
+        expect(inRange(toGrams(min, unit))).toBe(true);
+        expect(inRange(toGrams(max, unit))).toBe(true);
+        expect(inRange(toGrams(Math.round((min - 0.1) * 10) / 10, unit))).toBe(false);
+        expect(inRange(toGrams(Math.round((max + 0.1) * 10) / 10, unit))).toBe(false);
+      }
+    }
   });
 });

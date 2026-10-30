@@ -4,6 +4,7 @@ import {
   MEAL_SET,
   MEASUREMENTS_SET,
   SAVED_MEAL_SET,
+  SETTING_SET,
   TARGET_SET,
   WORKOUT_DELETE,
   WORKOUT_SET,
@@ -13,7 +14,7 @@ import {
   type TargetKind,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
@@ -26,7 +27,7 @@ import { RejectedChanges } from '../components/RejectedChanges';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
 import { WorkoutTracker } from '../components/WorkoutTracker';
-import { DAY_VALUE_ORDER, DAY_VALUES, type DayValueKind } from '../dayValues';
+import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -42,6 +43,7 @@ import {
   type SyncState,
 } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { LogOut } from './LogOut';
 
@@ -55,6 +57,9 @@ export function HomeScreen() {
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
+  // Weight in the body-weight unit setting (Q-024, REQ-ACC-003).
+  const bodyWeightUnit = useBodyWeightUnit();
+  const texts = useMemo(() => dayValues(bodyWeightUnit), [bodyWeightUnit]);
   const router = useRouter();
   const { today, selected, firstDay, weekStart, select, showWeek } = useSelectedDay();
   const [values, setValues] = useState<DayValues>({});
@@ -102,7 +107,7 @@ export function HomeScreen() {
         Object.fromEntries(
           DAY_VALUE_ORDER.flatMap((kind, index) => {
             const entry = entries[index] as (Record<string, unknown> & { syncState: SyncState }) | null | undefined;
-            return entry ? [[kind, { value: Number(entry[DAY_VALUES[kind].field]), syncState: entry.syncState }]] : [];
+            return entry ? [[kind, { value: Number(entry[texts[kind].field]), syncState: entry.syncState }]] : [];
           }),
         ),
       );
@@ -121,7 +126,7 @@ export function HomeScreen() {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
-  }, [local.state, selected, weekStart, sync.version, measurementsOpen]);
+  }, [local.state, selected, weekStart, sync.version, measurementsOpen, texts]);
 
   function openTargets() {
     router.push('/targets');
@@ -136,13 +141,14 @@ export function HomeScreen() {
   /** Edit opens the rejected change's own sheet, with its value, to fix it (ADR-0007 rule 2). */
   function editRejected(entry: OutboxEntry) {
     const data = entry.data as Record<string, unknown>;
-    const kind = DAY_VALUE_ORDER.find((candidate) => DAY_VALUES[candidate].changeType === entry.type);
-    if (kind) setSheet({ kind, day: String(data.day), initial: Number(data[DAY_VALUES[kind].field]) });
+    const kind = DAY_VALUE_ORDER.find((candidate) => texts[candidate].changeType === entry.type);
+    if (kind) setSheet({ kind, day: String(data.day), initial: Number(data[texts[kind].field]) });
     else if (entry.type === MEASUREMENTS_SET) setMeasurementsSheet({ mode: 'edit', day: String(data.day) });
     else if (entry.type === TARGET_SET) openTargets();
     else if (entry.type === MEAL_SET) router.push({ pathname: '/log-meal', params: { mealId: String(data.id) } });
     else if (entry.type === SAVED_MEAL_SET) router.push({ pathname: '/nutrition', params: { tab: 'saved' } });
     else if (entry.type === WORKOUT_SET || entry.type === WORKOUT_DELETE) router.push(`/workout/${String(data.id)}`);
+    else if (entry.type === SETTING_SET) router.push('/account');
   }
 
   // Never run unencrypted (ADR-0007 rule 5): stop, and leave only Log out.
@@ -159,7 +165,7 @@ export function HomeScreen() {
     );
   }
 
-  const sheetText = sheet ? DAY_VALUES[sheet.kind] : null;
+  const sheetText = sheet ? texts[sheet.kind] : null;
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -200,8 +206,8 @@ export function HomeScreen() {
             return (
               <QuickTile
                 key={kind}
-                label={DAY_VALUES[kind].label}
-                value={entry ? DAY_VALUES[kind].format(entry.value) : null}
+                label={texts[kind].label}
+                value={entry ? texts[kind].format(entry.value) : null}
                 syncState={entry?.syncState ?? null}
                 onPress={() => setSheet({ kind, day: selected, initial: entry?.value ?? null })}
               />

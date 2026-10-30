@@ -284,6 +284,6 @@ describe('Home with meals (REQ-HOME-002…005, REQ-NAV-003)', () => {
       status: 'rejected',
       errorCode: 'ROLE_NOT_ENABLED',
     };
-    expect(describeRejected(deletion)).toEqual({ what: 'A meal', notSaved: "This meal wasn't deleted" });
+    expect(describeRejected(deletion, 'kg')).toEqual({ what: 'A meal', notSaved: "This meal wasn't deleted" });
   });
 });

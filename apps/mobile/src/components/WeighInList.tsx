@@ -1,13 +1,15 @@
 import { formatWeight } from '@fitsphere/shared';
 import type { ReactElement } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { BODY_WEIGHT_UNIT, formatDay } from '../format';
+import { formatDay } from '../format';
+import { useBodyWeightUnit } from '../settings/SettingsProvider';
 
 export type HistoryRow = { day: string; weightGrams: number; note?: string };
 
-// The weight history list (REQ-PRG-001). A FlatList renders only the rows on screen, which keeps
-// scrolling smooth on low-end phones (ADR-0001 step 6).
+// The weight history list (REQ-PRG-001), in the body-weight unit setting (REQ-ACC-003). A FlatList
+// renders only the rows on screen, which keeps scrolling smooth on low-end phones (ADR-0001 step 6).
 export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: ReactElement }) {
+  const unit = useBodyWeightUnit();
   return (
     <FlatList
       data={rows}
@@ -16,7 +18,7 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
         <View style={styles.row}>
           <Text>{formatDay(item.day)}</Text>
           <Text style={styles.value}>
-            {formatWeight(item.weightGrams, BODY_WEIGHT_UNIT)}
+            {formatWeight(item.weightGrams, unit)}
             {item.note ? ` · ${item.note}` : ''}
           </Text>
         </View>

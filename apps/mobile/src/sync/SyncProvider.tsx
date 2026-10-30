@@ -29,7 +29,7 @@ const expoNetwork: NetworkWatcher = {
  * keeps the ID and start time it was given by `startWorkout`.
  */
 export type EntryInput = {
-  [K in EntryKind]: K extends 'target'
+  [K in EntryKind]: K extends 'target' | 'setting'
     ? Omit<ChangeData[K], 'setAt'>
     : K extends 'savedMeal'
       ? Omit<ChangeData[K], 'savedAt'>
@@ -123,7 +123,7 @@ export function SyncProvider({
     async <K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }) => {
       if (!db) throw new Error('The phone database is not open');
       const savedAt = now().toISOString();
-      const stamp = kind === 'target' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
+      const stamp = kind === 'target' || kind === 'setting' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
       // A workout keeps the start time `startWorkout` gave it.
       const data = (kind === 'workout' ? input : { ...input, [stamp]: savedAt }) as unknown as ChangeData[K];
       const mealId = (input as { id?: string }).id;

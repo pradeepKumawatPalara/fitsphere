@@ -175,9 +175,9 @@ describe('Local schema version 6', () => {
   it('ADR-0007 an update from version 5 keeps the data and the outbox and clears the cursor', async () => {
     const old = memoryDb();
     try {
-      // Version 5 as phones have it: build it with the current migrations, then drop what 6 adds.
+      // Version 5 as phones have it: build it with the current migrations, then drop what 6 and 7 add.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE workouts; PRAGMA user_version = 5;');
+      await old.execAsync('DROP TABLE workouts; DROP TABLE settings; PRAGMA user_version = 5;');
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(`INSERT INTO steps VALUES ('2026-10-20', 4000, ?, 'pending')`, [AT]);
       await old.runAsync(
@@ -188,7 +188,7 @@ describe('Local schema version 6', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 6 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
