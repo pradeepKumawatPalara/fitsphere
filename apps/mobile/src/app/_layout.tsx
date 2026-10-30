@@ -36,6 +36,7 @@ export default function RootLayout() {
             <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
             <Stack.Screen name="log-meal" options={{ title: 'Log meal' }} />
             <Stack.Screen name="workout/[id]" options={{ title: 'Workout' }} />
+            <Stack.Screen name="weight-history" options={{ title: 'Weight history' }} />
           </Stack>
           <StatusBar style="auto" />
         </SyncProvider>
