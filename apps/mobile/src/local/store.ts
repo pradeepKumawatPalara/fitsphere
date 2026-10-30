@@ -13,6 +13,8 @@ import {
   syncWindowStart,
   TARGET_SET,
   WEIGH_IN_SET,
+  WORKOUT_DELETE,
+  WORKOUT_SET,
   type ChangeErrorCode,
   type Dish,
   type Food,
@@ -27,6 +29,7 @@ import {
   type TargetKind,
   type TargetSetData,
   type WeighInSetData,
+  type WorkoutSetData,
 } from '@fitsphere/shared';
 import type { BindValue, SqlDb } from './sql';
 
@@ -43,9 +46,11 @@ export type OutboxEntry = {
 
 // --- The kinds of entry the phone keeps ---
 
-/** One entry per IST day for the day kinds, one per target kind for targets, and one per ID for
- * meals and saved meals. */
-export type EntryKind = 'weighIn' | 'steps' | 'sleep' | 'measurements' | 'target' | 'meal' | 'savedMeal';
+/**
+ * One entry per IST day for the day kinds, one per target kind for targets, and one per ID for
+ * meals, saved meals and workouts (any number a day).
+ */
+export type EntryKind = 'weighIn' | 'steps' | 'sleep' | 'measurements' | 'workout' | 'target' | 'meal' | 'savedMeal';
 
 /** What a change carries for each kind (api-conventions, "POST /v1/sync"). */
 export type ChangeData = {
@@ -53,6 +58,7 @@ export type ChangeData = {
   steps: StepsSetData;
   sleep: SleepSetData;
   measurements: MeasurementsSetData;
+  workout: WorkoutSetData;
   target: TargetSetData;
   meal: MealSetData;
   savedMeal: SavedMealSetData;
@@ -64,6 +70,7 @@ export type LocalEntries = {
   steps: StepsSetData & { syncState: SyncState };
   sleep: SleepSetData & { syncState: SyncState };
   measurements: MeasurementsSetData & { syncState: SyncState };
+  workout: WorkoutSetData & { syncState: SyncState };
   target: { kind: TargetKind; value: number; setAt: string; setByUserId: string | null; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
   savedMeal: SavedMealSetData & MealTotals & { syncState: SyncState };
@@ -72,12 +79,13 @@ export type LocalWeighIn = LocalEntries['weighIn'];
 export type LocalSteps = LocalEntries['steps'];
 export type LocalSleep = LocalEntries['sleep'];
 export type LocalMeasurements = LocalEntries['measurements'];
+export type LocalWorkout = LocalEntries['workout'];
 export type LocalTarget = LocalEntries['target'];
 export type LocalMeal = LocalEntries['meal'];
 export type LocalSavedMeal = LocalEntries['savedMeal'];
 
-/** The kinds a user can delete; each has its own delete change (meals, saved meals). */
-export type DeletableKind = 'meal' | 'savedMeal';
+/** The kinds a user can delete; each has its own delete change (meals, saved meals, workouts). */
+export type DeletableKind = 'meal' | 'savedMeal' | 'workout';
 
 type KindSpec = {
   changeType: string;
@@ -154,6 +162,20 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['arm_mm', 'armMm'],
       ['thigh_mm', 'thighMm'],
       ['notes', 'notes'],
+      ['recorded_at', 'recordedAt'],
+    ],
+    pullColumns: [],
+    dayData: true,
+  },
+  workout: {
+    changeType: WORKOUT_SET,
+    deleteType: WORKOUT_DELETE,
+    table: 'workouts',
+    key: 'id',
+    columns: [
+      ['id', 'id'],
+      ['day', 'day'],
+      ['exercises', 'exercises', 'json'],
       ['recorded_at', 'recordedAt'],
     ],
     pullColumns: [],
@@ -349,6 +371,17 @@ const MIGRATIONS = [
      fibre_g REAL NOT NULL
    );
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // Training (D-29). Workouts are keyed by the ID made on the phone, since a day may hold several;
+  // the exercises are JSON. The cursor is cleared so the next sync pulls them.
+  `CREATE TABLE workouts (
+     id TEXT PRIMARY KEY,
+     day TEXT NOT NULL,
+     exercises TEXT NOT NULL,
+     recorded_at TEXT NOT NULL,
+     ${SYNC_STATE}
+   );
+   CREATE INDEX workouts_day ON workouts (day);
+   DELETE FROM sync_meta WHERE key = 'cursor';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -442,7 +475,7 @@ export async function deleteEntry(
   });
 }
 
-/** Day data between two IST days, newest first. */
+/** Day data between two IST days, newest first; entries of one day by the time saved, newest first. */
 export async function listEntries<K extends Exclude<EntryKind, 'target' | 'savedMeal'>>(
   db: SqlDb,
   kind: K,
@@ -451,7 +484,7 @@ export async function listEntries<K extends Exclude<EntryKind, 'target' | 'saved
 ): Promise<LocalEntries[K][]> {
   const spec = KINDS[kind];
   const rows = await db.getAllAsync<Record<string, BindValue>>(
-    `SELECT * FROM ${spec.table} WHERE day BETWEEN ? AND ? ORDER BY day DESC`,
+    `SELECT * FROM ${spec.table} WHERE day BETWEEN ? AND ? ORDER BY day DESC, recorded_at DESC`,
     [fromDay, toDay],
   );
   return rows.map((row) => toEntry(spec, row) as LocalEntries[K]);

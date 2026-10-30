@@ -1,10 +1,22 @@
-import { istToday, mealTotals, type BarcodeProduct, type Dish, type Food, type MealItem, type SyncResult, type TargetKind } from '@fitsphere/shared';
+import {
+  istToday,
+  mealTotals,
+  type BarcodeProduct,
+  type Dish,
+  type Food,
+  type MealItem,
+  type SyncResult,
+  type TargetKind,
+  type Workout,
+  type WorkoutExercise,
+} from '@fitsphere/shared';
 import { ME } from './fakes';
 
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
 // the last change received wins, a future IST day is rejected, and the pull returns what changed
-// after the cursor, for every kind. It also serves the food list (GET /v1/foods), barcode lookups,
-// and meal photo links with a fake storage behind them.
+// after the cursor, for every kind; a deleted meal or workout stays as `deleted: true`. It also
+// serves the food list (GET /v1/foods), barcode lookups, meal photo links with a fake storage
+// behind them, and older workouts (GET /v1/users/{id}/workouts).
 
 type Stored = { item: Record<string, unknown>; seq: number };
 
@@ -17,6 +29,8 @@ const KINDS = {
   'steps.set': { list: 'steps', key: 'day' },
   'sleep.set': { list: 'sleep', key: 'day' },
   'measurements.set': { list: 'measurements', key: 'day' },
+  'workout.set': { list: 'workouts', key: 'id' },
+  'workout.delete': { list: 'workouts', key: 'id' },
   'target.set': { list: 'targets', key: 'kind' },
   'meal.set': { list: 'meals', key: 'id' },
   'meal.delete': { list: 'meals', key: 'id' },
@@ -46,6 +60,8 @@ export function fakeServer(now: Date) {
     barcodesUnavailable: false,
     /** The files in the fake storage, by key ("<mediaId>.jpg", "<mediaId>-thumb.jpg"). */
     files: new Map<string, Uint8Array>(),
+    /** What `GET /users/{id}/workouts` returns. */
+    olderWorkouts: [] as Workout[],
   };
   const calls: { method: string; path: string; body: unknown }[] = [];
   let seq = 0;
@@ -61,10 +77,12 @@ export function fakeServer(now: Date) {
     } else if (type === 'meal.set' || type === 'savedMeal.set') {
       // The server computes the totals from the items.
       item = { deleted: false, ...(type === 'meal.set' ? { photo: null } : {}), ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
-    } else if (type === 'meal.delete' || type === 'savedMeal.delete') {
+    } else if (type === 'workout.set') {
+      item = { deleted: false, ...rest, recordedAt, updatedAt };
+    } else if (type === 'meal.delete' || type === 'savedMeal.delete' || type === 'workout.delete') {
       const previous = stored.get(slot)?.item;
       if (!previous) return; // deleting something the server never had changes nothing
-      item = { deleted: true, id: data.id, ...(type === 'meal.delete' ? { day: previous.day } : {}), updatedAt };
+      item = { deleted: true, id: data.id, ...(type === 'savedMeal.delete' ? {} : { day: previous.day }), updatedAt };
     } else {
       item = { ...rest, recordedAt, updatedAt };
     }
@@ -72,7 +90,7 @@ export function fakeServer(now: Date) {
     stored.set(slot, { item, seq });
   }
 
-  /** The values stored for one list, keyed by day (by kind for targets, by ID for meals). */
+  /** The values stored for one list, keyed by day (by kind for targets, by ID for meals and workouts). */
   function entries(list: ListName): Map<string, Record<string, unknown>> {
     const result = new Map<string, Record<string, unknown>>();
     for (const [slot, { item }] of stored) {
@@ -153,7 +171,7 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull: Record<ListName | 'workouts' | 'removals', unknown[]> = {
+      const pull: Record<ListName | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],
@@ -167,6 +185,9 @@ export function fakeServer(now: Date) {
       const changed = [...stored.entries()].filter(([, entry]) => entry.seq > after).sort((a, b) => a[1].seq - b[1].seq);
       for (const [slot, { item }] of changed) pull[slot.split('|')[0] as ListName].push(item);
       return json(200, { results, pull, cursor: String(seq), hasMore: false });
+    }
+    if (method === 'GET' && /^\/users\/[^/]+\/workouts$/.test(path)) {
+      return json(200, { items: state.olderWorkouts, nextCursor: null });
     }
     if (method === 'GET' && /^\/users\/[^/]+\/weigh-ins$/.test(path)) {
       const items = state.older.map((entry) => ({
@@ -203,6 +224,15 @@ export function fakeServer(now: Date) {
     store('meal.delete', { id, deletedAt: now.toISOString() });
   }
 
+  /** A workout saved, or deleted, from another phone. */
+  function storeWorkoutFromElsewhere(id: string, day: string, exercises: WorkoutExercise[]) {
+    store('workout.set', { id, day, exercises, recordedAt: `${day}T02:00:00.000Z` });
+  }
+
+  function deleteWorkoutFromElsewhere(id: string) {
+    store('workout.delete', { id, deletedAt: now.toISOString() });
+  }
+
   return {
     fetchImpl: fetchImpl as unknown as typeof fetch,
     state,
@@ -217,6 +247,8 @@ export function fakeServer(now: Date) {
     storeTargetFromElsewhere,
     storeMealFromElsewhere,
     deleteMealFromElsewhere,
+    storeWorkoutFromElsewhere,
+    deleteWorkoutFromElsewhere,
   };
 }
 
