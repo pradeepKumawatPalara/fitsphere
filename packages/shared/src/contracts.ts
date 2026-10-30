@@ -4,6 +4,8 @@
 import { z } from 'zod';
 import { addDays, isIstDay, type IstDay } from './dates.ts';
 import {
+  LIFT_WEIGHT_GRAMS_MAX,
+  LIFT_WEIGHT_GRAMS_MIN,
   MEASUREMENT_MM_MAX,
   MEASUREMENT_MM_MIN,
   SLEEP_MINUTES_MAX,
@@ -158,6 +160,47 @@ export const measurementsSetDataSchema = z.strictObject({
   recordedAt: instantSchema,
 });
 export type MeasurementsSetData = z.infer<typeof measurementsSetDataSchema>;
+
+// Workouts (REQ-TRN-003, REQ-TRN-004): workouts the user logs themselves (D-20). A workout's ID is
+// made on the phone, so it can be started, edited and deleted offline; IDs are per user, so a
+// change never reaches another user's workout (invariant #1). A day may hold several workouts, and
+// each counts toward the weekly target, even with no exercises (Q-025, REQ-HOME-007).
+
+export const WORKOUT_SET = 'workout.set';
+export const WORKOUT_DELETE = 'workout.delete';
+/** Limits per workout and per exercise (MVP defaults, D-29). */
+export const MAX_WORKOUT_EXERCISES = 30;
+export const EXERCISE_NAME_MAX = 80;
+export const EXERCISE_SETS_MAX = 20;
+export const EXERCISE_REPS_MAX = 200;
+export const EXERCISE_NOTE_MAX = 500;
+
+/** One exercise: sets × reps × weight, with an optional note (Q-042). The same reps and weight
+ * for every set; `weightGrams` is null when no weight is lifted. */
+export const workoutExerciseSchema = z.strictObject({
+  name: z.string().trim().min(1).max(EXERCISE_NAME_MAX),
+  sets: z.int().min(1).max(EXERCISE_SETS_MAX),
+  reps: z.int().min(1).max(EXERCISE_REPS_MAX),
+  weightGrams: z.int().min(LIFT_WEIGHT_GRAMS_MIN).max(LIFT_WEIGHT_GRAMS_MAX).nullable(),
+  note: z.string().min(1).max(EXERCISE_NOTE_MAX).nullable(),
+});
+export type WorkoutExercise = z.infer<typeof workoutExerciseSchema>;
+
+/** Creates a workout, or replaces the whole workout with this ID. `recordedAt` is when it was
+ * started; editing the exercises keeps it. */
+export const workoutSetDataSchema = z.strictObject({
+  id: idSchema,
+  day: istDaySchema,
+  exercises: z.array(workoutExerciseSchema).max(MAX_WORKOUT_EXERCISES),
+  recordedAt: instantSchema,
+});
+export type WorkoutSetData = z.infer<typeof workoutSetDataSchema>;
+
+export const workoutDeleteDataSchema = z.strictObject({
+  id: idSchema,
+  deletedAt: instantSchema,
+});
+export type WorkoutDeleteData = z.infer<typeof workoutDeleteDataSchema>;
 
 // Targets (REQ-ROLE-007): the user's own, one current value per kind (Q-014 MVP default, D-23).
 // Who set a target comes from the sign-in token, never from the change, so it is not a field here.
@@ -389,6 +432,31 @@ export const measurementSchema = z.object({
 });
 export type Measurement = z.infer<typeof measurementSchema>;
 
+/** A workout the server holds, in the pull and in the history. */
+export const workoutSchema = z.object({
+  id: idSchema,
+  day: istDaySchema,
+  exercises: z.array(
+    z.object({
+      name: z.string(),
+      sets: z.int(),
+      reps: z.int(),
+      weightGrams: z.int().nullable(),
+      note: z.string().nullable(),
+    }),
+  ),
+  recordedAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Workout = z.infer<typeof workoutSchema>;
+
+/** A workout in the pull; a deleted workout comes back as `deleted: true` with no content. */
+export const pulledWorkoutSchema = z.discriminatedUnion('deleted', [
+  workoutSchema.extend({ deleted: z.literal(false) }),
+  z.object({ deleted: z.literal(true), id: idSchema, day: istDaySchema, updatedAt: instantSchema }),
+]);
+export type PulledWorkout = z.infer<typeof pulledWorkoutSchema>;
+
 export const targetSchema = z.object({
   kind: z.enum(TARGET_KINDS),
   value: z.int(),
@@ -464,6 +532,7 @@ export const syncResponseSchema = z.object({
     steps: z.array(stepCountSchema),
     sleep: z.array(sleepLogSchema),
     measurements: z.array(measurementSchema),
+    workouts: z.array(pulledWorkoutSchema),
     targets: z.array(targetSchema),
     meals: z.array(pulledMealSchema),
     savedMeals: z.array(pulledSavedMealSchema),
@@ -626,6 +695,19 @@ export const weighInsPageSchema = z.object({
   nextCursor: z.string().nullable(),
 });
 export type WeighInsPage = z.infer<typeof weighInsPageSchema>;
+
+// --- Workout history: GET /v1/users/{userId}/workouts ---
+
+/** The same query as the weigh-in history; the cursor is the route's own. */
+export const workoutsQuerySchema = weighInsQuerySchema;
+export type WorkoutsQuery = z.input<typeof workoutsQuerySchema>;
+
+/** Workouts that are not deleted. */
+export const workoutsPageSchema = z.object({
+  items: z.array(workoutSchema),
+  nextCursor: z.string().nullable(),
+});
+export type WorkoutsPage = z.infer<typeof workoutsPageSchema>;
 
 // --- Validation details ---
 

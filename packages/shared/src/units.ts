@@ -31,6 +31,15 @@ export function formatWeight(grams: number, unit: BodyWeightUnit): string {
   return `${fromGrams(grams, unit).toFixed(1)} ${unit}`;
 }
 
+// Lifting weight (invariant #6, REQ-TRN-005): stored and sent in whole grams like body weight, and
+// typed and shown with one decimal in the lifting unit. 0.1–500 kg (MVP default, D-29).
+export const LIFT_WEIGHT_GRAMS_MIN = 100;
+export const LIFT_WEIGHT_GRAMS_MAX = 500_000;
+
+export function isLiftWeightGramsInRange(grams: number): boolean {
+  return Number.isInteger(grams) && grams >= LIFT_WEIGHT_GRAMS_MIN && grams <= LIFT_WEIGHT_GRAMS_MAX;
+}
+
 // Steps (REQ-HOME-006): whole steps per day, 0–100,000 (Q-028 MVP default).
 export const STEPS_MIN = 0;
 export const STEPS_MAX = 100_000;

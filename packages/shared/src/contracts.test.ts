@@ -10,6 +10,7 @@ import {
   mealTotals,
   measurementsSetDataSchema,
   meSetupRequestSchema,
+  pulledWorkoutSchema,
   sleepSetDataSchema,
   stepsSetDataSchema,
   syncRequestSchema,
@@ -19,6 +20,8 @@ import {
   targetSetDataSchema,
   validationDetails,
   weighInSetDataSchema,
+  workoutDeleteDataSchema,
+  workoutSetDataSchema,
 } from './contracts.ts';
 
 const CHANGE_ID = '5d3c2b1a-0f9e-4d8c-b7a6-958473625140';
@@ -153,6 +156,69 @@ describe('REQ-MEAS-004…006 measurements.set data', () => {
   });
 });
 
+describe('REQ-TRN-003 workout.set and workout.delete data', () => {
+  const WORKOUT_ID = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
+  const exercise = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
+  const workout = { id: WORKOUT_ID, day: '2026-10-27', exercises: [exercise], recordedAt: RECORDED_AT };
+
+  it('Q-025 accepts an empty workout, and Q-042 exercises with or without a weight and a note', () => {
+    expect(workoutSetDataSchema.parse({ ...workout, exercises: [] })).toEqual({ ...workout, exercises: [] });
+    const exercises = [exercise, { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: 'Slow on the way down' }];
+    expect(workoutSetDataSchema.parse({ ...workout, exercises })).toEqual({ ...workout, exercises });
+  });
+
+  it('D-29 accepts each limit and refuses one step outside it', () => {
+    const at = (fields: Record<string, unknown>) => ({ ...workout, exercises: [{ ...exercise, ...fields }] });
+    for (const fields of [{ sets: 1 }, { sets: 20 }, { reps: 1 }, { reps: 200 }, { weightGrams: 100 }, { weightGrams: 500_000 }]) {
+      expect(workoutSetDataSchema.safeParse(at(fields)).success).toBe(true);
+    }
+    for (const [fields, field] of [
+      [{ sets: 0 }, 'sets'],
+      [{ sets: 21 }, 'sets'],
+      [{ reps: 0 }, 'reps'],
+      [{ reps: 201 }, 'reps'],
+      [{ weightGrams: 99 }, 'weightGrams'],
+      [{ weightGrams: 500_001 }, 'weightGrams'],
+      [{ name: 'x'.repeat(81) }, 'name'],
+      [{ note: 'x'.repeat(501) }, 'note'],
+      [{ note: '' }, 'note'],
+    ] as const) {
+      expect(detailsFor(workoutSetDataSchema, at(fields))).toEqual([{ field: `exercises[0].${field}`, issue: 'out_of_range' }]);
+    }
+  });
+
+  it('D-29 refuses a name of spaces only, and keeps a trimmed name', () => {
+    expect(workoutSetDataSchema.safeParse({ ...workout, exercises: [{ ...exercise, name: '   ' }] }).success).toBe(false);
+    expect(workoutSetDataSchema.parse({ ...workout, exercises: [{ ...exercise, name: ' Squat ' }] }).exercises[0]?.name).toBe(
+      'Squat',
+    );
+  });
+
+  it('D-29 refuses more than 30 exercises', () => {
+    const exercises = Array.from({ length: 31 }, () => exercise);
+    expect(detailsFor(workoutSetDataSchema, { ...workout, exercises })).toEqual([{ field: 'exercises', issue: 'too_many' }]);
+  });
+
+  it('REQ-NFR-001 refuses unknown fields, and an ID that is not a UUID', () => {
+    expect(detailsFor(workoutSetDataSchema, { ...workout, userId: CHANGE_ID })).toEqual([
+      { field: 'userId', issue: 'unknown_field' },
+    ]);
+    expect(detailsFor(workoutSetDataSchema, { ...workout, exercises: [{ ...exercise, rpe: 8 }] })).toEqual([
+      { field: 'exercises[0].rpe', issue: 'unknown_field' },
+    ]);
+    expect(detailsFor(workoutDeleteDataSchema, { id: 'abc', deletedAt: RECORDED_AT })).toEqual([
+      { field: 'id', issue: 'invalid_format' },
+    ]);
+  });
+
+  it('D-29 a pulled workout is either the whole workout or a deleted one with no content', () => {
+    const live = { deleted: false, ...workout, updatedAt: RECORDED_AT };
+    const deleted = { deleted: true, id: WORKOUT_ID, day: '2026-10-27', updatedAt: RECORDED_AT };
+    expect(pulledWorkoutSchema.parse(live)).toEqual(live);
+    expect(pulledWorkoutSchema.parse({ ...deleted, exercises: [exercise] })).toEqual(deleted);
+  });
+});
+
 describe('REQ-ROLE-007 target.set data', () => {
   it('D-23 accepts each kind at both ends of its range and refuses one step outside', () => {
     for (const kind of TARGET_KINDS) {
@@ -219,6 +285,7 @@ describe('REQ-NFR-004 sync request and response', () => {
         steps: [],
         sleep: [],
         measurements: [],
+        workouts: [],
         targets: [],
         meals: [],
         savedMeals: [],

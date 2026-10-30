@@ -12,6 +12,7 @@ import { registerMediaRoutes } from './routes/media.ts';
 import { registerMeRoutes } from './routes/me.ts';
 import { registerSyncRoute } from './routes/sync.ts';
 import { registerWeighInsRoute } from './routes/weighIns.ts';
+import { registerWorkoutsRoute } from './routes/workouts.ts';
 import type { MediaStorage } from './storage/mediaStorage.ts';
 
 export type LogOptions = { level: string; stream?: { write(line: string): void } };
@@ -87,6 +88,7 @@ export function buildApp(deps: AppDeps) {
     syncPageSize: deps.syncPageSize ?? SYNC_PAGE_SIZE,
     storage: deps.storage ?? null,
   });
+  registerWorkoutsRoute(app, deps);
   registerWeighInsRoute(app, deps);
   registerFoodsRoute(app, deps);
   registerBarcodesRoute(app, {

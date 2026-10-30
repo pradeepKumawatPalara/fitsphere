@@ -2,7 +2,8 @@
 
 - Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
+- Last updated: 2026-10-29 (Training slice, step 1: workouts in the authorization and sync
+  cases; D-29). 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
   backlog)
 - Builds on: [`definition-of-done.md`](definition-of-done.md); contracts in [`../contracts/`](../contracts/);
   the validation steps of ADR-0001 to ADR-0007
@@ -61,6 +62,9 @@ Also:
   day and `changeId`;
 - the same for steps, sleep, measurements and targets, even with the same day, kind and
   `changeId` (Home and daily tracking slice, D-23);
+- the same for workouts, even with the same workout ID and `changeId`, and a second user's
+  `workout.delete` never deletes the first user's workout; `GET /v1/users/{userId}/workouts`
+  answers as in the table above (Training slice, D-29);
 - logging a weight, steps, sleep or measurements, or setting a target, without the Personal
   Training User role is rejected (`ROLE_NOT_ENABLED`);
 - a `target.set` change that names who set the target is refused; the server records the caller
@@ -87,6 +91,10 @@ coach-set target: refused (invariant #2).
   replaces the first; out-of-range values and a missing waist value are rejected; the 90-day
   window applies to day data but not to targets; one cursor pages across all five kinds in the
   order they changed.
+- Workouts (D-29): an empty workout and several on one day are accepted; a second change replaces
+  the whole workout; a deletion keeps an empty row and is pulled as deleted, and a later save
+  restores it; the 90-day window applies; the history route leaves out deleted workouts and pages
+  within one day.
 - On the phone (unit tests): a failed or offline sync keeps the outbox; a rejected change stays
   until the user fixes or discards it; synced entries older than 90 days are removed from the
   phone, pending and rejected ones never.

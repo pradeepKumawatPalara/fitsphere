@@ -2,8 +2,9 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Home and daily tracking slice: rejected-change texts for steps, sleep,
-  measurements and targets; D-23). 2026-10-28 (Skeleton step 5: `details` is `null` outside
+- Last updated: 2026-10-29 (Training slice: rejected-change text for workouts; D-29). 2026-10-29
+  (Home and daily tracking slice: rejected-change texts for steps, sleep, measurements and targets;
+  D-23). 2026-10-28 (Skeleton step 5: `details` is `null` outside
   `VALIDATION_FAILED`)
 - Builds on: [`api-conventions.md`](api-conventions.md); invariants #1 and #7; REQ-ACC-010, REQ-NFR-001, REQ-NFR-004
 
@@ -71,7 +72,7 @@ never removes it automatically (ADR-0007 rule 2, D-14).
 
 | Code | When |
 |---|---|
-| `VALIDATION_FAILED` | The change's data is invalid, e.g. a weight outside 20–300 kg (Q-028), a malformed day, a missing waist value, a target outside its range, or an unknown field |
+| `VALIDATION_FAILED` | The change's data is invalid, e.g. a weight outside 20–300 kg (Q-028), a malformed day, a missing waist value, a target outside its range, a workout with more than 30 exercises, or an unknown field |
 | `DAY_IN_FUTURE` | The day is later than today in IST by the server's clock (REQ-DATE-001, Q-017, invariant #5). Not used for targets, which have no day |
 | `ROLE_NOT_ENABLED` | The change needs a role the user has not turned on |
 | `NOT_ALLOWED` | The user may not change this data, e.g. the link it depended on has ended (T-02). Not reachable in the Skeleton, where users write only their own data |
@@ -98,4 +99,5 @@ reveal whether an address is registered.
 | A rejected weigh-in | "This weight wasn't saved: <reason>. Edit or discard it." with the reason from the code, e.g. "the date is in the future" | ADR-0007 rule 2 |
 | A rejected meal or saved-meal change | "This meal wasn't saved: …", "This meal wasn't deleted: …", "This saved meal wasn't saved: …", "This saved meal wasn't deleted: …". A rejected deletion offers Discard only | ADR-0007 rule 2; MVP default (D-26) |
 | A rejected steps, sleep, measurements or target change | The same, with its own subject: "These steps weren't saved: …", "This sleep wasn't saved: …", "These measurements weren't saved: …", "This target wasn't saved: …". For `ROLE_NOT_ENABLED` the reason reads "your account cannot log this" for every kind | ADR-0007 rule 2; MVP default (D-23) |
+| A rejected workout change (saving or deleting) | "This workout wasn't saved: <reason>. Edit or discard it." Edit opens the workout | ADR-0007 rule 2; MVP default (D-29) |
 | `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE` | "Something went wrong. Your entries are kept on this phone and will sync later." | REQ-NFR-004 |

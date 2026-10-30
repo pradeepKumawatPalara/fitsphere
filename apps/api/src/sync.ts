@@ -1,5 +1,5 @@
 // POST /v1/sync (api-conventions; ADR-0007 option A; REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*,
-// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001).
+// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003).
 import {
   isFutureIstDay,
   istToday,
@@ -23,6 +23,10 @@ import {
   targetSetDataSchema,
   WEIGH_IN_SET,
   weighInSetDataSchema,
+  WORKOUT_DELETE,
+  WORKOUT_SET,
+  workoutDeleteDataSchema,
+  workoutSetDataSchema,
   type ChangeError,
   type ChangeErrorCode,
   type IstDay,
@@ -30,9 +34,11 @@ import {
   type MealPhoto,
   type PulledMeal,
   type PulledSavedMeal,
+  type PulledWorkout,
   type SyncChange,
   type SyncResponse,
   type SyncResult,
+  type Workout,
 } from '@fitsphere/shared';
 import type pg from 'pg';
 import { hasRole } from './access.ts';
@@ -205,6 +211,36 @@ const HANDLERS = new Map<string, Handler>([
         ],
       ),
     ),
+  ],
+  [
+    WORKOUT_SET,
+    // Creates the workout, or replaces the whole workout with this ID: the change received last
+    // wins (ADR-0007 rule 2), including over an earlier deletion.
+    dayChange(workoutSetDataSchema, (client, userId, data) =>
+      client.query(
+        `insert into app.workouts (user_id, id, day, exercises, recorded_at) values ($1, $2, $3, $4::jsonb, $5)
+         on conflict (user_id, id) do update
+           set day = excluded.day, exercises = excluded.exercises, recorded_at = excluded.recorded_at,
+               deleted_at = null`,
+        // node-postgres would turn an array into a PostgreSQL array, so jsonb gets JSON text.
+        [userId, data.id, data.day, JSON.stringify(data.exercises), data.recordedAt],
+      ),
+    ),
+  ],
+  [
+    WORKOUT_DELETE,
+    // Removes the workout's content and keeps an empty row with its day, so other phones learn of
+    // the deletion. Deleting a workout the server never had changes nothing.
+    async (client, account, input) => {
+      const data = workoutDeleteDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      await client.query(
+        `update app.workouts set deleted_at = $3, exercises = null
+         where user_id = $1 and id = $2 and deleted_at is null`,
+        [account.id, data.data.id, data.data.deletedAt],
+      );
+      return null;
+    },
   ],
   [
     TARGET_SET,
@@ -383,6 +419,7 @@ type ChangedRow = { change_seq: string } & (
   | { kind: 'steps'; item: { day: IstDay; steps: number } & Times }
   | { kind: 'sleep'; item: { day: IstDay; sleepMinutes: number } & Times }
   | { kind: 'measurements'; item: SyncResponse['pull']['measurements'][number] }
+  | { kind: 'workout'; item: StoredWorkout }
   | { kind: 'target'; item: SyncResponse['pull']['targets'][number] }
   | { kind: 'meal'; item: StoredMeal }
   | { kind: 'savedMeal'; item: StoredSavedMeal }
@@ -393,11 +430,12 @@ type StoredMeal = Omit<Extract<PulledMeal, { deleted: false }>, 'totals' | 'meal
   StoredTotals & { mealType: Extract<PulledMeal, { deleted: false }>['mealType'] | null };
 type StoredSavedMeal = Omit<Extract<PulledSavedMeal, { deleted: false }>, 'totals' | 'mealType' | 'name'> &
   StoredTotals & { name: string | null; mealType: Extract<PulledSavedMeal, { deleted: false }>['mealType'] | null };
+type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises: Workout['exercises'] | null };
 
 /**
  * The user's rows changed after `afterSeq`, oldest change first, from every synced table. They
- * share `app.change_seq`, so one cursor covers them all. Day data, meals included, is limited to
- * the 90-day window; targets and saved meals are always included.
+ * share `app.change_seq`, so one cursor covers them all. Day data, meals and workouts included, is
+ * limited to the 90-day window; targets and saved meals are always included.
  */
 async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigint, windowStart: IstDay, limit: number) {
   const { rows } = await client.query<ChangedRow>(
@@ -421,6 +459,11 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
            'chestMm', chest_mm, 'hipsMm', hips_mm, 'armMm', arm_mm, 'thighMm', thigh_mm, 'notes', notes,
            'recordedAt', recorded_at, 'updatedAt', updated_at)
        from app.measurements where user_id = $1 and change_seq > $2 and day >= $3
+       union all
+       select 'workout', change_seq,
+         json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'exercises', exercises,
+           'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.workouts where user_id = $1 and change_seq > $2 and day >= $3
        union all
        select 'target', change_seq,
          json_build_object('kind', kind, 'value', value, 'setByUserId', set_by_user_id,
@@ -452,6 +495,7 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
     steps: [],
     sleep: [],
     measurements: [],
+    workouts: [],
     targets: [],
     meals: [],
     savedMeals: [],
@@ -470,6 +514,9 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
         break;
       case 'measurements':
         pull.measurements.push(withUtcTimes(row.item));
+        break;
+      case 'workout':
+        pull.workouts.push(toPulledWorkout(row.item));
         break;
       case 'target':
         pull.targets.push({ ...row.item, setAt: utc(row.item.setAt), updatedAt: utc(row.item.updatedAt) });
@@ -522,6 +569,20 @@ function toPulledSavedMeal(saved: StoredSavedMeal): PulledSavedMeal {
 
 function totalsOf(row: StoredTotals) {
   return { kcal: row.kcal ?? 0, proteinG: row.proteinG ?? 0, carbsG: row.carbsG, fatG: row.fatG, fibreG: row.fibreG };
+}
+
+function toPulledWorkout(workout: StoredWorkout): PulledWorkout {
+  if (workout.deleted || workout.exercises === null) {
+    return { deleted: true, id: workout.id, day: workout.day, updatedAt: utc(workout.updatedAt) };
+  }
+  return {
+    deleted: false,
+    id: workout.id,
+    day: workout.day,
+    exercises: workout.exercises,
+    recordedAt: utc(workout.recordedAt),
+    updatedAt: utc(workout.updatedAt),
+  };
 }
 
 function withUtcTimes<T extends Times>(item: T): T {

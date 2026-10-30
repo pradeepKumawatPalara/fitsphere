@@ -12,6 +12,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'GET /v1/me': 'test/integration/me.test.ts',
   'POST /v1/me': 'test/integration/me.test.ts',
   'POST /v1/sync': 'test/integration/sync.test.ts',
+  'GET /v1/users/:userId/workouts': 'test/integration/workouts.test.ts',
   'GET /v1/users/:userId/weigh-ins': 'test/integration/weigh-ins.test.ts',
   'GET /v1/foods': 'test/integration/foods.test.ts',
   'GET /v1/barcodes/:barcode': 'test/integration/barcodes.test.ts',

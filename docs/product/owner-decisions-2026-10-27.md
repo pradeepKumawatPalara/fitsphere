@@ -785,6 +785,26 @@
   `constraints-and-assumptions.md` (MVP defaults); `backlog.md` (E-13); ADR-0006 (validation
   results); `CLAUDE.md`; `docs/README.md`.
 
+## D-29 Training slice plan approved, built beside slice 3
+*Numbered D-29 on 2026-10-30, when slice 4 was rebased onto slice 3. It was built in parallel with
+slice 3 (D-26) under the temporary ID D-T1, and its backlog cases E-14 to E-17 under E-T1 to E-T4.*
+- Status: **Accepted** (owner approval in chat, 2026-10-29).
+- Answers:
+  1. **Slice 4 plan approved:** [`docs/plans/training-slice.md`](../plans/training-slice.md), with
+     its scope, its MVP defaults chosen under D-18 answer 3, and its four steps.
+  2. **Built in parallel with slice 3** in a separate worktree. Shared files get small changes
+     only. The server migration and the phone schema version are renumbered before merging if
+     they would collide, and the migration runs on Supabase only when the owner says so. New
+     decision, question and backlog IDs are temporary until merged (now D-29 and E-14 to E-17).
+  3. **Workflow as D-21:** steps run back to back, with one branch and one pull request each, each
+     rebased on the latest main with every check run again before it is opened, CI green before
+     merge, and the owner merging. The phone checks are batched at the end of the slice.
+  4. **No new native packages** without asking the owner first (cloud build, D-19); none is
+     planned.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: `docs/plans/training-slice.md`; `CLAUDE.md` current phase; `docs/README.md`. The
+  MVP defaults are added to `constraints-and-assumptions.md` in the step that builds each one.
+
 ---
 
 ## Proposed replacement wording for the two invariants

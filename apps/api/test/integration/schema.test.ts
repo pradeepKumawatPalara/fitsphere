@@ -304,6 +304,7 @@ describe('ADR-0002 second safety layer', () => {
       'user_roles',
       'users',
       'weigh_ins',
+      'workouts',
     ]);
     expect(rows.every((row) => row.relrowsecurity)).toBe(true);
 

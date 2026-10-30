@@ -92,6 +92,15 @@ export function authorizeMealPhoto(caller: Account, userId: string): void {
   if (caller.id !== userId) throw new ApiError('NOT_FOUND');
 }
 
+/**
+ * Who may read a person's workouts (permission matrix, "Workouts and Progress"). MVP (D-20): only
+ * the person themselves; anyone else gets 404, as for weigh-ins (T-01). Post-MVP (backlog B-19,
+ * B-20): their coach with an active link, and a Head Coach the trainee allows, read-only.
+ */
+export function authorizeWorkoutRead(caller: Account, userId: string): void {
+  if (caller.id !== userId) throw new ApiError('NOT_FOUND');
+}
+
 function bearerToken(request: FastifyRequest): string {
   const header = request.headers.authorization;
   const match = header ? /^Bearer ([^\s]+)$/i.exec(header) : null;
