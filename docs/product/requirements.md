@@ -3,9 +3,10 @@
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
 - Last updated: 2026-10-30 (D-26 answer 3, amended: REQ-LOG-008's cooked-rice example flagged as
-  unsupported). 2026-10-29 (D-24: REQ-HOME-008, the Measurements card shows and edits a date's
-  measurements). Earlier the same day (Home and daily tracking slice, D-23): where targets are
-  set; storage units for sleep and measurements; the parts of REQ-HOME-002, REQ-HOME-003/004,
+  unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
+  REQ-HOME-007). Earlier the same day (D-24: REQ-HOME-008, the Measurements card shows and edits a
+  date's measurements). Earlier the same day (Home and daily tracking slice, D-23): where targets
+  are set; storage units for sleep and measurements; the parts of REQ-HOME-002, REQ-HOME-003/004,
   REQ-HOME-005 and REQ-HOME-007 that wait for meals or workouts. 2026-10-28 (D-20: Coach and Head
   Coach requirements marked Post-MVP)
 - Derived from: [`source/business-requirements.txt`](source/business-requirements.txt) (BRD). "BRD §x" points to the source section.
@@ -320,6 +321,7 @@ B-22).
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
 - MVP default (D-18): an empty workout counts toward the weekly target (Q-025). The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
+- MVP default (D-29): every workout on the phone in the Mon–Sun week of the selected date counts, including those waiting to sync; a day may hold several workouts, each counted, and the day's dot shows once it has any.
 
 ### REQ-HOME-008 — Measurements prompt
 - Requirement: A Measurements card prompts weekly waist measurements and opens the measurements sheet (REQ-MEAS-001). It shows the selected date's measurements and lets the user correct them (D-24).
@@ -524,12 +526,15 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-TRN-003 — Empty workout
 - Requirement: "Start an empty workout" lets the user log a self-directed session.
 - MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout counts toward the weekly target (Q-025).
+- MVP defaults (D-29): "Start an empty workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
+- MVP default (D-29): newest first; the last 90 days from the phone, and older workouts read from the server online with "Load older", view-only (ADR-0007 rules 1 and 6).
 
 ### REQ-TRN-005 — Lifting unit
 - Requirement: Lifting weights are entered and shown in the lifting-weight unit setting (REQ-ACC-002); changing the setting converts display of existing history.
+- MVP default (D-29): stored in whole grams (invariant #6), 0.1–500 kg or none; entered and shown in kg with one decimal until the Settings slice adds the setting, which then converts the history shown.
 
 ### REQ-TRN-006 — Coach builds a training plan
 - **Post-MVP** (D-20, backlog B-21).

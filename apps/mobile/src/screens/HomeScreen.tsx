@@ -1,9 +1,12 @@
 import {
   addDays,
+  istWeekStart,
   MEAL_SET,
   MEASUREMENTS_SET,
   SAVED_MEAL_SET,
   TARGET_SET,
+  WORKOUT_DELETE,
+  WORKOUT_SET,
   type IstDay,
   type LengthUnit,
   type MealTotals,
@@ -30,6 +33,7 @@ import {
   dayNutrition,
   getEntry,
   getMeta,
+  listEntries,
   listTargets,
   mealCounts,
   rejectedChanges,
@@ -44,9 +48,6 @@ import { LogOut } from './LogOut';
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
 type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState }>>;
 type Targets = Partial<Record<TargetKind, number>>;
-
-// Workouts come with slice 4 (D-23): until then no workout is logged.
-const NO_WORKOUT_DAYS: readonly IstDay[] = [];
 
 // Home (REQ-HOME-*): the selected day's data. The date, the calendar and the avatar are in the
 // tabs' common header (REQ-NAV-002).
@@ -66,6 +67,7 @@ export function HomeScreen() {
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
   const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
+  const [weekWorkouts, setWeekWorkouts] = useState<{ count: number; days: IstDay[] }>({ count: 0, days: [] });
 
   useEffect(() => {
     let active = true;
@@ -84,6 +86,7 @@ export function HomeScreen() {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
+    const monday = istWeekStart(selected);
     void Promise.all([
       Promise.all(DAY_VALUE_ORDER.map((kind) => getEntry(db, kind, selected))),
       rejectedChanges(db),
@@ -92,7 +95,8 @@ export function HomeScreen() {
       getMeta(db, 'measurement_unit'),
       dayNutrition(db, selected),
       mealCounts(db, weekStart, addDays(weekStart, 6)),
-    ]).then(([entries, waiting, current, dayMeasurements, unit, nutrition, counts]) => {
+      listEntries(db, 'workout', monday, addDays(monday, 6)),
+    ]).then(([entries, waiting, current, dayMeasurements, unit, nutrition, counts, workouts]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -109,6 +113,9 @@ export function HomeScreen() {
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
       setEaten(nutrition);
       setMealDays(new Set(Object.keys(counts)));
+      // Every workout on the phone in the selected date's week counts, an empty one too (Q-025), and
+      // a day's dot shows once it has any (REQ-HOME-007; MVP default, D-29).
+      setWeekWorkouts({ count: workouts.length, days: [...new Set(workouts.map((workout) => workout.day))] });
     });
     return () => {
       active = false;
@@ -135,6 +142,7 @@ export function HomeScreen() {
     else if (entry.type === TARGET_SET) openTargets();
     else if (entry.type === MEAL_SET) router.push({ pathname: '/log-meal', params: { mealId: String(data.id) } });
     else if (entry.type === SAVED_MEAL_SET) router.push({ pathname: '/nutrition', params: { tab: 'saved' } });
+    else if (entry.type === WORKOUT_SET || entry.type === WORKOUT_DELETE) router.push(`/workout/${String(data.id)}`);
   }
 
   // Never run unencrypted (ADR-0007 rule 5): stop, and leave only Log out.
@@ -202,8 +210,8 @@ export function HomeScreen() {
         </View>
         <WorkoutTracker
           day={selected}
-          workoutDays={NO_WORKOUT_DAYS}
-          count={NO_WORKOUT_DAYS.length}
+          workoutDays={weekWorkouts.days}
+          count={weekWorkouts.count}
           target={targets.weekly_workouts ?? null}
           onSetTarget={openTargets}
         />

@@ -20,13 +20,12 @@ and marked `approved` by the owner (starter set first: boiled egg, roti, phulka,
 dal, moong dal, aloo gobi, idli, plain dosa). Until then no dish values exist. Never fill in or
 approve a recipe row without the owner's measurements; the chicken curry stays `blocked`.
 
-**Slice 4, Training — in progress, in parallel with slice 3 (D-29, 2026-10-29).** Plan:
-`docs/plans/training-slice.md` (Accepted). It is built in the worktree `D:\fitsphere-training`
-(branch `slice4/training` and its step branches), while slice 3 is built in another. Shared files
-get small changes only. Rebased onto slice 3's step 8 on 2026-10-30, it takes the migration
-`0007_workouts.sql`, phone schema version 6 and the IDs D-29 and E-14 to E-17. The migration runs on
-Supabase only when the owner says so. The owner's merges, migration and phone checks are batched at
-the end of the slice.
+**Slice 4, Training — built in parallel with slice 3, waiting for the owner (D-29, 2026-10-29).**
+Plan: `docs/plans/training-slice.md` (Accepted). Built in the worktree `D:\fitsphere-training`;
+steps 1 to 4 are pull requests #23, #25, #27 and #28, merged in order by the
+owner after slice 3's step 8 (#38), once CI is green. Rebased onto #38 on 2026-10-30: the
+migration is `0007_workouts.sql`, the phone schema version 6 and the IDs D-29 and E-14 to E-17.
+The migration runs on Supabase only when the owner says so. Then the slice's batched phone checks.
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are

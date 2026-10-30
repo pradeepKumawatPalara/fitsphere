@@ -15,7 +15,7 @@ type Props = {
 };
 
 // The workout tracker (REQ-HOME-007): "1 of 5 · 4 left", with Mon–Sun dots marking workout days.
-// Workouts are logged from the Training slice; until then the count is 0 (D-23).
+// Workouts are logged on the Training tab (D-29).
 export function WorkoutTracker({ day, workoutDays, count, target, onSetTarget }: Props) {
   const summary =
     target === null
