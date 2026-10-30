@@ -805,6 +805,33 @@ slice 3 (D-26) under the temporary ID D-T1, and its backlog cases E-14 to E-17 u
 - Doc changes: `docs/plans/training-slice.md`; `CLAUDE.md` current phase; `docs/README.md`. The
   MVP defaults are added to `constraints-and-assumptions.md` in the step that builds each one.
 
+## D-P1 Progress slice plan approved, built beside slice 6
+*A temporary ID: slice 5 is built in parallel with slice 6 (Settings and account), and gets its
+final D- number, with its backlog cases E-P1 to E-P3, when it is merged.*
+- Status: **Accepted** (owner approval in chat, 2026-10-30).
+- Answers:
+  1. **Slice 5 plan approved:** [`docs/plans/progress-slice.md`](../plans/progress-slice.md), with
+     its scope, its MVP defaults chosen under D-18 answer 3, and its three steps. Progress only
+     reads existing data: no server change, no migration and no new phone schema version.
+  2. **Built in parallel with slice 6** in a separate worktree, as D-29 was beside slice 3. Shared
+     files get small changes only; new IDs are temporary until merged; each step is rebased on the
+     latest main with every check run again before its pull request; no new native package without
+     asking the owner first (none is planned; the chart is drawn with plain views).
+  3. **Theme and units come from slice 6.** Progress takes every colour from slice 6's theme module
+     and every body weight through the shared unit helpers with one unit hook, never a fixed "kg"
+     or "cm". If slice 6's theme is not on main when the Progress screen is built, Progress adds the
+     same module with the light colours only, and slice 6's version is kept when they meet.
+  4. **Weekly rate (refines the Q-043 MVP default):** the rate is the 4-week change ÷ the weeks
+     between the two weigh-ins, which is "÷ 4" when they are 28 days apart. Less than a week
+     between them shows the not-enough-data message (REQ-PRG-001).
+  5. **Workflow as D-21:** steps run back to back, one branch and one pull request each, CI green
+     before merge, the owner merging; the phone checks are batched at the end.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: `docs/plans/progress-slice.md`; the Q-043 rows in `mvp-scope.md`,
+  `constraints-and-assumptions.md` and REQ-PRG-001 in `requirements.md`; `CLAUDE.md` current phase;
+  `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step that
+  builds each one.
+
 ---
 
 ## Proposed replacement wording for the two invariants

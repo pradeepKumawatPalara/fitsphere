@@ -3,6 +3,7 @@ import { memoryDb } from '../testing/memoryDb';
 import type { SqlDb } from './sql';
 import {
   applyServerEntries,
+  dailyNutrition,
   dayNutrition,
   deleteEntry,
   discardRejected,
@@ -174,6 +175,18 @@ describe('REQ-NUT-002 a day’s meals and totals', () => {
     await saveMeal(id(), { day: '2026-10-25' });
 
     expect(await mealCounts(db, '2026-10-21', '2026-10-27')).toEqual({ '2026-10-25': 1, '2026-10-27': 2 });
+  });
+
+  it('REQ-PRG-002 sums kcal and protein for each day with meals between two days', async () => {
+    await saveMeal(id(), { items: [ATTA] });
+    await saveMeal(id(), { items: [OWN] });
+    await saveMeal(id(), { day: '2026-10-25', items: [ATTA] });
+    await saveMeal(id(), { day: '2026-10-20', items: [ATTA] });
+
+    expect(await dailyNutrition(db, '2026-10-21', '2026-10-27')).toEqual({
+      '2026-10-25': { kcal: 192, proteinG: 6.34 },
+      '2026-10-27': { kcal: 372, proteinG: 10.34 },
+    });
   });
 
   it('ADR-0007 rule 1 old synced meals leave the phone; saved meals never do', async () => {
