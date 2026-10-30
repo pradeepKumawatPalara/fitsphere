@@ -7,25 +7,26 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Slice 3, Meal logging (no AI) — built; dish recipes and phone checks pending (D-26,
-2026-10-29; D-28, 2026-10-30).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Steps 1 to 7
-and the close-out (pull requests #18 to #32) are merged. On `fitsphere-dev`, migrations 0002 to
-0005 and `foods:import` are applied; photo storage (private bucket `meal-photos`, S3 connection
-and access key) is configured and passed `check:storage` 8 of 8 from the PC; `OFF_CONTACT` is set.
-Step 8 (dishes, D-28) is built in its own pull request: the dish import, `GET /v1/foods` dishes and
-logging dishes in portions. Still open: migration 0006 and `foods:import` on `fitsphere-dev`; the
-phone checks in the plan, on the new EAS development build (approved 2026-10-29); and the
-recipes. A dish goes live only when its row in `docs/data/standard-recipe-sheet.csv` is measured
-and marked `approved` by the owner (starter set first: boiled egg, roti, phulka, plain rice, toor
-dal, moong dal, aloo gobi, idli, plain dosa). Until then no dish values exist. Never fill in or
-approve a recipe row without the owner's measurements; the chicken curry stays `blocked`.
+**Slice 3, Meal logging (no AI) — merged; dish recipes and phone checks pending (D-26,
+2026-10-29; D-28, 2026-10-30).** Plan: `docs/plans/meal-logging-slice.md` (Accepted). Every step is
+merged: steps 1 to 7 and the close-out (pull requests #18 to #32, 2026-10-29), and step 8 (dishes,
+#38, with #33 to #37 and #39, 2026-10-30): the dish import, `GET /v1/foods` dishes and logging
+dishes in portions. On `fitsphere-dev`, migrations 0002 to 0005 and `foods:import` are applied;
+photo storage (private bucket `meal-photos`, S3 connection and access key) is configured and passed
+`check:storage` 8 of 8 from the PC; `OFF_CONTACT` is set. Still open: migrations 0006 and 0007
+(slice 4's) and `foods:import` on `fitsphere-dev`, run by the owner; the phone checks in the plan,
+on the new EAS development build (approved 2026-10-29); and the recipes. A dish goes live only when
+its row in `docs/data/standard-recipe-sheet.csv` is measured and marked `approved` by the owner
+(starter set first: boiled egg, roti, phulka, plain rice, toor dal, moong dal, aloo gobi, idli,
+plain dosa). Until then no dish values exist. Never fill in or approve a recipe row without the
+owner's measurements; the chicken curry stays `blocked`.
 
-**Slice 4, Training — built in parallel with slice 3, waiting for the owner (D-29, 2026-10-29).**
-Plan: `docs/plans/training-slice.md` (Accepted). Built in the worktree `D:\fitsphere-training`;
-steps 1 to 4 are pull requests #23, #25, #27 and #28, merged in order by the
-owner after slice 3's step 8 (#38), once CI is green. Rebased onto #38 on 2026-10-30: the
-migration is `0007_workouts.sql`, the phone schema version 6 and the IDs D-29 and E-14 to E-17.
-The migration runs on Supabase only when the owner says so. Then the slice's batched phone checks.
+**Slice 4, Training — merged; migration and phone checks pending (D-29, 2026-10-29).** Plan:
+`docs/plans/training-slice.md` (Accepted). Built in parallel with slice 3, rebased onto its step 8
+and merged on 2026-10-30: steps 1 to 4 are pull requests #23, #25, #27 and #28. The migration is
+`0007_workouts.sql`, the phone schema version 6 and the IDs D-29 and E-14 to E-17. Still open:
+migration 0007 on `fitsphere-dev` (after slice 3's 0006), run only when the owner says so; then the
+slice's batched phone checks, on the current development build (no new build).
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are
