@@ -106,6 +106,8 @@ email through Resend from FitSphere's domain (D-20).
   `docs/data/standard-recipe-sheet.csv`
 - Source documents read for the food data, for Legal's review (Q-049): `docs/sources/README.md`
   (the PDFs are kept outside the repository)
+- Brief for Legal's review (Q-049), with the questions and the evidence checklist (not yet
+  reviewed by Legal): `docs/legal/q-049-legal-brief.md`
 - Contracts for the Skeleton slice (Draft): `docs/contracts/data-model.md`, `api-conventions.md`,
   `error-model.md`
 - Verification (Accepted with the Skeleton plan): `docs/quality/test-strategy.md`, `definition-of-done.md`
