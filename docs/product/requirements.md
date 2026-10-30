@@ -2,7 +2,8 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-26 answer 3, amended: REQ-LOG-008's cooked-rice example flagged as
+- Last updated: 2026-10-30 (Progress slice, D-P1: MVP notes on REQ-PRG-001 to REQ-PRG-006, and the
+  weekly rate refined). Earlier the same day (D-26 answer 3, amended: REQ-LOG-008's cooked-rice example flagged as
   unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
   REQ-HOME-007). Earlier the same day (D-24: REQ-HOME-008, the Measurements card shows and edits a
   date's measurements). Earlier the same day (Home and daily tracking slice, D-23): where targets
@@ -560,25 +561,31 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Acceptance criteria:
   - Given less than one week of weigh-ins, then the weekly rate is replaced by a not-enough-data message.
 - MVP default (D-18): the 4-week change is the latest weigh-in minus the weigh-in nearest to 28 days earlier; the weekly rate is that change ÷ the weeks between the two weigh-ins, which is ÷ 4 at 28 days (Q-043, refined by D-P1).
+- MVP default (D-P1): the earlier weigh-in is one at least a week before the latest; with none, the change is measured from the oldest weigh-in and the rate is replaced by the not-enough-data message. The weight history stays on its own screen, opened by "All weigh-ins".
 
 ### REQ-PRG-002 — Average calories
 - Requirement: Shows average daily calories vs target.
 - MVP default (D-18): averages count only days that have entries (Q-043); the period is the last 4 weeks, as in REQ-PRG-001.
+- MVP default (D-P1): the last 28 IST days, today included, against the user's own calorie target (D-20).
 
 ### REQ-PRG-003 — Days logged
 - Requirement: Shows meals logged as days with ≥1 meal out of total days (e.g. "0 of 27 days").
 - MVP default (D-18): total days count from the day the account was created, capped at the last 28 days (Q-044).
+- MVP default (D-P1): the account's creation day is read from `GET /v1/me` once and kept on the phone; while it is unknown (offline), 28 days are counted.
 
 ### REQ-PRG-004 — Weight trend chart
 - Requirement: Chart with range filters 1W, 4W, 12W, 26W, All; empty state until enough weigh-ins exist.
 - MVP default (D-18): the chart needs at least 2 weigh-ins (Q-043).
+- MVP default (D-P1): 1W, 4W and 12W come from the phone; 26W and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages.
 
 ### REQ-PRG-005 — Week-by-week table
 - Requirement: Rows per week with Body Weight, Calories, Protein and Steps, and a Target row. Weekly values are averages over the days that have entries (MVP default, Q-043). The Target row shows the calorie and protein targets and the target body weight and daily steps target set by the coach (MVP default, Q-013). In the MVP these are the user's own targets (REQ-ROLE-007, D-20).
 - **Post-MVP:** the "Pre" row with the pre-program baseline, and tapping a week to open its details (D-18; Q-045, Q-046; backlog B-02).
+- MVP default (D-P1): this week and the 11 before it (within the phone's 90 days), none before the account's first week; older weeks are backlog E-P1.
 
 ### REQ-PRG-006 — Measurements section
 - Requirement: Lists measurements; with none, shows "Add first" (opens REQ-MEAS-001) and recommends weekly upper/lower waist tracking.
+- MVP default (D-P1): the phone's 90 days, newest first, each with "Edit measurements"; adding opens the sheet on today. Older entries are backlog E-P1.
 
 ---
 

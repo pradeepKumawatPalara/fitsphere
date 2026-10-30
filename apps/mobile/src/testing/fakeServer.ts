@@ -49,7 +49,12 @@ export function fakeServer(now: Date) {
     failWith: null as number | null,
     /** Reject every change with this code. */
     rejectWith: null as string | null,
+    /** What `GET /users/{id}/weigh-ins` holds, filtered by `from` and `to` and returned oldest first. */
     older: [] as { day: string; weightGrams: number }[],
+    /** Weigh-ins a page holds; null puts them all on one page. */
+    olderPageSize: null as number | null,
+    /** The `from`, `to` and `cursor` of each weigh-ins request. */
+    weighInQueries: [] as { from: string | null; to: string | null; cursor: string | null }[],
     /** The food list GET /v1/foods serves, with its dishes, and its version. */
     foods: [] as Food[],
     dishes: [] as Dish[],
@@ -190,12 +195,21 @@ export function fakeServer(now: Date) {
       return json(200, { items: state.olderWorkouts, nextCursor: null });
     }
     if (method === 'GET' && /^\/users\/[^/]+\/weigh-ins$/.test(path)) {
-      const items = state.older.map((entry) => ({
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      const cursor = url.searchParams.get('cursor');
+      state.weighInQueries.push({ from, to, cursor });
+      const matching = state.older
+        .filter((entry) => (!from || entry.day >= from) && (!to || entry.day <= to))
+        .sort((a, b) => (a.day < b.day ? -1 : 1));
+      const start = Number(cursor ?? 0);
+      const end = start + (state.olderPageSize ?? matching.length);
+      const items = matching.slice(start, end).map((entry) => ({
         ...entry,
         recordedAt: `${entry.day}T02:00:00.000Z`,
         updatedAt: `${entry.day}T02:00:00.000Z`,
       }));
-      return json(200, { items, nextCursor: null });
+      return json(200, { items, nextCursor: end < matching.length ? String(end) : null });
     }
     throw new Error(`No fake reply for ${method} ${path}`);
   });
