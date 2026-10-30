@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Button, Text } from 'react-native';
-import { Screen } from '../components/ui';
+import { Button } from 'react-native';
+import { Screen, Text } from '../components/ui';
 
 // Opened by the link in the verify email (fitsphere://verified). The link confirms the address;
 // the app then asks the user to sign in (api-conventions, "Sign-in flows"). Supabase adds

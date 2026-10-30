@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import { Button, Text } from 'react-native';
+import { Button } from 'react-native';
 import { TEXTS } from '../auth/texts';
-import { Screen } from '../components/ui';
+import { Screen, Text } from '../components/ui';
 
 export function CheckEmailScreen() {
   const router = useRouter();

@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, Text } from 'react-native';
+import { Button } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
 import { TEXTS } from '../auth/texts';
-import { CheckBox, Message, Screen } from '../components/ui';
+import { CheckBox, Message, Screen, Text } from '../components/ui';
 import { goAfterAccountCheck } from './navigation';
 
 // Shown only when the user's metadata has no 18+ confirmation, e.g. an account made before the

@@ -1,8 +1,10 @@
 import type { WorkoutExercise } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Button, Modal, ScrollView, View, type TextInputProps } from 'react-native';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
+import { themedStyles } from '../theme';
 import { parseExercise, type ExerciseText } from '../workouts';
+import { Text, TextInput } from './ui';
 
 type Props = {
   title: string;
@@ -17,6 +19,7 @@ type Props = {
 // the weight in the lifting-weight unit setting (REQ-TRN-005, REQ-ACC-002). Nothing is saved until
 // every field is valid; Cancel closes without saving (as Q-029).
 export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Props) {
+  const styles = useStyles();
   const unit = useLiftingWeightUnit();
   const [text, setText] = useState(initial);
   const [problem, setProblem] = useState<string | null>(null);
@@ -76,6 +79,7 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
 }
 
 function Input({ label, style, ...input }: { label: string } & TextInputProps) {
+  const styles = useStyles();
   return (
     <View style={[styles.field, style]}>
       <Text>{label}</Text>
@@ -84,14 +88,14 @@ function Input({ label, style, ...input }: { label: string } & TextInputProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { flexGrow: 0, backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { flexGrow: 0, backgroundColor: c.background, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   content: { padding: 24, gap: 12 },
   title: { fontSize: 18, fontWeight: '600' },
   numbers: { flexDirection: 'row', gap: 8 },
   number: { flex: 1 },
   field: { gap: 4 },
-  input: { borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 18 },
-  problem: { color: '#b00020' },
-});
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 18 },
+  problem: { color: c.error },
+}));

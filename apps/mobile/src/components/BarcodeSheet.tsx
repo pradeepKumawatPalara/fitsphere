@@ -1,12 +1,14 @@
 import { barcodeSchema, OFF_ATTRIBUTION, type BarcodeProduct, type MealItem } from '@fitsphere/shared';
 import { useState, type ComponentType } from 'react';
-import { Button, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Modal, ScrollView, View } from 'react-native';
 import { lookUpBarcode } from '../api/barcodes';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { GRAMS_RULE, hasKcalAndProtein, itemFromBarcode, parseGrams, productName } from '../mealItems';
 import { formatGrams, formatKcal } from '../meals';
+import { themedStyles } from '../theme';
 import { BarcodeCamera, type ScannerProps } from './BarcodeCamera';
+import { Text, TextInput } from './ui';
 
 type Step =
   | { kind: 'scan' }
@@ -32,6 +34,7 @@ export function BarcodeSheet({
   onClose(): void;
   Scanner?: ComponentType<ScannerProps>;
 }) {
+  const styles = useStyles();
   const { deps } = useAuth();
   const [step, setStep] = useState<Step>({ kind: 'scan' });
   const [typed, setTyped] = useState('');
@@ -175,14 +178,14 @@ export function BarcodeSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   body: { gap: 10, paddingBottom: 16 },
   title: { fontSize: 18, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   grow: { flex: 1 },
-  attribution: { color: '#666', fontSize: 11 },
-  problem: { color: '#b00020' },
-});
+  attribution: { color: c.textMuted, fontSize: 11 },
+  problem: { color: c.error },
+}));

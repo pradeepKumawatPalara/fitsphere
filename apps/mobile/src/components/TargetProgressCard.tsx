@@ -1,5 +1,7 @@
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { formatInteger } from '../format';
+import { themedStyles, useTheme } from '../theme';
+import { Text } from './ui';
 
 type Props = {
   title: string;
@@ -11,13 +13,12 @@ type Props = {
   onSetTarget(): void;
 };
 
-export const OVER_COLOUR = '#c62828';
-const BAR_COLOUR = '#1565c0';
-
 // The calories card (REQ-HOME-003) and the protein card (REQ-HOME-004). With no target, only the
 // amount eaten and "Set a target". Over the target, the bar is full in a warning colour with
 // "X kcal over" (Q-022).
 export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: Props) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   if (target === null) {
     return (
       <View style={styles.card}>
@@ -46,7 +47,7 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
       >
         <View
           testID={`${title}-bar`}
-          style={[styles.fill, { width: `${Math.min(percent, 100)}%`, backgroundColor: over ? OVER_COLOUR : BAR_COLOUR }]}
+          style={[styles.fill, { width: `${Math.min(percent, 100)}%`, backgroundColor: over ? colors.over : colors.primary }]}
         />
       </View>
       <View style={styles.row}>
@@ -59,12 +60,12 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
   );
 }
 
-const styles = StyleSheet.create({
-  card: { padding: 16, borderRadius: 12, backgroundColor: '#f1f5fb', gap: 8 },
-  title: { color: '#555' },
+const useStyles = themedStyles((c) => ({
+  card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
+  title: { color: c.textMuted },
   amount: { fontSize: 20, fontWeight: '600' },
-  track: { height: 10, borderRadius: 5, backgroundColor: '#dde3ec', overflow: 'hidden' },
+  track: { height: 10, borderRadius: 5, backgroundColor: c.track, overflow: 'hidden' },
   fill: { height: 10, borderRadius: 5 },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  over: { color: OVER_COLOUR, fontWeight: '600' },
-});
+  over: { color: c.over, fontWeight: '600' },
+}));

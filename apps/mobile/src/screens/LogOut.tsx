@@ -1,14 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { signOutLocally } from '../auth/service';
+import { Text } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { logOutDecision } from '../local/store';
+import { themedStyles } from '../theme';
 
 // Log out (REQ-ACC-008; MVP default, D-18): deletes the phone's database and its key. With entries
 // not yet on the server, the app warns first and deletes them only if the user confirms.
 export function LogOut() {
+  const styles = useStyles();
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const router = useRouter();
@@ -40,6 +43,6 @@ export function LogOut() {
   );
 }
 
-const styles = StyleSheet.create({
-  warning: { gap: 12, padding: 12, borderWidth: 1, borderColor: '#b00020', borderRadius: 6 },
-});
+const useStyles = themedStyles((c) => ({
+  warning: { gap: 12, padding: 12, borderWidth: 1, borderColor: c.error, borderRadius: 6 },
+}));

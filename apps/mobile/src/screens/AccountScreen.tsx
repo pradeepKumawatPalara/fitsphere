@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
-import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, ScrollView, View } from 'react-native';
 import { checkApiHealth } from '../api/health';
 import { useAuth } from '../auth/AuthProvider';
 import { ApiStatus } from '../components/ApiStatus';
 import { ExpiredTokenTest } from '../components/ExpiredTokenTest';
 import { LocalDatabaseCheck } from '../components/LocalDatabaseCheck';
 import { TodayIst } from '../components/TodayIst';
+import { Text } from '../components/ui';
 import { useSync } from '../sync/SyncProvider';
+import { themedStyles } from '../theme';
 import { LogOut } from './LogOut';
 
 // Account, opened from the header's avatar (REQ-NAV-002). In this slice: the email, the user's
@@ -14,6 +16,7 @@ import { LogOut } from './LogOut';
 // Skeleton's phone checks use (SC-02, SC-04, SC-08, SC-13). The Settings slice adds the settings
 // (MVP default, D-23).
 export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boolean }) {
+  const styles = useStyles();
   const { deps, email } = useAuth();
   const sync = useSync();
   const router = useRouter();
@@ -39,8 +42,8 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 16 },
   heading: { fontSize: 17, fontWeight: '600' },
-  dev: { marginTop: 32, gap: 24, borderTopWidth: 1, borderTopColor: '#ccc', paddingTop: 16 },
-});
+  dev: { marginTop: 32, gap: 24, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 16 },
+}));

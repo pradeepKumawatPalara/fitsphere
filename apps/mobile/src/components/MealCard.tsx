@@ -1,8 +1,10 @@
 import type { MealItem, MealPhoto, MealTag, MealTotals } from '@fitsphere/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import type { SyncState } from '../local/store';
 import { describeItems, formatGrams, formatKcal, MEAL_TAG_LABELS } from '../meals';
+import { themedStyles } from '../theme';
 import { MealPhotoPreview } from './MealPhotoPreview';
+import { Text } from './ui';
 
 type Props = {
   /** What the ••• button is called for screen readers, e.g. "Lunch: Wheat flour, atta". */
@@ -20,6 +22,7 @@ type Props = {
 // One logged or saved meal (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001): its foods, kcal and protein,
 // a small label per tag (Q-031), its photo or image link, and the ••• menu.
 export function MealCard({ title, items, tags, totals, syncState, photo, onMenu, onPress }: Props) {
+  const styles = useStyles();
   const note = syncState === 'pending' ? 'Waiting to sync' : syncState === 'rejected' ? 'Not saved' : null;
   return (
     <View style={styles.card}>
@@ -53,14 +56,14 @@ export function MealCard({ title, items, tags, totals, syncState, photo, onMenu,
   );
 }
 
-const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'flex-start', padding: 12, borderRadius: 10, backgroundColor: '#fff', gap: 8 },
+const useStyles = themedStyles((c) => ({
+  card: { flexDirection: 'row', alignItems: 'flex-start', padding: 12, borderRadius: 10, backgroundColor: c.background, gap: 8 },
   body: { flex: 1, gap: 4 },
   items: { fontWeight: '600' },
-  values: { color: '#333' },
+  values: { color: c.text },
   tags: { flexDirection: 'row', gap: 6 },
-  tag: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: '#e3ecf8', color: '#0d47a1' },
-  note: { color: '#8a5a00', fontSize: 12 },
+  tag: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: c.surfaceSelected, color: c.primaryStrong },
+  note: { color: c.warning, fontSize: 12 },
   menu: { paddingHorizontal: 8, paddingVertical: 4 },
-  menuText: { fontSize: 18, color: '#555' },
-});
+  menuText: { fontSize: 18, color: c.textMuted },
+}));

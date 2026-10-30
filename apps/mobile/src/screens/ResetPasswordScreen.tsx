@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, Text } from 'react-native';
+import { ActivityIndicator, Button } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { setNewPassword, startPasswordReset } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
-import { Field, Message, Screen } from '../components/ui';
+import { Field, Message, Screen, Text } from '../components/ui';
 
 // "Set a new password", opened by the link in the reset email, fitsphere://reset-password
 // (REQ-ACC-010, D-11).

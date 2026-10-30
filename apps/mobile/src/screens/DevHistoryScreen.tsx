@@ -1,7 +1,7 @@
 import { addDays, istToday } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Text } from 'react-native';
 import { WeighInList, type HistoryRow } from '../components/WeighInList';
+import { Text } from '../components/ui';
 
 // Development builds only (ADR-0001 step 6): the history list with 200 synthetic rows, to scroll
 // on the phone. Nothing is saved.

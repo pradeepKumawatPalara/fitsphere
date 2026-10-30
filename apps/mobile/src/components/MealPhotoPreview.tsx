@@ -1,14 +1,17 @@
 import type { MealPhoto } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Image, Linking, Modal, Pressable, View } from 'react-native';
 import { jpegDataUri } from '../photos/bytes';
 import { usePhoto, type LoadedPhoto } from '../photos/loadPhoto';
+import { themedStyles } from '../theme';
 import { linkSite } from './MealPhotoField';
+import { Text } from './ui';
 
 // A logged meal's photo or image link (REQ-LOG-006, REQ-LOG-010, REQ-NFR-006). The thumbnail opens
 // the viewing copy; photos are view-only, with no download. A link shows its site and opens in the
 // browser; FitSphere never fetches it.
 export function MealPhotoPreview({ mealId, photo }: { mealId: string; photo: MealPhoto }) {
+  const styles = useStyles();
   const [open, setOpen] = useState(false);
   const thumbnail = usePhoto(photo.kind === 'photo' ? { id: photo.mediaId, mealId } : null, 'thumbnail');
 
@@ -38,6 +41,7 @@ export function MealPhotoPreview({ mealId, photo }: { mealId: string; photo: Mea
 }
 
 function PhotoViewer({ mealId, mediaId, onClose }: { mealId: string; mediaId: string; onClose(): void }) {
+  const styles = useStyles();
   const full = usePhoto({ id: mediaId, mealId }, 'full');
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -59,11 +63,11 @@ function photoNote(photo: LoadedPhoto): string {
   return 'Photo not available yet.';
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   thumbnail: { width: 64, height: 64, borderRadius: 8 },
-  note: { color: '#555', fontSize: 12 },
-  link: { color: '#0d47a1' },
+  note: { color: c.textMuted, fontSize: 12 },
+  link: { color: c.primaryStrong },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', padding: 16, gap: 16 },
   full: { width: '100%', height: '80%' },
-  viewerText: { color: '#fff', textAlign: 'center' },
-});
+  viewerText: { color: c.onPrimary, textAlign: 'center' },
+}));

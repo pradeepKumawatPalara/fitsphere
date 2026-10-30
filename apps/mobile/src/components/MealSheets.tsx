@@ -1,12 +1,15 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
 import { useState, type ReactNode } from 'react';
-import { Button, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Modal, Pressable, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
+import { themedStyles, useTheme } from '../theme';
+import { Text, TextInput } from './ui';
 
 // Bottom sheets for the meal menus (REQ-NUT-004, REQ-SAVED-001): a list of actions, a
 // confirmation, a name, and re-logging a saved meal.
 
 function Sheet({ title, children, onClose }: { title: string; children: ReactNode; onClose(): void }) {
+  const styles = useStyles();
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -63,11 +66,12 @@ export function ConfirmSheet({
   onConfirm(): void;
   onClose(): void;
 }) {
+  const { colors } = useTheme();
   return (
     <Sheet title={title} onClose={onClose}>
       <Button
         title={confirmLabel}
-        color="#b00020"
+        color={colors.error}
         onPress={() => {
           onClose();
           onConfirm();
@@ -88,6 +92,7 @@ export function SaveMealSheet({
   onSave(name: string): void;
   onClose(): void;
 }) {
+  const styles = useStyles();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
   return (
@@ -114,6 +119,7 @@ export function SaveMealSheet({
 
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
 export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
+  const styles = useStyles();
   return (
     <View style={styles.slots}>
       {MEAL_TYPE_ORDER.map((slot) => (
@@ -163,13 +169,13 @@ export function RelogSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#fff', padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { backgroundColor: c.background, padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: '#1565c0' },
-  slotChosen: { backgroundColor: '#1565c0' },
-  slotChosenText: { color: '#fff', fontWeight: '600' },
-});
+  slot: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.primary },
+  slotChosen: { backgroundColor: c.primary },
+  slotChosenText: { color: c.onPrimary, fontWeight: '600' },
+}));

@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, Text } from 'react-native';
+import { Button } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { requestPasswordReset } from '../auth/service';
 import { emailProblem, TEXTS } from '../auth/texts';
-import { Field, Message, Screen } from '../components/ui';
+import { Field, Message, Screen, Text } from '../components/ui';
 
 // REQ-ACC-010, D-11: the same neutral text whether or not the address is registered.
 export function ForgotPasswordScreen() {

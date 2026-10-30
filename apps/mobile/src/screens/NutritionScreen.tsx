@@ -1,12 +1,13 @@
 import { addDays, type IstDay, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
 import { LogMealButton } from '../components/LogMealButton';
 import { MealCard } from '../components/MealCard';
 import { ActionsSheet, ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
+import { Text } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -20,6 +21,7 @@ import {
 import { describeItems, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
+import { themedStyles } from '../theme';
 
 type Tab = 'consumed' | 'plan' | 'saved';
 const TABS: { tab: Tab; label: string }[] = [
@@ -43,6 +45,7 @@ function asTab(value: string | undefined): Tab | null {
 // Nutrition (REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001/002): the selected day's meals by slot,
 // the Diet plan empty state (D-20) and the saved meals. Shares the selected date with Home.
 export function NutritionScreen() {
+  const styles = useStyles();
   const local = useLocalDatabase();
   const sync = useSync();
   const router = useRouter();
@@ -254,19 +257,19 @@ export function NutritionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { padding: 16, gap: 16, paddingBottom: 96 },
-  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: '#fff4d6' },
+  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: c.warningSurface },
   tabs: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: '#1565c0' },
-  tabChosen: { backgroundColor: '#1565c0' },
-  tabChosenText: { color: '#fff', fontWeight: '600' },
-  slot: { gap: 8, padding: 12, borderRadius: 12, backgroundColor: '#f1f5fb' },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.primary },
+  tabChosen: { backgroundColor: c.primary },
+  tabChosenText: { color: c.onPrimary, fontWeight: '600' },
+  slot: { gap: 8, padding: 12, borderRadius: 12, backgroundColor: c.surface },
   slotHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   slotTitle: { fontSize: 16, fontWeight: '600' },
-  slotAdd: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1565c0', alignItems: 'center', justifyContent: 'center' },
-  slotAddText: { color: '#fff', fontSize: 20, lineHeight: 22 },
-  hint: { color: '#555' },
-  empty: { color: '#555', textAlign: 'center', paddingVertical: 24 },
-});
+  slotAdd: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  slotAddText: { color: c.onPrimary, fontSize: 20, lineHeight: 22 },
+  hint: { color: c.textMuted },
+  empty: { color: c.textMuted, textAlign: 'center', paddingVertical: 24 },
+}));

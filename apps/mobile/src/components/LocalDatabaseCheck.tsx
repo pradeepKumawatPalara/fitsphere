@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Button, Text, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { runRowCheck } from '../local/rowCheck';
+import { Text } from './ui';
 
 // Development builds only: the start-up check's result (ADR-0007 step 6) and the 1,000-row check
 // (ADR-0001 step 4). Run the row check in airplane mode, without reloading the app.

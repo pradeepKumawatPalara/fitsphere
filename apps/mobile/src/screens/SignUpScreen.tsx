@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, Text } from 'react-native';
+import { Button } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { signUp } from '../auth/service';
 import { emailProblem, passwordProblem, TEXTS } from '../auth/texts';
-import { CheckBox, Field, Message, Screen } from '../components/ui';
+import { CheckBox, Field, Message, Screen, Text } from '../components/ui';
 
 // REQ-ACC-010, D-18: sign-up needs "I am 18 or older"; the result is always the neutral text.
 export function SignUpScreen() {

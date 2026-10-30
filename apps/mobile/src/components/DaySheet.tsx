@@ -1,8 +1,10 @@
 import { addDays, type IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Modal, Pressable, View } from 'react-native';
 import { formatDay } from '../format';
+import { themedStyles } from '../theme';
 import { CalendarSheet } from './CalendarSheet';
+import { Text } from './ui';
 
 type Props = {
   today: IstDay;
@@ -24,6 +26,7 @@ export function dayStatus(count: number): string {
 // "Log this meal to" (REQ-LOG-002): today, yesterday and the five days before, each with its
 // status, and "Another day…" for the calendar.
 export function DaySheet({ today, firstDay, selected, counts, onSelect, onClose }: Props) {
+  const styles = useStyles();
   const [calendar, setCalendar] = useState(false);
   const days = Array.from({ length: 7 }, (_, index) => addDays(today, -index)).filter((day) => day >= firstDay);
 
@@ -77,12 +80,12 @@ export function DaySheet({ today, firstDay, selected, counts, onSelect, onClose 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#fff', padding: 20, gap: 6, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { backgroundColor: c.background, padding: 20, gap: 6, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 8 },
-  chosen: { backgroundColor: '#e3ecf8' },
+  chosen: { backgroundColor: c.surfaceSelected },
   day: { fontWeight: '600' },
-  status: { color: '#555' },
-});
+  status: { color: c.textMuted },
+}));

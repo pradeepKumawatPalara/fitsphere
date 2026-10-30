@@ -1,11 +1,41 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  Pressable,
+  Text as NativeText,
+  TextInput as NativeTextInput,
+  View,
+  type TextInputProps,
+  type TextProps,
+} from 'react-native';
+import { themedStyles, useTheme } from '../theme';
+
+// Text and fields in the theme's colours (REQ-ACC-001). React Native's own text is black whatever
+// the theme, so every screen takes Text and TextInput from here (a guard test checks it). A colour
+// in `style` still wins.
+
+export function Text({ style, ...props }: TextProps) {
+  const { colors } = useTheme();
+  return <NativeText {...props} style={[{ color: colors.text }, style]} />;
+}
+
+export function TextInput({ style, placeholderTextColor, ...props }: TextInputProps) {
+  const { colors } = useTheme();
+  return (
+    <NativeTextInput
+      placeholderTextColor={placeholderTextColor ?? colors.textFaint}
+      {...props}
+      style={[{ color: colors.text }, style]}
+    />
+  );
+}
 
 export function Screen({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   return <View style={styles.screen}>{children}</View>;
 }
 
 export function Field({ label, ...input }: { label: string } & TextInputProps) {
+  const styles = useStyles();
   return (
     <View style={styles.field}>
       <Text>{label}</Text>
@@ -15,6 +45,7 @@ export function Field({ label, ...input }: { label: string } & TextInputProps) {
 }
 
 export function CheckBox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -30,6 +61,7 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
 }
 
 export function Message({ text }: { text: string | null }) {
+  const styles = useStyles();
   return text ? (
     <Text accessibilityRole="alert" style={styles.message}>
       {text}
@@ -37,13 +69,13 @@ export function Message({ text }: { text: string | null }) {
   ) : null;
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
   field: { gap: 4 },
-  input: { borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  box: { width: 24, height: 24, borderWidth: 2, borderColor: '#555', borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  boxChecked: { backgroundColor: '#1565c0', borderColor: '#1565c0' },
-  tick: { color: '#fff', fontWeight: '700' },
-  message: { color: '#b00020' },
-});
+  box: { width: 24, height: 24, borderWidth: 2, borderColor: c.textMuted, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  boxChecked: { backgroundColor: c.primary, borderColor: c.primary },
+  tick: { color: c.onPrimary, fontWeight: '700' },
+  message: { color: c.error },
+}));

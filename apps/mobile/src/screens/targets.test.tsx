@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
-import { OVER_COLOUR, TargetProgressCard } from '../components/TargetProgressCard';
+import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WorkoutTracker } from '../components/WorkoutTracker';
 import { getEntry } from '../local/store';
 import { renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { HomeScreen } from './HomeScreen';
 import { TargetsScreen } from './TargetsScreen';
 
@@ -126,7 +127,7 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={2_300} target={2_000} onSetTarget={jest.fn()} />);
 
     expect(screen.getByText('300 kcal over')).toBeOnTheScreen();
-    expect(screen.getByTestId('Calories-bar')).toHaveStyle({ width: '100%', backgroundColor: OVER_COLOUR });
+    expect(screen.getByTestId('Calories-bar')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.over });
   });
 
   it('REQ-HOME-004 protein over the target reads "X g over"', async () => {
