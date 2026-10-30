@@ -37,7 +37,7 @@ and merged on 2026-10-30: steps 1 to 4 are pull requests #23, #25, #27 and #28. 
 migration 0007 on `fitsphere-dev` (after slice 3's 0006), run only when the owner says so; then the
 slice's batched phone checks, on the current development build (no new build).
 
-**Slice 6, Settings and account — being built (D-S1, 2026-10-30).** Plan:
+**Slice 6, Settings and account — built, waiting for the owner (D-S1, 2026-10-30).** Plan:
 `docs/plans/settings-slice.md` (Accepted). Built in parallel with slice 5 (Progress) in the worktree
 `D:itsphere-settings`, one branch and pull request per step (`settings/01-…` to `settings/05-…`).
 Migration `0008_settings.sql`, phone schema version 7, and temporary IDs D-S1, E-S1… and RB-S1,
@@ -45,6 +45,11 @@ renumbered at merge. Slice 6 owns the theme module (`apps/mobile/src/theme.tsx`)
 hooks (`apps/mobile/src/settings/SettingsProvider.tsx`) that slice 5's Progress screens read; it
 does not edit the Progress screens. Deleting the sign-in account uses a Supabase secret key on the
 server only (`SUPABASE_SECRET_KEY`, D-S1 answer 4), which the owner adds before the phone checks.
+Every step is built: pull requests #43, #45, #46, #47 and step 5's, stacked in that order. The
+owner merges Progress (slice 5) first; then this stack is rebased onto main, its IDs made final
+(D-31, E-21 onwards, RB-04) and Progress switched to the theme and unit hooks. Then: the secret key,
+migration 0008 on `fitsphere-dev`, and the batched phone checks, on the current build (no new
+build).
 
 **Slice 2, Home and daily tracking — built, waiting for the owner (D-23, 2026-10-29).** Plan:
 `docs/plans/home-daily-tracking-slice.md` (Accepted). Steps 1 to 7 (pull requests #11 to #17) are

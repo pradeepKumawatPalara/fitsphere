@@ -36,7 +36,9 @@ export default function RootLayout() {
               <Stack screenOptions={{ title: 'FitSphere' }}>
                 {/* The tabs have their own header (REQ-NAV-002). */}
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="account" options={{ title: 'Account' }} />
+                <Stack.Screen name="account" options={{ title: 'Settings' }} />
+                <Stack.Screen name="change-password" options={{ title: 'Change password' }} />
+                <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
                 <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
                 <Stack.Screen name="log-meal" options={{ title: 'Log meal' }} />
                 <Stack.Screen name="workout/[id]" options={{ title: 'Workout' }} />

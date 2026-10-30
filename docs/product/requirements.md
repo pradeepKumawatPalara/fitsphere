@@ -626,6 +626,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Type: Security
 - Requirement: A signed-in user can change their password.
 - Sign-in is email and password (D-05); sign-up and password reset are in REQ-ACC-010.
+- MVP (D-S1): in Settings, the current password and a new one; the current one is checked by signing in again, then the user's other devices are signed out. Online only.
 
 ### REQ-ACC-008 — Log out
 - Requirement: The user can log out; the session ends on this device.

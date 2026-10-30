@@ -9,7 +9,7 @@ export type ApiResult<T> =
   | { kind: 'offline' };
 
 type Options = {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   token?: string;
   body?: unknown;
   fetchImpl?: typeof fetch;

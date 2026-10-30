@@ -2,8 +2,9 @@
 
 - Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Training slice, step 1: workouts in the authorization and sync
-  cases; D-29). 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
+- Last updated: 2026-10-30 (Settings slice, step 5: settings and account tests, and the Settings
+  slice's device checks; D-S1). 2026-10-29 (Training slice, step 1: workouts in the authorization
+  and sync cases; D-29). 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
   backlog)
 - Builds on: [`definition-of-done.md`](definition-of-done.md); contracts in [`../contracts/`](../contracts/);
   the validation steps of ADR-0001 to ADR-0007
@@ -233,6 +234,23 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   named warning offline and the try-later text on a failure; an account newer than 90 days works
   offline.
 
+### Settings and account (Settings slice, D-S1)
+- Server (integration tests): `setting.set` applied, pulled and checked per name; the AI consent
+  routes (every change kept with the server's time and the text version, a wrong version refused,
+  self-access only); `DELETE /v1/me` with synthetic data in every table a user owns (no row left,
+  every photo file removed, the sign-in account deleted with the secret key on the `apikey` header
+  only, another user untouched, each failure deleting nothing or finishing on a second call).
+- The phone store (unit tests): settings in every outbox case, never pruned, the update from local
+  version 6.
+- Units (component tests): every weight on screen in lb, typed values kept in grams and shown back
+  unchanged, switching units converting what is shown, the two units independent, the limits in lb.
+- Theme (component tests): System, Light and Dark; contrast of at least 4.5:1 in both palettes; a
+  guard against colour codes outside `theme.tsx` and `Text` or `TextInput` from `react-native`
+  outside `components/ui.tsx`.
+- Settings, change password and delete account (component tests): each section; theme and unit
+  choices saved; the consent switch on, off and offline; a wrong, short or unchanged password, the
+  other devices signed out; Delete account's confirmation, success, server failure and offline.
+
 ### Logs (ADR-0002 step 6, invariant #7)
 An integration test captures the API's log output during sign-in-protected requests and a sync,
 and fails if it contains the weight value, a measurement value or its notes, a target value, a
@@ -296,6 +314,15 @@ build, with `npm run dev:phone`. The exact steps are in
 [`progress-slice.md`](../plans/progress-slice.md), "Owner's checks at the end of the slice": the
 cards, the not-enough-data text, the chart's ranges online and offline, measurements, targets in
 the Target row, "All weigh-ins", and fitting a small screen.
+
+### Device checks for the Settings slice (D-S1)
+Batched at the end of the slice, once its pull requests are merged, the owner has added
+`SUPABASE_SECRET_KEY` and migration 0008 is applied, on the existing development build, with
+`npm run dev:phone`. The exact steps are in [`settings-slice.md`](../plans/settings-slice.md),
+"Owner's actions and checks at the end of the slice": the Settings sections, Dark and Light (and
+System following the phone), body weight and lifting weight in lb, settings offline and after
+signing in again, the AI consent switch, change password, deleting a throwaway test account with a
+meal photo (ADR-0004 step 7), and the earlier kinds still working.
 
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's

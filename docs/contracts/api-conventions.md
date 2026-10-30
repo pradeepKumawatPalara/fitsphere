@@ -422,6 +422,7 @@ The app talks to Supabase Auth for these; the FitSphere API is not involved unti
 | Verify email | The link in the email confirms the address, then opens the app, which asks the user to sign in. An unverified account cannot sign in. Links expire within 24 hours | REQ-ACC-010; Q-080 MVP default |
 | Sign in | Email and password. Then `GET /v1/me`, and `POST /v1/me` if the account is not set up | REQ-ACC-010 |
 | Forgot password | The app always shows the neutral reset text. The link opens the app on a "Set a new password" screen | REQ-ACC-010, D-11 |
+| Change password | "Change password" in Settings: the current password, checked by signing in again with Supabase Auth, then `updateUser` with the new one (8–72 characters), then the user's other devices are signed out. The API never sees either password. Online only | REQ-ACC-007; MVP default, D-S1 |
 | Delete account | "Delete account" in Settings, after a confirmation, calls `DELETE /v1/me`; then the phone deletes its local database and signs out. Online only | REQ-ACC-009; MVP default, D-S1 |
 | Log out | Ends the session on this phone. The local database is deleted; if it holds unsynced entries, the app warns first (data model, "On the phone") | REQ-ACC-008; MVP default, D-18 |
 

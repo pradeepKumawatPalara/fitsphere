@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 2, D-S1: RB-S1 and E-S1). Earlier the same day
+- Last updated: 2026-10-30 (Settings slice, steps 2 and 5, D-S1: RB-S1 and E-S1 to E-S3). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
   answer 3, amended: B-26, dishes deferred until their missing ingredients have a source).
   2026-10-29 (Training slice, D-29: E-14 to E-17). Earlier the same day (D-25: the IFCT licence is
@@ -111,3 +111,5 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-P2 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-P1) |
 | E-P3 | The target body weight as a line on the weight chart | REQ-PRG-004, REQ-PRG-005 | The target body weight is in the week table's Target row (D-P1) |
 | E-S1 | A photo upload link issued less than 10 minutes before the account is deleted can still put one file in storage afterwards. Temporary ID (D-S1) | REQ-ACC-009, ADR-0002 rule 5 | The deletion removes every file the database knows of; post-MVP, the user's folder is swept again 10 minutes later |
+| E-S2 | Supabase Auth fails to delete the sign-in account after the data is gone, and the user restarts the app before trying again: account setup creates a new, empty account, and unsynced entries on the phone go to it. Temporary ID (D-S1) | REQ-ACC-009 | "Delete account" again deletes that account too; the message asks the user to try again |
+| E-S3 | A weight stored at the very top of its range (300.0 kg, 500.0 kg lifted) is shown in lb one step above the lb limit, so it cannot be saved again unchanged in lb. Temporary ID (D-S1) | REQ-ACC-002, REQ-ACC-003 | The user types a value within the limit shown |
