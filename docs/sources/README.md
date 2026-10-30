@@ -101,4 +101,5 @@ text.
 > automated softwares or other electronic or mechanical methods, without the prior written
 > permission of Institute.
 
-Legal's review (Q-049) covers these copies and the use FitSphere makes of what they say.
+Legal's review (Q-049) covers these copies and the use FitSphere makes of what they say. The
+questions about them are L-09 to L-11 in the [brief for Legal](../legal/q-049-legal-brief.md).

@@ -2,9 +2,10 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
-  sheet; the IFCT 2017 book's own terms read; the app's acknowledgement is now the book's
-  citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission; accepted
+- Last updated: 2026-10-30, later (poultry checked again: still not confirmed raw; other recipe
+  sources searched: none can replace weighing). 2026-10-30 (D-26 answer 3 amended: dishes come
+  from FitSphere's standard-recipe sheet; the IFCT 2017 book's own terms read; the app's
+  acknowledgement is now the book's citation). 2026-10-29 (D-25: the owner decided to use the list without NIN permission; accepted
   risk R-007)
 - Builds on: [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) (food data, Accepted —
   D-18); REQ-LOG-007, REQ-NUT-002
@@ -356,6 +357,29 @@ The IFCT 2017 book says its egg values are not all for raw food:
     427–500) describes foods in groups A to L and P to S only, so it has no entry for poultry.
   - **General text.** The only statement is "All data except for poultry and egg pertains to raw
     food" (printed page xx), while the preface (printed page i) names eggs only.
+  - **Second search, later on 2026-10-30: still not established.** The whole text of the book was
+    searched, and its two figures that have no text (printed pages xvi and xxiii) were viewed.
+    - The sampling plan puts poultry with plant foods and eggs: "All plant foods, egg and poultry
+      are continuously sampled in batches from the selected sampling sites in the country"
+      (section 2.4, printed page xv). The same section says "Edible portion of the fresh produce
+      are separated out and composite samples of each food are prepared" (printed pages xv–xvi).
+      Section 2.5, on meat, which does not name poultry, has "ready-to-cook samples are collected
+      from the butcher" (printed page xvi).
+    - No cooking step appears in the sampling plans, the analytical methods (Table 5) or the
+      data-flow figure, and the references cite no study of poultry. So the methods describe fresh
+      samples, but no sentence says the poultry values are for raw meat, and printed page xx still
+      leaves poultry out of its statement about raw food.
+    - Outside the book, NIN's *Dietary Guidelines for Indians* (2024) gives a "Meat & poultry" row
+      in Table 1.3, "Average values of macronutrients and dietary fibre in various food groups (Per
+      100g raw weight)" (printed page 8). Its source line is "Indian Food Composition Tables 2017 &
+      Nutritive Values of Indian Foods". That is an average for a food group, drawn from two
+      tables, not a statement about IFCT's poultry samples.
+    - NIN's annual reports for 2011–12 to 2017–18 say nothing about how the samples were
+      prepared. The website printed in the book, www.ifct2017.com, now leads to a site that is not
+      NIN's.
+    - **The chicken curry row stays DO NOT FILL.** Only an owner decision can change that: for
+      example, asking NIN (the copyright page gives ifct2017@gmail.com and nin@ap.nic.in), or
+      accepting the sampling text as enough.
 
 ### Cooked-dish and portion sources considered and not used
 
@@ -378,3 +402,27 @@ the PDFs are kept outside the repository.
 | EuroFIR recipe-calculation reports (Reinivuo and Laitinen, 2007; Vásquez-Caicedo and others, 2008); USDA *Agriculture Handbook No. 102* (1975) | Methods; yields by stage of preparation, by title | Not read: methods, not Indian dish data |
 | *Indian Journal of Nutrition and Dietetics*: "Some Common Indian Recipes and their Nutritive Value" and "Standardisation and Nutrient Analysis of Nine Commonly Used South Indian Recipes"; "Enhancing FKG.in: automating Indian food composition analysis" (arXiv 2412.05248) | Recipe nutrient values, by title | Found in searches, not read; licences unknown |
 | A news report on the 2024 guidelines (*The Tribune*) | Says one roti is about 30 g of flour | Not a primary source; the claim is not in the guidelines' text |
+| PM POSHAN guidelines, 2023 (Ministry of Education), and its norms on data.gov.in | Raw amounts per child for a whole school meal: "100 grams of food grain (rice/wheat/nutri-rich cereals), 20 grams of pulses, 50 grams of vegetables and 5 grams of oil/fat" | Not dish recipes. data.gov.in's Government Open Data License – India would allow use, but no dish data was found there |
+| State school-meal and child-nutrition (ICDS) documents: Haryana's 2019–20 plan, Odisha's hot cooked meal guidelines, Tamil Nadu's ICDS recipe book | Dish names; raw rations per child (Odisha: rice 80 g, dal 30 g, oil 3 g); millet recipes in mixed units | No cooked weight or volume, so no grams per piece or katori; no licence text found |
+| FSSAI, *Ghar ki Rasoi: Tasty bhi, Healthy bhi* (2021) | Contest recipes, none of the 25 dishes, in cups and grams with servings | Wrong dishes. Its terms say it "shall not be printed and distributed for commercial purposes" |
+| NIN, *Count What You Eat* (Swaran Pasricha, 1989, reprinted) | About 16 of the dishes, with ingredient weights in grams and a 150 ml bowl, by a bookseller's description | Not seen. NIN reserves all rights, so it would need NIN's written permission |
+| Wikibooks Cookbook | Some of the dishes (chapati, poha, upma, idli, sambar, khichdi, rajma, aloo gobi) | Open licence (CC BY-SA), but anonymous recipes, not weighed, mostly in cups |
+| "6000+ Indian Food Recipes Dataset" (Mendeley Data, 2020) | Many recipes with servings | Labelled CC BY 4.0, but made from another website's recipes, so the label cannot license them |
+| UK *Composition of Foods Integrated Dataset* 2021 (McCance and Widdowson's) | Values per 100 g of a few cooked Indian dishes, from UK samples | Open Government Licence, but values of cooked dishes, not raw grams, so they do not fit D-26's method |
+| A hospital diet annexure (HIMSR, 2026); *Nutritive Value of Indian Foods* (Health Bulletin No. 23, 1956) | The main ingredient per serving only, e.g. "Roti (30gm each)"; no recipes | Incomplete; no licence text found |
+
+### Can another source replace weighing? (searched 2026-10-30)
+The last eight rows above come from a second search, later on 2026-10-30. It looked for a source
+that gives, for these dishes, the raw grams of each ingredient for one portion, or for a batch
+with its yield, under terms that allow use in a commercial app.
+- **No source does both, for any of the 25 dishes.** The sources with an open licence have
+  per-child meal amounts, values of cooked dishes, or recipes in cups that were never weighed.
+- **The closest is NIN's *Count What You Eat*,** which would need NIN's written permission.
+- **So no recipe can be filled from verified existing data.** Every row except chicken curry
+  needs the owner's weighing.
+  - The boiled egg needs only the weight of one boiled, peeled egg. Its values are IFCT's own
+    (M004), but the IFCT book gives no egg weight.
+  - Choices to make before weighing are in each row's note: the rice (plain rice, idli, plain
+    dosa), the rajma, the vegetables (vegetable curry), the fish (fish curry), and the oil or
+    ghee (19 rows).
+  - The chicken curry row is blocked (above).

@@ -26,6 +26,7 @@ Last updated: 2026-10-30
 | 6b | [`../flow.md`](../flow.md) | Draft | Project owner | High-level flows |
 | 7 | [`architecture/system-context.md`](architecture/system-context.md) | Draft | Project owner | System boundary, externals, trust boundaries |
 | 8 | [`security/data-and-threat-model.md`](security/data-and-threat-model.md) | Draft | Project owner | Data categories, threats, controls |
+| 8a | [`legal/q-049-legal-brief.md`](legal/q-049-legal-brief.md) | Draft | Project owner; answers: Legal | The questions for Legal's review before real users (Q-049: personal data, IFCT 2017 and NIN's terms, the dish method, Open Food Facts' ODbL) and the evidence checklist. Not yet reviewed by Legal |
 | 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 and 0003 are Accepted (D-17), ADR-0004 to 0007 are Accepted (D-18), ADR-0008 is a planned slot |
 | 10 | [`contracts/`](contracts/) | Draft | Project owner | For the Skeleton, Home and daily tracking, and Meal logging slices: [`data-model.md`](contracts/data-model.md), [`api-conventions.md`](contracts/api-conventions.md), [`error-model.md`](contracts/error-model.md). `integrations.md` is not needed yet |
 | 11 | [`quality/test-strategy.md`](quality/test-strategy.md), [`definition-of-done.md`](quality/definition-of-done.md) | Accepted | Project owner | Verification; agreed with the Skeleton plan (2026-10-28) |
