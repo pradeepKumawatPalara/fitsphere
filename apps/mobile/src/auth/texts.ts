@@ -16,6 +16,12 @@ export const TEXTS = {
   resetLinkInvalid:
     'This link has expired, was already used, or was opened on another phone. Request a new one on this phone.',
   samePassword: 'Use a different password from your current one.',
+  // MVP defaults (D-S1) for Settings.
+  currentPasswordRequired: 'Enter your current password.',
+  wrongCurrentPassword: 'Your current password is incorrect.',
+  passwordChanged: "Your password has been changed. You've been signed out on your other devices.",
+  accountDeleted: 'Your account has been deleted.',
+  deleteFailed: "Your account couldn't be deleted right now. Try again later.",
 } as const;
 
 // Decision 3 of the Skeleton plan: at least 8 characters, no character rules. Supabase accepts

@@ -25,11 +25,15 @@ function newId() {
   return `00000000-0000-4000-9000-${String(ids).padStart(12, '0')}`;
 }
 
-/** `before` runs once the phone database and the fake API exist, before the first render. */
+/**
+ * `before` runs once the phone database and the fake API exist, before the first render.
+ * `removeDatabase` stands in for deleting the phone database (log out, delete account).
+ */
 export async function renderInApp(
   element: ReactElement,
   now: () => Date = () => NOW,
   before?: (db: SqlDb, server: ReturnType<typeof fakeServer>) => Promise<void>,
+  removeDatabase?: () => Promise<void>,
 ) {
   const db: SqlDb = memoryDb();
   await migrateLocal(db);
@@ -38,7 +42,11 @@ export async function renderInApp(
   const client = fakeAuthClient(fakeSession({ age_confirmed: true, age_confirmation_text_version: '2026-10-27' }));
   await render(
     <AuthProvider deps={deps(client, server.fetchImpl)}>
-      <LocalDatabaseProvider owner="user-1" open={async () => ({ db, cipherVersion: '4.6.1' })}>
+      <LocalDatabaseProvider
+        owner="user-1"
+        open={async () => ({ db, cipherVersion: '4.6.1' })}
+        {...(removeDatabase ? { remove: removeDatabase } : {})}
+      >
         <SyncProvider now={now} newId={newId} network={noNetworkEvents}>
           <SettingsProvider>
             <SelectedDayProvider now={now}>{element}</SelectedDayProvider>
@@ -47,5 +55,5 @@ export async function renderInApp(
       </LocalDatabaseProvider>
     </AuthProvider>,
   );
-  return { db, server };
+  return { db, server, client };
 }

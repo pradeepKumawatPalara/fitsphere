@@ -3,7 +3,9 @@
 - Status: **Accepted**, approved by the project owner on 2026-10-30 (D-S1, a temporary ID until
   the slice is merged)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (step 4 built; steps 1 to 3 are pull requests #43, #45 and #46)
+- Last updated: 2026-10-30 (every step built: pull requests #43, #45, #46 and #47, and step 5's;
+  Progress (slice 5) merges first, then these are rebased and their IDs made final: D-31, E-21 on,
+  RB-04)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 6 (D-18, D-20); the
   [Training slice](training-slice.md); the contracts in [`docs/contracts/`](../contracts/);
   [`test-strategy.md`](../quality/test-strategy.md);
@@ -29,8 +31,8 @@ something, this plan does not repeat it.
 | 1. Server: settings sync and the consent record | Pull request #43 | `settings/01-server-settings` |
 | 2. Server: delete account | Pull request #45 (after #43) | `settings/02-delete-account` |
 | 3. Phone: settings on the phone and units everywhere | Pull request #46 (after #45) | `settings/03-phone-units` |
-| 4. Phone: light and dark theme | Built; pull request to open (after #46) | `settings/04-theme` |
-| 5. Settings screen, change password, delete account; close-out | Not started | `settings/05-settings-screen` |
+| 4. Phone: light and dark theme | Pull request #47 (after #46) | `settings/04-theme` |
+| 5. Settings screen, change password, delete account; close-out | Pull request #48 (after #47) | `settings/05-settings-screen` |
 | Owner's actions and checks at the end of the slice | Pending: the secret key, migration 0008 on `fitsphere-dev`, phone checks 1 to 9 | — |
 
 ## Scope
@@ -199,9 +201,10 @@ the notice; `503` keeps the user signed in with a message to try again; offline.
 the device checks in `test-strategy.md`; ADR-0004's validation results; `mvp-scope.md`, the docs
 index, `CLAUDE.md` and this plan's progress.
 
-New backlog edge case: E-S1, a photo upload link issued less than 10 minutes before the account
-is deleted can still put one file in storage afterwards; post-MVP, the user's folder is swept
-again after 10 minutes.
+New backlog edge cases: E-S1, a photo upload link issued less than 10 minutes before the account
+is deleted can still put one file in storage afterwards; E-S2, a sign-in account Supabase fails to
+delete after the data is gone, with the app restarted before trying again; E-S3, a weight at the
+very top of its range shown in lb.
 
 ## Owner's actions and checks at the end of the slice
 1. Merge the five pull requests in step order, each with green CI.

@@ -25,8 +25,9 @@ export function fakeAuthClient(initial: MinimalSession | null = null) {
         return { data: { session }, error: null };
       },
     ),
-    signOut: jest.fn(async () => {
-      setSession(null);
+    // Signing out the user's other devices keeps this one signed in.
+    signOut: jest.fn(async (options?: { scope: 'local' | 'others' }) => {
+      if (options?.scope !== 'others') setSession(null);
       return { error: null };
     }),
     getSession: jest.fn(async () => ({ data: { session }, error: null })),

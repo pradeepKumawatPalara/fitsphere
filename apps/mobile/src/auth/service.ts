@@ -21,7 +21,7 @@ export type AuthClient = {
     options: { emailRedirectTo: string; data: object };
   }): Promise<{ error: ErrorLike }>;
   signInWithPassword(credentials: { email: string; password: string }): SessionResult;
-  signOut(options: { scope: 'local' }): Promise<{ error: ErrorLike }>;
+  signOut(options: { scope: 'local' | 'others' }): Promise<{ error: ErrorLike }>;
   getSession(): SessionResult;
   refreshSession(): SessionResult;
   updateUser(attributes: { data?: object; password?: string }): Promise<{ error: ErrorLike }>;
@@ -178,6 +178,29 @@ export async function setNewPassword(deps: AuthDeps, password: string): Promise<
   } catch {
     return 'offline';
   }
+}
+
+export type ChangePasswordResult = 'changed' | 'wrongPassword' | 'samePassword' | 'failed' | 'offline';
+
+/**
+ * Change password (REQ-ACC-007; MVP default, D-S1). The current password is checked by signing in
+ * again, which also gives Supabase the recent sign-in it may ask for; then the new password is set
+ * and the user's other devices are signed out. This phone stays signed in as the same user.
+ */
+export async function changePassword(
+  deps: AuthDeps,
+  email: string,
+  current: string,
+  next: string,
+): Promise<ChangePasswordResult> {
+  const check = await signIn(deps, email, current);
+  if (check === 'offline') return 'offline';
+  if (check === 'unavailable') return 'failed';
+  if (check === 'failed') return 'wrongPassword';
+  const result = await setNewPassword(deps, next);
+  if (result !== 'changed') return result;
+  await deps.client.signOut({ scope: 'others' }).catch(() => undefined);
+  return 'changed';
 }
 
 export async function signOutLocally(deps: AuthDeps): Promise<{ kind: 'signedOut' }> {

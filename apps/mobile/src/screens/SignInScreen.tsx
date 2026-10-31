@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Button } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
@@ -11,6 +11,8 @@ import { goAfterAccountCheck } from './navigation';
 export function SignInScreen() {
   const { deps } = useAuth();
   const router = useRouter();
+  // After Delete account (REQ-ACC-009; MVP default, D-S1).
+  const { notice } = useLocalSearchParams<{ notice?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,6 +38,7 @@ export function SignInScreen() {
 
   return (
     <Screen>
+      {notice === 'accountDeleted' ? <Text accessibilityRole="alert">{TEXTS.accountDeleted}</Text> : null}
       <Text accessibilityRole="header">Sign in</Text>
       <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />

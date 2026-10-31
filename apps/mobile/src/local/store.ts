@@ -426,7 +426,8 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
  * `measurement_unit` is the cm/in choice in the measurements sheet, kept on this phone only (D-23).
  * `user_id` is the signed-in user's sign-in ID; `account_id` their FitSphere ID, which the API's
  * paths use (GET /v1/me). `account_created_day` is the IST day the account was created, for
- * Progress's "Meals logged" (Q-044).
+ * Progress's "Meals logged" (Q-044). `ai_consent` is the last AI consent read from the server,
+ * shown offline (D-S1); the server's record is the one that counts.
  */
 export type MetaKey =
   | 'user_id'
@@ -435,7 +436,8 @@ export type MetaKey =
   | 'last_synced_at'
   | 'measurement_unit'
   | 'food_list_version'
-  | 'account_created_day';
+  | 'account_created_day'
+  | 'ai_consent';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);

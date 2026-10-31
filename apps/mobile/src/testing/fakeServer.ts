@@ -68,6 +68,12 @@ export function fakeServer(now: Date) {
     files: new Map<string, Uint8Array>(),
     /** What `GET /users/{id}/workouts` returns. */
     olderWorkouts: [] as Workout[],
+    /** The latest AI consent record (REQ-ACC-004); null until the user chooses. */
+    aiConsent: null as { consented: boolean; textVersion: string; recordedAt: string } | null,
+    /** Answer `DELETE /me` with this status instead of deleting (503: not available). */
+    deleteFailsWith: null as number | null,
+    /** Set once `DELETE /me` succeeded. */
+    deleted: false,
   };
   const calls: { method: string; path: string; body: unknown }[] = [];
   let seq = 0;
@@ -215,6 +221,21 @@ export function fakeServer(now: Date) {
         updatedAt: `${entry.day}T02:00:00.000Z`,
       }));
       return json(200, { items, nextCursor: end < matching.length ? String(end) : null });
+    }
+    if (path === '/me/ai-consent' && method === 'GET') return json(200, { aiConsent: state.aiConsent });
+    if (path === '/me/ai-consent' && method === 'PUT') {
+      const { consented, textVersion } = body as { consented: boolean; textVersion: string };
+      state.aiConsent = { consented, textVersion, recordedAt: now.toISOString() };
+      return json(200, { aiConsent: state.aiConsent });
+    }
+    if (path === '/me' && method === 'DELETE') {
+      if (state.deleteFailsWith) {
+        return json(state.deleteFailsWith, {
+          error: { code: 'SERVICE_UNAVAILABLE', message: 'x', retryable: true, requestId: 'r', details: null },
+        });
+      }
+      state.deleted = true;
+      return new Response(null, { status: 204 });
     }
     throw new Error(`No fake reply for ${method} ${path}`);
   });
