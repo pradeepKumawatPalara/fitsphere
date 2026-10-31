@@ -57,6 +57,7 @@ export async function syncNow(db: SqlDb, auth: AuthDeps, now: () => Date = () =>
     await applyServerEntries(db, 'measurements', reply.pull.measurements);
     await applyServerEntries(db, 'workout', reply.pull.workouts);
     await applyServerEntries(db, 'target', reply.pull.targets);
+    await applyServerEntries(db, 'setting', reply.pull.settings);
     await applyServerEntries(db, 'meal', reply.pull.meals);
     await applyServerEntries(db, 'savedMeal', reply.pull.savedMeals);
     await setMeta(db, 'cursor', reply.cursor);

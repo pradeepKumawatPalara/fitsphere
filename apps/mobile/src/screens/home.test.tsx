@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AuthProvider } from '../auth/AuthProvider';
-import { WEIGHT_RULE } from '../format';
+import { weightRule } from '../format';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
 import { migrateLocal } from '../local/store';
@@ -83,7 +83,7 @@ describe('REQ-HOME-006 Weight tile and entry sheet', () => {
 
     await logWeight(text);
 
-    expect(await screen.findByText(WEIGHT_RULE)).toBeOnTheScreen();
+    expect(await screen.findByText(weightRule('kg'))).toBeOnTheScreen();
     expect(await db.getFirstAsync('SELECT * FROM weigh_ins', [])).toBeNull();
   });
 

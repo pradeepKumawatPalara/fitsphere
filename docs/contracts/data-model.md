@@ -2,8 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 1: settings and the AI consent record, migration
-  0008; D-S1). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
+- Last updated: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
+  migration 0008, and the phone's `settings` table, version 7; D-S1). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
   same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
   Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
   targets, migration 0002; D-23). 2026-10-28 (D-20: links and permission answers kept in the
@@ -463,20 +463,21 @@ rule 5 and D-14 require.
 | `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
+| `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-S1) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
 - **What is kept:** the user's own weigh-ins, steps, sleep, measurements and workouts for the last
-  90 IST days, and their current targets (ADR-0007 rule 1). Synced day entries older than that are
-  deleted from the phone at each sync; targets are never pruned. Older history is read from the
+  90 IST days, and their current targets and settings (ADR-0007 rule 1). Synced day entries older
+  than that are deleted from the phone at each sync; targets and settings are never pruned. Older history is read from the
   server when viewed online.
 - **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
   each in a transaction. Version 2 (Home and daily tracking slice) adds `steps`, `sleep`,
   `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor
   so the next sync pulls the new kinds.
 - **Matching a change to its entry:** an outbox change is matched by its kind's change types and
-  its key (`day`, `kind` for targets, `id` for meals, saved meals and workouts, whose saves and
-  deletions both count), so a waiting weight never holds back the server's steps for the same
+  its key (`day`, `kind` for targets, `name` for settings, `id` for meals, saved meals and
+  workouts, whose saves and deletions both count), so a waiting weight never holds back the server's steps for the same
   day, and a waiting deletion is never undone by the pull.
 - **Deletions in the pull:** a meal, saved meal or workout the server marks `deleted` is removed
   from the phone, unless a change for it is still waiting.
@@ -490,6 +491,8 @@ rule 5 and D-14 require.
   `food_list_version` so the next download brings the dishes.
 - **Version 6** (Training slice, D-29) adds `workouts` and clears the sync cursor so the next
   sync pulls them.
+- **Version 7** (Settings slice, D-S1) adds `settings` and clears the sync cursor so the next sync
+  pulls the settings the account already has.
 - **Photos** (REQ-LOG-006; D-14): a new photo is saved in the same transaction as the meal that
   names it. It is uploaded after a sync once its meal's change has been accepted; until then it
   counts as unsynced (the log-out warning includes it) and is never cleared automatically, and

@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-29 (Training slice: rejected-change text for workouts; D-29). 2026-10-29
+- Last updated: 2026-10-30 (Settings slice, step 3: rejected-change text for settings; D-S1).
+  2026-10-29 (Training slice: rejected-change text for workouts; D-29). 2026-10-29
   (Home and daily tracking slice: rejected-change texts for steps, sleep, measurements and targets;
   D-23). 2026-10-28 (Skeleton step 5: `details` is `null` outside
   `VALIDATION_FAILED`)
@@ -100,4 +101,5 @@ reveal whether an address is registered.
 | A rejected meal or saved-meal change | "This meal wasn't saved: …", "This meal wasn't deleted: …", "This saved meal wasn't saved: …", "This saved meal wasn't deleted: …". A rejected deletion offers Discard only | ADR-0007 rule 2; MVP default (D-26) |
 | A rejected steps, sleep, measurements or target change | The same, with its own subject: "These steps weren't saved: …", "This sleep wasn't saved: …", "These measurements weren't saved: …", "This target wasn't saved: …". For `ROLE_NOT_ENABLED` the reason reads "your account cannot log this" for every kind | ADR-0007 rule 2; MVP default (D-23) |
 | A rejected workout change (saving or deleting) | "This workout wasn't saved: <reason>. Edit or discard it." Edit opens the workout | ADR-0007 rule 2; MVP default (D-29) |
+| A rejected setting change | "This setting wasn't saved: <reason>. Edit or discard it.", under the setting's name ("Appearance", "Body weight unit", "Lifting weight unit"). Edit opens Settings | ADR-0007 rule 2; MVP default (D-S1) |
 | `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE` | "Something went wrong. Your entries are kept on this phone and will sync later." | REQ-NFR-004 |

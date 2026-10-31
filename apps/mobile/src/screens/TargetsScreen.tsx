@@ -4,8 +4,9 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listTargets, type LocalTarget } from '../local/store';
+import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
-import { TARGET_ORDER, TARGETS } from '../targets';
+import { TARGET_ORDER, targetTexts } from '../targets';
 
 // "Your targets" (REQ-ROLE-007, D-20): the user sets their own daily calories, protein and steps,
 // weekly workouts and target body weight. Opened from Account and from the Home cards (MVP
@@ -13,6 +14,7 @@ import { TARGET_ORDER, TARGETS } from '../targets';
 export function TargetsScreen() {
   const local = useLocalDatabase();
   const sync = useSync();
+  const texts = targetTexts(useBodyWeightUnit());
   const [targets, setTargets] = useState<Partial<Record<TargetKind, LocalTarget>>>({});
   const [editing, setEditing] = useState<TargetKind | null>(null);
 
@@ -27,12 +29,12 @@ export function TargetsScreen() {
     };
   }, [local.state, sync.version]);
 
-  const text = editing ? TARGETS[editing] : null;
+  const text = editing ? texts[editing] : null;
   return (
     <ScrollView contentContainerStyle={styles.content}>
       {TARGET_ORDER.map((kind) => {
         const target = targets[kind];
-        const value = target ? TARGETS[kind].format(target.value) : 'Not set';
+        const value = target ? texts[kind].format(target.value) : 'Not set';
         const note =
           target?.syncState === 'rejected'
             ? 'Not saved'
@@ -45,11 +47,11 @@ export function TargetsScreen() {
           <Pressable
             key={kind}
             accessibilityRole="button"
-            accessibilityLabel={`${TARGETS[kind].label}: ${value}`}
+            accessibilityLabel={`${texts[kind].label}: ${value}`}
             onPress={() => setEditing(kind)}
             style={styles.row}
           >
-            <Text style={styles.label}>{TARGETS[kind].label}</Text>
+            <Text style={styles.label}>{texts[kind].label}</Text>
             <Text style={styles.value}>{value}</Text>
             {note ? <Text style={target?.syncState === 'rejected' ? styles.problem : styles.note}>{note}</Text> : null}
           </Pressable>

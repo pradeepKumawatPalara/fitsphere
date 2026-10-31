@@ -9,8 +9,9 @@ import {
   STEPS_MIN,
   STEPS_SET,
   WEIGH_IN_SET,
+  type BodyWeightUnit,
 } from '@fitsphere/shared';
-import { BODY_WEIGHT_UNIT, formatInteger, parseOneDecimal, parseWeightInput, parseWholeNumber, WEIGHT_RULE } from './format';
+import { formatInteger, parseOneDecimal, parseWeightInput, parseWholeNumber, weightRule } from './format';
 
 // The Home quick tiles (REQ-HOME-006): one value per IST day each, typed in (Q-015), within the
 // Q-028 ranges, and stored in canonical units (invariant #6): grams, steps, minutes.
@@ -37,50 +38,56 @@ type DayValueText = {
 
 const SLEEP_HOURS_MAX = minutesToHours(SLEEP_MINUTES_MAX);
 
-export const DAY_VALUES: Record<DayValueKind, DayValueText> = {
-  weighIn: {
+/** The tiles' texts, with weight in the body-weight unit setting (Q-024, REQ-ACC-003). */
+export function dayValues(bodyWeightUnit: BodyWeightUnit): Record<DayValueKind, DayValueText> {
+  return { weighIn: weighInValue(bodyWeightUnit), steps: STEPS_VALUE, sleep: SLEEP_VALUE };
+}
+
+function weighInValue(unit: BodyWeightUnit): DayValueText {
+  return {
     changeType: WEIGH_IN_SET,
     label: 'Weight',
     field: 'weightGrams',
-    // In the body-weight unit (Q-024); kg until the Settings slice (Skeleton decision 6).
-    format: (grams) => formatWeight(grams, BODY_WEIGHT_UNIT),
-    inputLabel: `Weight in ${BODY_WEIGHT_UNIT}`,
-    unit: BODY_WEIGHT_UNIT,
-    toText: (grams) => fromGrams(grams, BODY_WEIGHT_UNIT).toFixed(1),
-    parse: parseWeightInput,
-    rule: WEIGHT_RULE,
+    format: (grams) => formatWeight(grams, unit),
+    inputLabel: `Weight in ${unit}`,
+    unit,
+    toText: (grams) => fromGrams(grams, unit).toFixed(1),
+    parse: (text) => parseWeightInput(text, unit),
+    rule: weightRule(unit),
     decimal: true,
     notSaved: "This weight wasn't saved",
+  };
+}
+
+const STEPS_VALUE: DayValueText = {
+  changeType: STEPS_SET,
+  label: 'Steps',
+  field: 'steps',
+  format: (steps) => `${formatInteger(steps)} steps`,
+  inputLabel: 'Steps',
+  unit: 'steps',
+  toText: String,
+  parse: (text) => parseWholeNumber(text, STEPS_MIN, STEPS_MAX),
+  rule: `Enter whole steps from ${formatInteger(STEPS_MIN)} to ${formatInteger(STEPS_MAX)}.`,
+  decimal: false,
+  notSaved: "These steps weren't saved",
+};
+
+const SLEEP_VALUE: DayValueText = {
+  changeType: SLEEP_SET,
+  label: 'Sleep',
+  field: 'sleepMinutes',
+  format: (minutes) => `${minutesToHours(minutes).toFixed(1)} h`,
+  inputLabel: 'Sleep in hours',
+  unit: 'h',
+  toText: (minutes) => minutesToHours(minutes).toFixed(1),
+  parse: (text) => {
+    const hours = parseOneDecimal(text);
+    return hours !== null && hours <= SLEEP_HOURS_MAX ? hoursToMinutes(hours) : null;
   },
-  steps: {
-    changeType: STEPS_SET,
-    label: 'Steps',
-    field: 'steps',
-    format: (steps) => `${formatInteger(steps)} steps`,
-    inputLabel: 'Steps',
-    unit: 'steps',
-    toText: String,
-    parse: (text) => parseWholeNumber(text, STEPS_MIN, STEPS_MAX),
-    rule: `Enter whole steps from ${formatInteger(STEPS_MIN)} to ${formatInteger(STEPS_MAX)}.`,
-    decimal: false,
-    notSaved: "These steps weren't saved",
-  },
-  sleep: {
-    changeType: SLEEP_SET,
-    label: 'Sleep',
-    field: 'sleepMinutes',
-    format: (minutes) => `${minutesToHours(minutes).toFixed(1)} h`,
-    inputLabel: 'Sleep in hours',
-    unit: 'h',
-    toText: (minutes) => minutesToHours(minutes).toFixed(1),
-    parse: (text) => {
-      const hours = parseOneDecimal(text);
-      return hours !== null && hours <= SLEEP_HOURS_MAX ? hoursToMinutes(hours) : null;
-    },
-    rule: `Enter hours of sleep from 0.0 to ${SLEEP_HOURS_MAX.toFixed(1)}, with at most one decimal.`,
-    decimal: true,
-    notSaved: "This sleep wasn't saved",
-  },
+  rule: `Enter hours of sleep from 0.0 to ${SLEEP_HOURS_MAX.toFixed(1)}, with at most one decimal.`,
+  decimal: true,
+  notSaved: "This sleep wasn't saved",
 };
 
 export const DAY_VALUE_ORDER: readonly DayValueKind[] = ['weighIn', 'steps', 'sleep'];

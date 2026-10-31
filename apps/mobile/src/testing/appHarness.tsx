@@ -5,6 +5,7 @@ import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
 import { migrateLocal } from '../local/store';
 import { SelectedDayProvider } from '../navigation/SelectedDayProvider';
+import { SettingsProvider } from '../settings/SettingsProvider';
 import { SyncProvider } from '../sync/SyncProvider';
 import { deps, fakeAuthClient, fakeSession } from './fakes';
 import { fakeServer } from './fakeServer';
@@ -39,7 +40,9 @@ export async function renderInApp(
     <AuthProvider deps={deps(client, server.fetchImpl)}>
       <LocalDatabaseProvider owner="user-1" open={async () => ({ db, cipherVersion: '4.6.1' })}>
         <SyncProvider now={now} newId={newId} network={noNetworkEvents}>
-          <SelectedDayProvider now={now}>{element}</SelectedDayProvider>
+          <SettingsProvider>
+            <SelectedDayProvider now={now}>{element}</SelectedDayProvider>
+          </SettingsProvider>
         </SyncProvider>
       </LocalDatabaseProvider>
     </AuthProvider>,

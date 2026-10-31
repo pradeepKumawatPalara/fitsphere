@@ -3,9 +3,11 @@ import { Button } from 'react-native';
 import { getEntry } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { renderInApp } from '../testing/appHarness';
-import { EXERCISE_RULES } from '../workouts';
+import { exerciseRules } from '../workouts';
 import { TrainingScreen } from './TrainingScreen';
 import { WorkoutScreen } from './WorkoutScreen';
+
+const RULES = exerciseRules('kg');
 
 // One workout (REQ-TRN-003, REQ-TRN-005; Q-025, Q-042; MVP defaults, D-29). The Training tab and
 // the workout screen are rendered together; "opening" a workout sets the screen's route parameter.
@@ -102,19 +104,19 @@ describe('REQ-TRN-003 exercises as sets × reps × weight with an optional note 
   });
 
   it.each([
-    [{ name: '' }, EXERCISE_RULES.name],
-    [{ name: '   ' }, EXERCISE_RULES.name],
-    [{ name: 'x'.repeat(81) }, EXERCISE_RULES.name],
-    [{ sets: '0' }, EXERCISE_RULES.sets],
-    [{ sets: '21' }, EXERCISE_RULES.sets],
-    [{ sets: '2.5' }, EXERCISE_RULES.sets],
-    [{ reps: '' }, EXERCISE_RULES.reps],
-    [{ reps: '201' }, EXERCISE_RULES.reps],
-    [{ weight: '0' }, EXERCISE_RULES.weight],
-    [{ weight: '500.1' }, EXERCISE_RULES.weight],
-    [{ weight: '40.25' }, EXERCISE_RULES.weight],
-    [{ weight: 'abc' }, EXERCISE_RULES.weight],
-    [{ note: 'x'.repeat(501) }, EXERCISE_RULES.note],
+    [{ name: '' }, RULES.name],
+    [{ name: '   ' }, RULES.name],
+    [{ name: 'x'.repeat(81) }, RULES.name],
+    [{ sets: '0' }, RULES.sets],
+    [{ sets: '21' }, RULES.sets],
+    [{ sets: '2.5' }, RULES.sets],
+    [{ reps: '' }, RULES.reps],
+    [{ reps: '201' }, RULES.reps],
+    [{ weight: '0' }, RULES.weight],
+    [{ weight: '500.1' }, RULES.weight],
+    [{ weight: '40.25' }, RULES.weight],
+    [{ weight: 'abc' }, RULES.weight],
+    [{ note: 'x'.repeat(501) }, RULES.note],
   ])('D-29 refuses %j with its rule and saves nothing', async (wrong, rule) => {
     const { db, id } = await startWorkout();
 

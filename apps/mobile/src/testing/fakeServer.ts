@@ -32,6 +32,7 @@ const KINDS = {
   'workout.set': { list: 'workouts', key: 'id' },
   'workout.delete': { list: 'workouts', key: 'id' },
   'target.set': { list: 'targets', key: 'kind' },
+  'setting.set': { list: 'settings', key: 'name' },
   'meal.set': { list: 'meals', key: 'id' },
   'meal.delete': { list: 'meals', key: 'id' },
   'savedMeal.set': { list: 'savedMeals', key: 'id' },
@@ -79,6 +80,8 @@ export function fakeServer(now: Date) {
     let item: Record<string, unknown>;
     if (type === 'target.set') {
       item = { ...rest, setByUserId: ME.user.id, setAt, updatedAt };
+    } else if (type === 'setting.set') {
+      item = { ...rest, setAt, updatedAt };
     } else if (type === 'meal.set' || type === 'savedMeal.set') {
       // The server computes the totals from the items.
       item = { deleted: false, ...(type === 'meal.set' ? { photo: null } : {}), ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
@@ -95,7 +98,8 @@ export function fakeServer(now: Date) {
     stored.set(slot, { item, seq });
   }
 
-  /** The values stored for one list, keyed by day (by kind for targets, by ID for meals and workouts). */
+  /** The values stored for one list, keyed by day (by kind for targets, by name for settings, by ID for
+   * meals and workouts). */
   function entries(list: ListName): Map<string, Record<string, unknown>> {
     const result = new Map<string, Record<string, unknown>>();
     for (const [slot, { item }] of stored) {
@@ -176,8 +180,7 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      // The phone stores no settings yet (Settings slice, step 3), so that list stays empty.
-      const pull: Record<ListName | 'settings' | 'removals', unknown[]> = {
+      const pull: Record<ListName | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],

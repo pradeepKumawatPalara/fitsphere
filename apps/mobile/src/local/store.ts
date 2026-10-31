@@ -8,6 +8,7 @@ import {
   MEASUREMENTS_SET,
   SAVED_MEAL_DELETE,
   SAVED_MEAL_SET,
+  SETTING_SET,
   SLEEP_SET,
   STEPS_SET,
   syncWindowStart,
@@ -24,6 +25,8 @@ import {
   type MealTotals,
   type MeasurementsSetData,
   type SavedMealSetData,
+  type SettingName,
+  type SettingSetData,
   type SleepSetData,
   type StepsSetData,
   type TargetKind,
@@ -47,10 +50,10 @@ export type OutboxEntry = {
 // --- The kinds of entry the phone keeps ---
 
 /**
- * One entry per IST day for the day kinds, one per target kind for targets, and one per ID for
- * meals, saved meals and workouts (any number a day).
+ * One entry per IST day for the day kinds, one per target kind for targets, one per name for
+ * settings, and one per ID for meals, saved meals and workouts (any number a day).
  */
-export type EntryKind = 'weighIn' | 'steps' | 'sleep' | 'measurements' | 'workout' | 'target' | 'meal' | 'savedMeal';
+export type EntryKind = 'weighIn' | 'steps' | 'sleep' | 'measurements' | 'workout' | 'target' | 'setting' | 'meal' | 'savedMeal';
 
 /** What a change carries for each kind (api-conventions, "POST /v1/sync"). */
 export type ChangeData = {
@@ -60,6 +63,7 @@ export type ChangeData = {
   measurements: MeasurementsSetData;
   workout: WorkoutSetData;
   target: TargetSetData;
+  setting: SettingSetData;
   meal: MealSetData;
   savedMeal: SavedMealSetData;
 };
@@ -72,6 +76,7 @@ export type LocalEntries = {
   measurements: MeasurementsSetData & { syncState: SyncState };
   workout: WorkoutSetData & { syncState: SyncState };
   target: { kind: TargetKind; value: number; setAt: string; setByUserId: string | null; syncState: SyncState };
+  setting: { name: SettingName; value: string; setAt: string; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
   savedMeal: SavedMealSetData & MealTotals & { syncState: SyncState };
 };
@@ -81,6 +86,7 @@ export type LocalSleep = LocalEntries['sleep'];
 export type LocalMeasurements = LocalEntries['measurements'];
 export type LocalWorkout = LocalEntries['workout'];
 export type LocalTarget = LocalEntries['target'];
+export type LocalSetting = LocalEntries['setting'];
 export type LocalMeal = LocalEntries['meal'];
 export type LocalSavedMeal = LocalEntries['savedMeal'];
 
@@ -93,14 +99,14 @@ type KindSpec = {
   deleteType?: string;
   table: string;
   /** The field that identifies an entry: its column, and its path in a change's data. */
-  key: 'day' | 'kind' | 'id';
+  key: 'day' | 'kind' | 'name' | 'id';
   /** Local columns and the field each holds, key first; `json` columns hold JSON text (null when absent). */
   columns: [column: string, field: string, json?: 'json'][];
   /** Fields worked out from the others when the row is written (a meal's totals). */
   derive?: (fields: Record<string, unknown>) => Record<string, BindValue>;
   /** Fields only the server's pull carries. */
   pullColumns: [column: string, field: string][];
-  /** Day data keeps the last 90 IST days (ADR-0007 rule 1); targets are always kept. */
+  /** Day data keeps the last 90 IST days (ADR-0007 rule 1); targets and settings are always kept. */
   dayData: boolean;
 };
 
@@ -192,6 +198,19 @@ const KINDS: Record<EntryKind, KindSpec> = {
     ],
     // Who set it is known once the server has it; until then it is the user (D-20).
     pullColumns: [['set_by_user_id', 'setByUserId']],
+    dayData: false,
+  },
+  // The user's settings (REQ-ACC-001…003; MVP default, D-S1): one value per name, like targets.
+  setting: {
+    changeType: SETTING_SET,
+    table: 'settings',
+    key: 'name',
+    columns: [
+      ['name', 'name'],
+      ['value', 'value'],
+      ['set_at', 'setAt'],
+    ],
+    pullColumns: [],
     dayData: false,
   },
   meal: {
@@ -382,6 +401,15 @@ const MIGRATIONS = [
    );
    CREATE INDEX workouts_day ON workouts (day);
    DELETE FROM sync_meta WHERE key = 'cursor';`,
+  // Settings (REQ-ACC-001…003; D-S1): theme and units, one value per name. The cursor is cleared so
+  // the next sync pulls the settings the account already has.
+  `CREATE TABLE settings (
+     name TEXT PRIMARY KEY,
+     value TEXT NOT NULL,
+     set_at TEXT NOT NULL,
+     ${SYNC_STATE}
+   );
+   DELETE FROM sync_meta WHERE key = 'cursor';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -484,7 +512,7 @@ export async function deleteEntry(
 }
 
 /** Day data between two IST days, newest first; entries of one day by the time saved, newest first. */
-export async function listEntries<K extends Exclude<EntryKind, 'target' | 'savedMeal'>>(
+export async function listEntries<K extends Exclude<EntryKind, 'target' | 'setting' | 'savedMeal'>>(
   db: SqlDb,
   kind: K,
   fromDay: IstDay,
@@ -502,6 +530,12 @@ export async function listEntries<K extends Exclude<EntryKind, 'target' | 'saved
 export async function listTargets(db: SqlDb): Promise<LocalTarget[]> {
   const rows = await db.getAllAsync<Record<string, BindValue>>(`SELECT * FROM targets ORDER BY kind`, []);
   return rows.map((row) => toEntry(KINDS.target, row) as LocalTarget);
+}
+
+/** The settings the user has chosen (REQ-ACC-001…003); a name with no row has its default. */
+export async function listSettings(db: SqlDb): Promise<LocalSetting[]> {
+  const rows = await db.getAllAsync<Record<string, BindValue>>(`SELECT * FROM settings ORDER BY name`, []);
+  return rows.map((row) => toEntry(KINDS.setting, row) as LocalSetting);
 }
 
 /**
@@ -610,7 +644,7 @@ export async function discardRejected(db: SqlDb, changeId: string): Promise<void
 /**
  * Keeps the last 90 IST days of day data on the phone (ADR-0007 rule 1): synced entries older
  * than that are removed; pending and rejected ones never are (D-14), nor a meal whose photo waits
- * to be uploaded. Targets are always kept. Photos of removed meals go with them.
+ * to be uploaded. Targets and settings are always kept. Photos of removed meals go with them.
  */
 export async function pruneSynced(db: SqlDb, today: IstDay): Promise<number> {
   let removed = 0;

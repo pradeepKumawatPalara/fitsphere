@@ -597,9 +597,11 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-ACC-002 — Lifting-weight unit
 - Requirement: kg/lb setting for lifting weights in workouts and history, independent of body-weight unit.
+- MVP (D-S1): synced with the account; kg until the user chooses. Weights stay stored in grams, so a change converts every weight shown, history included. Typed with one decimal, 0.1–500.0 kg or 0.3–1102.3 lb.
 
 ### REQ-ACC-003 — Body-weight unit
 - Requirement: kg/lb setting for weigh-ins and progress, independent of lifting unit.
+- MVP (D-S1): synced with the account; kg until the user chooses. It applies to the Home weight tile and its sheet, the weight history, the target body weight, rejected-change texts and Progress (slice 5, through the same setting). Typed with one decimal, 20.0–300.0 kg or 44.1–661.3 lb.
 
 ### REQ-ACC-004 — AI meal reading consent
 - Type: Privacy

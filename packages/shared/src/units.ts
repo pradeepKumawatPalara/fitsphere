@@ -33,6 +33,16 @@ export function formatWeight(grams: number, unit: BodyWeightUnit): string {
   return `${fromGrams(grams, unit).toFixed(1)} ${unit}`;
 }
 
+/**
+ * The limits of a range of grams in `unit`, with one decimal, rounded inwards so every value typed
+ * between them is within the range in grams (MVP default, D-S1): 20–300 kg is 44.1–661.3 lb.
+ */
+export function weightRangeIn(unit: BodyWeightUnit, minGrams: number, maxGrams: number): { min: number; max: number } {
+  // The small allowance keeps exact values (20000 g is 20.0 kg) from moving up or down a step.
+  const tenths = (grams: number) => (grams / GRAMS_PER_UNIT[unit]) * 10;
+  return { min: Math.ceil(tenths(minGrams) - 1e-9) / 10, max: Math.floor(tenths(maxGrams) + 1e-9) / 10 };
+}
+
 // Lifting weight (invariant #6, REQ-TRN-005): stored and sent in whole grams like body weight, and
 // typed and shown with one decimal in the lifting unit. 0.1–500 kg (MVP default, D-29).
 export const LIFT_WEIGHT_GRAMS_MIN = 100;
