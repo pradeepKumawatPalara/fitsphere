@@ -1,6 +1,7 @@
 import { CameraView, useCameraPermissions, type BarcodeType } from 'expo-camera';
 import { useRef } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, StyleSheet, View } from 'react-native';
+import { Text } from './ui';
 
 /** The packaged-food barcodes FitSphere reads (ADR-0006 rule 2). */
 const BARCODE_TYPES: BarcodeType[] = ['ean13', 'ean8', 'upc_a', 'upc_e'];

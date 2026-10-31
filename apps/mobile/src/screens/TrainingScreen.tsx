@@ -9,16 +9,18 @@ import {
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, FlatList, Pressable, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { Text } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
+import { themedStyles } from '../theme';
 import { workoutSummary } from '../workouts';
 
 const CHUNK_DAYS = 90;
@@ -31,6 +33,7 @@ type Row = { id: string; day: string; exercises: Workout['exercises']; syncState
 // logged: the last 90 IST days from the phone, and older ones read from the server online, 90 days
 // at a time, view-only (ADR-0007 rules 1 and 6; MVP default, D-29).
 export function TrainingScreen() {
+  const styles = useStyles();
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
@@ -158,15 +161,15 @@ export function TrainingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 8 },
   header: { gap: 12, paddingBottom: 4 },
-  plan: { padding: 16, borderRadius: 12, backgroundColor: '#f1f5fb' },
+  plan: { padding: 16, borderRadius: 12, backgroundColor: c.surface },
   planText: { fontSize: 16 },
   heading: { fontSize: 18, fontWeight: '600', marginTop: 8 },
-  row: { padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e3e7ee', gap: 2 },
+  row: { padding: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border, gap: 2 },
   day: { fontWeight: '600' },
-  note: { color: '#555' },
-  problem: { color: '#b00020' },
+  note: { color: c.textMuted },
+  problem: { color: c.error },
   footer: { paddingTop: 8, gap: 12 },
-});
+}));

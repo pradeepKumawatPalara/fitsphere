@@ -1,15 +1,18 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { formatDay, nameFromEmail } from '../format';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { themedStyles } from '../theme';
 import { CalendarSheet } from './CalendarSheet';
+import { Text } from './ui';
 
 // The common header of the main screens (REQ-NAV-002, REQ-HOME-001): the user's name and the
 // selected date on the left; the calendar shortcut and the profile avatar on the right.
 
 export function HeaderTitle() {
+  const styles = useStyles();
   const { email } = useAuth();
   const { today, selected } = useSelectedDay();
   const date = selected === today ? `Today · ${formatDay(selected)}` : formatDay(selected);
@@ -24,6 +27,7 @@ export function HeaderTitle() {
 }
 
 export function HeaderActions() {
+  const styles = useStyles();
   const { email } = useAuth();
   const { today, selected, firstDay, select } = useSelectedDay();
   const router = useRouter();
@@ -50,12 +54,12 @@ export function HeaderActions() {
   );
 }
 
-const styles = StyleSheet.create({
-  name: { fontSize: 13, color: '#555' },
+const useStyles = themedStyles((c) => ({
+  name: { fontSize: 13, color: c.textMuted },
   date: { fontSize: 17, fontWeight: '600' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 12 },
   calendar: { padding: 6 },
   calendarText: { fontSize: 20 },
-  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1565c0', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700' },
-});
+  avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: c.onPrimary, fontWeight: '700' },
+}));

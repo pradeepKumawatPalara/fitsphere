@@ -1,11 +1,13 @@
 import { isPublicLink } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Image, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Image, View } from 'react-native';
 import type { PhotoFiles } from '../local/photos';
 import { jpegDataUri } from '../photos/bytes';
 import { usePhoto } from '../photos/loadPhoto';
 import { pickPhoto } from '../photos/takePhoto';
+import { themedStyles } from '../theme';
 import { ActionsSheet } from './MealSheets';
+import { Text, TextInput } from './ui';
 
 /** The meal's photo while it is being logged: a new one with its files, the one it had, or a link. */
 export type PhotoDraft = { kind: 'photo'; mediaId: string; files: PhotoFiles | null } | { kind: 'link'; url: string } | null;
@@ -36,6 +38,7 @@ export function MealPhotoField({
   onChange(draft: PhotoDraft): void;
   newId(): string;
 }) {
+  const styles = useStyles();
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [linkStep, setLinkStep] = useState<'enter' | 'confirm' | null>(null);
@@ -127,13 +130,13 @@ export function MealPhotoField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   field: { gap: 8 },
   heading: { fontSize: 16, fontWeight: '600' },
   buttons: { gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   thumbnail: { width: 72, height: 72, borderRadius: 8 },
-  hint: { color: '#555' },
-  input: { borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  problem: { color: '#b00020' },
-});
+  hint: { color: c.textMuted },
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  problem: { color: c.error },
+}));

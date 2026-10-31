@@ -17,13 +17,15 @@ import {
   type SettingName,
   type TargetKind,
 } from '@fitsphere/shared';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { dayValues } from '../dayValues';
 import { formatDay } from '../format';
 import type { OutboxEntry } from '../local/store';
 import { describeItems, MEAL_TYPE_LABELS } from '../meals';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { targetTexts } from '../targets';
+import { themedStyles } from '../theme';
+import { Text } from './ui';
 
 // A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2, D-14).
 // Text from the error model: "This weight wasn't saved: <reason>. Edit or discard it.", with its
@@ -101,6 +103,7 @@ type Props = {
 };
 
 export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
+  const styles = useStyles();
   const bodyWeightUnit = useBodyWeightUnit();
   if (entries.length === 0) return null;
   return (
@@ -125,9 +128,9 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   list: { gap: 8 },
-  item: { padding: 12, gap: 6, borderRadius: 8, borderWidth: 1, borderColor: '#b00020' },
+  item: { padding: 12, gap: 6, borderRadius: 8, borderWidth: 1, borderColor: c.error },
   what: { fontWeight: '600' },
   actions: { flexDirection: 'row', gap: 12 },
-});
+}));

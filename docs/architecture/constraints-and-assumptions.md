@@ -2,8 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, steps 1 to 3, D-S1: MVP defaults for where settings
-  live, the AI consent record, account deletion and the limits in lb). Earlier the same day (Meal logging slice, step 8, D-28: MVP
+- Last updated: 2026-10-30 (Settings slice, steps 1 to 4, D-S1: MVP defaults for where settings
+  live, the AI consent record, account deletion, the limits in lb and the theme). Earlier the same day (Meal logging slice, step 8, D-28: MVP
   defaults for dishes in the app and for recipe rows going live one by one). Earlier the same day (Q-049: the brief for Legal,
   and the food-data items Q-049 covers).
   2026-10-29 (Training slice, D-29: MVP defaults for workouts). Earlier the same day (Meal logging
@@ -148,6 +148,7 @@ confirmed the defaults below on 2026-10-27 (D-18 answer 11), except a row marked
 | Record of an account deletion (Settings slice, D-S1) | The request's log line (route, status, the account's ID, request ID) and an "account deleted" line, with no email address, key or health data. The admin access log, for deletions the owner makes on an emailed request, comes with RB-S1. *Not yet confirmed* | REQ-ACC-009, REQ-NFR-005, invariant #7 |
 | Limits in lb (Settings slice, D-S1) | Each weight limit is converted from grams and rounded inwards to one decimal, so every value typed between them stays within the limits in grams: body weight 20.0–300.0 kg or 44.1–661.3 lb; lifting weight 0.1–500.0 kg or 0.3–1102.3 lb. The rule shown names the unit. The cm/in choice for measurements stays in the measurements sheet, on this phone only (D-23); it is not a setting. *Not yet confirmed* | REQ-ACC-002, REQ-ACC-003, invariant #6 |
 | Rejected setting text (Settings slice, D-S1) | "This setting wasn't saved: <reason>. Edit or discard it.", under the setting's name; Edit opens Settings. *Not yet confirmed* | ADR-0007 rule 2, error model |
+| What the theme covers (Settings slice, D-S1) | Every colour the app draws comes from one set of light and dark tokens (`apps/mobile/src/theme.tsx`), including text, fields, the headers and tab bar (through the navigation theme) and the status bar; a test refuses colour codes anywhere else. The light colours are the ones the app already had. System follows the phone's own setting. Android's own dialogs, the keyboard and the native buttons follow the phone, not the setting. Body text, muted text, the primary colour and error text have a contrast of at least 4.5:1 in both palettes. *Not yet confirmed* | REQ-ACC-001 |
 
 Not given an MVP default, because they touch privacy, security or the law: minimum age (Q-066)
 and whether sign-up must use the invited address (T-05), both since answered by the owner (D-18

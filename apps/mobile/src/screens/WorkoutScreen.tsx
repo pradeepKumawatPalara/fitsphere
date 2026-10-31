@@ -1,14 +1,16 @@
 import { MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Pressable, ScrollView, View } from 'react-native';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { Text } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
+import { themedStyles, useTheme } from '../theme';
 import { EMPTY_EXERCISE, formatSets, toExerciseText } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
@@ -19,11 +21,13 @@ type Sheet = { index: number | null };
 // "Finish" step (MVP default, D-29). The workout counts toward the week from the moment it is
 // started, even with no exercises (Q-025).
 export function WorkoutScreen() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const local = useLocalDatabase();
   const sync = useSync();
   const unit = useLiftingWeightUnit();
+  const { colors } = useTheme();
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -94,12 +98,12 @@ export function WorkoutScreen() {
         <View accessibilityRole="alert" style={styles.confirm}>
           <Text>Delete this workout? It leaves your history and your weekly count.</Text>
           <View style={styles.actions}>
-            <Button title="Delete" color="#b00020" onPress={() => void deleteWorkout()} />
+            <Button title="Delete" color={colors.error} onPress={() => void deleteWorkout()} />
             <Button title="Keep" onPress={() => setConfirming(false)} />
           </View>
         </View>
       ) : (
-        <Button title="Delete workout" color="#b00020" onPress={() => setConfirming(true)} />
+        <Button title="Delete workout" color={colors.error} onPress={() => setConfirming(true)} />
       )}
       {sheet ? (
         <ExerciseSheet
@@ -129,13 +133,13 @@ function isFor(change: OutboxEntry, id: string): boolean {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
   title: { fontSize: 20, fontWeight: '600' },
-  exercise: { padding: 16, borderRadius: 12, backgroundColor: '#f1f5fb', gap: 4 },
+  exercise: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
   name: { fontSize: 16, fontWeight: '600' },
-  note: { color: '#555' },
-  confirm: { padding: 12, gap: 8, borderRadius: 8, borderWidth: 1, borderColor: '#b00020' },
+  note: { color: c.textMuted },
+  confirm: { padding: 12, gap: 8, borderRadius: 8, borderWidth: 1, borderColor: c.error },
   actions: { flexDirection: 'row', gap: 12 },
   gone: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
-});
+}));

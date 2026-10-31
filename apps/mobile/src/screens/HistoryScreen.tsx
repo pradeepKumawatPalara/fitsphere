@@ -7,11 +7,12 @@ import {
   type WeighInsPage,
 } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, StyleSheet, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { WeighInList, type HistoryRow } from '../components/WeighInList';
+import { Text } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listWeighIns } from '../local/store';
 import { useSync } from '../sync/SyncProvider';

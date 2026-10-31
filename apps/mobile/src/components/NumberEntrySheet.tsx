@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Button, Modal, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Modal, View } from 'react-native';
+import { themedStyles } from '../theme';
+import { Text, TextInput } from './ui';
 
 type Props = {
   title: string;
@@ -19,6 +21,7 @@ type Props = {
 // A bottom sheet for one number: a weight, steps, sleep or a target (REQ-HOME-006, REQ-ROLE-007).
 // Nothing is saved until the value is valid; Cancel closes without saving.
 export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, onSave, onClose }: Props) {
+  const styles = useStyles();
   const [text, setText] = useState(initialText);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -66,11 +69,11 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#fff', padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { backgroundColor: c.background, padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 20 },
-  problem: { color: '#b00020' },
-});
+  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 20 },
+  problem: { color: c.error },
+}));

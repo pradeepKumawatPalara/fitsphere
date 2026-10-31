@@ -1,6 +1,8 @@
 import { addDays, istWeekDays, type IstDay } from '@fitsphere/shared';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { dayParts } from '../format';
+import { themedStyles } from '../theme';
+import { Text } from './ui';
 
 type Props = {
   today: IstDay;
@@ -19,6 +21,7 @@ type Props = {
 // `firstDay` (REQ-DATE-001), future days disabled (Q-017), and a status box per day, filled when a
 // meal is logged that day (Q-019).
 export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSelect, onWeekChange }: Props) {
+  const styles = useStyles();
   const nextWeek = addDays(weekStart, 7);
   const canGoBack = addDays(weekStart, -1) >= firstDay;
   return (
@@ -69,16 +72,16 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   arrow: { paddingHorizontal: 8, paddingVertical: 12 },
   arrowText: { fontSize: 22 },
   day: { alignItems: 'center', paddingVertical: 6, width: 40, borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  today: { backgroundColor: '#1565c0' },
-  selected: { borderColor: '#0d47a1' },
+  today: { backgroundColor: c.primary },
+  selected: { borderColor: c.primaryStrong },
   dayText: { fontSize: 13 },
-  todayText: { color: '#fff', fontWeight: '700' },
-  disabledText: { color: '#bbb' },
-  status: { marginTop: 3, width: 10, height: 10, borderRadius: 2, borderWidth: 1, borderColor: '#90a4ae' },
-  statusFilled: { backgroundColor: '#2e7d32', borderColor: '#2e7d32' },
-});
+  todayText: { color: c.onPrimary, fontWeight: '700' },
+  disabledText: { color: c.textFaint },
+  status: { marginTop: 3, width: 10, height: 10, borderRadius: 2, borderWidth: 1, borderColor: c.neutralLight },
+  statusFilled: { backgroundColor: c.success, borderColor: c.success },
+}));

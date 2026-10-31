@@ -1,8 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
-import { Button, Text, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { callApi } from '../api/client';
 import type { AuthDeps } from '../auth/service';
+import { Text } from './ui';
 
 // Development builds only (ADR-0004 step 3): keeps a copy of the current access token inside the
 // app and, more than an hour later, sends it to /v1/me, which must answer 401. The token never

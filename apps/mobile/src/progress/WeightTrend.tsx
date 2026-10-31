@@ -1,8 +1,9 @@
 import type { BodyWeightUnit, IstDay } from '@fitsphere/shared';
 import { useRef, useState } from 'react';
-import { Button, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Pressable, StyleSheet, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
+import { Text } from '../components/ui';
 import { useTheme } from '../theme';
 import {
   CHART_RANGES,

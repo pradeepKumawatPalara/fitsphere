@@ -1,14 +1,17 @@
 import { formatWeight } from '@fitsphere/shared';
 import type { ReactElement } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { formatDay } from '../format';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
+import { themedStyles } from '../theme';
+import { Text } from './ui';
 
 export type HistoryRow = { day: string; weightGrams: number; note?: string };
 
 // The weight history list (REQ-PRG-001), in the body-weight unit setting (REQ-ACC-003). A FlatList
 // renders only the rows on screen, which keeps scrolling smooth on low-end phones (ADR-0001 step 6).
 export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: ReactElement }) {
+  const styles = useStyles();
   const unit = useBodyWeightUnit();
   return (
     <FlatList
@@ -29,8 +32,8 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+const useStyles = themedStyles((c) => ({
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border },
   value: { fontWeight: '600' },
-  empty: { padding: 16, color: '#555' },
-});
+  empty: { padding: 16, color: c.textMuted },
+}));

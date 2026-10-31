@@ -1,12 +1,14 @@
 import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Button, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, searchDishes, searchFoods } from '../local/store';
 import { GRAMS_RULE, itemFromDish, itemFromFood, parseGrams } from '../mealItems';
 import { formatGrams, formatKcal, PORTION_UNIT_LABELS } from '../meals';
+import { themedStyles } from '../theme';
 import { PortionStepper } from './PortionStepper';
+import { Text, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g; a dish (D-28)
@@ -16,6 +18,7 @@ import { PortionStepper } from './PortionStepper';
 type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food };
 
 export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
+  const styles = useStyles();
   const local = useLocalDatabase();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
@@ -167,16 +170,16 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: '#fff', padding: 20, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 20, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   list: { maxHeight: 360 },
-  row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ccc' },
+  row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
   name: { fontWeight: '600' },
-  detail: { color: '#555', fontSize: 13 },
-  acknowledgement: { color: '#666', fontSize: 11 },
-  problem: { color: '#b00020' },
-});
+  detail: { color: c.textMuted, fontSize: 13 },
+  acknowledgement: { color: c.textMuted, fontSize: 11 },
+  problem: { color: c.error },
+}));

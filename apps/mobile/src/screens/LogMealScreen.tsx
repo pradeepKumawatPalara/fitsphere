@@ -13,7 +13,7 @@ import {
 } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Pressable, ScrollView, View } from 'react-native';
 import { BarcodeSheet } from '../components/BarcodeSheet';
 import { DaySheet } from '../components/DaySheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
@@ -21,12 +21,14 @@ import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { PortionStepper } from '../components/PortionStepper';
+import { Text, TextInput } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
 import { GRAMS_RULE, parseGrams, withGrams, withPortions } from '../mealItems';
 import { describeItems, formatAmount, formatGrams, formatKcal, formatPortions, MEAL_TAG_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
+import { themedStyles } from '../theme';
 
 type Params = { day?: string; slot?: string; mealId?: string };
 type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number };
@@ -37,6 +39,7 @@ type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number }
 // Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
+  const styles = useStyles();
   const local = useLocalDatabase();
   const sync = useSync();
   const router = useRouter();
@@ -304,30 +307,30 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { padding: 16, gap: 12, paddingBottom: 48 },
   missing: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
   date: { fontSize: 16, fontWeight: '600' },
-  chip: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: '#e3ecf8' },
-  chipText: { fontWeight: '600', color: '#0d47a1' },
+  chip: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: c.surfaceSelected },
+  chipText: { fontWeight: '600', color: c.primaryStrong },
   heading: { fontSize: 16, fontWeight: '600' },
   tags: { flexDirection: 'row', gap: 8 },
-  tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: '#999' },
-  tagOn: { backgroundColor: '#455a64', borderColor: '#455a64' },
-  tagOnText: { color: '#fff' },
-  ai: { padding: 12, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: '#90a4ae', gap: 4 },
-  aiTitle: { fontWeight: '600', color: '#455a64' },
-  aiText: { color: '#555' },
+  tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: c.textFaint },
+  tagOn: { backgroundColor: c.neutral, borderColor: c.neutral },
+  tagOnText: { color: c.onPrimary },
+  ai: { padding: 12, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: c.neutralLight, gap: 4 },
+  aiTitle: { fontWeight: '600', color: c.neutral },
+  aiText: { color: c.textMuted },
   methods: { gap: 8 },
-  tips: { color: '#555', fontSize: 13 },
-  hint: { color: '#555' },
-  item: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, backgroundColor: '#f1f5fb', gap: 8 },
+  tips: { color: c.textMuted, fontSize: 13 },
+  hint: { color: c.textMuted },
+  item: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, backgroundColor: c.surface, gap: 8 },
   itemText: { flex: 1, gap: 2 },
   itemName: { fontWeight: '600' },
   itemAction: { paddingHorizontal: 8, paddingVertical: 4 },
   total: { fontWeight: '600' },
   changeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  input: { flex: 1, borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  problem: { color: '#b00020' },
-});
+  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  problem: { color: c.error },
+}));

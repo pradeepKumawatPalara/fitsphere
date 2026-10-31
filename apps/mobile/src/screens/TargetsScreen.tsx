@@ -1,17 +1,20 @@
 import type { TargetKind } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView } from 'react-native';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
+import { Text } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listTargets, type LocalTarget } from '../local/store';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { TARGET_ORDER, targetTexts } from '../targets';
+import { themedStyles } from '../theme';
 
 // "Your targets" (REQ-ROLE-007, D-20): the user sets their own daily calories, protein and steps,
 // weekly workouts and target body weight. Opened from Account and from the Home cards (MVP
 // default, D-23). Every target in the MVP is the user's own, so each reads "Set by you".
 export function TargetsScreen() {
+  const styles = useStyles();
   const local = useLocalDatabase();
   const sync = useSync();
   const texts = targetTexts(useBodyWeightUnit());
@@ -74,11 +77,11 @@ export function TargetsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
-  row: { padding: 16, borderRadius: 12, backgroundColor: '#f1f5fb', gap: 4 },
-  label: { color: '#555' },
+  row: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
+  label: { color: c.textMuted },
   value: { fontSize: 20, fontWeight: '600' },
-  note: { color: '#555' },
-  problem: { color: '#b00020' },
-});
+  note: { color: c.textMuted },
+  problem: { color: c.error },
+}));

@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '../components/ui';
 
 // A tab whose slice is not built yet (MVP default, D-23).
 export function ComingLaterScreen() {

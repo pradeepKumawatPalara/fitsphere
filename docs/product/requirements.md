@@ -594,6 +594,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-ACC-001 — Appearance
 - Requirement: Theme options System, Light, Dark with helper text for the selected option; System follows the device theme.
+- MVP (D-S1): synced with the account; System until the user chooses, and before sign-in. The app's own colours, the headers, the tab bar and the status bar follow it; Android's own dialogs and the keyboard follow the phone. Whether System follows the phone on the current development build is phone check 2 of the Settings slice (`app.json` has `"userInterfaceStyle": "light"`).
 
 ### REQ-ACC-002 — Lifting-weight unit
 - Requirement: kg/lb setting for lifting weights in workouts and history, independent of body-weight unit.

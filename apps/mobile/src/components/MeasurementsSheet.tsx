@@ -7,10 +7,12 @@ import {
   type MeasurementsSetData,
 } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Button, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Modal, Pressable, ScrollView, View } from 'react-native';
 import { formatDay, measurementRange, parseLength } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, getMeta, setMeta } from '../local/store';
+import { themedStyles } from '../theme';
+import { Text, TextInput } from './ui';
 
 type LengthKey = 'upperWaistMm' | 'lowerWaistMm' | 'chestMm' | 'hipsMm' | 'armMm' | 'thighMm';
 type Texts = Record<LengthKey, string>;
@@ -51,6 +53,7 @@ type Props = {
 // (Q-029). A day's existing entry fills the sheet; saving replaces it (Q-030), so there is never
 // more than one entry for a date.
 export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, onClose }: Props) {
+  const styles = useStyles();
   const local = useLocalDatabase();
   const [day, setDay] = useState(initialDay);
   const [unit, setUnit] = useState<LengthUnit>('cm');
@@ -244,9 +247,9 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: '#fff', padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 18, fontWeight: '600' },
   close: { padding: 8 },
@@ -255,17 +258,17 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   arrow: { paddingHorizontal: 12, paddingVertical: 6 },
   arrowText: { fontSize: 22 },
-  disabledText: { color: '#bbb' },
+  disabledText: { color: c.textFaint },
   date: { fontSize: 16, fontWeight: '600' },
-  unit: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#1565c0' },
-  unitSelected: { backgroundColor: '#1565c0' },
-  unitSelectedText: { color: '#fff', fontWeight: '600' },
+  unit: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: c.primary },
+  unitSelected: { backgroundColor: c.primary },
+  unitSelectedText: { color: c.onPrimary, fontWeight: '600' },
   field: { gap: 4 },
   label: { fontWeight: '600' },
-  guidance: { color: '#555', fontSize: 13 },
+  guidance: { color: c.textMuted, fontSize: 13 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   notes: { minHeight: 64, textAlignVertical: 'top' },
-  problem: { color: '#b00020' },
-  more: { color: '#1565c0', fontWeight: '600' },
-});
+  problem: { color: c.error },
+  more: { color: c.primary, fontWeight: '600' },
+}));

@@ -1,10 +1,13 @@
 import type { IstDay } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable } from 'react-native';
+import { themedStyles } from '../theme';
+import { Text } from './ui';
 
 // The floating "+" on Home and Nutrition (REQ-NAV-003). It opens Log meal on the selected date
 // (Q-011) and logs meals only (Q-012).
 export function LogMealButton({ day }: { day: IstDay }) {
+  const styles = useStyles();
   const router = useRouter();
   return (
     <Pressable
@@ -18,7 +21,7 @@ export function LogMealButton({ day }: { day: IstDay }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   button: {
     position: 'absolute',
     right: 20,
@@ -26,10 +29,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1565c0',
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 4,
   },
-  plus: { color: '#fff', fontSize: 30, lineHeight: 32 },
-});
+  plus: { color: c.onPrimary, fontSize: 30, lineHeight: 32 },
+}));

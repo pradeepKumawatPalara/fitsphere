@@ -1,7 +1,9 @@
 import type { IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Button, Modal, Pressable, View } from 'react-native';
 import { addMonths, formatLongDay, formatMonth, monthWeeks } from '../format';
+import { themedStyles } from '../theme';
+import { Text } from './ui';
 
 type Props = {
   today: IstDay;
@@ -17,6 +19,7 @@ const WEEKDAY_HEADINGS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 // The header's calendar shortcut (REQ-NAV-002): a month grid that opens on the selected month.
 // Future days (Q-017) and days before `firstDay` cannot be picked.
 export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: Props) {
+  const styles = useStyles();
   const [month, setMonth] = useState(selected.slice(0, 7));
   const canGoBack = month > firstDay.slice(0, 7);
   const canGoForward = month < today.slice(0, 7);
@@ -91,19 +94,19 @@ export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#fff', padding: 16, gap: 6, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { backgroundColor: c.background, padding: 16, gap: 6, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 18, fontWeight: '600' },
   arrow: { paddingHorizontal: 16, paddingVertical: 8 },
   arrowText: { fontSize: 22 },
   week: { flexDirection: 'row' },
   cell: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-  heading: { color: '#555', textAlign: 'center' },
+  heading: { color: c.textMuted, textAlign: 'center' },
   day: { borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  today: { backgroundColor: '#1565c0' },
-  todayText: { color: '#fff', fontWeight: '700' },
-  selected: { borderColor: '#0d47a1' },
-  disabledText: { color: '#bbb' },
-});
+  today: { backgroundColor: c.primary },
+  todayText: { color: c.onPrimary, fontWeight: '700' },
+  selected: { borderColor: c.primaryStrong },
+  disabledText: { color: c.textFaint },
+}));

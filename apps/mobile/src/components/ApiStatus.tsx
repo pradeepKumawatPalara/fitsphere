@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { Button, View } from 'react-native';
 import type { ApiHealth } from '../api/health';
+import { themedStyles } from '../theme';
+import { Text } from './ui';
 
 type Status = 'checking' | ApiHealth;
 
@@ -16,6 +18,7 @@ type Props = {
 };
 
 export function ApiStatus({ apiUrl, check }: Props) {
+  const styles = useStyles();
   const [status, setStatus] = useState<Status>('checking');
   const [attempt, setAttempt] = useState(0);
 
@@ -50,8 +53,8 @@ export function ApiStatus({ apiUrl, check }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   container: { alignItems: 'center', gap: 12 },
   status: { fontSize: 20, fontWeight: '600' },
-  address: { color: '#555' },
-});
+  address: { color: c.textMuted },
+}));

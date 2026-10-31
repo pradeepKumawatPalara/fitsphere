@@ -1,7 +1,9 @@
 import type { MealItem } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Button, Modal, ScrollView, View } from 'react-native';
 import { itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
+import { themedStyles } from '../theme';
+import { Text, TextInput } from './ui';
 
 // "Enter your own food" (REQ-LOG-007): the values from the label, per 100 g, and the grams eaten.
 // Works offline and with AI off; saved with this meal only (MVP default). kcal, protein, carbs and
@@ -25,6 +27,7 @@ export function OwnFoodSheet({
   onAdd(item: MealItem): void;
   onClose(): void;
 }) {
+  const styles = useStyles();
   const [name, setName] = useState(initialName);
   const [texts, setTexts] = useState<Record<Key, string>>({ kcal: '', proteinG: '', carbsG: '', fatG: '', fibreG: '' });
   const [gramsText, setGramsText] = useState('');
@@ -94,12 +97,12 @@ export function OwnFoodSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: '#fff', padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
   body: { gap: 10, paddingBottom: 16 },
   field: { gap: 4 },
-  input: { borderWidth: 1, borderColor: '#999', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  problem: { color: '#b00020' },
-});
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  problem: { color: c.error },
+}));

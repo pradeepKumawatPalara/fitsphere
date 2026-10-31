@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, Text } from 'react-native';
+import { Button } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount, signIn } from '../auth/service';
 import { TEXTS } from '../auth/texts';
-import { Field, Message, Screen } from '../components/ui';
+import { Field, Message, Screen, Text } from '../components/ui';
 import { goAfterAccountCheck } from './navigation';
 
 // REQ-ACC-010: sign in, then GET /v1/me and account setup if needed.
