@@ -8,7 +8,7 @@ import { Card } from './Card';
 import { PROGRESS_TEXTS, weeklyRateText, weightChangeText, weightText } from './texts';
 
 // "Weight over 4 weeks" (REQ-PRG-001): the latest weigh-in, the change and the weekly rate (Q-043,
-// D-P1), or the not-enough-data message with less than a week of weigh-ins.
+// D-30), or the not-enough-data message with less than a week of weigh-ins.
 export function WeightCard({ weighIns, unit }: { weighIns: readonly WeighInPoint[]; unit: BodyWeightUnit }) {
   const { colors } = useTheme();
   const result = fourWeekWeight(weighIns);

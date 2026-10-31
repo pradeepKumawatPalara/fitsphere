@@ -7,7 +7,7 @@ import { ProgressScreen } from './ProgressScreen';
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
-// The weight trend chart (REQ-PRG-004; ADR-0007 rules 1 and 6; D-P1). Today is Wednesday
+// The weight trend chart (REQ-PRG-004; ADR-0007 rules 1 and 6; D-30). Today is Wednesday
 // 28 October 2026; the phone holds 31 July to today. Synthetic values only.
 
 const AT = '2026-10-20T03:00:00.000Z';

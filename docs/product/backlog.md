@@ -2,7 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, steps 2 and 5, D-S1: RB-S1 and E-S1 to E-S3). Earlier the same day
+- Last updated: 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
+  to S5-07 and S6-01 to S6-09; the slice 5 and 6 IDs made final). 2026-10-30 (Settings slice,
+  steps 2 and 5, D-31: RB-04 and E-21 to E-23). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
   answer 3, amended: B-26, dishes deferred until their missing ingredients have a source).
   2026-10-29 (Training slice, D-29: E-14 to E-17). Earlier the same day (D-25: the IFCT licence is
@@ -11,8 +13,8 @@
   day (D-22): release-blocking tasks, deferred Skeleton checks, B-25
 
 Work that is **not** in the MVP (D-18, D-20, [`mvp-scope.md`](mvp-scope.md)). Nothing here is built
-until the owner moves it into a release. **Exception:** the first two sections list work that must
-be done **before the MVP release** (D-22). MVP defaults chosen under D-18 are listed in
+until the owner moves it into a release. **Exception:** the first three sections list work that must
+be done **before the MVP release** (D-22, D-32). MVP defaults chosen under D-18 are listed in
 [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#mvp-defaults-d-18),
 not here. D- numbers refer to [`owner-decisions-2026-10-27.md`](owner-decisions-2026-10-27.md).
 
@@ -28,7 +30,7 @@ without NIN permission and accepted the risk (D-25, R-007).
 | RB-01 | Delete the GitHub copy of the branch `local/test-no-email` (`git push origin --delete local/test-no-email`). The owner's local branch is a separate decision | It holds a test password (`apps/mobile/src/auth/temporary-password.ts` on that branch) |
 | RB-02 | Delete the Supabase test user that uses that password on `fitsphere-dev`, and its FitSphere account row (E-07) | Its password is in the branch of RB-01 |
 | RB-03 | Make sure **Confirm email** is on: Authentication → Sign In / Providers → Email | An unverified account must not sign in (Q-080); the test branch needed it off |
-| RB-S1 | Build the owner's logged admin path for deleting an account on an emailed request: an owner-only API command that runs the same deletion as `DELETE /v1/me` and writes the admin access log (REQ-NFR-005). Then publish the deletion page (`docs/legal/account-deletion-page.md`) and give its address in the Google Play listing. Temporary ID (D-S1) | The page promises deletion by email (REQ-ACC-009, Google Play), and the owner may act only through the logged admin path (ADR-0004 rules 7 and 8, D-16) |
+| RB-04 | Build the owner's logged admin path for deleting an account on an emailed request: an owner-only API command that runs the same deletion as `DELETE /v1/me` and writes the admin access log (REQ-NFR-005). Then publish the deletion page (`docs/legal/account-deletion-page.md`) and give its address in the Google Play listing (D-31) | The page promises deletion by email (REQ-ACC-009, Google Play), and the owner may act only through the logged admin path (ADR-0004 rules 7 and 8, D-16) |
 
 ## Skeleton checks to run before release (D-22)
 Phone checks of the Skeleton slice still pending when its pull requests were merged on
@@ -51,6 +53,38 @@ email on (RB-03). The exact steps are in the Skeleton plan.
 | SC-11 | `npm run check:signup -w @fitsphere/api -- <registered address>` prints PASS | ADR-0004 step 2 | 6, check 6; 10 |
 | SC-12 | Forgot password: the email link opens "Set a new password" on the phone that asked; sign in with the new password; an address outside the team shows the same text | ADR-0004 step 2 | 7 |
 | SC-13 | A token saved more than an hour earlier gets `401` from `/v1/me` | ADR-0004 step 3 | 6, check 7 |
+
+## Progress and Settings checks to run before release (D-32)
+Phone checks of slice 5 (Progress) and slice 6 (Settings and account), not run when their pull
+requests were merged on 2026-10-30 and 2026-10-31: the owner deferred them on 2026-10-31 (D-32,
+accepted risk R-006). They are **deferred, not passed**; every automated check passed. Each must
+pass, and be recorded in its slice plan, before the MVP release. The exact steps are in the two
+plans, "Owner's checks at the end of the slice" in [`progress-slice.md`](../plans/progress-slice.md)
+and "Owner's actions and checks at the end of the slice" in
+[`settings-slice.md`](../plans/settings-slice.md). They need migrations 0006 to 0008 on
+`fitsphere-dev` first, and the Settings checks also the owner's secret key (`SUPABASE_SECRET_KEY`).
+
+| ID | Progress check | Plan check |
+|---|---|---|
+| S5-01 | Progress shows the weight card, average calories against the target, "Meals logged: X of Y days", the week table with the Target row, and Measurements | 1 |
+| S5-02 | With less than a week of weigh-ins: the not-enough-data text | 2 |
+| S5-03 | The chart: 1W, 4W and 12W switch; with fewer than 2 weigh-ins in a range, the empty state; 26W and All online; in airplane mode, the named warning | 3 |
+| S5-04 | "Add first" (or "Add measurements") opens the sheet; the saved entry is listed; Edit changes it, and Home's card shows the same entry | 4 |
+| S5-05 | Change a target in Your targets: the Target row and the calories card follow | 5 |
+| S5-06 | "All weigh-ins" opens the weight history, with "Load older" | 6 |
+| S5-07 | The table and the chart fit the screen without scrolling sideways | 7 |
+
+| ID | Settings check | Plan check |
+|---|---|---|
+| S6-01 | Settings shows Appearance, Units, AI meal reading, "India · Kolkata" and Account | 1 |
+| S6-02 | Dark, then Light: every tab, sheet and screen is readable. System follows the phone's own dark mode when it is switched | 2 |
+| S6-03 | Body weight in lb: the Home tile, the weight history and the target show lb. Type 154.3 lb; switch to kg: 70.0 kg | 3 |
+| S6-04 | Lifting weight in lb: workout weights convert; body weight keeps its own unit | 4 |
+| S6-05 | Offline (airplane mode): change a unit; it applies at once and syncs after reconnecting. Log out and sign in: the settings come back | 5 |
+| S6-06 | AI meal reading: on, then off, online. Offline, the switch is disabled with its message | 6 |
+| S6-07 | Change password: a wrong current password is refused; the new password works after logging out and signing in | 7 |
+| S6-08 | Delete a throwaway test account that has a meal photo: the sign-in screen shows the notice; the old password no longer signs in; in the Supabase dashboard the test user is gone, and so are its photo files | 8 (ADR-0004 step 7, phone part) |
+| S6-09 | Weight, steps, sleep, meals and workouts still save | 9 |
 
 ## Post-MVP features
 From `mvp-scope.md` section 3, plus items the D-18, D-20 and D-26 answers moved out of the MVP.
@@ -107,9 +141,9 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-15 | Changing a workout's date after it was started | REQ-TRN-003, REQ-LOG-002 | The date is fixed when the workout starts; to log another day, the user picks that date first, or deletes the workout and starts again (D-29) |
 | E-16 | Editing or deleting workouts older than the 90 days the phone holds, online | REQ-TRN-004, ADR-0007 rule 1 | Older workouts are read with "Load older" and only viewed (D-29) |
 | E-17 | Exercise names suggested from past workouts, or an exercise list | REQ-TRN-003 | Names are typed freely each time (D-29) |
-| E-P1 | Progress's week table and measurements for weeks older than the 90 days the phone holds, online | REQ-PRG-005, REQ-PRG-006, ADR-0007 rule 1 | The table shows this week and the 11 before it, and the measurements of the last 90 days; older weights are in the chart (26W, All) and "All weigh-ins" (D-P1). Needs read routes for meals, steps and measurements |
-| E-P2 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-P1) |
-| E-P3 | The target body weight as a line on the weight chart | REQ-PRG-004, REQ-PRG-005 | The target body weight is in the week table's Target row (D-P1) |
-| E-S1 | A photo upload link issued less than 10 minutes before the account is deleted can still put one file in storage afterwards. Temporary ID (D-S1) | REQ-ACC-009, ADR-0002 rule 5 | The deletion removes every file the database knows of; post-MVP, the user's folder is swept again 10 minutes later |
-| E-S2 | Supabase Auth fails to delete the sign-in account after the data is gone, and the user restarts the app before trying again: account setup creates a new, empty account, and unsynced entries on the phone go to it. Temporary ID (D-S1) | REQ-ACC-009 | "Delete account" again deletes that account too; the message asks the user to try again |
-| E-S3 | A weight stored at the very top of its range (300.0 kg, 500.0 kg lifted) is shown in lb one step above the lb limit, so it cannot be saved again unchanged in lb. Temporary ID (D-S1) | REQ-ACC-002, REQ-ACC-003 | The user types a value within the limit shown |
+| E-18 | Progress's week table and measurements for weeks older than the 90 days the phone holds, online | REQ-PRG-005, REQ-PRG-006, ADR-0007 rule 1 | The table shows this week and the 11 before it, and the measurements of the last 90 days; older weights are in the chart (26W, All) and "All weigh-ins" (D-30). Needs read routes for meals, steps and measurements |
+| E-19 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-30) |
+| E-20 | The target body weight as a line on the weight chart | REQ-PRG-004, REQ-PRG-005 | The target body weight is in the week table's Target row (D-30) |
+| E-21 | A photo upload link issued less than 10 minutes before the account is deleted can still put one file in storage afterwards | REQ-ACC-009, ADR-0002 rule 5 | The deletion removes every file the database knows of; post-MVP, the user's folder is swept again 10 minutes later (D-31) |
+| E-22 | Supabase Auth fails to delete the sign-in account after the data is gone, and the user restarts the app before trying again: account setup creates a new, empty account, and unsynced entries on the phone go to it | REQ-ACC-009 | "Delete account" again deletes that account too; the message asks the user to try again (D-31) |
+| E-23 | A weight stored at the very top of its range (300.0 kg, 500.0 kg lifted) is shown in lb one step above the lb limit, so it cannot be saved again unchanged in lb | REQ-ACC-002, REQ-ACC-003 | The user types a value within the limit shown (D-31) |

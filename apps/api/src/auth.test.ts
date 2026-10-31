@@ -121,8 +121,8 @@ describe('REQ-ACC-010 reading the signed-in user', () => {
   });
 });
 
-describe('REQ-ACC-009 deleting a sign-in account (D-S1 answer 4)', () => {
-  it('D-S1 answer 4 without the secret key nothing can be deleted, and Supabase is not called', async () => {
+describe('REQ-ACC-009 deleting a sign-in account (D-31 answer 4)', () => {
+  it('D-31 answer 4 without the secret key nothing can be deleted, and Supabase is not called', async () => {
     let called = false;
     const auth = createSupabaseAuth({
       supabaseUrl: TEST_SUPABASE_URL,

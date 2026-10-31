@@ -183,7 +183,7 @@ export async function setNewPassword(deps: AuthDeps, password: string): Promise<
 export type ChangePasswordResult = 'changed' | 'wrongPassword' | 'samePassword' | 'failed' | 'offline';
 
 /**
- * Change password (REQ-ACC-007; MVP default, D-S1). The current password is checked by signing in
+ * Change password (REQ-ACC-007; MVP default, D-31). The current password is checked by signing in
  * again, which also gives Supabase the recent sign-in it may ask for; then the new password is set
  * and the user's other devices are signed out. This phone stays signed in as the same user.
  */

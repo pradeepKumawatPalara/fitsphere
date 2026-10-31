@@ -1,9 +1,11 @@
 # Progress slice plan
 
-- Status: **Accepted**, approved by the project owner on 2026-10-30 (D-P1, a temporary ID until
-  merged)
+- Status: **Accepted**, approved by the project owner on 2026-10-30 (D-30). Merged on 2026-10-30;
+  the phone checks are deferred to before the release (D-32)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (steps 1 to 3 opened as #41, #42 and #44, with the close-out in #44)
+- Last updated: 2026-10-31 (the IDs made final, D-30 and E-18 to E-20; the phone checks deferred to
+  before the release, D-32: backlog S5-01 to S5-07). 2026-10-30 (steps 1 to 3 merged as #41, #42
+  and #44, with the close-out in #44)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 5 (D-18, D-20); the
   [Home and daily tracking slice](home-daily-tracking-slice.md); the
   [Meal logging slice](meal-logging-slice.md); [`test-strategy.md`](../quality/test-strategy.md);
@@ -19,17 +21,17 @@ tab:
   (post-MVP, backlog B-02);
 - the Measurements section with "Add first" (REQ-PRG-006).
 
-It is built **in parallel with slice 6, Settings and account**, which is built in
-`D:\fitsphere-settings`. Progress only reads data that already exists: it needs no server change,
-no migration and no new phone schema version.
+It was built **in parallel with slice 6, Settings and account** (built in `D:\fitsphere-settings`),
+and merged before it, on 2026-10-30. Progress only reads data that already exists: it needs no
+server change, no migration and no new phone schema version.
 
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Calculations, range query, account start day | Pull request #41 | `progress/01-calculations` |
-| 2. The Progress screen | Pull request #42 | `progress/02-screen` |
-| 3. Weight trend chart; close-out | Pull request #44 | `progress/03-chart` |
-| Owner's checks at the end of the slice | Pending: the merges, then phone checks 1 to 7 | — |
+| 1. Calculations, range query, account start day | Merged (#41, 2026-10-30) | `progress/01-calculations` |
+| 2. The Progress screen | Merged (#42, 2026-10-30) | `progress/02-screen` |
+| 3. Weight trend chart; close-out | Merged (#44, 2026-10-30) | `progress/03-chart` |
+| Owner's checks at the end of the slice | Merges done (2026-10-30); every automated check passes on the merged main (2026-10-31). Phone checks 1 to 7 **deferred, not run** (D-32): backlog S5-01 to S5-07, before the release | — |
 
 ## Scope
 | In this slice | Requirements |
@@ -59,12 +61,11 @@ Not in this slice: the "Pre" row and week details (B-02); weeks and measurements
 - Slice 6 owns the theme and the unit settings; Progress uses them (agreed with the slice-6
   session on 2026-10-30):
   - **Colours:** every Progress colour, text included, comes from `useTheme().colors` in
-    `apps/mobile/src/theme.tsx`, with slice 6's token names. If that file is not on main when step
-    2 is opened, step 2 adds it with the light colours only; when the slices meet, slice 6's file
-    is kept (the owner's answer, D-P1).
+    `apps/mobile/src/theme.tsx`, with slice 6's token names. Step 2 added that file with the light
+    colours only; slice 6's file replaced it when the slices met (#47; the owner's answer, D-30).
   - **Body-weight unit:** every Progress weight goes through one hook, `useProgressWeightUnit()`
-    in `apps/mobile/src/progress/units.ts`. It returns `BODY_WEIGHT_UNIT` until slice 6's
-    `useBodyWeightUnit()` is on main; whichever slice merges second changes that one line. The
+    in `apps/mobile/src/progress/units.ts`. It returned `BODY_WEIGHT_UNIT` until slice 6's
+    `useBodyWeightUnit()` was on main; slice 6, merged second, made that one-line switch (#46). The
     calculation and text functions take the unit as a parameter, and their tests use kg and lb.
   - **Length unit:** the phone's cm/in choice, unchanged.
 - Slice 6 has migration `0008_settings.sql` and phone schema version 7; Progress has neither. The
@@ -72,8 +73,8 @@ Not in this slice: the "Pre" row and week details (B-02); weeks and measurements
   `app/_layout.tsx`; a conflict there keeps both sides.
 - Progress does not edit `HistoryScreen.tsx` or `WeighInList.tsx` (slice 6 restyles them), and
   reuses `MeasurementsCard` and `MeasurementsSheet` without changing them.
-- IDs: D-P1 for this plan's approval, and E-P1 to E-P3 for the new backlog edge cases. They are
-  temporary and get their final numbers when the slice is merged.
+- IDs: D-30 for this plan's approval, and E-18 to E-20 for the new backlog edge cases. They were
+  temporary while the slice was built and got these numbers once both slices were merged (D-32).
 - Before each pull request, the branch is rebased on the latest main (the later steps on the step
   before them) and every check is run again.
 
@@ -82,7 +83,7 @@ Not in this slice: the "Pre" row and week details (B-02); weeks and measurements
 **3. Workflow as D-21.** One branch and one pull request per step; steps run back to back; the
 owner's merges and the phone checks are batched at the end.
 
-**4. The weekly rate (the owner's answer, D-P1).** Q-043's "weekly rate = change ÷ 4" assumes the
+**4. The weekly rate (the owner's answer, D-30).** Q-043's "weekly rate = change ÷ 4" assumes the
 two weigh-ins are 28 days apart. The rate is the change ÷ the weeks between them, which is the same
 at 28 days and correct for a user with one to three weeks of weigh-ins.
 
@@ -114,7 +115,7 @@ in the step that builds each one, and in each pull request.
 week rows, the chart points and weekly averages, merging older weigh-ins); `progress/texts.ts`;
 `progress/units.ts`; `progress/account.ts` (the account's creation day from `GET /v1/me`, kept
 on the phone); `dailyNutrition` in `local/store.ts`, each day's kcal and protein between two days;
-this plan, D-P1, the Q-043 rows, `CLAUDE.md` and the docs index.
+this plan, D-30, the Q-043 rows, `CLAUDE.md` and the docs index.
 
 **Tests**
 - The weigh-in nearest 28 days back, ties, a rate over 4 weeks and over 10 days, less than a week,
@@ -147,17 +148,18 @@ views; the range buttons; reading older weigh-ins online with paging.
 server's and the phone's weigh-ins; the named warning offline; the failure text; All across two
 pages.
 
-**Close-out:** the MVP defaults in `constraints-and-assumptions.md`; E-P1 to E-P3 in `backlog.md`;
+**Close-out:** the MVP defaults in `constraints-and-assumptions.md`; E-18 to E-20 in `backlog.md`;
 notes on REQ-PRG-001 to REQ-PRG-006; the device checks in `test-strategy.md`; the links in
 `mvp-scope.md` and the docs index; `CLAUDE.md`; this plan's progress.
 
-New backlog edge cases: E-P1 the week table and measurements for weeks older than the 90 days
-the phone holds, online (needs read routes); E-P2 tapping a chart point to see its value and date;
-E-P3 the target body weight as a line on the chart.
+New backlog edge cases: E-18 the week table and measurements for weeks older than the 90 days
+the phone holds, online (needs read routes); E-19 tapping a chart point to see its value and date;
+E-20 the target body weight as a line on the chart.
 
 ## Owner's checks at the end of the slice
-1. Merge the three pull requests in step order, each with green CI, rebased on the latest main
-   with the IDs made final.
+1. Merge the three pull requests in step order, each with green CI, rebased on the latest main.
+   **Done 2026-10-30** (#41, #42 and #44, before slice 6); the IDs were made final afterwards
+   (D-32).
 2. Phone checks on the existing development build (no new build), with test data only; the owner
    starts `npm run dev:phone`:
    1. Progress shows the weight card, average calories against the target, "Meals logged: X of Y
@@ -170,6 +172,8 @@ E-P3 the target body weight as a line on the chart.
    5. Change a target in Your targets: the Target row and the calories card follow.
    6. "All weigh-ins" opens the weight history, with "Load older".
    7. The table and the chart fit the screen without scrolling sideways.
+   - **Deferred, not run** (D-32, 2026-10-31): these seven checks are backlog S5-01 to S5-07 and
+     must pass before the MVP release (accepted risk R-006).
 
 ## Risks
 - **Slice 6 merges first:** `BODY_WEIGHT_UNIT` disappears and typecheck fails until
@@ -183,4 +187,8 @@ E-P3 the target body weight as a line on the chart.
 - For every pull request, on the PC and in CI: `npm run lint`, `npm run typecheck`, `npm test`
   (both time zones in CI) and `npm run test:integration`. Each pull request says what passed,
   what failed and what was not run.
-- End to end: the owner's checks above, recorded in this plan's progress table.
+- After the merges, on main `a480dcb` (2026-10-31): `npm run lint`, `npm run typecheck`, `npm test`
+  (API 109, app 440, shared 72; shared also with `TZ=America/Los_Angeles`) and
+  `npm run test:integration` (219) pass.
+- End to end: the owner's checks above, recorded in this plan's progress table. Not run yet:
+  deferred to before the release (D-32).

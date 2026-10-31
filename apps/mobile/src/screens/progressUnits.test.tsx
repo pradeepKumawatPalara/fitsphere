@@ -9,7 +9,7 @@ import { ProgressScreen } from './ProgressScreen';
 jest.mock('expo-router', () => ({ useRouter: () => ({ replace: jest.fn(), push: jest.fn() }) }));
 
 // Every Progress weight follows the Settings slice's body-weight unit setting; none is fixed to kg
-// (REQ-ACC-003, invariant #6, D-P1). The setting changes only what is shown: weights stay stored
+// (REQ-ACC-003, invariant #6, D-30). The setting changes only what is shown: weights stay stored
 // in grams. Today is Wednesday 28 October 2026. Synthetic values only.
 
 const AT = '2026-10-20T03:00:00.000Z';

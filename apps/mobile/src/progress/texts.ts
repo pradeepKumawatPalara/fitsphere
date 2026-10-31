@@ -1,7 +1,7 @@
 import { fromGrams, type BodyWeightUnit, type IstDay } from '@fitsphere/shared';
 import { dayParts, formatDay, formatInteger } from '../format';
 
-// Progress's texts (REQ-PRG-001…006; MVP defaults, D-P1). Weights are shown in the body-weight
+// Progress's texts (REQ-PRG-001…006; MVP defaults, D-30). Weights are shown in the body-weight
 // unit passed in, never a fixed one, so the Settings slice's unit applies here too (REQ-ACC-003).
 
 export const PROGRESS_TEXTS = {

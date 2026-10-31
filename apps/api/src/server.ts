@@ -25,7 +25,7 @@ const app = buildApp({
   auth: createSupabaseAuth({
     supabaseUrl: process.env.SUPABASE_URL!,
     publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY!,
-    // Optional: Delete account answers 503 until the owner adds the secret key (D-S1, runbook).
+    // Optional: Delete account answers 503 until the owner adds the secret key (D-31, runbook).
     ...(process.env.SUPABASE_SECRET_KEY ? { secretKey: process.env.SUPABASE_SECRET_KEY } : {}),
   }),
   log: { level: process.env.LOG_LEVEL ?? 'info' },

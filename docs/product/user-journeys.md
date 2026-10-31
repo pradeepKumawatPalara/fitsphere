@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (D-S1: J-10 shows "India · Kolkata" as fixed text). 2026-10-28 (D-20:
+- Last updated: 2026-10-30 (D-31: J-10 shows "India · Kolkata" as fixed text). 2026-10-28 (D-20:
   coach journeys post-MVP)
 
 Journeys reference REQ IDs; behaviour details live in [`requirements.md`](requirements.md).
@@ -91,6 +91,6 @@ Failure: attempts to view a coach outside their hierarchy → refused.
 ## J-10 User changes settings
 REQ-ACC-001..005, 007, 008
 Theme, lifting unit, body-weight unit, AI meal reading consent, Head Coach access (Allow/Decline — REQ-ROLE-013; post-MVP, D-20), change password, log out.
-Country/time zone is fixed to India · Kolkata in phase 1; the MVP shows it as fixed text that cannot be changed (REQ-ACC-006 is Won't — D-09, D-18, D-S1).
+Country/time zone is fixed to India · Kolkata in phase 1; the MVP shows it as fixed text that cannot be changed (REQ-ACC-006 is Won't — D-09, D-18, D-31).
 Delete account → separate flow: after confirming, the user's data and sign-in account are deleted and all links end (REQ-ACC-009; MVP default, Q-048; no links exist in the MVP, D-20).
 A user without a coach sets their own daily calorie, protein and steps targets, weekly workout target and target body weight (REQ-ROLE-007; Q-016 MVP default, extended by D-20).

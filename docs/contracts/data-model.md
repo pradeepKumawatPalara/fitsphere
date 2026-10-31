@@ -3,7 +3,7 @@
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
 - Last updated: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
-  migration 0008, and the phone's `settings` table, version 7; D-S1). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
+  migration 0008, and the phone's `settings` table, version 7; D-31). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
   same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
   Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
   targets, migration 0002; D-23). 2026-10-28 (D-20: links and permission answers kept in the
@@ -59,7 +59,7 @@ One row per FitSphere account. Account data (threat model, "Assets").
 
 - A row exists only once the user has confirmed they are 18 or older: the two `age_` columns
   are not null, so the API cannot set up an account without the confirmation.
-- Deleted by the delete-account flow (REQ-ACC-009, `DELETE /v1/me`; D-S1), with everything that belongs
+- Deleted by the delete-account flow (REQ-ACC-009, `DELETE /v1/me`; D-31), with everything that belongs
   only to the user.
 
 ### `user_roles`
@@ -252,7 +252,7 @@ D-23). They include a target body weight, so the values are treated as **Health*
 - A target can be changed but not removed in the MVP (D-23).
 
 ### `settings` — personal
-The user's own settings (REQ-ACC-001…003; MVP default, D-S1): one current value per name, synced
+The user's own settings (REQ-ACC-001…003; MVP default, D-31): one current value per name, synced
 like targets, so they work offline and follow the account to another phone. Coaches and Head
 Coaches never see them (REQ-NFR-001, D-13).
 
@@ -273,7 +273,7 @@ Coaches never see them (REQ-NFR-001, D-13).
 Each change of the user's AI meal-reading consent (REQ-ACC-004; Q-065 MVP default, D-18): on or
 off, when and which version of the consent text was shown. The latest row is the current choice;
 with no row, AI is off (A-007). Not synced: a change goes through `PUT /v1/me/ai-consent`, online
-only (MVP default, D-S1).
+only (MVP default, D-31).
 
 | Column | Type | Rules |
 |---|---|---|
@@ -463,7 +463,7 @@ rule 5 and D-14 require.
 | `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
-| `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-S1) |
+| `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
@@ -491,7 +491,7 @@ rule 5 and D-14 require.
   `food_list_version` so the next download brings the dishes.
 - **Version 6** (Training slice, D-29) adds `workouts` and clears the sync cursor so the next
   sync pulls them.
-- **Version 7** (Settings slice, D-S1) adds `settings` and clears the sync cursor so the next sync
+- **Version 7** (Settings slice, D-31) adds `settings` and clears the sync cursor so the next sync
   pulls the settings the account already has.
 - **Photos** (REQ-LOG-006; D-14): a new photo is saved in the same transaction as the meal that
   names it. It is uploaded after a sync once its meal's change has been accepted; until then it
@@ -513,8 +513,8 @@ rule 5 and D-14 require.
 ## Retention and deletion
 | Data | Kept | Deleted |
 |---|---|---|
-| `users`, `user_roles` | While the account exists | With the account (REQ-ACC-009, `DELETE /v1/me`; D-S1) |
-| `links` | Always, including ended links (D-07) | Deleted with the account of either person (MVP default, D-S1; no links exist in the MVP, D-20). Post-MVP the other side gets the neutral message (B-19). Legal confirms, Q-049 |
+| `users`, `user_roles` | While the account exists | With the account (REQ-ACC-009, `DELETE /v1/me`; D-31) |
+| `links` | Always, including ended links (D-07) | Deleted with the account of either person (MVP default, D-31; no links exist in the MVP, D-20). Post-MVP the other side gets the neutral message (B-19). Legal confirms, Q-049 |
 | `head_coach_permission_answers` | While the trainee's account exists | With the trainee's account (Q-048 MVP default) |
 | `weigh_ins`, `step_counts`, `sleep_logs`, `measurements` | While the account exists; the server is the permanent record (D-14) | With the account. Phase 1 has no backups (R-005) |
 | `workouts` | While the account exists, as above | With the account. A workout the user deletes keeps an empty row with its day and deletion time |

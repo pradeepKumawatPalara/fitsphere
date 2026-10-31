@@ -1,7 +1,7 @@
 # Documentation Index
 
 Owner of this index: Project owner (D-01)
-Last updated: 2026-10-30
+Last updated: 2026-10-31
 
 ## Status definitions
 - **Missing** — not written yet.
@@ -27,7 +27,7 @@ Last updated: 2026-10-30
 | 7 | [`architecture/system-context.md`](architecture/system-context.md) | Draft | Project owner | System boundary, externals, trust boundaries |
 | 8 | [`security/data-and-threat-model.md`](security/data-and-threat-model.md) | Draft | Project owner | Data categories, threats, controls |
 | 8a | [`legal/q-049-legal-brief.md`](legal/q-049-legal-brief.md) | Draft | Project owner; answers: Legal | The questions for Legal's review before real users (Q-049: personal data, IFCT 2017 and NIN's terms, the dish method, Open Food Facts' ODbL) and the evidence checklist. Not yet reviewed by Legal |
-| 8b | [`legal/account-deletion-page.md`](legal/account-deletion-page.md) | Draft | Project owner; review: Legal | The text of the public page that explains how to delete an account and how to ask for deletion by email (REQ-ACC-009, Google Play; D-S1). Its open points (email address, periods, what is kept) are marked; published only after Legal's review and RB-S1 |
+| 8b | [`legal/account-deletion-page.md`](legal/account-deletion-page.md) | Draft | Project owner; review: Legal | The text of the public page that explains how to delete an account and how to ask for deletion by email (REQ-ACC-009, Google Play; D-31). Its open points (email address, periods, what is kept) are marked; published only after Legal's review and RB-04 |
 | 9 | [`architecture/decisions/`](architecture/decisions/README.md) | Draft | Project owner | ADR index and template; ADR-0001 is Accepted (D-12), ADR-0002 and 0003 are Accepted (D-17), ADR-0004 to 0007 are Accepted (D-18), ADR-0008 is a planned slot |
 | 10 | [`contracts/`](contracts/) | Draft | Project owner | For the Skeleton, Home and daily tracking, Meal logging, Training and Settings slices: [`data-model.md`](contracts/data-model.md), [`api-conventions.md`](contracts/api-conventions.md), [`error-model.md`](contracts/error-model.md). `integrations.md` is not needed yet |
 | 11 | [`quality/test-strategy.md`](quality/test-strategy.md), [`definition-of-done.md`](quality/definition-of-done.md) | Accepted | Project owner | Verification; agreed with the Skeleton plan (2026-10-28) |
@@ -38,8 +38,8 @@ Last updated: 2026-10-30
 | 14 | [`plans/home-daily-tracking-slice.md`](plans/home-daily-tracking-slice.md) | Accepted | Project owner | Slice 2, Home and daily tracking: scope, MVP defaults, steps, checks and progress (D-23), including `npm run dev:phone` (D-22). Built; the owner's checks are pending |
 | 15 | [`plans/meal-logging-slice.md`](plans/meal-logging-slice.md) | Accepted | Project owner | Slice 3, Meal logging (no AI): scope, decisions, steps, progress and phone checks (D-26). Every step is merged, step 8 (dishes, D-28) on 2026-10-30; a dish goes live only when its recipe row is measured and approved by the owner (none yet). Migrations up to 0005, the food import, photo storage (`check:storage` 8 of 8 from the PC) and `OFF_CONTACT` are done on `fitsphere-dev`; migrations 0006 and 0007 and a new food import are still to run there; the phone checks are pending |
 | 16 | [`plans/training-slice.md`](plans/training-slice.md) | Accepted | Project owner | Slice 4, Training: scope, MVP defaults, steps, checks and progress (D-29). Built in parallel with slice 3 and merged after it on 2026-10-30 (#23, #25, #27, #28); migration 0007 on `fitsphere-dev` and the owner's checks are pending |
-| 17 | [`plans/progress-slice.md`](plans/progress-slice.md) | Accepted | Project owner | Slice 5, Progress: scope, decisions, MVP defaults, steps, checks and progress (D-P1, temporary until merged). Built beside slice 6; reads existing data only (no server change, no migration). Steps 1 to 3 are pull requests #41, #42 and #44; the owner's checks are pending |
-| 18 | [`plans/settings-slice.md`](plans/settings-slice.md) | Accepted | Project owner | Slice 6, Settings and account: scope, MVP defaults, steps, checks and progress (D-S1, a temporary ID). Built in parallel with slice 5; every step built: pull requests #43, #45, #46, #47 and #48. Pending: merges after Progress, the secret key, migration 0008 and the phone checks |
+| 17 | [`plans/progress-slice.md`](plans/progress-slice.md) | Accepted | Project owner | Slice 5, Progress: scope, decisions, MVP defaults, steps, checks and progress (D-30). Built beside slice 6; reads existing data only (no server change, no migration). Merged on 2026-10-30 (#41, #42, #44); automated checks pass; the phone checks are deferred to before the release (D-32: backlog S5-01 to S5-07) |
+| 18 | [`plans/settings-slice.md`](plans/settings-slice.md) | Accepted | Project owner | Slice 6, Settings and account: scope, MVP defaults, steps, checks and progress (D-31). Built in parallel with slice 5; merged on 2026-10-30 and 2026-10-31 (#43, #45, #46, #47, #48); automated checks pass. Pending, by the owner: the secret key and migration 0008. The phone checks are deferred to before the release (D-32: backlog S6-01 to S6-09) |
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.

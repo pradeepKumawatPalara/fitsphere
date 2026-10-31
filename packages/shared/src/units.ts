@@ -35,7 +35,7 @@ export function formatWeight(grams: number, unit: BodyWeightUnit): string {
 
 /**
  * The limits of a range of grams in `unit`, with one decimal, rounded inwards so every value typed
- * between them is within the range in grams (MVP default, D-S1): 20–300 kg is 44.1–661.3 lb.
+ * between them is within the range in grams (MVP default, D-31): 20–300 kg is 44.1–661.3 lb.
  */
 export function weightRangeIn(unit: BodyWeightUnit, minGrams: number, maxGrams: number): { min: number; max: number } {
   // The small allowance keeps exact values (20000 g is 20.0 kg) from moving up or down a step.

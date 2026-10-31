@@ -5,7 +5,7 @@ import { photoKeys, type MediaStorage } from '../../src/storage/mediaStorage.ts'
 import { createTestKeys, signToken, TEST_SECRET_KEY } from '../helpers/auth.ts';
 import { startTestApi, type TestUser } from './app.ts';
 
-// DELETE /v1/me (REQ-ACC-009; Q-048 MVP default; ADR-0004 rule 7 and validation step 7; D-S1), with
+// DELETE /v1/me (REQ-ACC-009; Q-048 MVP default; ADR-0004 rule 7 and validation step 7; D-31), with
 // a fake storage and a fake Supabase Auth admin. All values are synthetic.
 
 const NOW = new Date('2026-10-30T03:30:00Z');
@@ -216,7 +216,7 @@ describe('REQ-ACC-009 delete account', () => {
     expect((await deleteMe(user.token)).statusCode).toBe(204);
   });
 
-  it('D-S1 answer 4 the sign-in account is hard-deleted with the secret key on the apikey header only', async () => {
+  it('D-31 answer 4 the sign-in account is hard-deleted with the secret key on the apikey header only', async () => {
     const { user } = await userWithData();
 
     await deleteMe(user.token);
@@ -278,7 +278,7 @@ describe('REQ-ACC-009 delete account', () => {
 });
 
 describe('REQ-ACC-009 a deletion that cannot finish', () => {
-  it('D-S1 answer 4 without the secret key: 503 and nothing is deleted', async () => {
+  it('D-31 answer 4 without the secret key: 503 and nothing is deleted', async () => {
     const server = await startTestApi({ now: () => NOW, storage, secretKey: null });
     try {
       const { user } = await userWithData(server);

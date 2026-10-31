@@ -1,11 +1,11 @@
 # Settings and account slice plan
 
-- Status: **Accepted**, approved by the project owner on 2026-10-30 (D-S1, a temporary ID until
-  the slice is merged)
+- Status: **Accepted**, approved by the project owner on 2026-10-30 (D-31). Merged on 2026-10-30
+  and 2026-10-31; the phone checks are deferred to before the release (D-32)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (every step built: pull requests #43, #45, #46 and #47, and step 5's;
-  Progress (slice 5) merges first, then these are rebased and their IDs made final: D-31, E-21 on,
-  RB-04)
+- Last updated: 2026-10-31 (merged: #43 and #45 on 2026-10-30, #46 to #48 on 2026-10-31, after
+  Progress; the IDs made final, D-31, E-21 to E-23 and RB-04; the phone checks deferred to before the
+  release, D-32: backlog S6-01 to S6-09). 2026-10-30 (every step built)
 - Builds on: [`mvp-scope.md`](../product/mvp-scope.md) section 5, slice 6 (D-18, D-20); the
   [Training slice](training-slice.md); the contracts in [`docs/contracts/`](../contracts/);
   [`test-strategy.md`](../quality/test-strategy.md);
@@ -16,47 +16,47 @@ This is the sixth MVP slice, for the Personal Training User only (D-20). It buil
 - the lifting-weight and body-weight units, kg or lb, each on its own, applied everywhere a weight
   is typed or shown, through the shared unit helpers;
 - the "AI meal reading" switch and its record, off by default, with no AI call (moved here from
-  slice 7, D-S1);
-- "Country and time zone: India · Kolkata" as fixed text (D-09, D-S1);
+  slice 7, D-31);
+- "Country and time zone: India · Kolkata" as fixed text (D-09, D-31);
 - change password; log out (already built);
 - delete account: the user's data, files and sign-in account, and the text of the web page that
   explains how to ask for deletion by email.
 
-It is built **in parallel with slice 5, Progress**, in its own worktree. Where the contracts define
+It was built **in parallel with slice 5, Progress**, in its own worktree, and merged after it. Where the contracts define
 something, this plan does not repeat it.
 
 ## Progress
 | Step | Status | Branch |
 |---|---|---|
-| 1. Server: settings sync and the consent record | Pull request #43 | `settings/01-server-settings` |
-| 2. Server: delete account | Pull request #45 (after #43) | `settings/02-delete-account` |
-| 3. Phone: settings on the phone and units everywhere | Pull request #46 (after #45) | `settings/03-phone-units` |
-| 4. Phone: light and dark theme | Pull request #47 (after #46) | `settings/04-theme` |
-| 5. Settings screen, change password, delete account; close-out | Pull request #48 (after #47) | `settings/05-settings-screen` |
-| Owner's actions and checks at the end of the slice | Pending: the secret key, migration 0008 on `fitsphere-dev`, phone checks 1 to 9 | — |
+| 1. Server: settings sync and the consent record | Merged (#43, 2026-10-30) | `settings/01-server-settings` |
+| 2. Server: delete account | Merged (#45, 2026-10-30) | `settings/02-delete-account` |
+| 3. Phone: settings on the phone and units everywhere | Merged (#46, 2026-10-31) | `settings/03-phone-units` |
+| 4. Phone: light and dark theme | Merged (#47, 2026-10-31) | `settings/04-theme` |
+| 5. Settings screen, change password, delete account; close-out | Merged (#48, 2026-10-31) | `settings/05-settings-screen` |
+| Owner's actions and checks at the end of the slice | Merges done (2026-10-31); every automated check passes on the merged main. Still to do, by the owner: the secret key and migration 0008 on `fitsphere-dev`. Phone checks 1 to 9 **deferred, not run** (D-32): backlog S6-01 to S6-09, before the release | — |
 
 ## Scope
 | In this slice | Requirements |
 |---|---|
 | Appearance: System, Light or Dark with helper text; System follows the phone | REQ-ACC-001 |
 | Lifting-weight and body-weight units, kg or lb, independent, applied everywhere | REQ-ACC-002, REQ-ACC-003, REQ-TRN-005, REQ-HOME-006 (Q-024) |
-| The AI meal-reading consent switch and record: off by default; each change records on or off, the server's time and the consent text's version; no AI call | REQ-ACC-004 (the record; D-S1) |
-| "Country and time zone: India · Kolkata", fixed text | REQ-ACC-006 (still *Won't*: nothing can be changed; D-09, D-S1) |
+| The AI meal-reading consent switch and record: off by default; each change records on or off, the server's time and the consent text's version; no AI call | REQ-ACC-004 (the record; D-31) |
+| "Country and time zone: India · Kolkata", fixed text | REQ-ACC-006 (still *Won't*: nothing can be changed; D-09, D-31) |
 | Change password; log out (already built) | REQ-ACC-007, REQ-ACC-008 |
 | Delete account: the data, the files and the sign-in account; the web page's text | REQ-ACC-009 (Q-048 MVP default) |
 
 Not in this slice:
 - AI calls and the server's consent check before each one (slice 7);
 - the owner's logged path for acting on a deletion request sent by email, with the admin access
-  log (REQ-NFR-005, ADR-0004 rule 8): release-blocking item RB-S1;
+  log (REQ-NFR-005, ADR-0004 rule 8): release-blocking item RB-04;
 - asking for the password again before deleting an account (backlog E-01);
 - links and the "no longer linked" message (D-20, backlog B-19).
 
 ## Decisions
 **1. Working beside slice 5.**
-- IDs: D-S1 for this plan's approval and the owner's choices, E-S1… for new backlog edge cases,
-  RB-S1 for the release-blocking item. They are temporary and get their numbers when the slice is
-  merged.
+- IDs: D-31 for this plan's approval and the owner's choices, E-21 to E-23 for new backlog edge
+  cases, RB-04 for the release-blocking item. They were temporary while the slice was built and got
+  these numbers once both slices were merged (D-32).
 - The server migration is `0008_settings.sql` and the phone schema takes version 7: main ends at
   0007 and version 6, and slice 5 has neither a migration nor a phone schema change. Both are
   checked again before each pull request. The migration runs on Supabase only when the owner says
@@ -78,7 +78,7 @@ Not in this slice:
 **3. Workflow as D-21.** One branch and one pull request per step; steps run back to back; the
 owner's merges, the secret key, the migration and the phone checks are batched at the end.
 
-**4. Deleting the sign-in account (D-S1 answer 4).** The API uses a Supabase secret key, on the
+**4. Deleting the sign-in account (D-31 answer 4).** The API uses a Supabase secret key, on the
 server only (`SUPABASE_SECRET_KEY`), for one call: Supabase Auth's admin "delete user". Without it,
 Delete account answers that it is not available and deletes nothing.
 
@@ -99,7 +99,7 @@ in the step that builds each one, and in each pull request.
 | Change password | Asks for the current password and a new one (8–72 characters, as at sign-up). The current one is checked by signing in again; then `updateUser`; then the user's other devices are signed out (`signOut({ scope: 'others' })`). Online only |
 | Confirming deletion | A separate screen lists what is deleted, then "Delete my account", then a confirmation dialog. Online only. Afterwards the phone's database is deleted, the user is signed out, and the sign-in screen says "Your account has been deleted." |
 | Links when an account is deleted | No links exist (D-20). The deletion still removes any `links` rows and their permission answers, so they can never block it |
-| Record of a deletion | The request's log line (route, status, user ID, request ID) and an "account deleted" line, with no email address or health data. The admin access log comes with RB-S1 |
+| Record of a deletion | The request's log line (route, status, user ID, request ID) and an "account deleted" line, with no email address or health data. The admin access log comes with RB-04 |
 
 ## Data and API
 The contracts are updated first: [`data-model.md`](../contracts/data-model.md) (`settings`,
@@ -130,7 +130,7 @@ the consent routes, `DELETE /v1/me`) and [`error-model.md`](../contracts/error-m
 ## Steps
 ### Step 1: Server: settings sync and the consent record (REQ-ACC-001…004, REQ-NFR-001)
 **Builds:** the shared schemas; migration 0008; `setting.set` and the pull; the two consent
-routes; the contract documents; this plan, D-S1, the slice rows in `mvp-scope.md`, REQ-ACC-004 and
+routes; the contract documents; this plan, D-31, the slice rows in `mvp-scope.md`, REQ-ACC-004 and
 REQ-ACC-006, J-10, `CLAUDE.md` and the docs index.
 
 **Tests**
@@ -151,7 +151,7 @@ REQ-ACC-006, J-10, `CLAUDE.md` and the docs index.
 `.env.example` and the runbook's configuration names); the deletion module and `DELETE /v1/me`;
 ADR-0004 rule 7 notes; the web page's text, `docs/legal/account-deletion-page.md` (how to delete
 in the app; how to ask by email, with the address left for the owner until FitSphere's domain
-exists; what is deleted and what is kept, with any period left for the owner and Legal); RB-S1 in
+exists; what is deleted and what is kept, with any period left for the owner and Legal); RB-04 in
 the backlog and in `CLAUDE.md`.
 
 **Tests** (`delete-account.test.ts`, with fake storage and a fake Supabase Auth admin):
@@ -201,17 +201,19 @@ the notice; `503` keeps the user signed in with a message to try again; offline.
 the device checks in `test-strategy.md`; ADR-0004's validation results; `mvp-scope.md`, the docs
 index, `CLAUDE.md` and this plan's progress.
 
-New backlog edge cases: E-S1, a photo upload link issued less than 10 minutes before the account
-is deleted can still put one file in storage afterwards; E-S2, a sign-in account Supabase fails to
-delete after the data is gone, with the app restarted before trying again; E-S3, a weight at the
+New backlog edge cases: E-21, a photo upload link issued less than 10 minutes before the account
+is deleted can still put one file in storage afterwards; E-22, a sign-in account Supabase fails to
+delete after the data is gone, with the app restarted before trying again; E-23, a weight at the
 very top of its range shown in lb.
 
 ## Owner's actions and checks at the end of the slice
-1. Merge the five pull requests in step order, each with green CI.
+1. Merge the five pull requests in step order, each with green CI. **Done** (#43 and #45 on
+   2026-10-30, #46 to #48 on 2026-10-31).
 2. Create a Supabase **secret key** (Project Settings → API Keys) and put it only in
-   `apps/api/.env` as `SUPABASE_SECRET_KEY`. Never in the app's `.env`, never committed.
+   `apps/api/.env` as `SUPABASE_SECRET_KEY`. Never in the app's `.env`, never committed. **Still
+   to do.**
 3. When the owner says so: `npm run migrate -w @fitsphere/api` against `fitsphere-dev`. One run
-   applies 0006, 0007 and 0008.
+   applies 0006, 0007 and 0008. **Still to do.**
 4. Phone checks on the existing development build (no new build), with test data only; the owner
    starts `npm run dev:phone`:
    1. Settings shows Appearance, Units, AI meal reading, "India · Kolkata" and Account.
@@ -231,6 +233,8 @@ very top of its range shown in lb.
    9. Weight, steps, sleep, meals and workouts still save.
    - If the phone has run this slice's code before it was merged, log out once first, so the phone
      database is recreated at the right schema version.
+   - **Deferred, not run** (D-32, 2026-10-31): these nine checks are backlog S6-01 to S6-09 and
+     must pass before the MVP release (accepted risk R-006).
 
 ## Risks
 - **System may not follow the phone on the current build**, because `app.json` sets
@@ -242,8 +246,8 @@ very top of its range shown in lb.
   function, is never logged, and tests use a fake.
 - **A deletion stopped part-way** is finished by calling again; the steps are ordered so a retry
   is always safe.
-- **E-S1:** a photo still being uploaded during the deletion can leave one file.
-- **RB-S1:** acting on a deletion request sent by email needs the owner's logged admin path,
+- **E-21:** a photo still being uploaded during the deletion can leave one file.
+- **RB-04:** acting on a deletion request sent by email needs the owner's logged admin path,
   which is not built yet; it must be before real users.
 - **Merge conflicts with slice 5** in the shared lists (the store, the root layout, the docs):
   expected and small; fixed by the rebase before each pull request, with every check run again.
@@ -252,5 +256,9 @@ very top of its range shown in lb.
 - For every pull request, on the PC and in CI: `npm run lint`, `npm run typecheck`, `npm test`
   (both time zones in CI) and `npm run test:integration` (this worktree's `TEST_DATABASE_URL`).
   Each pull request says what passed, what failed and what was not run.
+- After the merges, on main `a480dcb` (2026-10-31): `npm run lint`, `npm run typecheck`, `npm test`
+  (API 109, app 440, shared 72; shared also with `TZ=America/Los_Angeles`) and
+  `npm run test:integration` (219) pass.
 - End to end: the owner's checks above, recorded in this plan's progress table and in ADR-0004's
-  validation results (step 7, account deletion).
+  validation results (step 7, account deletion). Not run yet: deferred to before the release
+  (D-32).

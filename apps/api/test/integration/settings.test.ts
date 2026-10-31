@@ -3,7 +3,7 @@ import type { SyncResponse } from '@fitsphere/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startTestApi, type TestUser } from './app.ts';
 
-// Settings through POST /v1/sync (REQ-ACC-001…003; MVP default, D-S1) and the self-access cases
+// Settings through POST /v1/sync (REQ-ACC-001…003; MVP default, D-31) and the self-access cases
 // for them (REQ-NFR-001, D-20). The sync route's authorization block is in sync.test.ts.
 
 const NOW = new Date('2026-10-30T03:30:00Z');

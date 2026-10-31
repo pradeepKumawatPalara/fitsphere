@@ -1,7 +1,7 @@
 import { daysBetween, type WeighInPoint } from './calculations';
 
 // Where the weight chart's dots and lines go (REQ-PRG-004). The chart is drawn with plain views,
-// with no chart or SVG package (D-P1): each dot is a small circle, and each line between two dots
+// with no chart or SVG package (D-30): each dot is a small circle, and each line between two dots
 // is a thin view of the right length, turned to the right angle about its centre.
 
 export type Dot = { x: number; y: number };

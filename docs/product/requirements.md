@@ -2,8 +2,8 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, D-S1: REQ-ACC-004's switch and record come with slice
-  6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-P1: MVP notes on
+- Last updated: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+  6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
   REQ-HOME-007). Earlier the same day (D-24: REQ-HOME-008, the Measurements card shows and edits a
@@ -561,32 +561,32 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Requirement: Shows weight change over the last 4 weeks and the weekly rate, in the body-weight unit (REQ-ACC-003).
 - Acceptance criteria:
   - Given less than one week of weigh-ins, then the weekly rate is replaced by a not-enough-data message.
-- MVP default (D-18): the 4-week change is the latest weigh-in minus the weigh-in nearest to 28 days earlier; the weekly rate is that change ÷ the weeks between the two weigh-ins, which is ÷ 4 at 28 days (Q-043, refined by D-P1).
-- MVP default (D-P1): the earlier weigh-in is one at least a week before the latest; with none, the change is measured from the oldest weigh-in and the rate is replaced by the not-enough-data message. The weight history stays on its own screen, opened by "All weigh-ins".
+- MVP default (D-18): the 4-week change is the latest weigh-in minus the weigh-in nearest to 28 days earlier; the weekly rate is that change ÷ the weeks between the two weigh-ins, which is ÷ 4 at 28 days (Q-043, refined by D-30).
+- MVP default (D-30): the earlier weigh-in is one at least a week before the latest; with none, the change is measured from the oldest weigh-in and the rate is replaced by the not-enough-data message. The weight history stays on its own screen, opened by "All weigh-ins".
 
 ### REQ-PRG-002 — Average calories
 - Requirement: Shows average daily calories vs target.
 - MVP default (D-18): averages count only days that have entries (Q-043); the period is the last 4 weeks, as in REQ-PRG-001.
-- MVP default (D-P1): the last 28 IST days, today included, against the user's own calorie target (D-20).
+- MVP default (D-30): the last 28 IST days, today included, against the user's own calorie target (D-20).
 
 ### REQ-PRG-003 — Days logged
 - Requirement: Shows meals logged as days with ≥1 meal out of total days (e.g. "0 of 27 days").
 - MVP default (D-18): total days count from the day the account was created, capped at the last 28 days (Q-044).
-- MVP default (D-P1): the account's creation day is read from `GET /v1/me` once and kept on the phone; while it is unknown (offline), 28 days are counted.
+- MVP default (D-30): the account's creation day is read from `GET /v1/me` once and kept on the phone; while it is unknown (offline), 28 days are counted.
 
 ### REQ-PRG-004 — Weight trend chart
 - Requirement: Chart with range filters 1W, 4W, 12W, 26W, All; empty state until enough weigh-ins exist.
 - MVP default (D-18): the chart needs at least 2 weigh-ins (Q-043).
-- MVP default (D-P1): 1W, 4W and 12W come from the phone; 26W and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages.
+- MVP default (D-30): 1W, 4W and 12W come from the phone; 26W and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages.
 
 ### REQ-PRG-005 — Week-by-week table
 - Requirement: Rows per week with Body Weight, Calories, Protein and Steps, and a Target row. Weekly values are averages over the days that have entries (MVP default, Q-043). The Target row shows the calorie and protein targets and the target body weight and daily steps target set by the coach (MVP default, Q-013). In the MVP these are the user's own targets (REQ-ROLE-007, D-20).
 - **Post-MVP:** the "Pre" row with the pre-program baseline, and tapping a week to open its details (D-18; Q-045, Q-046; backlog B-02).
-- MVP default (D-P1): this week and the 11 before it (within the phone's 90 days), none before the account's first week; older weeks are backlog E-P1.
+- MVP default (D-30): this week and the 11 before it (within the phone's 90 days), none before the account's first week; older weeks are backlog E-18.
 
 ### REQ-PRG-006 — Measurements section
 - Requirement: Lists measurements; with none, shows "Add first" (opens REQ-MEAS-001) and recommends weekly upper/lower waist tracking.
-- MVP default (D-P1): the phone's 90 days, newest first, each with "Edit measurements"; adding opens the sheet on today. Older entries are backlog E-P1.
+- MVP default (D-30): the phone's 90 days, newest first, each with "Edit measurements"; adding opens the sheet on today. Older entries are backlog E-18.
 
 ---
 
@@ -594,15 +594,15 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-ACC-001 — Appearance
 - Requirement: Theme options System, Light, Dark with helper text for the selected option; System follows the device theme.
-- MVP (D-S1): synced with the account; System until the user chooses, and before sign-in. The app's own colours, the headers, the tab bar and the status bar follow it; Android's own dialogs and the keyboard follow the phone. Whether System follows the phone on the current development build is phone check 2 of the Settings slice (`app.json` has `"userInterfaceStyle": "light"`).
+- MVP (D-31): synced with the account; System until the user chooses, and before sign-in. The app's own colours, the headers, the tab bar and the status bar follow it; Android's own dialogs and the keyboard follow the phone. Whether System follows the phone on the current development build is phone check 2 of the Settings slice (`app.json` has `"userInterfaceStyle": "light"`).
 
 ### REQ-ACC-002 — Lifting-weight unit
 - Requirement: kg/lb setting for lifting weights in workouts and history, independent of body-weight unit.
-- MVP (D-S1): synced with the account; kg until the user chooses. Weights stay stored in grams, so a change converts every weight shown, history included. Typed with one decimal, 0.1–500.0 kg or 0.3–1102.3 lb.
+- MVP (D-31): synced with the account; kg until the user chooses. Weights stay stored in grams, so a change converts every weight shown, history included. Typed with one decimal, 0.1–500.0 kg or 0.3–1102.3 lb.
 
 ### REQ-ACC-003 — Body-weight unit
 - Requirement: kg/lb setting for weigh-ins and progress, independent of lifting unit.
-- MVP (D-S1): synced with the account; kg until the user chooses. It applies to the Home weight tile and its sheet, the weight history, the target body weight, rejected-change texts and Progress (slice 5, through the same setting). Typed with one decimal, 20.0–300.0 kg or 44.1–661.3 lb.
+- MVP (D-31): synced with the account; kg until the user chooses. It applies to the Home weight tile and its sheet, the weight history, the target body weight, rejected-change texts and Progress (slice 5, through the same setting). Typed with one decimal, 20.0–300.0 kg or 44.1–661.3 lb.
 
 ### REQ-ACC-004 — AI meal reading consent
 - Type: Privacy
@@ -612,7 +612,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - When consent is withdrawn, then no further data is sent to AI.
   - Consent changes are recorded with a timestamp. *(A-007.)*
 - MVP default (D-18): each change records on/off, the time and the version of the consent text shown; one toggle covers typed or spoken text, photos and labels (Q-065; ADR-0005). Legal confirms (Q-049).
-- MVP (D-S1): the switch and the record are built in the Settings slice (slice 6), with no AI call: each change goes to `PUT /v1/me/ai-consent`, online only, and the server records its own time (data model, `ai_consents`). The consent text and its version are in the shared package (`AI_CONSENT_TEXT`). The check before each AI call comes with slice 7 (invariant #3).
+- MVP (D-31): the switch and the record are built in the Settings slice (slice 6), with no AI call: each change goes to `PUT /v1/me/ai-consent`, online only, and the server records its own time (data model, `ai_consents`). The consent text and its version are in the shared package (`AI_CONSENT_TEXT`). The check before each AI call comes with slice 7 (invariant #3).
 
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
@@ -620,13 +620,13 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-ACC-006 — Country and time zone
 - Priority: **Won't** for this release (D-09). Phase 1 uses Asia/Kolkata for everyone (REQ-DATE-004).
 - Requirement: Country and time zone are configurable (e.g. India · Kolkata) and drive REQ-DATE-004.
-- MVP (D-18, D-S1): nothing can be changed. Settings shows "Country and time zone: India · Kolkata" as fixed text (D-09: the owner chose to show it). The MVP Settings list is theme, units and AI consent (`mvp-scope.md` section 2).
+- MVP (D-18, D-31): nothing can be changed. Settings shows "Country and time zone: India · Kolkata" as fixed text (D-09: the owner chose to show it). The MVP Settings list is theme, units and AI consent (`mvp-scope.md` section 2).
 
 ### REQ-ACC-007 — Change password
 - Type: Security
 - Requirement: A signed-in user can change their password.
 - Sign-in is email and password (D-05); sign-up and password reset are in REQ-ACC-010.
-- MVP (D-S1): in Settings, the current password and a new one; the current one is checked by signing in again, then the user's other devices are signed out. Online only.
+- MVP (D-31): in Settings, the current password and a new one; the current one is checked by signing in again, then the user's other devices are signed out. Online only.
 
 ### REQ-ACC-008 — Log out
 - Requirement: The user can log out; the session ends on this device.
@@ -642,7 +642,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - A public web page explains how to request deletion by email. The owner acts on a request only after confirming it from the account's registered address, and only through the logged admin path (ADR-0004).
 - Status: unblocked — Q-048 answered for the MVP (D-18). Before real users, Legal confirms what is deleted and what is kept (Q-049). Asking for the password again is post-MVP (backlog E-01).
 - MVP (D-20): no links exist, so ending links and the neutral message apply post-MVP (backlog B-19).
-- MVP (D-S1): built in the Settings slice as `DELETE /v1/me` (api-conventions): the photo files, then the user's rows, then the Supabase sign-in account, deleted with a secret key only the API holds. The page's text is [`docs/legal/account-deletion-page.md`](../legal/account-deletion-page.md) (draft). Acting on an emailed request needs the logged admin path, which is release-blocking task RB-S1.
+- MVP (D-31): built in the Settings slice as `DELETE /v1/me` (api-conventions): the photo files, then the user's rows, then the Supabase sign-in account, deleted with a secret key only the API holds. The page's text is [`docs/legal/account-deletion-page.md`](../legal/account-deletion-page.md) (draft). Acting on an emailed request needs the logged admin path, which is release-blocking task RB-04.
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security

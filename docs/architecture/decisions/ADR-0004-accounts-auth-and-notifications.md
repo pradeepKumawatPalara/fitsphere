@@ -6,8 +6,10 @@
   fixed in the same change, before acceptance.
 - Updated 2026-10-27: the owner's later answers to Q-066 and T-05 (D-18 answers 12 and 13) are
   recorded in "Open questions and handling". The decision is unchanged.
-- Updated 2026-10-30: how account deletion is built (rule 7; D-S1) and its automated results. The
+- Updated 2026-10-30: how account deletion is built (rule 7; D-31) and its automated results. The
   decision is unchanged.
+- Updated 2026-10-31: step 7's phone part is deferred to before the release (D-32). The decision is
+  unchanged.
 - Date: 2026-10-27
 - Decision owner: Project owner
 - Related requirements: REQ-ACC-007…010, REQ-ROLE-001…017, REQ-NFR-001, REQ-NFR-005
@@ -98,12 +100,12 @@ handled. Buying the domain is a paid item that needs the owner's sign-off at pur
    - A simple web page explains how to request deletion by email, as Google Play requires.
      The owner acts on an emailed request only after confirming it from the account's
      registered address, and only through the logged admin path (rule 8).
-   - *How it is built (Settings slice, D-S1):* `DELETE /v1/me` removes the photo files first,
+   - *How it is built (Settings slice, D-31):* `DELETE /v1/me` removes the photo files first,
      then deletes the user's rows in one transaction, then deletes the Supabase account with a
-     secret key the API alone holds (`SUPABASE_SECRET_KEY`; D-S1 answer 4). Each step is safe to
+     secret key the API alone holds (`SUPABASE_SECRET_KEY`; D-31 answer 4). Each step is safe to
      repeat, so a deletion stopped part-way is finished by calling again. The page's text is
      [`docs/legal/account-deletion-page.md`](../../legal/account-deletion-page.md) (draft). The
-     logged admin path for emailed requests is not built yet (release-blocking task RB-S1).
+     logged admin path for emailed requests is not built yet (release-blocking task RB-04).
 8. **Owner access:** two-factor sign-in on Supabase, Google Cloud, GitHub, Expo and the
    email service. No admin screens in the MVP (Platform Admin is post-MVP — D-13, D-18). The
    logged admin path required by D-16 and REQ-NFR-005 is a small set of owner-only API
@@ -162,7 +164,7 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   R-006): Skeleton step 6's phone checks (backlog SC-09, SC-10 and SC-13), `npm run check:signup`
   (SC-11) and step 7's reset check (SC-12).
 - **Step 1** runs in the Release slice (Resend, D-20).
-- **Step 7, API part — passed in automated tests, 2026-10-30 (Settings slice, step 2; D-S1):**
+- **Step 7, API part — passed in automated tests, 2026-10-30 (Settings slice, step 2; D-31):**
   with synthetic data in every table a user owns and two meal photos (one deleted),
   `DELETE /v1/me` leaves no row of the user, removes every photo file and deletes the sign-in
   account through a fake Supabase Auth admin that accepts only the secret key on the `apikey`
@@ -170,8 +172,11 @@ Automated tests in Skeleton steps 5 to 10, run on 2026-10-28 on the PC (PostgreS
   deleted with it; without the secret key or storage, or when storage fails, nothing is deleted;
   when Supabase Auth fails after the data is gone, calling again finishes; the log holds no email
   address, key or health value (`test/integration/delete-account.test.ts`, `src/auth.test.ts`).
-  The link part of step 7 runs post-MVP (D-20); the admin access log comes with RB-S1. The check
+  The link part of step 7 runs post-MVP (D-20); the admin access log comes with RB-04. The check
   against Supabase itself is phone check 8 of the Settings slice.
+- **Step 7, phone part — pending,** deferred to before the release by D-32 (accepted risk R-006):
+  phone check 8 of the Settings slice, deleting a throwaway test account with a meal photo (backlog
+  S6-08).
 
 ## Revisit conditions
 Email volume nears 100/day; neutral-message validation fails; Supabase Auth pricing or

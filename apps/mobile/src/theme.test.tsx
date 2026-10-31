@@ -5,7 +5,7 @@ import { useSettings } from './settings/SettingsProvider';
 import { renderInApp } from './testing/appHarness';
 import { DARK_COLORS, LIGHT_COLORS, resolveScheme, ThemeProvider, useTheme, type ThemeColors } from './theme';
 
-// Appearance (REQ-ACC-001; MVP defaults, D-S1): System follows the phone; Light and Dark override
+// Appearance (REQ-ACC-001; MVP defaults, D-31): System follows the phone; Light and Dark override
 // it. Every colour comes from the theme's tokens, and text is readable in both palettes.
 
 let mockPhoneScheme: 'light' | 'dark' | null = 'light';
@@ -50,7 +50,7 @@ describe('REQ-ACC-001 System, Light and Dark', () => {
     expect(resolveScheme('dark', 'light')).toBe('dark');
   });
 
-  it('D-S1 with nothing chosen the app follows the phone', async () => {
+  it('D-31 with nothing chosen the app follows the phone', async () => {
     mockPhoneScheme = 'dark';
     await renderWithTheme();
     expect(await screen.findByText(`dark ${DARK_COLORS.background}`)).toBeOnTheScreen();

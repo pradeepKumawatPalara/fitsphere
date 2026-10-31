@@ -4,7 +4,7 @@
   account and how to ask for deletion by email, as Google Play requires (REQ-ACC-009; Q-048 MVP
   default, D-18). Not published.
 - Owner: Project owner (D-01); reviewed by Legal (Q-049, L-04)
-- Last updated: 2026-10-30 (Settings slice, step 2; D-S1)
+- Last updated: 2026-10-30 (Settings slice, step 2; D-31)
 
 ## Before it is published
 The parts in [square brackets] are not decided yet. Nothing in them may be filled in by guessing.
@@ -20,7 +20,7 @@ The parts in [square brackets] are not decided yet. Nothing in them may be fille
 - [ ] Slice 7 (AI meal reading): what the AI provider keeps of what was sent to it, if anything
       (ADR-0005; Legal, Q-049).
 - [ ] The owner's logged path for acting on an emailed request is built (release-blocking task
-      RB-S1). Until then no emailed request can be handled as ADR-0004 rule 8 requires.
+      RB-04). Until then no emailed request can be handled as ADR-0004 rule 8 requires.
 - [ ] Legal's review (Q-049, L-04), then the page is published at a public address, and that
       address is entered in the Google Play listing.
 

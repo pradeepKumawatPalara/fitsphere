@@ -9,7 +9,7 @@ import { Message, Text } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { themedStyles, useTheme } from '../theme';
 
-// Delete account (REQ-ACC-009; Q-048 MVP default; ADR-0004 rule 7; MVP defaults, D-S1): a separate
+// Delete account (REQ-ACC-009; Q-048 MVP default; ADR-0004 rule 7; MVP defaults, D-31): a separate
 // screen that says what is deleted, then a confirmation. Online only. The server deletes the user's
 // data, files and sign-in account; then this phone deletes its database and signs out.
 export function DeleteAccountScreen() {

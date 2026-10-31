@@ -17,7 +17,7 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { LogOut } from './LogOut';
 
-// Settings, opened from the header's avatar (REQ-NAV-002; MVP defaults, D-S1): Appearance
+// Settings, opened from the header's avatar (REQ-NAV-002; MVP defaults, D-31): Appearance
 // (REQ-ACC-001), Units (REQ-ACC-002, REQ-ACC-003), AI meal reading (REQ-ACC-004), the fixed country
 // and time zone (REQ-ACC-006, D-09), then the account: the user's targets (REQ-ROLE-007), change
 // password (REQ-ACC-007), Log out (REQ-ACC-008) and Delete account (REQ-ACC-009). Development
@@ -155,7 +155,7 @@ const CONSENT_UNAVAILABLE = "This can't be changed right now. Try again later.";
 type ConsentState = { consent: AiConsent | null; online: boolean; busy: boolean; problem: string | null };
 
 /**
- * The AI meal-reading switch (REQ-ACC-004; MVP defaults, D-S1). Off until the user turns it on
+ * The AI meal-reading switch (REQ-ACC-004; MVP defaults, D-31). Off until the user turns it on
  * (A-007). Each change is recorded by the server with its time and the text's version; it needs
  * the internet, so offline the last known choice is shown, disabled. No AI is called from here.
  */

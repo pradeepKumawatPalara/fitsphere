@@ -2,7 +2,7 @@ import { AI_CONSENT_TEXT_VERSION, aiConsentResponseSchema, type AiConsentRespons
 import type { AuthDeps } from '../auth/service';
 import { callApi, type ApiResult } from './client';
 
-// The account calls of the Settings slice (api-conventions; D-S1): the AI consent record
+// The account calls of the Settings slice (api-conventions; D-31): the AI consent record
 // (REQ-ACC-004) and deleting the account (REQ-ACC-009). Both are online only.
 
 export type AiConsent = AiConsentResponse['aiConsent'];

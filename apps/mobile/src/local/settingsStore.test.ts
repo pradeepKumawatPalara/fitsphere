@@ -13,7 +13,7 @@ import {
   setMeta,
 } from './store';
 
-// Settings on the phone (REQ-ACC-001…003; MVP default, D-S1): one value per name, synced like
+// Settings on the phone (REQ-ACC-001…003; MVP default, D-31): one value per name, synced like
 // targets and never pruned. Saving, accepting, rejecting and discarding are in dailyStore.test.ts,
 // which runs them for every kind.
 

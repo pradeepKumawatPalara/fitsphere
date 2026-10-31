@@ -11,7 +11,7 @@ import {
   type DayNutrition,
 } from './calculations';
 
-// Progress's numbers (REQ-PRG-001…005; Q-043, Q-044, D-P1). Synthetic values only.
+// Progress's numbers (REQ-PRG-001…005; Q-043, Q-044, D-30). Synthetic values only.
 
 const TODAY = '2026-10-28'; // a Wednesday; the phone holds 2026-07-31 to today
 
@@ -62,7 +62,7 @@ describe('REQ-PRG-001 fourWeekWeight', () => {
     expect(result?.earlier?.day).toBe('2026-09-29');
   });
 
-  it('divides by the weeks between the two weigh-ins when they are less than 28 days apart (D-P1)', () => {
+  it('divides by the weeks between the two weigh-ins when they are less than 28 days apart (D-30)', () => {
     const result = fourWeekWeight([
       { day: '2026-10-18', weightGrams: 80_000 },
       { day: TODAY, weightGrams: 79_000 },

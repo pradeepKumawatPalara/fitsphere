@@ -3,7 +3,7 @@
 - Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
 - Last updated: 2026-10-30 (Settings slice, step 5: settings and account tests, and the Settings
-  slice's device checks; D-S1). 2026-10-29 (Training slice, step 1: workouts in the authorization
+  slice's device checks; D-31). 2026-10-29 (Training slice, step 1: workouts in the authorization
   and sync cases; D-29). 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
   backlog)
 - Builds on: [`definition-of-done.md`](definition-of-done.md); contracts in [`../contracts/`](../contracts/);
@@ -223,7 +223,7 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 - On the phone (batched checks): the photo's size and thumbnail, no location data in the
   uploaded file, temporary files gone, the viewing link expiring after 5 minutes.
 
-### Progress (app tests; Progress slice, D-P1)
+### Progress (app tests; Progress slice, D-30)
 - Calculations: the weigh-in nearest 28 days back, ties, and one a week or more earlier; the rate
   over 4 weeks and over fewer; less than a week; averages over the days with entries; days logged
   against the account's creation day; the 12 weeks; the chart's points, weekly averages, which
@@ -234,7 +234,7 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   named warning offline and the try-later text on a failure; an account newer than 90 days works
   offline.
 
-### Settings and account (Settings slice, D-S1)
+### Settings and account (Settings slice, D-31)
 - Server (integration tests): `setting.set` applied, pulled and checked per name; the AI consent
   routes (every change kept with the server's time and the text version, a wrong version refused,
   self-access only); `DELETE /v1/me` with synthetic data in every table a user owns (no row left,
@@ -308,21 +308,23 @@ Training tab, starting a workout and the Home count, exercises and their limits,
 deleting, offline workouts (ADR-0007 step 1, extended), "Load older", and the earlier kinds still
 working.
 
-### Device checks for the Progress slice (D-P1)
+### Device checks for the Progress slice (D-30)
 Batched at the end of the slice, once its pull requests are merged, on the existing development
 build, with `npm run dev:phone`. The exact steps are in
 [`progress-slice.md`](../plans/progress-slice.md), "Owner's checks at the end of the slice": the
 cards, the not-enough-data text, the chart's ranges online and offline, measurements, targets in
-the Target row, "All weigh-ins", and fitting a small screen.
+the Target row, "All weigh-ins", and fitting a small screen. **Deferred, not run** (D-32): these
+checks are backlog S5-01 to S5-07, to run before the release (accepted risk R-006).
 
-### Device checks for the Settings slice (D-S1)
+### Device checks for the Settings slice (D-31)
 Batched at the end of the slice, once its pull requests are merged, the owner has added
 `SUPABASE_SECRET_KEY` and migration 0008 is applied, on the existing development build, with
 `npm run dev:phone`. The exact steps are in [`settings-slice.md`](../plans/settings-slice.md),
 "Owner's actions and checks at the end of the slice": the Settings sections, Dark and Light (and
 System following the phone), body weight and lifting weight in lb, settings offline and after
 signing in again, the AI consent switch, change password, deleting a throwaway test account with a
-meal photo (ADR-0004 step 7), and the earlier kinds still working.
+meal photo (ADR-0004 step 7), and the earlier kinds still working. **Deferred, not run** (D-32):
+these checks are backlog S6-01 to S6-09, to run before the release (accepted risk R-006).
 
 ## Test data
 - **Synthetic only** (invariant #7, REQ-NFR-002). Generated values are made up; no real person's

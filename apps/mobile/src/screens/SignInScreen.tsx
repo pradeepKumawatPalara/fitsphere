@@ -11,7 +11,7 @@ import { goAfterAccountCheck } from './navigation';
 export function SignInScreen() {
   const { deps } = useAuth();
   const router = useRouter();
-  // After Delete account (REQ-ACC-009; MVP default, D-S1).
+  // After Delete account (REQ-ACC-009; MVP default, D-31).
   const { notice } = useLocalSearchParams<{ notice?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
