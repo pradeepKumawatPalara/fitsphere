@@ -67,9 +67,11 @@ Not in this slice:
   `useBodyWeightUnit()`, `useLiftingWeightUnit()`). Slice 5's Progress screens read them. Each hook
   has a safe default (light, kg) without its provider. Whichever slice merges second makes the
   one-line switch from slice 5's stand-ins.
-- Slice 6 does not touch the Progress screens (`app/(tabs)/progress.tsx`, `src/progress/`,
-  `ProgressScreen`); slice 5 leaves the contents of `HistoryScreen.tsx` and `WeighInList.tsx` to
-  slice 6.
+- Slice 6 was not to touch the Progress screens (`app/(tabs)/progress.tsx`, `src/progress/`,
+  `ProgressScreen`); slice 5 left the contents of `HistoryScreen.tsx` and `WeighInList.tsx` to
+  slice 6. At the merge, with the owner's approval, slice 6 made the one-line switch in
+  `src/progress/units.ts` with its tests (#46), and changed only the `Text` import in seven
+  `src/progress/` files, which the theme's guard test requires (#47).
 - Before each pull request, the branch is rebased on the latest main (the later steps on the step
   before them) and every check is run again.
 
