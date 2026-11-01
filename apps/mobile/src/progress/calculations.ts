@@ -1,6 +1,6 @@
 import { addDays, istWeekStart, syncWindowStart, type IstDay } from '@fitsphere/shared';
 
-// Progress's numbers (REQ-PRG-001…005; Q-043 and Q-044 MVP defaults, D-P1). Pure functions over
+// Progress's numbers (REQ-PRG-001…005; Q-043 and Q-044 MVP defaults, D-30). Pure functions over
 // what the phone holds, plus older weigh-ins read online for the longer chart ranges. Values stay
 // in canonical units (grams, kcal, grams of protein, steps); the screen converts for display
 // (invariant #6).
@@ -35,7 +35,7 @@ export type FourWeekWeight = {
 /**
  * The 4-week weight card (REQ-PRG-001). The change is the latest weigh-in minus the weigh-in
  * nearest 28 days before it, among those at least a week earlier (ties: the earlier one), and the
- * weekly rate is that change ÷ the weeks between them, which is Q-043's "÷ 4" at 28 days (D-P1).
+ * weekly rate is that change ÷ the weeks between them, which is Q-043's "÷ 4" at 28 days (D-30).
  * With no weigh-in a week earlier, the change is measured from the oldest one and there is no rate.
  */
 export function fourWeekWeight(weighIns: readonly WeighInPoint[]): FourWeekWeight | null {

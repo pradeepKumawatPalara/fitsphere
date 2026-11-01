@@ -805,18 +805,20 @@ slice 3 (D-26) under the temporary ID D-T1, and its backlog cases E-14 to E-17 u
 - Doc changes: `docs/plans/training-slice.md`; `CLAUDE.md` current phase; `docs/README.md`. The
   MVP defaults are added to `constraints-and-assumptions.md` in the step that builds each one.
 
-## D-P1 Progress slice plan approved, built beside slice 6
-*A temporary ID: slice 5 is built in parallel with slice 6 (Settings and account), and gets its
-final D- number, with its backlog cases E-P1 to E-P3, when it is merged.*
+## D-30 Progress slice plan approved, built beside slice 6
+*Numbered D-30 on 2026-10-31, after slices 5 and 6 were merged (D-32). It was built in parallel
+with slice 6 (D-31) under the temporary ID D-P1, and its backlog cases E-18 to E-20 under E-P1 to
+E-P3; the commit messages and pull requests #41, #42 and #44 use those IDs.*
 - Status: **Accepted** (owner approval in chat, 2026-10-30).
 - Answers:
   1. **Slice 5 plan approved:** [`docs/plans/progress-slice.md`](../plans/progress-slice.md), with
      its scope, its MVP defaults chosen under D-18 answer 3, and its three steps. Progress only
      reads existing data: no server change, no migration and no new phone schema version.
   2. **Built in parallel with slice 6** in a separate worktree, as D-29 was beside slice 3. Shared
-     files get small changes only; new IDs are temporary until merged; each step is rebased on the
-     latest main with every check run again before its pull request; no new native package without
-     asking the owner first (none is planned; the chart is drawn with plain views).
+     files get small changes only; new IDs are temporary until merged (now D-30 and E-18 to E-20);
+     each step is rebased on the latest main with every check run again before its pull request; no
+     new native package without asking the owner first (none is planned; the chart is drawn with
+     plain views).
   3. **Theme and units come from slice 6.** Progress takes every colour from slice 6's theme module
      and every body weight through the shared unit helpers with one unit hook, never a fixed "kg"
      or "cm". If slice 6's theme is not on main when the Progress screen is built, Progress adds the
@@ -832,9 +834,13 @@ final D- number, with its backlog cases E-P1 to E-P3, when it is merged.*
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step that
   builds each one.
 
-## D-S1 Settings and account slice plan approved, built beside slice 5
-*Temporary ID: slice 6 is built in parallel with slice 5 (Progress), and gets its final number when
-it is merged. Its backlog cases and release-blocking item are E-S1… and RB-S1 until then.*
+## D-31 Settings and account slice plan approved, built beside slice 5
+*Numbered D-31 on 2026-10-31, after slices 5 and 6 were merged (D-32). It was built in parallel
+with slice 5 (D-30) under the temporary ID D-S1, its backlog cases E-21 to E-23 under E-S1 to E-S3
+and its release-blocking item RB-04 under RB-S1; the commit messages and pull requests #43 and #45
+to #48 use those IDs. The comments in migration `0008_settings.sql` and in `apps/api/.env.example`
+still say D-S1: a migration is not edited once written (the migration runner checks each file's
+checksum), and the configuration template was left as it is.*
 - Status: **Accepted** (owner approval in chat, 2026-10-30).
 - Answers:
   1. **Slice 6 plan approved:** [`docs/plans/settings-slice.md`](../plans/settings-slice.md), with
@@ -854,8 +860,8 @@ it is merged. Its backlog cases and release-blocking item are E-S1… and RB-S1 
   5. **Built in parallel with slice 5** in a separate worktree, as D-29 answer 2: shared files get
      small changes only; migration `0008_settings.sql` and phone schema version 7, renumbered
      before merging if they collide; the migration runs on Supabase only when the owner says so;
-     new IDs are temporary until merged. Slice 6 owns the theme and unit modules, and slice 5's
-     Progress screens read them.
+     new IDs are temporary until merged (now D-31, E-21 to E-23 and RB-04). Slice 6 owns the theme
+     and unit modules, and slice 5's Progress screens read them.
   6. **Workflow as D-21**, and **no new native packages** without asking the owner first (cloud
      build, D-19); none is planned.
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs. Legal's
@@ -864,6 +870,38 @@ it is merged. Its backlog cases and release-blocking item are E-S1… and RB-S1 
   REQ-ACC-004 and REQ-ACC-006 in `requirements.md`; J-10 in `user-journeys.md`; `CLAUDE.md`;
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
   that builds each one.
+
+## D-32 Slices 5 and 6 merged; their phone checks deferred to before the release (amends D-30 and D-31)
+- Status: **Accepted** (owner instruction in chat, 2026-10-31, after both slices were merged).
+- Answers:
+  1. **Merged, not checked on a phone.** Slice 5, Progress (D-30), was merged on 2026-10-30 (#41,
+     #42 and #44); slice 6, Settings and account (D-31), on 2026-10-30 and 2026-10-31 (#43, #45,
+     #46, #47 and #48). On the merged main (`a480dcb`, 2026-10-31) every automated check passed:
+     `npm run lint`, `npm run typecheck`, `npm test` (API 109, app 440, shared 72; shared also in
+     the Los Angeles time zone) and `npm run test:integration` (219). No check of either slice has
+     been run on a real phone: their phone checks are **deferred, not passed**.
+  2. **The phone checks move to before the release** and stay mandatory: the 7 Progress checks
+     (backlog S5-01 to S5-07) and the 9 Settings checks (S6-01 to S6-09), taken unchanged from the
+     two plans. Each must pass, and be recorded in its slice plan, before the MVP release; a failure
+     is fixed as a defect. The phone part of ADR-0004 step 7 (deleting an account, S6-08) is
+     marked pending.
+  3. **Accepted risk R-006 is extended to these checks** instead of adding a new risk: a defect
+     seen only on a real phone (the chart drawn with views, dark mode and System following the
+     phone, the kg/lb settings, change password, account deletion) may be found only after later
+     slices build on these two.
+  4. **The temporary IDs are final:** D-P1 → D-30, E-P1 to E-P3 → E-18 to E-20; D-S1 → D-31,
+     E-S1 to E-S3 → E-21 to E-23, RB-S1 → RB-04.
+- Amends D-30 answer 5 and D-31 answer 6 (D-21): the phone checks batched at the end of each slice
+  are deferred to before the release, as D-22 did for the Skeleton.
+- Not changed by this decision: the owner's own steps for slice 6, the Supabase secret key
+  (`SUPABASE_SECRET_KEY`, D-31 answer 4) and migrations 0006 to 0008 on `fitsphere-dev`, run only
+  when the owner says so.
+- Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: `docs/product/backlog.md` (S5-01 to S5-07, S6-01 to S6-09); R-006 in
+  `docs/architecture/constraints-and-assumptions.md`; `docs/plans/progress-slice.md` and
+  `docs/plans/settings-slice.md` (merged, checks deferred); step 7 in ADR-0004; the device checks in
+  `docs/quality/test-strategy.md`; `CLAUDE.md` (current phase, "Before real users");
+  `docs/README.md`; the final IDs wherever the temporary ones were used.
 
 ---
 

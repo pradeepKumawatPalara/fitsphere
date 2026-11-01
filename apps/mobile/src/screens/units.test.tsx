@@ -13,7 +13,7 @@ import { TargetsScreen } from './TargetsScreen';
 import { TrainingScreen } from './TrainingScreen';
 import { WorkoutScreen } from './WorkoutScreen';
 
-// The units (REQ-ACC-002, REQ-ACC-003; Q-024; MVP defaults, D-S1): weights are typed and shown in
+// The units (REQ-ACC-002, REQ-ACC-003; Q-024; MVP defaults, D-31): weights are typed and shown in
 // the chosen unit and stored in grams (invariant #6), so changing a unit converts what is shown.
 // The body-weight and lifting-weight units are independent. The kg cases are in the other tests.
 
@@ -69,7 +69,7 @@ describe('REQ-ACC-003 body weight in lb', () => {
     await waitFor(() => expect(server.weighIns.get(TODAY)?.weightGrams).toBe(69_989));
   });
 
-  it.each(['44.0', '661.4', '154.25'])('D-S1 refuses "%s" lb with the rule in lb and saves nothing', async (text) => {
+  it.each(['44.0', '661.4', '154.25'])('D-31 refuses "%s" lb with the rule in lb and saves nothing', async (text) => {
     const { db } = await renderInApp(<HomeScreen />, undefined, withUnits({ body_weight_unit: 'lb' }));
 
     await logWeight('lb', text);
@@ -157,7 +157,7 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
     expect(screen.getByText('70.0 kg')).toBeOnTheScreen();
   });
 
-  it.each(['0.2', '1102.4'])('D-S1 refuses "%s" lb with the rule in lb', async (text) => {
+  it.each(['0.2', '1102.4'])('D-31 refuses "%s" lb with the rule in lb', async (text) => {
     await startWorkout();
     await addExercise(text);
 
@@ -167,7 +167,7 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
 });
 
 describe('ADR-0007 rule 2 a rejected setting', () => {
-  it('D-S1 says which setting was not saved', () => {
+  it('D-31 says which setting was not saved', () => {
     const entry = {
       changeId: '00000000-0000-4000-8000-000000000009',
       type: 'setting.set',

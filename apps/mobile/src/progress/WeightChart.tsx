@@ -20,7 +20,7 @@ type Props = {
   weekly: boolean;
 };
 
-// The weight trend line (REQ-PRG-004), drawn with plain views (D-P1): the highest and lowest weights
+// The weight trend line (REQ-PRG-004), drawn with plain views (D-30): the highest and lowest weights
 // on the left, the first and last dates below. A screen reader hears a summary of the range.
 export function WeightChart({ points, unit, weekly }: Props) {
   const { colors } = useTheme();

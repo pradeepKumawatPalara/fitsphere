@@ -38,7 +38,7 @@ export function formatDay(day: IstDay): string {
 
 // Body weight is typed and shown in the body-weight unit setting (REQ-ACC-003, Q-024), with one
 // decimal, and stored in grams (invariant #6). The limits are 20–300 kg in either unit, rounded
-// inwards to one decimal (MVP default, D-S1).
+// inwards to one decimal (MVP default, D-31).
 
 /** e.g. "Enter a weight from 44.1 to 661.3 lb, with at most one decimal." */
 export function weightRule(unit: BodyWeightUnit): string {

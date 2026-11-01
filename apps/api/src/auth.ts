@@ -16,7 +16,7 @@ export type Auth = {
   /** Reads the signed-in user from Supabase Auth with the caller's own token. Used only at
    * account setup, for the confirmed email (Supabase tokens carry no "email verified" claim). */
   readSignedInUser(identity: Identity): Promise<SignedInUser>;
-  /** Whether sign-in accounts can be deleted: only with the secret key (D-S1 answer 4). */
+  /** Whether sign-in accounts can be deleted: only with the secret key (D-31 answer 4). */
   readonly canDeleteUsers: boolean;
   /** Deletes the Supabase sign-in account for good (REQ-ACC-009). A user already gone counts as
    * deleted. Throws SERVICE_UNAVAILABLE without the secret key, or when Supabase does not delete
@@ -28,7 +28,7 @@ type Options = {
   supabaseUrl: string;
   publishableKey: string;
   /** The secret key (`sb_secret_…`): server only, used for nothing but deleting a sign-in account
-   * (D-S1 answer 4). Without it, accounts cannot be deleted. Never logged. */
+   * (D-31 answer 4). Without it, accounts cannot be deleted. Never logged. */
   secretKey?: string;
   /** The project's signing keys; tests pass their own. */
   keySet?: JWTVerifyGetKey;

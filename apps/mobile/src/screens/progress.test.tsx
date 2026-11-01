@@ -8,7 +8,7 @@ import { ProgressScreen } from './ProgressScreen';
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
-// The Progress tab (REQ-PRG-001…003, REQ-PRG-005, REQ-PRG-006; D-P1). Today is Wednesday
+// The Progress tab (REQ-PRG-001…003, REQ-PRG-005, REQ-PRG-006; D-30). Today is Wednesday
 // 28 October 2026; its week is Mon 26 Oct – Sun 1 Nov. Synthetic values only.
 
 const AT = '2026-10-20T03:00:00.000Z';

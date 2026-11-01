@@ -5,7 +5,7 @@ import { changePassword } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
 import { Field, Message, Screen, Text } from '../components/ui';
 
-// Change password (REQ-ACC-007; MVP default, D-S1): the current password, then a new one of 8–72
+// Change password (REQ-ACC-007; MVP default, D-31): the current password, then a new one of 8–72
 // characters, as at sign-up. Online only. Afterwards the user's other devices are signed out.
 export function ChangePasswordScreen() {
   const { deps, email } = useAuth();

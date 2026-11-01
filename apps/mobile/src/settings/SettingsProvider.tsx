@@ -13,7 +13,7 @@ import type { SqlDb } from '../local/sql';
 import { listSettings, type LocalSetting } from '../local/store';
 import { useSync, type EntryInput } from '../sync/SyncProvider';
 
-// The user's settings (REQ-ACC-001…003; MVP default, D-S1): kept on the phone and synced like
+// The user's settings (REQ-ACC-001…003; MVP default, D-31): kept on the phone and synced like
 // targets, so a change applies at once, offline too, and follows the account to another phone.
 // Before sign-in, and until the user chooses, the defaults apply: the phone's theme, kg and kg.
 

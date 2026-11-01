@@ -19,7 +19,7 @@ import { parseOneDecimal, parseWholeNumber } from './format';
 // (Q-042), within the limits of the contracts (MVP defaults, D-29). Weights are typed and shown in
 // the lifting-weight unit setting (REQ-TRN-005, REQ-ACC-002) and stored in grams, so changing the
 // setting converts the history shown. The limits are 0.1–500 kg in either unit, rounded inwards to
-// one decimal (MVP default, D-S1).
+// one decimal (MVP default, D-31).
 
 export function exerciseRules(unit: BodyWeightUnit) {
   const { min, max } = weightRangeIn(unit, LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX);

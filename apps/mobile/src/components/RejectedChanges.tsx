@@ -30,7 +30,7 @@ import { Text } from './ui';
 // A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2, D-14).
 // Text from the error model: "This weight wasn't saved: <reason>. Edit or discard it.", with its
 // own subject for steps, sleep, measurements and targets (MVP default, D-23), workouts (D-29) and
-// settings (D-S1).
+// settings (D-31).
 const REASONS: Record<ChangeErrorCode, string> = {
   DAY_IN_FUTURE: 'the date is in the future',
   VALIDATION_FAILED: 'the value is not valid',

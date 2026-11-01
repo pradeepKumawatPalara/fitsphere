@@ -15,7 +15,7 @@ import { WeightTrend } from '../progress/WeightTrend';
 import { useSync } from '../sync/SyncProvider';
 import { useTheme } from '../theme';
 
-// Progress (REQ-PRG-001…006; D-P1): the user's trends from what the phone holds, in the
+// Progress (REQ-PRG-001…006; D-30): the user's trends from what the phone holds, in the
 // body-weight unit and the theme's colours. Not tied to the header's selected date: the cards end
 // today.
 export function ProgressScreen() {

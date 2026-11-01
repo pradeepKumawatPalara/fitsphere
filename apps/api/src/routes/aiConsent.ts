@@ -1,4 +1,4 @@
-// GET and PUT /v1/me/ai-consent (api-conventions; REQ-ACC-004, C-004, A-007; MVP default, D-S1).
+// GET and PUT /v1/me/ai-consent (api-conventions; REQ-ACC-004, C-004, A-007; MVP default, D-31).
 // Only the caller's own record: the path names no user, so no one reads or changes another person's
 // consent (invariant #1; the permission matrix says "never" for anyone else, D-13). Nothing here
 // calls an AI service; the AI module checks the latest record immediately before each call

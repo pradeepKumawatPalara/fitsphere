@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-S1). Earlier the same day
+- Last updated: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -145,7 +145,7 @@ No body. `204` with no body once the account is deleted:
 1. the files of every meal photo the user has, deleted ones included, are removed from storage;
 2. the user's rows in every table are deleted, with any links and Head Coach permission answers
    (none exist in the MVP, D-20);
-3. the Supabase sign-in account is deleted, with the server's secret key (D-S1 answer 4).
+3. the Supabase sign-in account is deleted, with the server's secret key (D-31 answer 4).
 
 - The caller's own account only: the path names no user (invariant #1).
 - Access is "signed in", not "account set up": a deletion stopped after step 2 is finished by
@@ -174,7 +174,7 @@ No body. `204` with no body once the account is deleted:
 - Only the caller's own record: the path names no user, and a body that names one is refused as
   an unknown field (invariant #1).
 - Online only: consent is not a sync change, so the time recorded is when the server received
-  it (MVP default, D-S1). Neither route calls an AI service; the AI module checks the latest
+  it (MVP default, D-31). Neither route calls an AI service; the AI module checks the latest
   record immediately before each call (invariant #3, slice 7).
 - `401`, `403 ACCOUNT_SETUP_REQUIRED`, and the other whole-request errors as for `GET /v1/me`.
 
@@ -225,7 +225,7 @@ Request:
 - `target.set` sets the user's current target of that kind, replacing the old one (Q-014 MVP
   default, D-23).
 - `setting.set` sets the user's current value of that setting, replacing the old one; the change
-  received last wins, as for targets (MVP default, D-S1).
+  received last wins, as for targets (MVP default, D-31).
 - `workout.set` creates the user's workout with that `id`, or replaces the whole workout; the day
   rules above apply, but a day may hold several workouts. It also restores a deleted workout.
   `workout.delete` keeps the workout's row without its content, so other phones learn of the
@@ -422,8 +422,8 @@ The app talks to Supabase Auth for these; the FitSphere API is not involved unti
 | Verify email | The link in the email confirms the address, then opens the app, which asks the user to sign in. An unverified account cannot sign in. Links expire within 24 hours | REQ-ACC-010; Q-080 MVP default |
 | Sign in | Email and password. Then `GET /v1/me`, and `POST /v1/me` if the account is not set up | REQ-ACC-010 |
 | Forgot password | The app always shows the neutral reset text. The link opens the app on a "Set a new password" screen | REQ-ACC-010, D-11 |
-| Change password | "Change password" in Settings: the current password, checked by signing in again with Supabase Auth, then `updateUser` with the new one (8–72 characters), then the user's other devices are signed out. The API never sees either password. Online only | REQ-ACC-007; MVP default, D-S1 |
-| Delete account | "Delete account" in Settings, after a confirmation, calls `DELETE /v1/me`; then the phone deletes its local database and signs out. Online only | REQ-ACC-009; MVP default, D-S1 |
+| Change password | "Change password" in Settings: the current password, checked by signing in again with Supabase Auth, then `updateUser` with the new one (8–72 characters), then the user's other devices are signed out. The API never sees either password. Online only | REQ-ACC-007; MVP default, D-31 |
+| Delete account | "Delete account" in Settings, after a confirmation, calls `DELETE /v1/me`; then the phone deletes its local database and signs out. Online only | REQ-ACC-009; MVP default, D-31 |
 | Log out | Ends the session on this phone. The local database is deleted; if it holds unsynced entries, the app warns first (data model, "On the phone") | REQ-ACC-008; MVP default, D-18 |
 
 - Session tokens are kept in the phone's secure storage (ADR-0004 rule 3). Expo sets no size

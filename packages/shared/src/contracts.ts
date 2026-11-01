@@ -103,7 +103,7 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
 
 /**
  * The consent text the app shows beside the "AI meal reading" switch, and its version (MVP default,
- * D-S1; Legal reviews it, Q-049). Each change of consent records the version shown. A new text gets
+ * D-31; Legal reviews it, Q-049). Each change of consent records the version shown. A new text gets
  * a new version, and the request schema then accepts both while older apps are in use.
  */
 export const AI_CONSENT_TEXT_VERSION = '2026-10-30';
@@ -265,7 +265,7 @@ export const targetSetDataSchema = z.discriminatedUnion('kind', [
 export type TargetSetData = z.infer<typeof targetSetDataSchema>;
 
 // Settings (REQ-ACC-001…003): the user's own, one current value per name, synced like targets so
-// they work offline and follow the account to another phone (MVP default, D-S1). The units are
+// they work offline and follow the account to another phone (MVP default, D-31). The units are
 // display settings: weights stay stored in grams (invariant #6).
 
 export const SETTING_SET = 'setting.set';

@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 import { useThemePreference } from './settings/SettingsProvider';
 
-// The app's light and dark colours (REQ-ACC-001; MVP defaults, D-S1). Every colour on screen comes
+// The app's light and dark colours (REQ-ACC-001; MVP defaults, D-31). Every colour on screen comes
 // from these tokens; a guard test refuses colour codes anywhere else. System follows the phone's
 // own setting; Light and Dark override it. Android's own dialogs and the keyboard follow the phone.
 

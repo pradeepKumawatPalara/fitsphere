@@ -200,7 +200,7 @@ const KINDS: Record<EntryKind, KindSpec> = {
     pullColumns: [['set_by_user_id', 'setByUserId']],
     dayData: false,
   },
-  // The user's settings (REQ-ACC-001…003; MVP default, D-S1): one value per name, like targets.
+  // The user's settings (REQ-ACC-001…003; MVP default, D-31): one value per name, like targets.
   setting: {
     changeType: SETTING_SET,
     table: 'settings',
@@ -401,7 +401,7 @@ const MIGRATIONS = [
    );
    CREATE INDEX workouts_day ON workouts (day);
    DELETE FROM sync_meta WHERE key = 'cursor';`,
-  // Settings (REQ-ACC-001…003; D-S1): theme and units, one value per name. The cursor is cleared so
+  // Settings (REQ-ACC-001…003; D-31): theme and units, one value per name. The cursor is cleared so
   // the next sync pulls the settings the account already has.
   `CREATE TABLE settings (
      name TEXT PRIMARY KEY,
@@ -427,7 +427,7 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
  * `user_id` is the signed-in user's sign-in ID; `account_id` their FitSphere ID, which the API's
  * paths use (GET /v1/me). `account_created_day` is the IST day the account was created, for
  * Progress's "Meals logged" (Q-044). `ai_consent` is the last AI consent read from the server,
- * shown offline (D-S1); the server's record is the one that counts.
+ * shown offline (D-31); the server's record is the one that counts.
  */
 export type MetaKey =
   | 'user_id'

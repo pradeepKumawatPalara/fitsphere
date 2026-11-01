@@ -1,7 +1,7 @@
-// Deleting an account (REQ-ACC-009; Q-048 MVP default, D-18; ADR-0004 rule 7; D-S1). The user's
+// Deleting an account (REQ-ACC-009; Q-048 MVP default, D-18; ADR-0004 rule 7; D-31). The user's
 // files, their rows in every table and their Supabase sign-in account are deleted. Only the
 // request's log line is kept, with no email address or health data; the admin access log comes
-// with RB-S1.
+// with RB-04.
 //
 // The steps run in an order that is safe to repeat, so a deletion stopped part-way is finished by
 // calling again: the files and rows go together, the rows only once the files are gone; the sign-in

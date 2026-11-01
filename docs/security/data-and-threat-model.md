@@ -173,7 +173,7 @@ are never cleared automatically (REQ-NFR-004, D-14).
   link between people ends (R-004, T-09).
 - No backups in phase 1: data lost on the server cannot be restored, which conflicts with "the
   server is the permanent record" (R-005, D-14, D-16).
-- The API holds the Supabase secret key (`SUPABASE_SECRET_KEY`, D-S1 answer 4), which can do
+- The API holds the Supabase secret key (`SUPABASE_SECRET_KEY`, D-31 answer 4), which can do
   anything in Supabase Auth. It is kept on the server only and used by one function, to delete
   a sign-in account; it is never logged, and tests use a fake. If a leak is suspected, the owner
   revokes it in the Supabase dashboard and creates a new one.

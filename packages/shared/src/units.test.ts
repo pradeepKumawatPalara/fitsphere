@@ -117,7 +117,7 @@ describe('REQ-MEAS-003 measurements in whole millimetres (invariant #6)', () => 
   });
 });
 
-describe('REQ-ACC-002 and REQ-ACC-003 limits in the chosen unit (MVP default, D-S1)', () => {
+describe('REQ-ACC-002 and REQ-ACC-003 limits in the chosen unit (MVP default, D-31)', () => {
   it('REQ-ACC-003 body weight is 20.0–300.0 kg or 44.1–661.3 lb', () => {
     expect(weightRangeIn('kg', WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX)).toEqual({ min: 20, max: 300 });
     expect(weightRangeIn('lb', WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX)).toEqual({ min: 44.1, max: 661.3 });
@@ -128,7 +128,7 @@ describe('REQ-ACC-002 and REQ-ACC-003 limits in the chosen unit (MVP default, D-
     expect(weightRangeIn('lb', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.3, max: 1102.3 });
   });
 
-  it('D-S1 every limit is within the range in grams, and one step outside it is not', () => {
+  it('D-31 every limit is within the range in grams, and one step outside it is not', () => {
     for (const unit of ['kg', 'lb'] as const) {
       for (const [low, high, inRange] of [
         [WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX, isWeightGramsInRange],

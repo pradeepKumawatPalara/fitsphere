@@ -9,7 +9,7 @@ import { ChangePasswordScreen } from './ChangePasswordScreen';
 import { DeleteAccountScreen } from './DeleteAccountScreen';
 import { SignInScreen } from './SignInScreen';
 
-// The Settings screen (REQ-ACC-001…009; MVP defaults, D-S1), change password (REQ-ACC-007) and
+// The Settings screen (REQ-ACC-001…009; MVP defaults, D-31), change password (REQ-ACC-007) and
 // delete account (REQ-ACC-009). The units on the other screens are in units.test.tsx; the theme in
 // theme.test.tsx.
 
@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 describe('REQ-ACC-001…006 the Settings screen', () => {
-  it('D-S1 lists Appearance, Units, AI meal reading, the fixed country and time zone, and the account', async () => {
+  it('D-31 lists Appearance, Units, AI meal reading, the fixed country and time zone, and the account', async () => {
     await renderInApp(<AccountScreen showDevTools={false} />);
 
     for (const heading of ['Appearance', 'Units', 'AI meal reading', 'Country and time zone', 'Account']) {
@@ -84,7 +84,7 @@ describe('REQ-ACC-004 the AI meal-reading switch', () => {
     ]);
   });
 
-  it('D-S1 offline, the last known choice is shown, disabled, with the reason', async () => {
+  it('D-31 offline, the last known choice is shown, disabled, with the reason', async () => {
     await renderInApp(<AccountScreen showDevTools={false} />, undefined, async (db, server) => {
       await setMeta(db, 'ai_consent', JSON.stringify({ consented: true, textVersion: AI_CONSENT_TEXT_VERSION, recordedAt: '2026-10-27T03:00:00.000Z' }));
       server.state.offline = true;
@@ -201,13 +201,13 @@ describe('REQ-ACC-009 delete account', () => {
 });
 
 describe('REQ-ACC-009 after the deletion', () => {
-  it('D-S1 the sign-in screen says the account has been deleted, and only then', async () => {
+  it('D-31 the sign-in screen says the account has been deleted, and only then', async () => {
     mockParams.notice = 'accountDeleted';
     await renderInApp(<SignInScreen />);
     expect(await screen.findByText(TEXTS.accountDeleted)).toBeOnTheScreen();
   });
 
-  it('D-S1 an ordinary sign-in screen has no such notice', async () => {
+  it('D-31 an ordinary sign-in screen has no such notice', async () => {
     await renderInApp(<SignInScreen />);
     expect(await screen.findByRole('header', { name: 'Sign in' })).toBeOnTheScreen();
     expect(screen.queryByText(TEXTS.accountDeleted)).toBeNull();
