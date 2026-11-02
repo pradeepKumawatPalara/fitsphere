@@ -19,7 +19,8 @@ type Props = {
 
 // Mon–Sun IST week (REQ-HOME-002): today in blue (REQ-DATE-003), past days selectable back to
 // `firstDay` (REQ-DATE-001), future days disabled (Q-017), and a status box per day, filled when a
-// meal is logged that day (Q-019).
+// meal is logged that day (Q-019). The selected day, which every card below follows, is the filled
+// pill; today keeps blue text and a bar under its date.
 export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSelect, onWeekChange }: Props) {
   const styles = useStyles();
   const nextWeek = addDays(weekStart, 7);
@@ -32,6 +33,7 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
         accessibilityState={{ disabled: !canGoBack }}
         disabled={!canGoBack}
         onPress={() => onWeekChange(addDays(weekStart, -7))}
+        hitSlop={8}
         style={styles.arrow}
       >
         <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
@@ -50,10 +52,17 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
             accessibilityState={{ selected: isSelected, disabled: outOfRange }}
             disabled={outOfRange}
             onPress={() => onSelect(day)}
-            style={[styles.day, isToday && styles.today, isSelected && styles.selected]}
+            style={styles.day}
           >
-            <Text style={[styles.dayText, isToday && styles.todayText, outOfRange && styles.disabledText]}>{parts.weekday}</Text>
-            <Text style={[styles.dayText, isToday && styles.todayText, outOfRange && styles.disabledText]}>{parts.date}</Text>
+            <View style={[styles.pill, isSelected && styles.selected]}>
+              <Text style={[styles.weekday, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
+                {parts.weekday}
+              </Text>
+              <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
+                {parts.date}
+              </Text>
+              <View style={[styles.todayBar, isToday && styles.todayBarShown, isToday && isSelected && styles.todayBarOnSelected]} />
+            </View>
             {mealDays ? <View testID={`status-${day}`} style={[styles.status, logged && styles.statusFilled]} /> : null}
           </Pressable>
         );
@@ -64,6 +73,7 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
         accessibilityState={{ disabled: nextWeek > today }}
         disabled={nextWeek > today}
         onPress={() => onWeekChange(nextWeek)}
+        hitSlop={8}
         style={styles.arrow}
       >
         <Text style={[styles.arrowText, nextWeek > today && styles.disabledText]}>›</Text>
@@ -74,14 +84,19 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
 
 const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  arrow: { paddingHorizontal: 8, paddingVertical: 12 },
-  arrowText: { fontSize: 22 },
-  day: { alignItems: 'center', paddingVertical: 6, width: 40, borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  today: { backgroundColor: c.primary },
-  selected: { borderColor: c.primaryStrong },
-  dayText: { fontSize: 13 },
-  todayText: { color: c.onPrimary, fontWeight: '700' },
+  arrow: { paddingHorizontal: 6, paddingVertical: 12 },
+  arrowText: { fontSize: 24 },
+  day: { alignItems: 'center', width: 40, gap: 6 },
+  pill: { alignItems: 'center', alignSelf: 'stretch', paddingTop: 6, paddingBottom: 5, borderRadius: 20 },
+  selected: { backgroundColor: c.primary },
+  weekday: { fontSize: 12, color: c.textMuted },
+  date: { fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  todayText: { color: c.primary, fontWeight: '700' },
+  selectedText: { color: c.onPrimary, fontWeight: '700' },
   disabledText: { color: c.textFaint },
-  status: { marginTop: 3, width: 10, height: 10, borderRadius: 2, borderWidth: 1, borderColor: c.neutralLight },
-  statusFilled: { backgroundColor: c.success, borderColor: c.success },
+  todayBar: { marginTop: 3, width: 14, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
+  todayBarShown: { backgroundColor: c.primary },
+  todayBarOnSelected: { backgroundColor: c.onPrimary },
+  status: { width: 18, height: 4, borderRadius: 2, backgroundColor: c.track },
+  statusFilled: { backgroundColor: c.success },
 }));

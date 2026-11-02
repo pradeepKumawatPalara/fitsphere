@@ -15,7 +15,7 @@ import {
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Button, ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
 import { LogMealButton } from '../components/LogMealButton';
@@ -27,7 +27,7 @@ import { RejectedChanges } from '../components/RejectedChanges';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
 import { WorkoutTracker } from '../components/WorkoutTracker';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -184,25 +184,30 @@ export function HomeScreen() {
         {selected !== today ? (
           <View style={styles.banner}>
             <Text>Showing {formatDay(selected)}</Text>
-            <Button title="Back to today" onPress={() => select(today)} />
+            <TextButton title="Back to today" onPress={() => select(today)} />
           </View>
         ) : null}
         <RejectedChanges entries={rejected} onEdit={editRejected} onDiscard={(changeId) => void sync.discard(changeId)} />
-        <TargetProgressCard
-          title="Calories"
-          unit="kcal"
-          eaten={Math.round(eaten?.kcal ?? 0)}
-          target={targets.calories ?? null}
-          onSetTarget={openTargets}
-        />
-        <TargetProgressCard
-          title="Protein"
-          unit="g"
-          eaten={Math.round(eaten?.proteinG ?? 0)}
-          target={targets.protein ?? null}
-          onSetTarget={openTargets}
-        />
-        <Button title="By meal" onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
+        {/* The day's food against its targets: the panel Home leads with. */}
+        <View style={styles.panel}>
+          <TargetProgressCard
+            title="Calories"
+            unit="kcal"
+            eaten={Math.round(eaten?.kcal ?? 0)}
+            target={targets.calories ?? null}
+            onSetTarget={openTargets}
+          />
+          <TargetProgressCard
+            title="Protein"
+            unit="g"
+            eaten={Math.round(eaten?.proteinG ?? 0)}
+            target={targets.protein ?? null}
+            onSetTarget={openTargets}
+          />
+          <View style={styles.panelFoot}>
+            <TextButton title="By meal" onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
+          </View>
+        </View>
         <View style={styles.tiles}>
           {DAY_VALUE_ORDER.map((kind) => {
             const entry = values[kind];
@@ -262,8 +267,18 @@ export function HomeScreen() {
 
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 16, paddingBottom: 96 },
-  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: c.warningSurface },
+  content: { padding: 16, gap: 20, paddingBottom: 96 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: c.warningSurface,
+  },
+  panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 20 },
+  panelFoot: { marginTop: -8, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   tiles: { flexDirection: 'row', gap: 8 },
   stopped: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
 }));

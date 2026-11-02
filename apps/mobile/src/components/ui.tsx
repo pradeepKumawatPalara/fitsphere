@@ -60,6 +60,24 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
   );
 }
 
+/**
+ * An action in sentence case, in place of React Native's own Button (on Android, a blue bar in
+ * capitals). `outlined` for the step to take first; plain for a link to something else.
+ */
+export function TextButton({ title, onPress, outlined = false }: { title: string; onPress(): void; outlined?: boolean }) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [outlined ? styles.outlined : styles.link, pressed && styles.pressed]}
+    >
+      <Text style={styles.actionText}>{title}</Text>
+    </Pressable>
+  );
+}
+
 export function Message({ text }: { text: string | null }) {
   const styles = useStyles();
   return text ? (
@@ -78,4 +96,16 @@ const useStyles = themedStyles((c) => ({
   boxChecked: { backgroundColor: c.primary, borderColor: c.primary },
   tick: { color: c.onPrimary, fontWeight: '700' },
   message: { color: c.error },
+  link: { alignSelf: 'flex-start', paddingVertical: 6 },
+  outlined: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    borderWidth: 1.5,
+    borderColor: c.primary,
+    borderRadius: 22,
+  },
+  pressed: { opacity: 0.6 },
+  actionText: { color: c.primary, fontSize: 15, fontWeight: '600' },
 }));

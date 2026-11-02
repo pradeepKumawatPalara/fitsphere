@@ -1,8 +1,8 @@
 import { istWeekDays, type IstDay } from '@fitsphere/shared';
-import { Button, View } from 'react-native';
+import { View } from 'react-native';
 import { dayParts } from '../format';
 import { themedStyles } from '../theme';
-import { Text } from './ui';
+import { Text, TextButton } from './ui';
 
 type Props = {
   /** Any day of the Mon–Sun week shown: the selected date's week. */
@@ -42,18 +42,18 @@ export function WorkoutTracker({ day, workoutDays, count, target, onSetTarget }:
           );
         })}
       </View>
-      {target === null ? <Button title="Set a weekly workout target" onPress={onSetTarget} /> : null}
+      {target === null ? <TextButton title="Set a weekly workout target" outlined onPress={onSetTarget} /> : null}
     </View>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
-  title: { color: c.textMuted },
-  summary: { fontSize: 20, fontWeight: '600' },
-  dots: { flexDirection: 'row', justifyContent: 'space-between' },
-  dotColumn: { alignItems: 'center', gap: 4 },
-  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: c.primary },
+  card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 10 },
+  title: { fontSize: 15, fontWeight: '600' },
+  summary: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  dots: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 4, paddingHorizontal: 4 },
+  dotColumn: { alignItems: 'center', gap: 6 },
+  dot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: c.primary },
   done: { backgroundColor: c.primary },
   dotLabel: { fontSize: 12, color: c.textMuted },
 }));
