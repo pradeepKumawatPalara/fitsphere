@@ -52,7 +52,7 @@ export function TargetsScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${texts[kind].label}: ${value}`}
             onPress={() => setEditing(kind)}
-            style={styles.row}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
           >
             <Text style={styles.label}>{texts[kind].label}</Text>
             <Text style={styles.value}>{value}</Text>
@@ -80,8 +80,9 @@ export function TargetsScreen() {
 const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
   row: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
-  label: { color: c.textMuted },
-  value: { fontSize: 20, fontWeight: '600' },
-  note: { color: c.textMuted },
-  problem: { color: c.error },
+  pressed: { opacity: 0.6 },
+  label: { fontSize: 13, color: c.textMuted },
+  value: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  note: { fontSize: 13, color: c.textMuted },
+  problem: { fontSize: 13, color: c.error },
 }));

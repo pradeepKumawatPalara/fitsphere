@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button, View } from 'react-native';
+import { View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { signOutLocally } from '../auth/service';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { logOutDecision } from '../local/store';
 import { themedStyles } from '../theme';
@@ -30,19 +30,21 @@ export function LogOut() {
     router.replace('/sign-in');
   }
 
-  if (unsynced === null) return <Button title="Log out" onPress={() => void logOut(false)} />;
+  // Destructive, so red and never filled; in the warning, staying signed in weighs the same.
+  if (unsynced === null) return <TextButton title="Log out" outlined destructive onPress={() => void logOut(false)} />;
   return (
     <View style={styles.warning} accessibilityRole="alert">
-      <Text>
+      <Text style={styles.text}>
         {unsynced === 1 ? '1 entry is' : `${unsynced} entries are`} not on the server yet. If you log out now, they are
         deleted from this phone.
       </Text>
-      <Button title="Stay signed in" onPress={() => setUnsynced(null)} />
-      <Button title="Log out and delete them" onPress={() => void logOut(true)} />
+      <TextButton title="Stay signed in" outlined onPress={() => setUnsynced(null)} />
+      <TextButton title="Log out and delete them" outlined destructive onPress={() => void logOut(true)} />
     </View>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  warning: { gap: 12, padding: 12, borderWidth: 1, borderColor: c.error, borderRadius: 6 },
+  warning: { gap: 12, padding: 14, borderWidth: 1.5, borderColor: c.over, borderRadius: 12 },
+  text: { fontSize: 15 },
 }));

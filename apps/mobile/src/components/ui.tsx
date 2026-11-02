@@ -63,19 +63,22 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
 /**
  * An action in sentence case, in place of React Native's own Button (on Android, a blue bar in
  * capitals). `filled` for the screen's main action, `outlined` for the step to take first; plain for
- * a link to something else. Disabled, it fades and cannot be pressed.
+ * a link to something else. `destructive` (Log out, Delete) turns it the "over" red; such an action
+ * is outlined or a link, never filled. Disabled, it fades and cannot be pressed.
  */
 export function TextButton({
   title,
   onPress,
   outlined = false,
   filled = false,
+  destructive = false,
   disabled,
 }: {
   title: string;
   onPress(): void;
   outlined?: boolean;
   filled?: boolean;
+  destructive?: boolean;
   disabled?: boolean;
 }) {
   const styles = useStyles();
@@ -87,11 +90,12 @@ export function TextButton({
       hitSlop={8}
       style={({ pressed }) => [
         filled ? styles.filled : outlined ? styles.outlined : styles.link,
+        destructive && styles.destructiveEdge,
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
     >
-      <Text style={[styles.actionText, filled && styles.filledText]}>{title}</Text>
+      <Text style={[styles.actionText, destructive && styles.destructiveText, filled && styles.filledText]}>{title}</Text>
     </Pressable>
   );
 }
@@ -145,5 +149,7 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   disabled: { opacity: 0.4 },
   actionText: { color: c.primary, fontSize: 15, fontWeight: '600' },
+  destructiveEdge: { borderColor: c.over },
+  destructiveText: { color: c.over },
   filledText: { color: c.onPrimary },
 }));
