@@ -1,6 +1,6 @@
 import type { IstDay } from '@fitsphere/shared';
-import { Button, StyleSheet } from 'react-native';
-import { Text } from '../components/ui';
+import { StyleSheet } from 'react-native';
+import { Text, TextButton } from '../components/ui';
 import { formatInteger } from '../format';
 import { useTheme } from '../theme';
 import { averageCalories, daysLogged, type DayNutrition } from './calculations';
@@ -25,23 +25,26 @@ export function NutritionCard({ nutrition, today, accountStart, calorieTarget, o
   return (
     <Card title="Average calories, last 4 weeks">
       {average === null ? (
-        <Text style={text}>{PROGRESS_TEXTS.noMeals}</Text>
+        <Text style={[styles.body, text]}>{PROGRESS_TEXTS.noMeals}</Text>
       ) : (
         <Text style={[styles.average, text]}>{averageCaloriesText(average)}</Text>
       )}
       {calorieTarget === null ? (
         <>
-          <Text style={{ color: colors.textMuted }}>{PROGRESS_TEXTS.noCalorieTarget}</Text>
-          <Button title="Set a target" onPress={onSetTarget} />
+          <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.noCalorieTarget}</Text>
+          <TextButton title="Set a target" outlined onPress={onSetTarget} />
         </>
       ) : (
-        <Text style={{ color: colors.textMuted }}>Target {formatInteger(calorieTarget)} kcal a day</Text>
+        <Text style={[styles.small, { color: colors.textMuted }]}>Target {formatInteger(calorieTarget)} kcal a day</Text>
       )}
-      <Text style={text}>{daysLoggedText(daysLogged(nutrition, today, accountStart))}</Text>
+      <Text style={[styles.body, text]}>{daysLoggedText(daysLogged(nutrition, today, accountStart))}</Text>
     </Card>
   );
 }
 
+// A value, not the screen's reading: the latest weight is the one large number on Progress.
 const styles = StyleSheet.create({
-  average: { fontSize: 24, fontWeight: '600' },
+  average: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  body: { fontSize: 15 },
+  small: { fontSize: 13 },
 });

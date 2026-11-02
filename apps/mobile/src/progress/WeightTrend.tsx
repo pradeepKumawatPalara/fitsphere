@@ -1,9 +1,9 @@
 import type { BodyWeightUnit, IstDay } from '@fitsphere/shared';
 import { useRef, useState } from 'react';
-import { Button, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { useTheme } from '../theme';
 import {
   CHART_RANGES,
@@ -85,34 +85,38 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
               onPress={() => void choose(option)}
               style={[
                 styles.range,
-                { borderColor: selected ? colors.primary : colors.border },
+                { borderColor: selected ? colors.primary : colors.textFaint },
                 selected ? { backgroundColor: colors.primary } : null,
               ]}
             >
-              <Text style={{ color: selected ? colors.onPrimary : colors.text }}>{option}</Text>
+              <Text style={[styles.rangeText, { color: selected ? colors.onPrimary : colors.text }]}>{option}</Text>
             </Pressable>
           );
         })}
       </View>
       {waiting ? (
         message ? (
-          <Text accessibilityRole="alert" style={text}>
+          <Text accessibilityRole="alert" style={[styles.body, text]}>
             {message}
           </Text>
         ) : busy ? (
-          <Text style={{ color: colors.textMuted }}>{PROGRESS_TEXTS.chartLoading}</Text>
+          <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.chartLoading}</Text>
         ) : null
       ) : points.length < 2 ? (
-        <Text style={text}>{PROGRESS_TEXTS.chartEmpty}</Text>
+        <Text style={[styles.body, text]}>{PROGRESS_TEXTS.chartEmpty}</Text>
       ) : (
         <WeightChart points={points} unit={unit} weekly={rangeIsWeekly(range)} />
       )}
-      <Button title="All weigh-ins" onPress={onAllWeighIns} />
+      <TextButton title="All weigh-ins" onPress={onAllWeighIns} />
     </Card>
   );
 }
 
+// The chosen range is a filled pill, as the chosen meal and day are elsewhere.
 const styles = StyleSheet.create({
   ranges: { flexDirection: 'row', gap: 6 },
-  range: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 8, borderWidth: 1 },
+  range: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1.5 },
+  rangeText: { fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  body: { fontSize: 15 },
+  small: { fontSize: 13 },
 });

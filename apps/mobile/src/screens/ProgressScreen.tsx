@@ -75,7 +75,8 @@ export function ProgressScreen() {
   );
 }
 
+// 24 between cards, as between groups on Home.
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 16 },
+  content: { padding: 16, gap: 24 },
 });

@@ -1,7 +1,7 @@
 import type { IstDay, LengthUnit } from '@fitsphere/shared';
-import { Button, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { MeasurementsCard } from '../components/MeasurementsCard';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import type { LocalMeasurements } from '../local/store';
 import { useTheme } from '../theme';
 import { Card } from './Card';
@@ -22,9 +22,9 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   if (measurements.length === 0) {
     return (
       <Card title="Measurements">
-        <Text style={{ color: colors.text }}>{PROGRESS_TEXTS.noMeasurements}</Text>
-        <Text style={{ color: colors.textMuted }}>{PROGRESS_TEXTS.measurementsHint}</Text>
-        <Button title="Add first" onPress={onAdd} />
+        <Text style={[styles.body, { color: colors.text }]}>{PROGRESS_TEXTS.noMeasurements}</Text>
+        <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.measurementsHint}</Text>
+        <TextButton title="Add first" outlined onPress={onAdd} />
       </Card>
     );
   }
@@ -33,7 +33,7 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
       <Text accessibilityRole="header" style={[styles.heading, { color: colors.text }]}>
         Measurements
       </Text>
-      <Button title="Add measurements" onPress={onAdd} />
+      <TextButton title="Add measurements" outlined onPress={onAdd} />
       {measurements.map((entry) => (
         <MeasurementsCard key={entry.day} day={entry.day} entry={entry} unit={unit} onAdd={onAdd} onEdit={() => onEdit(entry.day)} />
       ))}
@@ -42,6 +42,8 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
 }
 
 const styles = StyleSheet.create({
-  section: { gap: 8 },
-  heading: { fontSize: 16, fontWeight: '600' },
+  section: { gap: 12 },
+  heading: { fontSize: 15, fontWeight: '600' },
+  body: { fontSize: 15 },
+  small: { fontSize: 13 },
 });
