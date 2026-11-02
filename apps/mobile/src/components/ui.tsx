@@ -11,20 +11,28 @@ import { themedStyles, useTheme } from '../theme';
 
 // Text and fields in the theme's colours (REQ-ACC-001). React Native's own text is black whatever
 // the theme, so every screen takes Text and TextInput from here (a guard test checks it). A colour
-// in `style` still wins.
+// in a Text's `style` still wins.
 
 export function Text({ style, ...props }: TextProps) {
   const { colors } = useTheme();
   return <NativeText {...props} style={[{ color: colors.text }, style]} />;
 }
 
-export function TextInput({ style, placeholderTextColor, ...props }: TextInputProps) {
+/**
+ * A field whose typed text, placeholder, cursor and selection always take the theme's colours: they
+ * come last, so no caller can replace them. Otherwise Android uses its own theme, which follows the
+ * phone, not the app's setting.
+ */
+export function TextInput({ style, ...props }: TextInputProps) {
   const { colors } = useTheme();
   return (
     <NativeTextInput
-      placeholderTextColor={placeholderTextColor ?? colors.textFaint}
       {...props}
-      style={[{ color: colors.text }, style]}
+      placeholderTextColor={colors.textMuted}
+      cursorColor={colors.primary}
+      selectionHandleColor={colors.primary}
+      selectionColor={colors.surfaceSelected}
+      style={[style, { color: colors.text }]}
     />
   );
 }

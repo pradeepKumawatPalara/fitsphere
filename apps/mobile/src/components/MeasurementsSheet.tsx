@@ -147,7 +147,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             value={texts[key]}
             onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
             keyboardType="decimal-pad"
-            style={styles.input}
+            style={[styles.input, styles.grow]}
           />
           <Text>{unit}</Text>
         </View>
@@ -267,7 +267,9 @@ const useStyles = themedStyles((c) => ({
   label: { fontWeight: '600' },
   guidance: { color: c.textMuted, fontSize: 13 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  // `grow` only in a row: in a column, flex: 1 holds Notes at its minimum height.
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  grow: { flex: 1 },
   notes: { minHeight: 64, textAlignVertical: 'top' },
   problem: { color: c.error },
   more: { color: c.primary, fontWeight: '600' },

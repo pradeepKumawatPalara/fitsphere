@@ -77,7 +77,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                       onChangeText={setGramsText}
                       keyboardType="number-pad"
                       autoFocus
-                      style={styles.input}
+                      style={[styles.input, styles.grow]}
                     />
                     <Text>g</Text>
                   </View>
@@ -175,7 +175,10 @@ const useStyles = themedStyles((c) => ({
   sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 20, gap: 10, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  // `grow` only beside other items in a row: in the sheet's column, flex: 1 would give a field no
+  // height for its text (Yoga's flex basis is 0), which hid the search text.
+  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  grow: { flex: 1 },
   list: { maxHeight: 360 },
   row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
   name: { fontWeight: '600' },

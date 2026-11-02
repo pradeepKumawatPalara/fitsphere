@@ -19,7 +19,7 @@ export type ThemeColors = {
   border: string;
   text: string;
   textMuted: string;
-  /** Disabled text, placeholders and small print. */
+  /** Disabled text, field borders and small print. */
   textFaint: string;
   /** Buttons, links, the selected day and chart lines. */
   primary: string;
