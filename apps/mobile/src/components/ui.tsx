@@ -123,7 +123,9 @@ export function Message({ text }: { text: string | null }) {
 }
 
 const useStyles = themedStyles((c) => ({
-  screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
+  // A message and its next step, centred (Check email, Verified, Account setup, a reset link that
+  // failed); 24 between them.
+  screen: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
   field: { gap: 6 },
   label: { fontSize: 13, fontWeight: '600', color: c.textMuted },
   input: {

@@ -1,15 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button, StyleSheet } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { setNewPassword, startPasswordReset } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
-import { Field, Message, Screen, Text } from '../components/ui';
+import { Field, Message, Screen, Text, TextButton } from '../components/ui';
+import { themedStyles } from '../theme';
 
 // "Set a new password", opened by the link in the reset email, fitsphere://reset-password
 // (REQ-ACC-010, D-11).
 export function ResetPasswordScreen() {
+  const styles = useStyles();
   const { deps } = useAuth();
   const router = useRouter();
   const { code, error } = useLocalSearchParams<{ code?: string; error?: string }>();
@@ -54,29 +56,40 @@ export function ResetPasswordScreen() {
   if (link !== 'ready') {
     return (
       <Screen>
-        <Text>{link === 'offline' ? TEXTS.needsInternet('Resetting a password') : TEXTS.resetLinkInvalid}</Text>
-        <Button title="Forgot password" onPress={() => router.replace('/forgot-password')} />
+        <Text style={styles.body}>{link === 'offline' ? TEXTS.needsInternet('Resetting a password') : TEXTS.resetLinkInvalid}</Text>
+        <TextButton title="Forgot password" filled onPress={() => router.replace('/forgot-password')} />
       </Screen>
     );
   }
-  // The form scrolls to the field being typed in; the footer, with its button, rides above the keyboard.
+  // As Sign in: the form scrolls to the field being typed in; the footer, with its button, rides
+  // above the keyboard.
   return (
     <FormScreen
       contentStyle={styles.content}
       footer={
         <>
           <Message text={message} />
-          <Button title="Set password" disabled={busy} onPress={() => void submit()} />
+          <TextButton title="Set password" filled disabled={busy} onPress={() => void submit()} />
         </>
       }
     >
-      <Text accessibilityRole="header">Set a new password</Text>
-      <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
-      <Text>{TEXTS.passwordRule}</Text>
+      <Text accessibilityRole="header" style={styles.heading}>
+        Set a new password
+      </Text>
+      <View style={styles.fields}>
+        <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
+        <Text style={styles.rule}>{TEXTS.passwordRule}</Text>
+      </View>
     </FormScreen>
   );
 }
 
-const styles = StyleSheet.create({
-  content: { gap: 16 },
-});
+// As Sign in: 24 between groups, 12 within one.
+const useStyles = themedStyles((c) => ({
+  content: { paddingTop: 32, gap: 24 },
+  heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
+  fields: { gap: 12 },
+  // The rule belongs to the password: closer to it than to anything else.
+  rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
+  body: { fontSize: 15 },
+}));
