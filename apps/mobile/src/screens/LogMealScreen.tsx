@@ -306,6 +306,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
               : []),
             {
               label: 'Remove',
+              destructive: true,
               onPress: () => setItems((current) => current.filter((_, index) => index !== (sheet as { change: number }).change)),
             },
           ]}

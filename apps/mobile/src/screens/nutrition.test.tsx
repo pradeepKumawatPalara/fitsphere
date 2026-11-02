@@ -4,6 +4,7 @@ import { describeRejected } from '../components/RejectedChanges';
 import { listSavedMeals, saveEntry, type OutboxEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { NOW, renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { HomeScreen } from './HomeScreen';
 import { NutritionScreen } from './NutritionScreen';
 
@@ -122,6 +123,9 @@ describe('REQ-NUT-004 the meal ••• menu', () => {
     await waitFor(() => expect(server.entries('meals').get(mealId)).toMatchObject({ deleted: false }));
 
     await fireEvent.press(await screen.findByRole('button', { name: 'More for Lunch: Wheat flour, atta' }));
+    // Delete stands out in the "over" red from the menu's other actions.
+    expect(screen.getByText('Delete')).toHaveStyle({ color: LIGHT_COLORS.over });
+    expect(screen.getByText('Edit')).toHaveStyle({ color: LIGHT_COLORS.primary });
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.getByText('Delete this meal?')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));

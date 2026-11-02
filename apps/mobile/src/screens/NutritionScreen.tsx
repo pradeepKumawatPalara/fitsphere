@@ -194,7 +194,7 @@ export function NutritionScreen() {
           title={describeItems(sheet.meal.items)}
           actions={[
             { label: 'Edit', onPress: () => router.push({ pathname: '/log-meal', params: { mealId: sheet.meal.id } }) },
-            { label: 'Delete', onPress: () => setSheet({ kind: 'deleteMeal', meal: sheet.meal }) },
+            { label: 'Delete', destructive: true, onPress: () => setSheet({ kind: 'deleteMeal', meal: sheet.meal }) },
             { label: 'Save to my meals', onPress: () => setSheet({ kind: 'saveMeal', meal: sheet.meal }) },
           ]}
           onClose={() => setSheet((current) => (current?.kind === 'mealMenu' ? null : current))}
@@ -226,7 +226,7 @@ export function NutritionScreen() {
       {sheet?.kind === 'savedMenu' ? (
         <ActionsSheet
           title={sheet.saved.name}
-          actions={[{ label: 'Delete', onPress: () => setSheet({ kind: 'deleteSaved', saved: sheet.saved }) }]}
+          actions={[{ label: 'Delete', destructive: true, onPress: () => setSheet({ kind: 'deleteSaved', saved: sheet.saved }) }]}
           onClose={() => setSheet((current) => (current?.kind === 'savedMenu' ? null : current))}
         />
       ) : null}

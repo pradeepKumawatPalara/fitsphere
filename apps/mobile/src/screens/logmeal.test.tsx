@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { NOW, renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
@@ -210,6 +211,8 @@ describe('REQ-LOG-003 and the review before saving', () => {
     expect(screen.getByLabelText('Wheat flour, atta: 90 g, 288 kcal, 9.5 g protein')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Ghee' }));
+    // Remove stands out in the "over" red.
+    expect(screen.getByText('Remove')).toHaveStyle({ color: LIGHT_COLORS.over });
     await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
     expect(screen.queryByText('Ghee')).toBeNull();
     expect(screen.getByLabelText('Total: 288 kcal, 9.5 g protein')).toBeOnTheScreen();

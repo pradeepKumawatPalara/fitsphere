@@ -16,7 +16,8 @@ export function ActionsSheet({
   children,
 }: {
   title: string;
-  actions: { label: string; onPress(): void }[];
+  /** `destructive`: deletes or removes something, so it shows in the "over" red. */
+  actions: { label: string; onPress(): void; destructive?: boolean }[];
   onClose(): void;
   /** Shown above the actions, e.g. a field an action uses. */
   children?: ReactNode;
@@ -38,7 +39,7 @@ export function ActionsSheet({
               }}
               style={({ pressed }) => [styles.menuRow, index > 0 && styles.ruled, pressed && styles.pressed]}
             >
-              <Text style={styles.menuText}>{action.label}</Text>
+              <Text style={[styles.menuText, action.destructive && styles.destructiveText]}>{action.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -194,6 +195,7 @@ const useStyles = themedStyles((c) => ({
   ruled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
   menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
+  destructiveText: { color: c.over },
   pair: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   body: { fontSize: 15 },
   // The meals are choice pills: the chosen one filled, as the selected day is on the week strip.
