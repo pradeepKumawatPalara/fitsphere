@@ -10,9 +10,13 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "testTimeout": 30000
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@fitsphere/shared": "*",
     "@supabase/supabase-js": "^2.118.0",
     "expo": "~58.0.20",

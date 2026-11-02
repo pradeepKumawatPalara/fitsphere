@@ -3,7 +3,7 @@ import { HeaderActions, HeaderTitle } from '../../components/AppHeader';
 import { SelectedDayProvider } from '../../navigation/SelectedDayProvider';
 
 // The Personal Training User's main screens (REQ-NAV-001): four tabs under the common header
-// (REQ-NAV-002), sharing the selected date. Text labels only; no icon package (D-23).
+// (REQ-NAV-002), sharing the selected date. Text labels only (D-23).
 export default function TabsLayout() {
   return (
     <SelectedDayProvider>
