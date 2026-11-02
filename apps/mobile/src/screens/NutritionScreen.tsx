@@ -7,7 +7,7 @@ import { LogMealButton } from '../components/LogMealButton';
 import { MealCard } from '../components/MealCard';
 import { ActionsSheet, ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
-import { Text, TextButton } from '../components/ui';
+import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -46,6 +46,7 @@ function asTab(value: string | undefined): Tab | null {
 // the Diet plan empty state (D-20) and the saved meals. Shares the selected date with Home.
 export function NutritionScreen() {
   const styles = useStyles();
+  const pill = useChoiceStyles();
   const local = useLocalDatabase();
   const sync = useSync();
   const router = useRouter();
@@ -116,9 +117,9 @@ export function NutritionScreen() {
               accessibilityLabel={entry.label}
               accessibilityState={{ selected: tab === entry.tab }}
               onPress={() => setTab(entry.tab)}
-              style={[styles.tab, tab === entry.tab && styles.tabChosen]}
+              style={({ pressed }) => [pill.choice, styles.tab, tab === entry.tab && pill.chosen, pressed && pill.pressed]}
             >
-              <Text style={[styles.tabText, tab === entry.tab && styles.tabChosenText]}>{entry.label}</Text>
+              <Text style={[pill.choiceText, tab === entry.tab && pill.chosenText]}>{entry.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -275,10 +276,7 @@ const useStyles = themedStyles((c) => ({
   },
   body: { fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20, borderWidth: 1.5, borderColor: c.textFaint },
-  tabChosen: { backgroundColor: c.primary, borderColor: c.primary },
-  tabText: { fontSize: 15 },
-  tabChosenText: { color: c.onPrimary, fontWeight: '600' },
+  tab: { flex: 1 },
   slot: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: c.surface },
   slotHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   slotTitle: { fontSize: 15, fontWeight: '600' },

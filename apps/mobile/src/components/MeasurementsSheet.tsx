@@ -13,7 +13,7 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, getMeta, setMeta } from '../local/store';
 import { themedStyles } from '../theme';
 import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useFieldInputStyle, useFieldLabelStyle } from './ui';
+import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle, useFieldLabelStyle } from './ui';
 
 type LengthKey = 'upperWaistMm' | 'lowerWaistMm' | 'chestMm' | 'hipsMm' | 'armMm' | 'thighMm';
 type Texts = Record<LengthKey, string>;
@@ -57,6 +57,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   const styles = useStyles();
   const fieldInput = useFieldInputStyle();
   const fieldLabel = useFieldLabelStyle();
+  const pill = useChoiceStyles();
   const local = useLocalDatabase();
   const [day, setDay] = useState(initialDay);
   const [unit, setUnit] = useState<LengthUnit>('cm');
@@ -166,7 +167,12 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
           <Text accessibilityRole="header" style={styles.title}>
             {mode === 'edit' ? 'Edit measurements' : 'Measurements'}
           </Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close without saving" onPress={onClose} style={styles.close}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close without saving"
+            onPress={onClose}
+            style={({ pressed }) => [styles.close, pressed && styles.pressed]}
+          >
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
         </View>
@@ -186,7 +192,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             accessibilityState={{ disabled: day <= firstDay }}
             disabled={day <= firstDay}
             onPress={() => setDay(addDays(day, -1))}
-            style={styles.arrow}
+            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
           >
             <Text style={[styles.arrowText, day <= firstDay && styles.disabledText]}>‹</Text>
           </Pressable>
@@ -199,7 +205,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             accessibilityState={{ disabled: day >= today }}
             disabled={day >= today}
             onPress={() => setDay(addDays(day, 1))}
-            style={styles.arrow}
+            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
           >
             <Text style={[styles.arrowText, day >= today && styles.disabledText]}>›</Text>
           </Pressable>
@@ -213,9 +219,9 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             accessibilityLabel={option}
             accessibilityState={{ selected: unit === option }}
             onPress={() => changeUnit(option)}
-            style={[styles.unit, unit === option && styles.unitSelected]}
+            style={({ pressed }) => [pill.choice, unit === option && pill.chosen, pressed && pill.pressed]}
           >
-            <Text style={unit === option ? styles.unitSelectedText : undefined}>{option}</Text>
+            <Text style={[pill.choiceText, unit === option && pill.chosenText]}>{option}</Text>
           </Pressable>
         ))}
       </View>
@@ -225,7 +231,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
         accessibilityLabel="More measurements"
         accessibilityState={{ expanded: showMore }}
         onPress={() => setShowMore((open) => !open)}
-        style={styles.moreButton}
+        style={({ pressed }) => [styles.moreButton, pressed && styles.pressed]}
       >
         <Text style={styles.more}>{showMore ? '▾' : '▸'} More measurements</Text>
       </Pressable>
@@ -249,8 +255,8 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   );
 }
 
-// The title as the sheets' titles; fields as Field; cm/in as choice pills (40 tall, the chosen one
-// filled). Close, the arrows and More measurements are 44 to tap.
+// The title as the sheets' titles; fields as Field; cm/in as choice pills. Close, the arrows and
+// More measurements are 44 to tap.
 const useStyles = themedStyles((c) => ({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 20, fontWeight: '600' },
@@ -261,9 +267,7 @@ const useStyles = themedStyles((c) => ({
   arrowText: { fontSize: 24 },
   disabledText: { color: c.textFaint },
   date: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  unit: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 20, borderWidth: 1.5, borderColor: c.textFaint },
-  unitSelected: { backgroundColor: c.primary, borderColor: c.primary },
-  unitSelectedText: { color: c.onPrimary, fontWeight: '600' },
+  pressed: { opacity: 0.6 },
   field: { gap: 6 },
   guidance: { marginTop: -4, color: c.textMuted, fontSize: 13 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -34,7 +34,7 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
         disabled={!canGoBack}
         onPress={() => onWeekChange(addDays(weekStart, -7))}
         hitSlop={8}
-        style={styles.arrow}
+        style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
       >
         <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
       </Pressable>
@@ -52,7 +52,7 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
             accessibilityState={{ selected: isSelected, disabled: outOfRange }}
             disabled={outOfRange}
             onPress={() => onSelect(day)}
-            style={styles.day}
+            style={({ pressed }) => [styles.day, pressed && styles.pressed]}
           >
             <View style={[styles.pill, isSelected && styles.selected]}>
               <Text style={[styles.weekday, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
@@ -74,7 +74,7 @@ export function WeekStrip({ today, firstDay, selected, weekStart, mealDays, onSe
         disabled={nextWeek > today}
         onPress={() => onWeekChange(nextWeek)}
         hitSlop={8}
-        style={styles.arrow}
+        style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
       >
         <Text style={[styles.arrowText, nextWeek > today && styles.disabledText]}>›</Text>
       </Pressable>
@@ -86,6 +86,7 @@ const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   arrow: { paddingHorizontal: 6, paddingVertical: 12 },
   arrowText: { fontSize: 24 },
+  pressed: { opacity: 0.6 },
   day: { alignItems: 'center', width: 40, gap: 6 },
   pill: { alignItems: 'center', alignSelf: 'stretch', paddingTop: 6, paddingBottom: 5, borderRadius: 20 },
   selected: { backgroundColor: c.primary },

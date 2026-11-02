@@ -21,6 +21,7 @@ export function MealPhotoPreview({ mealId, photo }: { mealId: string; photo: Mea
         accessibilityRole="link"
         accessibilityLabel={`Open image link on ${linkSite(photo.url)}`}
         onPress={() => void Linking.openURL(photo.url)}
+        style={({ pressed }) => pressed && styles.pressed}
       >
         <Text style={styles.link}>Image link: {linkSite(photo.url)} ↗</Text>
       </Pressable>
@@ -28,7 +29,12 @@ export function MealPhotoPreview({ mealId, photo }: { mealId: string; photo: Mea
   }
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel="View meal photo" onPress={() => setOpen(true)}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View meal photo"
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => pressed && styles.pressed}
+      >
         {thumbnail.kind === 'ready' ? (
           <Image accessibilityLabel="Meal photo" source={{ uri: jpegDataUri(thumbnail.base64) }} style={styles.thumbnail} />
         ) : (
@@ -67,6 +73,7 @@ function photoNote(photo: LoadedPhoto): string {
 const useStyles = themedStyles((c) => ({
   thumbnail: { width: 64, height: 64, borderRadius: 12 },
   note: { color: c.textMuted, fontSize: 13 },
+  pressed: { opacity: 0.6 },
   link: { fontSize: 13, fontWeight: '600', color: c.primary },
   viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', padding: 16, gap: 16 },
   full: { width: '100%', height: '80%' },

@@ -144,7 +144,12 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             {formatDay(day)}
           </Text>
         ) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Date: ${formatDay(day)}`} onPress={() => setSheet('day')} style={styles.chip}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Date: ${formatDay(day)}`}
+            onPress={() => setSheet('day')}
+            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+          >
             <Text style={styles.chipText}>{day === today ? `Today, ${formatDay(day)}` : formatDay(day)} ▾</Text>
           </Pressable>
         )}

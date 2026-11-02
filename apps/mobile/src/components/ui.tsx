@@ -70,12 +70,21 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
       accessibilityLabel={label}
       accessibilityState={{ checked }}
       onPress={() => onChange(!checked)}
-      style={styles.checkRow}
+      style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
     >
       <View style={[styles.box, checked && styles.boxChecked]}>{checked ? <Text style={styles.tick}>✓</Text> : null}</View>
-      <Text>{label}</Text>
+      <Text style={styles.checkLabel}>{label}</Text>
     </Pressable>
   );
+}
+
+/**
+ * A choice among a few as a pill, the one spec for them all (meal slots, cm/in, Settings' choices,
+ * Nutrition's tabs, the weight chart's range): 40 tall, a grey outline, the chosen one filled.
+ */
+export function useChoiceStyles() {
+  const { choice, chosen, choiceText, chosenText, pressed } = useStyles();
+  return { choice, chosen, choiceText, chosenText, pressed };
 }
 
 /**
@@ -142,11 +151,25 @@ const useStyles = themedStyles((c) => ({
     paddingVertical: 10,
     fontSize: 16,
   },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  // Wraps beside the box rather than running off the screen.
+  checkLabel: { flexShrink: 1, fontSize: 15 },
   box: { width: 24, height: 24, borderWidth: 2, borderColor: c.textMuted, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   boxChecked: { backgroundColor: c.primary, borderColor: c.primary },
   tick: { color: c.onPrimary, fontWeight: '700' },
-  message: { color: c.error },
+  message: { fontSize: 15, color: c.error },
+  choice: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: c.textFaint,
+  },
+  chosen: { backgroundColor: c.primary, borderColor: c.primary },
+  choiceText: { fontSize: 15 },
+  chosenText: { color: c.onPrimary, fontWeight: '600' },
   link: { alignSelf: 'flex-start', paddingVertical: 6 },
   outlined: {
     alignSelf: 'flex-start',

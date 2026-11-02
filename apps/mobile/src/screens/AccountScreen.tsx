@@ -9,7 +9,7 @@ import { ApiStatus } from '../components/ApiStatus';
 import { ExpiredTokenTest } from '../components/ExpiredTokenTest';
 import { LocalDatabaseCheck } from '../components/LocalDatabaseCheck';
 import { TodayIst } from '../components/TodayIst';
-import { Text, TextButton } from '../components/ui';
+import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, setMeta } from '../local/store';
 import { useSettings } from '../settings/SettingsProvider';
@@ -146,6 +146,7 @@ function Choice<T extends string>({
   onChange(value: T): void;
 }) {
   const styles = useStyles();
+  const pill = useChoiceStyles();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.choices}>
       {options.map((option) => {
@@ -157,9 +158,9 @@ function Choice<T extends string>({
             accessibilityLabel={`${label}: ${option.label}`}
             accessibilityState={{ checked: chosen }}
             onPress={() => onChange(option.value)}
-            style={[styles.choice, chosen && styles.chosen]}
+            style={({ pressed }) => [pill.choice, chosen && pill.chosen, pressed && pill.pressed]}
           >
-            <Text style={[styles.choiceText, chosen && styles.chosenText]}>{option.label}</Text>
+            <Text style={[pill.choiceText, chosen && pill.chosenText]}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -259,12 +260,8 @@ const useStyles = themedStyles((c) => ({
   body: { fontSize: 15 },
   help: { fontSize: 13, color: c.textMuted },
   unitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  // As the meal choice on Log meal: the chosen one is a filled pill.
+  // Choice pills, as the meal choice on Log meal: the chosen one filled.
   choices: { flexDirection: 'row', gap: 8 },
-  choice: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 20, borderWidth: 1.5, borderColor: c.primary },
-  chosen: { backgroundColor: c.primary, borderColor: c.primary },
-  choiceText: { fontSize: 15 },
-  chosenText: { color: c.onPrimary, fontWeight: '600' },
   rows: { borderRadius: 12, backgroundColor: c.surface, overflow: 'hidden' },
   rule: { height: StyleSheet.hairlineWidth, marginHorizontal: 16, backgroundColor: c.border },
   linkRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16 },

@@ -38,7 +38,7 @@ export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: 
             accessibilityState={{ disabled: !canGoBack }}
             disabled={!canGoBack}
             onPress={() => setMonth(addMonths(month, -1))}
-            style={styles.arrow}
+            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
           >
             <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
           </Pressable>
@@ -51,7 +51,7 @@ export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: 
             accessibilityState={{ disabled: !canGoForward }}
             disabled={!canGoForward}
             onPress={() => setMonth(addMonths(month, 1))}
-            style={styles.arrow}
+            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
           >
             <Text style={[styles.arrowText, !canGoForward && styles.disabledText]}>›</Text>
           </Pressable>
@@ -85,7 +85,7 @@ export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: 
                     onSelect(day);
                     onClose();
                   }}
-                  style={styles.cell}
+                  style={({ pressed }) => [styles.cell, pressed && styles.pressed]}
                 >
                   <View style={[styles.day, isSelected && styles.selected]}>
                     <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, disabled && styles.disabledText]}>
@@ -108,6 +108,7 @@ const useStyles = themedStyles((c) => ({
   title: { fontSize: 20, fontWeight: '600' },
   arrow: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   arrowText: { fontSize: 24 },
+  pressed: { opacity: 0.6 },
   month: { gap: 4 },
   week: { flexDirection: 'row' },
   cell: { flex: 1, alignItems: 'center' },

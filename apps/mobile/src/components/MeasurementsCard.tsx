@@ -35,7 +35,7 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
     return (
       <View style={styles.card}>
         <Text style={styles.title}>Measurements</Text>
-        <Text>No measurements for {formatDay(day)}.</Text>
+        <Text style={styles.body}>No measurements for {formatDay(day)}.</Text>
         <Text style={styles.hint}>Log your upper and lower waist once a week.</Text>
         <TextButton title="Add measurements" outlined onPress={onAdd} />
       </View>
@@ -73,6 +73,7 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
 const useStyles = themedStyles((c) => ({
   card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
   title: { fontSize: 15, fontWeight: '600' },
+  body: { fontSize: 15 },
   hint: { fontSize: 13, color: c.textMuted },
   // Rows ruled like a tape reading.
   row: {

@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
-import { Text, TextButton } from '../components/ui';
+import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { useTheme } from '../theme';
 import {
   CHART_RANGES,
@@ -45,6 +45,7 @@ type Props = {
 export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns }: Props) {
   const { deps } = useAuth();
   const { colors } = useTheme();
+  const pill = useChoiceStyles();
   const [range, setRange] = useState<ChartRange>('4W');
   const [older, setOlder] = useState<Partial<Record<OnlineRange, WeighInPoint[]>>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -83,13 +84,9 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
               accessibilityLabel={RANGE_NAMES[option]}
               accessibilityState={{ selected }}
               onPress={() => void choose(option)}
-              style={[
-                styles.range,
-                { borderColor: selected ? colors.primary : colors.textFaint },
-                selected ? { backgroundColor: colors.primary } : null,
-              ]}
+              style={({ pressed }) => [pill.choice, styles.range, selected && pill.chosen, pressed && pill.pressed]}
             >
-              <Text style={[styles.rangeText, { color: selected ? colors.onPrimary : colors.text }]}>{option}</Text>
+              <Text style={[pill.choiceText, styles.rangeText, selected && pill.chosenText]}>{option}</Text>
             </Pressable>
           );
         })}
@@ -112,11 +109,12 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
   );
 }
 
-// The chosen range is a filled pill, as the chosen meal and day are elsewhere.
+// The ranges are choice pills sharing the row: the chosen one filled, as the chosen meal and day are
+// elsewhere.
 const styles = StyleSheet.create({
   ranges: { flexDirection: 'row', gap: 6 },
-  range: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1.5 },
-  rangeText: { fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  range: { flex: 1, paddingHorizontal: 0 },
+  rangeText: { fontVariant: ['tabular-nums'] },
   body: { fontSize: 15 },
   small: { fontSize: 13 },
 });

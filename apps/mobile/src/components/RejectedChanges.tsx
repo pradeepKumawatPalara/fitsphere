@@ -119,7 +119,7 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
               {!onEdit || entry.type === MEAL_DELETE || entry.type === SAVED_MEAL_DELETE ? null : (
                 <TextButton title="Edit" onPress={() => onEdit(entry)} />
               )}
-              <TextButton title="Discard" onPress={() => onDiscard(entry.changeId)} />
+              <TextButton title="Discard" destructive onPress={() => onDiscard(entry.changeId)} />
             </View>
           </View>
         );

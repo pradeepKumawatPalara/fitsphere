@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
 import { themedStyles } from '../theme';
 import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
+import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle } from './ui';
 
 // Bottom sheets for the meal menus (REQ-NUT-004, REQ-SAVED-001): a list of actions, a
 // confirmation, a name, and re-logging a saved meal.
@@ -129,6 +129,7 @@ export function SaveMealSheet({
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
 export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
   const styles = useStyles();
+  const pill = useChoiceStyles();
   return (
     <View style={styles.slots}>
       {MEAL_TYPE_ORDER.map((slot) => (
@@ -138,9 +139,9 @@ export function SlotPicker({ value, onChange }: { value: MealType | null; onChan
           accessibilityLabel={MEAL_TYPE_LABELS[slot]}
           accessibilityState={{ checked: value === slot }}
           onPress={() => onChange(slot)}
-          style={[styles.slot, value === slot && styles.slotChosen]}
+          style={({ pressed }) => [pill.choice, value === slot && pill.chosen, pressed && pill.pressed]}
         >
-          <Text style={[styles.slotText, value === slot && styles.slotChosenText]}>{MEAL_TYPE_LABELS[slot]}</Text>
+          <Text style={[pill.choiceText, value === slot && pill.chosenText]}>{MEAL_TYPE_LABELS[slot]}</Text>
         </Pressable>
       ))}
     </View>
@@ -195,10 +196,6 @@ const useStyles = themedStyles((c) => ({
   menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
   pair: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   body: { fontSize: 15 },
-  // The chosen meal is a filled pill, as the selected day is on the week strip.
+  // The meals are choice pills: the chosen one filled, as the selected day is on the week strip.
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 20, borderWidth: 1.5, borderColor: c.primary },
-  slotChosen: { backgroundColor: c.primary },
-  slotText: { fontSize: 15 },
-  slotChosenText: { color: c.onPrimary, fontWeight: '600' },
 }));

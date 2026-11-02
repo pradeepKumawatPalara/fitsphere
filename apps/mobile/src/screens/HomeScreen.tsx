@@ -183,7 +183,7 @@ export function HomeScreen() {
         />
         {selected !== today ? (
           <View style={styles.banner}>
-            <Text>Showing {formatDay(selected)}</Text>
+            <Text style={styles.body}>Showing {formatDay(selected)}</Text>
             <TextButton title="Back to today" onPress={() => select(today)} />
           </View>
         ) : null}
@@ -278,6 +278,7 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 12,
     backgroundColor: c.warningSurface,
   },
+  body: { fontSize: 15 },
   panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },
   panelFoot: { paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   tiles: { flexDirection: 'row', gap: 12 },
