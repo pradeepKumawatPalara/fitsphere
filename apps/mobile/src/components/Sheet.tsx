@@ -50,17 +50,19 @@ export function Sheet({ title, header, children, actions, scroll = true, onClose
   );
 }
 
+// As the screens: 24 at the sides, 12 between the parts of the body, 8 between the actions. The
+// title is 20, the size of a value; the main action is filled, Cancel and Close are links.
 const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: c.background, paddingTop: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  header: { paddingHorizontal: 20, paddingBottom: 8 },
-  title: { fontSize: 18, fontWeight: '600' },
+  sheet: { maxHeight: '90%', backgroundColor: c.background, paddingTop: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  header: { paddingHorizontal: 24, paddingBottom: 12 },
+  title: { fontSize: 20, fontWeight: '600' },
   // The body gives way first when the keyboard leaves little room.
   scroll: { flexGrow: 0 },
-  body: { paddingHorizontal: 20, paddingBottom: 12, gap: 10 },
+  body: { paddingHorizontal: 24, paddingBottom: 16, gap: 12 },
   list: { flexShrink: 1 },
   actions: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 12,
     gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,

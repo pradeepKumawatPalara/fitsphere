@@ -1,9 +1,10 @@
 import type { IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { addMonths, formatLongDay, formatMonth, monthWeeks } from '../format';
 import { themedStyles } from '../theme';
-import { Text } from './ui';
+import { Sheet } from './Sheet';
+import { Text, TextButton } from './ui';
 
 type Props = {
   today: IstDay;
@@ -24,89 +25,100 @@ export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: 
   const canGoBack = month > firstDay.slice(0, 7);
   const canGoForward = month < today.slice(0, 7);
 
+  // In the sheets' frame. Days as on the week strip: the selected day a filled pill, today in blue
+  // with a bar under it.
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <View style={styles.monthRow}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Previous month"
-              accessibilityState={{ disabled: !canGoBack }}
-              disabled={!canGoBack}
-              onPress={() => setMonth(addMonths(month, -1))}
-              style={styles.arrow}
-            >
-              <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
-            </Pressable>
-            <Text accessibilityRole="header" style={styles.title}>
-              {formatMonth(month)}
+    <Sheet
+      onClose={onClose}
+      header={
+        <View style={styles.monthRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Previous month"
+            accessibilityState={{ disabled: !canGoBack }}
+            disabled={!canGoBack}
+            onPress={() => setMonth(addMonths(month, -1))}
+            style={styles.arrow}
+          >
+            <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
+          </Pressable>
+          <Text accessibilityRole="header" style={styles.title}>
+            {formatMonth(month)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Next month"
+            accessibilityState={{ disabled: !canGoForward }}
+            disabled={!canGoForward}
+            onPress={() => setMonth(addMonths(month, 1))}
+            style={styles.arrow}
+          >
+            <Text style={[styles.arrowText, !canGoForward && styles.disabledText]}>›</Text>
+          </Pressable>
+        </View>
+      }
+      actions={<TextButton title="Close" onPress={onClose} />}
+    >
+      <View style={styles.month}>
+        <View style={styles.week}>
+          {WEEKDAY_HEADINGS.map((heading, index) => (
+            <Text key={index} style={[styles.cell, styles.heading]}>
+              {heading}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Next month"
-              accessibilityState={{ disabled: !canGoForward }}
-              disabled={!canGoForward}
-              onPress={() => setMonth(addMonths(month, 1))}
-              style={styles.arrow}
-            >
-              <Text style={[styles.arrowText, !canGoForward && styles.disabledText]}>›</Text>
-            </Pressable>
-          </View>
-          <View style={styles.week}>
-            {WEEKDAY_HEADINGS.map((heading, index) => (
-              <Text key={index} style={[styles.cell, styles.heading]}>
-                {heading}
-              </Text>
-            ))}
-          </View>
-          {monthWeeks(month).map((week, index) => (
-            <View key={index} style={styles.week}>
-              {week.map((day, column) => {
-                if (!day) return <View key={column} style={styles.cell} />;
-                const disabled = day > today || day < firstDay;
-                const isSelected = day === selected;
-                return (
-                  <Pressable
-                    key={day}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${formatLongDay(day)}${day === today ? ', today' : ''}`}
-                    accessibilityState={{ selected: isSelected, disabled }}
-                    disabled={disabled}
-                    onPress={() => {
-                      onSelect(day);
-                      onClose();
-                    }}
-                    style={[styles.cell, styles.day, day === today && styles.today, isSelected && styles.selected]}
-                  >
-                    <Text style={[day === today && styles.todayText, disabled && styles.disabledText]}>
+          ))}
+        </View>
+        {monthWeeks(month).map((week, index) => (
+          <View key={index} style={styles.week}>
+            {week.map((day, column) => {
+              if (!day) return <View key={column} style={styles.cell} />;
+              const disabled = day > today || day < firstDay;
+              const isSelected = day === selected;
+              const isToday = day === today;
+              return (
+                <Pressable
+                  key={day}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${formatLongDay(day)}${day === today ? ', today' : ''}`}
+                  accessibilityState={{ selected: isSelected, disabled }}
+                  disabled={disabled}
+                  onPress={() => {
+                    onSelect(day);
+                    onClose();
+                  }}
+                  style={styles.cell}
+                >
+                  <View style={[styles.day, isSelected && styles.selected]}>
+                    <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, disabled && styles.disabledText]}>
                       {Number(day.slice(8))}
                     </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))}
-          <Button title="Close" onPress={onClose} />
-        </View>
+                    <View style={[styles.todayBar, isToday && styles.todayBarShown, isToday && isSelected && styles.todayBarOnSelected]} />
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
       </View>
-    </Modal>
+    </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: c.background, padding: 16, gap: 6, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 18, fontWeight: '600' },
-  arrow: { paddingHorizontal: 16, paddingVertical: 8 },
-  arrowText: { fontSize: 22 },
+  title: { fontSize: 20, fontWeight: '600' },
+  arrow: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  arrowText: { fontSize: 24 },
+  month: { gap: 4 },
   week: { flexDirection: 'row' },
-  cell: { flex: 1, alignItems: 'center', paddingVertical: 8 },
-  heading: { color: c.textMuted, textAlign: 'center' },
-  day: { borderRadius: 8, borderWidth: 2, borderColor: 'transparent' },
-  today: { backgroundColor: c.primary },
-  todayText: { color: c.onPrimary, fontWeight: '700' },
-  selected: { borderColor: c.primaryStrong },
+  cell: { flex: 1, alignItems: 'center' },
+  heading: { paddingVertical: 4, fontSize: 12, color: c.textMuted, textAlign: 'center' },
+  day: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  selected: { backgroundColor: c.primary },
+  date: { fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  todayText: { color: c.primary, fontWeight: '700' },
+  selectedText: { color: c.onPrimary, fontWeight: '700' },
   disabledText: { color: c.textFaint },
+  todayBar: { marginTop: 2, width: 14, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
+  todayBarShown: { backgroundColor: c.primary },
+  todayBarOnSelected: { backgroundColor: c.onPrimary },
 }));

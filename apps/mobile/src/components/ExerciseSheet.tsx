@@ -1,11 +1,11 @@
 import type { WorkoutExercise } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, View, type TextInputProps } from 'react-native';
+import { View, type TextInputProps } from 'react-native';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles } from '../theme';
 import { parseExercise, type ExerciseText } from '../workouts';
 import { Sheet } from './Sheet';
-import { Text, TextInput } from './ui';
+import { Text, TextButton, TextInput, useFieldInputStyle, useFieldLabelStyle } from './ui';
 
 type Props = {
   title: string;
@@ -52,9 +52,9 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
       onClose={onClose}
       actions={
         <>
-          <Button title="Save exercise" disabled={busy} onPress={save} />
-          {onRemove ? <Button title="Remove exercise" disabled={busy} onPress={() => void run(onRemove)} /> : null}
-          <Button title="Cancel" onPress={onClose} />
+          <TextButton title="Save exercise" filled disabled={busy} onPress={save} />
+          {onRemove ? <TextButton title="Remove exercise" destructive disabled={busy} onPress={() => void run(onRemove)} /> : null}
+          <TextButton title="Cancel" onPress={onClose} />
         </>
       }
     >
@@ -79,20 +79,24 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
   );
 }
 
+// As Field: a 13 label, 6 above its input; numbers in fixed-width digits.
 function Input({ label, style, ...input }: { label: string } & TextInputProps) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
+  const fieldLabel = useFieldLabelStyle();
   return (
     <View style={[styles.field, style]}>
-      <Text>{label}</Text>
-      <TextInput accessibilityLabel={label} style={styles.input} {...input} />
+      <Text style={fieldLabel}>{label}</Text>
+      <TextInput accessibilityLabel={label} style={[fieldInput, styles.digits]} {...input} />
     </View>
   );
 }
 
+// Remove exercise is red, as a link: Save stays the one filled action.
 const useStyles = themedStyles((c) => ({
   numbers: { flexDirection: 'row', gap: 8 },
   number: { flex: 1 },
-  field: { gap: 4 },
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 18 },
-  problem: { color: c.error },
+  field: { gap: 6 },
+  digits: { fontVariant: ['tabular-nums'] },
+  problem: { fontSize: 13, color: c.error },
 }));

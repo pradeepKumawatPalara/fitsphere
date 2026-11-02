@@ -7,7 +7,7 @@ import { usePhoto } from '../photos/loadPhoto';
 import { pickPhoto } from '../photos/takePhoto';
 import { themedStyles } from '../theme';
 import { ActionsSheet } from './MealSheets';
-import { Text, TextButton, TextInput } from './ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 /** The meal's photo while it is being logged: a new one with its files, the one it had, or a link. */
 export type PhotoDraft = { kind: 'photo'; mediaId: string; files: PhotoFiles | null } | { kind: 'link'; url: string } | null;
@@ -39,6 +39,7 @@ export function MealPhotoField({
   newId(): string;
 }) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [linkStep, setLinkStep] = useState<'enter' | 'confirm' | null>(null);
@@ -115,7 +116,7 @@ export function MealPhotoField({
           actions={linkValid ? [{ label: 'Continue', onPress: () => setLinkStep('confirm') }] : []}
           onClose={() => setLinkStep((step) => (step === 'enter' ? null : step))}
         >
-          <Text>A link to your own image on another site, starting with https://</Text>
+          <Text style={styles.body}>A link to your own image on another site, starting with https://</Text>
           <TextInput
             accessibilityLabel="Image link"
             value={linkText}
@@ -123,7 +124,7 @@ export function MealPhotoField({
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
-            style={styles.input}
+            style={fieldInput}
           />
           {linkText.trim() !== '' && !linkValid ? <Text style={styles.problem}>Enter a link that starts with https://</Text> : null}
         </ActionsSheet>
@@ -148,6 +149,6 @@ const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   thumbnail: { width: 72, height: 72, borderRadius: 12 },
   hint: { fontSize: 13, color: c.textMuted },
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  body: { fontSize: 15 },
   problem: { color: c.error },
 }));

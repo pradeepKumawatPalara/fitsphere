@@ -1,10 +1,11 @@
 import { addDays, type IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { formatDay } from '../format';
 import { themedStyles } from '../theme';
 import { CalendarSheet } from './CalendarSheet';
-import { Text } from './ui';
+import { Sheet } from './Sheet';
+import { Text, TextButton } from './ui';
 
 type Props = {
   today: IstDay;
@@ -45,47 +46,50 @@ export function DaySheet({ today, firstDay, selected, counts, onSelect, onClose 
     );
   }
 
+  // In the sheets' frame, which keeps Cancel clear of the navigation bar.
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text accessibilityRole="header" style={styles.title}>
-            Log this meal to
-          </Text>
-          {days.map((day, index) => {
-            const name = index === 0 ? `Today, ${formatDay(day)}` : index === 1 ? `Yesterday, ${formatDay(day)}` : formatDay(day);
-            const status = dayStatus(counts[day] ?? 0);
-            return (
-              <Pressable
-                key={day}
-                accessibilityRole="button"
-                accessibilityLabel={`${name}: ${status}`}
-                accessibilityState={{ selected: day === selected }}
-                onPress={() => {
-                  onSelect(day);
-                  onClose();
-                }}
-                style={[styles.row, day === selected && styles.chosen]}
-              >
-                <Text style={styles.day}>{name}</Text>
-                <Text style={styles.status}>{status}</Text>
-              </Pressable>
-            );
-          })}
-          <Button title="Another day…" onPress={() => setCalendar(true)} />
-          <Button title="Cancel" onPress={onClose} />
-        </View>
+    <Sheet title="Log this meal to" onClose={onClose} actions={<TextButton title="Cancel" onPress={onClose} />}>
+      <View style={styles.days}>
+        {days.map((day, index) => {
+          const name = index === 0 ? `Today, ${formatDay(day)}` : index === 1 ? `Yesterday, ${formatDay(day)}` : formatDay(day);
+          const status = dayStatus(counts[day] ?? 0);
+          return (
+            <Pressable
+              key={day}
+              accessibilityRole="button"
+              accessibilityLabel={`${name}: ${status}`}
+              accessibilityState={{ selected: day === selected }}
+              onPress={() => {
+                onSelect(day);
+                onClose();
+              }}
+              style={({ pressed }) => [styles.row, day === selected && styles.chosen, pressed && styles.pressed]}
+            >
+              <Text style={styles.day}>{name}</Text>
+              <Text style={styles.status}>{status}</Text>
+            </Pressable>
+          );
+        })}
       </View>
-    </Modal>
+      <TextButton title="Another day…" onPress={() => setCalendar(true)} />
+    </Sheet>
   );
 }
 
+// Rows 48 tall; the chosen day is tinted, as a chosen row elsewhere.
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: c.background, padding: 20, gap: 6, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 8 },
+  days: { gap: 2 },
+  row: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
   chosen: { backgroundColor: c.surfaceSelected },
-  day: { fontWeight: '600' },
-  status: { color: c.textMuted },
+  pressed: { opacity: 0.6 },
+  day: { fontSize: 15, fontWeight: '600' },
+  status: { fontSize: 13, color: c.textMuted },
 }));

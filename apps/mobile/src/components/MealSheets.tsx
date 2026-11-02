@@ -1,10 +1,10 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
 import { useState, type ReactNode } from 'react';
-import { Button, Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
-import { themedStyles, useTheme } from '../theme';
+import { themedStyles } from '../theme';
 import { Sheet } from './Sheet';
-import { Text, TextInput } from './ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 // Bottom sheets for the meal menus (REQ-NUT-004, REQ-SAVED-001): a list of actions, a
 // confirmation, a name, and re-logging a saved meal.
@@ -21,19 +21,28 @@ export function ActionsSheet({
   /** Shown above the actions, e.g. a field an action uses. */
   children?: ReactNode;
 }) {
+  const styles = useStyles();
+  // The actions are a menu: full-width rows in a panel, ruled between them.
   return (
-    <Sheet title={title} onClose={onClose} actions={<Button title="Cancel" onPress={onClose} />}>
+    <Sheet title={title} onClose={onClose} actions={<TextButton title="Cancel" onPress={onClose} />}>
       {children}
-      {actions.map((action) => (
-        <Button
-          key={action.label}
-          title={action.label}
-          onPress={() => {
-            onClose();
-            action.onPress();
-          }}
-        />
-      ))}
+      {actions.length > 0 ? (
+        <View style={styles.menu}>
+          {actions.map((action, index) => (
+            <Pressable
+              key={action.label}
+              accessibilityRole="button"
+              onPress={() => {
+                onClose();
+                action.onPress();
+              }}
+              style={({ pressed }) => [styles.menuRow, index > 0 && styles.ruled, pressed && styles.pressed]}
+            >
+              <Text style={styles.menuText}>{action.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </Sheet>
   );
 }
@@ -50,23 +59,25 @@ export function ConfirmSheet({
   onConfirm(): void;
   onClose(): void;
 }) {
-  const { colors } = useTheme();
+  const styles = useStyles();
+  // As Delete account: the action in red, outlined, beside a way out of the same weight.
   return (
     <Sheet
       title={title}
       onClose={onClose}
       actions={
-        <>
-          <Button
+        <View style={styles.pair}>
+          <TextButton
             title={confirmLabel}
-            color={colors.error}
+            outlined
+            destructive
             onPress={() => {
               onClose();
               onConfirm();
             }}
           />
-          <Button title="Cancel" onPress={onClose} />
-        </>
+          <TextButton title="Cancel" outlined onPress={onClose} />
+        </View>
       }
     />
   );
@@ -82,7 +93,7 @@ export function SaveMealSheet({
   onSave(name: string): void;
   onClose(): void;
 }) {
-  const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
   return (
@@ -91,15 +102,16 @@ export function SaveMealSheet({
       onClose={onClose}
       actions={
         <>
-          <Button
+          <TextButton
             title="Save"
+            filled
             disabled={trimmed === ''}
             onPress={() => {
               onClose();
               onSave(trimmed);
             }}
           />
-          <Button title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" onPress={onClose} />
         </>
       }
     >
@@ -108,7 +120,7 @@ export function SaveMealSheet({
         value={name}
         onChangeText={setName}
         maxLength={SAVED_MEAL_NAME_MAX}
-        style={styles.input}
+        style={fieldInput}
       />
     </Sheet>
   );
@@ -149,6 +161,7 @@ export function RelogSheet({
   onLog(slot: MealType): void;
   onClose(): void;
 }) {
+  const styles = useStyles();
   const [chosen, setChosen] = useState(slot);
   return (
     <Sheet
@@ -156,25 +169,32 @@ export function RelogSheet({
       onClose={onClose}
       actions={
         <>
-          <Button
+          <TextButton
             title="Log meal"
+            filled
             onPress={() => {
               onClose();
               onLog(chosen);
             }}
           />
-          <Button title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" onPress={onClose} />
         </>
       }
     >
-      <Text>To {dayLabel}</Text>
+      <Text style={styles.body}>To {dayLabel}</Text>
       <SlotPicker value={chosen} onChange={setChosen} />
     </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  menu: { borderRadius: 12, backgroundColor: c.surface },
+  menuRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  ruled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  pressed: { opacity: 0.6 },
+  menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
+  pair: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  body: { fontSize: 15 },
   // The chosen meal is a filled pill, as the selected day is on the week strip.
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   slot: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 20, borderWidth: 1.5, borderColor: c.primary },

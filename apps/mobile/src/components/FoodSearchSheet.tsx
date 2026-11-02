@@ -1,6 +1,6 @@
 import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Button, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, searchDishes, searchFoods } from '../local/store';
@@ -9,7 +9,7 @@ import { formatGrams, formatKcal, PORTION_UNIT_LABELS } from '../meals';
 import { themedStyles } from '../theme';
 import { PortionStepper } from './PortionStepper';
 import { Sheet } from './Sheet';
-import { Text, TextInput, useFieldInputStyle } from './ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g; a dish (D-28)
@@ -20,7 +20,6 @@ type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food };
 
 export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
   const styles = useStyles();
-  // The search field matches the app's fields; the grams field follows with the sheets restyle.
   const fieldInput = useFieldInputStyle();
   const local = useLocalDatabase();
   const [query, setQuery] = useState('');
@@ -56,8 +55,9 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       onClose={onClose}
       actions={
         <>
-          <Button
+          <TextButton
             title="Add"
+            filled
             disabled={!preview}
             onPress={() => {
               if (!preview) return;
@@ -65,13 +65,13 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               onClose();
             }}
           />
-          <Button title="Back to search" onPress={() => setChosen(null)} />
+          <TextButton title="Back to search" onPress={() => setChosen(null)} />
         </>
       }
     >
       {chosen.kind === 'dish' ? (
         <>
-          <Text>
+          <Text style={styles.body}>
             One portion is one {PORTION_UNIT_LABELS[chosen.dish.portionUnit]}: {formatKcal(chosen.dish.kcal)} ·{' '}
             {formatGrams(chosen.dish.proteinG)} protein (estimated)
           </Text>
@@ -79,7 +79,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         </>
       ) : (
         <>
-          <Text>
+          <Text style={styles.body}>
             Per 100 g: {formatKcal(chosen.food.kcal)}
             {chosen.food.kcalEstimated ? ' (estimated)' : ''} · {formatGrams(chosen.food.proteinG)} protein
           </Text>
@@ -90,14 +90,14 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               onChangeText={setGramsText}
               keyboardType="number-pad"
               autoFocus
-              style={[styles.input, styles.grow]}
+              style={[fieldInput, styles.grow, styles.number]}
             />
-            <Text>g</Text>
+            <Text style={styles.unit}>g</Text>
           </View>
         </>
       )}
       {preview ? (
-        <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`}>
+        <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`} style={styles.preview}>
           = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
         </Text>
       ) : (
@@ -108,7 +108,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
     </Sheet>
   ) : (
     // The results scroll themselves, so the sheet's body doesn't.
-    <Sheet title="Search foods" scroll={false} onClose={onClose} actions={<Button title="Close" onPress={onClose} />}>
+    <Sheet title="Search foods" scroll={false} onClose={onClose} actions={<TextButton title="Close" onPress={onClose} />}>
       <TextInput
         accessibilityLabel="Search foods"
         value={query}
@@ -118,9 +118,11 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         style={fieldInput}
       />
       {!listCached ? (
-        <Text accessibilityRole="alert">{TEXTS.needsInternet('Downloading the food list')}</Text>
+        <Text accessibilityRole="alert" style={styles.body}>
+          {TEXTS.needsInternet('Downloading the food list')}
+        </Text>
       ) : query.trim() !== '' && results.length === 0 ? (
-        <Text>No foods found. Try another word, or enter your own food.</Text>
+        <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
       ) : null}
       <FlatList
         data={results}
@@ -136,7 +138,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 setChosen(result);
                 setPortions(1);
               }}
-              style={styles.row}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             >
               <Text style={styles.name}>{result.dish.name}</Text>
               <Text style={styles.detail}>
@@ -151,7 +153,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 setChosen(result);
                 setGramsText('100');
               }}
-              style={styles.row}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             >
               <Text style={styles.name}>{result.food.name}</Text>
               <Text style={styles.detail}>
@@ -166,16 +168,22 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
   );
 }
 
+// Results ruled with hairlines, as the app's lists; what an addition comes to at the size of a value.
 const useStyles = themedStyles((c) => ({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // `grow` only beside other items in a row: in the sheet's column, flex: 1 would give a field no
   // height for its text (Yoga's flex basis is 0), which hid the search text.
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   grow: { flex: 1 },
+  number: { fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 15, color: c.textMuted },
+  body: { fontSize: 15 },
+  preview: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  empty: { fontSize: 15, color: c.textMuted },
   list: { maxHeight: 360 },
-  row: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
-  name: { fontWeight: '600' },
+  row: { minHeight: 48, justifyContent: 'center', gap: 2, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
+  pressed: { opacity: 0.6 },
+  name: { fontSize: 15, fontWeight: '600' },
   detail: { color: c.textMuted, fontSize: 13 },
-  acknowledgement: { color: c.textMuted, fontSize: 11 },
-  problem: { color: c.error },
+  acknowledgement: { color: c.textMuted, fontSize: 13 },
+  problem: { fontSize: 13, color: c.error },
 }));

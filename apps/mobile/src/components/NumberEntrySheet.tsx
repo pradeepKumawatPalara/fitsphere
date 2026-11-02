@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Button, View } from 'react-native';
+import { View } from 'react-native';
 import { themedStyles } from '../theme';
 import { Sheet } from './Sheet';
-import { Text, TextInput } from './ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 type Props = {
   title: string;
@@ -23,6 +23,7 @@ type Props = {
 // Nothing is saved until the value is valid; Cancel closes without saving.
 export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, onSave, onClose }: Props) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   const [text, setText] = useState(initialText);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,8 +46,8 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
       onClose={onClose}
       actions={
         <>
-          <Button title="Save" disabled={busy} onPress={() => void save()} />
-          <Button title="Cancel" onPress={onClose} />
+          <TextButton title="Save" filled disabled={busy} onPress={() => void save()} />
+          <TextButton title="Cancel" onPress={onClose} />
         </>
       }
     >
@@ -57,9 +58,9 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
           onChangeText={setText}
           keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
           autoFocus
-          style={styles.input}
+          style={[fieldInput, styles.input]}
         />
-        <Text>{unit}</Text>
+        <Text style={styles.unit}>{unit}</Text>
       </View>
       {problem ? (
         <Text accessibilityRole="alert" style={styles.problem}>
@@ -72,6 +73,8 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
 
 const useStyles = themedStyles((c) => ({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 20 },
-  problem: { color: c.error },
+  // A field as Field, its number at the size of a value, in fixed-width digits.
+  input: { flex: 1, fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 15, color: c.textMuted },
+  problem: { fontSize: 13, color: c.error },
 }));

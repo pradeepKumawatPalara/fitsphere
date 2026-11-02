@@ -57,6 +57,11 @@ export function useFieldInputStyle() {
   return useStyles().input;
 }
 
+/** Field's label style (13, semibold, muted), for a field laid out on its own. */
+export function useFieldLabelStyle() {
+  return useStyles().label;
+}
+
 export function CheckBox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   const styles = useStyles();
   return (

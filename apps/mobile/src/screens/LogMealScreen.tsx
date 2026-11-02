@@ -22,7 +22,7 @@ import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { PortionStepper } from '../components/PortionStepper';
-import { Text, TextButton, TextInput } from '../components/ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
@@ -41,6 +41,7 @@ type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number }
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   // The fixed footer clears the phone's navigation bar; none outside the app (tests).
   const insets = useContext(SafeAreaInsetsContext);
   const local = useLocalDatabase();
@@ -312,9 +313,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                 value={gramsText}
                 onChangeText={setGramsText}
                 keyboardType="number-pad"
-                style={styles.input}
+                style={[fieldInput, styles.input]}
               />
-              <Text>g</Text>
+              <Text style={styles.unit}>g</Text>
               {newGrams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
             </View>
           ) : (
@@ -381,6 +382,8 @@ const useStyles = themedStyles((c) => ({
   footer: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, backgroundColor: c.background },
   total: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   changeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  problem: { color: c.error },
+  // The change-grams field in its sheet, as Field, beside its unit.
+  input: { flex: 1, fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 15, color: c.textMuted },
+  problem: { fontSize: 13, color: c.error },
 }));
