@@ -38,7 +38,7 @@ export function Field({ label, ...input }: { label: string } & TextInputProps) {
   const styles = useStyles();
   return (
     <View style={styles.field}>
-      <Text>{label}</Text>
+      <Text style={styles.label}>{label}</Text>
       <TextInput accessibilityLabel={label} style={styles.input} autoCapitalize="none" {...input} />
     </View>
   );
@@ -107,8 +107,17 @@ export function Message({ text }: { text: string | null }) {
 
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
-  field: { gap: 4 },
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  field: { gap: 6 },
+  label: { fontSize: 13, fontWeight: '600', color: c.textMuted },
+  input: {
+    minHeight: 48,
+    borderWidth: 1.5,
+    borderColor: c.textFaint,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   box: { width: 24, height: 24, borderWidth: 2, borderColor: c.textMuted, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   boxChecked: { backgroundColor: c.primary, borderColor: c.primary },
