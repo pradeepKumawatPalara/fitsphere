@@ -30,10 +30,12 @@ export function AccountSetupScreen() {
       <CheckBox label={TEXTS.ageConfirmation} checked={adult} onChange={setAdult} />
       <Message text={message} />
       <TextButton title="Continue" filled disabled={!adult || busy} onPress={() => void submit()} />
+      {adult ? null : <Text style={styles.hint}>{TEXTS.ageHint}</Text>}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
+  hint: { marginTop: -12, fontSize: 13, textAlign: 'center' },
 });

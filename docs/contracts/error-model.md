@@ -94,8 +94,12 @@ reveal whether an address is registered.
 | After sign-up, whatever Supabase returns | "Check your email. If this address can be used for a new account, we've sent a link to finish signing up." | REQ-ACC-010, D-11; wording is an MVP default (D-18) |
 | After "Forgot password", whatever Supabase returns | "If an account uses this address, we've sent a link to reset the password." | REQ-ACC-010, D-11; wording is an MVP default (D-18) |
 | Sign-in fails | "Email or password is incorrect." | REQ-ACC-010 |
+| Sign-in with a field empty | "Enter your email address." or "Enter your password." Wrong details still get the neutral sign-in failure text | REQ-ACC-010; D-33 |
+| An email address left empty, or one that isn't an address (sign-up, Forgot password) | "Enter your email address." or "Enter an email address like name@example.com." | REQ-ACC-010; D-33 |
+| A password outside 8 to 72 characters (sign-up, Set a new password, Change password) | "Use 8 to 72 characters." | REQ-ACC-010, Skeleton decision 3; D-33 |
+| Setting a new password fails for a reason other than the same password or no internet | "Something went wrong. Try again later." | REQ-ACC-010; D-33 |
 | Sign-in before the email is verified | "Verify your email first. Check your inbox for the link." Shown only if validation confirms it cannot reveal registration (ADR-0004 validation step 2); otherwise the sign-in failure text is used | REQ-ACC-010; Q-080 MVP default |
-| Sign-up without the 18+ box ticked | The button stays disabled; the box reads "I am 18 or older" | REQ-ACC-010, D-18 |
+| Sign-up (or Account setup) without the 18+ box ticked | The button stays disabled, with "Tick "I am 18 or older" to continue." under it; the box reads "I am 18 or older" | REQ-ACC-010, D-18; D-33 |
 | A step that needs internet while offline | "<Step> needs an internet connection." e.g. "Signing up needs an internet connection." | REQ-NFR-004, D-04, ADR-0007 rule 6 |
 | A rejected weigh-in | "This weight wasn't saved: <reason>. Edit or discard it." with the reason from the code, e.g. "the date is in the future" | ADR-0007 rule 2 |
 | A rejected meal or saved-meal change | "This meal wasn't saved: …", "This meal wasn't deleted: …", "This saved meal wasn't saved: …", "This saved meal wasn't deleted: …". A rejected deletion offers Discard only | ADR-0007 rule 2; MVP default (D-26) |

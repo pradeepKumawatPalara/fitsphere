@@ -2,6 +2,7 @@ import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fits
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
+import { GRAMS_RULE } from '../mealItems';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
 import { LogMealScreen } from './LogMealScreen';
@@ -247,6 +248,43 @@ describe('REQ-LOG-003 and the review before saving', () => {
     ).toBeOnTheScreen();
     // The cooked-rice example has no supporting source (D-26 answer 3, amended 2026-10-30).
     expect(screen.queryByText(/cooked rice weighs/)).toBeNull();
+  });
+});
+
+describe('what Log meal says about missing values', () => {
+  it('Save meal says to add a food first', async () => {
+    await render();
+
+    expect(await screen.findByText('Add at least one food to save the meal.')).toBeOnTheScreen();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    expect(screen.queryByText('Add at least one food to save the meal.')).toBeNull();
+  });
+
+  it('own food: Add says what is missing; each value gives its range, and the grams their rule', async () => {
+    await render();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Enter your own food' }));
+
+    expect(screen.getByText("Enter the food's name.")).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Food name'), 'Synthetic bar');
+    expect(screen.getByText('Enter kcal, protein, carbs and fat to add.')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('kcal per 100 g'), '950');
+    expect(screen.getByText('Enter 0 to 900, with at most one decimal.')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Protein per 100 g (g)'), '101');
+    expect(screen.getByText('Enter 0 to 100, with at most one decimal.')).toBeOnTheScreen();
+    for (const [label, value] of [
+      ['kcal per 100 g', '400'],
+      ['Protein per 100 g (g)', '10'],
+      ['Carbs per 100 g (g)', '60'],
+      ['Fat per 100 g (g)', '12'],
+    ]) {
+      await fireEvent.changeText(screen.getByLabelText(label!), value!);
+    }
+    expect(screen.getAllByText(GRAMS_RULE)).toHaveLength(1);
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '0');
+    expect(screen.getAllByText(GRAMS_RULE)).toHaveLength(1);
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '40');
+    expect(screen.queryByText(GRAMS_RULE)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
   });
 });
 

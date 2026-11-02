@@ -84,6 +84,19 @@ describe('REQ-ACC-010 Set a new password', () => {
     expect(client.updateUser).not.toHaveBeenCalled();
   });
 
+  it('MVP default (D-18) any other failure says to try later, not the password rule', async () => {
+    mockParams = { code: 'one-time-code' };
+    const client = fakeAuthClient();
+    client.exchangeCodeForSession.mockResolvedValueOnce({ data: { session: fakeSession() }, error: null });
+    client.updateUser.mockResolvedValueOnce({ error: { name: 'AuthApiError', code: 'unexpected_failure', status: 500 } });
+    await renderWith(<ResetPasswordScreen />, client);
+
+    await fireEvent.changeText(await screen.findByLabelText('New password'), 'new-password-1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Set password' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(TEXTS.tryLater);
+  });
+
   it('REQ-ACC-010 asks for a different password when Supabase says it is the same', async () => {
     mockParams = { code: 'one-time-code' };
     const client = fakeAuthClient();

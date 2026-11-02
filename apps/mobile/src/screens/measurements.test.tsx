@@ -306,3 +306,21 @@ describe('REQ-MEAS-001…006 measurements sheet', () => {
     await waitFor(() => expect(server.entries('measurements').get('2026-10-28')).toMatchObject({ lowerWaistMm: 850 }));
   });
 });
+
+describe('REQ-MEAS-001…006 what the sheet says', () => {
+  it('Save waits for both waists and says so; the notes give their limit', async () => {
+    await renderInApp(<HomeScreen />);
+    await openSheet();
+
+    expect(save()).toBeDisabled();
+    expect(screen.getByText('Enter both waist values to save.')).toBeOnTheScreen();
+    await type('Upper waist (cm)', '81.0');
+    expect(screen.getByText('Enter both waist values to save.')).toBeOnTheScreen();
+    await type('Lower waist (cm)', '85.0');
+    expect(screen.queryByText('Enter both waist values to save.')).toBeNull();
+    expect(save()).toBeEnabled();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'More measurements' }));
+    expect(screen.getByText('Up to 500 characters.')).toBeOnTheScreen();
+  });
+});

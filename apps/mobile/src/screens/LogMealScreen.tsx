@@ -250,6 +250,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         ) : null}
         <TextButton title="Save meal" filled disabled={!mealType || items.length === 0 || busy} onPress={() => void save()} />
         {!mealType && items.length > 0 ? <Text style={styles.hint}>Choose the meal: Breakfast, Lunch, Snack or Dinner.</Text> : null}
+        {items.length === 0 ? <Text style={styles.hint}>Add at least one food to save the meal.</Text> : null}
       </View>
 
       {sheet === 'day' ? (

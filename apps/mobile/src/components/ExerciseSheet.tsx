@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { View, type TextInputProps } from 'react-native';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles } from '../theme';
-import { parseExercise, type ExerciseText } from '../workouts';
+import { exerciseProblems, parseExercise, type ExerciseText } from '../workouts';
 import { Sheet } from './Sheet';
 import { Text, TextButton, TextInput, useFieldInputStyle, useFieldLabelStyle } from './ui';
 
@@ -23,11 +23,16 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
   const styles = useStyles();
   const unit = useLiftingWeightUnit();
   const [text, setText] = useState(initial);
-  const [problem, setProblem] = useState<string | null>(null);
+  // Each field's problem, shown under it once Save is pressed.
+  const [problems, setProblems] = useState<Partial<Record<keyof ExerciseText, string>>>({});
   const [busy, setBusy] = useState(false);
 
   function field(name: keyof ExerciseText) {
-    return { value: text[name], onChangeText: (value: string) => setText((current) => ({ ...current, [name]: value })) };
+    return {
+      value: text[name],
+      onChangeText: (value: string) => setText((current) => ({ ...current, [name]: value })),
+      problem: problems[name],
+    };
   }
 
   async function run(action: () => Promise<void>) {
@@ -40,7 +45,7 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
   function save() {
     const parsed = parseExercise(text, unit);
     if ('problem' in parsed) {
-      setProblem(parsed.problem);
+      setProblems(exerciseProblems(text, unit));
       return;
     }
     void run(() => onSave(parsed.exercise));
@@ -64,18 +69,13 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
       </View>
       <Input label={`Weight in ${unit} (optional)`} keyboardType="decimal-pad" {...field('weight')} />
       <Input label="Note (optional)" multiline {...field('note')} />
-      {problem ? (
-        <Text accessibilityRole="alert" style={styles.problem}>
-          {problem}
-        </Text>
-      ) : null}
       {onRemove ? <TextButton title="Remove exercise" destructive disabled={busy} onPress={() => void run(onRemove)} /> : null}
     </Sheet>
   );
 }
 
-// As Field: a 13 label, 6 above its input; numbers in fixed-width digits.
-function Input({ label, style, ...input }: { label: string } & TextInputProps) {
+// As Field: a 13 label, 6 above its input, its problem under it; numbers in fixed-width digits.
+function Input({ label, problem, style, ...input }: { label: string; problem?: string } & TextInputProps) {
   const styles = useStyles();
   const fieldInput = useFieldInputStyle();
   const fieldLabel = useFieldLabelStyle();
@@ -83,6 +83,11 @@ function Input({ label, style, ...input }: { label: string } & TextInputProps) {
     <View style={[styles.field, style]}>
       <Text style={fieldLabel}>{label}</Text>
       <TextInput accessibilityLabel={label} style={[fieldInput, styles.digits]} {...input} />
+      {problem ? (
+        <Text accessibilityRole="alert" style={styles.problem}>
+          {problem}
+        </Text>
+      ) : null}
     </View>
   );
 }

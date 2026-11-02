@@ -99,6 +99,7 @@ export function SaveMealSheet({
   onSave(name: string): void;
   onClose(): void;
 }) {
+  const styles = useStyles();
   const fieldInput = useFieldInputStyle();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
@@ -128,6 +129,7 @@ export function SaveMealSheet({
         maxLength={SAVED_MEAL_NAME_MAX}
         style={fieldInput}
       />
+      {trimmed === '' ? <Text style={styles.problem}>Enter a name.</Text> : null}
     </Sheet>
   );
 }
@@ -214,6 +216,7 @@ const useStyles = themedStyles((c) => ({
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   body: { fontSize: 15 },
+  problem: { fontSize: 13, color: c.error },
   // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
   // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
   slots: { flexDirection: 'row', gap: 8 },

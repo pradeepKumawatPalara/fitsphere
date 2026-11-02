@@ -22,8 +22,13 @@ export function SignInScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   async function submit() {
-    if (!email.trim() || !password) {
-      setMessage(TEXTS.signInFailed);
+    // An empty field is named; wrong details stay one neutral text (D-11).
+    if (!email.trim()) {
+      setMessage(TEXTS.emailRule);
+      return;
+    }
+    if (!password) {
+      setMessage(TEXTS.passwordRequired);
       return;
     }
     setBusy(true);

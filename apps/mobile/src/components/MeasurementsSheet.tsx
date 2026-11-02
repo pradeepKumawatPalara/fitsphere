@@ -178,7 +178,12 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
         </View>
       }
       onClose={onClose}
-      actions={<TextButton title="Save measurements" filled disabled={!canSave || busy} onPress={() => void save()} />}
+      actions={
+        <>
+          <TextButton title="Save measurements" filled disabled={!canSave || busy} onPress={() => void save()} />
+          {REQUIRED.some(({ key }) => lengths[key] === 'empty') ? <Text style={styles.hint}>Enter both waist values to save.</Text> : null}
+        </>
+      }
     >
       {mode === 'edit' ? (
         <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
@@ -248,6 +253,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
               multiline
               style={[fieldInput, styles.notes]}
             />
+            <Text style={styles.guidance}>Up to {MEASUREMENT_NOTES_MAX} characters.</Text>
           </View>
         </>
       ) : null}
@@ -277,6 +283,7 @@ const useStyles = themedStyles((c) => ({
   unitText: { fontSize: 15, color: c.textMuted },
   notes: { minHeight: 96, textAlignVertical: 'top' },
   problem: { fontSize: 13, color: c.error },
+  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
   moreButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
   more: { fontSize: 15, color: c.primary, fontWeight: '600' },
 }));

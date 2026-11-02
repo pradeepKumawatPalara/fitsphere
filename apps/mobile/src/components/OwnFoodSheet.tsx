@@ -1,7 +1,7 @@
 import type { MealItem } from '@fitsphere/shared';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
+import { GRAMS_RULE, itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
 import { themedStyles } from '../theme';
 import { Sheet } from './Sheet';
 import { Text, TextButton, TextInput, useFieldInputStyle, useFieldLabelStyle } from './ui';
@@ -45,6 +45,16 @@ export function OwnFoodSheet({
     grams !== null &&
     FIELDS.every(({ key, required }) => typeof values[key] === 'number' || (!required && values[key] === 'empty'));
 
+  // Why Add waits, when no field says so already.
+  const missing =
+    name.trim() === ''
+      ? "Enter the food's name."
+      : FIELDS.some(({ key, required }) => required && values[key] === 'empty')
+        ? 'Enter kcal, protein, carbs and fat to add.'
+        : gramsText.trim() === ''
+          ? GRAMS_RULE
+          : null;
+
   function add() {
     if (!valid || grams === null) return;
     const number = (key: Key) => (typeof values[key] === 'number' ? (values[key] as number) : null);
@@ -65,13 +75,14 @@ export function OwnFoodSheet({
       actions={
         <>
           <TextButton title="Add" filled disabled={!valid} onPress={add} />
+          {missing ? <Text style={styles.hint}>{missing}</Text> : null}
           <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >
       <Text style={styles.intro}>Type the values from the label, per 100 g.</Text>
       <TextInput accessibilityLabel="Food name" value={name} onChangeText={setName} maxLength={120} style={fieldInput} />
-      {FIELDS.map(({ key, label }) => (
+      {FIELDS.map(({ key, label, max }) => (
         <View key={key} style={styles.field}>
           <Text style={fieldLabel}>{label}</Text>
           <TextInput
@@ -81,7 +92,7 @@ export function OwnFoodSheet({
             keyboardType="decimal-pad"
             style={[fieldInput, styles.number]}
           />
-          {values[key] === 'invalid' ? <Text style={styles.problem}>Enter a number with at most one decimal.</Text> : null}
+          {values[key] === 'invalid' ? <Text style={styles.problem}>Enter 0 to {max}, with at most one decimal.</Text> : null}
         </View>
       ))}
       <View style={styles.field}>
@@ -93,6 +104,7 @@ export function OwnFoodSheet({
           keyboardType="number-pad"
           style={[fieldInput, styles.number]}
         />
+        {gramsText.trim() !== '' && grams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
       </View>
     </Sheet>
   );
@@ -104,4 +116,5 @@ const useStyles = themedStyles((c) => ({
   field: { gap: 6 },
   number: { fontVariant: ['tabular-nums'] },
   problem: { fontSize: 13, color: c.error },
+  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
 }));

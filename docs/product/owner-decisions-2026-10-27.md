@@ -919,11 +919,27 @@ checksum), and the configuration template was left as it is.*
      with "Another day…". The limits are unchanged: any past day of the phone's 90 days (D-23), no
      future day (Q-017). Each day with a meal has a dot, and each day is read out with its status,
      "Nothing logged" or "N meals logged" (Q-037). The header's calendar is unchanged.
-- Unchanged: what each action does, the confirmation steps, the date limits, the invariants, the
-  other D- decisions, privacy rules and the accepted ADRs.
+  4. **Messages that say what is missing or wrong.** No limit changes; only what the app says:
+     - Sign in names an empty field ("Enter your email address.", "Enter your password."); wrong
+       details keep the neutral text (D-11). An address that isn't one: "Enter an email address like
+       name@example.com." A password outside 8 to 72 characters: "Use 8 to 72 characters."
+     - Sign up and Account setup: "Tick "I am 18 or older" to continue." under the waiting button.
+     - Set a new password: a failure other than the same password or no internet says "Something
+       went wrong. Try again later." instead of the password rule.
+     - Measurements: "Enter both waist values to save." under Save while a waist is empty; the notes
+       say "Up to 500 characters."
+     - Enter your own food: under Add, the first thing missing ("Enter the food's name.", "Enter kcal,
+       protein, carbs and fat to add.", or the grams rule); each value its range ("Enter 0 to 900,
+       with at most one decimal.", "Enter 0 to 100, …"); the grams their rule.
+     - Save to my meals: "Enter a name." for an empty name. Log meal: "Add at least one food to save
+       the meal." while there is none.
+     - An exercise: every field's problem at once, each under its field.
+- Unchanged: what each action does, the confirmation steps, the date limits, every validation
+  limit, the invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: REQ-NUT-004 and REQ-LOG-002 in `docs/product/requirements.md`; Q-032 and Q-037 in
   `docs/product/mvp-scope.md` and `docs/architecture/constraints-and-assumptions.md` (with A-004
-  and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`.
+  and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`; the texts
+  in `docs/contracts/error-model.md`.
 
 ---
 

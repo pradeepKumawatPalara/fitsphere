@@ -213,6 +213,18 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     expect(await screen.findByRole('button', { name: 'Edit Breakfast: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
   });
 
+  it('REQ-SAVED-001 an empty name says so, and Save waits', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db);
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Save Lunch: Wheat flour, atta to my meals' }));
+    await fireEvent.changeText(screen.getByLabelText('Name'), '  ');
+
+    expect(screen.getByText('Enter a name.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   it('REQ-SAVED-001 a saved meal can be deleted, after confirming', async () => {
     const { db } = await renderInApp(<NutritionScreen />, undefined, seedSaved);
     await fireEvent.press(await screen.findByRole('tab', { name: 'Saved' }));

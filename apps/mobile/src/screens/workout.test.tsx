@@ -126,6 +126,16 @@ describe('REQ-TRN-003 exercises as sets × reps × weight with an optional note 
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
   });
 
+  it('D-29 shows every problem at once, each under its field', async () => {
+    await startWorkout();
+
+    await addExercise({ name: 'Squat', sets: '0', reps: '' });
+
+    expect(await screen.findByText(RULES.sets)).toBeOnTheScreen();
+    expect(screen.getByText(RULES.reps)).toBeOnTheScreen();
+    expect(screen.queryByText(RULES.name)).toBeNull();
+  });
+
   it('D-29 accepts the ends of each range', async () => {
     const { db, id } = await startWorkout();
 

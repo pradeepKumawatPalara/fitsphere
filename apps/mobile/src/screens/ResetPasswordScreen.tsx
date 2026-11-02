@@ -43,7 +43,7 @@ export function ResetPasswordScreen() {
     if (result === 'changed') router.replace('/home');
     else if (result === 'offline') setMessage(TEXTS.needsInternet('Setting a new password'));
     else if (result === 'samePassword') setMessage(TEXTS.samePassword);
-    else setMessage(TEXTS.passwordRule);
+    else setMessage(TEXTS.tryLater);
   }
 
   if (link === 'checking') {

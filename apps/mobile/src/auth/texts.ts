@@ -10,8 +10,13 @@ export const TEXTS = {
   // MVP default (D-18): Supabase or the API cannot answer right now.
   tryLater: 'Something went wrong. Try again later.',
   emailNotVerified: 'Verify your email first. Check your inbox for the link.',
-  passwordRule: 'Use at least 8 characters.',
+  // The limits are PASSWORD_MIN and PASSWORD_MAX below.
+  passwordRule: 'Use 8 to 72 characters.',
+  passwordRequired: 'Enter your password.',
   emailRule: 'Enter your email address.',
+  emailFormat: 'Enter an email address like name@example.com.',
+  // Under Sign up and Continue until the 18+ box is ticked (REQ-ACC-010, D-18).
+  ageHint: 'Tick "I am 18 or older" to continue.',
   // MVP defaults (D-18) for "Set a new password".
   resetLinkInvalid:
     'This link has expired, was already used, or was opened on another phone. Request a new one on this phone.',
@@ -33,6 +38,8 @@ export function passwordProblem(password: string): string | null {
   return password.length < PASSWORD_MIN || password.length > PASSWORD_MAX ? TEXTS.passwordRule : null;
 }
 
+/** Nothing typed asks for the address; something that isn't one shows what one looks like. */
 export function emailProblem(email: string): string | null {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? null : TEXTS.emailRule;
+  if (email.trim() === '') return TEXTS.emailRule;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? null : TEXTS.emailFormat;
 }

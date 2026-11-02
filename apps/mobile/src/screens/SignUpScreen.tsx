@@ -42,6 +42,7 @@ export function SignUpScreen() {
         <>
           <Message text={message} />
           <TextButton title="Sign up" filled disabled={!adult || busy} onPress={() => void submit()} />
+          {adult ? null : <Text style={styles.hint}>{TEXTS.ageHint}</Text>}
           <TextButton title="I already have an account" wide onPress={() => router.replace('/sign-in')} />
         </>
       }
@@ -66,4 +67,5 @@ const useStyles = themedStyles((c) => ({
   fields: { gap: 12 },
   // The rule belongs to the password: closer to it than the fields are to each other.
   rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
+  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
 }));
