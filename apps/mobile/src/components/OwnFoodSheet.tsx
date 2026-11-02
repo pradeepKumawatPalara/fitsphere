@@ -1,8 +1,9 @@
 import type { MealItem } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, ScrollView, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
 import { themedStyles } from '../theme';
+import { Sheet } from './Sheet';
 import { Text, TextInput } from './ui';
 
 // "Enter your own food" (REQ-LOG-007): the values from the label, per 100 g, and the grams eaten.
@@ -56,52 +57,46 @@ export function OwnFoodSheet({
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text accessibilityRole="header" style={styles.title}>
-            Enter your own food
-          </Text>
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            <Text>Type the values from the label, per 100 g.</Text>
-            <TextInput accessibilityLabel="Food name" value={name} onChangeText={setName} maxLength={120} style={styles.input} />
-            {FIELDS.map(({ key, label }) => (
-              <View key={key} style={styles.field}>
-                <Text>{label}</Text>
-                <TextInput
-                  accessibilityLabel={label}
-                  value={texts[key]}
-                  onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
-                  keyboardType="decimal-pad"
-                  style={styles.input}
-                />
-                {values[key] === 'invalid' ? <Text style={styles.problem}>Enter a number with at most one decimal.</Text> : null}
-              </View>
-            ))}
-            <View style={styles.field}>
-              <Text>Grams eaten</Text>
-              <TextInput
-                accessibilityLabel="Grams eaten"
-                value={gramsText}
-                onChangeText={setGramsText}
-                keyboardType="number-pad"
-                style={styles.input}
-              />
-            </View>
-            <Button title="Add" disabled={!valid} onPress={add} />
-            <Button title="Cancel" onPress={onClose} />
-          </ScrollView>
+    <Sheet
+      title="Enter your own food"
+      onClose={onClose}
+      actions={
+        <>
+          <Button title="Add" disabled={!valid} onPress={add} />
+          <Button title="Cancel" onPress={onClose} />
+        </>
+      }
+    >
+      <Text>Type the values from the label, per 100 g.</Text>
+      <TextInput accessibilityLabel="Food name" value={name} onChangeText={setName} maxLength={120} style={styles.input} />
+      {FIELDS.map(({ key, label }) => (
+        <View key={key} style={styles.field}>
+          <Text>{label}</Text>
+          <TextInput
+            accessibilityLabel={label}
+            value={texts[key]}
+            onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
+            keyboardType="decimal-pad"
+            style={styles.input}
+          />
+          {values[key] === 'invalid' ? <Text style={styles.problem}>Enter a number with at most one decimal.</Text> : null}
         </View>
+      ))}
+      <View style={styles.field}>
+        <Text>Grams eaten</Text>
+        <TextInput
+          accessibilityLabel="Grams eaten"
+          value={gramsText}
+          onChangeText={setGramsText}
+          keyboardType="number-pad"
+          style={styles.input}
+        />
       </View>
-    </Modal>
+    </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
-  body: { gap: 10, paddingBottom: 16 },
   field: { gap: 4 },
   input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   problem: { color: c.error },

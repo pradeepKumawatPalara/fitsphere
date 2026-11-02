@@ -7,11 +7,12 @@ import {
   type MeasurementsSetData,
 } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Button, Modal, Pressable, ScrollView, View } from 'react-native';
+import { Button, Pressable, View } from 'react-native';
 import { formatDay, measurementRange, parseLength } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, getMeta, setMeta } from '../local/store';
 import { themedStyles } from '../theme';
+import { Sheet } from './Sheet';
 import { Text, TextInput } from './ui';
 
 type LengthKey = 'upperWaistMm' | 'lowerWaistMm' | 'chestMm' | 'hipsMm' | 'armMm' | 'thighMm';
@@ -157,104 +158,99 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <View style={styles.headerRow}>
-            <Text accessibilityRole="header" style={styles.title}>
-              {mode === 'edit' ? 'Edit measurements' : 'Measurements'}
-            </Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close without saving" onPress={onClose} style={styles.close}>
-              <Text style={styles.closeText}>✕</Text>
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            {mode === 'edit' ? (
-              <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
-                {formatDay(day)}
-              </Text>
-            ) : (
-              <View style={styles.row}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Previous day"
-                  accessibilityState={{ disabled: day <= firstDay }}
-                  disabled={day <= firstDay}
-                  onPress={() => setDay(addDays(day, -1))}
-                  style={styles.arrow}
-                >
-                  <Text style={[styles.arrowText, day <= firstDay && styles.disabledText]}>‹</Text>
-                </Pressable>
-                <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
-                  {formatDay(day)}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Next day"
-                  accessibilityState={{ disabled: day >= today }}
-                  disabled={day >= today}
-                  onPress={() => setDay(addDays(day, 1))}
-                  style={styles.arrow}
-                >
-                  <Text style={[styles.arrowText, day >= today && styles.disabledText]}>›</Text>
-                </Pressable>
-              </View>
-            )}
-            <View style={styles.row}>
-              {(['cm', 'in'] as const).map((option) => (
-                <Pressable
-                  key={option}
-                  accessibilityRole="button"
-                  accessibilityLabel={option}
-                  accessibilityState={{ selected: unit === option }}
-                  onPress={() => changeUnit(option)}
-                  style={[styles.unit, unit === option && styles.unitSelected]}
-                >
-                  <Text style={unit === option ? styles.unitSelectedText : undefined}>{option}</Text>
-                </Pressable>
-              ))}
-            </View>
-            {REQUIRED.map(({ key, label, guidance }) => lengthField(key, label, guidance))}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="More measurements"
-              accessibilityState={{ expanded: showMore }}
-              onPress={() => setShowMore((open) => !open)}
-            >
-              <Text style={styles.more}>{showMore ? '▾' : '▸'} More measurements</Text>
-            </Pressable>
-            {showMore ? (
-              <>
-                {OPTIONAL.map(({ key, label }) => lengthField(key, label))}
-                <View style={styles.field}>
-                  <Text style={styles.label}>Notes</Text>
-                  <TextInput
-                    accessibilityLabel="Notes"
-                    value={notes}
-                    onChangeText={setNotes}
-                    maxLength={MEASUREMENT_NOTES_MAX}
-                    multiline
-                    style={[styles.input, styles.notes]}
-                  />
-                </View>
-              </>
-            ) : null}
-            <Button title="Save measurements" disabled={!canSave || busy} onPress={() => void save()} />
-          </ScrollView>
+    <Sheet
+      header={
+        <View style={styles.headerRow}>
+          <Text accessibilityRole="header" style={styles.title}>
+            {mode === 'edit' ? 'Edit measurements' : 'Measurements'}
+          </Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close without saving" onPress={onClose} style={styles.close}>
+            <Text style={styles.closeText}>✕</Text>
+          </Pressable>
         </View>
+      }
+      onClose={onClose}
+      actions={<Button title="Save measurements" disabled={!canSave || busy} onPress={() => void save()} />}
+    >
+      {mode === 'edit' ? (
+        <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
+          {formatDay(day)}
+        </Text>
+      ) : (
+        <View style={styles.row}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Previous day"
+            accessibilityState={{ disabled: day <= firstDay }}
+            disabled={day <= firstDay}
+            onPress={() => setDay(addDays(day, -1))}
+            style={styles.arrow}
+          >
+            <Text style={[styles.arrowText, day <= firstDay && styles.disabledText]}>‹</Text>
+          </Pressable>
+          <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
+            {formatDay(day)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Next day"
+            accessibilityState={{ disabled: day >= today }}
+            disabled={day >= today}
+            onPress={() => setDay(addDays(day, 1))}
+            style={styles.arrow}
+          >
+            <Text style={[styles.arrowText, day >= today && styles.disabledText]}>›</Text>
+          </Pressable>
+        </View>
+      )}
+      <View style={styles.row}>
+        {(['cm', 'in'] as const).map((option) => (
+          <Pressable
+            key={option}
+            accessibilityRole="button"
+            accessibilityLabel={option}
+            accessibilityState={{ selected: unit === option }}
+            onPress={() => changeUnit(option)}
+            style={[styles.unit, unit === option && styles.unitSelected]}
+          >
+            <Text style={unit === option ? styles.unitSelectedText : undefined}>{option}</Text>
+          </Pressable>
+        ))}
       </View>
-    </Modal>
+      {REQUIRED.map(({ key, label, guidance }) => lengthField(key, label, guidance))}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="More measurements"
+        accessibilityState={{ expanded: showMore }}
+        onPress={() => setShowMore((open) => !open)}
+      >
+        <Text style={styles.more}>{showMore ? '▾' : '▸'} More measurements</Text>
+      </Pressable>
+      {showMore ? (
+        <>
+          {OPTIONAL.map(({ key, label }) => lengthField(key, label))}
+          <View style={styles.field}>
+            <Text style={styles.label}>Notes</Text>
+            <TextInput
+              accessibilityLabel="Notes"
+              value={notes}
+              onChangeText={setNotes}
+              maxLength={MEASUREMENT_NOTES_MAX}
+              multiline
+              style={[styles.input, styles.notes]}
+            />
+          </View>
+        </>
+      ) : null}
+    </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 16, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 18, fontWeight: '600' },
   close: { padding: 8 },
   closeText: { fontSize: 20 },
-  body: { gap: 12, paddingVertical: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   arrow: { paddingHorizontal: 12, paddingVertical: 6 },
   arrowText: { fontSize: 22 },

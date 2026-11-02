@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Button } from 'react-native';
+import { ActivityIndicator, Button, StyleSheet } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { setNewPassword, startPasswordReset } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
+import { FormScreen } from '../components/FormScreen';
 import { Field, Message, Screen, Text } from '../components/ui';
 
 // "Set a new password", opened by the link in the reset email, fitsphere://reset-password
@@ -58,13 +59,24 @@ export function ResetPasswordScreen() {
       </Screen>
     );
   }
+  // The form scrolls to the field being typed in; the footer, with its button, rides above the keyboard.
   return (
-    <Screen>
+    <FormScreen
+      contentStyle={styles.content}
+      footer={
+        <>
+          <Message text={message} />
+          <Button title="Set password" disabled={busy} onPress={() => void submit()} />
+        </>
+      }
+    >
       <Text accessibilityRole="header">Set a new password</Text>
       <Field label="New password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
       <Text>{TEXTS.passwordRule}</Text>
-      <Message text={message} />
-      <Button title="Set password" disabled={busy} onPress={() => void submit()} />
-    </Screen>
+    </FormScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { gap: 16 },
+});

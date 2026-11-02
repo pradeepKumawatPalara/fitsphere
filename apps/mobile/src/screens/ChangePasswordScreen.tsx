@@ -1,9 +1,8 @@
-import { useContext, useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { changePassword } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
+import { FormScreen } from '../components/FormScreen';
 import { Field, Message, Text, TextButton } from '../components/ui';
 import { themedStyles } from '../theme';
 
@@ -11,8 +10,6 @@ import { themedStyles } from '../theme';
 // characters, as at sign-up. Online only. Afterwards the user's other devices are signed out.
 export function ChangePasswordScreen() {
   const styles = useStyles();
-  // The fixed footer clears the phone's navigation bar; none outside the app (tests).
-  const insets = useContext(SafeAreaInsetsContext);
   const { deps, email } = useAuth();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -59,32 +56,23 @@ export function ChangePasswordScreen() {
   // As on Sign in: the form scrolls to the field being typed in; the footer, with the button and what
   // happened, rides above the keyboard.
   return (
-    <KeyboardAvoidingView behavior="padding" style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" />
-        <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" />
-        <Text style={styles.rule}>{TEXTS.passwordRule}</Text>
-      </ScrollView>
-      <View style={[styles.footer, { paddingBottom: 16 + (insets?.bottom ?? 0) }]}>
-        <Message text={message} />
-        {changed ? <Text accessibilityRole="alert">{TEXTS.passwordChanged}</Text> : null}
-        <TextButton title="Change password" filled disabled={busy} onPress={() => void submit()} />
-      </View>
-    </KeyboardAvoidingView>
+    <FormScreen
+      footer={
+        <>
+          <Message text={message} />
+          {changed ? <Text accessibilityRole="alert">{TEXTS.passwordChanged}</Text> : null}
+          <TextButton title="Change password" filled disabled={busy} onPress={() => void submit()} />
+        </>
+      }
+    >
+      <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" />
+      <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" />
+      <Text style={styles.rule}>{TEXTS.passwordRule}</Text>
+    </FormScreen>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  screen: { flex: 1 },
-  content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 24, gap: 12 },
   // The rule belongs to the new password: closer to it than the fields are to each other.
   rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
-  footer: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: c.border,
-    backgroundColor: c.background,
-  },
 }));

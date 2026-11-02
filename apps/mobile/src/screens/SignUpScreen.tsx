@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button } from 'react-native';
+import { Button, StyleSheet } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { signUp } from '../auth/service';
 import { emailProblem, passwordProblem, TEXTS } from '../auth/texts';
-import { CheckBox, Field, Message, Screen, Text } from '../components/ui';
+import { FormScreen } from '../components/FormScreen';
+import { CheckBox, Field, Message, Text } from '../components/ui';
 
 // REQ-ACC-010, D-18: sign-up needs "I am 18 or older"; the result is always the neutral text.
 export function SignUpScreen() {
@@ -30,16 +31,27 @@ export function SignUpScreen() {
     else router.replace('/check-email');
   }
 
+  // The form scrolls to the field being typed in; the footer, with Sign up, rides above the keyboard.
   return (
-    <Screen>
+    <FormScreen
+      contentStyle={styles.content}
+      footer={
+        <>
+          <Message text={message} />
+          <Button title="Sign up" disabled={!adult || busy} onPress={() => void submit()} />
+          <Button title="I already have an account" onPress={() => router.replace('/sign-in')} />
+        </>
+      }
+    >
       <Text accessibilityRole="header">Create an account</Text>
       <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
       <Text>{TEXTS.passwordRule}</Text>
       <CheckBox label={TEXTS.ageConfirmation} checked={adult} onChange={setAdult} />
-      <Message text={message} />
-      <Button title="Sign up" disabled={!adult || busy} onPress={() => void submit()} />
-      <Button title="I already have an account" onPress={() => router.replace('/sign-in')} />
-    </Screen>
+    </FormScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { gap: 16 },
+});

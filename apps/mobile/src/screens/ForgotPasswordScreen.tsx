@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button } from 'react-native';
+import { Button, StyleSheet } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { requestPasswordReset } from '../auth/service';
 import { emailProblem, TEXTS } from '../auth/texts';
-import { Field, Message, Screen, Text } from '../components/ui';
+import { FormScreen } from '../components/FormScreen';
+import { Field, Message, Text } from '../components/ui';
 
 // REQ-ACC-010, D-11: the same neutral text whether or not the address is registered.
 export function ForgotPasswordScreen() {
@@ -29,19 +30,32 @@ export function ForgotPasswordScreen() {
     else setSent(true);
   }
 
+  // The form scrolls to the field being typed in; the footer, with its button, rides above the keyboard.
   return (
-    <Screen>
+    <FormScreen
+      contentStyle={styles.content}
+      footer={
+        <>
+          {sent ? null : (
+            <>
+              <Message text={message} />
+              <Button title="Send reset link" disabled={busy} onPress={() => void submit()} />
+            </>
+          )}
+          <Button title="Back to sign in" onPress={() => router.replace('/sign-in')} />
+        </>
+      }
+    >
       <Text accessibilityRole="header">Forgot password</Text>
       {sent ? (
         <Text>{TEXTS.resetSent}</Text>
       ) : (
-        <>
-          <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
-          <Message text={message} />
-          <Button title="Send reset link" disabled={busy} onPress={() => void submit()} />
-        </>
+        <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
       )}
-      <Button title="Back to sign in" onPress={() => router.replace('/sign-in')} />
-    </Screen>
+    </FormScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { gap: 16 },
+});

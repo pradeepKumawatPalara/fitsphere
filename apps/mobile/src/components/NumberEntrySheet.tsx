@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Button, Modal, View } from 'react-native';
+import { Button, View } from 'react-native';
 import { themedStyles } from '../theme';
+import { Sheet } from './Sheet';
 import { Text, TextInput } from './ui';
 
 type Props = {
@@ -39,40 +40,37 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              accessibilityLabel={label}
-              value={text}
-              onChangeText={setText}
-              keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
-              autoFocus
-              style={styles.input}
-            />
-            <Text>{unit}</Text>
-          </View>
-          {problem ? (
-            <Text accessibilityRole="alert" style={styles.problem}>
-              {problem}
-            </Text>
-          ) : null}
+    <Sheet
+      title={title}
+      onClose={onClose}
+      actions={
+        <>
           <Button title="Save" disabled={busy} onPress={() => void save()} />
           <Button title="Cancel" onPress={onClose} />
-        </View>
+        </>
+      }
+    >
+      <View style={styles.inputRow}>
+        <TextInput
+          accessibilityLabel={label}
+          value={text}
+          onChangeText={setText}
+          keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
+          autoFocus
+          style={styles.input}
+        />
+        <Text>{unit}</Text>
       </View>
-    </Modal>
+      {problem ? (
+        <Text accessibilityRole="alert" style={styles.problem}>
+          {problem}
+        </Text>
+      ) : null}
+    </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: c.background, padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  title: { fontSize: 18, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 20 },
   problem: { color: c.error },
