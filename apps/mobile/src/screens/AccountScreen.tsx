@@ -1,4 +1,5 @@
 import { AI_CONSENT_TEXT, type BodyWeightUnit, type ThemePreference } from '@fitsphere/shared';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
@@ -10,6 +11,7 @@ import { ExpiredTokenTest } from '../components/ExpiredTokenTest';
 import { LocalDatabaseCheck } from '../components/LocalDatabaseCheck';
 import { TodayIst } from '../components/TodayIst';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
+import { nameFromEmail } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, setMeta } from '../local/store';
 import { useSettings } from '../settings/SettingsProvider';
@@ -82,16 +84,25 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
         <Text style={styles.help}>FitSphere counts your days in India time.</Text>
       </Section>
 
-      {/* Log out and Delete account are destructive: red, and never more prominent than the rows. */}
+      {/* Who is signed in and where to go, in one panel; then, set apart, Log out and Delete account:
+          destructive, so red, never filled, and never more prominent than the rows. */}
       <Section title="Account">
-        <Text style={styles.help}>Signed in as {email}</Text>
         <View style={styles.rows}>
+          <View style={styles.who}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{nameFromEmail(email).charAt(0).toUpperCase() || '?'}</Text>
+            </View>
+            <Text style={styles.whoText}>Signed in as {email}</Text>
+          </View>
+          <View style={styles.rule} />
           <LinkRow title="Your targets" onPress={() => router.push('/targets')} />
           <View style={styles.rule} />
           <LinkRow title="Change password" onPress={() => router.push('/change-password')} />
         </View>
-        <LogOut />
-        <TextButton title="Delete account" destructive onPress={() => router.push('/delete-account')} />
+        <View style={styles.leave}>
+          <LogOut />
+          <TextButton title="Delete account" destructive wide onPress={() => router.push('/delete-account')} />
+        </View>
       </Section>
 
       {showDevTools ? (
@@ -126,9 +137,17 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 /** A row in the Account panel that opens another screen. */
 function LinkRow({ title, onPress }: { title: string; onPress(): void }) {
   const styles = useStyles();
+  const { colors } = useTheme();
+  // The chevron only shows the row leads on; the row's name stays its title.
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
+    >
       <Text style={styles.linkRowText}>{title}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} importantForAccessibility="no" accessibilityElementsHidden />
     </Pressable>
   );
 }
@@ -263,8 +282,14 @@ const useStyles = themedStyles((c) => ({
   // Choice pills, as the meal choice on Log meal: the chosen one filled.
   choices: { flexDirection: 'row', gap: 8 },
   rows: { borderRadius: 12, backgroundColor: c.surface, overflow: 'hidden' },
+  who: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  badge: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
+  whoText: { flexShrink: 1, fontSize: 15 },
   rule: { height: StyleSheet.hairlineWidth, marginHorizontal: 16, backgroundColor: c.border },
-  linkRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16 },
+  linkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
+  // Set apart from the panel: Log out full width and outlined, Delete account under it as red text.
+  leave: { marginTop: 12, gap: 4 },
   linkRowText: { fontSize: 15, fontWeight: '600', color: c.primary },
   pressed: { opacity: 0.6 },
   consent: { gap: 8 },

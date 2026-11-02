@@ -32,7 +32,7 @@ export function LogOut() {
 
   // Destructive, so red and never filled; in the warning, staying signed in comes first and weighs
   // the same, both full width (the red label is too long to share a row).
-  if (unsynced === null) return <TextButton title="Log out" outlined destructive onPress={() => void logOut(false)} />;
+  if (unsynced === null) return <TextButton title="Log out" outlined wide destructive onPress={() => void logOut(false)} />;
   return (
     <View style={styles.warning} accessibilityRole="alert">
       <Text style={styles.text}>
