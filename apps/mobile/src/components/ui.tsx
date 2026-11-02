@@ -52,6 +52,11 @@ export function Field({ label, ...input }: { label: string } & TextInputProps) {
   );
 }
 
+/** Field's input style (48 tall, radius 12, a 1.5 border, text 16), for a field with its own label. */
+export function useFieldInputStyle() {
+  return useStyles().input;
+}
+
 export function CheckBox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   const styles = useStyles();
   return (

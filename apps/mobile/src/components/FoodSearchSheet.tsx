@@ -9,7 +9,7 @@ import { formatGrams, formatKcal, PORTION_UNIT_LABELS } from '../meals';
 import { themedStyles } from '../theme';
 import { PortionStepper } from './PortionStepper';
 import { Sheet } from './Sheet';
-import { Text, TextInput } from './ui';
+import { Text, TextInput, useFieldInputStyle } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g; a dish (D-28)
@@ -20,6 +20,8 @@ type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food };
 
 export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
   const styles = useStyles();
+  // The search field matches the app's fields; the grams field follows with the sheets restyle.
+  const fieldInput = useFieldInputStyle();
   const local = useLocalDatabase();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
@@ -113,7 +115,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         onChangeText={setQuery}
         placeholder="e.g. atta, dal, paneer"
         autoFocus
-        style={styles.input}
+        style={fieldInput}
       />
       {!listCached ? (
         <Text accessibilityRole="alert">{TEXTS.needsInternet('Downloading the food list')}</Text>

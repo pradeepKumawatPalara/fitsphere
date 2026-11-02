@@ -50,7 +50,7 @@ export const LIGHT_COLORS: ThemeColors = {
   border: '#dde3ec',
   text: '#000',
   textMuted: '#555',
-  textFaint: '#999',
+  textFaint: '#858585',
   primary: '#1565c0',
   primaryStrong: '#0d47a1',
   onPrimary: '#fff',

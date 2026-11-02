@@ -150,6 +150,16 @@ describe('REQ-ACC-001 readable in both palettes', () => {
     expect(contrast(colors.onPrimary, colors.primary)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it.each([
+    ['light', LIGHT_COLORS],
+    ['dark', DARK_COLORS],
+  ] as [string, ThemeColors][])('the %s palette: field borders are at least 3:1 on screens, cards and chosen chips, and lighter than muted text', (_, colors) => {
+    for (const ground of [colors.background, colors.surface, colors.surfaceSelected]) {
+      expect(contrast(colors.textFaint, ground)).toBeGreaterThanOrEqual(3);
+    }
+    expect(contrast(colors.textFaint, colors.background)).toBeLessThan(contrast(colors.textMuted, colors.background));
+  });
+
   it('both palettes have every token', () => {
     expect(Object.keys(DARK_COLORS).sort()).toEqual(Object.keys(LIGHT_COLORS).sort());
   });
