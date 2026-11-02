@@ -53,8 +53,7 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
       actions={
         <>
           <TextButton title="Save exercise" filled disabled={busy} onPress={save} />
-          {onRemove ? <TextButton title="Remove exercise" destructive disabled={busy} onPress={() => void run(onRemove)} /> : null}
-          <TextButton title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >
@@ -62,19 +61,15 @@ export function ExerciseSheet({ title, initial, onSave, onRemove, onClose }: Pro
       <View style={styles.numbers}>
         <Input label="Sets" keyboardType="number-pad" style={styles.number} {...field('sets')} />
         <Input label="Reps" keyboardType="number-pad" style={styles.number} {...field('reps')} />
-        <Input
-          label={`Weight in ${unit} (optional)`}
-          keyboardType="decimal-pad"
-          style={styles.number}
-          {...field('weight')}
-        />
       </View>
+      <Input label={`Weight in ${unit} (optional)`} keyboardType="decimal-pad" {...field('weight')} />
       <Input label="Note (optional)" multiline {...field('note')} />
       {problem ? (
         <Text accessibilityRole="alert" style={styles.problem}>
           {problem}
         </Text>
       ) : null}
+      {onRemove ? <TextButton title="Remove exercise" destructive disabled={busy} onPress={() => void run(onRemove)} /> : null}
     </Sheet>
   );
 }
@@ -92,9 +87,10 @@ function Input({ label, style, ...input }: { label: string } & TextInputProps) {
   );
 }
 
-// Remove exercise is red, as a link: Save stays the one filled action.
+// Remove exercise is a red link at the foot of the form, away from Save, the one filled action.
 const useStyles = themedStyles((c) => ({
-  numbers: { flexDirection: 'row', gap: 8 },
+  // Sets and Reps side by side, each half; every field 48 tall on the same edges.
+  numbers: { flexDirection: 'row', gap: 12 },
   number: { flex: 1 },
   field: { gap: 6 },
   digits: { fontVariant: ['tabular-nums'] },

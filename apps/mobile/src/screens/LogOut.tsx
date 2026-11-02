@@ -30,7 +30,8 @@ export function LogOut() {
     router.replace('/sign-in');
   }
 
-  // Destructive, so red and never filled; in the warning, staying signed in weighs the same.
+  // Destructive, so red and never filled; in the warning, staying signed in comes first and weighs
+  // the same, both full width (the red label is too long to share a row).
   if (unsynced === null) return <TextButton title="Log out" outlined destructive onPress={() => void logOut(false)} />;
   return (
     <View style={styles.warning} accessibilityRole="alert">
@@ -38,8 +39,8 @@ export function LogOut() {
         {unsynced === 1 ? '1 entry is' : `${unsynced} entries are`} not on the server yet. If you log out now, they are
         deleted from this phone.
       </Text>
-      <TextButton title="Stay signed in" outlined onPress={() => setUnsynced(null)} />
-      <TextButton title="Log out and delete them" outlined destructive onPress={() => void logOut(true)} />
+      <TextButton title="Stay signed in" outlined wide onPress={() => setUnsynced(null)} />
+      <TextButton title="Log out and delete them" outlined wide destructive onPress={() => void logOut(true)} />
     </View>
   );
 }

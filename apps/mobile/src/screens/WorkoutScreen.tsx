@@ -98,8 +98,12 @@ export function WorkoutScreen() {
           <View accessibilityRole="alert" style={styles.confirm}>
             <Text style={styles.body}>Delete this workout? It leaves your history and your weekly count.</Text>
             <View style={styles.actions}>
-              <TextButton title="Delete" outlined destructive onPress={() => void deleteWorkout()} />
-              <TextButton title="Keep" outlined onPress={() => setConfirming(false)} />
+              <View style={styles.half}>
+                <TextButton title="Keep" outlined wide onPress={() => setConfirming(false)} />
+              </View>
+              <View style={styles.half}>
+                <TextButton title="Delete" outlined wide destructive onPress={() => void deleteWorkout()} />
+              </View>
             </View>
           </View>
         ) : (
@@ -135,7 +139,8 @@ function isFor(change: OutboxEntry, id: string): boolean {
 }
 
 // 12 within the list of exercises; Done is the main action, filled; Delete workout is a red link set
-// apart below it, and its confirmation is as Delete account's: Delete outlined in red beside Keep.
+// apart below it, and its confirmation is as every confirmation: Keep on the left, Delete in red on
+// the right, the same size.
 const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
   title: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
@@ -147,6 +152,7 @@ const useStyles = themedStyles((c) => ({
   note: { fontSize: 13, color: c.textMuted },
   danger: { paddingTop: 12 },
   confirm: { padding: 16, gap: 12, borderRadius: 12, borderWidth: 1.5, borderColor: c.over },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  actions: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
   gone: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
 }));

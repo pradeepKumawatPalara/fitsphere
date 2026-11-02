@@ -59,8 +59,12 @@ export function DeleteAccountScreen() {
         <View accessibilityRole="alert" style={styles.confirm}>
           <Text style={styles.body}>Delete your account? This can't be undone.</Text>
           <View style={styles.actions}>
-            <TextButton title="Delete" outlined destructive disabled={busy} onPress={() => void deleteNow()} />
-            <TextButton title="Keep my account" outlined disabled={busy} onPress={() => setConfirming(false)} />
+            <View style={styles.half}>
+              <TextButton title="Keep my account" outlined wide disabled={busy} onPress={() => setConfirming(false)} />
+            </View>
+            <View style={styles.half}>
+              <TextButton title="Delete" outlined wide destructive disabled={busy} onPress={() => void deleteNow()} />
+            </View>
           </View>
         </View>
       ) : (
@@ -79,5 +83,7 @@ const useStyles = themedStyles((c) => ({
   body: { fontSize: 15 },
   warning: { fontSize: 15, fontWeight: '600' },
   confirm: { gap: 12, padding: 14, borderWidth: 1.5, borderColor: c.over, borderRadius: 12 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  // The way out on the left, the red action on the right, the same size.
+  actions: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
 }));

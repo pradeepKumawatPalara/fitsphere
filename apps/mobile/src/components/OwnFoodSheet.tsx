@@ -65,7 +65,7 @@ export function OwnFoodSheet({
       actions={
         <>
           <TextButton title="Add" filled disabled={!valid} onPress={add} />
-          <TextButton title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >

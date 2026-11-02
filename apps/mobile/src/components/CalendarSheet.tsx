@@ -57,7 +57,7 @@ export function CalendarSheet({ today, firstDay, selected, onSelect, onClose }: 
           </Pressable>
         </View>
       }
-      actions={<TextButton title="Close" onPress={onClose} />}
+      actions={<TextButton title="Close" wide onPress={onClose} />}
     >
       <View style={styles.month}>
         <View style={styles.week}>

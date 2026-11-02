@@ -91,7 +91,8 @@ export function useChoiceStyles() {
  * An action in sentence case, in place of React Native's own Button (on Android, a blue bar in
  * capitals). `filled` for the screen's main action, `outlined` for the step to take first; plain for
  * a link to something else. `destructive` (Log out, Delete) turns it the "over" red; such an action
- * is outlined or a link, never filled. Disabled, it fades and cannot be pressed.
+ * is outlined or a link, never filled. `wide` makes it full width and centred, 48 tall: Cancel under
+ * a main action, and each half of a confirmation. Disabled, it fades and cannot be pressed.
  */
 export function TextButton({
   title,
@@ -99,6 +100,7 @@ export function TextButton({
   outlined = false,
   filled = false,
   destructive = false,
+  wide = false,
   disabled,
 }: {
   title: string;
@@ -106,6 +108,7 @@ export function TextButton({
   outlined?: boolean;
   filled?: boolean;
   destructive?: boolean;
+  wide?: boolean;
   disabled?: boolean;
 }) {
   const styles = useStyles();
@@ -117,12 +120,15 @@ export function TextButton({
       hitSlop={8}
       style={({ pressed }) => [
         filled ? styles.filled : outlined ? styles.outlined : styles.link,
+        wide && styles.wide,
         destructive && styles.destructiveEdge,
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
     >
-      <Text style={[styles.actionText, destructive && styles.destructiveText, filled && styles.filledText]}>{title}</Text>
+      <Text style={[styles.actionText, wide && styles.wideText, destructive && styles.destructiveText, filled && styles.filledText]}>
+        {title}
+      </Text>
     </Pressable>
   );
 }
@@ -189,6 +195,8 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 24,
     backgroundColor: c.primary,
   },
+  wide: { alignSelf: 'stretch', minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  wideText: { textAlign: 'center' },
   pressed: { opacity: 0.6 },
   disabled: { opacity: 0.4 },
   actionText: { color: c.primary, fontSize: 15, fontWeight: '600' },

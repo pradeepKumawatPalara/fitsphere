@@ -1,6 +1,6 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
 import { themedStyles } from '../theme';
 import { Sheet } from './Sheet';
@@ -25,7 +25,7 @@ export function ActionsSheet({
   const styles = useStyles();
   // The actions are a menu: full-width rows in a panel, ruled between them.
   return (
-    <Sheet title={title} onClose={onClose} actions={<TextButton title="Cancel" onPress={onClose} />}>
+    <Sheet title={title} onClose={onClose} actions={<TextButton title="Cancel" wide onPress={onClose} />}>
       {children}
       {actions.length > 0 ? (
         <View style={styles.menu}>
@@ -61,23 +61,28 @@ export function ConfirmSheet({
   onClose(): void;
 }) {
   const styles = useStyles();
-  // As Delete account: the action in red, outlined, beside a way out of the same weight.
+  // As every confirmation: the way out on the left, the action in red on the right, the same size.
   return (
     <Sheet
       title={title}
       onClose={onClose}
       actions={
         <View style={styles.pair}>
-          <TextButton
-            title={confirmLabel}
-            outlined
-            destructive
-            onPress={() => {
-              onClose();
-              onConfirm();
-            }}
-          />
-          <TextButton title="Cancel" outlined onPress={onClose} />
+          <View style={styles.half}>
+            <TextButton title="Cancel" outlined wide onPress={onClose} />
+          </View>
+          <View style={styles.half}>
+            <TextButton
+              title={confirmLabel}
+              outlined
+              wide
+              destructive
+              onPress={() => {
+                onClose();
+                onConfirm();
+              }}
+            />
+          </View>
         </View>
       }
     />
@@ -112,7 +117,7 @@ export function SaveMealSheet({
               onSave(trimmed);
             }}
           />
-          <TextButton title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >
@@ -127,12 +132,20 @@ export function SaveMealSheet({
   );
 }
 
+/** "Breakfast", the longest meal, is about 4.5 em wide at the pills' 15. */
+const LONGEST_SLOT_EM = 4.5;
+
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
 export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
   const styles = useStyles();
   const pill = useChoiceStyles();
+  const { fontScale } = useWindowDimensions();
+  // The row's width, to lay the four out evenly: in one row when "Breakfast" fits a quarter of it
+  // (with the pill's padding and edge), otherwise two by two.
+  const [rowWidth, setRowWidth] = useState(0);
+  const oneRow = (rowWidth - 3 * 8) / 4 >= 15 * LONGEST_SLOT_EM * fontScale + 2 * 8 + 3;
   return (
-    <View style={styles.slots}>
+    <View onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)} style={[styles.slots, !oneRow && styles.slotsGrid]}>
       {MEAL_TYPE_ORDER.map((slot) => (
         <Pressable
           key={slot}
@@ -140,9 +153,11 @@ export function SlotPicker({ value, onChange }: { value: MealType | null; onChan
           accessibilityLabel={MEAL_TYPE_LABELS[slot]}
           accessibilityState={{ checked: value === slot }}
           onPress={() => onChange(slot)}
-          style={({ pressed }) => [pill.choice, value === slot && pill.chosen, pressed && pill.pressed]}
+          style={({ pressed }) => [pill.choice, oneRow ? styles.slotInRow : styles.slotInGrid, value === slot && pill.chosen, pressed && pill.pressed]}
         >
-          <Text style={[pill.choiceText, value === slot && pill.chosenText]}>{MEAL_TYPE_LABELS[slot]}</Text>
+          <Text numberOfLines={1} style={[pill.choiceText, value === slot && pill.chosenText]}>
+            {MEAL_TYPE_LABELS[slot]}
+          </Text>
         </Pressable>
       ))}
     </View>
@@ -179,7 +194,7 @@ export function RelogSheet({
               onLog(chosen);
             }}
           />
-          <TextButton title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >
@@ -196,8 +211,13 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
   destructiveText: { color: c.over },
-  pair: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  pair: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
   body: { fontSize: 15 },
-  // The meals are choice pills: the chosen one filled, as the selected day is on the week strip.
-  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
+  // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
+  slots: { flexDirection: 'row', gap: 8 },
+  slotsGrid: { flexWrap: 'wrap' },
+  slotInRow: { flex: 1, paddingHorizontal: 8 },
+  slotInGrid: { flexGrow: 1, flexBasis: '40%', paddingHorizontal: 8 },
 }));

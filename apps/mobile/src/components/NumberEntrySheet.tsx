@@ -47,7 +47,7 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
       actions={
         <>
           <TextButton title="Save" filled disabled={busy} onPress={() => void save()} />
-          <TextButton title="Cancel" onPress={onClose} />
+          <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >

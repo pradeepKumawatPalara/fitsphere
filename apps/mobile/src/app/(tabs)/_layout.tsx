@@ -11,6 +11,8 @@ export default function TabsLayout() {
         screenOptions={{
           headerTitle: () => <HeaderTitle />,
           headerRight: () => <HeaderActions />,
+          // A flat edge, as the pushed screens' header.
+          headerShadowVisible: false,
           tabBarIcon: () => null,
           tabBarIconStyle: { display: 'none' },
           tabBarLabelStyle: { fontSize: 15 },

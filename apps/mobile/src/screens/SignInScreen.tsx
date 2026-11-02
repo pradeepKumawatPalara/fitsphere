@@ -47,7 +47,7 @@ export function SignInScreen() {
         <>
           <Message text={message} />
           <TextButton title="Sign in" filled disabled={busy} onPress={() => void submit()} />
-          <TextButton title="Create an account" onPress={() => router.replace('/sign-up')} />
+          <TextButton title="Create an account" wide onPress={() => router.replace('/sign-up')} />
         </>
       }
     >

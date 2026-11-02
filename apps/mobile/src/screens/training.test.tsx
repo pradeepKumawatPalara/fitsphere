@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import * as client from '../api/client';
 import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
 import { TrainingScreen } from './TrainingScreen';
@@ -66,6 +67,20 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
 
     expect(await screen.findByText('No workouts from Sat 2 May to Thu 30 Jul.')).toBeOnTheScreen();
+  });
+
+  it('REQ-TRN-004 while older workouts load, only "Load older" waits; "Start an empty workout" stays ready', async () => {
+    await renderInApp(<TrainingScreen />);
+    // The server doesn't answer yet.
+    const pending = jest.spyOn(client, 'callApi').mockReturnValue(new Promise(() => {}));
+    try {
+      await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+
+      expect(screen.getByRole('button', { name: 'Load older' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Start an empty workout' })).toBeEnabled();
+    } finally {
+      pending.mockRestore();
+    }
   });
 
   it('ADR-0007 rule 6 "Load older" offline shows the named warning', async () => {

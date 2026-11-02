@@ -65,7 +65,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               onClose();
             }}
           />
-          <TextButton title="Back to search" onPress={() => setChosen(null)} />
+          <TextButton title="Back to search" wide onPress={() => setChosen(null)} />
         </>
       }
     >
@@ -108,7 +108,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
     </Sheet>
   ) : (
     // The results scroll themselves, so the sheet's body doesn't.
-    <Sheet title="Search foods" scroll={false} onClose={onClose} actions={<TextButton title="Close" onPress={onClose} />}>
+    <Sheet title="Search foods" scroll={false} onClose={onClose} actions={<TextButton title="Close" wide onPress={onClose} />}>
       <TextInput
         accessibilityLabel="Search foods"
         value={query}

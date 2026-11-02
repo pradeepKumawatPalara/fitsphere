@@ -44,7 +44,9 @@ export function TrainingScreen() {
   const [older, setOlder] = useState<Row[]>([]);
   const [oldestLoaded, setOldestLoaded] = useState(firstDay);
   const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  // Each button fades only while its own action runs.
+  const [starting, setStarting] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -66,19 +68,19 @@ export function TrainingScreen() {
 
   /** A new workout on the selected date (as Q-011), saved at once; it counts already (Q-025). */
   async function start() {
-    setBusy(true);
+    setStarting(true);
     const id = await sync.startWorkout(selected);
-    setBusy(false);
+    setStarting(false);
     open(id);
   }
 
   async function loadOlder() {
-    setBusy(true);
+    setLoadingOlder(true);
     setMessage(null);
     const to = addDays(oldestLoaded, -1);
     const from = addDays(to, -(CHUNK_DAYS - 1));
     const result = await fetchOlder(from, to);
-    setBusy(false);
+    setLoadingOlder(false);
     if (result === 'offline') {
       setMessage(TEXTS.needsInternet('Loading older workouts'));
       return;
@@ -118,7 +120,7 @@ export function TrainingScreen() {
           <View style={styles.plan}>
             <Text style={styles.planText}>No training plan yet.</Text>
           </View>
-          <TextButton title="Start an empty workout" filled disabled={busy} onPress={() => void start()} />
+          <TextButton title="Start an empty workout" filled disabled={starting} onPress={() => void start()} />
           <RejectedChanges
             entries={rejected}
             onEdit={(entry) => open(String((entry.data as { id?: unknown }).id))}
@@ -163,7 +165,7 @@ export function TrainingScreen() {
               {message}
             </Text>
           ) : null}
-          <TextButton title="Load older" outlined disabled={busy} onPress={() => void loadOlder()} />
+          <TextButton title="Load older" outlined disabled={loadingOlder} onPress={() => void loadOlder()} />
         </View>
       }
     />

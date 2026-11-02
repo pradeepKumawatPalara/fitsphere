@@ -45,7 +45,7 @@ export function ForgotPasswordScreen() {
               <TextButton title="Send reset link" filled disabled={busy} onPress={() => void submit()} />
             </>
           )}
-          <TextButton title="Back to sign in" filled={sent} onPress={() => router.replace('/sign-in')} />
+          <TextButton title="Back to sign in" filled={sent} wide onPress={() => router.replace('/sign-in')} />
         </>
       }
     >

@@ -48,7 +48,7 @@ export function DaySheet({ today, firstDay, selected, counts, onSelect, onClose 
 
   // In the sheets' frame, which keeps Cancel clear of the navigation bar.
   return (
-    <Sheet title="Log this meal to" onClose={onClose} actions={<TextButton title="Cancel" onPress={onClose} />}>
+    <Sheet title="Log this meal to" onClose={onClose} actions={<TextButton title="Cancel" wide onPress={onClose} />}>
       <View style={styles.days}>
         {days.map((day, index) => {
           const name = index === 0 ? `Today, ${formatDay(day)}` : index === 1 ? `Yesterday, ${formatDay(day)}` : formatDay(day);

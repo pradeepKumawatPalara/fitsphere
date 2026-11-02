@@ -91,7 +91,7 @@ export function BarcodeSheet({
               }}
             />
           ) : null}
-          <TextButton title="Close" onPress={onClose} />
+          <TextButton title="Close" wide onPress={onClose} />
         </>
       }
     >
