@@ -31,7 +31,7 @@ export function MealCard({ title, items, tags, totals, syncState, photo, onMenu,
         accessibilityLabel={onPress ? title : undefined}
         disabled={!onPress}
         onPress={onPress}
-        style={styles.body}
+        style={({ pressed }) => [styles.body, pressed && styles.pressed]}
       >
         <Text style={styles.items}>{describeItems(items)}</Text>
         <Text style={styles.values}>
@@ -49,21 +49,40 @@ export function MealCard({ title, items, tags, totals, syncState, photo, onMenu,
         {note ? <Text style={styles.note}>{note}</Text> : null}
       </Pressable>
       {photo ? <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} /> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={`More for ${title}`} onPress={onMenu} style={styles.menu}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`More for ${title}`}
+        onPress={onMenu}
+        style={({ pressed }) => [styles.menu, pressed && styles.pressed]}
+      >
         <Text style={styles.menuText}>•••</Text>
       </Pressable>
     </View>
   );
 }
 
+// A tile (radius 12) with a hairline edge, so it stands out in a slot's panel and on the Saved tab
+// alike; kcal and protein in fixed-width digits; the ••• is 44 to tap, as on Log meal.
 const useStyles = themedStyles((c) => ({
-  card: { flexDirection: 'row', alignItems: 'flex-start', padding: 12, borderRadius: 10, backgroundColor: c.background, gap: 8 },
-  body: { flex: 1, gap: 4 },
-  items: { fontWeight: '600' },
-  values: { color: c.text },
-  tags: { flexDirection: 'row', gap: 6 },
-  tag: { fontSize: 12, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: c.surfaceSelected, color: c.primaryStrong },
-  note: { color: c.warning, fontSize: 12 },
-  menu: { paddingHorizontal: 8, paddingVertical: 4 },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.background,
+    gap: 8,
+  },
+  body: { flex: 1, gap: 6 },
+  pressed: { opacity: 0.6 },
+  items: { fontSize: 15, fontWeight: '600' },
+  values: { fontSize: 15, color: c.text, fontVariant: ['tabular-nums'] },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tag: { fontSize: 13, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 12, backgroundColor: c.surfaceSelected, color: c.primaryStrong },
+  note: { color: c.warning, fontSize: 13 },
+  menu: { width: 44, height: 44, marginTop: -10, alignItems: 'center', justifyContent: 'center' },
   menuText: { fontSize: 18, color: c.textMuted },
 }));

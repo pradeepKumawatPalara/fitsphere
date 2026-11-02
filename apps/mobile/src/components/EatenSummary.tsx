@@ -1,5 +1,5 @@
 import type { MealTotals } from '@fitsphere/shared';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { formatGrams, formatKcal } from '../meals';
 import { themedStyles, useTheme, type ThemeColors } from '../theme';
 import { Text } from './ui';
@@ -39,12 +39,20 @@ export function EatenSummary({ totals }: { totals: MealTotals | null }) {
   );
 }
 
+// The screen's hero panel, as Home's food panel: radius 16, the day's kcal as a 30 reading, the four
+// nutrients under a hairline, in fixed-width digits.
 const useStyles = themedStyles((c) => ({
-  card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
-  title: { color: c.textMuted },
-  kcal: { fontSize: 24, fontWeight: '700' },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  card: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },
+  title: { fontSize: 15, fontWeight: '600' },
+  kcal: { marginTop: -8, fontSize: 30, fontWeight: '700', letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border,
+  },
   nutrient: { alignItems: 'center', gap: 2 },
   label: { fontWeight: '600', fontSize: 13 },
-  value: { fontSize: 15 },
+  value: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
 }));
