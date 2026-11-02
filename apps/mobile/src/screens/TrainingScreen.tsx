@@ -9,12 +9,12 @@ import {
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, FlatList, Pressable, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { RejectedChanges } from '../components/RejectedChanges';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
@@ -118,7 +118,7 @@ export function TrainingScreen() {
           <View style={styles.plan}>
             <Text style={styles.planText}>No training plan yet.</Text>
           </View>
-          <Button title="Start an empty workout" disabled={busy} onPress={() => void start()} />
+          <TextButton title="Start an empty workout" filled disabled={busy} onPress={() => void start()} />
           <RejectedChanges
             entries={rejected}
             onEdit={(entry) => open(String((entry.data as { id?: unknown }).id))}
@@ -135,7 +135,7 @@ export function TrainingScreen() {
         const content = (
           <>
             <Text style={styles.day}>{formatDay(item.day)}</Text>
-            <Text>{workoutSummary(item.exercises)}</Text>
+            <Text style={styles.summary}>{workoutSummary(item.exercises)}</Text>
             {note ? <Text style={item.syncState === 'rejected' ? styles.problem : styles.note}>{note}</Text> : null}
           </>
         );
@@ -145,7 +145,12 @@ export function TrainingScreen() {
             {content}
           </View>
         ) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => open(item.id)} style={styles.row}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            onPress={() => open(item.id)}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+          >
             {content}
           </Pressable>
         );
@@ -153,23 +158,33 @@ export function TrainingScreen() {
       ListEmptyComponent={<Text style={styles.note}>No workouts logged yet.</Text>}
       ListFooterComponent={
         <View style={styles.footer}>
-          {message ? <Text accessibilityRole="alert">{message}</Text> : null}
-          <Button title="Load older" disabled={busy} onPress={() => void loadOlder()} />
+          {message ? (
+            <Text accessibilityRole="alert" style={styles.body}>
+              {message}
+            </Text>
+          ) : null}
+          <TextButton title="Load older" outlined disabled={busy} onPress={() => void loadOlder()} />
         </View>
       }
     />
   );
 }
 
+// 24 between groups, 12 within one. Starting a workout is the screen's main action, filled; each
+// logged workout is a tile with a hairline edge, as a meal on Nutrition; Load older is outlined, as
+// on Weight history.
 const useStyles = themedStyles((c) => ({
-  content: { padding: 16, gap: 8 },
-  header: { gap: 12, paddingBottom: 4 },
+  content: { padding: 16, gap: 12 },
+  header: { gap: 12 },
   plan: { padding: 16, borderRadius: 12, backgroundColor: c.surface },
-  planText: { fontSize: 16 },
-  heading: { fontSize: 18, fontWeight: '600', marginTop: 8 },
-  row: { padding: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border, gap: 2 },
-  day: { fontWeight: '600' },
-  note: { color: c.textMuted },
-  problem: { color: c.error },
-  footer: { paddingTop: 8, gap: 12 },
+  planText: { fontSize: 15, color: c.textMuted },
+  heading: { marginTop: 12, fontSize: 15, fontWeight: '600' },
+  row: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, gap: 4 },
+  pressed: { opacity: 0.6 },
+  day: { fontSize: 15, fontWeight: '600' },
+  summary: { fontSize: 15, fontVariant: ['tabular-nums'] },
+  body: { fontSize: 15 },
+  note: { fontSize: 13, color: c.textMuted },
+  problem: { fontSize: 13, color: c.error },
+  footer: { paddingTop: 12, gap: 12 },
 }));

@@ -1,16 +1,16 @@
 import { MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { RejectedChanges } from '../components/RejectedChanges';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles, useTheme } from '../theme';
+import { themedStyles } from '../theme';
 import { EMPTY_EXERCISE, formatSets, toExerciseText } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
@@ -27,7 +27,6 @@ export function WorkoutScreen() {
   const local = useLocalDatabase();
   const sync = useSync();
   const unit = useLiftingWeightUnit();
-  const { colors } = useTheme();
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -52,8 +51,8 @@ export function WorkoutScreen() {
     // Deleted, or no longer on this phone.
     return (
       <View style={styles.gone}>
-        <Text>This workout is not on this phone.</Text>
-        <Button title="Done" onPress={() => router.back()} />
+        <Text style={styles.body}>This workout is not on this phone.</Text>
+        <TextButton title="Done" filled onPress={() => router.back()} />
       </View>
     );
   }
@@ -81,30 +80,32 @@ export function WorkoutScreen() {
           accessibilityRole="button"
           accessibilityLabel={`${exercise.name}: ${formatSets(exercise, unit)}`}
           onPress={() => setSheet({ index })}
-          style={styles.exercise}
+          style={({ pressed }) => [styles.exercise, pressed && styles.pressed]}
         >
           <Text style={styles.name}>{exercise.name}</Text>
-          <Text>{formatSets(exercise, unit)}</Text>
+          <Text style={styles.sets}>{formatSets(exercise, unit)}</Text>
           {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
         </Pressable>
       ))}
       {workout.exercises.length < MAX_WORKOUT_EXERCISES ? (
-        <Button title="Add exercise" onPress={() => setSheet({ index: null })} />
+        <TextButton title="Add exercise" outlined onPress={() => setSheet({ index: null })} />
       ) : (
         <Text style={styles.note}>A workout holds up to {MAX_WORKOUT_EXERCISES} exercises.</Text>
       )}
-      <Button title="Done" onPress={() => router.back()} />
-      {confirming ? (
-        <View accessibilityRole="alert" style={styles.confirm}>
-          <Text>Delete this workout? It leaves your history and your weekly count.</Text>
-          <View style={styles.actions}>
-            <Button title="Delete" color={colors.error} onPress={() => void deleteWorkout()} />
-            <Button title="Keep" onPress={() => setConfirming(false)} />
+      <TextButton title="Done" filled onPress={() => router.back()} />
+      <View style={styles.danger}>
+        {confirming ? (
+          <View accessibilityRole="alert" style={styles.confirm}>
+            <Text style={styles.body}>Delete this workout? It leaves your history and your weekly count.</Text>
+            <View style={styles.actions}>
+              <TextButton title="Delete" outlined destructive onPress={() => void deleteWorkout()} />
+              <TextButton title="Keep" outlined onPress={() => setConfirming(false)} />
+            </View>
           </View>
-        </View>
-      ) : (
-        <Button title="Delete workout" color={colors.error} onPress={() => setConfirming(true)} />
-      )}
+        ) : (
+          <TextButton title="Delete workout" destructive onPress={() => setConfirming(true)} />
+        )}
+      </View>
       {sheet ? (
         <ExerciseSheet
           title={editing ? 'Edit exercise' : 'Add exercise'}
@@ -133,13 +134,19 @@ function isFor(change: OutboxEntry, id: string): boolean {
   );
 }
 
+// 12 within the list of exercises; Done is the main action, filled; Delete workout is a red link set
+// apart below it, and its confirmation is as Delete account's: Delete outlined in red beside Keep.
 const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
-  title: { fontSize: 20, fontWeight: '600' },
+  title: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
   exercise: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
-  name: { fontSize: 16, fontWeight: '600' },
-  note: { color: c.textMuted },
-  confirm: { padding: 12, gap: 8, borderRadius: 8, borderWidth: 1, borderColor: c.error },
-  actions: { flexDirection: 'row', gap: 12 },
-  gone: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
+  pressed: { opacity: 0.6 },
+  name: { fontSize: 15, fontWeight: '600' },
+  sets: { fontSize: 15, fontVariant: ['tabular-nums'] },
+  body: { fontSize: 15 },
+  note: { fontSize: 13, color: c.textMuted },
+  danger: { paddingTop: 12 },
+  confirm: { padding: 16, gap: 12, borderRadius: 12, borderWidth: 1.5, borderColor: c.over },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  gone: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
 }));
