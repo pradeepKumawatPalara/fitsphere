@@ -903,6 +903,22 @@ checksum), and the configuration template was left as it is.*
   `docs/quality/test-strategy.md`; `CLAUDE.md` (current phase, "Before real users");
   `docs/README.md`; the final IDs wherever the temporary ones were used.
 
+## D-33 Changes from the owner's review of the refreshed app on a phone (2026-11-02)
+- Status: **Accepted** (owner instruction in chat, 2026-11-02, on the `ui-refresh` branch).
+- Answers:
+  1. **An icon package.** `@expo/vector-icons` (Ionicons) is added for the header's calendar and the
+     meal cards' actions: JavaScript only, its font loaded by `expo-font`, which is already in the
+     development build, so no new build is needed. The tabs keep text labels only (D-23).
+  2. **Meal actions as icons (REQ-NUT-004, Q-032).** Each logged meal shows Edit, "Save to my meals"
+     and Delete as icons on the meal, in place of the "•••" menu; a saved meal shows Delete. Each
+     icon is named for screen readers ("Edit Lunch: …", "Save Lunch: … to my meals", "Delete
+     Lunch: …") and 44 dp to tap. Delete still asks "Delete this meal?" (or "Delete this saved
+     meal?") first; Delete is red, never filled.
+- Unchanged: what each action does, the confirmation steps, the invariants, the other D- decisions,
+  privacy rules and the accepted ADRs.
+- Doc changes: REQ-NUT-004 in `docs/product/requirements.md`; Q-032 in `docs/product/mvp-scope.md`
+  and `docs/architecture/constraints-and-assumptions.md` (with A-004 and the tabs' note).
+
 ---
 
 ## Proposed replacement wording for the two invariants

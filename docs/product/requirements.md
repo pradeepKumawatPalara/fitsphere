@@ -377,7 +377,7 @@ B-22).
 - MVP default (D-18): tags attach to a meal, which keeps its meal type; a tagged meal shows a small label in its slot (Q-031).
 
 ### REQ-NUT-004 — Meal menu: edit, delete, save to my meals
-- Requirement: Each logged meal has a "•••" menu with Edit, Delete and "Save to my meals" (MVP default, Q-032). "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
+- Requirement: Each logged meal offers Edit, Delete and "Save to my meals" (MVP default, Q-032), as icons on the meal, each named for screen readers and 44 dp to tap; Delete asks first (D-33, which replaced the first "•••" menu). A saved meal offers Delete the same way. "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
 
 ---
 

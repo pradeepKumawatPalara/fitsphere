@@ -5,7 +5,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
 import { LogMealButton } from '../components/LogMealButton';
 import { MealCard } from '../components/MealCard';
-import { ActionsSheet, ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
+import { ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay } from '../format';
@@ -31,10 +31,8 @@ const TABS: { tab: Tab; label: string }[] = [
 ];
 
 type Sheet =
-  | { kind: 'mealMenu'; meal: LocalMeal }
   | { kind: 'deleteMeal'; meal: LocalMeal }
   | { kind: 'saveMeal'; meal: LocalMeal }
-  | { kind: 'savedMenu'; saved: LocalSavedMeal }
   | { kind: 'deleteSaved'; saved: LocalSavedMeal }
   | { kind: 'relog'; saved: LocalSavedMeal };
 
@@ -155,7 +153,9 @@ export function NutritionScreen() {
                       totals={meal}
                       syncState={meal.syncState}
                       photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
-                      onMenu={() => setSheet({ kind: 'mealMenu', meal })}
+                      onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
+                      onSave={() => setSheet({ kind: 'saveMeal', meal })}
+                      onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
                     />
                   ))}
                 </View>
@@ -169,7 +169,7 @@ export function NutritionScreen() {
         {tab === 'saved' ? (
           saved.length === 0 ? (
             <Text style={styles.empty}>
-              No saved meals yet. In Consumed, open a meal&apos;s ••• menu and choose &quot;Save to my meals&quot;.
+              No saved meals yet. In Consumed, tap the bookmark on a meal to save it to your meals.
             </Text>
           ) : (
             saved.map((entry) => (
@@ -181,7 +181,7 @@ export function NutritionScreen() {
                 totals={entry}
                 syncState={entry.syncState}
                 onPress={() => setSheet({ kind: 'relog', saved: entry })}
-                onMenu={() => setSheet({ kind: 'savedMenu', saved: entry })}
+                onDelete={() => setSheet({ kind: 'deleteSaved', saved: entry })}
               />
             ))
           )
@@ -189,17 +189,6 @@ export function NutritionScreen() {
       </ScrollView>
       <LogMealButton day={selected} />
 
-      {sheet?.kind === 'mealMenu' ? (
-        <ActionsSheet
-          title={describeItems(sheet.meal.items)}
-          actions={[
-            { label: 'Edit', onPress: () => router.push({ pathname: '/log-meal', params: { mealId: sheet.meal.id } }) },
-            { label: 'Delete', destructive: true, onPress: () => setSheet({ kind: 'deleteMeal', meal: sheet.meal }) },
-            { label: 'Save to my meals', onPress: () => setSheet({ kind: 'saveMeal', meal: sheet.meal }) },
-          ]}
-          onClose={() => setSheet((current) => (current?.kind === 'mealMenu' ? null : current))}
-        />
-      ) : null}
       {sheet?.kind === 'deleteMeal' ? (
         <ConfirmSheet
           title="Delete this meal?"
@@ -221,13 +210,6 @@ export function NutritionScreen() {
             })
           }
           onClose={() => setSheet(null)}
-        />
-      ) : null}
-      {sheet?.kind === 'savedMenu' ? (
-        <ActionsSheet
-          title={sheet.saved.name}
-          actions={[{ label: 'Delete', destructive: true, onPress: () => setSheet({ kind: 'deleteSaved', saved: sheet.saved }) }]}
-          onClose={() => setSheet((current) => (current?.kind === 'savedMenu' ? null : current))}
         />
       ) : null}
       {sheet?.kind === 'deleteSaved' ? (

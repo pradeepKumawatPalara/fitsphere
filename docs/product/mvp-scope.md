@@ -31,7 +31,7 @@ Only the Personal Training User view (D-20). Every account is a Personal Trainin
 | Role | Every account is a Personal Training User; the role selector is hidden (D-20) | ROLE-001 (MVP default only) |
 | Own targets | The user sets their own daily calorie, protein and steps targets, weekly workout target and target body weight, labelled "Set by you" (D-20; extends Q-016) | ROLE-007 |
 | Home | Date strip, past-date banner, calories and protein cards, weight/steps/sleep tiles, workout tracker, measurements card | DATE-*, HOME-* |
-| Nutrition | Consumed (summary, meal slots, ••• menu); Diet plan as an empty state only: "No diet plan yet. Your coach will add one here." (D-20); Saved | NUT-*, PLAN-007, SAVED-* |
+| Nutrition | Consumed (summary, meal slots, each meal's Edit, Save to my meals and Delete icons, D-33); Diet plan as an empty state only: "No diet plan yet. Your coach will add one here." (D-20); Saved | NUT-*, PLAN-007, SAVED-* |
 | Log meal | Date chip and day sheet; meal type and tags; typed text read by AI; photo (meal or label) read by AI; voice using the phone's built-in speech-to-text (ADR-0005); food search; barcode; saved meals; review before saving; photo upload or public image link with warning | LOG-* |
 | Measurements | Bottom sheet, cm/in, mandatory waist fields, optional fields | MEAS-* |
 | Training | "No training plan yet", "Start an empty workout", log sets/reps/weight, workout history (D-20) | TRN-002…005 |
@@ -74,7 +74,7 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-029 Close (X) with input | Closes without warning |
 | Q-030 Same day twice | Weight, steps, sleep, measurements: one value per day; a new entry replaces it |
 | Q-031 Tags | Tags attach to a meal; meal type is required; tagged meals show a small label in their slot |
-| Q-032 Meal ••• menu | Edit, Delete, Save to my meals. Deleting a meal deletes its photo |
+| Q-032 Meal actions | Edit, Delete, Save to my meals, as icons on the meal (D-33; first a ••• menu). Deleting a meal deletes its photo |
 | Q-033 "Got it" | Remembered per user |
 | Q-034 Option totals | Post-MVP with diet plans (D-20). When built: each option shows its own kcal and protein |
 | Q-035 Option button | Post-MVP with diet plans (D-20). When built: "Log this option" logs it to that meal slot on the selected date |
