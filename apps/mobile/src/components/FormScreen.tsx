@@ -1,12 +1,18 @@
-import { useContext, type ReactNode } from 'react';
-import { KeyboardAvoidingView, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useContext, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
+import { Keyboard, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { themedStyles } from '../theme';
 
 // A screen with a form (Sign in, Sign up, Forgot password, Reset password, Change password): the
 // form scrolls to the field being typed in, and the footer, with the main button, rides above the
 // keyboard. The footer's padding clears the phone's navigation bar; with the keyboard up the bar is
-// behind it, so the offset takes that padding back and no strip shows above the keyboard.
+// behind it, so the lift takes that padding back and no strip shows above the keyboard.
+//
+// The screen lifts itself rather than using React Native's KeyboardAvoidingView, which reacts only
+// to a keyboard that opens after the screen appears. Sign up opens from Sign in's footer while the
+// keyboard is still up; tapping its fields then sends no new event, and its button stayed behind
+// the keyboard. Here the keyboard is read when the screen appears too, and the screen's bottom edge
+// is measured on screen rather than taken from its place under the header.
 export function FormScreen({
   children,
   footer,
@@ -19,14 +25,41 @@ export function FormScreen({
   const styles = useStyles();
   // None outside the app (tests).
   const bottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const frame = useRef<ComponentRef<typeof View>>(null);
+  // The keyboard's top edge on screen, or null while it is closed.
+  const [keyboardTop, setKeyboardTop] = useState(() => Keyboard.metrics()?.screenY ?? null);
+  // The screen's bottom edge on screen, once measured.
+  const [screenBottom, setScreenBottom] = useState<number | null>(null);
+
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', (event) => {
+      setKeyboardTop(event.endCoordinates.screenY);
+      measureBottom(frame.current, setScreenBottom);
+    });
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardTop(null));
+    return () => {
+      shown.remove();
+      hidden.remove();
+    };
+  }, []);
+
+  const lift = keyboardTop === null || screenBottom === null ? 0 : Math.max(screenBottom - keyboardTop - bottom, 0);
   return (
-    <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={-bottom} style={styles.screen}>
+    <View
+      ref={frame}
+      onLayout={() => measureBottom(frame.current, setScreenBottom)}
+      style={[styles.screen, { paddingBottom: lift }]}
+    >
       <ScrollView contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled">
         {children}
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: 16 + bottom }]}>{footer}</View>
-    </KeyboardAvoidingView>
+    </View>
   );
+}
+
+function measureBottom(view: ComponentRef<typeof View> | null, onBottom: (bottom: number) => void) {
+  view?.measureInWindow((_x, y, _width, height) => onBottom(y + height));
 }
 
 // 24 between groups, 12 within one, 8 in the footer.

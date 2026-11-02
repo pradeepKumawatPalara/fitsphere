@@ -1,17 +1,20 @@
 import type { Food } from '@fitsphere/shared';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import type { ComponentType } from 'react';
-import { KeyboardAvoidingView, StyleSheet } from 'react-native';
+import { DeviceEventEmitter, Keyboard, KeyboardAvoidingView, StyleSheet, View } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { AuthProvider } from '../auth/AuthProvider';
+import { FormScreen } from '../components/FormScreen';
 import { Text } from '../components/ui';
 import { replaceFoods } from '../local/store';
 import { useSync } from '../sync/SyncProvider';
 import { renderInApp } from '../testing/appHarness';
-import { deps, fakeApi, fakeAuthClient } from '../testing/fakes';
+import { deps, fakeApi, fakeAuthClient, fakeSession } from '../testing/fakes';
 import { ChangePasswordScreen } from './ChangePasswordScreen';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { HomeScreen } from './HomeScreen';
 import { LogMealScreen } from './LogMealScreen';
+import { ResetPasswordScreen } from './ResetPasswordScreen';
 import { SignInScreen } from './SignInScreen';
 import { SignUpScreen } from './SignUpScreen';
 import { TrainingScreen } from './TrainingScreen';
@@ -37,8 +40,8 @@ beforeEach(() => {
 // - A field that grows (flex: 1) may only grow along a row: in a column its flex basis is 0, so it
 //   gets just its padding and border, and Android clips the typed text and the placeholder out of
 //   sight. That hid the Search foods text.
-// - Every field sits in a KeyboardAvoidingView (FormScreen or Sheet): Android doesn't move an
-//   edge-to-edge sheet for the keyboard.
+// - Every field sits in a FormScreen or a Sheet (a KeyboardAvoidingView): Android doesn't move an
+//   edge-to-edge screen or sheet for the keyboard.
 
 const FOODS: Food[] = [
   { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false },
@@ -63,7 +66,7 @@ function fieldProblems(): string[] {
       const direction = field.parent ? StyleSheet.flatten(field.parent.props.style)?.flexDirection : undefined;
       let avoidsKeyboard = false;
       for (let fiber = field.unstable_fiber; fiber; fiber = fiber.return) {
-        if (fiber.type === KeyboardAvoidingView) avoidsKeyboard = true;
+        if (fiber.type === KeyboardAvoidingView || fiber.type === FormScreen) avoidsKeyboard = true;
       }
       return [
         ...(grows && direction !== 'row' && direction !== 'row-reverse' ? [`${label}: no room for its text`] : []),
@@ -167,5 +170,127 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
 
     expect(await screen.findByLabelText(field)).toBeOnTheScreen();
     expect(fieldProblems()).toEqual([]);
+  });
+});
+
+// A form screen's main button stays above the keyboard (REQ-ACC-001), also when the screen opens
+// with the keyboard already up: Sign up opens from Sign in's footer while typing, and React
+// Native's KeyboardAvoidingView, which reacts only to a keyboard opened after the screen appears,
+// left Sign up's button behind it. The phone is the owner's size, with 3-button navigation: the
+// screen sits under the header, from 88 to 915 on screen, and the keyboard's top edge is at 560.
+const SCREEN_TOP = 88;
+const SCREEN_BOTTOM = 915;
+const KEYBOARD_TOP = 560;
+const NAVIGATION_BAR = 48;
+
+type Measurable = { measureInWindow(done: (x: number, y: number, width: number, height: number) => void): void };
+type Element = ReturnType<typeof screen.getByText>;
+
+async function keyboard(event: 'keyboardDidShow' | 'keyboardDidHide') {
+  const screenY = event === 'keyboardDidShow' ? KEYBOARD_TOP : SCREEN_BOTTOM;
+  await act(async () => {
+    DeviceEventEmitter.emit(event, {
+      duration: 0,
+      easing: 'keyboard',
+      endCoordinates: { screenX: 0, screenY, width: 412, height: SCREEN_BOTTOM - screenY },
+    });
+  });
+}
+
+async function renderForm(Screen: ComponentType) {
+  const client = fakeAuthClient();
+  // Reset password opens from the link in the email, with its one-time code.
+  mockParams.code = 'one-time-code';
+  client.exchangeCodeForSession.mockResolvedValueOnce({ data: { session: fakeSession() }, error: null });
+  await render(
+    <SafeAreaInsetsContext.Provider value={{ top: 0, right: 0, bottom: NAVIGATION_BAR, left: 0 }}>
+      <AuthProvider deps={deps(client, fakeApi({}).fetchImpl)}>
+        <Screen />
+      </AuthProvider>
+    </SafeAreaInsetsContext.Provider>,
+  );
+}
+
+/** The view lifted above the keyboard: the screen's outermost view, which knows its own layout. */
+function liftedView(): Element {
+  const [view] = screen.container.queryAll((element) => element.type === 'View' && typeof element.props.onLayout === 'function');
+  if (!view) throw new Error('No view that knows its own layout');
+  return view;
+}
+
+/** Lays the screen out under the header, as the phone does. */
+async function layOut() {
+  await fireEvent(liftedView(), 'layout', {
+    persist() {},
+    nativeEvent: { layout: { x: 0, y: 0, width: 412, height: SCREEN_BOTTOM - SCREEN_TOP } },
+  });
+}
+
+function paddingBottom(element: Element): number {
+  return Number(StyleSheet.flatten(element.props.style)?.paddingBottom ?? 0);
+}
+
+/** Where the button's footer ends on screen, above its own padding, once the screen is lifted. */
+function footerBottom(button: Element): number {
+  const lifted = liftedView();
+  let footer = button;
+  while (footer.parent && footer.parent !== lifted) footer = footer.parent;
+  return SCREEN_BOTTOM - paddingBottom(lifted) - paddingBottom(footer);
+}
+
+/** Whether an element scrolls with the form rather than sitting in the fixed footer. */
+function scrolls(element: Element): boolean {
+  for (let parent = element.parent; parent; parent = parent.parent) if (parent.type === 'RCTScrollView') return true;
+  return false;
+}
+
+describe('REQ-ACC-001 a form screen keeps its main button above the keyboard', () => {
+  let measure: jest.SpyInstance | undefined;
+
+  beforeEach(() => {
+    expect(Keyboard.isVisible()).toBe(false);
+    // Where the screen sits on the phone's screen.
+    measure = jest
+      .spyOn(View.prototype as unknown as Measurable, 'measureInWindow')
+      .mockImplementation((done) => done(0, SCREEN_TOP, 412, SCREEN_BOTTOM - SCREEN_TOP));
+  });
+
+  afterEach(async () => {
+    await keyboard('keyboardDidHide');
+    measure?.mockRestore();
+  });
+
+  const FORMS: [string, ComponentType, string][] = [
+    ['Sign in', SignInScreen, 'Sign in'],
+    ['Sign up', SignUpScreen, 'Sign up'],
+    ['Forgot password', ForgotPasswordScreen, 'Send reset link'],
+    ['Reset password', ResetPasswordScreen, 'Set password'],
+    ['Change password', ChangePasswordScreen, 'Change password'],
+  ];
+
+  it.each(FORMS)('%s: opened with the keyboard already up', async (_, Screen, title) => {
+    await keyboard('keyboardDidShow');
+    expect(Keyboard.isVisible()).toBe(true);
+
+    await renderForm(Screen);
+    await layOut();
+
+    const button = await screen.findByRole('button', { name: title });
+    expect(scrolls(button)).toBe(false);
+    // 16 above the keyboard, the footer's own space; the navigation bar is behind the keyboard.
+    expect(footerBottom(button)).toBe(KEYBOARD_TOP - 16);
+  });
+
+  it.each(FORMS)('%s: the keyboard opens and closes', async (_, Screen, title) => {
+    await renderForm(Screen);
+    await layOut();
+    const button = await screen.findByRole('button', { name: title });
+    expect(footerBottom(button)).toBe(SCREEN_BOTTOM - 16 - NAVIGATION_BAR);
+
+    await keyboard('keyboardDidShow');
+    expect(footerBottom(button)).toBe(KEYBOARD_TOP - 16);
+
+    await keyboard('keyboardDidHide');
+    expect(footerBottom(button)).toBe(SCREEN_BOTTOM - 16 - NAVIGATION_BAR);
   });
 });
