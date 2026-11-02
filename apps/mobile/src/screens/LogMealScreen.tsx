@@ -16,7 +16,7 @@ import { useContext, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
-import { DaySheet } from '../components/DaySheet';
+import { CalendarSheet } from '../components/CalendarSheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
@@ -253,7 +253,15 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
       </View>
 
       {sheet === 'day' ? (
-        <DaySheet today={today} firstDay={firstDay} selected={day} counts={counts} onSelect={setDay} onClose={() => setSheet(null)} />
+        <CalendarSheet
+          title="Log this meal to"
+          today={today}
+          firstDay={firstDay}
+          selected={day}
+          counts={counts}
+          onSelect={setDay}
+          onClose={() => setSheet(null)}
+        />
       ) : null}
       {sheet === 'search' ? <FoodSearchSheet onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
       {sheet === 'barcode' ? (

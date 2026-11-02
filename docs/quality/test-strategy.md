@@ -156,8 +156,8 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   selected date (Q-011); a rejected meal's text and Edit.
 
 ### Log meal (app component tests)
-- The date and slot it opens with (Q-011); the day sheet's statuses (Q-037) and "Another day…";
-  a future date falls back to today.
+- The date and slot it opens with (Q-011); the calendar's day statuses (Q-037), any past day of the
+  90 and no future day (D-33); a future date falls back to today.
 - Offline search with the IFCT acknowledgement; estimated oils; grams refused outside 1–2,000;
   the needs-internet message before the list is downloaded; your own food; adding a saved
   meal's foods.

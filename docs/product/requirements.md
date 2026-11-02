@@ -452,8 +452,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Requirement: Log meal opens from any "+" button and has a back button and a date chip.
 
 ### REQ-LOG-002 — Date picker sheet
-- Requirement: The date chip opens a "Log this meal to" sheet listing Today, Yesterday and the five days before, each with its logging status (e.g. "nothing logged"), plus "Another day…" which opens a calendar.
-- MVP default (D-18): each day shows "Nothing logged" or "N meals logged" (Q-037).
+- Requirement: The date chip opens a calendar titled "Log this meal to", on the selected month. Any past day of the phone's 90 days can be picked; future days cannot (Q-017). Each day with a meal has a dot, and each day is read out with its logging status (D-33, which replaced the first sheet listing Today, Yesterday and the five days before, plus "Another day…" for the calendar).
+- MVP default (D-18): the status is "Nothing logged" or "N meals logged" (Q-037).
 
 ### REQ-LOG-003 — Meal type and tags
 - Requirement: The user selects one meal type (Breakfast, Lunch, Snack, Dinner) and may add tags "Before training" and "Dessert".

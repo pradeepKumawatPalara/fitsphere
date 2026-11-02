@@ -914,10 +914,16 @@ checksum), and the configuration template was left as it is.*
      icon is named for screen readers ("Edit Lunch: …", "Save Lunch: … to my meals", "Delete
      Lunch: …") and 44 dp to tap. Delete still asks "Delete this meal?" (or "Delete this saved
      meal?") first; Delete is red, never filled.
-- Unchanged: what each action does, the confirmation steps, the invariants, the other D- decisions,
-  privacy rules and the accepted ADRs.
-- Doc changes: REQ-NUT-004 in `docs/product/requirements.md`; Q-032 in `docs/product/mvp-scope.md`
-  and `docs/architecture/constraints-and-assumptions.md` (with A-004 and the tabs' note).
+  3. **Log meal's date is a calendar (REQ-LOG-002, Q-037).** The date chip opens the calendar,
+     titled "Log this meal to", in place of the sheet of Today, Yesterday and the five days before
+     with "Another day…". The limits are unchanged: any past day of the phone's 90 days (D-23), no
+     future day (Q-017). Each day with a meal has a dot, and each day is read out with its status,
+     "Nothing logged" or "N meals logged" (Q-037). The header's calendar is unchanged.
+- Unchanged: what each action does, the confirmation steps, the date limits, the invariants, the
+  other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: REQ-NUT-004 and REQ-LOG-002 in `docs/product/requirements.md`; Q-032 and Q-037 in
+  `docs/product/mvp-scope.md` and `docs/architecture/constraints-and-assumptions.md` (with A-004
+  and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`.
 
 ---
 

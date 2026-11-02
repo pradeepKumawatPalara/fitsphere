@@ -76,21 +76,24 @@ describe('REQ-LOG-001 and REQ-LOG-002 the date', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Date: Wed 28 Oct' }));
 
-    expect(await screen.findByRole('button', { name: 'Today, Wed 28 Oct: 1 meal logged' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Yesterday, Tue 27 Oct: 2 meals logged' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Thu 22 Oct: Nothing logged' })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Yesterday, Tue 27 Oct: 2 meals logged' }));
+    // The calendar, titled for logging (D-33), each day with its status (Q-037).
+    expect(await screen.findByRole('header', { name: 'Log this meal to' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Wednesday 28 October 2026, today, 1 meal logged' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Tuesday 27 October 2026, 2 meals logged' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Thursday 22 October 2026, Nothing logged' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 October 2026, 2 meals logged' }));
     expect(screen.getByRole('button', { name: 'Date: Tue 27 Oct' })).toBeOnTheScreen();
   });
 
-  it('REQ-LOG-002 "Another day…" opens the calendar', async () => {
+  it('REQ-LOG-002 the calendar picks any past day in the phone’s 90 days, and no future day (Q-017)', async () => {
     await render();
     await fireEvent.press(await screen.findByRole('button', { name: 'Date: Wed 28 Oct' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Another day…' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Monday 5 October 2026' }));
+    expect(screen.getByRole('button', { name: 'Thursday 29 October 2026, Nothing logged' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Monday 7 September 2026, Nothing logged' }));
 
-    expect(screen.getByRole('button', { name: 'Date: Mon 5 Oct' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: /^Date: Mon 7 Sep/ })).toBeOnTheScreen();
   });
 
   it('Q-017 a future or unknown date in the link falls back to today', async () => {
