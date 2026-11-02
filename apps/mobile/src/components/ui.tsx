@@ -62,18 +62,36 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
 
 /**
  * An action in sentence case, in place of React Native's own Button (on Android, a blue bar in
- * capitals). `outlined` for the step to take first; plain for a link to something else.
+ * capitals). `filled` for the screen's main action, `outlined` for the step to take first; plain for
+ * a link to something else. Disabled, it fades and cannot be pressed.
  */
-export function TextButton({ title, onPress, outlined = false }: { title: string; onPress(): void; outlined?: boolean }) {
+export function TextButton({
+  title,
+  onPress,
+  outlined = false,
+  filled = false,
+  disabled,
+}: {
+  title: string;
+  onPress(): void;
+  outlined?: boolean;
+  filled?: boolean;
+  disabled?: boolean;
+}) {
   const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
+      disabled={disabled}
       onPress={onPress}
       hitSlop={8}
-      style={({ pressed }) => [outlined ? styles.outlined : styles.link, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        filled ? styles.filled : outlined ? styles.outlined : styles.link,
+        pressed && styles.pressed,
+        disabled && styles.disabled,
+      ]}
     >
-      <Text style={styles.actionText}>{title}</Text>
+      <Text style={[styles.actionText, filled && styles.filledText]}>{title}</Text>
     </Pressable>
   );
 }
@@ -106,6 +124,17 @@ const useStyles = themedStyles((c) => ({
     borderColor: c.primary,
     borderRadius: 22,
   },
+  filled: {
+    alignSelf: 'stretch',
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    backgroundColor: c.primary,
+  },
   pressed: { opacity: 0.6 },
+  disabled: { opacity: 0.4 },
   actionText: { color: c.primary, fontSize: 15, fontWeight: '600' },
+  filledText: { color: c.onPrimary },
 }));

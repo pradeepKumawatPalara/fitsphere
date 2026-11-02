@@ -267,7 +267,8 @@ export function HomeScreen() {
 
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 20, paddingBottom: 96 },
+  // 24 between groups, 12 within one.
+  content: { padding: 16, gap: 24, paddingBottom: 96 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -277,8 +278,8 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 12,
     backgroundColor: c.warningSurface,
   },
-  panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 20 },
-  panelFoot: { marginTop: -8, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
-  tiles: { flexDirection: 'row', gap: 8 },
+  panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },
+  panelFoot: { paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  tiles: { flexDirection: 'row', gap: 12 },
   stopped: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
 }));

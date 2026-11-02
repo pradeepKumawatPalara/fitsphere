@@ -131,7 +131,7 @@ export function SlotPicker({ value, onChange }: { value: MealType | null; onChan
           onPress={() => onChange(slot)}
           style={[styles.slot, value === slot && styles.slotChosen]}
         >
-          <Text style={value === slot ? styles.slotChosenText : undefined}>{MEAL_TYPE_LABELS[slot]}</Text>
+          <Text style={[styles.slotText, value === slot && styles.slotChosenText]}>{MEAL_TYPE_LABELS[slot]}</Text>
         </Pressable>
       ))}
     </View>
@@ -174,8 +174,10 @@ const useStyles = themedStyles((c) => ({
   sheet: { backgroundColor: c.background, padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   title: { fontSize: 18, fontWeight: '600' },
   input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  // The chosen meal is a filled pill, as the selected day is on the week strip.
   slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.primary },
+  slot: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 20, borderWidth: 1.5, borderColor: c.primary },
   slotChosen: { backgroundColor: c.primary },
+  slotText: { fontSize: 15 },
   slotChosenText: { color: c.onPrimary, fontWeight: '600' },
 }));
