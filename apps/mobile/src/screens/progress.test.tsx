@@ -169,26 +169,48 @@ describe('REQ-PRG-006 measurements', () => {
     await waitFor(() => expect(server.entries('measurements').get('2026-10-28')).toMatchObject({ upperWaistMm: 812 }));
   });
 
-  it('lists the entries newest first; "Edit measurements" corrects that date’s entry', async () => {
+  it('shows the latest entry; the older ones fold under "Show all measurements (N)", newest first, and each opens to edit', async () => {
     await renderInApp(<ProgressScreen />, undefined, async (db) => {
       await applyServerEntries(db, 'measurements', [
         { day: '2026-10-12', upperWaistMm: 820, lowerWaistMm: 850, ...NO_OPTIONAL, recordedAt: AT },
+        { day: '2026-10-05', upperWaistMm: 825, lowerWaistMm: 855, ...NO_OPTIONAL, recordedAt: AT },
         { day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT },
       ]);
     });
 
+    // Only the latest as a card; the older ones folded.
     const titles = await screen.findAllByText(/^Measurements · /);
-    expect(titles.map((title) => title.props.children)).toEqual([
-      ['Measurements · ', 'Mon 26 Oct'],
-      ['Measurements · ', 'Mon 12 Oct'],
+    expect(titles.map((title) => title.props.children)).toEqual([['Measurements · ', 'Mon 26 Oct']]);
+    expect(screen.queryByRole('button', { name: /^Edit measurements, / })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Show all measurements (3)' }));
+    const rows = screen.getAllByRole('button', { name: /^Edit measurements, / });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Edit measurements, Mon 12 Oct: Upper waist 82.0 cm, Lower waist 85.0 cm',
+      'Edit measurements, Mon 5 Oct: Upper waist 82.5 cm, Lower waist 85.5 cm',
     ]);
-    await fireEvent.press(screen.getAllByRole('button', { name: 'Edit measurements' })[1]!);
+
+    await fireEvent.press(rows[0]!);
     expect(screen.getByLabelText('Date: Mon 12 Oct')).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Upper waist (cm)'), '81.5');
     await fireEvent.press(screen.getByRole('button', { name: 'Save measurements' }));
 
-    expect(await screen.findByLabelText('Upper waist: 81.5 cm')).toBeOnTheScreen();
+    expect(
+      await screen.findByRole('button', { name: 'Edit measurements, Mon 12 Oct: Upper waist 81.5 cm, Lower waist 85.0 cm' }),
+    ).toBeOnTheScreen();
     expect(screen.getByLabelText('Upper waist: 80.0 cm')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Show fewer' }));
+    expect(screen.queryByRole('button', { name: /^Edit measurements, / })).toBeNull();
+  });
+
+  it('with one entry, shows it with no "Show all measurements"', async () => {
+    await renderInApp(<ProgressScreen />, undefined, async (db) => {
+      await applyServerEntries(db, 'measurements', [{ day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT }]);
+    });
+
+    expect(await screen.findByText('Measurements · Mon 26 Oct')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Show all measurements/ })).toBeNull();
   });
 
   it('shows lengths in the cm/in unit last chosen on this phone', async () => {
