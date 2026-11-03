@@ -1,0 +1,130 @@
+# UI redesign plan
+
+- Status: **Draft** (from the owner's instructions in chat, 2026-11-03); waiting for the owner's
+  approval
+- Owner: Project owner (D-01)
+- Last updated: 2026-11-03 (the module plan; 1.1 Sign in designed; the owner chose to change the
+  whole app's colours and fonts at once)
+- Builds on: D-35 and the design language in [`docs/design/`](../design/) (`design-system.md`,
+  `FitSphere-UI-UX-context.md`); the theme module of the
+  [Settings slice](settings-slice.md) (D-31); [`test-strategy.md`](../quality/test-strategy.md);
+  [`definition-of-done.md`](../quality/definition-of-done.md)
+
+A visual and UX redesign of the app the slices built. The server, the data and what each action
+does stay as they are. The owner's rules for it (chat, 2026-11-03):
+- Each screen uses only the data fields, actions and texts it has today: no new fields, features
+  or flows. A UX improvement that needs new data or a server change is an optional note beside the
+  design, never in it (listed below).
+- The navigation stays as it is unless the owner approves a change.
+- The F0x files in `docs/design/reference-fitsphere/` are style examples only; the layouts are
+  original.
+
+## How it works
+1. **Design.** Each screen is drawn on the "FitSphere Redesign" canvas
+   (https://claude.ai/artifact/RmAvRMbBYiQSJ2mYiq9hfh, private to the owner), with every state in
+   dark and light.
+2. **Lock.** The owner comments, or locks the screen. Only a locked screen is built.
+3. **Build.** One commit per locked screen, on one branch per module (`redesign/<n>-<module>`);
+   lint, typecheck and the tests pass before each commit. A pull request per module, opened and
+   pushed only when the owner says. The owner checks the screen on the phone.
+4. **Next screen.**
+
+A shared part (a field, a button, the sheet frame) takes its new look with the first locked screen
+that uses it, and then changes on every screen that uses it.
+
+## Decisions so far
+| Date | Decision |
+|---|---|
+| 2026-11-03 | D-35: the design language; Lucide icons; the Barlow fonts. |
+| 2026-11-03 | **The whole app changes at once** (owner, chat): the new colours, fonts and icons replace the old ones everywhere with the first built screen; the layouts then follow screen by screen. Not two themes side by side. |
+
+## Modules
+| # | Module | Screens and sheets | Requirements |
+|---|---|---|---|
+| 0 | Foundation | Colour tokens (dark and light), the Barlow fonts, Lucide icons, the shared parts. No screen of its own: built with the first locked screen | REQ-ACC-001, REQ-NAV-001 |
+| 1 | Sign-in and account setup | Sign in · Sign up · Check your email · Email verified / link expired · Forgot password (and sent) · Set a new password (and link invalid) · Account setup · App start | REQ-ACC-010, REQ-ACC-009 (the notice after deleting) |
+| 2 | App shell and Home | Tab bar · header (date, calendar, avatar) · calendar sheet · date strip · calories and protein card · weight, steps and sleep tiles and their entry sheet · measurements card and sheet · workout tracker and day sheet · Log meal button · the notice for a change that wasn't saved | REQ-NAV-001 to 003, REQ-DATE-001 to 004, REQ-HOME-001 to 008, REQ-MEAS-001 to 006 |
+| 3 | Nutrition and Log meal | Eaten summary · meal slots and cards · meal actions and confirmations · saved meals · Log meal: food search, barcode, your own food, portions, photo, date calendar | REQ-NUT-001 to 004, REQ-LOG-001 to 010, REQ-SAVED-001 and 002 |
+| 4 | Training | Workout history · a workout · the exercise sheet | REQ-TRN-001 to 007 |
+| 5 | Progress | Weight chart and its ranges · measurements · weight history | REQ-PRG-001 to 006 |
+| 6 | Settings and account | Settings · Your targets · Change password · Delete account · Log out | REQ-ACC-001 to 009, REQ-ROLE-007 |
+
+Not redesigned: the developer-only screens (`dev-history`, the API and database checks) and the
+unused "Coming later" screen. The app has no onboarding beyond Account setup; adding one would be a
+new flow.
+
+## Progress
+| Screen | Status |
+|---|---|
+| 1.1 Sign in | Designed (every state, dark and light); waiting for the owner |
+
+## Module 0: the foundation
+Built in the commit of the first locked screen.
+
+**Colour tokens.** `theme.tsx` takes the design's token names and values, dark and light, exactly
+as `design-system.md` gives them. Every use in the app moves to its new name:
+
+| Today | New token | Note |
+|---|---|---|
+| `background` | `bg` | |
+| `surface` | `surface` | |
+| `surfaceSelected` | `accentTint` | Chosen rows, chips and tags |
+| `border` | `border` | Hairlines and cards |
+| `text` | `ink` | |
+| `textMuted` | `inkMuted` | Also placeholders (see conflict 2) |
+| `textFaint` | `inkSubtle` | Disabled text, small print, field outlines (see conflict 1) |
+| `primary` as a fill | `primary` | Buttons, the selected day, the avatar |
+| `primary` as text, an icon, an outline or a link | `accent` | Caramel text fails contrast on the light background, so text takes `accent` |
+| `primaryStrong` | `accent` | |
+| `onPrimary` | `onPrimary` | |
+| `error` | `danger` | |
+| `over`, over a target | `warning` | Gold, never red (Q-022) |
+| `over`, on Delete and Log out | `danger` | |
+| `success`, `warning`, `track`, `scrim` | the same names | |
+| `warningSurface` | `accentTint` | |
+| `neutral`, `neutralLight` | `inkMuted`, `inkSubtle` | |
+| `macroCarbs`, `macroFat`, `macroFibre` | `carbs`, `fat`, `fiber`; protein takes `accent` | |
+| `scrimStrong` | `scrimStrong` | Kept for the photo viewer; not in the design |
+| (none) | `surfaceRaised`, `surfaceSunken`, `primaryPressed`, `successTint`, `dangerTint`, `focus`, `stripe` | New |
+
+**Fonts.** `@expo-google-fonts/barlow-condensed` and `@expo-google-fonts/barlow`, loaded at app
+start through `expo-font` (already in the build); app start waits for them. On Android a custom
+font does not follow `fontWeight`, so the shared `Text` picks the font file for each weight, and the
+design's type styles (display, label, button, tab, metric, body, small) come from one place. Until
+a screen is redesigned, its existing weights map to Barlow's.
+
+**Icons.** `lucide-react-native` with `react-native-svg`, in place of Ionicons in the 7 files that
+use them; `@expo/vector-icons` is removed. `react-native-svg` has native code, so this needs **one
+new EAS development build**, which the owner is told about before it starts (D-19). Until the new
+build is on the phone, the redesign branch does not run on it.
+
+**Shared parts.** The field, the buttons, the checkbox, the banner, the form frame, the sheet frame
+and the choice blocks take the design system's specs when the first locked screen uses them.
+
+## Conflicts with the project's rules (for the owner)
+1. **Field outlines.** The design draws an input's outline in `border` (about 1.6:1 on the dark
+   background, 1.3:1 on the light). The app's tests require a field's edge to be at least 3:1, the
+   WCAG minimum for a control's outline. Proposed: field outlines take `inkSubtle` (about 3.3:1 to
+   4:1), a colour from the same palette.
+2. **Placeholders.** The design's placeholder colour, `inkSubtle`, is 3.95:1 on the dark background;
+   the app's tests require 4.5:1. Proposed: placeholders keep the muted text colour, `inkMuted`.
+
+The other contrast tests carry over to the new names and pass with the design's values: `ink`,
+`inkMuted`, `accent` and `danger` are at least 4.5:1 on `bg` and `surface` in both palettes, and
+`onPrimary` on `primary` is about 5.7:1.
+
+## Risks
+- Until each screen is redesigned, it shows the new colours and fonts in its old layout (accepted
+  by the owner, 2026-11-03).
+- The foundation commit renames every colour in the app: a large but mechanical change, covered by
+  the typecheck, the guard test and the screen tests.
+- The new development build uses one of the free plan's 15 Android builds a month.
+
+## Tests and checks
+- Every commit: `npm run lint`, `npm run typecheck`, `npm test`. The theme's guard and contrast
+  tests move to the new token names; the screen tests keep checking what each screen does.
+- Each locked screen: the owner's check on the phone, on the new development build.
+- Each module's pull request: CI.
+
+## Optional notes (need new data or a server change)
+None yet.
