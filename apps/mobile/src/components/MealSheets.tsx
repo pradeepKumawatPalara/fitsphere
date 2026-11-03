@@ -1,9 +1,10 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
 import { Bookmark, Plus, Trash } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
 import { themedStyles } from '../theme';
+import { TYPE } from '../typography';
 import { Sheet, SheetHeading } from './Sheet';
 import { Field, Text, TextButton, useChoiceStyles } from './ui';
 
@@ -241,11 +242,12 @@ export function RelogSheet({
 }
 
 const useStyles = themedStyles((c) => ({
-  menu: { borderRadius: 12, backgroundColor: c.surface },
-  menuRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  ruled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  // The redesign's 3.6: ruled rows on a raised card, each action in caramel capitals.
+  menu: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  menuRow: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 12 },
+  ruled: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
-  menuText: { fontSize: 15, fontWeight: '600', color: c.accent },
+  menuText: { ...TYPE.link, fontSize: 16, color: c.accent },
   destructiveText: { color: c.danger },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },

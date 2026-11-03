@@ -9,7 +9,7 @@ import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import { SettingsProvider } from '../settings/SettingsProvider';
 import { SyncProvider } from '../sync/SyncProvider';
 import { ThemeProvider, useTheme } from '../theme';
-import { FONT_FILES } from '../typography';
+import { FONT_FILES, TYPE } from '../typography';
 
 const authDeps = createAuthDeps();
 
@@ -22,8 +22,8 @@ function LocalDatabaseForUser({ children }: { children: ReactNode }) {
 // App start and the sign-in screens draw their own heading, so they have no header.
 const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup'];
 
-// The screens. Their header as the tabs': the theme's colours, a flat edge, the title 17/600 as the
-// tabs' date, and the back arrow in caramel.
+// The screens. Their header as the tabs': the theme's colours, a flat edge, the back arrow in caramel;
+// the title in condensed capitals (the redesign's 3.5, locked by the owner 2026-11-03).
 function AppStack() {
   const { colors } = useTheme();
   return (
@@ -31,7 +31,11 @@ function AppStack() {
       screenOptions={{
         title: 'FitSphere',
         headerTintColor: colors.accent,
-        headerTitleStyle: { color: colors.ink, fontSize: 17, fontFamily: 'Barlow_600SemiBold' },
+        headerTitle: ({ children }) => (
+          <Text numberOfLines={1} style={TYPE.screenHeader}>
+            {children}
+          </Text>
+        ),
         headerShadowVisible: false,
       }}
     >

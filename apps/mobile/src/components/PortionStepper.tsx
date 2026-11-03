@@ -1,13 +1,17 @@
+import { Minus, Plus } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { PORTIONS_MAX, PORTIONS_MIN, stepPortions } from '../mealItems';
 import { formatPortions } from '../meals';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Text } from './ui';
 
 // Portions of a dish, in halves from 0.5 to 10 (MVP default, D-26; D-28). Chosen with − and +, so a
-// number out of range cannot be entered.
+// number out of range cannot be entered. The redesign's 3.6 (locked by the owner, 2026-11-03): square
+// buttons, 56, around the portions in condensed capitals.
 export function PortionStepper({ value, onChange }: { value: number; onChange(portions: number): void }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const atMin = value <= PORTIONS_MIN;
   const atMax = value >= PORTIONS_MAX;
   return (
@@ -20,7 +24,7 @@ export function PortionStepper({ value, onChange }: { value: number; onChange(po
         onPress={() => onChange(stepPortions(value, -1))}
         style={({ pressed }) => [styles.step, atMin && styles.off, pressed && styles.pressed]}
       >
-        <Text style={styles.stepText}>−</Text>
+        <Minus size={24} strokeWidth={2.5} color={colors.accent} />
       </Pressable>
       <Text accessibilityLabel={`Portions: ${value}`} style={styles.value}>
         {formatPortions(value)}
@@ -33,7 +37,7 @@ export function PortionStepper({ value, onChange }: { value: number; onChange(po
         onPress={() => onChange(stepPortions(value, 1))}
         style={({ pressed }) => [styles.step, atMax && styles.off, pressed && styles.pressed]}
       >
-        <Text style={styles.stepText}>+</Text>
+        <Plus size={24} strokeWidth={2.5} color={colors.accent} />
       </Pressable>
     </View>
   );
@@ -41,10 +45,18 @@ export function PortionStepper({ value, onChange }: { value: number; onChange(po
 
 const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  step: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
+  step: {
+    width: 56,
+    height: 56,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   off: { opacity: 0.4 },
   pressed: { opacity: 0.6 },
-  stepText: { fontSize: 22, fontWeight: '600', color: c.accent },
   // At the size of a value, in fixed-width digits.
-  value: { minWidth: 110, textAlign: 'center', fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  value: { ...TYPE.metric, flex: 1, fontSize: 32, lineHeight: 36, textAlign: 'center' },
 }));

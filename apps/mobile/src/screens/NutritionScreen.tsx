@@ -1,6 +1,6 @@
 import { addDays, type IstDay, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Bookmark, ChevronDown, ChevronUp, History, Plus } from 'lucide-react-native';
+import { Bookmark, ChevronDown, ChevronUp, ClipboardList, History, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
@@ -224,7 +224,14 @@ export function NutritionScreen() {
           </>
         ) : null}
 
-        {tab === 'plan' ? <Text style={styles.empty}>No diet plan yet. Your coach will add one here.</Text> : null}
+        {tab === 'plan' ? (
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyTile}>
+              <ClipboardList size={26} color={colors.accent} />
+            </View>
+            <Text style={styles.emptyText}>No diet plan yet. Your coach will add one here.</Text>
+          </View>
+        ) : null}
 
         {tab === 'saved' ? (
           saved.length === 0 ? (
@@ -350,7 +357,6 @@ const useStyles = themedStyles((c) => ({
   },
   pressed: { opacity: 0.6 },
   hint: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
-  empty: { fontSize: 15, color: c.inkMuted, textAlign: 'center', paddingVertical: 24 },
   emptyCard: { gap: 12, padding: 16, borderRadius: 4, backgroundColor: c.surface },
   emptyTile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
   emptyText: { fontSize: 15, lineHeight: 22 },

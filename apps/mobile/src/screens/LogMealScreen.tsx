@@ -12,8 +12,21 @@ import {
   type MealType,
 } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  Bookmark,
+  Calendar,
+  Check,
+  ChevronDown,
+  CircleAlert,
+  PenLine,
+  ScanBarcode,
+  Search,
+  Sparkles,
+  SquarePen,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useContext, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
 import { CalendarSheet } from '../components/CalendarSheet';
@@ -22,14 +35,15 @@ import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, DuplicateFoodSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { PortionStepper } from '../components/PortionStepper';
-import { Text, TextButton, TextInput, useFieldInputStyle } from '../components/ui';
+import { Text, TextButton, TextInput } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
 import { addAmount, amountLimit, GRAMS_RULE, parseGrams, sameFood, withGrams, withPortions } from '../mealItems';
 import { describeItems, formatAmount, formatGrams, formatKcal, formatPortions, MEAL_TAG_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 
 type Params = { day?: string; slot?: string; mealId?: string };
 type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number };
@@ -41,7 +55,7 @@ type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number }
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
-  const fieldInput = useFieldInputStyle();
+  const { colors } = useTheme();
   // The fixed footer clears the phone's navigation bar; none outside the app (tests).
   const insets = useContext(SafeAreaInsetsContext);
   const local = useLocalDatabase();
@@ -173,7 +187,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             onPress={() => setSheet('day')}
             style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
           >
-            <Text style={styles.chipText}>{day === today ? `Today, ${formatDay(day)}` : formatDay(day)} ▾</Text>
+            <Calendar size={18} color={colors.accent} />
+            <Text style={styles.chipText}>{day === today ? `Today, ${formatDay(day)}` : formatDay(day)}</Text>
+            <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
           </Pressable>
         )}
 
@@ -192,6 +208,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                 onPress={() => toggleTag(tag)}
                 style={[styles.tag, tags.includes(tag) && styles.tagOn]}
               >
+                {tags.includes(tag) ? <Check size={16} strokeWidth={3} color={colors.accent} /> : null}
                 <Text style={[styles.tagText, tags.includes(tag) && styles.tagOnText]}>{MEAL_TAG_LABELS[tag]}</Text>
               </Pressable>
             ))}
@@ -200,8 +217,11 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
 
         {/* Typed, spoken and photo reading come with AI meal reading (slice 7; D-26). */}
         <View style={styles.ai}>
-          <Text style={styles.aiTitle}>AI meal reading is coming soon</Text>
-          <Text style={styles.aiText}>For now, add foods by search, barcode, your own food or a saved meal.</Text>
+          <Sparkles size={20} color={colors.accent} />
+          <View style={styles.aiWords}>
+            <Text style={styles.aiTitle}>AI meal reading is coming soon</Text>
+            <Text style={styles.aiText}>For now, add foods by search, barcode, your own food or a saved meal.</Text>
+          </View>
         </View>
 
         <View style={styles.group}>
@@ -209,16 +229,17 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             Add food
           </Text>
           <View style={styles.methods}>
-            <MethodTile title="Search foods" onPress={() => setSheet('search')} />
-            <MethodTile title="Scan barcode" onPress={() => setSheet('barcode')} />
+            <MethodTile icon={Search} title="Search foods" onPress={() => setSheet('search')} />
+            <MethodTile icon={ScanBarcode} title="Scan barcode" onPress={() => setSheet('barcode')} />
             <MethodTile
+              icon={PenLine}
               title="Enter your own food"
               onPress={() => {
                 setOwnName('');
                 setSheet('own');
               }}
             />
-            <MethodTile title="Saved meals" onPress={() => setSheet('saved')} />
+            <MethodTile icon={Bookmark} title="Saved meals" onPress={() => setSheet('saved')} />
           </View>
           <Text style={styles.tips}>
             Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.
@@ -253,9 +274,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                     setPortions(item.amount.unit === 'portion' ? item.amount.value : 1);
                     setSheet({ change: index });
                   }}
-                  style={styles.itemAction}
+                  style={({ pressed }) => [styles.itemAction, pressed && styles.pressed]}
                 >
-                  <Text style={styles.itemActionText}>•••</Text>
+                  <SquarePen size={20} color={colors.accent} />
                 </Pressable>
               </View>
             ))}
@@ -267,11 +288,13 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           text field here is in a sheet, which opens above it. */}
       <View style={[styles.footer, { paddingBottom: 12 + (insets?.bottom ?? 0) }]}>
         {items.length > 0 ? (
-          <Text accessibilityLabel={`Total: ${formatKcal(totals.kcal)}, ${formatGrams(totals.proteinG)} protein`} style={styles.total}>
-            Total: {formatKcal(totals.kcal)} · {formatGrams(totals.proteinG)} protein
-          </Text>
+          <View accessible accessibilityLabel={`Total: ${formatKcal(totals.kcal)}, ${formatGrams(totals.proteinG)} protein`} style={styles.total}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalKcal}>{formatKcal(totals.kcal)}</Text>
+            <Text style={styles.totalProtein}>· {formatGrams(totals.proteinG)} protein</Text>
+          </View>
         ) : null}
-        <TextButton title="Save meal" filled disabled={!mealType || items.length === 0 || busy} onPress={() => void save()} />
+        <TextButton title="Save meal" filled disabled={!mealType || items.length === 0} busy={busy} onPress={() => void save()} />
         {!mealType && items.length > 0 ? <Text style={styles.hint}>Choose the meal: Breakfast, Lunch, Snack or Dinner.</Text> : null}
         {items.length === 0 ? <Text style={styles.hint}>Add at least one food to save the meal.</Text> : null}
       </View>
@@ -358,16 +381,25 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           onClose={() => setSheet(null)}
         >
           {changing.amount.unit === 'g' ? (
-            <View style={styles.changeRow}>
-              <TextInput
-                accessibilityLabel="New grams"
-                value={gramsText}
-                onChangeText={setGramsText}
-                keyboardType="number-pad"
-                style={[fieldInput, styles.input]}
-              />
-              <Text style={styles.unit}>g</Text>
-              {newGrams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
+            <View style={styles.change}>
+              <View style={[styles.gramsBox, newGrams === null && styles.gramsRefused]}>
+                <TextInput
+                  accessibilityLabel="New grams"
+                  value={gramsText}
+                  onChangeText={setGramsText}
+                  keyboardType="number-pad"
+                  style={styles.input}
+                />
+                <Text style={styles.unit}>g</Text>
+              </View>
+              {newGrams === null ? (
+                <View style={styles.problem}>
+                  <CircleAlert size={16} color={colors.danger} />
+                  <Text accessibilityRole="alert" style={styles.problemText}>
+                    {GRAMS_RULE}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           ) : (
             <PortionStepper value={portions} onChange={setPortions} />
@@ -409,62 +441,108 @@ function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[])
   return { message: `${matches.length} foods are already in this meal: ${names}. Add the amounts to them?${passing}`, canAdd: true };
 }
 
-function MethodTile({ title, onPress }: { title: string; onPress(): void }) {
+function MethodTile({ icon: Icon, title, onPress }: { icon: LucideIcon; title: string; onPress(): void }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.method, pressed && styles.pressed]}>
+      <Icon size={22} color={colors.accent} />
       <Text style={styles.methodText}>{title}</Text>
     </Pressable>
   );
 }
 
 // Spacing as on Home: 24 between groups, 12 within one.
+// The redesign's 3.5 (locked by the owner, 2026-11-03): sections under condensed labels, 22 apart; the
+// date a raised chip; the ways to add food four tiles with their icons; the foods ruled on a card;
+// the total in condensed figures over Save meal.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 24, paddingBottom: 24 },
+  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 22 },
   missing: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
-  group: { gap: 12 },
-  date: { fontSize: 15, fontWeight: '600' },
+  group: { gap: 10 },
+  date: TYPE.metric,
   chip: {
     alignSelf: 'flex-start',
-    minHeight: 40,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: c.accentTint,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
   },
-  chipText: { fontSize: 15, fontWeight: '600', color: c.accent },
-  heading: { fontSize: 15, fontWeight: '600' },
+  chipText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1 },
+  heading: { ...TYPE.label, color: c.inkMuted },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 16, borderWidth: 1.5, borderColor: c.inkSubtle },
+  tag: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.inkSubtle,
+  },
   // A tag is ticked, not chosen: lighter than a chosen meal.
   tagOn: { backgroundColor: c.accentTint, borderColor: c.accent },
-  tagText: { fontSize: 13, color: c.inkMuted },
-  tagOnText: { color: c.accent, fontWeight: '600' },
-  ai: { padding: 14, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: c.inkSubtle, gap: 4 },
-  aiTitle: { fontSize: 15, fontWeight: '600', color: c.inkMuted },
-  aiText: { fontSize: 13, color: c.inkMuted },
-  methods: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  method: { flexGrow: 1, flexBasis: '40%', minHeight: 64, justifyContent: 'center', padding: 14, borderRadius: 12, backgroundColor: c.surface },
-  methodText: { fontSize: 15, fontWeight: '600', color: c.accent },
+  tagText: { ...TYPE.label, fontSize: 14, letterSpacing: 1, color: c.ink },
+  tagOnText: { color: c.accent },
+  ai: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.accentTint },
+  aiWords: { flex: 1, gap: 2 },
+  aiTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },
+  aiText: TYPE.small,
+  methods: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  method: {
+    flexGrow: 1,
+    flexBasis: '40%',
+    minHeight: 76,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+  },
+  methodText: { ...TYPE.buttonSecondary, fontSize: 16, lineHeight: 18, letterSpacing: 0.5 },
   pressed: { opacity: 0.6 },
-  tips: { color: c.inkMuted, fontSize: 13 },
-  hint: { fontSize: 13, color: c.inkMuted },
+  tips: { ...TYPE.small, color: c.inkMuted },
+  hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
   // The meal's foods, ruled like Home's measurements.
-  review: { paddingHorizontal: 16, paddingVertical: 4, borderRadius: 16, backgroundColor: c.surface },
-  empty: { paddingVertical: 12, color: c.inkMuted },
-  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 8 },
-  itemRuled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  review: { paddingLeft: 16, paddingRight: 4, paddingVertical: 2, borderRadius: 4, backgroundColor: c.surface },
+  empty: { paddingVertical: 14, fontSize: 15, color: c.inkMuted },
+  item: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 8 },
+  itemRuled: { borderTopWidth: 1, borderTopColor: c.border },
   itemText: { flex: 1, gap: 2 },
-  itemName: { fontSize: 15, fontWeight: '600' },
-  itemDetail: { fontSize: 13, color: c.inkMuted, fontVariant: ['tabular-nums'] },
-  itemAction: { width: 44, height: 44, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
-  itemActionText: { color: c.inkMuted, fontWeight: '700' },
-  footer: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, backgroundColor: c.bg },
-  total: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  changeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  // The change-grams field in its sheet, as Field, beside its unit.
-  input: { flex: 1, fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 15, color: c.inkMuted },
-  problem: { fontSize: 13, color: c.danger },
+  itemName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  itemDetail: { fontSize: 14, lineHeight: 20, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  itemAction: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  footer: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.bg },
+  total: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  totalLabel: { ...TYPE.label, color: c.inkMuted },
+  totalKcal: TYPE.metric,
+  totalProtein: { fontSize: 14, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  change: { gap: 8 },
+  // The change-grams field in its sheet, as Field, its unit inside it.
+  gramsBox: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.accent,
+    backgroundColor: c.surfaceSunken,
+  },
+  gramsRefused: { borderColor: c.danger },
+  input: { ...TYPE.input, flex: 1, paddingVertical: 12, fontVariant: ['tabular-nums'] },
+  unit: { ...TYPE.label, fontSize: 14, color: c.inkMuted },
+  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
 }));

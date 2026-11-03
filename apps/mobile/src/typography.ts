@@ -62,6 +62,8 @@ export const TYPE = {
   link: condensed('BarlowCondensed_800ExtraBold', 15, 1),
   /** A sheet's title. */
   sheetTitle: { ...condensed('BarlowCondensed_800ExtraBold', 34, 0.5), lineHeight: 36 },
+  /** A pushed screen's title in its header (Log meal, Settings). */
+  screenHeader: { ...condensed('BarlowCondensed_800ExtraBold', 24, 0.5), lineHeight: 26 },
   /** The header's greeting. */
   heading: { ...condensed('BarlowCondensed_800ExtraBold', 26, 0.5), lineHeight: 28 },
   /** A value on a card: a target's progress, a tile's reading, a week's count. */

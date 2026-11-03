@@ -86,10 +86,10 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.1 Nutrition, Consumed: eaten summary, meal slots, meal cards | Locked and built. For contrast, each nutrient's colour is a square beside its name, the name in the muted ink (the light theme's carbs colour is about 3:1) |
 | 3.2 Meal actions and confirmations | Locked and built; with it a sheet can open with a tile over its title (SheetHeading), used by 2.6 too |
 | 3.3 Nutrition, Saved | Locked and built; a saved meal shows its name (an existing field) over its foods |
-| 3.4 Nutrition, Diet plan | Designed; waiting for the owner |
-| 3.5 Log meal | Designed; waiting for the owner |
-| 3.6 Food search and portions | Designed; waiting for the owner |
-| 3.7 Barcode scan | |
+| 3.4 Nutrition, Diet plan | Locked and built |
+| 3.5 Log meal | Locked and built; with it every pushed screen's header title is in condensed capitals |
+| 3.6 Food search and portions | Locked and built; the IFCT food-values credit stays under the results; with it the actions sheet (also used by the meal photo) took its new look |
+| 3.7 Barcode scan | Next |
 | 3.8 Enter your own food | |
 | 3.9 Meal photo | |
 | **4 Training** | |

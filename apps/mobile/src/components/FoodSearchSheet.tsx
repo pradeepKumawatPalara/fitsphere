@@ -1,15 +1,17 @@
 import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
+import { ChevronRight, CircleAlert, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, searchDishes, searchFoods } from '../local/store';
 import { GRAMS_RULE, itemFromDish, itemFromFood, parseGrams } from '../mealItems';
 import { formatGrams, formatKcal, PORTION_UNIT_LABELS } from '../meals';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { PortionStepper } from './PortionStepper';
 import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
+import { Message, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g; a dish (D-28)
@@ -20,7 +22,7 @@ type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food };
 
 export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
   const styles = useStyles();
-  const fieldInput = useFieldInputStyle();
+  const { colors } = useTheme();
   const local = useLocalDatabase();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
@@ -83,16 +85,16 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
             Per 100 g: {formatKcal(chosen.food.kcal)}
             {chosen.food.kcalEstimated ? ' (estimated)' : ''} · {formatGrams(chosen.food.proteinG)} protein
           </Text>
-          <View style={styles.inputRow}>
+          <View style={[styles.amountBox, preview ? null : styles.boxRefused]}>
             <TextInput
               accessibilityLabel="Grams eaten"
               value={gramsText}
               onChangeText={setGramsText}
               keyboardType="number-pad"
               autoFocus
-              style={[fieldInput, styles.grow, styles.number]}
+              style={styles.amount}
             />
-            <Text style={styles.unit}>g</Text>
+            <Text style={styles.amountUnit}>g</Text>
           </View>
         </>
       )}
@@ -101,33 +103,37 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
         </Text>
       ) : (
-        <Text accessibilityRole="alert" style={styles.problem}>
-          {GRAMS_RULE}
-        </Text>
+        <View style={styles.problem}>
+          <CircleAlert size={16} color={colors.danger} />
+          <Text accessibilityRole="alert" style={styles.problemText}>
+            {GRAMS_RULE}
+          </Text>
+        </View>
       )}
     </Sheet>
   ) : (
     // The results scroll themselves, so the sheet's body doesn't.
     <Sheet title="Search foods" scroll={false} onClose={onClose} actions={<TextButton title="Close" wide onPress={onClose} />}>
-      <TextInput
-        accessibilityLabel="Search foods"
-        value={query}
-        onChangeText={setQuery}
-        placeholder="e.g. atta, dal, paneer"
-        autoFocus
-        style={fieldInput}
-      />
+      <View style={styles.searchBox}>
+        <Search size={20} color={colors.inkMuted} />
+        <TextInput
+          accessibilityLabel="Search foods"
+          value={query}
+          onChangeText={setQuery}
+          placeholder="e.g. atta, dal, paneer"
+          autoFocus
+          style={styles.searchInput}
+        />
+      </View>
       {!listCached ? (
-        <Text accessibilityRole="alert" style={styles.body}>
-          {TEXTS.needsInternet('Downloading the food list')}
-        </Text>
+        <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
       ) : query.trim() !== '' && results.length === 0 ? (
         <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
       ) : null}
       <FlatList
         data={results}
         keyExtractor={(result) => (result.kind === 'dish' ? `dish:${result.dish.code}` : `${result.food.source}:${result.food.code}`)}
-        style={styles.list}
+        style={[styles.list, results.length > 0 && styles.listCard]}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item: result }) =>
           result.kind === 'dish' ? (
@@ -140,10 +146,13 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               }}
               style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             >
-              <Text style={styles.name}>{result.dish.name}</Text>
-              <Text style={styles.detail}>
-                Dish · {formatKcal(result.dish.kcal)} per {PORTION_UNIT_LABELS[result.dish.portionUnit]} · estimated
-              </Text>
+              <View style={styles.rowText}>
+                <Text style={styles.name}>{result.dish.name}</Text>
+                <Text style={styles.detail}>
+                  Dish · {formatKcal(result.dish.kcal)} per {PORTION_UNIT_LABELS[result.dish.portionUnit]} · estimated
+                </Text>
+              </View>
+              <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
             </Pressable>
           ) : (
             <Pressable
@@ -155,10 +164,13 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               }}
               style={({ pressed }) => [styles.row, pressed && styles.pressed]}
             >
-              <Text style={styles.name}>{result.food.name}</Text>
-              <Text style={styles.detail}>
-                {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
-              </Text>
+              <View style={styles.rowText}>
+                <Text style={styles.name}>{result.food.name}</Text>
+                <Text style={styles.detail}>
+                  {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
+                </Text>
+              </View>
+              <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
             </Pressable>
           )
         }
@@ -168,22 +180,60 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
   );
 }
 
-// Results ruled with hairlines, as the app's lists; what an addition comes to at the size of a value.
+// The redesign's 3.6 (locked by the owner, 2026-11-03): the search in a sunken box with its icon; the
+// results ruled on a raised card, each opening with a chevron; grams large in a box with their unit,
+// red with the rule under them when they can't be added; what an addition comes to in condensed
+// figures.
 const useStyles = themedStyles((c) => ({
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // `grow` only beside other items in a row: in the sheet's column, flex: 1 would give a field no
-  // height for its text (Yoga's flex basis is 0), which hid the search text.
-  grow: { flex: 1 },
-  number: { fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 15, color: c.inkMuted },
-  body: { fontSize: 15 },
-  preview: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  empty: { fontSize: 15, color: c.inkMuted },
+  searchBox: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.accent,
+    backgroundColor: c.surfaceSunken,
+  },
+  // flex: 1 only in the box's row: in the sheet's column a field with flex: 1 has no height for its
+  // text (Yoga's flex basis is 0), which hid the search text.
+  searchInput: { ...TYPE.input, flex: 1, paddingVertical: 12 },
+  amountBox: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.accent,
+    backgroundColor: c.surfaceSunken,
+  },
+  boxRefused: { borderColor: c.danger },
+  amount: { ...TYPE.metric, flex: 1, fontSize: 44, lineHeight: 48, paddingVertical: 8 },
+  amountUnit: { ...TYPE.label, fontSize: 20, lineHeight: 24, letterSpacing: 1 },
+  body: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
+  preview: { ...TYPE.metric },
+  empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center' },
   list: { maxHeight: 360 },
-  row: { minHeight: 48, justifyContent: 'center', gap: 2, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.border },
+  listCard: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  row: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingLeft: 14,
+    paddingRight: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: c.border,
+  },
+  rowText: { flex: 1, gap: 2 },
   pressed: { opacity: 0.6 },
-  name: { fontSize: 15, fontWeight: '600' },
-  detail: { color: c.inkMuted, fontSize: 13 },
-  acknowledgement: { color: c.inkMuted, fontSize: 13 },
-  problem: { fontSize: 13, color: c.danger },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  detail: { color: c.inkMuted, fontSize: 14, lineHeight: 20 },
+  acknowledgement: { color: c.inkMuted, fontSize: 12, lineHeight: 16 },
+  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
 }));
