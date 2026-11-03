@@ -483,6 +483,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode and Saved (your meals) are available and work without AI (REQ-ACC-005). When a barcode is not found, the user can type the values from the label (MVP default; ADR-0006).
 - **Post-MVP:** Eaten before (past meals) — Saved covers re-logging in the MVP (D-18, backlog B-03).
+- The same food added again (D-34): while a meal is built or edited, adding a listed food it already has (the same food-list item, dish or barcode) asks "Already in this meal": "Add to existing" puts the amounts together in one item; "Keep separate" adds it as its own item. When together they would pass 2,000 g or 10 portions, only "Keep separate" is offered. A food the user entered is never merged. Separately logged meals are not merged.
 - Acceptance criteria:
   - Given AI consent is off, when a scanned barcode is not found, then the user can type the label values and save the meal.
 - Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039).

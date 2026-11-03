@@ -19,14 +19,14 @@ import { BarcodeSheet } from '../components/BarcodeSheet';
 import { CalendarSheet } from '../components/CalendarSheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
-import { ActionsSheet, SlotPicker } from '../components/MealSheets';
+import { ActionsSheet, DuplicateFoodSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { PortionStepper } from '../components/PortionStepper';
 import { Text, TextButton, TextInput, useFieldInputStyle } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
-import { GRAMS_RULE, parseGrams, withGrams, withPortions } from '../mealItems';
+import { addAmount, amountLimit, GRAMS_RULE, parseGrams, sameFood, withGrams, withPortions } from '../mealItems';
 import { describeItems, formatAmount, formatGrams, formatKcal, formatPortions, MEAL_TAG_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
@@ -61,6 +61,8 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   );
   const [tags, setTags] = useState<MealTag[]>([]);
   const [items, setItems] = useState<MealItem[]>([]);
+  // Foods being added that the meal already has, while "Already in this meal" asks (D-34).
+  const [duplicate, setDuplicate] = useState<MealItem[] | null>(null);
   const [photo, setPhoto] = useState<PhotoDraft>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Record<IstDay, number>>({});
@@ -107,7 +109,28 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   }, [local.state, firstDay, today, sync.version]);
 
   function addItems(added: MealItem[]) {
+    // A listed food already in the meal: ask whether to put the amounts together (D-34).
+    if (added.some((item) => items.some((existing) => sameFood(existing, item)))) setDuplicate(added);
+    else addSeparately(added);
+  }
+
+  function addSeparately(added: MealItem[]) {
     setItems((current) => [...current, ...added].slice(0, MAX_MEAL_ITEMS));
+  }
+
+  /** Each food already in the meal takes the amount added, if it can; the rest are added as they are. */
+  function addToExisting(added: MealItem[]) {
+    setItems((current) => {
+      const next = [...current];
+      const rest: MealItem[] = [];
+      for (const item of added) {
+        const index = next.findIndex((existing) => sameFood(existing, item));
+        const together = index >= 0 ? addAmount(next[index]!, item) : null;
+        if (together) next[index] = together;
+        else rest.push(item);
+      }
+      return [...next, ...rest].slice(0, MAX_MEAL_ITEMS);
+    });
   }
 
   function toggleTag(tag: MealTag) {
@@ -264,6 +287,19 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           onClose={() => setSheet(null)}
         />
       ) : null}
+      {duplicate ? (
+        <DuplicateFoodSheet
+          {...duplicatePrompt(duplicate, items)}
+          onAdd={() => {
+            addToExisting(duplicate);
+            setDuplicate(null);
+          }}
+          onKeep={() => {
+            addSeparately(duplicate);
+            setDuplicate(null);
+          }}
+        />
+      ) : null}
       {sheet === 'search' ? <FoodSearchSheet onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
       {sheet === 'barcode' ? (
         <BarcodeSheet
@@ -343,6 +379,36 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
 }
 
 /** One way to add food, as a tile like Home's quick tiles. */
+/** "A", "A and B", "A, B and C". */
+function list(names: readonly string[]): string {
+  return names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** What "Already in this meal" says about foods added again, and whether any can take the amount (D-34). */
+function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[]): { message: string; canAdd: boolean } {
+  const matches = added.flatMap((item) => {
+    const existing = items.find((current) => sameFood(current, item));
+    return existing ? [{ item, existing, together: addAmount(existing, item) }] : [];
+  });
+  if (matches.length === 1) {
+    const { item, existing, together } = matches[0]!;
+    const already = `${item.name} is already in this meal (${formatAmount(existing.amount)}).`;
+    return together
+      ? { message: `${already} Add ${formatAmount(item.amount)} to it, for ${formatAmount(together.amount)} in all?`, canAdd: true }
+      : { message: `${already} Together that would be over ${amountLimit(existing)}, the most for one food, so it's added on its own.`, canAdd: false };
+  }
+  const names = list(matches.map((match) => match.item.name));
+  const over = matches.filter((match) => !match.together).map((match) => match.item.name);
+  if (over.length === matches.length) {
+    return {
+      message: `${matches.length} foods are already in this meal: ${names}. Together each would be over the most for one food, so they're added on their own.`,
+      canAdd: false,
+    };
+  }
+  const passing = over.length === 0 ? '' : ` ${list(over)} would be over the most for one food, so ${over.length === 1 ? "it's" : "they're"} added on ${over.length === 1 ? 'its' : 'their'} own.`;
+  return { message: `${matches.length} foods are already in this meal: ${names}. Add the amounts to them?${passing}`, canAdd: true };
+}
+
 function MethodTile({ title, onPress }: { title: string; onPress(): void }) {
   const styles = useStyles();
   return (

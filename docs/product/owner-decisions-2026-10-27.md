@@ -961,10 +961,18 @@ checksum), and the configuration template was left as it is.*
      a time, back to the 7 holding the first of the phone's 90 days (D-23). This replaces the
      Monday-to-Sunday weeks of the first swipeable strip (D-33's review, item 9). Home's workout
      tracker keeps Monday-to-Sunday weeks.
+  4. **The same food added again to a meal (REQ-LOG-007).** Only in Log meal's list, while a meal
+     is built or edited: adding a listed food the meal already has (the same food-list item, dish
+     or barcode, in the same unit) asks "Already in this meal". "Add to existing" puts the amounts
+     together in one item, its values worked out as when its grams are changed; "Keep separate",
+     or closing the sheet, adds it as its own item. When together they would pass 2,000 g or 10
+     portions, only "Keep separate" is offered and the sheet says why. Foods the user entered are
+     never merged, and separately logged meals are not merged. Nothing changes in what is stored
+     or synced: the meal is saved as one record, as before.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
-- Doc changes: REQ-HOME-002, REQ-HOME-007 and REQ-TRN-004 in `docs/product/requirements.md`; Home,
-  Training and Q-019 in `docs/product/mvp-scope.md`.
+- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-TRN-004 and REQ-LOG-007 in
+  `docs/product/requirements.md`; Home, Training, Log meal and Q-019 in `docs/product/mvp-scope.md`.
 
 ---
 

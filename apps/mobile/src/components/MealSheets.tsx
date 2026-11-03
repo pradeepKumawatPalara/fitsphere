@@ -137,6 +137,40 @@ export function SaveMealSheet({
 /** "Breakfast", the longest meal, is about 4.5 em wide at the pills' 15. */
 const LONGEST_SLOT_EM = 4.5;
 
+/**
+ * "Already in this meal" (D-34): a food added again to the meal being built. "Add to existing" puts
+ * the amounts together; "Keep separate" adds it as its own item, as closing the sheet does. When the
+ * amounts together would pass the most one food can have, only "Keep separate" is offered.
+ */
+export function DuplicateFoodSheet({
+  message,
+  canAdd,
+  onAdd,
+  onKeep,
+}: {
+  message: string;
+  /** Whether at least one food can take the amount added. */
+  canAdd: boolean;
+  onAdd(): void;
+  onKeep(): void;
+}) {
+  const styles = useStyles();
+  return (
+    <Sheet
+      title="Already in this meal"
+      onClose={onKeep}
+      actions={
+        <>
+          {canAdd ? <TextButton title="Add to existing" filled onPress={onAdd} /> : null}
+          <TextButton title="Keep separate" wide={canAdd} filled={!canAdd} onPress={onKeep} />
+        </>
+      }
+    >
+      <Text style={styles.body}>{message}</Text>
+    </Sheet>
+  );
+}
+
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
 export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
   const styles = useStyles();

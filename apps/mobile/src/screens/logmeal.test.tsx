@@ -288,6 +288,47 @@ describe('what Log meal says about missing values', () => {
   });
 });
 
+describe('D-34 the same food added again to the meal', () => {
+  it('asks; "Add to existing" puts the amounts together in one item', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    await addFood('atta', /^Wheat flour, atta/, '40');
+
+    expect(screen.getByRole('header', { name: 'Already in this meal' })).toBeOnTheScreen();
+    expect(screen.getByText('Wheat flour, atta is already in this meal (60 g). Add 40 g to it, for 100 g in all?')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to existing' }));
+
+    expect(screen.getAllByLabelText(/^Wheat flour, atta: /).map((row) => row.props.accessibilityLabel)).toEqual([
+      'Wheat flour, atta: 100 g, 320 kcal, 10.6 g protein',
+    ]);
+  });
+
+  it('"Keep separate" adds it as its own item', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    await addFood('atta', /^Wheat flour, atta/, '40');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep separate' }));
+
+    expect(screen.getAllByLabelText(/^Wheat flour, atta: /)).toHaveLength(2);
+  });
+
+  it('when together they would pass 2,000 g, says so and only keeps it separate', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '1500');
+    await addFood('atta', /^Wheat flour, atta/, '600');
+
+    expect(
+      screen.getByText(
+        "Wheat flour, atta is already in this meal (1,500 g). Together that would be over 2,000 g, the most for one food, so it's added on its own.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Add to existing' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep separate' }));
+    expect(screen.getAllByLabelText(/^Wheat flour, atta: /)).toHaveLength(2);
+  });
+});
+
 describe('REQ-NUT-004 Edit', () => {
   const MEAL_ID = '00000000-0000-4000-c000-00000000e001';
   const ITEM: MealItem = { source: 'ifct2017', ref: 'A019', name: 'Wheat flour, atta', amount: { unit: 'g', value: 60 }, kcal: 192, proteinG: 6.34, carbsG: 38.5, fatG: 0.92, fibreG: 6.82, estimated: false };
