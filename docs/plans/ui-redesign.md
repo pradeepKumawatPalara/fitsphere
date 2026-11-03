@@ -60,7 +60,7 @@ new flow.
 | Screen | Status |
 |---|---|
 | 0 Foundation | Built with 1.1 on `redesign/1-sign-in`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
-| 1.1 Sign in | Locked and built (`redesign/1-sign-in`); the owner's phone check waits for the new development build |
+| 1.1 Sign in | Locked and built (`redesign/1-sign-in`); the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is ready; the owner's phone check is next |
 | 1.2 Sign up | Designed (every state, dark and light); waiting for the owner |
 
 ## Module 0: the foundation
