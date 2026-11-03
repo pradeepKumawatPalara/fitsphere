@@ -269,6 +269,7 @@ B-22).
 - Acceptance criteria:
   - When a past date is selected, then cards, meals and tiles show that date's data.
   - Future dates cannot be selected (MVP default, Q-017).
+  - The calendar browses back to the month of the first of the phone's 90 days and up to 12 months ahead (D-34). Future days and days before the 90 are greyed; tapping one says why, "Future dates can't be chosen. Choose today or an earlier day." or "Only the last 90 days are on this phone. Choose a later day.", and screen readers hear "not available".
 
 ### REQ-DATE-002 — Past-date banner
 - Requirement: While a past date is selected, a banner shows the date and a "Back to today" shortcut.

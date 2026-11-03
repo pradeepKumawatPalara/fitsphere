@@ -27,14 +27,29 @@ export function dayStatus(count: number): string {
 
 const WEEKDAY_HEADINGS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
+/** How far ahead the calendar browses (D-34). */
+const MONTHS_AHEAD = 12;
+// What a greyed day says when tapped (D-34).
+export const FUTURE_DAY = "Future dates can't be chosen. Choose today or an earlier day.";
+export const OLDER_DAY = 'Only the last 90 days are on this phone. Choose a later day.';
+
 // The header's calendar shortcut (REQ-NAV-002), and Log meal's date (REQ-LOG-002, D-33): a month
-// grid that opens on the selected month. Future days (Q-017) and days before `firstDay` cannot be
-// picked. With `counts`, each day with a meal has a dot, and each day's status (Q-037) is read out.
+// grid that opens on the selected month and browses back to `firstDay`'s month and up to 12 months
+// ahead (D-34). Future days (Q-017) and days before `firstDay` are greyed and cannot be picked:
+// tapping one says why, and screen readers hear "not available". With `counts`, each day with a meal
+// has a dot, and each day's status (Q-037) is read out.
 export function CalendarSheet({ title, today, firstDay, selected, counts, onSelect, onClose }: Props) {
   const styles = useStyles();
   const [month, setMonth] = useState(selected.slice(0, 7));
+  // Why the greyed day just tapped cannot be picked.
+  const [notice, setNotice] = useState<string | null>(null);
   const canGoBack = month > firstDay.slice(0, 7);
-  const canGoForward = month < today.slice(0, 7);
+  const canGoForward = month < addMonths(today.slice(0, 7), MONTHS_AHEAD);
+
+  function showMonth(next: string) {
+    setMonth(next);
+    setNotice(null);
+  }
 
   // In the sheets' frame. Days as on the week strip: the selected day a filled pill, today in blue
   // with a bar under it.
@@ -49,7 +64,7 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
             accessibilityLabel="Previous month"
             accessibilityState={{ disabled: !canGoBack }}
             disabled={!canGoBack}
-            onPress={() => setMonth(addMonths(month, -1))}
+            onPress={() => showMonth(addMonths(month, -1))}
             style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
           >
             <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
@@ -62,7 +77,7 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
             accessibilityLabel="Next month"
             accessibilityState={{ disabled: !canGoForward }}
             disabled={!canGoForward}
-            onPress={() => setMonth(addMonths(month, 1))}
+            onPress={() => showMonth(addMonths(month, 1))}
             style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
           >
             <Text style={[styles.arrowText, !canGoForward && styles.disabledText]}>›</Text>
@@ -87,16 +102,20 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
               const isSelected = day === selected;
               const isToday = day === today;
               const count = counts?.[day] ?? 0;
+              const status = disabled ? ', not available' : counts ? `, ${dayStatus(count)}` : '';
               return (
                 <Pressable
                   key={day}
                   accessibilityRole="button"
-                  accessibilityLabel={`${formatLongDay(day)}${day === today ? ', today' : ''}${counts ? `, ${dayStatus(count)}` : ''}`}
+                  accessibilityLabel={`${formatLongDay(day)}${day === today ? ', today' : ''}${status}`}
                   accessibilityState={{ selected: isSelected, disabled }}
-                  disabled={disabled}
                   onPress={() => {
-                    onSelect(day);
-                    onClose();
+                    if (day > today) setNotice(FUTURE_DAY);
+                    else if (day < firstDay) setNotice(OLDER_DAY);
+                    else {
+                      onSelect(day);
+                      onClose();
+                    }
                   }}
                   style={({ pressed }) => [styles.cell, pressed && styles.pressed]}
                 >
@@ -113,6 +132,11 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
           </View>
         ))}
       </View>
+      {notice ? (
+        <Text accessibilityRole="alert" style={styles.notice}>
+          {notice}
+        </Text>
+      ) : null}
     </Sheet>
   );
 }
@@ -136,6 +160,7 @@ const useStyles = themedStyles((c) => ({
   todayBar: { marginTop: 2, width: 14, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
   todayBarShown: { backgroundColor: c.primary },
   todayBarOnSelected: { backgroundColor: c.onPrimary },
+  notice: { fontSize: 13, color: c.error, textAlign: 'center' },
   // A day with a meal, in the green of the week strip's filled status.
   dot: { marginTop: 2, width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'transparent' },
   dotShown: { backgroundColor: c.success },

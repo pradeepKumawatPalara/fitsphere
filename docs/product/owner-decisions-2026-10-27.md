@@ -969,10 +969,16 @@ checksum), and the configuration template was left as it is.*
      portions, only "Keep separate" is offered and the sheet says why. Foods the user entered are
      never merged, and separately logged meals are not merged. Nothing changes in what is stored
      or synced: the meal is saved as one record, as before.
+  5. **The calendar browses ahead (REQ-DATE-001, Q-017).** Both calendars, the header's and Log
+     meal's, go forward up to 12 months. Future days, and days before the first of the 90, stay
+     greyed and cannot be picked (Q-017 unchanged); tapping one keeps the calendar open and says
+     "Future dates can't be chosen. Choose today or an earlier day." or "Only the last 90 days are
+     on this phone. Choose a later day." Screen readers hear such a day as "not available".
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
-- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-TRN-004 and REQ-LOG-007 in
-  `docs/product/requirements.md`; Home, Training, Log meal and Q-019 in `docs/product/mvp-scope.md`.
+- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-TRN-004, REQ-LOG-007 and REQ-DATE-001 in
+  `docs/product/requirements.md`; Home, Training, Log meal, Q-017 and Q-019 in
+  `docs/product/mvp-scope.md`.
 
 ---
 

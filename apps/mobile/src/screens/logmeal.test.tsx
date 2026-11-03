@@ -90,7 +90,7 @@ describe('REQ-LOG-001 and REQ-LOG-002 the date', () => {
     await render();
     await fireEvent.press(await screen.findByRole('button', { name: 'Date: Wed 28 Oct' }));
 
-    expect(screen.getByRole('button', { name: 'Thursday 29 October 2026, Nothing logged' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Thursday 29 October 2026, not available' })).toBeDisabled();
     await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Monday 7 September 2026, Nothing logged' }));
 
