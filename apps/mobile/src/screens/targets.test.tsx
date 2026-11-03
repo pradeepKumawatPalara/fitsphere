@@ -34,6 +34,20 @@ describe('REQ-ROLE-007 Your targets', () => {
     }
   });
 
+  it('each target shows a blue pencil at its top right, and the tile says it opens the target to edit', async () => {
+    await renderInApp(<TargetsScreen />);
+
+    const tile = await screen.findByRole('button', { name: 'Daily calories: Not set' });
+    expect(tile).toHaveProp('accessibilityHint', 'Opens it to edit');
+    // In the tile's first row, beside its name; hidden from screen readers, the tile being the button.
+    const pencil = within(tile).getByTestId('edit-calories', { includeHiddenElements: true });
+    expect(pencil).toHaveStyle({ color: LIGHT_COLORS.primary });
+    expect(within(pencil.parent!).getByText('Daily calories')).toBeOnTheScreen();
+    for (const kind of ['protein', 'steps', 'weekly_workouts', 'body_weight']) {
+      expect(screen.getByTestId(`edit-${kind}`, { includeHiddenElements: true })).toBeOnTheScreen();
+    }
+  });
+
   it('REQ-ROLE-007 sets each target, labelled "Set by you", and syncs it with the user as its setter', async () => {
     const { db, server } = await renderInApp(<TargetsScreen />);
 

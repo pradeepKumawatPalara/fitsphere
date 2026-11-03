@@ -1,6 +1,7 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { TargetKind } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { Text } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -8,13 +9,15 @@ import { listTargets, type LocalTarget } from '../local/store';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { TARGET_ORDER, targetTexts } from '../targets';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 
 // "Your targets" (REQ-ROLE-007, D-20): the user sets their own daily calories, protein and steps,
 // weekly workouts and target body weight. Opened from Account and from the Home cards (MVP
-// default, D-23). Every target in the MVP is the user's own, so each reads "Set by you".
+// default, D-23). Every target in the MVP is the user's own, so each reads "Set by you". Each tile
+// opens its target to edit, and shows so with a pencil at its top right, as a meal's Edit.
 export function TargetsScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const local = useLocalDatabase();
   const sync = useSync();
   const texts = targetTexts(useBodyWeightUnit());
@@ -51,10 +54,22 @@ export function TargetsScreen() {
             key={kind}
             accessibilityRole="button"
             accessibilityLabel={`${texts[kind].label}: ${value}`}
+            accessibilityHint="Opens it to edit"
             onPress={() => setEditing(kind)}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}
           >
-            <Text style={styles.label}>{texts[kind].label}</Text>
+            <View style={styles.head}>
+              <Text style={styles.label}>{texts[kind].label}</Text>
+              {/* The tile is the button; the pencil only shows it edits. */}
+              <Ionicons
+                testID={`edit-${kind}`}
+                name="create-outline"
+                size={20}
+                color={colors.primary}
+                importantForAccessibility="no"
+                accessibilityElementsHidden
+              />
+            </View>
             <Text style={styles.value}>{value}</Text>
             {note ? <Text style={target?.syncState === 'rejected' ? styles.problem : styles.note}>{note}</Text> : null}
           </Pressable>
@@ -80,6 +95,7 @@ export function TargetsScreen() {
 const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
   row: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pressed: { opacity: 0.6 },
   label: { fontSize: 13, color: c.textMuted },
   value: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
