@@ -46,7 +46,7 @@ export function HeaderActions() {
         hitSlop={2}
         style={({ pressed }) => [styles.calendar, pressed && styles.pressed]}
       >
-        <Ionicons name="calendar-clear-outline" size={22} color={colors.primary} />
+        <Ionicons name="calendar-outline" size={22} color={colors.primary} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
