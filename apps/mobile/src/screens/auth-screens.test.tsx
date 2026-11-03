@@ -9,15 +9,18 @@ import { AccountSetupScreen } from './AccountSetupScreen';
 import { CheckEmailScreen } from './CheckEmailScreen';
 import { SignInScreen } from './SignInScreen';
 import { SignUpScreen } from './SignUpScreen';
+import { VerifiedScreen } from './VerifiedScreen';
 
 const mockRouter = { replace: jest.fn() };
+let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
 }));
 
 beforeEach(() => {
   mockRouter.replace.mockClear();
+  mockParams = {};
 });
 
 async function renderWith(element: ReactElement, client: AuthClient, fetchImpl = fakeApi({}).fetchImpl) {
@@ -216,6 +219,28 @@ describe('REQ-ACC-010 Sign up, redesigned', () => {
     const problem = screen.getByRole('alert');
     expect(problem).toHaveTextContent(TEXTS.emailFormat);
     expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+  });
+});
+
+// The redesign's screen 1.4 (locked by the owner, 2026-11-03), opened by the link in the verify email.
+describe('REQ-ACC-010 Email verified', () => {
+  it('says the email is verified, and Sign in goes to sign in', async () => {
+    await render(<VerifiedScreen />);
+
+    expect(screen.getByRole('header', { name: 'Your email is verified' })).toBeOnTheScreen();
+    expect(screen.getByText('Sign in to continue.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(mockRouter.replace).toHaveBeenCalledWith('/sign-in');
+  });
+
+  it('says the link expired when Supabase adds an error to it', async () => {
+    mockParams = { error: 'access_denied' };
+    await render(<VerifiedScreen />);
+
+    expect(screen.getByRole('header', { name: 'Link expired' })).toBeOnTheScreen();
+    expect(
+      screen.getByText('This link has expired or was already used. Sign in, or sign up again for a new link.'),
+    ).toBeOnTheScreen();
   });
 });
 
