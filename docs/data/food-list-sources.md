@@ -401,9 +401,12 @@ weighing: no published table is used (NIN's household-measure tables are not a s
 - One row per food and unit. `npm run foods:import` checks the whole sheet with the IFCT list and
   refuses all of it if any row is wrong, naming the line; only approved rows reach
   `app.food_measures`, and a row no longer approved is removed at the next import.
-- The starter rows (milk by the glass; ghee and three oils by the teaspoon and tablespoon; jaggery;
-  groundnut; almond, cashew, banana, apple and egg by the piece; papaya by the katori) are
-  `pending`, with no grams. Never fill in or approve a row without the owner's measurements.
+- The starter rows, 62 for 52 foods (the owner's choice of measured units for every food,
+  2026-11-03), are `pending`, with no grams, in the order they are weighed: drinks by the glass;
+  ghee and six oils by the teaspoon and tablespoon; jaggery; atta, maida, rice, poha and rava;
+  five raw dals by the katori; nuts, seeds and dried fruit; fruit by the piece or katori;
+  vegetables by the piece; egg; paneer. Never fill in or approve a row without the owner's
+  measurements.
 
 ### Cooked-dish and portion sources considered and not used
 

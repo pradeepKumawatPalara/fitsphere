@@ -57,7 +57,7 @@ from Open Food Facts or a label, and no measured row can exist for them); dishes
 ## Owner's steps
 1. Measure and approve rows in `docs/data/household-measures-sheet.csv`: weigh one level unit of
    the food (the edible part), put the grams, `measured_by` and the date, and set `approved`. Never
-   filled or approved by anyone else. The starter rows are `pending`, with no grams.
+   filled or approved by anyone else. The starter rows, 62 for 52 foods, are `pending`, with no grams.
 2. On `fitsphere-dev`, only when the owner says so: `npm run migrate -w @fitsphere/api` (0009), then
    `npm run foods:import -w @fitsphere/api`. **Run the migration before starting the updated API**:
    until 0009 is applied, GET /v1/foods fails, so the phone cannot download the food list.

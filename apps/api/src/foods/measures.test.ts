@@ -30,7 +30,7 @@ function refused(...rows: string[]): string {
 
 describe('D-36 the committed household-measures sheet', () => {
   it('passes every check; its rows wait for the owner’s measurements, so none is imported', () => {
-    expect(readMeasuresSheet(COMMITTED_SHEET, FOODS)).toEqual({ measures: [], pending: 19 });
+    expect(readMeasuresSheet(COMMITTED_SHEET, FOODS)).toEqual({ measures: [], pending: 62 });
   });
 
   it('names every unit of the contract, with its size', () => {

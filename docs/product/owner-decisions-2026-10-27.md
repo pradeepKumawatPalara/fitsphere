@@ -1071,6 +1071,9 @@ checksum), and the configuration template was left as it is.*
      owner accepts first. *Amended by the owner, 2026-11-03: "I accept the plan… go ahead and build
      it. After that we will go for training tasks": built now, on the branch `ui-redesign`, before
      the redesign's Training module. Plan: `docs/plans/household-units.md` (Accepted).*
+- *Later the same day:* asked why units are not open for every food, the owner chose to keep
+  measured units only (not 1 ml as 1 g for every food, nor units the user sets), with a wider
+  starter sheet: 62 rows for 52 foods, all `pending`, no grams.
 - **Interpretation:** HealthifyMe is a reference for the interaction only (an amount with a unit
   beside it and the grams it comes to); none of its data or wording is used. *(Confirm.)*
 - **Interpretation:** the sizes listed in answer 1 are examples; the plan proposes the units and

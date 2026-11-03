@@ -1,20 +1,63 @@
 ifct_code,food,measure,status,grams_per_measure,measured_by,date,notes
-L002,"Milk, whole, Cow",glass (250 ml),pending,,,,"Fill the glass to 250 ml and weigh the milk only."
-L001,"Milk, whole, Buffalo",glass (250 ml),pending,,,,"Fill the glass to 250 ml and weigh the milk only."
-T013,Ghee,teaspoon (5 ml),pending,,,,"A level 5 ml spoon of melted ghee; weigh the ghee only."
-T013,Ghee,tablespoon (15 ml),pending,,,,"A level 15 ml spoon of melted ghee; weigh the ghee only."
-T005,Groundnut oil,teaspoon (5 ml),pending,,,,"A level 5 ml spoon; weigh the oil only."
-T005,Groundnut oil,tablespoon (15 ml),pending,,,,"A level 15 ml spoon; weigh the oil only."
-T006,Mustard oil,teaspoon (5 ml),pending,,,,"A level 5 ml spoon; weigh the oil only."
-T006,Mustard oil,tablespoon (15 ml),pending,,,,"A level 15 ml spoon; weigh the oil only."
-T012,Sunflower oil,teaspoon (5 ml),pending,,,,"A level 5 ml spoon; weigh the oil only."
-T012,Sunflower oil,tablespoon (15 ml),pending,,,,"A level 15 ml spoon; weigh the oil only."
-I001,"Jaggery, cane",teaspoon (5 ml),pending,,,,"A level 5 ml spoon of grated jaggery."
-H012,Ground nut,tablespoon (15 ml),pending,,,,"A level 15 ml spoon of shelled raw groundnuts."
-H012,Ground nut,katori (200 ml),pending,,,,"A level 200 ml katori of shelled raw groundnuts."
-H001,Almond,piece,pending,,,,"One shelled almond: weigh 10 and divide by 10."
-H005,Cashew nut,piece,pending,,,,"One cashew: weigh 10 and divide by 10."
+L002,"Milk, whole, Cow",glass (250 ml),pending,,,,Fill the glass to 250 ml and weigh the milk only.
+L001,"Milk, whole, Buffalo",glass (250 ml),pending,,,,Fill the glass to 250 ml and weigh the milk only.
+K002,Coconut Water,glass (250 ml),pending,,,,Fill the glass to 250 ml and weigh the coconut water only.
+I002,"Sugarcane, juice",glass (250 ml),pending,,,,Fill the glass to 250 ml and weigh the juice only.
+T013,Ghee,teaspoon (5 ml),pending,,,,A level 5 ml spoon of melted ghee; weigh the melted ghee only.
+T013,Ghee,tablespoon (15 ml),pending,,,,A level 15 ml spoon of melted ghee; weigh the melted ghee only.
+T005,Groundnut oil,teaspoon (5 ml),pending,,,,A level 5 ml spoon of oil; weigh the oil only.
+T005,Groundnut oil,tablespoon (15 ml),pending,,,,A level 15 ml spoon of oil; weigh the oil only.
+T006,Mustard oil,teaspoon (5 ml),pending,,,,A level 5 ml spoon of oil; weigh the oil only.
+T006,Mustard oil,tablespoon (15 ml),pending,,,,A level 15 ml spoon of oil; weigh the oil only.
+T012,Sunflower oil,teaspoon (5 ml),pending,,,,A level 5 ml spoon of oil; weigh the oil only.
+T012,Sunflower oil,tablespoon (15 ml),pending,,,,A level 15 ml spoon of oil; weigh the oil only.
+T001,Coconut oil,teaspoon (5 ml),pending,,,,A level 5 ml spoon of melted oil; weigh the melted oil only.
+T001,Coconut oil,tablespoon (15 ml),pending,,,,A level 15 ml spoon of melted oil; weigh the melted oil only.
+T008,Rice bran oil,teaspoon (5 ml),pending,,,,A level 5 ml spoon of oil; weigh the oil only.
+T008,Rice bran oil,tablespoon (15 ml),pending,,,,A level 15 ml spoon of oil; weigh the oil only.
+T011,Soyabean oil,teaspoon (5 ml),pending,,,,A level 5 ml spoon of oil; weigh the oil only.
+T011,Soyabean oil,tablespoon (15 ml),pending,,,,A level 15 ml spoon of oil; weigh the oil only.
+I001,"Jaggery, cane",teaspoon (5 ml),pending,,,,A level 5 ml spoon of grated jaggery.
+A019,"Wheat flour, atta",tablespoon (15 ml),pending,,,,"A level 15 ml spoon of atta, spooned in, not pressed."
+A019,"Wheat flour, atta",katori (200 ml),pending,,,,"A level 200 ml katori of atta, spooned in, not pressed down."
+A018,"Wheat flour, refined",tablespoon (15 ml),pending,,,,"A level 15 ml spoon of maida, spooned in, not pressed."
+A015,"Rice, raw, milled",katori (200 ml),pending,,,,"A level 200 ml katori of raw rice, not pressed down."
+A011,Rice flakes,katori (200 ml),pending,,,,"A level 200 ml katori of dry poha, not pressed down."
+A022,"Wheat, semolina",tablespoon (15 ml),pending,,,,A level 15 ml spoon of rava (sooji).
+A022,"Wheat, semolina",katori (200 ml),pending,,,,"A level 200 ml katori of rava (sooji), not pressed down."
+B021,"Red gram, dal",katori (200 ml),pending,,,,"A level 200 ml katori of raw toor dal, not pressed down."
+B010,"Green gram, dal",katori (200 ml),pending,,,,"A level 200 ml katori of raw moong dal, not pressed down."
+B013,Lentil dal,katori (200 ml),pending,,,,"A level 200 ml katori of raw masoor dal, not pressed down."
+B001,"Bengal gram, dal",katori (200 ml),pending,,,,"A level 200 ml katori of raw chana dal, not pressed down."
+B003,"Black gram, dal",katori (200 ml),pending,,,,"A level 200 ml katori of raw urad dal, not pressed down."
+H012,Ground nut,tablespoon (15 ml),pending,,,,A level 15 ml spoon of shelled raw groundnuts.
+H012,Ground nut,katori (200 ml),pending,,,,"A level 200 ml katori of shelled raw groundnuts, not pressed down."
+H001,Almond,piece,pending,,,,One shelled almond: weigh 10 and divide by 10.
+H005,Cashew nut,piece,pending,,,,One cashew: weigh 10 and divide by 10.
+H021,Walnut,piece,pending,,,,"One walnut half, shelled: weigh 10 halves and divide by 10."
+H018,Pistachio nuts,tablespoon (15 ml),pending,,,,A level 15 ml spoon of shelled pistachios.
+E057,"Raisins, dried, black",tablespoon (15 ml),pending,,,,A level 15 ml spoon of black raisins.
+E058,"Raisins, dried, golden",tablespoon (15 ml),pending,,,,A level 15 ml spoon of golden raisins.
+E018,"Dates, dry, dark brown",piece,pending,,,,One date without its seed: weigh 5 and divide by 5.
+H011,"Gingelly seeds, white",teaspoon (5 ml),pending,,,,A level 5 ml spoon of white til.
+H014,Linseeds,tablespoon (15 ml),pending,,,,A level 15 ml spoon of whole flax seeds.
+H007,"Coconut, kernel, fresh",tablespoon (15 ml),pending,,,,"A level 15 ml spoon of grated fresh coconut, not pressed."
 E012,"Banana, ripe, robusta",piece,pending,,,,"One medium banana, peeled: the edible part only."
-E001,"Apple, big",piece,pending,,,,"One big apple without its core and seeds: the edible part only."
-E049,"Papaya, ripe",katori (200 ml),pending,,,,"A level 200 ml katori of peeled, seeded cubes."
-M001,"Egg, poultry, whole, raw",piece,pending,,,,"One egg without its shell."
+E001,"Apple, big",piece,pending,,,,One big apple without its core and seeds: the edible part only.
+E047,"Orange, pulp",piece,pending,,,,"One medium orange, peeled, without its seeds: the edible part only."
+E028,"Guava, white flesh",piece,pending,,,,One medium guava without its stalk: the edible part only.
+E051,Pear,piece,pending,,,,One medium pear without its core: the edible part only.
+E060,Sapota,piece,pending,,,,"One sapota (chiku), peeled, without its seeds: the edible part only."
+E049,"Papaya, ripe",katori (200 ml),pending,,,,"A level 200 ml katori of peeled, seeded papaya cubes, not pressed down."
+E039,"Mango, ripe, kesar",katori (200 ml),pending,,,,"A level 200 ml katori of peeled mango cubes, without the stone, not pressed down."
+E055,"Pomegranate, maroon seeds",katori (200 ml),pending,,,,"A level 200 ml katori of pomegranate seeds, not pressed down."
+E026,"Grapes, seedless, round, green",katori (200 ml),pending,,,,"A level 200 ml katori of green seedless grapes, not pressed down."
+E065,"Water melon, dark green (sugar baby)",katori (200 ml),pending,,,,"A level 200 ml katori of watermelon cubes, without rind or seeds, not pressed down."
+E053,Pineapple,katori (200 ml),pending,,,,"A level 200 ml katori of peeled pineapple cubes, without the core, not pressed down."
+G017,"Onion, big",piece,pending,,,,"One medium onion, peeled: the edible part only."
+D075,"Tomato, ripe, hybrid",piece,pending,,,,One medium tomato without its stalk: the edible part only.
+F006,"Potato, brown skin, big",piece,pending,,,,"One medium potato, peeled: the edible part only."
+D043,"Cucumber, green, elongate",piece,pending,,,,"One medium cucumber, peeled: the edible part only."
+F002,"Carrot, orange",piece,pending,,,,"One medium carrot, peeled, without its top: the edible part only."
+M001,"Egg, poultry, whole, raw",piece,pending,,,,One egg without its shell.
+L003,Paneer,katori (200 ml),pending,,,,"A level 200 ml katori of paneer cubes of about 1 cm, not pressed down."
