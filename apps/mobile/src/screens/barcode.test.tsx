@@ -2,6 +2,7 @@ import { OFF_ATTRIBUTION, type BarcodeProduct } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import type { SqlDb } from '../local/sql';
 import { NOW, renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
@@ -102,9 +103,11 @@ describe('REQ-LOG-007 a scanned barcode', () => {
 
     await fireEvent.changeText(screen.getByLabelText('Barcode digits'), '1234');
     expect(screen.getByText('Enter the 8 to 14 digits under the barcode.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Barcode digits')).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
     expect(screen.getByRole('button', { name: 'Look up' })).toBeDisabled();
 
     await fireEvent.changeText(screen.getByLabelText('Barcode digits'), BARCODE);
+    expect(screen.getByLabelText('Barcode digits')).not.toHaveStyle({ borderColor: LIGHT_COLORS.danger });
     await fireEvent.press(screen.getByRole('button', { name: 'Look up' }));
 
     expect(await screen.findByRole('header', { name: 'Synthetic biscuits (Synthetic brand)' })).toBeOnTheScreen();

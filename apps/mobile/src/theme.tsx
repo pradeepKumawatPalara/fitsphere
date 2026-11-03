@@ -54,6 +54,8 @@ export type ThemeColors = {
   scrim: string;
   /** Behind the full-size photo viewer. */
   scrimStrong: string;
+  /** Text on `scrimStrong`, the same in both themes, as the backdrop is. */
+  onScrim: string;
   /** The signature corner's diagonal stripes. */
   stripe: string;
 };
@@ -85,6 +87,7 @@ export const LIGHT_COLORS: ThemeColors = {
   focus: '#11212D',
   scrim: 'rgba(17,33,45,0.40)',
   scrimStrong: 'rgba(0,0,0,0.9)',
+  onScrim: '#F1EAE5',
   stripe: 'rgba(125,84,52,0.07)',
 };
 
@@ -115,6 +118,7 @@ export const DARK_COLORS: ThemeColors = {
   focus: '#E3D5CC',
   scrim: 'rgba(5,10,14,0.66)',
   scrimStrong: 'rgba(0,0,0,0.9)',
+  onScrim: '#F1EAE5',
   stripe: 'rgba(201,154,115,0.08)',
 };
 

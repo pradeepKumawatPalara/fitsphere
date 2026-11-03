@@ -89,11 +89,15 @@ export function MealCard({
           ) : null}
           {note ? <Text style={[styles.note, syncState === 'rejected' && styles.notSaved]}>{note}</Text> : null}
         </Pressable>
-        {photo ? <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} /> : null}
         {deleteOnly ? <View style={styles.inlineAction}>{remove}</View> : null}
       </View>
       {deleteOnly ? null : (
-        <View style={styles.actions}>
+        <View style={[styles.actions, photo ? styles.actionsWithPhoto : null]}>
+          {photo ? (
+            <View style={styles.photo}>
+              <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} />
+            </View>
+          ) : null}
           {onEdit ? <IconAction icon={SquarePen} label={`Edit ${title}`} color={colors.accent} onPress={onEdit} /> : null}
           {onSave ? <IconAction icon={Bookmark} label={`Save ${title} to my meals`} color={colors.accent} onPress={onSave} /> : null}
           {remove}
@@ -159,5 +163,8 @@ const useStyles = themedStyles((c) => ({
   note: { fontSize: 12, lineHeight: 16, color: c.inkMuted },
   notSaved: { color: c.danger },
   actions: { flexDirection: 'row', justifyContent: 'flex-end' },
+  // The redesign's 3.9: a logged meal's photo or link at the left of its icons.
+  actionsWithPhoto: { alignItems: 'center', gap: 8, marginTop: 4, paddingBottom: 6 },
+  photo: { flex: 1, minWidth: 0, flexDirection: 'row' },
   action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 }));

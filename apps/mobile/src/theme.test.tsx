@@ -180,6 +180,17 @@ describe('REQ-ACC-001 readable in both palettes', () => {
   it.each([
     ['light', LIGHT_COLORS],
     ['dark', DARK_COLORS],
+  ] as [string, ThemeColors][])('the %s palette: text on the photo viewer’s backdrop is at least 4.5:1', (_, colors) => {
+    // scrimStrong is 90 % black, so the screen behind adds at most a tenth of its own light.
+    const behind = luminance(colors.bg) * 0.1;
+    const ratio = (luminance(colors.onScrim) + 0.05) / (behind + 0.05);
+    expect(colors.scrimStrong).toBe('rgba(0,0,0,0.9)');
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ['light', LIGHT_COLORS],
+    ['dark', DARK_COLORS],
   ] as [string, ThemeColors][])('the %s palette: field outlines are at least 3:1 on screens, cards and inside the field, and lighter than muted text', (_, colors) => {
     for (const ground of [colors.bg, colors.surface, colors.surfaceSunken]) {
       expect(contrast(colors.inkSubtle, ground)).toBeGreaterThanOrEqual(3);

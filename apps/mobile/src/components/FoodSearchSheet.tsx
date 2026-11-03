@@ -1,5 +1,5 @@
 import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
-import { ChevronRight, CircleAlert, Search } from 'lucide-react-native';
+import { ChevronRight, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
@@ -9,9 +9,10 @@ import { GRAMS_RULE, itemFromDish, itemFromFood, parseGrams } from '../mealItems
 import { formatGrams, formatKcal, PORTION_UNIT_LABELS } from '../meals';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { GramsBox } from './GramsBox';
 import { PortionStepper } from './PortionStepper';
 import { Sheet } from './Sheet';
-import { Message, Text, TextButton, TextInput } from './ui';
+import { Message, Problem, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g; a dish (D-28)
@@ -85,17 +86,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
             Per 100 g: {formatKcal(chosen.food.kcal)}
             {chosen.food.kcalEstimated ? ' (estimated)' : ''} · {formatGrams(chosen.food.proteinG)} protein
           </Text>
-          <View style={[styles.amountBox, preview ? null : styles.boxRefused]}>
-            <TextInput
-              accessibilityLabel="Grams eaten"
-              value={gramsText}
-              onChangeText={setGramsText}
-              keyboardType="number-pad"
-              autoFocus
-              style={styles.amount}
-            />
-            <Text style={styles.amountUnit}>g</Text>
-          </View>
+          <GramsBox value={gramsText} onChangeText={setGramsText} refused={!preview} autoFocus />
         </>
       )}
       {preview ? (
@@ -103,12 +94,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
         </Text>
       ) : (
-        <View style={styles.problem}>
-          <CircleAlert size={16} color={colors.danger} />
-          <Text accessibilityRole="alert" style={styles.problemText}>
-            {GRAMS_RULE}
-          </Text>
-        </View>
+        <Problem text={GRAMS_RULE} />
       )}
     </Sheet>
   ) : (
@@ -199,20 +185,6 @@ const useStyles = themedStyles((c) => ({
   // flex: 1 only in the box's row: in the sheet's column a field with flex: 1 has no height for its
   // text (Yoga's flex basis is 0), which hid the search text.
   searchInput: { ...TYPE.input, flex: 1, paddingVertical: 12 },
-  amountBox: {
-    minHeight: 76,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: c.accent,
-    backgroundColor: c.surfaceSunken,
-  },
-  boxRefused: { borderColor: c.danger },
-  amount: { ...TYPE.metric, flex: 1, fontSize: 44, lineHeight: 48, paddingVertical: 8 },
-  amountUnit: { ...TYPE.label, fontSize: 20, lineHeight: 24, letterSpacing: 1 },
   body: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
   preview: { ...TYPE.metric },
   empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center' },
@@ -234,6 +206,4 @@ const useStyles = themedStyles((c) => ({
   name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   detail: { color: c.inkMuted, fontSize: 14, lineHeight: 20 },
   acknowledgement: { color: c.inkMuted, fontSize: 12, lineHeight: 16 },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
 }));

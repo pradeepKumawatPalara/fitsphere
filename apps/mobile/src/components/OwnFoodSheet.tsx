@@ -1,10 +1,11 @@
 import type { MealItem } from '@fitsphere/shared';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { View, type KeyboardTypeOptions } from 'react-native';
 import { GRAMS_RULE, itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
 import { themedStyles } from '../theme';
+import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useFieldInputStyle, useFieldLabelStyle } from './ui';
+import { Field, Problem, Text, TextButton, TextInput, useFieldLabelStyle } from './ui';
 
 // "Enter your own food" (REQ-LOG-007): the values from the label, per 100 g, and the grams eaten.
 // Works offline and with AI off; saved with this meal only (MVP default). kcal, protein, carbs and
@@ -29,8 +30,6 @@ export function OwnFoodSheet({
   onClose(): void;
 }) {
   const styles = useStyles();
-  const fieldInput = useFieldInputStyle();
-  const fieldLabel = useFieldLabelStyle();
   const [name, setName] = useState(initialName);
   const [texts, setTexts] = useState<Record<Key, string>>({ kcal: '', proteinG: '', carbsG: '', fatG: '', fibreG: '' });
   const [gramsText, setGramsText] = useState('');
@@ -81,40 +80,107 @@ export function OwnFoodSheet({
       }
     >
       <Text style={styles.intro}>Type the values from the label, per 100 g.</Text>
-      <TextInput accessibilityLabel="Food name" value={name} onChangeText={setName} maxLength={120} style={fieldInput} />
-      {FIELDS.map(({ key, label, max }) => (
-        <View key={key} style={styles.field}>
-          <Text style={fieldLabel}>{label}</Text>
-          <TextInput
-            accessibilityLabel={label}
+      <Field label="Food name" value={name} onChangeText={setName} maxLength={120} autoCapitalize="sentences" />
+      <View style={styles.panel}>
+        {FIELDS.map(({ key, label, max }, index) => (
+          <ValueRow
+            key={key}
+            label={label}
             value={texts[key]}
             onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
             keyboardType="decimal-pad"
-            style={[fieldInput, styles.number]}
+            problem={values[key] === 'invalid' ? `Enter 0 to ${max}, with at most one decimal.` : null}
+            ruled={index > 0}
           />
-          {values[key] === 'invalid' ? <Text style={styles.problem}>Enter 0 to {max}, with at most one decimal.</Text> : null}
-        </View>
-      ))}
-      <View style={styles.field}>
-        <Text style={fieldLabel}>Grams eaten</Text>
-        <TextInput
-          accessibilityLabel="Grams eaten"
-          value={gramsText}
-          onChangeText={setGramsText}
-          keyboardType="number-pad"
-          style={[fieldInput, styles.number]}
-        />
-        {gramsText.trim() !== '' && grams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
+        ))}
       </View>
+      <ValueRow
+        label="Grams eaten"
+        value={gramsText}
+        onChangeText={setGramsText}
+        keyboardType="number-pad"
+        problem={gramsText.trim() !== '' && grams === null ? GRAMS_RULE : null}
+        unit="g"
+      />
     </Sheet>
   );
 }
 
-// Fields as Field: a 13 label, 6 above its input; numbers in fixed-width digits.
+/**
+ * One value: its label at the left, the number in a box at the right in condensed figures, focused in
+ * caramel and red with its problem under it when it can't be used. With a `unit`, the box is larger
+ * and shows it (the grams eaten).
+ */
+function ValueRow({
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  problem,
+  unit,
+  ruled = false,
+}: {
+  label: string;
+  value: string;
+  onChangeText(text: string): void;
+  keyboardType: KeyboardTypeOptions;
+  problem: string | null;
+  unit?: string;
+  ruled?: boolean;
+}) {
+  const styles = useStyles();
+  const fieldLabel = useFieldLabelStyle();
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={[styles.row, unit ? styles.rowOwn : styles.rowInPanel, ruled && styles.ruled]}>
+      <View style={styles.line}>
+        <Text style={[fieldLabel, styles.label]}>{label}</Text>
+        <View style={[styles.box, unit ? styles.boxLarge : null, focused && styles.focused, problem ? styles.refused : null]}>
+          <TextInput
+            accessibilityLabel={label}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={[styles.value, unit ? styles.valueLarge : null]}
+          />
+          {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+        </View>
+      </View>
+      {problem ? <Problem text={problem} /> : null}
+    </View>
+  );
+}
+
+// The redesign's 3.8 (locked by the owner, 2026-11-03): the values per 100 g as ruled rows on a raised
+// card, each label at the left and its number at the right; the grams eaten below in a larger box.
 const useStyles = themedStyles((c) => ({
-  intro: { fontSize: 15, color: c.inkMuted },
-  field: { gap: 6 },
-  number: { fontVariant: ['tabular-nums'] },
-  problem: { fontSize: 13, color: c.danger },
-  hint: { fontSize: 13, color: c.inkMuted, textAlign: 'center' },
+  intro: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
+  hint: { fontSize: 14, lineHeight: 20, color: c.inkMuted, textAlign: 'center' },
+  panel: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  row: { gap: 6 },
+  rowInPanel: { paddingVertical: 8, paddingLeft: 14, paddingRight: 8 },
+  rowOwn: { paddingTop: 4 },
+  ruled: { borderTopWidth: 1, borderTopColor: c.border },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  label: { flex: 1 },
+  box: {
+    width: 112,
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.inkSubtle,
+    backgroundColor: c.surfaceSunken,
+  },
+  boxLarge: { width: 150, minHeight: 60, paddingHorizontal: 14 },
+  focused: { borderColor: c.accent },
+  refused: { borderColor: c.danger },
+  value: { ...TYPE.metric, flex: 1, paddingVertical: 8, textAlign: 'right' },
+  valueLarge: { fontSize: 30, lineHeight: 34 },
+  unit: { ...TYPE.label, fontSize: 16, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
 }));

@@ -134,7 +134,7 @@ export function Field({
 }
 
 /** A problem with a field's value, under it, read out as soon as it shows. */
-function Problem({ text }: { text: string }) {
+export function Problem({ text }: { text: string }) {
   const styles = useStyles();
   const { colors } = useTheme();
   return (
@@ -216,7 +216,8 @@ export function useChoiceStyles() {
  * same width. `outlined` for a secondary action; plain for a link, in caramel, at the right with
  * `end`. `destructive` (Log out, Delete) turns it red; such an action is outlined or a link, never
  * filled. `wide` makes it full width and centred: Cancel under a main action, and each half of a
- * confirmation. Disabled, it fades and cannot be pressed.
+ * confirmation. An `icon` goes before the title, in caramel (on a filled button, in the button's
+ * text colour). Disabled, it fades and cannot be pressed.
  */
 export function TextButton({
   title,
@@ -228,6 +229,7 @@ export function TextButton({
   arrow = false,
   busy = false,
   end = false,
+  icon: Icon,
   disabled,
 }: {
   title: string;
@@ -239,6 +241,7 @@ export function TextButton({
   arrow?: boolean;
   busy?: boolean;
   end?: boolean;
+  icon?: LucideIcon;
   disabled?: boolean;
 }) {
   const styles = useStyles();
@@ -264,6 +267,7 @@ export function TextButton({
         <ActivityIndicator color={colors.onPrimary} />
       ) : (
         <>
+          {Icon ? <Icon size={filled ? 22 : 18} strokeWidth={2.25} color={filled ? colors.onPrimary : destructive ? colors.danger : colors.accent} /> : null}
           <Text
             style={[
               filled ? styles.filledText : outlined ? styles.outlinedText : styles.linkText,
@@ -380,6 +384,9 @@ const useStyles = themedStyles((c) => ({
   outlined: {
     alignSelf: 'flex-start',
     minHeight: 44,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
     borderWidth: 1.5,

@@ -7,6 +7,7 @@ import type { SqlDb } from '../local/sql';
 import { getEntry, saveEntry } from '../local/store';
 import { pickPhoto } from '../photos/takePhoto';
 import { NOW, renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { LogMealScreen } from './LogMealScreen';
 import { NutritionScreen } from './NutritionScreen';
 
@@ -172,6 +173,20 @@ describe('REQ-NFR-006 photos and links on Nutrition', () => {
 
     expect(await screen.findByLabelText('Meal photo, full size')).toHaveProp('source', { uri: `data:image/jpeg;base64,${FILES.full}` });
     expect(screen.queryByRole('button', { name: /Download|Save photo|Share/ })).toBeNull();
+  });
+
+  it('a photo not on the phone says why while offline, and the viewer’s note is light on its dark backdrop', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db, server) => {
+      await mealWithPhoto(db, { kind: 'photo', mediaId: id() });
+      server.state.offline = true;
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show Lunch meals' }));
+    expect(await screen.findByText('The photo needs an internet connection.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'View meal photo' }));
+
+    await waitFor(() => expect(screen.getAllByText('The photo needs an internet connection.')).toHaveLength(2));
+    expect(screen.getAllByText('The photo needs an internet connection.').at(-1)).toHaveStyle({ color: LIGHT_COLORS.onScrim });
   });
 
   it('a link shows its site and opens in the browser; FitSphere never fetches it', async () => {

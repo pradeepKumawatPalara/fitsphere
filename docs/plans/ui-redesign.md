@@ -89,11 +89,11 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.4 Nutrition, Diet plan | Locked and built |
 | 3.5 Log meal | Locked and built; with it every pushed screen's header title is in condensed capitals |
 | 3.6 Food search and portions | Locked and built; the IFCT food-values credit stays under the results; with it the actions sheet (also used by the meal photo) took its new look |
-| 3.7 Barcode scan | Next |
-| 3.8 Enter your own food | |
-| 3.9 Meal photo | |
+| 3.7 Barcode scan | Locked and built; with it an action can show an icon before its title |
+| 3.8 Enter your own food | Locked and built |
+| 3.9 Meal photo | Locked and built; a logged meal's photo or link sits beside the meal card's icons; the viewer's text has its own colour, `onScrim`, readable on its dark backdrop in both themes |
 | **4 Training** | |
-| 4.1 Training: workout history | |
+| 4.1 Training: workout history | Next |
 | 4.2 A workout | |
 | 4.3 Exercise sheet | |
 | **5 Progress** | |
