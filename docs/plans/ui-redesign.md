@@ -3,8 +3,9 @@
 - Status: **Draft** (from the owner's instructions in chat, 2026-11-03); waiting for the owner's
   approval
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-03 (1.1 Sign in locked and built with the foundation, on
-  `ui-redesign`; MVP defaults for the two contrast conflicts). Earlier the same day: the
+- Last updated: 2026-11-03 (module 1 built to 1.6; the full order of screens in Progress). Earlier:
+  1.1 Sign in locked and built with the foundation, on `ui-redesign`; MVP defaults for the two
+  contrast conflicts. Earlier the same day: the
   module plan; the owner chose to change the whole app's colours and fonts at once
 - Builds on: D-35 and the design language in [`docs/design/`](../design/) (`design-system.md`,
   `FitSphere-UI-UX-context.md`); the theme module of the
@@ -59,15 +60,51 @@ unused "Coming later" screen. The app has no onboarding beyond Account setup; ad
 new flow.
 
 ## Progress
+The order screens are designed and built in, one at a time; each is locked by the owner before it
+is built. A notice or sheet that several screens share takes its new look with the first of them.
+
 | Screen | Status |
 |---|---|
-| 0 Foundation | Built with 1.1 on `ui-redesign`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
-| 1.1 Sign in | Locked and built (`ui-redesign`); the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is ready; the owner's phone check is next |
-| 1.2 Sign up | Locked and built (`ui-redesign`); with it the checkbox and a field's rule line took their new look |
-| 1.3 Check your email | Locked and built (`ui-redesign`); the sign-up text shows as a heading and its text, the same words |
-| 1.4 Email verified | Locked and built (`ui-redesign`); "Link expired" is the only new heading |
-| 1.5 Forgot password | Locked and built (`ui-redesign`) |
-| 1.6 Set a new password | Designed (every state, and a link that failed); waiting for the owner |
+| 0 Foundation | Built with 1.1: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
+| **1 Sign-in and account setup** | |
+| 1.1 Sign in | Locked and built; the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is on the phone |
+| 1.2 Sign up | Locked and built; with it the checkbox and a field's rule line took their new look |
+| 1.3 Check your email | Locked and built; the sign-up text shows as a heading and its text, the same words |
+| 1.4 Email verified | Locked and built; "Link expired" is the only new heading |
+| 1.5 Forgot password | Locked and built |
+| 1.6 Set a new password | Locked and built |
+| 1.7 Account setup (the 18+ box) | Next |
+| 1.8 App start (while the app opens) | |
+| **2 App shell and Home** | |
+| 2.1 Tab bar and header (date, calendar, avatar) | |
+| 2.2 Calendar sheet | |
+| 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | |
+| 2.4 Entry sheet for weight, steps and sleep | |
+| 2.5 Measurements sheet | |
+| 2.6 A day's workouts sheet | |
+| **3 Nutrition and Log meal** | |
+| 3.1 Nutrition, Consumed: eaten summary, meal slots, meal cards | |
+| 3.2 Meal actions and confirmations | |
+| 3.3 Nutrition, Saved | |
+| 3.4 Nutrition, Diet plan | |
+| 3.5 Log meal | |
+| 3.6 Food search and portions | |
+| 3.7 Barcode scan | |
+| 3.8 Enter your own food | |
+| 3.9 Meal photo | |
+| **4 Training** | |
+| 4.1 Training: workout history | |
+| 4.2 A workout | |
+| 4.3 Exercise sheet | |
+| **5 Progress** | |
+| 5.1 Progress: weight and its chart, nutrition, the week, measurements | |
+| 5.2 Weight history | |
+| **6 Settings and account** | |
+| 6.1 Settings | |
+| 6.2 Your targets and its entry sheet | |
+| 6.3 Change password | |
+| 6.4 Delete account | |
+| 6.5 Log out | |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.

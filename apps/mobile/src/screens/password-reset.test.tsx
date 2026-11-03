@@ -3,6 +3,7 @@ import type { ReactElement } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import { RESET_REDIRECT, type AuthClient } from '../auth/service';
 import { TEXTS } from '../auth/texts';
+import { LIGHT_COLORS } from '../theme';
 import { deps, fakeApi, fakeAuthClient, fakeSession, OFFLINE } from '../testing/fakes';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { ResetPasswordScreen } from './ResetPasswordScreen';
@@ -153,5 +154,32 @@ describe('REQ-ACC-010 Set a new password', () => {
     await renderWith(<ResetPasswordScreen />, client);
 
     expect(await screen.findByText(TEXTS.resetLinkInvalid)).toBeOnTheScreen();
+  });
+
+  // The redesign's screen 1.6 (locked by the owner, 2026-11-03).
+  it('a link that cannot be used shows under the heading, with Forgot password the one step left', async () => {
+    mockParams = { error: 'access_denied' };
+    await renderWith(<ResetPasswordScreen />, fakeAuthClient());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(TEXTS.resetLinkInvalid);
+    expect(screen.getByRole('header', { name: 'Set a new password' })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('New password')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Forgot password' }));
+    expect(mockRouter.replace).toHaveBeenCalledWith('/forgot-password');
+  });
+
+  it('names a reused password under the field, its outline red, with the rule still ticked', async () => {
+    mockParams = { code: 'one-time-code' };
+    const client = fakeAuthClient(fakeSession({}));
+    client.updateUser.mockResolvedValueOnce({ error: { name: 'AuthApiError', code: 'same_password', status: 422 } });
+    await renderWith(<ResetPasswordScreen />, client);
+    await fireEvent.changeText(await screen.findByLabelText('New password'), 'new-password-1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Set password' }));
+
+    const problem = await screen.findByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.samePassword);
+    expect(within(problem.parent!.parent!).getByLabelText('New password')).toBeOnTheScreen();
+    expect(screen.getByLabelText('New password').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+    expect(screen.getByLabelText(`${TEXTS.passwordRule} Done.`)).toBeOnTheScreen();
   });
 });
