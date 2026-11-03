@@ -20,7 +20,7 @@ Training module (the owner, 2026-11-03).
 |---|---|
 | 1. The contract, the sheet and its import, migration 0009, GET /v1/foods, the sync's check | Built |
 | 2. The phone: the cached measures (schema version 8), the unit choice in Search foods, changing and joining items | Built |
-| Owner's steps | Not done: measure and approve rows; `npm run migrate -w @fitsphere/api` (0009) and `npm run foods:import -w @fitsphere/api` on `fitsphere-dev` |
+| Owner's steps | Migration 0009 and `foods:import` ran on `fitsphere-dev` on 2026-11-03 at the owner's go (0 units imported). Not done: measuring and approving rows, then `foods:import` again |
 
 ## Scope
 | In this plan | Requirements |
