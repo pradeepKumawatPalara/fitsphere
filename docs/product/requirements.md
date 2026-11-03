@@ -43,6 +43,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given the Personal Training User view, when any main screen is shown, then tabs Home, Nutrition, Training, Progress are visible and each opens its screen.
 - Open: navigation for Coach and Head Coach views is not specified (Q-020). **Post-MVP** with those views (D-20, backlog B-17).
+- Each tab shows an icon over its label (D-34, amending D-23's text labels): filled for the tab shown, on a tinted pill, outlined for the others.
 
 ### REQ-NAV-002 — Common header
 - Requirement: Every main screen shows the selected date, a calendar shortcut and a profile avatar that opens Account settings.

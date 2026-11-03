@@ -623,6 +623,8 @@
      green before merge, and the owner merging. The phone checks are batched at the end of the
      slice.
   3. **`npm run dev:phone`** (D-22 answer 5) is step 1.
+- Amended by D-34 answer 9 (2026-11-03): the tabs, first text labels only (the slice plan's MVP
+  default), show an icon over each label.
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: `docs/plans/home-daily-tracking-slice.md`; `CLAUDE.md` current phase;
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
@@ -910,7 +912,8 @@ checksum), and the configuration template was left as it is.*
 - Answers:
   1. **An icon package.** `@expo/vector-icons` (Ionicons) is added for the header's calendar and the
      meal cards' actions: JavaScript only, its font loaded by `expo-font`, which is already in the
-     development build, so no new build is needed. The tabs keep text labels only (D-23).
+     development build, so no new build is needed. The tabs keep text labels only (D-23; since D-34
+     answer 9, an icon over each label).
   2. **Meal actions as icons (REQ-NUT-004, Q-032).** Each logged meal shows Edit, "Save to my meals"
      and Delete as icons on the meal, in place of the "•••" menu; a saved meal shows Delete. Each
      icon is named for screen readers ("Edit Lunch: …", "Save Lunch: … to my meals", "Delete
@@ -997,10 +1000,16 @@ checksum), and the configuration template was left as it is.*
      gesture returns to it; "I already have an account" and "Back to sign in" (also on Check email)
      go back to that Sign in rather than open a second one, and open Sign in when nothing is under
      them, e.g. after a link in an email.
+  9. **The tabs show an icon over each label (REQ-NAV-001; amends D-23).** Ionicons from
+     `@expo/vector-icons`: home, nutrition, barbell and stats-chart, filled for the tab shown and
+     outlined for the others. The tab shown has its icon on a pill (56 by 32, radius 16, the
+     theme's chosen tint) and its label in blue, semibold; the others are muted. Labels are 13 so
+     they fit under the icons. Each tab keeps its name and selected state for screen readers and
+     is the full tab to tap, 64 dp above the navigation bar. Theme tokens only.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-NUT-003, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and
-  REQ-PRG-004 in `docs/product/requirements.md`; Home, Nutrition, Training, Log meal, Progress, Q-017
+  REQ-PRG-004 and REQ-NAV-001 in `docs/product/requirements.md`; D-23's amendment; Home, Nutrition, Training, Log meal, Progress, Q-017
   and Q-019 in `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
   `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
 
