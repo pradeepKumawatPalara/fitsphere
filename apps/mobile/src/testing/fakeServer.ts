@@ -37,6 +37,8 @@ const KINDS = {
   'meal.delete': { list: 'meals', key: 'id' },
   'savedMeal.set': { list: 'savedMeals', key: 'id' },
   'savedMeal.delete': { list: 'savedMeals', key: 'id' },
+  // One profile: its data names no key, so it always takes the same slot.
+  'profile.set': { list: 'profiles', key: null },
 } as const;
 type ChangeType = keyof typeof KINDS;
 type ListName = (typeof KINDS)[ChangeType]['list'];
@@ -80,13 +82,13 @@ export function fakeServer(now: Date) {
 
   function store(type: ChangeType, data: Record<string, unknown>) {
     const { list, key } = KINDS[type];
-    const slot = `${list}|${String(data[key])}`;
+    const slot = `${list}|${key === null ? 'profile' : String(data[key])}`;
     const updatedAt = now.toISOString();
     const { setAt, recordedAt, ...rest } = data;
     let item: Record<string, unknown>;
     if (type === 'target.set') {
       item = { ...rest, setByUserId: ME.user.id, setAt, updatedAt };
-    } else if (type === 'setting.set') {
+    } else if (type === 'setting.set' || type === 'profile.set') {
       item = { ...rest, setAt, updatedAt };
     } else if (type === 'meal.set' || type === 'savedMeal.set') {
       // The server computes the totals from the items.
@@ -151,11 +153,13 @@ export function fakeServer(now: Date) {
       const product = state.barcodes[barcode] ?? null;
       return json(200, { barcode, found: product !== null, product });
     }
-    // Meal photo links: only for a photo a synced meal names, and only for the user (D-20).
+    // Photo links: only for a photo a synced meal or the profile names, and only for the user (D-20).
     const media = /^\/users\/([^/]+)\/media\/([^/]+)(\/upload)?$/.exec(path);
     if (media) {
       const [, userId, mediaId, upload] = media as unknown as [string, string, string, string | undefined];
-      const named = [...entries('meals').values()].some((meal) => (meal.photo as { mediaId?: string } | null)?.mediaId === mediaId);
+      const named =
+        [...entries('meals').values()].some((meal) => (meal.photo as { mediaId?: string } | null)?.mediaId === mediaId) ||
+        entries('profiles').get('profile')?.photoMediaId === mediaId;
       if (userId !== ME.user.id || !named || method !== (upload ? 'POST' : 'GET')) {
         return json(404, { error: { code: 'NOT_FOUND', message: 'x', retryable: false, requestId: 'r', details: null } });
       }
@@ -186,7 +190,7 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull: Record<ListName | 'profiles' | 'removals', unknown[]> = {
+      const pull: Record<ListName | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],
@@ -274,6 +278,11 @@ export function fakeServer(now: Date) {
     store('workout.delete', { id, deletedAt: now.toISOString() });
   }
 
+  /** The profile saved on another phone. */
+  function storeProfileFromElsewhere(profile: Record<string, unknown>) {
+    store('profile.set', { ...profile, setAt: now.toISOString() });
+  }
+
   return {
     fetchImpl: fetchImpl as unknown as typeof fetch,
     state,
@@ -290,6 +299,7 @@ export function fakeServer(now: Date) {
     deleteMealFromElsewhere,
     storeWorkoutFromElsewhere,
     deleteWorkoutFromElsewhere,
+    storeProfileFromElsewhere,
   };
 }
 

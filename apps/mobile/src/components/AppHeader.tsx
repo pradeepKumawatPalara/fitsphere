@@ -3,21 +3,25 @@ import { Calendar } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
-import { formatDay, nameFromEmail } from '../format';
+import { formatDay } from '../format';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { greetingName } from '../profile';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { CalendarSheet } from './CalendarSheet';
+import { ProfilePhoto, useProfile } from './ProfilePhoto';
 import { Text } from './ui';
 
 // The common header of the main screens (REQ-NAV-002, REQ-HOME-001): the selected date over the
 // greeting on the left; the calendar shortcut and the profile avatar on the right. The redesign's
 // 2.1 (locked by the owner, 2026-11-03): the date in condensed capitals, caramel when it is today;
-// the greeting under it in display capitals.
+// the greeting under it in display capitals. The greeting uses the profile's first name, and the
+// avatar its photo (REQ-ACC-011), when there are.
 
 export function HeaderTitle() {
   const styles = useStyles();
   const { email } = useAuth();
+  const profile = useProfile();
   const { today, selected } = useSelectedDay();
   const date = selected === today ? `Today · ${formatDay(selected)}` : formatDay(selected);
   return (
@@ -26,7 +30,7 @@ export function HeaderTitle() {
         {date}
       </Text>
       <Text numberOfLines={1} style={styles.name}>
-        Hi, {nameFromEmail(email)}
+        Hi, {greetingName(profile?.name, email)}
       </Text>
     </View>
   );
@@ -36,10 +40,10 @@ export function HeaderActions() {
   const styles = useStyles();
   const { colors } = useTheme();
   const { email } = useAuth();
+  const profile = useProfile();
   const { today, selected, firstDay, select } = useSelectedDay();
   const router = useRouter();
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const initial = nameFromEmail(email).charAt(0).toUpperCase() || '?';
   return (
     <View style={styles.actions}>
       <Pressable
@@ -56,9 +60,9 @@ export function HeaderActions() {
         accessibilityLabel="Account"
         onPress={() => router.push('/account')}
         hitSlop={2}
-        style={({ pressed }) => [styles.avatar, pressed && styles.pressed]}
+        style={({ pressed }) => pressed && styles.pressed}
       >
-        <Text style={styles.avatarText}>{initial}</Text>
+        <ProfilePhoto mediaId={profile?.photoMediaId ?? null} name={greetingName(profile?.name, email)} size={44} />
       </Pressable>
       {calendarOpen ? (
         <CalendarSheet
@@ -73,8 +77,8 @@ export function HeaderActions() {
   );
 }
 
-// The calendar is a caramel icon on a raised square; the account is the user's initial on a caramel
-// square. Both 44, radius 8.
+// The calendar is a caramel icon on a raised square; the account is the profile photo, or the user's
+// initial on a caramel square. Both 44, radius 8.
 const useStyles = themedStyles((c) => ({
   title: { gap: 4 },
   date: { ...TYPE.label, color: c.inkMuted },
@@ -91,7 +95,5 @@ const useStyles = themedStyles((c) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatar: { width: 44, height: 44, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { ...TYPE.heading, fontSize: 22, color: c.onPrimary },
   pressed: { opacity: 0.6 },
 }));

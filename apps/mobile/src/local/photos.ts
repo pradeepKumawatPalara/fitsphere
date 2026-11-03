@@ -1,8 +1,9 @@
-// Meal photo files on the phone (REQ-LOG-006; ADR-0002 rule 7, ADR-0007 rule 5). They are kept
-// inside the encrypted database, never as files: the thumbnail for lists, and the viewing copy once
-// taken or viewed on this phone, so repeat views use no data. A photo taken here waits with
-// `uploaded = 0` until its files are uploaded; it counts as unsynced and is never cleared
-// automatically (D-14). Photos no meal names any more are removed by `removeUnusedPhotos` (store).
+// Photo files on the phone: a meal's (REQ-LOG-006) or the profile's (REQ-ACC-011); ADR-0002 rule 7,
+// ADR-0007 rule 5. They are kept inside the encrypted database, never as files: the thumbnail for
+// lists, and the viewing copy once taken or viewed on this phone, so repeat views use no data. A
+// photo taken here waits with `uploaded = 0` until its files are uploaded; it counts as unsynced and
+// is never cleared automatically (D-14). A photo's `mealId` is its meal's ID, or PROFILE_KEY for the
+// profile's. Photos nothing names any more are removed by `removeUnusedPhotos` (store).
 import type { SqlDb } from './sql';
 
 /** A photo's two JPEG files as base64 text. */
@@ -26,16 +27,27 @@ export async function getPhoto(db: SqlDb, id: string): Promise<LocalPhoto | null
 }
 
 /**
- * Keeps a file read from storage, for a photo a meal on this phone still names. Files already
- * here are kept.
+ * Keeps a file read from storage, for a photo a meal on this phone, or the profile, still names.
+ * Files already here are kept.
  */
 export async function cachePhotoFile(db: SqlDb, photo: { id: string; mealId: string; createdAt: string }, file: Partial<PhotoFiles>) {
   await db.runAsync(
     `INSERT INTO photos (id, meal_id, thumbnail, full, uploaded, created_at)
      SELECT ?, ?, ?, ?, 1, ?
      WHERE EXISTS (SELECT 1 FROM meals WHERE id = ? AND json_extract(photo, '$.mediaId') = ?)
+        OR EXISTS (SELECT 1 FROM profile WHERE id = ? AND photo_media_id = ?)
      ON CONFLICT (id) DO UPDATE SET thumbnail = coalesce(thumbnail, excluded.thumbnail), full = coalesce(full, excluded.full)`,
-    [photo.id, photo.mealId, file.thumbnail ?? null, file.full ?? null, photo.createdAt, photo.mealId, photo.id],
+    [
+      photo.id,
+      photo.mealId,
+      file.thumbnail ?? null,
+      file.full ?? null,
+      photo.createdAt,
+      photo.mealId,
+      photo.id,
+      photo.mealId,
+      photo.id,
+    ],
   );
 }
 

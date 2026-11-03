@@ -1,21 +1,16 @@
 import { Stack } from 'expo-router';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
-import type { ReactNode } from 'react';
 import { Text } from 'react-native';
 import TabsLayout from '../app/(tabs)/_layout';
-import { AuthProvider } from '../auth/AuthProvider';
 import { ComingLaterScreen } from '../screens/ComingLaterScreen';
-import { deps, fakeAuthClient, fakeApi, fakeSession } from '../testing/fakes';
+import { routerProviders } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
 
 // REQ-NAV-001 and REQ-NAV-002 with the real expo-router navigators. The screens behind the tabs
 // are stand-ins; Home's own behaviour is tested in screens/home.test.tsx.
 
-function Providers({ children }: { children: ReactNode }) {
-  return <AuthProvider deps={deps(fakeAuthClient(fakeSession()), fakeApi({}).fetchImpl)}>{children}</AuthProvider>;
-}
-
 async function renderTabs() {
+  const Providers = await routerProviders();
   return renderRouter(
     {
       _layout: () => <Stack screenOptions={{ headerShown: false }} />,

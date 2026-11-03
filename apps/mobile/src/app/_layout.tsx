@@ -48,6 +48,7 @@ function AppStack() {
       <Stack.Screen name="change-password" options={{ title: 'Change password' }} />
       <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
       <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
+      <Stack.Screen name="profile" options={{ title: 'Profile' }} />
       <Stack.Screen name="log-meal" options={{ title: 'Log meal' }} />
       <Stack.Screen name="workout/[id]" options={{ title: 'Workout' }} />
       <Stack.Screen name="weight-history" options={{ title: 'Weight history' }} />

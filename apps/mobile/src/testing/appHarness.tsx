@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react-native';
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
@@ -23,6 +23,28 @@ let ids = 0;
 function newId() {
   ids += 1;
   return `00000000-0000-4000-9000-${String(ids).padStart(12, '0')}`;
+}
+
+/**
+ * The providers a router's screens need (renderRouter's `wrapper`): the account, an in-memory phone
+ * database and sync, with the fake API. The header reads the profile from the phone (REQ-ACC-011).
+ */
+export async function routerProviders() {
+  const db: SqlDb = memoryDb();
+  await migrateLocal(db);
+  const server = fakeServer(NOW);
+  const client = fakeAuthClient(fakeSession());
+  return function Providers({ children }: { children: ReactNode }) {
+    return (
+      <AuthProvider deps={deps(client, server.fetchImpl)}>
+        <LocalDatabaseProvider owner="user-1" open={async () => ({ db, cipherVersion: '4.6.1' })}>
+          <SyncProvider newId={newId} network={noNetworkEvents}>
+            {children}
+          </SyncProvider>
+        </LocalDatabaseProvider>
+      </AuthProvider>
+    );
+  };
 }
 
 /**

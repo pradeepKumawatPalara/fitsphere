@@ -19,9 +19,10 @@ export type PickOutcome = { kind: 'picked'; files: PhotoFiles } | { kind: 'cance
  * A meal photo from the camera or the gallery (REQ-LOG-006), shrunk on the phone to a viewing copy
  * and a thumbnail. Re-encoding writes new JPEGs without the original's metadata, location included
  * (ADR-0002 rule 2; checked on the phone). The image files the picker and the shrinking leave in
- * the app's cache are deleted at once; the photo is kept only in the encrypted database.
+ * the app's cache are deleted at once; the photo is kept only in the encrypted database. A profile
+ * photo (REQ-ACC-011) is `square`: its middle square, cropped before it is shrunk.
  */
-export async function pickPhoto(source: 'camera' | 'library'): Promise<PickOutcome> {
+export async function pickPhoto(source: 'camera' | 'library', shape: 'asTaken' | 'square' = 'asTaken'): Promise<PickOutcome> {
   if (source === 'camera') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) return { kind: 'noPermission' };
@@ -32,8 +33,8 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<PickOutco
   if (!asset) return { kind: 'cancelled' };
   const temporary = [asset.uri];
   try {
-    const full = await encode(asset, FULL_EDGE, FULL_QUALITIES, temporary, FULL_TARGET_BYTES);
-    const thumbnail = await encode(asset, THUMBNAIL_EDGE, [THUMBNAIL_QUALITY], temporary, Infinity);
+    const full = await encode(asset, shape, FULL_EDGE, FULL_QUALITIES, temporary, FULL_TARGET_BYTES);
+    const thumbnail = await encode(asset, shape, THUMBNAIL_EDGE, [THUMBNAIL_QUALITY], temporary, Infinity);
     return { kind: 'picked', files: { full, thumbnail } };
   } catch {
     return { kind: 'failed' };
@@ -44,13 +45,21 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<PickOutco
 
 async function encode(
   asset: { uri: string; width: number; height: number },
+  shape: 'asTaken' | 'square',
   edge: number,
   qualities: number[],
   temporary: string[],
   targetBytes: number,
 ): Promise<string> {
-  const size = asset.width >= asset.height ? { width: Math.min(edge, asset.width) } : { height: Math.min(edge, asset.height) };
-  const image = await ImageManipulator.manipulate(asset.uri).resize(size).renderAsync();
+  const context = ImageManipulator.manipulate(asset.uri);
+  if (shape === 'square') {
+    const side = Math.min(asset.width, asset.height);
+    context.crop({ originX: Math.floor((asset.width - side) / 2), originY: Math.floor((asset.height - side) / 2), width: side, height: side });
+    context.resize({ width: Math.min(edge, side) });
+  } else {
+    context.resize(asset.width >= asset.height ? { width: Math.min(edge, asset.width) } : { height: Math.min(edge, asset.height) });
+  }
+  const image = await context.renderAsync();
   try {
     let base64 = '';
     for (const compress of qualities) {

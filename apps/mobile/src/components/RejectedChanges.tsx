@@ -4,6 +4,7 @@ import {
   MEASUREMENTS_SET,
   SAVED_MEAL_DELETE,
   SAVED_MEAL_SET,
+  PROFILE_SET,
   SETTING_SET,
   SLEEP_SET,
   STEPS_SET,
@@ -87,6 +88,8 @@ export function describeRejected(entry: OutboxEntry, bodyWeightUnit: BodyWeightU
     }
     case SETTING_SET:
       return { what: SETTING_LABELS[data.name as SettingName] ?? 'A setting', notSaved: "This setting wasn't saved" };
+    case PROFILE_SET:
+      return { what: 'Your profile', notSaved: "Your profile wasn't saved" };
     default:
       return { what: 'An entry', notSaved: "This entry wasn't saved" };
   }

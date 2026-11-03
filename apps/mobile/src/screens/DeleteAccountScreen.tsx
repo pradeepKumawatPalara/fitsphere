@@ -18,7 +18,7 @@ const DELETED: { icon: LucideIcon; text: string }[] = [
     icon: ClipboardList,
     text: 'everything you logged: weights, steps, sleep, measurements, meals and their photos, saved meals, workouts and targets;',
   },
-  { icon: SlidersHorizontal, text: 'your settings and your AI meal reading choices.' },
+  { icon: SlidersHorizontal, text: 'your profile and its photo, your settings and your AI meal reading choices.' },
 ];
 
 // Delete account (REQ-ACC-009; Q-048 MVP default; ADR-0004 rule 7; MVP defaults, D-31): a separate

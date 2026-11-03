@@ -4,6 +4,7 @@ import {
   MEAL_SET,
   MEASUREMENTS_SET,
   SAVED_MEAL_SET,
+  PROFILE_SET,
   SETTING_SET,
   TARGET_SET,
   WORKOUT_DELETE,
@@ -175,6 +176,7 @@ export function HomeScreen() {
     else if (entry.type === SAVED_MEAL_SET) router.push({ pathname: '/nutrition', params: { tab: 'saved' } });
     else if (entry.type === WORKOUT_SET || entry.type === WORKOUT_DELETE) router.push(`/workout/${String(data.id)}`);
     else if (entry.type === SETTING_SET) router.push('/account');
+    else if (entry.type === PROFILE_SET) router.push('/profile');
   }
 
   // Never run unencrypted (ADR-0007 rule 5): stop, and leave only Log out.

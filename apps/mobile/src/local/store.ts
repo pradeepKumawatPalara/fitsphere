@@ -6,6 +6,7 @@ import {
   MEAL_SET,
   mealTotals,
   MEASUREMENTS_SET,
+  PROFILE_SET,
   SAVED_MEAL_DELETE,
   SAVED_MEAL_SET,
   SETTING_SET,
@@ -24,6 +25,7 @@ import {
   type MealSetData,
   type MealTotals,
   type MeasurementsSetData,
+  type ProfileSetData,
   type SavedMealSetData,
   type SettingName,
   type SettingSetData,
@@ -51,9 +53,22 @@ export type OutboxEntry = {
 
 /**
  * One entry per IST day for the day kinds, one per target kind for targets, one per name for
- * settings, and one per ID for meals, saved meals and workouts (any number a day).
+ * settings, one per ID for meals, saved meals and workouts (any number a day), and one profile.
  */
-export type EntryKind = 'weighIn' | 'steps' | 'sleep' | 'measurements' | 'workout' | 'target' | 'setting' | 'meal' | 'savedMeal';
+export type EntryKind =
+  | 'weighIn'
+  | 'steps'
+  | 'sleep'
+  | 'measurements'
+  | 'workout'
+  | 'target'
+  | 'setting'
+  | 'meal'
+  | 'savedMeal'
+  | 'profile';
+
+/** The profile's one key (REQ-ACC-011); also the owner of its photo in the photos table. */
+export const PROFILE_KEY = 'profile';
 
 /** What a change carries for each kind (api-conventions, "POST /v1/sync"). */
 export type ChangeData = {
@@ -66,6 +81,7 @@ export type ChangeData = {
   setting: SettingSetData;
   meal: MealSetData;
   savedMeal: SavedMealSetData;
+  profile: ProfileSetData;
 };
 
 /** An entry on the phone: the change's fields, what only the server knows, and its sync state. */
@@ -79,6 +95,7 @@ export type LocalEntries = {
   setting: { name: SettingName; value: string; setAt: string; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
   savedMeal: SavedMealSetData & MealTotals & { syncState: SyncState };
+  profile: ProfileSetData & { syncState: SyncState };
 };
 export type LocalWeighIn = LocalEntries['weighIn'];
 export type LocalSteps = LocalEntries['steps'];
@@ -89,6 +106,7 @@ export type LocalTarget = LocalEntries['target'];
 export type LocalSetting = LocalEntries['setting'];
 export type LocalMeal = LocalEntries['meal'];
 export type LocalSavedMeal = LocalEntries['savedMeal'];
+export type LocalProfile = LocalEntries['profile'];
 
 /** The kinds a user can delete; each has its own delete change (meals, saved meals, workouts). */
 export type DeletableKind = 'meal' | 'savedMeal' | 'workout';
@@ -100,6 +118,8 @@ type KindSpec = {
   table: string;
   /** The field that identifies an entry: its column, and its path in a change's data. */
   key: 'day' | 'kind' | 'name' | 'id';
+  /** A kind with one entry (the profile): its key, always; the change's data does not carry it. */
+  onlyKey?: string;
   /** Local columns and the field each holds, key first; `json` columns hold JSON text (null when absent). */
   columns: [column: string, field: string, json?: 'json'][];
   /** Fields worked out from the others when the row is written (a meal's totals). */
@@ -251,7 +271,39 @@ const KINDS: Record<EntryKind, KindSpec> = {
     derive: deriveTotals,
     dayData: false,
   },
+  // The user's profile (REQ-ACC-011): one, kept like the settings. The address is JSON; the height
+  // in millimetres (invariant #6). Its photo is in the photos table, owned by PROFILE_KEY.
+  profile: {
+    changeType: PROFILE_SET,
+    table: 'profile',
+    key: 'id',
+    onlyKey: PROFILE_KEY,
+    columns: [
+      ['id', 'id'],
+      ['name', 'name'],
+      ['date_of_birth', 'dateOfBirth'],
+      ['sex', 'sex'],
+      ['height_mm', 'heightMm'],
+      ['phone', 'phone'],
+      ['address', 'address', 'json'],
+      ['photo_media_id', 'photoMediaId'],
+      ['set_at', 'setAt'],
+    ],
+    pullColumns: [],
+    derive: () => ({ id: PROFILE_KEY }),
+    dayData: false,
+  },
 };
+
+/** An entry's key from its fields (or a change's data). */
+function keyOf(spec: KindSpec, fields: Record<string, unknown>): unknown {
+  return spec.onlyKey ?? fields[spec.key];
+}
+
+/** SQL for the key of the entry an outbox row is for, compared with `= ?`. */
+function outboxKey(spec: KindSpec): string {
+  return spec.onlyKey ? `'${spec.onlyKey}'` : `json_extract(data, '$.${spec.key}')`;
+}
 
 function deriveTotals(fields: Record<string, unknown>): Record<string, BindValue> {
   return mealTotals(fields.items as MealItem[]);
@@ -414,6 +466,21 @@ const MIGRATIONS = [
   // list's version is cleared, so the next download brings them.
   `ALTER TABLE foods ADD COLUMN measures TEXT NOT NULL DEFAULT '[]';
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // The profile (REQ-ACC-011): one row, keyed 'profile'; the address as JSON. Its photo is a row of
+  // the photos table whose meal_id is 'profile'. The cursor is cleared so the next sync pulls it.
+  `CREATE TABLE profile (
+     id TEXT PRIMARY KEY CHECK (id = 'profile'),
+     name TEXT,
+     date_of_birth TEXT,
+     sex TEXT,
+     height_mm INTEGER,
+     phone TEXT,
+     address TEXT NOT NULL,
+     photo_media_id TEXT,
+     set_at TEXT NOT NULL,
+     ${SYNC_STATE}
+   );
+   DELETE FROM sync_meta WHERE key = 'cursor';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -469,16 +536,16 @@ export async function saveEntry<K extends EntryKind>(
 ): Promise<void> {
   const spec = KINDS[kind];
   const fields = entry.data as Record<string, unknown>;
-  const key = fields[spec.key] as string;
+  const key = keyOf(spec, fields) as string;
   const createdAt = (fields.recordedAt ?? fields.setAt ?? fields.savedAt) as string;
   await db.withTransactionAsync(async () => {
     await alsoFirst?.();
     await upsert(db, spec, spec.columns, fields, 'pending');
-    if (kind === 'meal') await removeUnusedPhotos(db);
-    await db.runAsync(
-      `DELETE FROM outbox WHERE status = 'rejected' AND type IN (?, ?) AND json_extract(data, '$.${spec.key}') = ?`,
-      [...typesOf(spec), key],
-    );
+    if (kind === 'meal' || kind === 'profile') await removeUnusedPhotos(db);
+    await db.runAsync(`DELETE FROM outbox WHERE status = 'rejected' AND type IN (?, ?) AND ${outboxKey(spec)} = ?`, [
+      ...typesOf(spec),
+      key,
+    ]);
     await db.runAsync(
       `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES (?, ?, ?, ?, 'pending')`,
       [entry.changeId, spec.changeType, JSON.stringify(entry.data), createdAt],
@@ -559,13 +626,13 @@ export async function applyServerEntries<K extends EntryKind>(
   await db.withTransactionAsync(async () => {
     for (const entry of entries) {
       const fields = entry as Record<string, unknown>;
-      const key = fields[spec.key] as string;
+      const key = keyOf(spec, fields) as string;
       if (await hasOutboxEntry(db, spec, key)) continue;
       // A meal or saved meal deleted on another phone leaves this one too.
       if (fields.deleted === true) await db.runAsync(`DELETE FROM ${spec.table} WHERE ${spec.key} = ?`, [key]);
       else await upsert(db, spec, columns, fields, 'synced');
     }
-    if (kind === 'meal') await removeUnusedPhotos(db);
+    if (kind === 'meal' || kind === 'profile') await removeUnusedPhotos(db);
   });
 }
 
@@ -675,13 +742,16 @@ export async function unsyncedCount(db: SqlDb): Promise<number> {
 }
 
 /**
- * Removes photos no meal on the phone names any more: the meal was deleted, here or on another
- * phone, its photo was replaced, or it left the 90 days (REQ-LOG-006, A-004).
+ * Removes photos no meal on the phone, nor the profile, names any more: the meal was deleted, here
+ * or on another phone, its photo was replaced or removed, or it left the 90 days (REQ-LOG-006,
+ * A-004, REQ-ACC-011).
  */
 export async function removeUnusedPhotos(db: SqlDb): Promise<void> {
   await db.runAsync(
     `DELETE FROM photos WHERE NOT EXISTS (
        SELECT 1 FROM meals WHERE meals.id = photos.meal_id AND json_extract(meals.photo, '$.mediaId') = photos.id
+     ) AND NOT EXISTS (
+       SELECT 1 FROM profile WHERE photos.meal_id = profile.id AND profile.photo_media_id = photos.id
      )`,
     [],
   );
@@ -753,7 +823,7 @@ async function outboxTarget(db: SqlDb, changeId: string): Promise<{ spec: KindSp
   ]);
   const spec = row ? specOfType(row.type) : null;
   if (!row || !spec) return null;
-  const key = (JSON.parse(row.data) as Record<string, unknown>)[spec.key];
+  const key = keyOf(spec, JSON.parse(row.data) as Record<string, unknown>);
   return typeof key === 'string' ? { spec, key } : null;
 }
 
@@ -764,7 +834,7 @@ export async function entryWaiting(db: SqlDb, kind: EntryKind, key: string): Pro
 
 async function hasOutboxEntry(db: SqlDb, spec: KindSpec, key: string): Promise<boolean> {
   const row = await db.getFirstAsync<{ n: number }>(
-    `SELECT count(*) AS n FROM outbox WHERE type IN (?, ?) AND json_extract(data, '$.${spec.key}') = ?`,
+    `SELECT count(*) AS n FROM outbox WHERE type IN (?, ?) AND ${outboxKey(spec)} = ?`,
     [...typesOf(spec), key],
   );
   return (row?.n ?? 0) > 0;
@@ -779,7 +849,7 @@ async function settle(db: SqlDb, changeId: string, change: () => Promise<void>):
     const { spec, key } = target;
     const row = await db.getFirstAsync<{ pending: number; rejected: number }>(
       `SELECT sum(status = 'pending') AS pending, sum(status = 'rejected') AS rejected
-       FROM outbox WHERE type IN (?, ?) AND json_extract(data, '$.${spec.key}') = ?`,
+       FROM outbox WHERE type IN (?, ?) AND ${outboxKey(spec)} = ?`,
       [...typesOf(spec), key],
     );
     const state: SyncState = (row?.pending ?? 0) > 0 ? 'pending' : (row?.rejected ?? 0) > 0 ? 'rejected' : 'synced';

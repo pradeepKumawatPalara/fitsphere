@@ -1,5 +1,5 @@
 import { AI_CONSENT_TEXT, AI_CONSENT_TEXT_VERSION } from '@fitsphere/shared';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { TEXTS } from '../auth/texts';
 import { getEntry, getMeta, setMeta } from '../local/store';
 import { renderInApp } from '../testing/appHarness';
@@ -31,8 +31,9 @@ describe('REQ-ACC-001…006 the Settings screen', () => {
       expect(await screen.findByRole('header', { name: heading })).toBeOnTheScreen();
     }
     expect(screen.getByText('India · Kolkata')).toBeOnTheScreen();
-    expect(screen.getByText('Signed in as user@example.test')).toBeOnTheScreen();
-    for (const button of ['Your targets', 'Change password', 'Log out', 'Delete account']) {
+    // The signed-in email is on the Profile card (6.1).
+    expect(within(screen.getByLabelText('Profile')).getByText('user@example.test')).toBeOnTheScreen();
+    for (const button of ['Edit profile', 'Your targets', 'Change password', 'Log out', 'Delete account']) {
       expect(screen.getByRole('button', { name: button })).toBeOnTheScreen();
     }
   });

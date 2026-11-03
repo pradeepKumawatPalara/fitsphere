@@ -60,6 +60,7 @@ export async function syncNow(db: SqlDb, auth: AuthDeps, now: () => Date = () =>
     await applyServerEntries(db, 'setting', reply.pull.settings);
     await applyServerEntries(db, 'meal', reply.pull.meals);
     await applyServerEntries(db, 'savedMeal', reply.pull.savedMeals);
+    await applyServerEntries(db, 'profile', reply.pull.profiles);
     await setMeta(db, 'cursor', reply.cursor);
     await setMeta(db, 'last_synced_at', now().toISOString());
 

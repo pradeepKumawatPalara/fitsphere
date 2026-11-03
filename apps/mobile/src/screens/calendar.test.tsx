@@ -111,7 +111,8 @@ describe('REQ-NAV-002 Account', () => {
   it('REQ-ACC-008 shows the email and Log out; the development tools only in development builds', async () => {
     await renderInApp(<AccountScreen showDevTools={false} />);
 
-    expect(await screen.findByText('Signed in as user@example.test')).toBeOnTheScreen();
+    // On the Profile card (6.1).
+    expect(await screen.findByText('user@example.test')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Log out' })).toBeOnTheScreen();
     expect(screen.queryByText('Development')).toBeNull();
   });

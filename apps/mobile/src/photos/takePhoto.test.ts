@@ -13,6 +13,7 @@ const mockPicker = {
 /** Base64 length the fake encoder returns for each JPEG quality; 4 characters are 3 bytes. */
 let mockSizes: Record<number, number> = {};
 const mockResizes: unknown[] = [];
+const mockCrops: unknown[] = [];
 const mockSaves: { compress: number }[] = [];
 const mockDeleted: string[] = [];
 let mockSaved = 0;
@@ -29,6 +30,10 @@ jest.mock('expo-image-manipulator', () => ({
     manipulate: () => ({
       resize(size: unknown) {
         mockResizes.push(size);
+        return this;
+      },
+      crop(rect: unknown) {
+        mockCrops.push(rect);
         return this;
       },
       renderAsync: async () => ({
@@ -112,4 +117,17 @@ it('without camera permission, or when cancelled, nothing is taken', async () =>
 
   mockPicker.launchImageLibraryAsync.mockResolvedValue({ canceled: true, assets: null });
   expect(await pickPhoto('library')).toEqual({ kind: 'cancelled' });
+});
+
+it('REQ-ACC-011 a profile photo is its middle square, then shrunk the same way', async () => {
+  mockCrops.length = 0;
+  mockPicker.launchImageLibraryAsync.mockResolvedValue(picked(`${CACHE}ImagePicker/wide.jpg`, 4000, 3000));
+
+  await pickPhoto('library', 'square');
+
+  expect(mockCrops).toEqual([
+    { originX: 500, originY: 0, width: 3000, height: 3000 },
+    { originX: 500, originY: 0, width: 3000, height: 3000 },
+  ]);
+  expect(mockResizes).toEqual([{ width: 1280 }, { width: 240 }]);
 });

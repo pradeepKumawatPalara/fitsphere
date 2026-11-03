@@ -309,7 +309,7 @@ describe('Local schema version 8', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
       expect((await searchFoods(old, 'milk')).map((found) => found.measures)).toEqual([[]]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
     } finally {
@@ -334,7 +334,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
       expect((await searchFoods(old, 'atta')).map((found) => found.code)).toEqual(['A019']);
       expect(await searchDishes(old, 'atta')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -359,7 +359,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
