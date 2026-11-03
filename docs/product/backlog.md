@@ -68,7 +68,7 @@ and "Owner's actions and checks at the end of the slice" in
 |---|---|---|
 | S5-01 | Progress shows the weight card, average calories against the target, "Meals logged: X of Y days", the week table with the Target row, and Measurements | 1 |
 | S5-02 | With less than a week of weigh-ins: the not-enough-data text | 2 |
-| S5-03 | The chart: 1W, 4W and 12W switch; with fewer than 2 weigh-ins in a range, the empty state; 26W and All online; in airplane mode, the named warning | 3 |
+| S5-03 | The chart: 1W, 1M and 3M switch (D-34); with fewer than 2 weigh-ins in a range, the empty state; 6M and All online; in airplane mode, the named warning | 3 |
 | S5-04 | "Add first" (or "Add measurements") opens the sheet; the saved entry is listed; Edit changes it, and Home's card shows the same entry | 4 |
 | S5-05 | Change a target in Your targets: the Target row and the calories card follow | 5 |
 | S5-06 | "All weigh-ins" opens the weight history, with "Load older" | 6 |

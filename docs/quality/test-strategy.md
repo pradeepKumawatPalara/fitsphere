@@ -230,7 +230,8 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   ranges read online, and the phone winning over the server for a day.
 - Screen: each card with data and empty; the Target row; "Add first" and Edit in Measurements; with
   the body-weight unit set to lb, every weight in lb and no "kg" anywhere on the screen.
-- Chart: the phone's ranges with no server call; 26W and All online, read once, across pages; the
+- Chart: the phone's ranges (1W, 1M, 3M) with no server call, calendar months and 3M cut to the
+  phone's 90 days (D-34); 6M and All online, read once, across pages; the
   named warning offline and the try-later text on a failure; an account newer than 90 days works
   offline.
 

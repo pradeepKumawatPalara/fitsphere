@@ -579,9 +579,9 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - MVP default (D-30): the account's creation day is read from `GET /v1/me` once and kept on the phone; while it is unknown (offline), 28 days are counted.
 
 ### REQ-PRG-004 — Weight trend chart
-- Requirement: Chart with range filters 1W, 4W, 12W, 26W, All; empty state until enough weigh-ins exist.
+- Requirement: Chart with range filters 1W, 1M, 3M, 6M, All (D-34; first 1W, 4W, 12W, 26W, All); empty state until enough weigh-ins exist.
 - MVP default (D-18): the chart needs at least 2 weigh-ins (Q-043).
-- MVP default (D-30): 1W, 4W and 12W come from the phone; 26W and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages.
+- MVP default (D-30, amended by D-34): months are calendar months, back to the same date (or that month's last day); the chart opens on 1M. 1W, 1M and 3M come from the phone, 3M cut to the 90 days it holds so it works offline (up to 3 days short of three months); 6M and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages. The ranges are named "1 week", "1 month", "3 months", "6 months" and "All" for screen readers.
 
 ### REQ-PRG-005 — Week-by-week table
 - Requirement: Rows per week with Body Weight, Calories, Protein and Steps, and a Target row. Weekly values are averages over the days that have entries (MVP default, Q-043). The Target row shows the calorie and protein targets and the target body weight and daily steps target set by the coach (MVP default, Q-013). In the MVP these are the user's own targets (REQ-ROLE-007, D-20).

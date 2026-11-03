@@ -16,7 +16,7 @@ type Props = {
   /** Oldest first; at least 2. */
   points: readonly WeighInPoint[];
   unit: BodyWeightUnit;
-  /** Each point is a week's average (26W and All). */
+  /** Each point is a week's average (6M and All). */
   weekly: boolean;
 };
 

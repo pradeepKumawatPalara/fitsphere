@@ -9,27 +9,27 @@ import {
 import { callApi, type ApiResult } from '../api/client';
 import type { AuthDeps } from '../auth/service';
 import { callMe } from './account';
-import type { WeighInPoint } from './calculations';
+import { rangeStart, type WeighInPoint } from './calculations';
 
 /** At most this many pages of 500 are read, so a server that keeps sending a cursor cannot loop forever. */
 const MAX_PAGES = 20;
 
 /**
- * The weigh-ins older than the 90 days the phone holds, for the 26W and All chart ranges
+ * The weigh-ins older than the 90 days the phone holds, for the 6M and All chart ranges
  * (REQ-PRG-004; ADR-0007 rules 1 and 6): read online from GET /v1/users/{id}/weigh-ins, page by
- * page, and kept in memory only. 26W reaches back 182 days; All, to the day the account was
- * created (as kept on the phone, else from GET /v1/me). Offline or failed otherwise.
+ * page, and kept in memory only. 6M reaches back six calendar months; All, to the day the account
+ * was created (as kept on the phone, else from GET /v1/me). Offline or failed otherwise.
  */
 export async function fetchOlderWeighIns(
   deps: AuthDeps,
-  range: '26W' | 'All',
+  range: '6M' | 'All',
   today: IstDay,
   accountStart: IstDay | null,
 ): Promise<WeighInPoint[] | 'offline' | 'failed'> {
   const call = await callMe(deps);
   if (call.kind !== 'ok') return call.kind;
   const to = addDays(syncWindowStart(today), -1);
-  const from = range === '26W' ? addDays(today, -181) : (accountStart ?? istDayOf(new Date(call.me.user.createdAt)));
+  const from = range === '6M' ? rangeStart('6M', today)! : (accountStart ?? istDayOf(new Date(call.me.user.createdAt)));
   if (from > to) return [];
 
   const points: WeighInPoint[] = [];

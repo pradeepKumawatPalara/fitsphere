@@ -19,13 +19,13 @@ import { fetchOlderWeighIns } from './olderWeighIns';
 import { PROGRESS_TEXTS } from './texts';
 import { WeightChart } from './WeightChart';
 
-type OnlineRange = '26W' | 'All';
+type OnlineRange = '6M' | 'All';
 
 const RANGE_NAMES: Record<ChartRange, string> = {
   '1W': '1 week',
-  '4W': '4 weeks',
-  '12W': '12 weeks',
-  '26W': '26 weeks',
+  '1M': '1 month',
+  '3M': '3 months',
+  '6M': '6 months',
   All: 'All',
 };
 
@@ -39,24 +39,25 @@ type Props = {
 };
 
 // The weight trend card (REQ-PRG-004): the range buttons, the chart or its empty state, and "All
-// weigh-ins". 1W, 4W and 12W come from the phone. 26W and All also need the older weigh-ins, read
+// weigh-ins" (D-34: calendar months; it opens on 1M). 1W, 1M and 3M come from the phone, 3M cut to
+// its 90 days. 6M and All also need the older weigh-ins, read
 // online once per range and kept in memory only (ADR-0007 rules 1 and 6); offline they show the
 // named warning, and choosing the range again tries again.
 export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns }: Props) {
   const { deps } = useAuth();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
-  const [range, setRange] = useState<ChartRange>('4W');
+  const [range, setRange] = useState<ChartRange>('1M');
   const [older, setOlder] = useState<Partial<Record<OnlineRange, WeighInPoint[]>>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const chosen = useRef<ChartRange>('4W');
+  const chosen = useRef<ChartRange>('1M');
 
   async function choose(next: ChartRange) {
     chosen.current = next;
     setRange(next);
     setMessage(null);
-    if (next !== '26W' && next !== 'All') return;
+    if (next !== '6M' && next !== 'All') return;
     if (older[next] || !rangeNeedsServer(next, today, accountStart)) return;
     setBusy(true);
     const result = await fetchOlderWeighIns(deps, next, today, accountStart);
@@ -67,8 +68,8 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
     }
   }
 
-  const fromServer = range === '26W' || range === 'All' ? older[range] : undefined;
-  const waiting = (range === '26W' || range === 'All') && !fromServer && rangeNeedsServer(range, today, accountStart);
+  const fromServer = range === '6M' || range === 'All' ? older[range] : undefined;
+  const waiting = (range === '6M' || range === 'All') && !fromServer && rangeNeedsServer(range, today, accountStart);
   const points = chartPoints(range, fromServer ? mergeWeighIns(weighIns, fromServer) : weighIns, today);
   const text = { color: colors.text };
 

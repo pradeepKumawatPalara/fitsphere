@@ -828,6 +828,8 @@ E-P3; the commit messages and pull requests #41, #42 and #44 use those IDs.*
      between them shows the not-enough-data message (REQ-PRG-001).
   5. **Workflow as D-21:** steps run back to back, one branch and one pull request each, CI green
      before merge, the owner merging; the phone checks are batched at the end.
+- Amended by D-34 answer 6 (2026-11-03): the weight chart's ranges are 1W, 1M, 3M, 6M and All, in
+  calendar months, opening on 1M (REQ-PRG-004).
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: `docs/plans/progress-slice.md`; the Q-043 rows in `mvp-scope.md`,
   `constraints-and-assumptions.md` and REQ-PRG-001 in `requirements.md`; `CLAUDE.md` current phase;
@@ -974,11 +976,19 @@ checksum), and the configuration template was left as it is.*
      greyed and cannot be picked (Q-017 unchanged); tapping one keeps the calendar open and says
      "Future dates can't be chosen. Choose today or an earlier day." or "Only the last 90 days are
      on this phone. Choose a later day." Screen readers hear such a day as "not available".
+  6. **The weight chart's ranges are 1W, 1M, 3M, 6M and All (REQ-PRG-004; amends D-30).** Months
+     are calendar months, back to the same date or that month's last day (31 Mar back one month is
+     28 or 29 Feb). The chart opens on 1M. 1W, 1M and 3M come from the phone; 3M is cut to the 90
+     days the phone holds, so it works offline, which can leave it up to 3 days short of three
+     months. 6M and All read older weigh-ins online as 26W and All did, with the named warning
+     offline ("Showing 6 months of weight needs an internet connection."). "All" is kept. Screen
+     readers hear "1 week", "1 month", "3 months", "6 months" and "All".
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
-- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-TRN-004, REQ-LOG-007 and REQ-DATE-001 in
-  `docs/product/requirements.md`; Home, Training, Log meal, Q-017 and Q-019 in
-  `docs/product/mvp-scope.md`.
+- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and REQ-PRG-004 in
+  `docs/product/requirements.md`; Home, Training, Log meal, Progress, Q-017 and Q-019 in
+  `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
+  `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
 
 ---
 

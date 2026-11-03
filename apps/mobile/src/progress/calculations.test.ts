@@ -5,7 +5,9 @@ import {
   daysLogged,
   fourWeekWeight,
   mergeWeighIns,
+  monthsBefore,
   rangeNeedsServer,
+  rangeStart,
   weeklyAverages,
   weekRows,
   type DayNutrition,
@@ -186,14 +188,30 @@ describe('REQ-PRG-004 chart points', () => {
     { day: '2026-10-26', weightGrams: 80_000 },
   ];
 
-  it('plots every weigh-in in the range for 1W, 4W and 12W, oldest first', () => {
+  it('plots every weigh-in in the range for 1W, 1M and 3M, oldest first', () => {
     expect(chartPoints('1W', weighIns, TODAY).map((point) => point.day)).toEqual(['2026-10-22', '2026-10-26', TODAY]);
-    expect(chartPoints('4W', weighIns, TODAY)).toHaveLength(4);
-    expect(chartPoints('12W', weighIns, TODAY)).toHaveLength(4);
+    expect(chartPoints('1M', weighIns, TODAY)).toHaveLength(4);
+    expect(chartPoints('3M', weighIns, TODAY)).toHaveLength(4);
   });
 
-  it('plots weekly averages for 26W and All', () => {
-    expect(chartPoints('26W', weighIns, TODAY)).toEqual([
+  it('D-34 goes back calendar months, a month without the date ending on its last day', () => {
+    expect(monthsBefore('2026-10-28', 1)).toBe('2026-09-28');
+    expect(monthsBefore('2026-10-28', 6)).toBe('2026-04-28');
+    expect(monthsBefore('2026-01-15', 3)).toBe('2025-10-15');
+    expect(monthsBefore('2026-03-31', 1)).toBe('2026-02-28');
+    expect(monthsBefore('2028-03-31', 1)).toBe('2028-02-29');
+    expect(monthsBefore('2026-12-31', 3)).toBe('2026-09-30');
+  });
+
+  it('D-34 starts 3M at the first of the 90 days the phone holds, so it never needs the server', () => {
+    expect(monthsBefore(TODAY, 3)).toBe('2026-07-28');
+    expect(rangeStart('3M', TODAY)).toBe('2026-07-31');
+    expect(rangeStart('1M', TODAY)).toBe('2026-09-28');
+    expect(rangeStart('All', TODAY)).toBeNull();
+  });
+
+  it('plots weekly averages for 6M and All', () => {
+    expect(chartPoints('6M', weighIns, TODAY)).toEqual([
       { day: '2026-10-19', weightGrams: 79_500 },
       { day: '2026-10-26', weightGrams: 80_500 },
     ]);
@@ -205,8 +223,8 @@ describe('REQ-PRG-004 chart points', () => {
   });
 
   it('reads older weigh-ins online only for ranges reaching past the 90 days on the phone', () => {
-    expect(rangeNeedsServer('12W', TODAY, null)).toBe(false);
-    expect(rangeNeedsServer('26W', TODAY, null)).toBe(true);
+    expect(rangeNeedsServer('3M', TODAY, null)).toBe(false);
+    expect(rangeNeedsServer('6M', TODAY, null)).toBe(true);
     expect(rangeNeedsServer('All', TODAY, '2026-05-01')).toBe(true);
     // An account newer than 90 days has nothing older on the server.
     expect(rangeNeedsServer('All', TODAY, '2026-09-01')).toBe(false);
