@@ -1,13 +1,15 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
+import { Bookmark, Plus, Trash } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
 import { themedStyles } from '../theme';
-import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle } from './ui';
+import { Sheet, SheetHeading } from './Sheet';
+import { Field, Text, TextButton, useChoiceStyles } from './ui';
 
 // Bottom sheets for the meal menus (REQ-NUT-004, REQ-SAVED-001): a list of actions, a
-// confirmation, a name, and re-logging a saved meal.
+// confirmation, a name, and re-logging a saved meal. The redesign's 3.2 (locked by the owner,
+// 2026-11-03): the confirmation, the name and re-logging open with a tile over the title.
 
 export function ActionsSheet({
   title,
@@ -64,7 +66,7 @@ export function ConfirmSheet({
   // As every confirmation: the way out on the left, the action in red on the right, the same size.
   return (
     <Sheet
-      title={title}
+      header={<SheetHeading icon={Trash} title={title} danger />}
       onClose={onClose}
       actions={
         <View style={styles.pair}>
@@ -99,13 +101,11 @@ export function SaveMealSheet({
   onSave(name: string): void;
   onClose(): void;
 }) {
-  const styles = useStyles();
-  const fieldInput = useFieldInputStyle();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
   return (
     <Sheet
-      title="Save to my meals"
+      header={<SheetHeading icon={Bookmark} title="Save to my meals" />}
       onClose={onClose}
       actions={
         <>
@@ -122,14 +122,14 @@ export function SaveMealSheet({
         </>
       }
     >
-      <TextInput
-        accessibilityLabel="Name"
+      <Field
+        label="Name"
         value={name}
         onChangeText={setName}
         maxLength={SAVED_MEAL_NAME_MAX}
-        style={fieldInput}
+        autoCapitalize="sentences"
+        error={trimmed === '' ? 'Enter a name.' : null}
       />
-      {trimmed === '' ? <Text style={styles.problem}>Enter a name.</Text> : null}
     </Sheet>
   );
 }
@@ -218,7 +218,7 @@ export function RelogSheet({
   const [chosen, setChosen] = useState(slot);
   return (
     <Sheet
-      title={`Log ${name}`}
+      header={<SheetHeading icon={Plus} title={`Log ${name}`} />}
       onClose={onClose}
       actions={
         <>
@@ -249,8 +249,7 @@ const useStyles = themedStyles((c) => ({
   destructiveText: { color: c.danger },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-  body: { fontSize: 15 },
-  problem: { fontSize: 13, color: c.danger },
+  body: { fontSize: 16, lineHeight: 24 },
   // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
   // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
   slots: { flexDirection: 'row', gap: 8 },

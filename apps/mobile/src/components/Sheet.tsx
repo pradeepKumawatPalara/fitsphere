@@ -1,7 +1,8 @@
+import type { LucideIcon } from 'lucide-react-native';
 import { useContext, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Modal, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { StripeCorner } from './StripeCorner';
 import { Text } from './ui';
@@ -56,6 +57,25 @@ export function Sheet({ title, header, children, actions, scroll = true, onClose
   );
 }
 
+/**
+ * A sheet's heading with the design's 56 tile over it (D-35): caramel, or red for a deletion. Passed
+ * as the sheet's `header`.
+ */
+export function SheetHeading({ icon: Icon, title, danger = false }: { icon: LucideIcon; title: string; danger?: boolean }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  return (
+    <View style={styles.heading}>
+      <View style={[styles.tile, danger && styles.dangerTile]}>
+        <Icon size={26} color={danger ? colors.danger : colors.accent} />
+      </View>
+      <Text accessibilityRole="header" style={styles.title}>
+        {title}
+      </Text>
+    </View>
+  );
+}
+
 // 16 at the sides, as the tab screens; 12 between the parts of the body, 8 between the actions. The
 // main action is filled, Cancel and Close are links.
 const useStyles = themedStyles((c) => ({
@@ -71,6 +91,9 @@ const useStyles = themedStyles((c) => ({
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, marginBottom: 18, backgroundColor: c.inkSubtle },
   header: { paddingHorizontal: 16, paddingBottom: 12 },
   title: TYPE.sheetTitle,
+  heading: { gap: 14 },
+  tile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
+  dangerTile: { backgroundColor: c.dangerTint },
   // The body gives way first when the keyboard leaves little room.
   scroll: { flexGrow: 0 },
   body: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },

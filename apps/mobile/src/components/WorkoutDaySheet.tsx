@@ -5,7 +5,7 @@ import { formatDay } from '../format';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { workoutSummary } from '../workouts';
-import { Sheet } from './Sheet';
+import { Sheet, SheetHeading } from './Sheet';
 import { Text, TextButton } from './ui';
 
 type Props = {
@@ -29,16 +29,7 @@ export function WorkoutDaySheet({ day, workouts, onOpen, onStart, onClose }: Pro
   const title = none ? `No workout on ${formatDay(day)}` : `Workouts on ${formatDay(day)}`;
   return (
     <Sheet
-      header={
-        <View style={styles.head}>
-          <View style={styles.tile}>
-            <Dumbbell size={28} color={colors.accent} />
-          </View>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-        </View>
-      }
+      header={<SheetHeading icon={Dumbbell} title={title} />}
       onClose={onClose}
       actions={
         <>
@@ -89,11 +80,8 @@ export function WorkoutDaySheet({ day, workouts, onOpen, onStart, onClose }: Pro
   );
 }
 
-// The tile 56, as the sheets' tiles; rows 64 tall on a raised card.
+// Rows 64 tall on a raised card.
 const useStyles = themedStyles((c) => ({
-  head: { gap: 14 },
-  tile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
-  title: TYPE.sheetTitle,
   list: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10 },
   ruled: { borderTopWidth: 1, borderTopColor: c.border },

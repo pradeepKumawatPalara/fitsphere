@@ -256,6 +256,17 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     expect(screen.getByText('No saved meals yet. In Consumed, tap the bookmark on a meal to save it to your meals.')).toBeOnTheScreen();
   });
 
+  // The redesign's 3.3 (locked by the owner, 2026-11-03).
+  it('a saved meal shows its name over its foods, and logging it opens with its name as the title', async () => {
+    await renderInApp(<NutritionScreen />, undefined, seedSaved);
+    await fireEvent.press(await screen.findByRole('tab', { name: 'Saved' }));
+
+    const card = await screen.findByRole('button', { name: 'Synthetic dinner' });
+    expect(within(card).getByText('Synthetic dinner')).toBeOnTheScreen();
+    await fireEvent.press(card);
+    expect(screen.getByRole('header', { name: 'Log Synthetic dinner' })).toBeOnTheScreen();
+  });
+
   it('Q-036 tapping a saved meal re-logs it to the selected date, in its slot unless the user changes it', async () => {
     const { db } = await renderInApp(<NutritionScreen />, undefined, seedSaved);
     await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct' }));
