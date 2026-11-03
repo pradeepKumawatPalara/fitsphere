@@ -1,6 +1,7 @@
 # Profile plan
 
-- Status: **Draft**, waiting for the owner's approval (asked for in chat, 2026-11-03)
+- Status: **Accepted** (the owner, in chat, 2026-11-03: "approve lock it"; the screens 6.1 and 6.6
+  locked at the same time)
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-03
 - Builds on: the Settings slice ([`settings-slice.md`](settings-slice.md), D-31); the meal photo

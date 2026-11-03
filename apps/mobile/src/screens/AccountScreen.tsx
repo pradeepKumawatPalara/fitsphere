@@ -99,8 +99,7 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
           <LinkRow title="Change password" onPress={() => router.push('/change-password')} />
         </View>
         <View style={styles.leave}>
-          <LogOut />
-          <TextButton title="Delete account" destructive wide onPress={() => router.push('/delete-account')} />
+          <LogOut after={<TextButton title="Delete account" destructive wide onPress={() => router.push('/delete-account')} />} />
         </View>
       </Section>
 

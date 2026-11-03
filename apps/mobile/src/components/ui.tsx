@@ -1,5 +1,5 @@
 import { HeaderHeightContext } from 'expo-router/react-navigation';
-import { ArrowRight, Check, CircleAlert, Eye, EyeOff, Info, WifiOff, type LucideIcon } from 'lucide-react-native';
+import { ArrowRight, Check, CircleAlert, CircleCheck, Eye, EyeOff, Info, WifiOff, type LucideIcon } from 'lucide-react-native';
 import { Children, createContext, isValidElement, useContext, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -292,15 +292,18 @@ export function TextButton({
 
 /**
  * A banner (D-35): an icon and a short text on a quiet fill. `info` in caramel; `error` on a red tint
- * with a red edge. Read out as soon as it shows.
+ * with a red edge; `success` (a step that is done, as a changed password) on a green tint with a green
+ * edge. Read out as soon as it shows.
  */
-export function Banner({ text, tone, icon }: { text: string; tone: 'info' | 'error'; icon?: LucideIcon }) {
+export function Banner({ text, tone, icon }: { text: string; tone: 'info' | 'error' | 'success'; icon?: LucideIcon }) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const Icon = icon ?? (tone === 'error' ? CircleAlert : Info);
+  const Icon = icon ?? (tone === 'error' ? CircleAlert : tone === 'success' ? CircleCheck : Info);
+  const look = { info: [styles.bannerInfo, colors.accent], error: [styles.bannerError, colors.danger], success: [styles.bannerSuccess, colors.success] } as const;
+  const [fill, iconColor] = look[tone];
   return (
-    <View style={[styles.banner, tone === 'error' ? styles.bannerError : styles.bannerInfo]}>
-      <Icon size={20} color={tone === 'error' ? colors.danger : colors.accent} />
+    <View style={[styles.banner, fill]}>
+      <Icon size={20} color={iconColor} />
       <Text accessibilityRole="alert" style={styles.bannerText}>
         {text}
       </Text>
@@ -406,5 +409,6 @@ const useStyles = themedStyles((c) => ({
   banner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4 },
   bannerInfo: { backgroundColor: c.accentTint },
   bannerError: { backgroundColor: c.dangerTint, borderWidth: 1, borderColor: c.danger },
+  bannerSuccess: { backgroundColor: c.successTint, borderWidth: 1, borderColor: c.success },
   bannerText: { ...TYPE.small, flexShrink: 1, color: c.ink },
 }));

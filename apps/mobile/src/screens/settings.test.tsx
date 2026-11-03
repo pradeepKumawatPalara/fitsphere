@@ -139,6 +139,18 @@ describe('REQ-ACC-007 change password', () => {
     expect(client.signInWithPassword).not.toHaveBeenCalled();
   });
 
+  it('6.3 each problem shows under its own field, the new password’s rule ticked once met', async () => {
+    await renderInApp(<ChangePasswordScreen />);
+    expect(await screen.findByLabelText(TEXTS.passwordRule)).toBeOnTheScreen();
+
+    await fill('', 'short');
+
+    const problems = await screen.findAllByRole('alert');
+    expect(problems.map((problem) => problem.props.children)).toEqual([TEXTS.currentPasswordRequired, TEXTS.passwordRule]);
+    await fireEvent.changeText(screen.getByLabelText('New password'), 'synthetic-new-pass');
+    expect(screen.getByLabelText(`${TEXTS.passwordRule} Done.`)).toBeOnTheScreen();
+  });
+
   it('REQ-ACC-007 the same password as now, and no connection, get their own texts', async () => {
     const { client } = await renderInApp(<ChangePasswordScreen />);
     client.updateUser.mockResolvedValueOnce({ error: { code: 'same_password', status: 422 } });
