@@ -30,16 +30,20 @@ type Props = {
 };
 
 // One logged or saved meal (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001): its foods, kcal and protein,
-// a small label per tag (Q-031), its photo or image link, and its actions as icons along the foot of
-// the card: Edit, Save to my meals and Delete for a logged meal, Delete for a saved one. Each icon is
-// 44 to tap and named for screen readers; Delete is red.
+// a small label per tag (Q-031), its photo or image link, and its actions as icons: Edit, Save to my
+// meals and Delete along the foot of a logged meal's card; a saved meal's only one, Delete, at the
+// top right, on the line of its foods. Each icon is 44 to tap and named for screen readers; Delete
+// is red.
 export function MealCard({ title, items, tags, totals, syncState, photo, savedAt, onEdit, onSave, onDelete, onPress }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const note = syncState === 'pending' ? 'Waiting to sync' : syncState === 'rejected' ? 'Not saved' : null;
+  // With Delete alone (a saved meal), it sits on the first line rather than a row of its own.
+  const deleteOnly = !onEdit && !onSave;
+  const remove = <IconAction icon="trash-outline" label={`Delete ${title}`} color={colors.over} onPress={onDelete} />;
   return (
-    <View style={styles.card}>
-      <View style={styles.top}>
+    <View style={[styles.card, deleteOnly && styles.cardDeleteOnly]}>
+      <View style={[styles.top, deleteOnly && styles.topDeleteOnly]}>
         <Pressable
           accessibilityRole={onPress ? 'button' : undefined}
           accessibilityLabel={onPress ? title : undefined}
@@ -66,12 +70,15 @@ export function MealCard({ title, items, tags, totals, syncState, photo, savedAt
           {note ? <Text style={styles.note}>{note}</Text> : null}
         </Pressable>
         {photo ? <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} /> : null}
+        {deleteOnly ? <View style={styles.inlineAction}>{remove}</View> : null}
       </View>
-      <View style={styles.actions}>
-        {onEdit ? <IconAction icon="create-outline" label={`Edit ${title}`} color={colors.primary} onPress={onEdit} /> : null}
-        {onSave ? <IconAction icon="bookmark-outline" label={`Save ${title} to my meals`} color={colors.primary} onPress={onSave} /> : null}
-        <IconAction icon="trash-outline" label={`Delete ${title}`} color={colors.over} onPress={onDelete} />
-      </View>
+      {deleteOnly ? null : (
+        <View style={styles.actions}>
+          {onEdit ? <IconAction icon="create-outline" label={`Edit ${title}`} color={colors.primary} onPress={onEdit} /> : null}
+          {onSave ? <IconAction icon="bookmark-outline" label={`Save ${title} to my meals`} color={colors.primary} onPress={onSave} /> : null}
+          {remove}
+        </View>
+      )}
     </View>
   );
 }
@@ -113,6 +120,10 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.background,
   },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingRight: 10 },
+  // A saved meal: Delete at the top right, centred on the foods' line; the card closes 12 below.
+  cardDeleteOnly: { paddingBottom: 12 },
+  topDeleteOnly: { paddingRight: 0 },
+  inlineAction: { marginTop: -12 },
   body: { flex: 1, gap: 6 },
   pressed: { opacity: 0.6 },
   firstLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },

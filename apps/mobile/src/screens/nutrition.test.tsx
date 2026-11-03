@@ -292,9 +292,11 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     const { db } = await renderInApp(<NutritionScreen />, undefined, seedSaved);
     await fireEvent.press(await screen.findByRole('tab', { name: 'Saved' }));
 
-    // A saved meal has only Delete; tapping the card logs it again.
+    // A saved meal has only Delete, on the line of its foods (beside the card's body, not under
+    // it); tapping the card logs it again.
     const remove = await screen.findByRole('button', { name: 'Delete Synthetic dinner' });
     expect(screen.queryByRole('button', { name: 'Edit Synthetic dinner' })).toBeNull();
+    expect(remove.parent?.parent).toBe(screen.getByRole('button', { name: 'Synthetic dinner' }).parent);
     await fireEvent.press(remove);
     expect(screen.getByText('Delete this saved meal?')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
