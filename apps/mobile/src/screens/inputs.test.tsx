@@ -1,4 +1,4 @@
-import type { Food } from '@fitsphere/shared';
+import type { BarcodeProduct, Food } from '@fitsphere/shared';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import type { ComponentType } from 'react';
 import { DeviceEventEmitter, Keyboard, KeyboardAvoidingView, StyleSheet, View } from 'react-native';
@@ -30,6 +30,8 @@ const mockRouter = {
   back: jest.fn(),
 };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+// No camera here: the barcode is typed. BarcodeCamera has its own tests.
+jest.mock('../components/BarcodeCamera', () => ({ BarcodeCamera: () => null }));
 
 beforeEach(() => {
   for (const key of Object.keys(mockParams)) delete mockParams[key];
@@ -42,6 +44,18 @@ beforeEach(() => {
 //   sight. That hid the Search foods text.
 // - Every field sits in a FormScreen or a Sheet (a KeyboardAvoidingView): Android doesn't move an
 //   edge-to-edge screen or sheet for the keyboard.
+
+const BARCODE = '8901234567890';
+const PRODUCT: BarcodeProduct = {
+  name: 'Synthetic biscuits',
+  brand: 'Synthetic brand',
+  kcal: 480,
+  proteinG: 7,
+  carbsG: 68,
+  fatG: 20,
+  fibreG: null,
+  sourceUrl: `https://world.openfoodfacts.org/product/${BARCODE}`,
+};
 
 const FOODS: Food[] = [
   { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false },
@@ -115,6 +129,38 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
     expect(screen.getByLabelText('Image link')).toBeOnTheScreen();
     expect(fieldProblems()).toEqual([]);
     await synced();
+  });
+
+  it('Log meal: the barcode sheet, its digits and its grams', async () => {
+    await renderInApp(
+      <>
+        <SyncState />
+        <LogMealScreen />
+      </>,
+      undefined,
+      async (_db, server) => {
+        server.state.barcodes[BARCODE] = PRODUCT;
+      },
+    );
+    await synced();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Scan barcode' }));
+    expect(screen.getByLabelText('Barcode digits')).toBeOnTheScreen();
+    expect(fieldProblems()).toEqual([]);
+
+    await fireEvent.changeText(screen.getByLabelText('Barcode digits'), BARCODE);
+    await fireEvent.press(screen.getByRole('button', { name: 'Look up' }));
+    expect(await screen.findByLabelText('Grams eaten')).toBeOnTheScreen();
+    expect(fieldProblems()).toEqual([]);
+    await synced();
+  });
+
+  it('Reset password', async () => {
+    // As the link in the email opens it, with its one-time code.
+    await renderForm(ResetPasswordScreen);
+
+    expect(await screen.findByLabelText('New password')).toBeOnTheScreen();
+    expect(fieldProblems()).toEqual([]);
   });
 
   it('Home: the weight sheet and the measurements sheet with More measurements', async () => {
