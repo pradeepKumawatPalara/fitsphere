@@ -64,7 +64,8 @@ new flow.
 | 0 Foundation | Built with 1.1 on `ui-redesign`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
 | 1.1 Sign in | Locked and built (`ui-redesign`); the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is ready; the owner's phone check is next |
 | 1.2 Sign up | Locked and built (`ui-redesign`); with it the checkbox and a field's rule line took their new look |
-| 1.3 Check your email | Designed; waiting for the owner |
+| 1.3 Check your email | Locked and built (`ui-redesign`); the sign-up text shows as a heading and its text, the same words |
+| 1.4 Email verified | Designed (verified and link expired); waiting for the owner |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.

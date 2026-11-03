@@ -5,10 +5,10 @@ import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount, signIn } from '../auth/service';
 import { TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
-import { Banner, Field, Message, Text, TextButton } from '../components/ui';
+import { DisplayHeading } from '../components/DisplayHeading';
+import { Banner, Field, Message, TextButton } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
 import { themedStyles } from '../theme';
-import { TYPE } from '../typography';
 import { goAfterAccountCheck } from './navigation';
 
 // REQ-ACC-010: sign in, then GET /v1/me and account setup if needed. The redesign's screen 1.1
@@ -69,11 +69,7 @@ export function SignInScreen() {
           <Banner tone="info" text={TEXTS.accountDeleted} />
         </View>
       ) : null}
-      {/* "SIGN" over "IN", the second line in caramel. */}
-      <Text accessibilityRole="header" accessibilityLabel="Sign in" style={styles.heading}>
-        Sign{'\n'}
-        <Text style={styles.headingSecond}>in</Text>
-      </Text>
+      <DisplayHeading text="Sign in" style={styles.heading} />
       <View style={styles.fields}>
         <Field
           label="Email"
@@ -101,12 +97,11 @@ export function SignInScreen() {
 
 // From the wordmark: 48 to the heading (32 to a notice first), 40 to the fields, 18 between them;
 // Forgot password sits close under the password.
-const useStyles = themedStyles((c) => ({
+const useStyles = themedStyles(() => ({
   content: { paddingTop: 24, gap: 0 },
   busy: { opacity: 0.6 },
   notice: { marginTop: 32 },
-  heading: { ...TYPE.display, marginTop: 48 },
-  headingSecond: { color: c.accent },
+  heading: { marginTop: 48 },
   fields: { marginTop: 40, gap: 18 },
   forgot: { marginTop: -10 },
 }));

@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { signUp } from '../auth/service';
 import { emailProblem, passwordProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
+import { DisplayHeading } from '../components/DisplayHeading';
 import { CheckBox, Field, Message, Text, TextButton } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
 import { themedStyles } from '../theme';
@@ -59,11 +60,7 @@ export function SignUpScreen() {
       }
     >
       <Wordmark />
-      {/* "CREATE AN" over "ACCOUNT", the second line in caramel. */}
-      <Text accessibilityRole="header" accessibilityLabel="Create an account" style={styles.heading}>
-        Create an{'\n'}
-        <Text style={styles.headingSecond}>account</Text>
-      </Text>
+      <DisplayHeading text="Create an account" style={styles.heading} />
       <View style={styles.fields}>
         <Field
           label="Email"
@@ -95,8 +92,7 @@ export function SignUpScreen() {
 const useStyles = themedStyles((c) => ({
   content: { paddingTop: 24, gap: 0 },
   busy: { opacity: 0.6 },
-  heading: { ...TYPE.display, marginTop: 48 },
-  headingSecond: { color: c.accent },
+  heading: { marginTop: 48 },
   fields: { marginTop: 40, gap: 18 },
   adult: { marginTop: 6 },
   submit: { gap: 8 },

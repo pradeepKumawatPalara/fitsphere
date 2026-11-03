@@ -84,10 +84,12 @@ describe('REQ-ACC-010 Sign up', () => {
     expect(client.signUp).not.toHaveBeenCalled();
   });
 
-  it('D-11 the check-email screen shows the neutral text', async () => {
+  it('D-11 the check-email screen shows the neutral text, under its heading', async () => {
     await render(<CheckEmailScreen />);
 
+    expect(screen.getByRole('header', { name: TEXTS.signUpSentHeading })).toBeOnTheScreen();
     expect(screen.getByText(TEXTS.signUpSent)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeOnTheScreen();
   });
 });
 

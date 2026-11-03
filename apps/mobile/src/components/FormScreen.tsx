@@ -5,9 +5,9 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { themedStyles } from '../theme';
 import { StripeCorner } from './StripeCorner';
 
-// A screen with a form (Sign in, Sign up, Forgot password, Reset password, Change password): the
-// form scrolls to the field being typed in, and the footer, with the main button, rides above the
-// keyboard. The footer's padding clears the phone's navigation bar; with the keyboard up the bar is
+// A screen with a form (Sign in, Sign up, Forgot password, Reset password, Change password), or a
+// sign-in screen's message and its next step (Check your email): the content scrolls to the field
+// being typed in, and the footer, with the main button, rides above the keyboard. The footer's padding clears the phone's navigation bar; with the keyboard up the bar is
 // behind it, so the lift takes that padding back and no strip shows above the keyboard.
 //
 // The screen lifts itself rather than using React Native's KeyboardAvoidingView, which reacts only
