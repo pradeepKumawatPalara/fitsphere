@@ -45,5 +45,6 @@ const useStyles = themedStyles((c) => ({
   off: { opacity: 0.4 },
   pressed: { opacity: 0.6 },
   stepText: { fontSize: 22, fontWeight: '600', color: c.primaryStrong },
-  value: { minWidth: 110, textAlign: 'center', fontSize: 16, fontWeight: '600' },
+  // At the size of a value, in fixed-width digits.
+  value: { minWidth: 110, textAlign: 'center', fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
 }));

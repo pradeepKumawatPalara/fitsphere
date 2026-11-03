@@ -19,7 +19,9 @@ export function HeaderTitle() {
   const date = selected === today ? `Today · ${formatDay(selected)}` : formatDay(selected);
   return (
     <View>
-      <Text style={styles.name}>Hi, {nameFromEmail(email)}</Text>
+      <Text numberOfLines={1} style={styles.name}>
+        Hi, {nameFromEmail(email)}
+      </Text>
       <Text accessibilityLabel={`Selected date: ${date}`} style={styles.date}>
         {date}
       </Text>

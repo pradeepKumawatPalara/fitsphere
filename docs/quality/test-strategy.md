@@ -148,8 +148,9 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 ### Nutrition and Home with meals (app component tests)
 - Consumed: dashes with nothing logged; the day's totals; meals in their slots with tag labels;
   a slot's "+" opens Log meal for that slot and date.
-- The ••• menu: Delete asks first, then removes the meal and syncs the deletion; Cancel keeps
-  it; Edit opens Log meal; "Save to my meals" stores a named copy shown in Saved.
+- A meal's icons (D-33), in its opened slot (D-34): Delete asks first, then removes the meal and
+  syncs the deletion; Cancel keeps it; Edit opens Log meal; "Save to my meals" stores a named copy
+  shown in Saved.
 - Saved: the empty state; re-logging to the selected date in the saved slot or a changed one;
   Delete after confirming. Diet plan: the empty state.
 - Home: the cards use the day's meals; the status box (Q-019); "By meal" (Q-023); "+" on the

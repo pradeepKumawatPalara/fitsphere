@@ -38,5 +38,5 @@ const useStyles = themedStyles((c) => ({
   value: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
   // "+ Add" reads as an action, not a value.
   add: { color: c.primary },
-  note: { color: c.warning, fontSize: 12 },
+  note: { color: c.warning, fontSize: 13 },
 }));

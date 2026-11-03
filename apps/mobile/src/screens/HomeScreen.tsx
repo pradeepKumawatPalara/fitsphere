@@ -178,7 +178,7 @@ export function HomeScreen() {
   if (local.state.status === 'failed') {
     return (
       <View style={styles.stopped}>
-        <Text accessibilityRole="alert">
+        <Text accessibilityRole="alert" style={styles.body}>
           {local.state.reason === 'sqlcipherMissing'
             ? 'FitSphere stopped: this phone’s database cannot be encrypted.'
             : 'FitSphere stopped: this phone’s database could not be opened.'}
@@ -313,5 +313,6 @@ const useStyles = themedStyles((c) => ({
   panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },
   panelFoot: { paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   tiles: { flexDirection: 'row', gap: 12 },
-  stopped: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
+  // As the centred message screens: 24 between the message and Log out.
+  stopped: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
 }));

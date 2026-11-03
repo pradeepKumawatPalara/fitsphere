@@ -6,12 +6,13 @@ import { setNewPassword, startPasswordReset } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
 import { Field, Message, Screen, Text, TextButton } from '../components/ui';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 
 // "Set a new password", opened by the link in the reset email, fitsphere://reset-password
 // (REQ-ACC-010, D-11).
 export function ResetPasswordScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const { deps } = useAuth();
   const router = useRouter();
   const { code, error } = useLocalSearchParams<{ code?: string; error?: string }>();
@@ -49,7 +50,7 @@ export function ResetPasswordScreen() {
   if (link === 'checking') {
     return (
       <Screen>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.primary} />
       </Screen>
     );
   }
