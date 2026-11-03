@@ -318,7 +318,7 @@ describe('Home with meals (REQ-HOME-002…005, REQ-NAV-003)', () => {
     });
 
     expect(await screen.findByText('237 of 2,000 kcal')).toBeOnTheScreen();
-    expect(screen.getByText('1,763 kcal remaining')).toBeOnTheScreen();
+    expect(screen.getByLabelText('1,763 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('6 g eaten')).toBeOnTheScreen();
   });
 

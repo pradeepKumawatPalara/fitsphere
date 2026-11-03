@@ -17,6 +17,7 @@ import {
   type SettingName,
   type TargetKind,
 } from '@fitsphere/shared';
+import { CircleAlert } from 'lucide-react-native';
 import { View } from 'react-native';
 import { dayValues } from '../dayValues';
 import { formatDay } from '../format';
@@ -24,7 +25,8 @@ import type { OutboxEntry } from '../local/store';
 import { describeItems, MEAL_TYPE_LABELS } from '../meals';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { targetTexts } from '../targets';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Text, TextButton } from './ui';
 
 // A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2, D-14).
@@ -104,6 +106,7 @@ type Props = {
 
 export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const bodyWeightUnit = useBodyWeightUnit();
   if (entries.length === 0) return null;
   return (
@@ -112,7 +115,10 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
         const { what, notSaved } = describeRejected(entry, bodyWeightUnit);
         return (
           <View key={entry.changeId} accessibilityRole="alert" style={styles.item}>
-            <Text style={styles.what}>{what}</Text>
+            <View style={styles.head}>
+              <CircleAlert size={18} color={colors.danger} />
+              <Text style={styles.what}>{what}</Text>
+            </View>
             <Text style={styles.message}>{rejectedText(notSaved, entry.errorCode)}</Text>
             <View style={styles.actions}>
               {/* A meal's deletion has nothing to edit: discarding it keeps the server's copy. */}
@@ -128,10 +134,22 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
   );
 }
 
+// The redesign's 2.3 (locked by the owner, 2026-11-03): each change on a red tint with a red edge,
+// what it was in condensed capitals, Edit and Discard as links.
 const useStyles = themedStyles((c) => ({
   list: { gap: 8 },
-  item: { padding: 14, gap: 6, borderRadius: 12, borderWidth: 1.5, borderColor: c.danger },
-  what: { fontSize: 15, fontWeight: '600' },
-  message: { fontSize: 15 },
-  actions: { flexDirection: 'row', gap: 24 },
+  item: {
+    paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingBottom: 2,
+    gap: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: c.danger,
+    backgroundColor: c.dangerTint,
+  },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  what: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },
+  message: TYPE.small,
+  actions: { flexDirection: 'row', gap: 16 },
 }));

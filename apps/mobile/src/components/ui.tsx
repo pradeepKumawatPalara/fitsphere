@@ -272,7 +272,13 @@ export function TextButton({
           >
             {title}
           </Text>
-          {arrow ? <ArrowRight size={22} strokeWidth={2.25} color={colors.onPrimary} /> : null}
+          {arrow ? (
+            <ArrowRight
+              size={filled ? 22 : 18}
+              strokeWidth={2.25}
+              color={filled ? colors.onPrimary : destructive ? colors.danger : outlined ? colors.ink : colors.accent}
+            />
+          ) : null}
         </>
       )}
     </Pressable>
@@ -380,7 +386,7 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 4,
   },
   outlinedText: { ...TYPE.buttonSecondary, color: c.ink },
-  link: { alignSelf: 'flex-start', paddingVertical: 6 },
+  link: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6 },
   linkText: { ...TYPE.link, color: c.accent },
   wide: { alignSelf: 'stretch', minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   wideText: { textAlign: 'center' },

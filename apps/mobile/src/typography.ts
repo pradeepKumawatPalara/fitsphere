@@ -53,6 +53,8 @@ const condensed = (fontFamily: FontName, fontSize: number, letterSpacing = 0): T
 
 /** The type styles a redesigned screen uses; the rest of the design's scale comes with its screens. */
 export const TYPE = {
+  /** The one hero number on a screen, the only italic. Its line is its size, so Android draws it whole. */
+  heroNumber: { fontFamily: 'BarlowCondensed_800ExtraBold_Italic', fontSize: 84, lineHeight: 86, fontVariant: ['tabular-nums'] },
   /** Screen headings: never italic. */
   display: { ...condensed('BarlowCondensed_800ExtraBold', 52, 0.5), lineHeight: 52 },
   button: condensed('BarlowCondensed_800ExtraBold', 20, 1.5),
@@ -62,6 +64,8 @@ export const TYPE = {
   sheetTitle: { ...condensed('BarlowCondensed_800ExtraBold', 34, 0.5), lineHeight: 36 },
   /** The header's greeting. */
   heading: { ...condensed('BarlowCondensed_800ExtraBold', 26, 0.5), lineHeight: 28 },
+  /** A value on a card: a target's progress, a tile's reading, a week's count. */
+  metric: { ...condensed('BarlowCondensed_800ExtraBold', 22), lineHeight: 24, fontVariant: ['tabular-nums'] },
   /** Field labels and overlines, in the muted colour. */
   label: { ...condensed('BarlowCondensed_700Bold', 13, 1.5), lineHeight: 16 },
   tab: { ...condensed('BarlowCondensed_700Bold', 12, 1.2), lineHeight: 14 },

@@ -15,10 +15,12 @@ import {
   type WorkoutExercise,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
+import { History } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
+import { CutCorner } from '../components/CutCorner';
 import { LogMealButton } from '../components/LogMealButton';
 import { MeasurementsCard } from '../components/MeasurementsCard';
 import { MeasurementsSheet } from '../components/MeasurementsSheet';
@@ -48,7 +50,7 @@ import {
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 import { LogOut } from './LogOut';
 
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
@@ -59,6 +61,7 @@ type Targets = Partial<Record<TargetKind, number>>;
 // tabs' common header (REQ-NAV-002).
 export function HomeScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
@@ -203,20 +206,24 @@ export function HomeScreen() {
         />
         {selected !== today ? (
           <View style={styles.banner}>
-            <Text style={styles.body}>Showing {formatDay(selected)}</Text>
+            <History size={20} color={colors.accent} />
+            <Text style={styles.bannerText}>Showing {formatDay(selected)}</Text>
             <TextButton title="Back to today" onPress={() => select(today)} />
           </View>
         ) : null}
         <RejectedChanges entries={rejected} onEdit={editRejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {/* The day's food against its targets: the panel Home leads with. */}
         <View style={styles.panel}>
+          <CutCorner />
           <TargetProgressCard
             title="Calories"
             unit="kcal"
             eaten={Math.round(eaten?.kcal ?? 0)}
             target={targets.calories ?? null}
             onSetTarget={openTargets}
+            hero
           />
+          <View style={styles.rule} />
           <TargetProgressCard
             title="Protein"
             unit="g"
@@ -225,15 +232,16 @@ export function HomeScreen() {
             onSetTarget={openTargets}
           />
           <View style={styles.panelFoot}>
-            <TextButton title="By meal" onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
+            <TextButton title="By meal" arrow end onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
           </View>
         </View>
         <View style={styles.tiles}>
-          {DAY_VALUE_ORDER.map((kind) => {
+          {DAY_VALUE_ORDER.map((kind, index) => {
             const entry = values[kind];
             return (
               <QuickTile
                 key={kind}
+                divider={index > 0}
                 label={texts[kind].label}
                 value={entry ? texts[kind].format(entry.value) : null}
                 syncState={entry?.syncState ?? null}
@@ -296,23 +304,27 @@ export function HomeScreen() {
   );
 }
 
+// The redesign's 2.3 (locked by the owner, 2026-11-03): cards 12 apart in the 16 gutter, radius 4; the
+// food card with the cut corner; the three tiles one strip; room at the foot for + LOG.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  // 24 between groups, 12 within one.
-  content: { padding: 16, gap: 24, paddingBottom: 96 },
+  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12,
+    gap: 10,
+    paddingLeft: 14,
+    paddingRight: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
     backgroundColor: c.accentTint,
   },
+  bannerText: { flex: 1, fontSize: 15, lineHeight: 22 },
   body: { fontSize: 15 },
-  panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },
-  panelFoot: { paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
-  tiles: { flexDirection: 'row', gap: 12 },
+  panel: { padding: 16, borderRadius: 4, backgroundColor: c.surface },
+  rule: { height: 1, marginVertical: 16, backgroundColor: c.border },
+  panelFoot: { marginTop: 4 },
+  tiles: { flexDirection: 'row', borderRadius: 4, overflow: 'hidden', backgroundColor: c.surface },
   // As the centred message screens: 24 between the message and Log out.
   stopped: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
 }));
