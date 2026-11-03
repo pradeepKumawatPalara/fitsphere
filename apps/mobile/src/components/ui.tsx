@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
+import { useContext, type ReactNode } from 'react';
 import {
   Pressable,
   Text as NativeText,
@@ -7,6 +8,7 @@ import {
   type TextInputProps,
   type TextProps,
 } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { themedStyles, useTheme } from '../theme';
 
 // Text and fields in the theme's colours (REQ-ACC-001). React Native's own text is black whatever
@@ -39,7 +41,11 @@ export function TextInput({ style, ...props }: TextInputProps) {
 
 export function Screen({ children }: { children: ReactNode }) {
   const styles = useStyles();
-  return <View style={styles.screen}>{children}</View>;
+  // With no header (Check email, Verified, Account setup), below the phone's status bar too.
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  const statusBar = useContext(SafeAreaInsetsContext)?.top ?? 0;
+  const top = headerHeight > 0 ? 0 : statusBar;
+  return <View style={[styles.screen, { paddingTop: 24 + top }]}>{children}</View>;
 }
 
 export function Field({ label, ...input }: { label: string } & TextInputProps) {

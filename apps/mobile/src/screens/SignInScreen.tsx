@@ -52,7 +52,7 @@ export function SignInScreen() {
         <>
           <Message text={message} />
           <TextButton title="Sign in" filled disabled={busy} onPress={() => void submit()} />
-          <TextButton title="Create an account" wide onPress={() => router.replace('/sign-up')} />
+          <TextButton title="Create an account" wide onPress={() => router.push('/sign-up')} />
         </>
       }
     >
@@ -67,7 +67,7 @@ export function SignInScreen() {
       <View style={styles.fields}>
         <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
         <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />
-        <TextButton title="Forgot password?" onPress={() => router.replace('/forgot-password')} />
+        <TextButton title="Forgot password?" onPress={() => router.push('/forgot-password')} />
       </View>
     </FormScreen>
   );

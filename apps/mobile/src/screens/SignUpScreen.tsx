@@ -7,6 +7,7 @@ import { emailProblem, passwordProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
 import { CheckBox, Field, Message, Text, TextButton } from '../components/ui';
 import { themedStyles } from '../theme';
+import { backToSignIn } from './navigation';
 
 // REQ-ACC-010, D-18: sign-up needs "I am 18 or older"; the result is always the neutral text.
 export function SignUpScreen() {
@@ -43,7 +44,7 @@ export function SignUpScreen() {
           <Message text={message} />
           <TextButton title="Sign up" filled disabled={!adult || busy} onPress={() => void submit()} />
           {adult ? null : <Text style={styles.hint}>{TEXTS.ageHint}</Text>}
-          <TextButton title="I already have an account" wide onPress={() => router.replace('/sign-in')} />
+          <TextButton title="I already have an account" wide onPress={() => backToSignIn(router)} />
         </>
       }
     >

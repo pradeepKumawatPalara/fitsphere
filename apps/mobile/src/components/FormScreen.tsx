@@ -1,3 +1,4 @@
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { useContext, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Keyboard, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
@@ -24,7 +25,10 @@ export function FormScreen({
 }) {
   const styles = useStyles();
   // None outside the app (tests).
-  const bottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const insets = useContext(SafeAreaInsetsContext);
+  const bottom = insets?.bottom ?? 0;
+  // A screen with no header (the sign-in screens) starts below the phone's status bar.
+  const top = (useContext(HeaderHeightContext) ?? 0) > 0 ? 0 : (insets?.top ?? 0);
   const frame = useRef<ComponentRef<typeof View>>(null);
   // The keyboard's top edge on screen, or null while it is closed.
   const [keyboardTop, setKeyboardTop] = useState(() => Keyboard.metrics()?.screenY ?? null);
@@ -48,7 +52,7 @@ export function FormScreen({
     <View
       ref={frame}
       onLayout={() => measureBottom(frame.current, setScreenBottom)}
-      style={[styles.screen, { paddingBottom: lift }]}
+      style={[styles.screen, { paddingTop: top, paddingBottom: lift }]}
     >
       <ScrollView contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled">
         {children}

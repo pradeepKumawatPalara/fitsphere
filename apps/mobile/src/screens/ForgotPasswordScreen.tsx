@@ -7,6 +7,7 @@ import { emailProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
 import { Field, Message, Text, TextButton } from '../components/ui';
 import { themedStyles } from '../theme';
+import { backToSignIn } from './navigation';
 
 // REQ-ACC-010, D-11: the same neutral text whether or not the address is registered.
 export function ForgotPasswordScreen() {
@@ -45,7 +46,7 @@ export function ForgotPasswordScreen() {
               <TextButton title="Send reset link" filled disabled={busy} onPress={() => void submit()} />
             </>
           )}
-          <TextButton title="Back to sign in" filled={sent} wide onPress={() => router.replace('/sign-in')} />
+          <TextButton title="Back to sign in" filled={sent} wide onPress={() => backToSignIn(router)} />
         </>
       }
     >

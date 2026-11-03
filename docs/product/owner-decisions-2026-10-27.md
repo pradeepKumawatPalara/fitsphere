@@ -990,6 +990,13 @@ checksum), and the configuration template was left as it is.*
      the meal's stored `recordedAt`, the moment it was last saved (so an edit moves it), shown in
      India time; no new field is stored. The chevron is named "Show/Hide <slot> meals" and is 44 dp
      to tap. Which slots are open is kept on the screen only and resets when the day changes.
+  8. **The sign-in screens have no header, and going back returns to Sign in (REQ-ACC-010).** App
+     start, Sign in, Sign up, Forgot password, Reset password, Check email, Verified and Account
+     setup show no "FitSphere" header; their content starts below the status bar. "Create an
+     account" and "Forgot password?" open their screens on top of Sign in, so Android's back
+     gesture returns to it; "I already have an account" and "Back to sign in" (also on Check email)
+     go back to that Sign in rather than open a second one, and open Sign in when nothing is under
+     them, e.g. after a link in an email.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-NUT-003, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and

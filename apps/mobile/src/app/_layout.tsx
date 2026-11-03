@@ -17,6 +17,9 @@ function LocalDatabaseForUser({ children }: { children: ReactNode }) {
   return <LocalDatabaseProvider owner={userId}>{children}</LocalDatabaseProvider>;
 }
 
+// App start and the sign-in screens draw their own heading, so they have no header.
+const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup'];
+
 // The screens. Their header as the tabs': the theme's colours, a flat edge, the title 17/600 as the
 // tabs' date, and the back arrow in blue.
 function AppStack() {
@@ -32,6 +35,9 @@ function AppStack() {
     >
       {/* The tabs have their own header (REQ-NAV-002). */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      {NO_HEADER.map((name) => (
+        <Stack.Screen key={name} name={name} options={{ headerShown: false }} />
+      ))}
       <Stack.Screen name="account" options={{ title: 'Settings' }} />
       <Stack.Screen name="change-password" options={{ title: 'Change password' }} />
       <Stack.Screen name="delete-account" options={{ title: 'Delete account' }} />
