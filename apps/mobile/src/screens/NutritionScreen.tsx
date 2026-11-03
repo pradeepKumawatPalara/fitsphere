@@ -117,7 +117,9 @@ export function NutritionScreen() {
               onPress={() => setTab(entry.tab)}
               style={({ pressed }) => [pill.choice, styles.tab, tab === entry.tab && pill.chosen, pressed && pill.pressed]}
             >
-              <Text style={[pill.choiceText, tab === entry.tab && pill.chosenText]}>{entry.label}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={[pill.choiceText, tab === entry.tab && pill.chosenText]}>
+                {entry.label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -258,7 +260,9 @@ const useStyles = themedStyles((c) => ({
   },
   body: { fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1 },
+  // Equal widths, as the meal pills on Log meal: 8 at the sides and one line, which shrinks a little
+  // rather than wrap when the phone's text is large.
+  tab: { flex: 1, paddingHorizontal: 8 },
   slot: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: c.surface },
   slotHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   slotTitle: { fontSize: 15, fontWeight: '600' },

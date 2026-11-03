@@ -75,9 +75,8 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
         </View>
       </Section>
 
-      <Section title="AI meal reading">
-        <AiConsentSwitch />
-      </Section>
+      {/* Its own heading: the switch's row, so "AI meal reading" shows once. */}
+      <AiConsentSwitch />
 
       <Section title="Country and time zone">
         <Text style={styles.body}>India · Kolkata</Text>
@@ -248,7 +247,9 @@ function AiConsentSwitch() {
   return (
     <View style={styles.consent}>
       <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>AI meal reading</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          AI meal reading
+        </Text>
         <Switch
           accessibilityLabel="AI meal reading"
           value={on}
@@ -294,7 +295,6 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   consent: { gap: 8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  switchLabel: { fontSize: 15 },
   problem: { fontSize: 13, color: c.error },
   dev: { marginTop: 32, gap: 24, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 16 },
 }));
