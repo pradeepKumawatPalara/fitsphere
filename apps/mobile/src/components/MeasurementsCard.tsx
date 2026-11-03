@@ -1,9 +1,9 @@
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
-import { Button, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { formatDay } from '../format';
 import type { LocalMeasurements } from '../local/store';
 import { themedStyles } from '../theme';
-import { Text } from './ui';
+import { Text, TextButton } from './ui';
 
 type Props = {
   /** The selected date. */
@@ -35,9 +35,9 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
     return (
       <View style={styles.card}>
         <Text style={styles.title}>Measurements</Text>
-        <Text>No measurements for {formatDay(day)}.</Text>
+        <Text style={styles.body}>No measurements for {formatDay(day)}.</Text>
         <Text style={styles.hint}>Log your upper and lower waist once a week.</Text>
-        <Button title="Add measurements" onPress={onAdd} />
+        <TextButton title="Add measurements" outlined onPress={onAdd} />
       </View>
     );
   }
@@ -46,29 +46,45 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Measurements · {formatDay(day)}</Text>
-      {ROWS.map(({ key, label }) => {
-        const mm = entry[key];
-        if (mm === null) return null;
-        const value = `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
-        return (
-          <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={styles.row}>
-            <Text>{label}</Text>
-            <Text style={styles.value}>{value}</Text>
-          </View>
-        );
-      })}
-      {entry.notes ? <Text accessibilityLabel={`Notes: ${entry.notes}`}>{entry.notes}</Text> : null}
+      <View>
+        {ROWS.map(({ key, label }) => {
+          const mm = entry[key];
+          if (mm === null) return null;
+          const value = `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
+          return (
+            <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={styles.row}>
+              <Text style={styles.rowText}>{label}</Text>
+              <Text style={[styles.rowText, styles.value]}>{value}</Text>
+            </View>
+          );
+        })}
+      </View>
+      {entry.notes ? (
+        <Text accessibilityLabel={`Notes: ${entry.notes}`} style={styles.notes}>
+          {entry.notes}
+        </Text>
+      ) : null}
       {note ? <Text style={styles.note}>{note}</Text> : null}
-      <Button title="Edit measurements" onPress={onEdit} />
+      <TextButton title="Edit measurements" onPress={onEdit} />
     </View>
   );
 }
 
 const useStyles = themedStyles((c) => ({
   card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
-  title: { color: c.textMuted },
-  hint: { color: c.textMuted },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  value: { fontWeight: '600' },
-  note: { color: c.warning },
+  title: { fontSize: 15, fontWeight: '600' },
+  body: { fontSize: 15 },
+  hint: { fontSize: 13, color: c.textMuted },
+  // Rows ruled like a tape reading.
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.border,
+  },
+  rowText: { fontSize: 15 },
+  value: { fontWeight: '600', fontVariant: ['tabular-nums'] },
+  notes: { color: c.textMuted },
+  note: { fontSize: 13, color: c.warning },
 }));

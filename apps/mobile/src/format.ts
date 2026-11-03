@@ -149,3 +149,13 @@ export function parseLength(text: string, unit: LengthUnit): number | null {
   const mm = toMillimetres(value, unit);
   return isMeasurementMmInRange(mm) ? mm : null;
 }
+
+/**
+ * The India time of an instant, e.g. "8:15 am" (invariant #5: Asia/Kolkata, UTC+5:30 all year, no
+ * daylight saving).
+ */
+export function formatIstTime(instant: string): string {
+  const minutes = (((Math.floor(Date.parse(instant) / 60_000) + 330) % 1440) + 1440) % 1440;
+  const hours = Math.floor(minutes / 60);
+  return `${hours % 12 || 12}:${String(minutes % 60).padStart(2, '0')} ${hours < 12 ? 'am' : 'pm'}`;
+}

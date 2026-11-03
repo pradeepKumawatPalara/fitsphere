@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions, type BarcodeType } from 'expo-camera';
 import { useRef } from 'react';
-import { Button, StyleSheet, View } from 'react-native';
-import { Text } from './ui';
+import { StyleSheet, View } from 'react-native';
+import { Text, TextButton } from './ui';
 
 /** The packaged-food barcodes FitSphere reads (ADR-0006 rule 2). */
 const BARCODE_TYPES: BarcodeType[] = ['ean13', 'ean8', 'upc_a', 'upc_e'];
@@ -20,11 +20,11 @@ export function BarcodeCamera({ onScanned }: ScannerProps) {
       <View style={styles.ask}>
         {permission.canAskAgain ? (
           <>
-            <Text>FitSphere needs the camera to scan a barcode.</Text>
-            <Button title="Allow camera" onPress={() => void requestPermission()} />
+            <Text style={styles.body}>FitSphere needs the camera to scan a barcode.</Text>
+            <TextButton title="Allow camera" outlined onPress={() => void requestPermission()} />
           </>
         ) : (
-          <Text>Camera access is off for FitSphere. You can type the barcode instead, or allow the camera in Android settings.</Text>
+          <Text style={styles.body}>Camera access is off for FitSphere. You can type the barcode instead, or allow the camera in Android settings.</Text>
         )}
       </View>
     );
@@ -44,7 +44,9 @@ export function BarcodeCamera({ onScanned }: ScannerProps) {
   );
 }
 
+// The camera is a panel: radius 12, as tiles and panels elsewhere.
 const styles = StyleSheet.create({
-  ask: { gap: 8, paddingVertical: 8 },
-  camera: { height: 240, borderRadius: 10, overflow: 'hidden' },
+  ask: { gap: 12, paddingVertical: 8 },
+  body: { fontSize: 15 },
+  camera: { height: 240, borderRadius: 12, overflow: 'hidden' },
 });

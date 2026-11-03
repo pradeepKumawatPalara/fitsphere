@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Button, Modal, View } from 'react-native';
+import { View } from 'react-native';
 import { themedStyles } from '../theme';
-import { Text, TextInput } from './ui';
+import { Sheet } from './Sheet';
+import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 type Props = {
   title: string;
@@ -22,6 +23,7 @@ type Props = {
 // Nothing is saved until the value is valid; Cancel closes without saving.
 export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, onSave, onClose }: Props) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   const [text, setText] = useState(initialText);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,41 +41,40 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              accessibilityLabel={label}
-              value={text}
-              onChangeText={setText}
-              keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
-              autoFocus
-              style={styles.input}
-            />
-            <Text>{unit}</Text>
-          </View>
-          {problem ? (
-            <Text accessibilityRole="alert" style={styles.problem}>
-              {problem}
-            </Text>
-          ) : null}
-          <Button title="Save" disabled={busy} onPress={() => void save()} />
-          <Button title="Cancel" onPress={onClose} />
-        </View>
+    <Sheet
+      title={title}
+      onClose={onClose}
+      actions={
+        <>
+          <TextButton title="Save" filled disabled={busy} onPress={() => void save()} />
+          <TextButton title="Cancel" wide onPress={onClose} />
+        </>
+      }
+    >
+      <View style={styles.inputRow}>
+        <TextInput
+          accessibilityLabel={label}
+          value={text}
+          onChangeText={setText}
+          keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
+          autoFocus
+          style={[fieldInput, styles.input]}
+        />
+        <Text style={styles.unit}>{unit}</Text>
       </View>
-    </Modal>
+      {problem ? (
+        <Text accessibilityRole="alert" style={styles.problem}>
+          {problem}
+        </Text>
+      ) : null}
+    </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: c.background, padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  title: { fontSize: 18, fontWeight: '600' },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, fontSize: 20 },
-  problem: { color: c.error },
+  // A field as Field, its number at the size of a value, in fixed-width digits.
+  input: { flex: 1, fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 15, color: c.textMuted },
+  problem: { fontSize: 13, color: c.error },
 }));

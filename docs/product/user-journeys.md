@@ -22,7 +22,7 @@ Actor: Personal Training User · REQ-NAV-003, LOG-001..004, LOG-009, NUT-002/003
 Alternates:
 - **AI consent off** → app asks for consent (REQ-ACC-004); if declined, user uses Search database / Scan barcode / Saved.
 - **AI fails or times out** → input kept; retry or switch method.
-- **Logging for another day** → date chip → "Log this meal to" sheet → Yesterday or "Another day…" (REQ-LOG-002).
+- **Logging for another day** → date chip → "Log this meal to" calendar → any past day of the phone's 90 days (REQ-LOG-002, D-33).
 - **Voice / photo** → same flow starting from "Speak your meal" or camera (REQ-LOG-005/006). Speech is turned into text on the phone, and the voice never leaves it (D-18); a meal photo is kept as a compressed copy, or the user pastes a public link to an image after confirming a privacy warning (REQ-LOG-010, D-16); a label photo is deleted once read (D-18).
 
 ## J-02 Trainee logs a meal without AI

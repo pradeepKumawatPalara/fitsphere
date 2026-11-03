@@ -97,14 +97,14 @@ describe('REQ-HOME-006 Weight tile and entry sheet', () => {
   });
 });
 
-describe('REQ-DATE-001…003 week strip and past-date banner', () => {
-  it('REQ-DATE-003 highlights today, and future days cannot be picked (Q-017)', async () => {
+describe('REQ-DATE-001…003 date strip and past-date banner', () => {
+  it('REQ-DATE-003 highlights today, the last of the 7 days shown; no later day is shown (Q-017, D-34)', async () => {
     await renderApp();
 
     expect(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Thursday 29 Oct' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Sunday 1 Nov' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Next week' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Thursday 22 Oct' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Thursday 29 Oct' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Later days' })).toBeDisabled();
   });
 
   it('REQ-DATE-002 a past day shows the banner; a weight logged there gets that IST day; "Back to today" returns', async () => {
@@ -121,14 +121,15 @@ describe('REQ-DATE-001…003 week strip and past-date banner', () => {
     expect(await screen.findByRole('button', { name: 'Weight: + Add' })).toBeOnTheScreen();
   });
 
-  it('REQ-DATE-001 the previous-week arrow shows last week, whose days can be picked', async () => {
+  it('REQ-DATE-001 "Earlier days" shows the 7 days before, which can be picked', async () => {
     await renderApp();
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Previous week' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Earlier days' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Monday 19 Oct' }));
 
     expect(await screen.findByText('Showing Mon 19 Oct')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Next week' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Thursday 15 Oct' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Later days' })).toBeEnabled();
   });
 });
 

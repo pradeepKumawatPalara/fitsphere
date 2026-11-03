@@ -7,6 +7,18 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
+**UI refresh — branch `ui-refresh`, not merged yet; the owner's phone checks pending (D-33, D-34;
+2026-11-02 to 2026-11-03).** One branch, not pushed: the app restyled screen by screen and sheet by
+sheet (TextButton, Field, the shared Sheet and FormScreen frames, one pill style, one Cancel
+standard, scrim tokens), then the changes from the owner's two phone reviews: D-33 (an icon
+package, `@expo/vector-icons`, JavaScript only and needing no new build; meal-card icons in place
+of the ••• menu; Log meal's date as a calendar; clearer validation messages) and D-34 (Home's
+workout days open their workouts; Training shows one card per date; the date strip shows 7 days
+ending today; a food added again can join the one already in the meal; the calendar browses ahead;
+weight ranges 1W, 1M, 3M, 6M and All; meal slots fold). Every automated check passes on the branch.
+The owner checks it on the phone, then says when to push and open the pull request; CI has not run
+on it yet. The rules and policy documents in `docs/prerequisitesDoc/` merge with it.
+
 **Slice 5, Progress — merged; phone checks deferred to before the release (D-30, D-32;
 2026-10-31).** Plan: `docs/plans/progress-slice.md` (Accepted). Built in parallel with slice 6, one
 pull request per step: #41, #42 and #44, merged on 2026-10-30. Progress only reads existing data:

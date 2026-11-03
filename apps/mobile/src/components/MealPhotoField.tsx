@@ -1,13 +1,13 @@
 import { isPublicLink } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Image, View } from 'react-native';
+import { Image, View } from 'react-native';
 import type { PhotoFiles } from '../local/photos';
 import { jpegDataUri } from '../photos/bytes';
 import { usePhoto } from '../photos/loadPhoto';
 import { pickPhoto } from '../photos/takePhoto';
 import { themedStyles } from '../theme';
 import { ActionsSheet } from './MealSheets';
-import { Text, TextInput } from './ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 /** The meal's photo while it is being logged: a new one with its files, the one it had, or a link. */
 export type PhotoDraft = { kind: 'photo'; mediaId: string; files: PhotoFiles | null } | { kind: 'link'; url: string } | null;
@@ -39,6 +39,7 @@ export function MealPhotoField({
   newId(): string;
 }) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [linkStep, setLinkStep] = useState<'enter' | 'confirm' | null>(null);
@@ -65,9 +66,11 @@ export function MealPhotoField({
       </Text>
       {value === null ? (
         <View style={styles.buttons}>
-          <Button title="Take photo" disabled={busy} onPress={() => void pick('camera')} />
-          <Button title="Choose from gallery" disabled={busy} onPress={() => void pick('library')} />
-          <Button
+          <View style={styles.row}>
+            <TextButton title="Take photo" outlined disabled={busy} onPress={() => void pick('camera')} />
+            <TextButton title="Choose from gallery" outlined disabled={busy} onPress={() => void pick('library')} />
+          </View>
+          <TextButton
             title="Add an image link instead"
             disabled={busy}
             onPress={() => {
@@ -83,15 +86,24 @@ export function MealPhotoField({
           ) : (
             <Text style={styles.hint}>{loaded.kind === 'offline' ? 'The photo needs an internet connection.' : 'Photo'}</Text>
           )}
-          <Button title="Remove photo" onPress={() => onChange(null)} />
+          {/* Wrapped, so the link centres beside the photo. */}
+          <View>
+            <TextButton title="Remove photo" onPress={() => onChange(null)} />
+          </View>
         </View>
       ) : (
         <View style={styles.row}>
           <Text accessibilityLabel={`Image link: ${linkSite(value.url)}`}>Image link: {linkSite(value.url)}</Text>
-          <Button title="Remove link" onPress={() => onChange(null)} />
+          <View>
+            <TextButton title="Remove link" onPress={() => onChange(null)} />
+          </View>
         </View>
       )}
-      {busy ? <Text accessibilityRole="progressbar">Preparing the photo…</Text> : null}
+      {busy ? (
+        <Text accessibilityRole="progressbar" style={styles.hint}>
+          Preparing the photo…
+        </Text>
+      ) : null}
       {problem ? (
         <Text accessibilityRole="alert" style={styles.problem}>
           {problem}
@@ -104,7 +116,7 @@ export function MealPhotoField({
           actions={linkValid ? [{ label: 'Continue', onPress: () => setLinkStep('confirm') }] : []}
           onClose={() => setLinkStep((step) => (step === 'enter' ? null : step))}
         >
-          <Text>A link to your own image on another site, starting with https://</Text>
+          <Text style={styles.body}>A link to your own image on another site, starting with https://</Text>
           <TextInput
             accessibilityLabel="Image link"
             value={linkText}
@@ -112,7 +124,7 @@ export function MealPhotoField({
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
-            style={styles.input}
+            style={fieldInput}
           />
           {linkText.trim() !== '' && !linkValid ? <Text style={styles.problem}>Enter a link that starts with https://</Text> : null}
         </ActionsSheet>
@@ -131,12 +143,12 @@ export function MealPhotoField({
 }
 
 const useStyles = themedStyles((c) => ({
-  field: { gap: 8 },
-  heading: { fontSize: 16, fontWeight: '600' },
-  buttons: { gap: 8 },
+  field: { gap: 12 },
+  heading: { fontSize: 15, fontWeight: '600' },
+  buttons: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  thumbnail: { width: 72, height: 72, borderRadius: 8 },
-  hint: { color: c.textMuted },
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  thumbnail: { width: 72, height: 72, borderRadius: 12 },
+  hint: { fontSize: 13, color: c.textMuted },
+  body: { fontSize: 15 },
   problem: { color: c.error },
 }));

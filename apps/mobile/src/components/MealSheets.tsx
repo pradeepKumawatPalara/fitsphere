@@ -1,28 +1,13 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
 import { useState, type ReactNode } from 'react';
-import { Button, Modal, Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
-import { themedStyles, useTheme } from '../theme';
-import { Text, TextInput } from './ui';
+import { themedStyles } from '../theme';
+import { Sheet } from './Sheet';
+import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle } from './ui';
 
 // Bottom sheets for the meal menus (REQ-NUT-004, REQ-SAVED-001): a list of actions, a
 // confirmation, a name, and re-logging a saved meal.
-
-function Sheet({ title, children, onClose }: { title: string; children: ReactNode; onClose(): void }) {
-  const styles = useStyles();
-  return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          {children}
-        </View>
-      </View>
-    </Modal>
-  );
-}
 
 export function ActionsSheet({
   title,
@@ -31,25 +16,34 @@ export function ActionsSheet({
   children,
 }: {
   title: string;
-  actions: { label: string; onPress(): void }[];
+  /** `destructive`: deletes or removes something, so it shows in the "over" red. */
+  actions: { label: string; onPress(): void; destructive?: boolean }[];
   onClose(): void;
   /** Shown above the actions, e.g. a field an action uses. */
   children?: ReactNode;
 }) {
+  const styles = useStyles();
+  // The actions are a menu: full-width rows in a panel, ruled between them.
   return (
-    <Sheet title={title} onClose={onClose}>
+    <Sheet title={title} onClose={onClose} actions={<TextButton title="Cancel" wide onPress={onClose} />}>
       {children}
-      {actions.map((action) => (
-        <Button
-          key={action.label}
-          title={action.label}
-          onPress={() => {
-            onClose();
-            action.onPress();
-          }}
-        />
-      ))}
-      <Button title="Cancel" onPress={onClose} />
+      {actions.length > 0 ? (
+        <View style={styles.menu}>
+          {actions.map((action, index) => (
+            <Pressable
+              key={action.label}
+              accessibilityRole="button"
+              onPress={() => {
+                onClose();
+                action.onPress();
+              }}
+              style={({ pressed }) => [styles.menuRow, index > 0 && styles.ruled, pressed && styles.pressed]}
+            >
+              <Text style={[styles.menuText, action.destructive && styles.destructiveText]}>{action.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </Sheet>
   );
 }
@@ -66,19 +60,32 @@ export function ConfirmSheet({
   onConfirm(): void;
   onClose(): void;
 }) {
-  const { colors } = useTheme();
+  const styles = useStyles();
+  // As every confirmation: the way out on the left, the action in red on the right, the same size.
   return (
-    <Sheet title={title} onClose={onClose}>
-      <Button
-        title={confirmLabel}
-        color={colors.error}
-        onPress={() => {
-          onClose();
-          onConfirm();
-        }}
-      />
-      <Button title="Cancel" onPress={onClose} />
-    </Sheet>
+    <Sheet
+      title={title}
+      onClose={onClose}
+      actions={
+        <View style={styles.pair}>
+          <View style={styles.half}>
+            <TextButton title="Cancel" outlined wide onPress={onClose} />
+          </View>
+          <View style={styles.half}>
+            <TextButton
+              title={confirmLabel}
+              outlined
+              wide
+              destructive
+              onPress={() => {
+                onClose();
+                onConfirm();
+              }}
+            />
+          </View>
+        </View>
+      }
+    />
   );
 }
 
@@ -93,26 +100,73 @@ export function SaveMealSheet({
   onClose(): void;
 }) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
   return (
-    <Sheet title="Save to my meals" onClose={onClose}>
+    <Sheet
+      title="Save to my meals"
+      onClose={onClose}
+      actions={
+        <>
+          <TextButton
+            title="Save"
+            filled
+            disabled={trimmed === ''}
+            onPress={() => {
+              onClose();
+              onSave(trimmed);
+            }}
+          />
+          <TextButton title="Cancel" wide onPress={onClose} />
+        </>
+      }
+    >
       <TextInput
         accessibilityLabel="Name"
         value={name}
         onChangeText={setName}
         maxLength={SAVED_MEAL_NAME_MAX}
-        style={styles.input}
+        style={fieldInput}
       />
-      <Button
-        title="Save"
-        disabled={trimmed === ''}
-        onPress={() => {
-          onClose();
-          onSave(trimmed);
-        }}
-      />
-      <Button title="Cancel" onPress={onClose} />
+      {trimmed === '' ? <Text style={styles.problem}>Enter a name.</Text> : null}
+    </Sheet>
+  );
+}
+
+/** "Breakfast", the longest meal, is about 4.5 em wide at the pills' 15. */
+const LONGEST_SLOT_EM = 4.5;
+
+/**
+ * "Already in this meal" (D-34): a food added again to the meal being built. "Add to existing" puts
+ * the amounts together; "Keep separate" adds it as its own item, as closing the sheet does. When the
+ * amounts together would pass the most one food can have, only "Keep separate" is offered.
+ */
+export function DuplicateFoodSheet({
+  message,
+  canAdd,
+  onAdd,
+  onKeep,
+}: {
+  message: string;
+  /** Whether at least one food can take the amount added. */
+  canAdd: boolean;
+  onAdd(): void;
+  onKeep(): void;
+}) {
+  const styles = useStyles();
+  return (
+    <Sheet
+      title="Already in this meal"
+      onClose={onKeep}
+      actions={
+        <>
+          {canAdd ? <TextButton title="Add to existing" filled onPress={onAdd} /> : null}
+          <TextButton title="Keep separate" wide={canAdd} filled={!canAdd} onPress={onKeep} />
+        </>
+      }
+    >
+      <Text style={styles.body}>{message}</Text>
     </Sheet>
   );
 }
@@ -120,8 +174,14 @@ export function SaveMealSheet({
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
 export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
   const styles = useStyles();
+  const pill = useChoiceStyles();
+  const { fontScale } = useWindowDimensions();
+  // The row's width, to lay the four out evenly: in one row when "Breakfast" fits a quarter of it
+  // (with the pill's padding and edge), otherwise two by two.
+  const [rowWidth, setRowWidth] = useState(0);
+  const oneRow = (rowWidth - 3 * 8) / 4 >= 15 * LONGEST_SLOT_EM * fontScale + 2 * 8 + 3;
   return (
-    <View style={styles.slots}>
+    <View onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)} style={[styles.slots, !oneRow && styles.slotsGrid]}>
       {MEAL_TYPE_ORDER.map((slot) => (
         <Pressable
           key={slot}
@@ -129,9 +189,11 @@ export function SlotPicker({ value, onChange }: { value: MealType | null; onChan
           accessibilityLabel={MEAL_TYPE_LABELS[slot]}
           accessibilityState={{ checked: value === slot }}
           onPress={() => onChange(slot)}
-          style={[styles.slot, value === slot && styles.slotChosen]}
+          style={({ pressed }) => [pill.choice, oneRow ? styles.slotInRow : styles.slotInGrid, value === slot && pill.chosen, pressed && pill.pressed]}
         >
-          <Text style={value === slot ? styles.slotChosenText : undefined}>{MEAL_TYPE_LABELS[slot]}</Text>
+          <Text numberOfLines={1} style={[pill.choiceText, value === slot && pill.chosenText]}>
+            {MEAL_TYPE_LABELS[slot]}
+          </Text>
         </Pressable>
       ))}
     </View>
@@ -152,30 +214,47 @@ export function RelogSheet({
   onLog(slot: MealType): void;
   onClose(): void;
 }) {
+  const styles = useStyles();
   const [chosen, setChosen] = useState(slot);
   return (
-    <Sheet title={`Log ${name}`} onClose={onClose}>
-      <Text>To {dayLabel}</Text>
+    <Sheet
+      title={`Log ${name}`}
+      onClose={onClose}
+      actions={
+        <>
+          <TextButton
+            title="Log meal"
+            filled
+            onPress={() => {
+              onClose();
+              onLog(chosen);
+            }}
+          />
+          <TextButton title="Cancel" wide onPress={onClose} />
+        </>
+      }
+    >
+      <Text style={styles.body}>To {dayLabel}</Text>
       <SlotPicker value={chosen} onChange={setChosen} />
-      <Button
-        title="Log meal"
-        onPress={() => {
-          onClose();
-          onLog(chosen);
-        }}
-      />
-      <Button title="Cancel" onPress={onClose} />
     </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: c.background, padding: 24, gap: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  title: { fontSize: 18, fontWeight: '600' },
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  slots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  slot: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.primary },
-  slotChosen: { backgroundColor: c.primary },
-  slotChosenText: { color: c.onPrimary, fontWeight: '600' },
+  menu: { borderRadius: 12, backgroundColor: c.surface },
+  menuRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  ruled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  pressed: { opacity: 0.6 },
+  menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
+  destructiveText: { color: c.over },
+  pair: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
+  body: { fontSize: 15 },
+  problem: { fontSize: 13, color: c.error },
+  // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
+  // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
+  slots: { flexDirection: 'row', gap: 8 },
+  slotsGrid: { flexWrap: 'wrap' },
+  slotInRow: { flex: 1, paddingHorizontal: 8 },
+  slotInGrid: { flexGrow: 1, flexBasis: '40%', paddingHorizontal: 8 },
 }));

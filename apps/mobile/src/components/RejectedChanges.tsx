@@ -17,7 +17,7 @@ import {
   type SettingName,
   type TargetKind,
 } from '@fitsphere/shared';
-import { Button, View } from 'react-native';
+import { View } from 'react-native';
 import { dayValues } from '../dayValues';
 import { formatDay } from '../format';
 import type { OutboxEntry } from '../local/store';
@@ -25,7 +25,7 @@ import { describeItems, MEAL_TYPE_LABELS } from '../meals';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { targetTexts } from '../targets';
 import { themedStyles } from '../theme';
-import { Text } from './ui';
+import { Text, TextButton } from './ui';
 
 // A rejected change stays visible until the user fixes or discards it (ADR-0007 rule 2, D-14).
 // Text from the error model: "This weight wasn't saved: <reason>. Edit or discard it.", with its
@@ -113,13 +113,13 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
         return (
           <View key={entry.changeId} accessibilityRole="alert" style={styles.item}>
             <Text style={styles.what}>{what}</Text>
-            <Text>{rejectedText(notSaved, entry.errorCode)}</Text>
+            <Text style={styles.message}>{rejectedText(notSaved, entry.errorCode)}</Text>
             <View style={styles.actions}>
               {/* A meal's deletion has nothing to edit: discarding it keeps the server's copy. */}
               {!onEdit || entry.type === MEAL_DELETE || entry.type === SAVED_MEAL_DELETE ? null : (
-                <Button title="Edit" onPress={() => onEdit(entry)} />
+                <TextButton title="Edit" onPress={() => onEdit(entry)} />
               )}
-              <Button title="Discard" onPress={() => onDiscard(entry.changeId)} />
+              <TextButton title="Discard" destructive onPress={() => onDiscard(entry.changeId)} />
             </View>
           </View>
         );
@@ -130,7 +130,8 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
 
 const useStyles = themedStyles((c) => ({
   list: { gap: 8 },
-  item: { padding: 12, gap: 6, borderRadius: 8, borderWidth: 1, borderColor: c.error },
-  what: { fontWeight: '600' },
-  actions: { flexDirection: 'row', gap: 12 },
+  item: { padding: 14, gap: 6, borderRadius: 12, borderWidth: 1.5, borderColor: c.error },
+  what: { fontSize: 15, fontWeight: '600' },
+  message: { fontSize: 15 },
+  actions: { flexDirection: 'row', gap: 24 },
 }));

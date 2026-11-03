@@ -12,10 +12,11 @@ import {
   type LengthUnit,
   type MealTotals,
   type TargetKind,
+  type WorkoutExercise,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Button, ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
 import { LogMealButton } from '../components/LogMealButton';
@@ -26,8 +27,9 @@ import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
+import { WorkoutDaySheet } from '../components/WorkoutDaySheet';
 import { WorkoutTracker } from '../components/WorkoutTracker';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -64,7 +66,7 @@ export function HomeScreen() {
   const bodyWeightUnit = useBodyWeightUnit();
   const texts = useMemo(() => dayValues(bodyWeightUnit), [bodyWeightUnit]);
   const router = useRouter();
-  const { today, selected, firstDay, weekStart, select, showWeek } = useSelectedDay();
+  const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
   const [values, setValues] = useState<DayValues>({});
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [targets, setTargets] = useState<Targets>({});
@@ -75,7 +77,9 @@ export function HomeScreen() {
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
   const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
-  const [weekWorkouts, setWeekWorkouts] = useState<{ count: number; days: IstDay[] }>({ count: 0, days: [] });
+  const [weekWorkouts, setWeekWorkouts] = useState<{ id: string; day: IstDay; exercises: WorkoutExercise[] }[]>([]);
+  // The tracker's day whose workouts are being chosen from, or started (D-34).
+  const [workoutDay, setWorkoutDay] = useState<IstDay | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -102,7 +106,7 @@ export function HomeScreen() {
       getEntry(db, 'measurements', selected),
       getMeta(db, 'measurement_unit'),
       dayNutrition(db, selected),
-      mealCounts(db, weekStart, addDays(weekStart, 6)),
+      mealCounts(db, stripStart, addDays(stripStart, 6)),
       listEntries(db, 'workout', monday, addDays(monday, 6)),
     ]).then(([entries, waiting, current, dayMeasurements, unit, nutrition, counts, workouts]) => {
       if (!active) return;
@@ -123,13 +127,29 @@ export function HomeScreen() {
       setMealDays(new Set(Object.keys(counts)));
       // Every workout on the phone in the selected date's week counts, an empty one too (Q-025), and
       // a day's dot shows once it has any (REQ-HOME-007; MVP default, D-29).
-      setWeekWorkouts({ count: workouts.length, days: [...new Set(workouts.map((workout) => workout.day))] });
+      setWeekWorkouts(workouts.map(({ id, day, exercises }) => ({ id, day, exercises })));
     });
     return () => {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
-  }, [local.state, selected, weekStart, sync.version, measurementsOpen, texts]);
+  }, [local.state, selected, stripStart, sync.version, measurementsOpen, texts]);
+
+  const workoutCounts: Record<IstDay, number> = {};
+  for (const workout of weekWorkouts) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
+
+  /** A tracker day: its one workout opens; with several, or none, the day's sheet (D-34). */
+  function openWorkoutDay(day: IstDay) {
+    const onDay = weekWorkouts.filter((workout) => workout.day === day);
+    if (onDay.length === 1) router.push(`/workout/${onDay[0]!.id}`);
+    else setWorkoutDay(day);
+  }
+
+  /** A new workout on that day, saved at once and opened, as Training's "Start an empty workout". */
+  async function startWorkout(day: IstDay) {
+    const id = await sync.startWorkout(day);
+    router.push(`/workout/${id}`);
+  }
 
   function openTargets() {
     router.push('/targets');
@@ -158,7 +178,7 @@ export function HomeScreen() {
   if (local.state.status === 'failed') {
     return (
       <View style={styles.stopped}>
-        <Text accessibilityRole="alert">
+        <Text accessibilityRole="alert" style={styles.body}>
           {local.state.reason === 'sqlcipherMissing'
             ? 'FitSphere stopped: this phone’s database cannot be encrypted.'
             : 'FitSphere stopped: this phone’s database could not be opened.'}
@@ -176,33 +196,38 @@ export function HomeScreen() {
           today={today}
           firstDay={firstDay}
           selected={selected}
-          weekStart={weekStart}
+          start={stripStart}
           mealDays={mealDays}
           onSelect={select}
-          onWeekChange={showWeek}
+          onShow={showDays}
         />
         {selected !== today ? (
           <View style={styles.banner}>
-            <Text>Showing {formatDay(selected)}</Text>
-            <Button title="Back to today" onPress={() => select(today)} />
+            <Text style={styles.body}>Showing {formatDay(selected)}</Text>
+            <TextButton title="Back to today" onPress={() => select(today)} />
           </View>
         ) : null}
         <RejectedChanges entries={rejected} onEdit={editRejected} onDiscard={(changeId) => void sync.discard(changeId)} />
-        <TargetProgressCard
-          title="Calories"
-          unit="kcal"
-          eaten={Math.round(eaten?.kcal ?? 0)}
-          target={targets.calories ?? null}
-          onSetTarget={openTargets}
-        />
-        <TargetProgressCard
-          title="Protein"
-          unit="g"
-          eaten={Math.round(eaten?.proteinG ?? 0)}
-          target={targets.protein ?? null}
-          onSetTarget={openTargets}
-        />
-        <Button title="By meal" onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
+        {/* The day's food against its targets: the panel Home leads with. */}
+        <View style={styles.panel}>
+          <TargetProgressCard
+            title="Calories"
+            unit="kcal"
+            eaten={Math.round(eaten?.kcal ?? 0)}
+            target={targets.calories ?? null}
+            onSetTarget={openTargets}
+          />
+          <TargetProgressCard
+            title="Protein"
+            unit="g"
+            eaten={Math.round(eaten?.proteinG ?? 0)}
+            target={targets.protein ?? null}
+            onSetTarget={openTargets}
+          />
+          <View style={styles.panelFoot}>
+            <TextButton title="By meal" onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
+          </View>
+        </View>
         <View style={styles.tiles}>
           {DAY_VALUE_ORDER.map((kind) => {
             const entry = values[kind];
@@ -219,10 +244,12 @@ export function HomeScreen() {
         </View>
         <WorkoutTracker
           day={selected}
-          workoutDays={weekWorkouts.days}
-          count={weekWorkouts.count}
+          today={today}
+          dayCounts={workoutCounts}
+          count={weekWorkouts.length}
           target={targets.weekly_workouts ?? null}
           onSetTarget={openTargets}
+          onDay={openWorkoutDay}
         />
         <MeasurementsCard
           day={selected}
@@ -239,6 +266,15 @@ export function HomeScreen() {
             firstDay={firstDay}
             onSave={(input) => sync.save('measurements', input)}
             onClose={() => setMeasurementsSheet(null)}
+          />
+        ) : null}
+        {workoutDay ? (
+          <WorkoutDaySheet
+            day={workoutDay}
+            workouts={weekWorkouts.filter((workout) => workout.day === workoutDay)}
+            onOpen={(id) => router.push(`/workout/${id}`)}
+            onStart={() => void startWorkout(workoutDay)}
+            onClose={() => setWorkoutDay(null)}
           />
         ) : null}
         {sheet && sheetText ? (
@@ -262,8 +298,21 @@ export function HomeScreen() {
 
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 16, paddingBottom: 96 },
-  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: c.warningSurface },
-  tiles: { flexDirection: 'row', gap: 8 },
-  stopped: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
+  // 24 between groups, 12 within one.
+  content: { padding: 16, gap: 24, paddingBottom: 96 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: c.warningSurface,
+  },
+  body: { fontSize: 15 },
+  panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },
+  panelFoot: { paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  tiles: { flexDirection: 'row', gap: 12 },
+  // As the centred message screens: 24 between the message and Log out.
+  stopped: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
 }));

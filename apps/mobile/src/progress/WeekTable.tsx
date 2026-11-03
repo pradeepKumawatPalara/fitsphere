@@ -49,7 +49,7 @@ export function WeekTable({ rows, targets, unit, thisWeek }: Props) {
           unit={unit}
         />
       ))}
-      <Text style={[styles.small, { color: colors.textFaint }]}>Averages over the days with entries.</Text>
+      <Text style={[styles.small, { color: colors.textMuted }]}>Averages over the days with entries.</Text>
     </Card>
   );
 }
@@ -64,10 +64,19 @@ function Row({ label, cells, unit, highlight = false }: { label: string; cells: 
       style={[styles.row, { borderColor: colors.border }, highlight ? { backgroundColor: colors.surfaceSelected } : null]}
     >
       <Text style={[styles.label, { color: colors.text }, highlight ? styles.strong : null]}>{label}</Text>
-      <Text style={textStyle}>{cells.weight}</Text>
-      <Text style={textStyle}>{cells.kcal}</Text>
-      <Text style={textStyle}>{cells.protein}</Text>
-      <Text style={textStyle}>{cells.steps}</Text>
+      {/* One line each: a value too wide for its column (a large font setting) shrinks, never wraps. */}
+      <Text numberOfLines={1} adjustsFontSizeToFit style={textStyle}>
+        {cells.weight}
+      </Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={textStyle}>
+        {cells.kcal}
+      </Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={textStyle}>
+        {cells.protein}
+      </Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit style={textStyle}>
+        {cells.steps}
+      </Text>
     </View>
   );
 }
@@ -83,11 +92,13 @@ function rowDescription(cells: Cells, unit: BodyWeightUnit): string {
   ].join(', ');
 }
 
+// Fixed-width digits, so each column lines up. At 360dp a value column is about 54dp wide, and
+// "100,000" (the most steps that can be logged) needs about 48dp at 13 in Roboto.
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
   label: { flex: 1.2, fontSize: 13 },
-  value: { flex: 1, fontSize: 13, textAlign: 'right' },
+  value: { flex: 1, fontSize: 13, textAlign: 'right', fontVariant: ['tabular-nums'] },
   heading: { fontSize: 12 },
   strong: { fontWeight: '600' },
-  small: { fontSize: 12 },
+  small: { fontSize: 13 },
 });

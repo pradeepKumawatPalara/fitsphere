@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react-native';
-import { Text } from './components/ui';
+import { Text, TextInput } from './components/ui';
 import { applyServerEntries } from './local/store';
 import { useSettings } from './settings/SettingsProvider';
 import { renderInApp } from './testing/appHarness';
@@ -82,6 +82,44 @@ describe('REQ-ACC-001 System, Light and Dark', () => {
     expect(await screen.findByText('Plain')).toHaveStyle({ color: DARK_COLORS.text });
     expect(screen.getByText('Warning')).toHaveStyle({ color: DARK_COLORS.error });
   });
+
+  it.each([
+    ['light', LIGHT_COLORS],
+    ['dark', DARK_COLORS],
+  ] as ['light' | 'dark', ThemeColors][])(
+    'REQ-ACC-001 in %s, a field’s typed text, placeholder, cursor and selection take the theme’s colours, whatever the caller passes',
+    async (scheme, colors) => {
+      mockPhoneScheme = scheme;
+      await renderInApp(
+        <ThemeProvider>
+          <TextInput
+            accessibilityLabel="Field"
+            placeholder="Hint"
+            placeholderTextColor={colors.error}
+            cursorColor={colors.error}
+            selectionColor={colors.error}
+            selectionHandleColor={colors.error}
+            style={{ color: colors.error }}
+          />
+        </ThemeProvider>,
+      );
+      const field = await screen.findByLabelText('Field');
+
+      expect(field).toHaveStyle({ color: colors.text });
+      expect(field.props).toMatchObject({
+        placeholderTextColor: colors.textMuted,
+        cursorColor: colors.primary,
+        selectionHandleColor: colors.primary,
+        selectionColor: colors.surfaceSelected,
+      });
+      // Readable on screens, sheets and cards, and while selected.
+      for (const ground of [colors.background, colors.surface]) {
+        expect(contrast(colors.text, ground)).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(field.props.placeholderTextColor, ground)).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(contrast(colors.text, field.props.selectionColor)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 });
 
 // WCAG 2 contrast ratio between two sRGB colours written #rgb or #rrggbb.
@@ -110,6 +148,16 @@ describe('REQ-ACC-001 readable in both palettes', () => {
       }
     }
     expect(contrast(colors.onPrimary, colors.primary)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ['light', LIGHT_COLORS],
+    ['dark', DARK_COLORS],
+  ] as [string, ThemeColors][])('the %s palette: field borders are at least 3:1 on screens, cards and chosen chips, and lighter than muted text', (_, colors) => {
+    for (const ground of [colors.background, colors.surface, colors.surfaceSelected]) {
+      expect(contrast(colors.textFaint, ground)).toBeGreaterThanOrEqual(3);
+    }
+    expect(contrast(colors.textFaint, colors.background)).toBeLessThan(contrast(colors.textMuted, colors.background));
   });
 
   it('both palettes have every token', () => {
@@ -141,9 +189,12 @@ describe('REQ-ACC-001 every colour comes from the theme', () => {
   const files = sourceFiles(__dirname);
 
   it('REQ-ACC-001 no colour code outside theme.tsx', () => {
+    // Hex codes, and rgb() or rgba() values such as a backdrop's.
     const found = files
       .filter((file) => relative(__dirname, file) !== 'theme.tsx')
-      .flatMap((file) => (readFileSync(file, 'utf8').match(/['"]#[0-9a-fA-F]{3,8}['"]/g) ?? []).map((code) => `${relative(__dirname, file)}: ${code}`));
+      .flatMap((file) =>
+        (readFileSync(file, 'utf8').match(/['"](#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))['"]/g) ?? []).map((code) => `${relative(__dirname, file)}: ${code}`),
+      );
     expect(found).toEqual([]);
   });
 

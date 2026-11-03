@@ -7,12 +7,12 @@ import {
   type WeighInsPage,
 } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { Button, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { WeighInList, type HistoryRow } from '../components/WeighInList';
-import { Text } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listWeighIns } from '../local/store';
 import { useSync } from '../sync/SyncProvider';
@@ -92,8 +92,12 @@ export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) 
       rows={[...recent, ...older]}
       footer={
         <View style={styles.footer}>
-          {message ? <Text accessibilityRole="alert">{message}</Text> : null}
-          <Button title="Load older" disabled={busy} onPress={() => void loadOlder()} />
+          {message ? (
+            <Text accessibilityRole="alert" style={styles.message}>
+              {message}
+            </Text>
+          ) : null}
+          <TextButton title="Load older" outlined disabled={busy} onPress={() => void loadOlder()} />
         </View>
       }
     />
@@ -102,4 +106,5 @@ export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) 
 
 const styles = StyleSheet.create({
   footer: { padding: 16, gap: 12 },
+  message: { fontSize: 15 },
 });

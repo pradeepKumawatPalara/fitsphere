@@ -34,6 +34,20 @@ describe('REQ-ROLE-007 Your targets', () => {
     }
   });
 
+  it('each target shows a blue pencil at its top right, and the tile says it opens the target to edit', async () => {
+    await renderInApp(<TargetsScreen />);
+
+    const tile = await screen.findByRole('button', { name: 'Daily calories: Not set' });
+    expect(tile).toHaveProp('accessibilityHint', 'Opens it to edit');
+    // In the tile's first row, beside its name; hidden from screen readers, the tile being the button.
+    const pencil = within(tile).getByTestId('edit-calories', { includeHiddenElements: true });
+    expect(pencil).toHaveStyle({ color: LIGHT_COLORS.primary });
+    expect(within(pencil.parent!).getByText('Daily calories')).toBeOnTheScreen();
+    for (const kind of ['protein', 'steps', 'weekly_workouts', 'body_weight']) {
+      expect(screen.getByTestId(`edit-${kind}`, { includeHiddenElements: true })).toBeOnTheScreen();
+    }
+  });
+
   it('REQ-ROLE-007 sets each target, labelled "Set by you", and syncs it with the user as its setter', async () => {
     const { db, server } = await renderInApp(<TargetsScreen />);
 
@@ -140,24 +154,36 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
 describe('REQ-HOME-007 workout tracker', () => {
   it('REQ-HOME-007 counts against the weekly target, with Mon–Sun dots', async () => {
     await render(
-      <WorkoutTracker day="2026-10-28" workoutDays={['2026-10-26']} count={1} target={5} onSetTarget={jest.fn()} />,
+      <WorkoutTracker
+        day="2026-10-28"
+        today="2026-10-28"
+        dayCounts={{ '2026-10-26': 1 }}
+        count={1}
+        target={5}
+        onSetTarget={jest.fn()}
+        onDay={jest.fn()}
+      />,
     );
 
     expect(screen.getByText('1 of 5 · 4 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Mon: workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Tue: no workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Sun: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Monday 26 Oct: 1 workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Tuesday 27 Oct: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Sunday 1 Nov: future')).toBeOnTheScreen();
   });
 
   it('D-23 reads "target reached" once the target is met', async () => {
-    await render(<WorkoutTracker day="2026-10-28" workoutDays={[]} count={5} target={5} onSetTarget={jest.fn()} />);
+    await render(
+      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={5} target={5} onSetTarget={jest.fn()} onDay={jest.fn()} />,
+    );
 
     expect(screen.getByText('5 of 5 · target reached')).toBeOnTheScreen();
   });
 
   it('REQ-ROLE-007 with no target, offers to set one', async () => {
     const onSetTarget = jest.fn();
-    await render(<WorkoutTracker day="2026-10-28" workoutDays={[]} count={0} target={null} onSetTarget={onSetTarget} />);
+    await render(
+      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={0} target={null} onSetTarget={onSetTarget} onDay={jest.fn()} />,
+    );
 
     expect(screen.getByText('0 workouts this week')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Set a weekly workout target' }));

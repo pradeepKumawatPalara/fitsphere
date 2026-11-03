@@ -623,6 +623,8 @@
      green before merge, and the owner merging. The phone checks are batched at the end of the
      slice.
   3. **`npm run dev:phone`** (D-22 answer 5) is step 1.
+- Amended by D-34 answer 9 (2026-11-03): the tabs, first text labels only (the slice plan's MVP
+  default), show an icon over each label.
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: `docs/plans/home-daily-tracking-slice.md`; `CLAUDE.md` current phase;
   `docs/README.md`. The MVP defaults are added to `constraints-and-assumptions.md` in the step
@@ -828,6 +830,8 @@ E-P3; the commit messages and pull requests #41, #42 and #44 use those IDs.*
      between them shows the not-enough-data message (REQ-PRG-001).
   5. **Workflow as D-21:** steps run back to back, one branch and one pull request each, CI green
      before merge, the owner merging; the phone checks are batched at the end.
+- Amended by D-34 answer 6 (2026-11-03): the weight chart's ranges are 1W, 1M, 3M, 6M and All, in
+  calendar months, opening on 1M (REQ-PRG-004).
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: `docs/plans/progress-slice.md`; the Q-043 rows in `mvp-scope.md`,
   `constraints-and-assumptions.md` and REQ-PRG-001 in `requirements.md`; `CLAUDE.md` current phase;
@@ -902,6 +906,117 @@ checksum), and the configuration template was left as it is.*
   `docs/plans/settings-slice.md` (merged, checks deferred); step 7 in ADR-0004; the device checks in
   `docs/quality/test-strategy.md`; `CLAUDE.md` (current phase, "Before real users");
   `docs/README.md`; the final IDs wherever the temporary ones were used.
+
+## D-33 Changes from the owner's review of the refreshed app on a phone (2026-11-02)
+- Status: **Accepted** (owner instruction in chat, 2026-11-02, on the `ui-refresh` branch).
+- Answers:
+  1. **An icon package.** `@expo/vector-icons` (Ionicons) is added for the header's calendar and the
+     meal cards' actions: JavaScript only, its font loaded by `expo-font`, which is already in the
+     development build, so no new build is needed. The tabs keep text labels only (D-23; since D-34
+     answer 9, an icon over each label).
+  2. **Meal actions as icons (REQ-NUT-004, Q-032).** Each logged meal shows Edit, "Save to my meals"
+     and Delete as icons on the meal, in place of the "•••" menu; a saved meal shows Delete. Each
+     icon is named for screen readers ("Edit Lunch: …", "Save Lunch: … to my meals", "Delete
+     Lunch: …") and 44 dp to tap. Delete still asks "Delete this meal?" (or "Delete this saved
+     meal?") first; Delete is red, never filled.
+  3. **Log meal's date is a calendar (REQ-LOG-002, Q-037).** The date chip opens the calendar,
+     titled "Log this meal to", in place of the sheet of Today, Yesterday and the five days before
+     with "Another day…". The limits are unchanged: any past day of the phone's 90 days (D-23), no
+     future day (Q-017). Each day with a meal has a dot, and each day is read out with its status,
+     "Nothing logged" or "N meals logged" (Q-037). The header's calendar is unchanged.
+  4. **Messages that say what is missing or wrong.** No limit changes; only what the app says:
+     - Sign in names an empty field ("Enter your email address.", "Enter your password."); wrong
+       details keep the neutral text (D-11). An address that isn't one: "Enter an email address like
+       name@example.com." A password outside 8 to 72 characters: "Use 8 to 72 characters."
+     - Sign up and Account setup: "Tick "I am 18 or older" to continue." under the waiting button.
+     - Set a new password: a failure other than the same password or no internet says "Something
+       went wrong. Try again later." instead of the password rule.
+     - Measurements: "Enter both waist values to save." under Save while a waist is empty; the notes
+       say "Up to 500 characters."
+     - Enter your own food: under Add, the first thing missing ("Enter the food's name.", "Enter kcal,
+       protein, carbs and fat to add.", or the grams rule); each value its range ("Enter 0 to 900,
+       with at most one decimal.", "Enter 0 to 100, …"); the grams their rule.
+     - Save to my meals: "Enter a name." for an empty name. Log meal: "Add at least one food to save
+       the meal." while there is none.
+     - An exercise: every field's problem at once, each under its field.
+- Unchanged: what each action does, the confirmation steps, the date limits, every validation
+  limit, the invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: REQ-NUT-004 and REQ-LOG-002 in `docs/product/requirements.md`; Q-032 and Q-037 in
+  `docs/product/mvp-scope.md` and `docs/architecture/constraints-and-assumptions.md` (with A-004
+  and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`; the texts
+  in `docs/contracts/error-model.md`.
+
+## D-34 Changes from the owner's second phone review (2026-11-03)
+- Status: **Accepted** (owner instruction in chat, 2026-11-03, on the `ui-refresh` branch).
+- Answers:
+  1. **Home's workout tracker opens a day's workouts (REQ-HOME-007).** Each day up to today can be
+     tapped. One workout opens it; more than one shows the count on the dot and opens a sheet,
+     "Workouts on <day>", to choose which; none opens "No workout on <day>" with "Start a workout on
+     this day", which saves a workout on that day and opens it, as Training's "Start an empty
+     workout" does. Later days are greyed and cannot be tapped. Each day is named for screen
+     readers and is 44 dp to tap. The weekly count still counts each workout (Q-025, unchanged).
+  2. **Training's history shows one card per date (REQ-TRN-004).** Workouts on the same date are
+     shown together: every exercise in one summary, "2 workouts" beside the date. Tapping a card
+     with one workout opens it; with more, the same "Workouts on <day>" sheet asks which. This is
+     display only: each workout is still stored, synced, edited and deleted on its own, with its
+     confirmation unchanged. Older workouts read from the server are grouped the same way and stay
+     view-only.
+  3. **The date strip shows 7 days ending today (REQ-HOME-002).** Today is the last day, so no day
+     ahead is shown. Swiping and the arrows, renamed "Earlier days" and "Later days", move 7 days at
+     a time, back to the 7 holding the first of the phone's 90 days (D-23). This replaces the
+     Monday-to-Sunday weeks of the first swipeable strip (D-33's review, item 9). Home's workout
+     tracker keeps Monday-to-Sunday weeks.
+  4. **The same food added again to a meal (REQ-LOG-007).** Only in Log meal's list, while a meal
+     is built or edited: adding a listed food the meal already has (the same food-list item, dish
+     or barcode, in the same unit) asks "Already in this meal". "Add to existing" puts the amounts
+     together in one item, its values worked out as when its grams are changed; "Keep separate",
+     or closing the sheet, adds it as its own item. When together they would pass 2,000 g or 10
+     portions, only "Keep separate" is offered and the sheet says why. Foods the user entered are
+     never merged, and separately logged meals are not merged. Nothing changes in what is stored
+     or synced: the meal is saved as one record, as before.
+  5. **The calendar browses ahead (REQ-DATE-001, Q-017).** Both calendars, the header's and Log
+     meal's, go forward up to 12 months. Future days, and days before the first of the 90, stay
+     greyed and cannot be picked (Q-017 unchanged); tapping one keeps the calendar open and says
+     "Future dates can't be chosen. Choose today or an earlier day." or "Only the last 90 days are
+     on this phone. Choose a later day." Screen readers hear such a day as "not available".
+  6. **The weight chart's ranges are 1W, 1M, 3M, 6M and All (REQ-PRG-004; amends D-30).** Months
+     are calendar months, back to the same date or that month's last day (31 Mar back one month is
+     28 or 29 Feb). The chart opens on 1M. 1W, 1M and 3M come from the phone; 3M is cut to the 90
+     days the phone holds, so it works offline, which can leave it up to 3 days short of three
+     months. 6M and All read older weigh-ins online as 26W and All did, with the named warning
+     offline ("Showing 6 months of weight needs an internet connection."). "All" is kept. Screen
+     readers hear "1 week", "1 month", "3 months", "6 months" and "All".
+  7. **Nutrition's meal slots fold (REQ-NUT-003; D-33's review, item 10).** A slot with meals is
+     folded at first: its kcal and number of meals ("640 kcal · 3 meals") and its foods on up to two
+     lines (five names, then "+ N more"). The chevron, or the slot's heading, opens it to each
+     meal's card with "Saved 8:15 am" and the Edit, Save to my meals and Delete icons. The time is
+     the meal's stored `recordedAt`, the moment it was last saved (so an edit moves it), shown in
+     India time; no new field is stored. The chevron is named "Show/Hide <slot> meals" and is 44 dp
+     to tap. Which slots are open is kept on the screen only and resets when the day changes.
+  8. **The sign-in screens have no header, and going back returns to Sign in (REQ-ACC-010).** App
+     start, Sign in, Sign up, Forgot password, Reset password, Check email, Verified and Account
+     setup show no "FitSphere" header; their content starts below the status bar. "Create an
+     account" and "Forgot password?" open their screens on top of Sign in, so Android's back
+     gesture returns to it; "I already have an account" and "Back to sign in" (also on Check email)
+     go back to that Sign in rather than open a second one, and open Sign in when nothing is under
+     them, e.g. after a link in an email.
+  9. **The tabs show an icon over each label (REQ-NAV-001; amends D-23).** Ionicons from
+     `@expo/vector-icons`: home, nutrition, barbell and stats-chart, filled for the tab shown and
+     outlined for the others. The tab shown has its icon on a pill (56 by 32, radius 16, the
+     theme's chosen tint) and its label in blue, semibold; the others are muted. Labels are 13 so
+     they fit under the icons. Each tab keeps its name and selected state for screen readers and
+     is the full tab to tap, 64 dp above the navigation bar. Theme tokens only.
+  10. **Home's workout tracker names its week (REQ-HOME-007).** It shows the Mon–Sun week of the
+      date picked on Home (Q-026, unchanged), so its title reads "Workouts this week" for the
+      current week and "Workouts that week" for an earlier one, with the week's dates under it
+      ("Mon 19 Oct – Sun 25 Oct"); with no target the count says the same ("2 workouts that week").
+      As answer 1 gives, a day of an earlier week can be tapped to open or start its workouts.
+- Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
+  invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-NUT-003, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and
+  REQ-PRG-004 and REQ-NAV-001 in `docs/product/requirements.md`; D-23's amendment; Home, Nutrition, Training, Log meal, Progress, Q-017
+  and Q-019 in `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
+  `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
 
 ---
 

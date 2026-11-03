@@ -1,7 +1,7 @@
 # Documentation Index
 
 Owner of this index: Project owner (D-01)
-Last updated: 2026-10-31
+Last updated: 2026-11-03
 
 ## Status definitions
 - **Missing** — not written yet.
@@ -17,7 +17,7 @@ Last updated: 2026-10-31
 | 2 | `docs/README.md` (this file) | Draft | Project owner | Index |
 | 3 | [`product/product-brief.md`](product/product-brief.md) | Draft | Project owner | Problem, users, scope, non-goals |
 | 3a | [`product/glossary.md`](product/glossary.md) | Draft | Project owner | Terms the documents use inconsistently or leave undefined |
-| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-29) and follow-ups |
+| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-34) and follow-ups |
 | 3c | [`product/mvp-scope.md`](product/mvp-scope.md) | Accepted | Project owner | What the MVP includes, what is post-MVP, MVP defaults for open questions (D-18), and the order of the MVP slices. Since D-20 the MVP is the Personal Training User view only |
 | 3d | [`product/backlog.md`](product/backlog.md) | Draft | Project owner | Post-MVP items and deferred edge cases (D-18), including Coach and Head Coach (D-20); release-blocking tasks and the Skeleton checks to run before release (D-22) |
 | 4 | [`product/requirements.md`](product/requirements.md) | Draft | Project owner | Testable REQ IDs |
@@ -40,6 +40,21 @@ Last updated: 2026-10-31
 | 16 | [`plans/training-slice.md`](plans/training-slice.md) | Accepted | Project owner | Slice 4, Training: scope, MVP defaults, steps, checks and progress (D-29). Built in parallel with slice 3 and merged after it on 2026-10-30 (#23, #25, #27, #28); migration 0007 on `fitsphere-dev` and the owner's checks are pending |
 | 17 | [`plans/progress-slice.md`](plans/progress-slice.md) | Accepted | Project owner | Slice 5, Progress: scope, decisions, MVP defaults, steps, checks and progress (D-30). Built beside slice 6; reads existing data only (no server change, no migration). Merged on 2026-10-30 (#41, #42, #44); automated checks pass; the phone checks are deferred to before the release (D-32: backlog S5-01 to S5-07) |
 | 18 | [`plans/settings-slice.md`](plans/settings-slice.md) | Accepted | Project owner | Slice 6, Settings and account: scope, MVP defaults, steps, checks and progress (D-31). Built in parallel with slice 5; merged on 2026-10-30 and 2026-10-31 (#43, #45, #46, #47, #48); automated checks pass. Pending, by the owner: the secret key and migration 0008. The phone checks are deferred to before the release (D-32: backlog S6-01 to S6-09) |
+
+## Rules and policies
+Provided by the owner on 2026-11-02 and kept as given, in
+[`prerequisitesDoc/`](prerequisitesDoc/); not yet reviewed against the documents above.
+- [`ai-usage-policy.md`](prerequisitesDoc/ai-usage-policy.md) — AI usage policy.
+- [`architecture-decision-framework.md`](prerequisitesDoc/architecture-decision-framework.md) —
+  application architecture decision framework.
+- [`code-review-rules.md`](prerequisitesDoc/code-review-rules.md) — code review rules.
+- [`it-standard-rules.md`](prerequisitesDoc/it-standard-rules.md) — standard IT rules: generic code
+  practices.
+- [`release-rules.md`](prerequisitesDoc/release-rules.md) — release rules.
+- [`sdlc-rules.md`](prerequisitesDoc/sdlc-rules.md) — SDLC rules.
+- [`security-privacy-policy.md`](prerequisitesDoc/security-privacy-policy.md) — security and
+  privacy policy.
+- [`testing-rules.md`](prerequisitesDoc/testing-rules.md) — standard IT testing rules.
 
 ## Inputs (read-only)
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.

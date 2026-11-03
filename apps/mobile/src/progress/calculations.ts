@@ -135,31 +135,56 @@ export function weekRows(input: {
   return rows;
 }
 
-export const CHART_RANGES = ['1W', '4W', '12W', '26W', 'All'] as const;
+export const CHART_RANGES = ['1W', '1M', '3M', '6M', 'All'] as const;
 export type ChartRange = (typeof CHART_RANGES)[number];
 
-/** Days each range covers, today included; All has no limit. */
-const RANGE_DAYS: Record<ChartRange, number | null> = { '1W': 7, '4W': 28, '12W': 84, '26W': 182, All: null };
+/** The same date `months` calendar months earlier, or that month's last day when it has no such date (31 Mar → 28 or 29 Feb). */
+export function monthsBefore(day: IstDay, months: number): IstDay {
+  const [year, month, date] = day.split('-').map(Number) as [number, number, number];
+  const lastDate = new Date(Date.UTC(year, month - months, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1 - months, Math.min(date, lastDate))).toISOString().slice(0, 10);
+}
+
+/**
+ * The first day a range covers, today included; All has none (D-34). 1M and 6M go back calendar
+ * months. 3M is cut to the 90 days the phone holds, so it works offline: three months back can be
+ * up to 3 days more than 90.
+ */
+export function rangeStart(range: ChartRange, today: IstDay): IstDay | null {
+  switch (range) {
+    case '1W':
+      return addDays(today, -6);
+    case '1M':
+      return monthsBefore(today, 1);
+    case '3M': {
+      const start = monthsBefore(today, 3);
+      return start < syncWindowStart(today) ? syncWindowStart(today) : start;
+    }
+    case '6M':
+      return monthsBefore(today, 6);
+    case 'All':
+      return null;
+  }
+}
 
 /** Whether a range reaches back past the 90 days the phone holds, so needs older weigh-ins read online (ADR-0007 rule 6). */
 export function rangeNeedsServer(range: ChartRange, today: IstDay, accountStart: IstDay | null): boolean {
-  const days = RANGE_DAYS[range];
-  const reachesBack = days === null || addDays(today, -(days - 1)) < syncWindowStart(today);
+  const start = rangeStart(range, today);
+  const reachesBack = start === null || start < syncWindowStart(today);
   return reachesBack && (accountStart === null || accountStart < syncWindowStart(today));
 }
 
 /** Whether a range is plotted as weekly averages, to keep the chart light on low-end phones. */
 export function rangeIsWeekly(range: ChartRange): boolean {
-  return range === '26W' || range === 'All';
+  return range === '6M' || range === 'All';
 }
 
 /**
  * The weight trend chart's points, oldest first (REQ-PRG-004): every weigh-in in the range for
- * 1W, 4W and 12W; one point per Mon–Sun week (its Monday, the week's average) for 26W and All.
+ * 1W, 1M and 3M; one point per Mon–Sun week (its Monday, the week's average) for 6M and All.
  */
 export function chartPoints(range: ChartRange, weighIns: readonly WeighInPoint[], today: IstDay): WeighInPoint[] {
-  const days = RANGE_DAYS[range];
-  const from = days === null ? null : addDays(today, -(days - 1));
+  const from = rangeStart(range, today);
   const inRange = weighIns
     .filter((entry) => (from === null || entry.day >= from) && entry.day <= today)
     .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));

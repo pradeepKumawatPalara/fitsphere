@@ -12,20 +12,21 @@ import {
   type MealType,
 } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, View } from 'react-native';
+import { useContext, useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
-import { DaySheet } from '../components/DaySheet';
+import { CalendarSheet } from '../components/CalendarSheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
-import { ActionsSheet, SlotPicker } from '../components/MealSheets';
+import { ActionsSheet, DuplicateFoodSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { PortionStepper } from '../components/PortionStepper';
-import { Text, TextInput } from '../components/ui';
+import { Text, TextButton, TextInput, useFieldInputStyle } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
-import { GRAMS_RULE, parseGrams, withGrams, withPortions } from '../mealItems';
+import { addAmount, amountLimit, GRAMS_RULE, parseGrams, sameFood, withGrams, withPortions } from '../mealItems';
 import { describeItems, formatAmount, formatGrams, formatKcal, formatPortions, MEAL_TAG_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
@@ -40,6 +41,9 @@ type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number }
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
+  // The fixed footer clears the phone's navigation bar; none outside the app (tests).
+  const insets = useContext(SafeAreaInsetsContext);
   const local = useLocalDatabase();
   const sync = useSync();
   const router = useRouter();
@@ -57,6 +61,8 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   );
   const [tags, setTags] = useState<MealTag[]>([]);
   const [items, setItems] = useState<MealItem[]>([]);
+  // Foods being added that the meal already has, while "Already in this meal" asks (D-34).
+  const [duplicate, setDuplicate] = useState<MealItem[] | null>(null);
   const [photo, setPhoto] = useState<PhotoDraft>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Record<IstDay, number>>({});
@@ -103,7 +109,28 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   }, [local.state, firstDay, today, sync.version]);
 
   function addItems(added: MealItem[]) {
+    // A listed food already in the meal: ask whether to put the amounts together (D-34).
+    if (added.some((item) => items.some((existing) => sameFood(existing, item)))) setDuplicate(added);
+    else addSeparately(added);
+  }
+
+  function addSeparately(added: MealItem[]) {
     setItems((current) => [...current, ...added].slice(0, MAX_MEAL_ITEMS));
+  }
+
+  /** Each food already in the meal takes the amount added, if it can; the rest are added as they are. */
+  function addToExisting(added: MealItem[]) {
+    setItems((current) => {
+      const next = [...current];
+      const rest: MealItem[] = [];
+      for (const item of added) {
+        const index = next.findIndex((existing) => sameFood(existing, item));
+        const together = index >= 0 ? addAmount(next[index]!, item) : null;
+        if (together) next[index] = together;
+        else rest.push(item);
+      }
+      return [...next, ...rest].slice(0, MAX_MEAL_ITEMS);
+    });
   }
 
   function toggleTag(tag: MealTag) {
@@ -124,7 +151,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     return (
       <View style={styles.missing}>
         <Text accessibilityRole="alert">This meal is no longer on this phone.</Text>
-        <Button title="Back" onPress={() => router.back()} />
+        <TextButton title="Back" outlined onPress={() => router.back()} />
       </View>
     );
   }
@@ -140,28 +167,35 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             {formatDay(day)}
           </Text>
         ) : (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Date: ${formatDay(day)}`} onPress={() => setSheet('day')} style={styles.chip}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Date: ${formatDay(day)}`}
+            onPress={() => setSheet('day')}
+            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+          >
             <Text style={styles.chipText}>{day === today ? `Today, ${formatDay(day)}` : formatDay(day)} ▾</Text>
           </Pressable>
         )}
 
-        <Text accessibilityRole="header" style={styles.heading}>
-          Meal
-        </Text>
-        <SlotPicker value={mealType} onChange={setMealType} />
-        <View style={styles.tags}>
-          {MEAL_TAGS.map((tag) => (
-            <Pressable
-              key={tag}
-              accessibilityRole="checkbox"
-              accessibilityLabel={MEAL_TAG_LABELS[tag]}
-              accessibilityState={{ checked: tags.includes(tag) }}
-              onPress={() => toggleTag(tag)}
-              style={[styles.tag, tags.includes(tag) && styles.tagOn]}
-            >
-              <Text style={tags.includes(tag) ? styles.tagOnText : undefined}>{MEAL_TAG_LABELS[tag]}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.group}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            Meal
+          </Text>
+          <SlotPicker value={mealType} onChange={setMealType} />
+          <View style={styles.tags}>
+            {MEAL_TAGS.map((tag) => (
+              <Pressable
+                key={tag}
+                accessibilityRole="checkbox"
+                accessibilityLabel={MEAL_TAG_LABELS[tag]}
+                accessibilityState={{ checked: tags.includes(tag) }}
+                onPress={() => toggleTag(tag)}
+                style={[styles.tag, tags.includes(tag) && styles.tagOn]}
+              >
+                <Text style={[styles.tagText, tags.includes(tag) && styles.tagOnText]}>{MEAL_TAG_LABELS[tag]}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {/* Typed, spoken and photo reading come with AI meal reading (slice 7; D-26). */}
@@ -170,65 +204,101 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           <Text style={styles.aiText}>For now, add foods by search, barcode, your own food or a saved meal.</Text>
         </View>
 
-        <Text accessibilityRole="header" style={styles.heading}>
-          Add food
-        </Text>
-        <View style={styles.methods}>
-          <Button title="Search foods" onPress={() => setSheet('search')} />
-          <Button title="Scan barcode" onPress={() => setSheet('barcode')} />
-          <Button
-            title="Enter your own food"
-            onPress={() => {
-              setOwnName('');
-              setSheet('own');
-            }}
-          />
-          <Button title="Saved meals" onPress={() => setSheet('saved')} />
+        <View style={styles.group}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            Add food
+          </Text>
+          <View style={styles.methods}>
+            <MethodTile title="Search foods" onPress={() => setSheet('search')} />
+            <MethodTile title="Scan barcode" onPress={() => setSheet('barcode')} />
+            <MethodTile
+              title="Enter your own food"
+              onPress={() => {
+                setOwnName('');
+                setSheet('own');
+              }}
+            />
+            <MethodTile title="Saved meals" onPress={() => setSheet('saved')} />
+          </View>
+          <Text style={styles.tips}>
+            Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.
+          </Text>
         </View>
-        <Text style={styles.tips}>
-          Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.
-        </Text>
 
         <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />
 
-        <Text accessibilityRole="header" style={styles.heading}>
-          Review
-        </Text>
-        {items.length === 0 ? <Text style={styles.hint}>No foods yet.</Text> : null}
-        {items.map((item, index) => (
-          <View key={index} style={styles.item}>
-            <View style={styles.itemText}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text accessibilityLabel={`${item.name}: ${formatAmount(item.amount)}, ${formatKcal(item.kcal)}, ${formatGrams(item.proteinG)} protein`}>
-                {formatAmount(item.amount)} · {formatKcal(item.kcal)} · {formatGrams(item.proteinG)} protein
-                {item.estimated ? ' · estimated' : ''}
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Change ${item.name}`}
-              onPress={() => {
-                setGramsText(item.amount.unit === 'g' ? String(item.amount.value) : '');
-                setPortions(item.amount.unit === 'portion' ? item.amount.value : 1);
-                setSheet({ change: index });
-              }}
-              style={styles.itemAction}
-            >
-              <Text>•••</Text>
-            </Pressable>
+        <View style={styles.group}>
+          <Text accessibilityRole="header" style={styles.heading}>
+            Review
+          </Text>
+          <View style={styles.review}>
+            {items.length === 0 ? <Text style={styles.empty}>No foods yet.</Text> : null}
+            {items.map((item, index) => (
+              <View key={index} style={[styles.item, index > 0 && styles.itemRuled]}>
+                <View style={styles.itemText}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text
+                    accessibilityLabel={`${item.name}: ${formatAmount(item.amount)}, ${formatKcal(item.kcal)}, ${formatGrams(item.proteinG)} protein`}
+                    style={styles.itemDetail}
+                  >
+                    {formatAmount(item.amount)} · {formatKcal(item.kcal)} · {formatGrams(item.proteinG)} protein
+                    {item.estimated ? ' · estimated' : ''}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Change ${item.name}`}
+                  onPress={() => {
+                    setGramsText(item.amount.unit === 'g' ? String(item.amount.value) : '');
+                    setPortions(item.amount.unit === 'portion' ? item.amount.value : 1);
+                    setSheet({ change: index });
+                  }}
+                  style={styles.itemAction}
+                >
+                  <Text style={styles.itemActionText}>•••</Text>
+                </Pressable>
+              </View>
+            ))}
           </View>
-        ))}
+        </View>
+      </ScrollView>
+
+      {/* Fixed below the list, so the total and Save stay in reach however many foods are added. Every
+          text field here is in a sheet, which opens above it. */}
+      <View style={[styles.footer, { paddingBottom: 12 + (insets?.bottom ?? 0) }]}>
         {items.length > 0 ? (
           <Text accessibilityLabel={`Total: ${formatKcal(totals.kcal)}, ${formatGrams(totals.proteinG)} protein`} style={styles.total}>
             Total: {formatKcal(totals.kcal)} · {formatGrams(totals.proteinG)} protein
           </Text>
         ) : null}
-        <Button title="Save meal" disabled={!mealType || items.length === 0 || busy} onPress={() => void save()} />
+        <TextButton title="Save meal" filled disabled={!mealType || items.length === 0 || busy} onPress={() => void save()} />
         {!mealType && items.length > 0 ? <Text style={styles.hint}>Choose the meal: Breakfast, Lunch, Snack or Dinner.</Text> : null}
-      </ScrollView>
+        {items.length === 0 ? <Text style={styles.hint}>Add at least one food to save the meal.</Text> : null}
+      </View>
 
       {sheet === 'day' ? (
-        <DaySheet today={today} firstDay={firstDay} selected={day} counts={counts} onSelect={setDay} onClose={() => setSheet(null)} />
+        <CalendarSheet
+          title="Log this meal to"
+          today={today}
+          firstDay={firstDay}
+          selected={day}
+          counts={counts}
+          onSelect={setDay}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {duplicate ? (
+        <DuplicateFoodSheet
+          {...duplicatePrompt(duplicate, items)}
+          onAdd={() => {
+            addToExisting(duplicate);
+            setDuplicate(null);
+          }}
+          onKeep={() => {
+            addSeparately(duplicate);
+            setDuplicate(null);
+          }}
+        />
       ) : null}
       {sheet === 'search' ? <FoodSearchSheet onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
       {sheet === 'barcode' ? (
@@ -281,6 +351,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
               : []),
             {
               label: 'Remove',
+              destructive: true,
               onPress: () => setItems((current) => current.filter((_, index) => index !== (sheet as { change: number }).change)),
             },
           ]}
@@ -293,9 +364,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                 value={gramsText}
                 onChangeText={setGramsText}
                 keyboardType="number-pad"
-                style={styles.input}
+                style={[fieldInput, styles.input]}
               />
-              <Text>g</Text>
+              <Text style={styles.unit}>g</Text>
               {newGrams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
             </View>
           ) : (
@@ -307,30 +378,93 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   );
 }
 
+/** One way to add food, as a tile like Home's quick tiles. */
+/** "A", "A and B", "A, B and C". */
+function list(names: readonly string[]): string {
+  return names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+/** What "Already in this meal" says about foods added again, and whether any can take the amount (D-34). */
+function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[]): { message: string; canAdd: boolean } {
+  const matches = added.flatMap((item) => {
+    const existing = items.find((current) => sameFood(current, item));
+    return existing ? [{ item, existing, together: addAmount(existing, item) }] : [];
+  });
+  if (matches.length === 1) {
+    const { item, existing, together } = matches[0]!;
+    const already = `${item.name} is already in this meal (${formatAmount(existing.amount)}).`;
+    return together
+      ? { message: `${already} Add ${formatAmount(item.amount)} to it, for ${formatAmount(together.amount)} in all?`, canAdd: true }
+      : { message: `${already} Together that would be over ${amountLimit(existing)}, the most for one food, so it's added on its own.`, canAdd: false };
+  }
+  const names = list(matches.map((match) => match.item.name));
+  const over = matches.filter((match) => !match.together).map((match) => match.item.name);
+  if (over.length === matches.length) {
+    return {
+      message: `${matches.length} foods are already in this meal: ${names}. Together each would be over the most for one food, so they're added on their own.`,
+      canAdd: false,
+    };
+  }
+  const passing = over.length === 0 ? '' : ` ${list(over)} would be over the most for one food, so ${over.length === 1 ? "it's" : "they're"} added on ${over.length === 1 ? 'its' : 'their'} own.`;
+  return { message: `${matches.length} foods are already in this meal: ${names}. Add the amounts to them?${passing}`, canAdd: true };
+}
+
+function MethodTile({ title, onPress }: { title: string; onPress(): void }) {
+  const styles = useStyles();
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.method, pressed && styles.pressed]}>
+      <Text style={styles.methodText}>{title}</Text>
+    </Pressable>
+  );
+}
+
+// Spacing as on Home: 24 between groups, 12 within one.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 12, paddingBottom: 48 },
+  content: { padding: 16, gap: 24, paddingBottom: 24 },
   missing: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
-  date: { fontSize: 16, fontWeight: '600' },
-  chip: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, backgroundColor: c.surfaceSelected },
-  chipText: { fontWeight: '600', color: c.primaryStrong },
-  heading: { fontSize: 16, fontWeight: '600' },
-  tags: { flexDirection: 'row', gap: 8 },
-  tag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 1, borderColor: c.textFaint },
-  tagOn: { backgroundColor: c.neutral, borderColor: c.neutral },
-  tagOnText: { color: c.onPrimary },
-  ai: { padding: 12, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: c.neutralLight, gap: 4 },
-  aiTitle: { fontWeight: '600', color: c.neutral },
-  aiText: { color: c.textMuted },
-  methods: { gap: 8 },
+  group: { gap: 12 },
+  date: { fontSize: 15, fontWeight: '600' },
+  chip: {
+    alignSelf: 'flex-start',
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: c.surfaceSelected,
+  },
+  chipText: { fontSize: 15, fontWeight: '600', color: c.primaryStrong },
+  heading: { fontSize: 15, fontWeight: '600' },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tag: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 16, borderWidth: 1.5, borderColor: c.textFaint },
+  // A tag is ticked, not chosen: lighter than a chosen meal.
+  tagOn: { backgroundColor: c.surfaceSelected, borderColor: c.primaryStrong },
+  tagText: { fontSize: 13, color: c.textMuted },
+  tagOnText: { color: c.primaryStrong, fontWeight: '600' },
+  ai: { padding: 14, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: c.neutralLight, gap: 4 },
+  aiTitle: { fontSize: 15, fontWeight: '600', color: c.neutral },
+  aiText: { fontSize: 13, color: c.textMuted },
+  methods: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  method: { flexGrow: 1, flexBasis: '40%', minHeight: 64, justifyContent: 'center', padding: 14, borderRadius: 12, backgroundColor: c.surface },
+  methodText: { fontSize: 15, fontWeight: '600', color: c.primary },
+  pressed: { opacity: 0.6 },
   tips: { color: c.textMuted, fontSize: 13 },
-  hint: { color: c.textMuted },
-  item: { flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8, backgroundColor: c.surface, gap: 8 },
+  hint: { fontSize: 13, color: c.textMuted },
+  // The meal's foods, ruled like Home's measurements.
+  review: { paddingHorizontal: 16, paddingVertical: 4, borderRadius: 16, backgroundColor: c.surface },
+  empty: { paddingVertical: 12, color: c.textMuted },
+  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 8 },
+  itemRuled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   itemText: { flex: 1, gap: 2 },
-  itemName: { fontWeight: '600' },
-  itemAction: { paddingHorizontal: 8, paddingVertical: 4 },
-  total: { fontWeight: '600' },
+  itemName: { fontSize: 15, fontWeight: '600' },
+  itemDetail: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  itemAction: { width: 44, height: 44, marginRight: -10, alignItems: 'center', justifyContent: 'center' },
+  itemActionText: { color: c.textMuted, fontWeight: '700' },
+  footer: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border, backgroundColor: c.background },
+  total: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
   changeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  input: { flex: 1, borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  problem: { color: c.error },
+  // The change-grams field in its sheet, as Field, beside its unit.
+  input: { flex: 1, fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 15, color: c.textMuted },
+  problem: { fontSize: 13, color: c.error },
 }));

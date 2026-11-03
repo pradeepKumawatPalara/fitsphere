@@ -148,16 +148,17 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
 ### Nutrition and Home with meals (app component tests)
 - Consumed: dashes with nothing logged; the day's totals; meals in their slots with tag labels;
   a slot's "+" opens Log meal for that slot and date.
-- The ••• menu: Delete asks first, then removes the meal and syncs the deletion; Cancel keeps
-  it; Edit opens Log meal; "Save to my meals" stores a named copy shown in Saved.
+- A meal's icons (D-33), in its opened slot (D-34): Delete asks first, then removes the meal and
+  syncs the deletion; Cancel keeps it; Edit opens Log meal; "Save to my meals" stores a named copy
+  shown in Saved.
 - Saved: the empty state; re-logging to the selected date in the saved slot or a changed one;
   Delete after confirming. Diet plan: the empty state.
 - Home: the cards use the day's meals; the status box (Q-019); "By meal" (Q-023); "+" on the
   selected date (Q-011); a rejected meal's text and Edit.
 
 ### Log meal (app component tests)
-- The date and slot it opens with (Q-011); the day sheet's statuses (Q-037) and "Another day…";
-  a future date falls back to today.
+- The date and slot it opens with (Q-011); the calendar's day statuses (Q-037), any past day of the
+  90 and no future day (D-33); a future date falls back to today.
 - Offline search with the IFCT acknowledgement; estimated oils; grams refused outside 1–2,000;
   the needs-internet message before the list is downloaded; your own food; adding a saved
   meal's foods.
@@ -230,7 +231,8 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   ranges read online, and the phone winning over the server for a day.
 - Screen: each card with data and empty; the Target row; "Add first" and Edit in Measurements; with
   the body-weight unit set to lb, every weight in lb and no "kg" anywhere on the screen.
-- Chart: the phone's ranges with no server call; 26W and All online, read once, across pages; the
+- Chart: the phone's ranges (1W, 1M, 3M) with no server call, calendar months and 3M cut to the
+  phone's 90 days (D-34); 6M and All online, read once, across pages; the
   named warning offline and the try-later text on a failure; an account newer than 90 days works
   offline.
 

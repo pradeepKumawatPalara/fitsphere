@@ -1,7 +1,8 @@
 import { AI_CONSENT_TEXT, type BodyWeightUnit, type ThemePreference } from '@fitsphere/shared';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Button, Pressable, ScrollView, Switch, View } from 'react-native';
+import { Button, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { readAiConsent, saveAiConsent, type AiConsent } from '../api/account';
 import { checkApiHealth } from '../api/health';
 import { useAuth } from '../auth/AuthProvider';
@@ -9,7 +10,8 @@ import { ApiStatus } from '../components/ApiStatus';
 import { ExpiredTokenTest } from '../components/ExpiredTokenTest';
 import { LocalDatabaseCheck } from '../components/LocalDatabaseCheck';
 import { TodayIst } from '../components/TodayIst';
-import { Text } from '../components/ui';
+import { Text, TextButton, useChoiceStyles } from '../components/ui';
+import { nameFromEmail } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, setMeta } from '../local/store';
 import { useSettings } from '../settings/SettingsProvider';
@@ -53,37 +55,53 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
       </Section>
 
       <Section title="Units">
-        <Text>Body weight</Text>
-        <Choice
-          label="Body weight unit"
-          options={UNITS}
-          value={settings.body_weight_unit}
-          onChange={(value) => void saveSetting('body_weight_unit', value)}
-        />
-        <Text>Lifting weight</Text>
-        <Choice
-          label="Lifting weight unit"
-          options={UNITS}
-          value={settings.lifting_weight_unit}
-          onChange={(value) => void saveSetting('lifting_weight_unit', value)}
-        />
+        <View style={styles.unitRow}>
+          <Text style={styles.body}>Body weight</Text>
+          <Choice
+            label="Body weight unit"
+            options={UNITS}
+            value={settings.body_weight_unit}
+            onChange={(value) => void saveSetting('body_weight_unit', value)}
+          />
+        </View>
+        <View style={styles.unitRow}>
+          <Text style={styles.body}>Lifting weight</Text>
+          <Choice
+            label="Lifting weight unit"
+            options={UNITS}
+            value={settings.lifting_weight_unit}
+            onChange={(value) => void saveSetting('lifting_weight_unit', value)}
+          />
+        </View>
       </Section>
 
-      <Section title="AI meal reading">
-        <AiConsentSwitch />
-      </Section>
+      {/* Its own heading: the switch's row, so "AI meal reading" shows once. */}
+      <AiConsentSwitch />
 
       <Section title="Country and time zone">
-        <Text>India · Kolkata</Text>
+        <Text style={styles.body}>India · Kolkata</Text>
         <Text style={styles.help}>FitSphere counts your days in India time.</Text>
       </Section>
 
+      {/* Who is signed in and where to go, in one panel; then, set apart, Log out and Delete account:
+          destructive, so red, never filled, and never more prominent than the rows. */}
       <Section title="Account">
-        <Text>Signed in as {email}</Text>
-        <Button title="Your targets" onPress={() => router.push('/targets')} />
-        <Button title="Change password" onPress={() => router.push('/change-password')} />
-        <LogOut />
-        <Button title="Delete account" onPress={() => router.push('/delete-account')} />
+        <View style={styles.rows}>
+          <View style={styles.who}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{nameFromEmail(email).charAt(0).toUpperCase() || '?'}</Text>
+            </View>
+            <Text style={styles.whoText}>Signed in as {email}</Text>
+          </View>
+          <View style={styles.rule} />
+          <LinkRow title="Your targets" onPress={() => router.push('/targets')} />
+          <View style={styles.rule} />
+          <LinkRow title="Change password" onPress={() => router.push('/change-password')} />
+        </View>
+        <View style={styles.leave}>
+          <LogOut />
+          <TextButton title="Delete account" destructive wide onPress={() => router.push('/delete-account')} />
+        </View>
       </Section>
 
       {showDevTools ? (
@@ -107,11 +125,29 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   const styles = useStyles();
   return (
     <View style={styles.section}>
-      <Text accessibilityRole="header" style={styles.heading}>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>
         {title}
       </Text>
       {children}
     </View>
+  );
+}
+
+/** A row in the Account panel that opens another screen. */
+function LinkRow({ title, onPress }: { title: string; onPress(): void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  // The chevron only shows the row leads on; the row's name stays its title.
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
+    >
+      <Text style={styles.linkRowText}>{title}</Text>
+      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} importantForAccessibility="no" accessibilityElementsHidden />
+    </Pressable>
   );
 }
 
@@ -128,6 +164,7 @@ function Choice<T extends string>({
   onChange(value: T): void;
 }) {
   const styles = useStyles();
+  const pill = useChoiceStyles();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.choices}>
       {options.map((option) => {
@@ -139,9 +176,9 @@ function Choice<T extends string>({
             accessibilityLabel={`${label}: ${option.label}`}
             accessibilityState={{ checked: chosen }}
             onPress={() => onChange(option.value)}
-            style={[styles.choice, chosen && styles.chosen]}
+            style={({ pressed }) => [pill.choice, chosen && pill.chosen, pressed && pill.pressed]}
           >
-            <Text style={chosen ? styles.chosenText : undefined}>{option.label}</Text>
+            <Text style={[pill.choiceText, chosen && pill.chosenText]}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -210,7 +247,9 @@ function AiConsentSwitch() {
   return (
     <View style={styles.consent}>
       <View style={styles.switchRow}>
-        <Text style={styles.switchLabel}>AI meal reading</Text>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          AI meal reading
+        </Text>
         <Switch
           accessibilityLabel="AI meal reading"
           value={on}
@@ -231,18 +270,31 @@ function AiConsentSwitch() {
   );
 }
 
+// Spacing as on Home: 24 between sections, 12 within one.
 const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 24 },
-  section: { gap: 10 },
+  section: { gap: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: '600' },
+  // The Development section's heading, unchanged.
   heading: { fontSize: 17, fontWeight: '600' },
-  help: { color: c.textMuted },
+  body: { fontSize: 15 },
+  help: { fontSize: 13, color: c.textMuted },
+  unitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  // Choice pills, as the meal choice on Log meal: the chosen one filled.
   choices: { flexDirection: 'row', gap: 8 },
-  choice: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.border },
-  chosen: { backgroundColor: c.primary, borderColor: c.primary },
-  chosenText: { color: c.onPrimary, fontWeight: '600' },
+  rows: { borderRadius: 12, backgroundColor: c.surface, overflow: 'hidden' },
+  who: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  badge: { width: 36, height: 36, borderRadius: 18, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
+  whoText: { flexShrink: 1, fontSize: 15 },
+  rule: { height: StyleSheet.hairlineWidth, marginHorizontal: 16, backgroundColor: c.border },
+  linkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
+  // Set apart from the panel: Log out full width and outlined, Delete account under it as red text.
+  leave: { marginTop: 12, gap: 4 },
+  linkRowText: { fontSize: 15, fontWeight: '600', color: c.primary },
+  pressed: { opacity: 0.6 },
   consent: { gap: 8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  switchLabel: { fontSize: 16 },
-  problem: { color: c.error },
+  problem: { fontSize: 13, color: c.error },
   dev: { marginTop: 32, gap: 24, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 16 },
 }));

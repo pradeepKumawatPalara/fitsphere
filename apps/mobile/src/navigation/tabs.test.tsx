@@ -1,11 +1,12 @@
 import { Stack } from 'expo-router';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import type { ReactNode } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import TabsLayout from '../app/(tabs)/_layout';
 import { AuthProvider } from '../auth/AuthProvider';
 import { ComingLaterScreen } from '../screens/ComingLaterScreen';
 import { deps, fakeAuthClient, fakeApi, fakeSession } from '../testing/fakes';
+import { LIGHT_COLORS } from '../theme';
 
 // REQ-NAV-001 and REQ-NAV-002 with the real expo-router navigators. The screens behind the tabs
 // are stand-ins; Home's own behaviour is tested in screens/home.test.tsx.
@@ -45,6 +46,34 @@ describe('REQ-NAV-001 bottom navigation', () => {
     }
     await fireEvent.press(screen.getByText('Training'));
     expect(screen.getByText('Coming in a later update.')).toBeOnTheScreen();
+  });
+});
+
+/**
+ * The icon a tab shows: React Navigation draws each tab's icon twice, as focused and as not, and
+ * shows one of them (opacity 1).
+ */
+function shownIcon(tab: string) {
+  const shown = screen
+    .getAllByTestId(`tab-icon-${tab}`)
+    .filter((icon) => StyleSheet.flatten(icon.parent?.props.style)?.opacity === 1);
+  expect(shown).toHaveLength(1);
+  return shown[0]!;
+}
+
+describe('D-34 the tab bar: an icon over each label', () => {
+  it('the tab shown has its icon on a tinted pill, and the pill moves with the tab chosen', async () => {
+    await renderTabs();
+    await screen.findByText('Home content');
+    const tinted = { backgroundColor: LIGHT_COLORS.surfaceSelected };
+
+    expect(shownIcon('home')).toHaveStyle(tinted);
+    for (const tab of ['nutrition', 'training', 'progress']) expect(shownIcon(tab)).not.toHaveStyle(tinted);
+
+    await fireEvent.press(screen.getByText('Progress'));
+
+    expect(shownIcon('progress')).toHaveStyle(tinted);
+    expect(shownIcon('home')).not.toHaveStyle(tinted);
   });
 });
 

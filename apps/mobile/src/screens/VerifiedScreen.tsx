@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Button } from 'react-native';
-import { Screen, Text } from '../components/ui';
+import { StyleSheet } from 'react-native';
+import { Screen, Text, TextButton } from '../components/ui';
 
 // Opened by the link in the verify email (fitsphere://verified). The link confirms the address;
 // the app then asks the user to sign in (api-conventions, "Sign-in flows"). Supabase adds
@@ -10,12 +10,16 @@ export function VerifiedScreen() {
   const { error } = useLocalSearchParams<{ error?: string }>();
   return (
     <Screen>
-      <Text>
+      <Text style={styles.body}>
         {error
           ? 'This link has expired or was already used. Sign in, or sign up again for a new link.'
           : 'Your email is verified. Sign in to continue.'}
       </Text>
-      <Button title="Sign in" onPress={() => router.replace('/sign-in')} />
+      <TextButton title="Sign in" filled onPress={() => router.replace('/sign-in')} />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  body: { fontSize: 15 },
+});

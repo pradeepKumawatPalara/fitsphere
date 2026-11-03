@@ -1,13 +1,14 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { addDays, type IstDay, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Button, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
 import { LogMealButton } from '../components/LogMealButton';
 import { MealCard } from '../components/MealCard';
-import { ActionsSheet, ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
+import { ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
-import { Text } from '../components/ui';
+import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -18,10 +19,10 @@ import {
   type LocalMeal,
   type LocalSavedMeal,
 } from '../local/store';
-import { describeItems, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
+import { describeItems, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 
 type Tab = 'consumed' | 'plan' | 'saved';
 const TABS: { tab: Tab; label: string }[] = [
@@ -31,10 +32,8 @@ const TABS: { tab: Tab; label: string }[] = [
 ];
 
 type Sheet =
-  | { kind: 'mealMenu'; meal: LocalMeal }
   | { kind: 'deleteMeal'; meal: LocalMeal }
   | { kind: 'saveMeal'; meal: LocalMeal }
-  | { kind: 'savedMenu'; saved: LocalSavedMeal }
   | { kind: 'deleteSaved'; saved: LocalSavedMeal }
   | { kind: 'relog'; saved: LocalSavedMeal };
 
@@ -44,13 +43,18 @@ function asTab(value: string | undefined): Tab | null {
 
 // Nutrition (REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001/002): the selected day's meals by slot,
 // the Diet plan empty state (D-20) and the saved meals. Shares the selected date with Home.
+/** Food names shown in a closed slot, before "+ N more". */
+const FOODS_SHOWN = 5;
+
 export function NutritionScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
+  const pill = useChoiceStyles();
   const local = useLocalDatabase();
   const sync = useSync();
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string }>();
-  const { today, selected, firstDay, weekStart, select, showWeek } = useSelectedDay();
+  const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
   const [tab, setTab] = useState<Tab>(asTab(params.tab) ?? 'consumed');
   // "By meal" on Home opens Consumed (Q-023), even when another tab was open here.
   const [paramTab, setParamTab] = useState(params.tab);
@@ -64,6 +68,22 @@ export function NutritionScreen() {
   const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // The slots opened to show each meal (D-34): all closed again when the day changes.
+  const [open, setOpen] = useState<ReadonlySet<MealType>>(new Set());
+  const [openDay, setOpenDay] = useState(selected);
+  if (openDay !== selected) {
+    setOpenDay(selected);
+    setOpen(new Set());
+  }
+
+  function toggle(slot: MealType) {
+    setOpen((current) => {
+      const next = new Set(current);
+      if (next.has(slot)) next.delete(slot);
+      else next.add(slot);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -72,7 +92,7 @@ export function NutritionScreen() {
     void Promise.all([
       listMealsOfDay(db, selected),
       dayNutrition(db, selected),
-      mealCounts(db, weekStart, addDays(weekStart, 6)),
+      mealCounts(db, stripStart, addDays(stripStart, 6)),
       listSavedMeals(db),
     ]).then(([dayMeals, nutrition, counts, savedMeals]) => {
       if (!active) return;
@@ -84,7 +104,7 @@ export function NutritionScreen() {
     return () => {
       active = false;
     };
-  }, [local.state, selected, weekStart, sync.version]);
+  }, [local.state, selected, stripStart, sync.version]);
 
   function logMeal(slot?: MealType) {
     router.push({ pathname: '/log-meal', params: { day: selected, ...(slot ? { slot } : {}) } });
@@ -97,15 +117,15 @@ export function NutritionScreen() {
           today={today}
           firstDay={firstDay}
           selected={selected}
-          weekStart={weekStart}
+          start={stripStart}
           mealDays={mealDays}
           onSelect={select}
-          onWeekChange={showWeek}
+          onShow={showDays}
         />
         {selected !== today ? (
           <View style={styles.banner}>
-            <Text>Showing {formatDay(selected)}</Text>
-            <Button title="Back to today" onPress={() => select(today)} />
+            <Text style={styles.body}>Showing {formatDay(selected)}</Text>
+            <TextButton title="Back to today" onPress={() => select(today)} />
           </View>
         ) : null}
         <View accessibilityRole="tablist" style={styles.tabs}>
@@ -116,9 +136,11 @@ export function NutritionScreen() {
               accessibilityLabel={entry.label}
               accessibilityState={{ selected: tab === entry.tab }}
               onPress={() => setTab(entry.tab)}
-              style={[styles.tab, tab === entry.tab && styles.tabChosen]}
+              style={({ pressed }) => [pill.choice, styles.tab, tab === entry.tab && pill.chosen, pressed && pill.pressed]}
             >
-              <Text style={tab === entry.tab ? styles.tabChosenText : undefined}>{entry.label}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={[pill.choiceText, tab === entry.tab && pill.chosenText]}>
+                {entry.label}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -127,35 +149,73 @@ export function NutritionScreen() {
           <>
             <EatenSummary totals={totals} />
             {MEAL_TYPE_ORDER.map((slot) => {
+              const label = MEAL_TYPE_LABELS[slot];
               const slotMeals = meals.filter((meal) => meal.mealType === slot);
+              const isOpen = open.has(slot);
+              const kcal = slotMeals.reduce((sum, meal) => sum + meal.kcal, 0);
+              const names = [...new Set(slotMeals.flatMap((meal) => meal.items.map((item) => item.name)))];
+              const foods =
+                names.length > FOODS_SHOWN ? `${names.slice(0, FOODS_SHOWN).join(', ')} + ${names.length - FOODS_SHOWN} more` : names.join(', ');
+              // A slot with meals opens and closes from its heading or its chevron (D-34); screen
+              // readers get the chevron, so they don't hear two controls that do the same.
               return (
                 <View key={slot} style={styles.slot}>
                   <View style={styles.slotHeader}>
-                    <Text accessibilityRole="header" style={styles.slotTitle}>
-                      {MEAL_TYPE_LABELS[slot]}
-                    </Text>
+                    <Pressable accessible={false} disabled={slotMeals.length === 0} onPress={() => toggle(slot)} style={styles.slotHeading}>
+                      <Text accessibilityRole="header" style={styles.slotTitle}>
+                        {label}
+                      </Text>
+                      {slotMeals.length > 0 ? (
+                        <Text style={styles.slotTotal}>
+                          {formatKcal(kcal)} · {slotMeals.length} {slotMeals.length === 1 ? 'meal' : 'meals'}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                    {/* The chevron sits before the "+", next to what it opens. */}
+                    {slotMeals.length > 0 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isOpen ? 'Hide' : 'Show'} ${label} meals`}
+                        accessibilityState={{ expanded: isOpen }}
+                        onPress={() => toggle(slot)}
+                        style={({ pressed }) => [styles.chevron, pressed && styles.pressed]}
+                      >
+                        <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={22} color={colors.primary} />
+                      </Pressable>
+                    ) : null}
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Add to ${MEAL_TYPE_LABELS[slot]}`}
+                      accessibilityLabel={`Add to ${label}`}
                       onPress={() => logMeal(slot)}
-                      style={styles.slotAdd}
+                      hitSlop={4}
+                      style={({ pressed }) => [styles.slotAdd, pressed && styles.pressed]}
                     >
                       <Text style={styles.slotAddText}>+</Text>
                     </Pressable>
                   </View>
                   {slotMeals.length === 0 ? <Text style={styles.hint}>Tap to add what you ate</Text> : null}
-                  {slotMeals.map((meal) => (
-                    <MealCard
-                      key={meal.id}
-                      title={`${MEAL_TYPE_LABELS[slot]}: ${describeItems(meal.items)}`}
-                      items={meal.items}
-                      tags={meal.tags}
-                      totals={meal}
-                      syncState={meal.syncState}
-                      photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
-                      onMenu={() => setSheet({ kind: 'mealMenu', meal })}
-                    />
-                  ))}
+                  {slotMeals.length > 0 && !isOpen ? (
+                    <Text numberOfLines={2} style={styles.foods}>
+                      {foods}
+                    </Text>
+                  ) : null}
+                  {isOpen
+                    ? slotMeals.map((meal) => (
+                        <MealCard
+                          key={meal.id}
+                          title={`${label}: ${describeItems(meal.items)}`}
+                          items={meal.items}
+                          tags={meal.tags}
+                          totals={meal}
+                          syncState={meal.syncState}
+                          photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
+                          savedAt={meal.recordedAt}
+                          onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
+                          onSave={() => setSheet({ kind: 'saveMeal', meal })}
+                          onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
+                        />
+                      ))
+                    : null}
                 </View>
               );
             })}
@@ -167,7 +227,7 @@ export function NutritionScreen() {
         {tab === 'saved' ? (
           saved.length === 0 ? (
             <Text style={styles.empty}>
-              No saved meals yet. In Consumed, open a meal&apos;s ••• menu and choose &quot;Save to my meals&quot;.
+              No saved meals yet. In Consumed, tap the bookmark on a meal to save it to your meals.
             </Text>
           ) : (
             saved.map((entry) => (
@@ -179,7 +239,7 @@ export function NutritionScreen() {
                 totals={entry}
                 syncState={entry.syncState}
                 onPress={() => setSheet({ kind: 'relog', saved: entry })}
-                onMenu={() => setSheet({ kind: 'savedMenu', saved: entry })}
+                onDelete={() => setSheet({ kind: 'deleteSaved', saved: entry })}
               />
             ))
           )
@@ -187,17 +247,6 @@ export function NutritionScreen() {
       </ScrollView>
       <LogMealButton day={selected} />
 
-      {sheet?.kind === 'mealMenu' ? (
-        <ActionsSheet
-          title={describeItems(sheet.meal.items)}
-          actions={[
-            { label: 'Edit', onPress: () => router.push({ pathname: '/log-meal', params: { mealId: sheet.meal.id } }) },
-            { label: 'Delete', onPress: () => setSheet({ kind: 'deleteMeal', meal: sheet.meal }) },
-            { label: 'Save to my meals', onPress: () => setSheet({ kind: 'saveMeal', meal: sheet.meal }) },
-          ]}
-          onClose={() => setSheet((current) => (current?.kind === 'mealMenu' ? null : current))}
-        />
-      ) : null}
       {sheet?.kind === 'deleteMeal' ? (
         <ConfirmSheet
           title="Delete this meal?"
@@ -219,13 +268,6 @@ export function NutritionScreen() {
             })
           }
           onClose={() => setSheet(null)}
-        />
-      ) : null}
-      {sheet?.kind === 'savedMenu' ? (
-        <ActionsSheet
-          title={sheet.saved.name}
-          actions={[{ label: 'Delete', onPress: () => setSheet({ kind: 'deleteSaved', saved: sheet.saved }) }]}
-          onClose={() => setSheet((current) => (current?.kind === 'savedMenu' ? null : current))}
         />
       ) : null}
       {sheet?.kind === 'deleteSaved' ? (
@@ -257,19 +299,37 @@ export function NutritionScreen() {
   );
 }
 
+// As Home: 24 between groups, 12 within one, the banner the same. The tabs are choice pills (the
+// chosen one filled); each meal slot is a panel, its + outlined so the filled Log meal button stays
+// the screen's main action.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 16, paddingBottom: 96 },
-  banner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 8, borderRadius: 8, backgroundColor: c.warningSurface },
+  content: { padding: 16, gap: 24, paddingBottom: 96 },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: c.warningSurface,
+  },
+  body: { fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.primary },
-  tabChosen: { backgroundColor: c.primary },
-  tabChosenText: { color: c.onPrimary, fontWeight: '600' },
-  slot: { gap: 8, padding: 12, borderRadius: 12, backgroundColor: c.surface },
-  slotHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  slotTitle: { fontSize: 16, fontWeight: '600' },
-  slotAdd: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  slotAddText: { color: c.onPrimary, fontSize: 20, lineHeight: 22 },
-  hint: { color: c.textMuted },
-  empty: { color: c.textMuted, textAlign: 'center', paddingVertical: 24 },
+  // Equal widths, as the meal pills on Log meal: 8 at the sides and one line, which shrinks a little
+  // rather than wrap when the phone's text is large.
+  tab: { flex: 1, paddingHorizontal: 8 },
+  slot: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: c.surface },
+  slotHeader: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  // The heading takes the row's room, so tapping anywhere on it opens or closes the slot.
+  slotHeading: { flex: 1, minHeight: 44, justifyContent: 'center', gap: 2 },
+  slotTitle: { fontSize: 15, fontWeight: '600' },
+  slotTotal: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  chevron: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  foods: { fontSize: 15, color: c.textMuted },
+  slotAdd: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  slotAddText: { color: c.primary, fontSize: 20, fontWeight: '600', lineHeight: 24 },
+  pressed: { opacity: 0.6 },
+  hint: { fontSize: 15, color: c.textMuted },
+  empty: { fontSize: 15, color: c.textMuted, textAlign: 'center', paddingVertical: 24 },
 }));

@@ -2,7 +2,9 @@ import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fits
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
+import { GRAMS_RULE } from '../mealItems';
 import { NOW, renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
@@ -75,21 +77,24 @@ describe('REQ-LOG-001 and REQ-LOG-002 the date', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Date: Wed 28 Oct' }));
 
-    expect(await screen.findByRole('button', { name: 'Today, Wed 28 Oct: 1 meal logged' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Yesterday, Tue 27 Oct: 2 meals logged' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Thu 22 Oct: Nothing logged' })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Yesterday, Tue 27 Oct: 2 meals logged' }));
+    // The calendar, titled for logging (D-33), each day with its status (Q-037).
+    expect(await screen.findByRole('header', { name: 'Log this meal to' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Wednesday 28 October 2026, today, 1 meal logged' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Tuesday 27 October 2026, 2 meals logged' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Thursday 22 October 2026, Nothing logged' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 October 2026, 2 meals logged' }));
     expect(screen.getByRole('button', { name: 'Date: Tue 27 Oct' })).toBeOnTheScreen();
   });
 
-  it('REQ-LOG-002 "Another day…" opens the calendar', async () => {
+  it('REQ-LOG-002 the calendar picks any past day in the phone’s 90 days, and no future day (Q-017)', async () => {
     await render();
     await fireEvent.press(await screen.findByRole('button', { name: 'Date: Wed 28 Oct' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Another day…' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Monday 5 October 2026' }));
+    expect(screen.getByRole('button', { name: 'Thursday 29 October 2026, not available' })).toBeDisabled();
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Monday 7 September 2026, Nothing logged' }));
 
-    expect(screen.getByRole('button', { name: 'Date: Mon 5 Oct' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: /^Date: Mon 7 Sep/ })).toBeOnTheScreen();
   });
 
   it('Q-017 a future or unknown date in the link falls back to today', async () => {
@@ -210,6 +215,8 @@ describe('REQ-LOG-003 and the review before saving', () => {
     expect(screen.getByLabelText('Wheat flour, atta: 90 g, 288 kcal, 9.5 g protein')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Ghee' }));
+    // Remove stands out in the "over" red.
+    expect(screen.getByText('Remove')).toHaveStyle({ color: LIGHT_COLORS.over });
     await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
     expect(screen.queryByText('Ghee')).toBeNull();
     expect(screen.getByLabelText('Total: 288 kcal, 9.5 g protein')).toBeOnTheScreen();
@@ -241,6 +248,84 @@ describe('REQ-LOG-003 and the review before saving', () => {
     ).toBeOnTheScreen();
     // The cooked-rice example has no supporting source (D-26 answer 3, amended 2026-10-30).
     expect(screen.queryByText(/cooked rice weighs/)).toBeNull();
+  });
+});
+
+describe('what Log meal says about missing values', () => {
+  it('Save meal says to add a food first', async () => {
+    await render();
+
+    expect(await screen.findByText('Add at least one food to save the meal.')).toBeOnTheScreen();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    expect(screen.queryByText('Add at least one food to save the meal.')).toBeNull();
+  });
+
+  it('own food: Add says what is missing; each value gives its range, and the grams their rule', async () => {
+    await render();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Enter your own food' }));
+
+    expect(screen.getByText("Enter the food's name.")).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Food name'), 'Synthetic bar');
+    expect(screen.getByText('Enter kcal, protein, carbs and fat to add.')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('kcal per 100 g'), '950');
+    expect(screen.getByText('Enter 0 to 900, with at most one decimal.')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Protein per 100 g (g)'), '101');
+    expect(screen.getByText('Enter 0 to 100, with at most one decimal.')).toBeOnTheScreen();
+    for (const [label, value] of [
+      ['kcal per 100 g', '400'],
+      ['Protein per 100 g (g)', '10'],
+      ['Carbs per 100 g (g)', '60'],
+      ['Fat per 100 g (g)', '12'],
+    ]) {
+      await fireEvent.changeText(screen.getByLabelText(label!), value!);
+    }
+    expect(screen.getAllByText(GRAMS_RULE)).toHaveLength(1);
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '0');
+    expect(screen.getAllByText(GRAMS_RULE)).toHaveLength(1);
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '40');
+    expect(screen.queryByText(GRAMS_RULE)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
+  });
+});
+
+describe('D-34 the same food added again to the meal', () => {
+  it('asks; "Add to existing" puts the amounts together in one item', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    await addFood('atta', /^Wheat flour, atta/, '40');
+
+    expect(screen.getByRole('header', { name: 'Already in this meal' })).toBeOnTheScreen();
+    expect(screen.getByText('Wheat flour, atta is already in this meal (60 g). Add 40 g to it, for 100 g in all?')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to existing' }));
+
+    expect(screen.getAllByLabelText(/^Wheat flour, atta: /).map((row) => row.props.accessibilityLabel)).toEqual([
+      'Wheat flour, atta: 100 g, 320 kcal, 10.6 g protein',
+    ]);
+  });
+
+  it('"Keep separate" adds it as its own item', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    await addFood('atta', /^Wheat flour, atta/, '40');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep separate' }));
+
+    expect(screen.getAllByLabelText(/^Wheat flour, atta: /)).toHaveLength(2);
+  });
+
+  it('when together they would pass 2,000 g, says so and only keeps it separate', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '1500');
+    await addFood('atta', /^Wheat flour, atta/, '600');
+
+    expect(
+      screen.getByText(
+        "Wheat flour, atta is already in this meal (1,500 g). Together that would be over 2,000 g, the most for one food, so it's added on its own.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Add to existing' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep separate' }));
+    expect(screen.getAllByLabelText(/^Wheat flour, atta: /)).toHaveLength(2);
   });
 });
 

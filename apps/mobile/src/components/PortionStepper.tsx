@@ -18,7 +18,7 @@ export function PortionStepper({ value, onChange }: { value: number; onChange(po
         accessibilityState={{ disabled: atMin }}
         disabled={atMin}
         onPress={() => onChange(stepPortions(value, -1))}
-        style={[styles.step, atMin && styles.off]}
+        style={({ pressed }) => [styles.step, atMin && styles.off, pressed && styles.pressed]}
       >
         <Text style={styles.stepText}>−</Text>
       </Pressable>
@@ -31,7 +31,7 @@ export function PortionStepper({ value, onChange }: { value: number; onChange(po
         accessibilityState={{ disabled: atMax }}
         disabled={atMax}
         onPress={() => onChange(stepPortions(value, 1))}
-        style={[styles.step, atMax && styles.off]}
+        style={({ pressed }) => [styles.step, atMax && styles.off, pressed && styles.pressed]}
       >
         <Text style={styles.stepText}>+</Text>
       </Pressable>
@@ -43,6 +43,8 @@ const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   step: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSelected },
   off: { opacity: 0.4 },
+  pressed: { opacity: 0.6 },
   stepText: { fontSize: 22, fontWeight: '600', color: c.primaryStrong },
-  value: { minWidth: 110, textAlign: 'center', fontSize: 16, fontWeight: '600' },
+  // At the size of a value, in fixed-width digits.
+  value: { minWidth: 110, textAlign: 'center', fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
 }));

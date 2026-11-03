@@ -1,6 +1,6 @@
 import { formatWeight } from '@fitsphere/shared';
 import type { ReactElement } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { formatDay } from '../format';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles } from '../theme';
@@ -19,7 +19,7 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
       keyExtractor={(row) => row.day}
       renderItem={({ item }) => (
         <View style={styles.row}>
-          <Text>{formatDay(item.day)}</Text>
+          <Text style={styles.day}>{formatDay(item.day)}</Text>
           <Text style={styles.value}>
             {formatWeight(item.weightGrams, unit)}
             {item.note ? ` · ${item.note}` : ''}
@@ -32,8 +32,17 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
   );
 }
 
+// Rows ruled with hairlines, as Home's measurements; weights in fixed-width digits.
 const useStyles = themedStyles((c) => ({
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: c.border },
-  value: { fontWeight: '600' },
-  empty: { padding: 16, color: c.textMuted },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  day: { fontSize: 15 },
+  value: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  empty: { padding: 16, fontSize: 15, color: c.textMuted },
 }));

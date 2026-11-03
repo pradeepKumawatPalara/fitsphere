@@ -92,6 +92,29 @@ export function withPortions(item: MealItem, portions: number): MealItem {
   };
 }
 
+/**
+ * Whether two items are the same listed food (D-34): the same source and code, in the same unit. A
+ * food the user entered has no code, so it is never the same as another.
+ */
+export function sameFood(a: MealItem, b: MealItem): boolean {
+  return a.source !== 'own' && a.ref !== null && a.source === b.source && a.ref === b.ref && a.amount.unit === b.amount.unit;
+}
+
+/**
+ * The existing item holding both amounts, its values from the ones it has (as changing its grams);
+ * or null when together they would pass the most one food can have (2,000 g, or 10 portions).
+ */
+export function addAmount(existing: MealItem, added: MealItem): MealItem | null {
+  const total = existing.amount.value + added.amount.value;
+  if (existing.amount.unit === 'g') return total > MEAL_ITEM_GRAMS_MAX ? null : withGrams(existing, total);
+  return total > PORTIONS_MAX ? null : withPortions(existing, total);
+}
+
+/** The most one food can have, for the prompt that says it would be passed. */
+export function amountLimit(item: MealItem): string {
+  return item.amount.unit === 'g' ? `${MEAL_ITEM_GRAMS_MAX.toLocaleString('en-US')} g` : `${PORTIONS_MAX} portions`;
+}
+
 /** Values per 100 g typed from a label: kcal, protein, carbs and fat required, fibre optional. */
 export type LabelValues = { kcal: number; proteinG: number; carbsG: number; fatG: number; fibreG: number | null };
 

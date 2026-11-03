@@ -1,14 +1,19 @@
 import { useRouter } from 'expo-router';
-import { Button } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { TEXTS } from '../auth/texts';
-import { Screen, Text } from '../components/ui';
+import { Screen, Text, TextButton } from '../components/ui';
+import { backToSignIn } from './navigation';
 
 export function CheckEmailScreen() {
   const router = useRouter();
   return (
     <Screen>
-      <Text>{TEXTS.signUpSent}</Text>
-      <Button title="Back to sign in" onPress={() => router.replace('/sign-in')} />
+      <Text style={styles.body}>{TEXTS.signUpSent}</Text>
+      <TextButton title="Back to sign in" filled onPress={() => backToSignIn(router)} />
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  body: { fontSize: 15 },
+});

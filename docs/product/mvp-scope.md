@@ -30,12 +30,12 @@ Only the Personal Training User view (D-20). Every account is a Personal Trainin
 | Settings | Theme, lifting unit, body-weight unit, AI consent toggle | ACC-001…005 |
 | Role | Every account is a Personal Training User; the role selector is hidden (D-20) | ROLE-001 (MVP default only) |
 | Own targets | The user sets their own daily calorie, protein and steps targets, weekly workout target and target body weight, labelled "Set by you" (D-20; extends Q-016) | ROLE-007 |
-| Home | Date strip, past-date banner, calories and protein cards, weight/steps/sleep tiles, workout tracker, measurements card | DATE-*, HOME-* |
-| Nutrition | Consumed (summary, meal slots, ••• menu); Diet plan as an empty state only: "No diet plan yet. Your coach will add one here." (D-20); Saved | NUT-*, PLAN-007, SAVED-* |
-| Log meal | Date chip and day sheet; meal type and tags; typed text read by AI; photo (meal or label) read by AI; voice using the phone's built-in speech-to-text (ADR-0005); food search; barcode; saved meals; review before saving; photo upload or public image link with warning | LOG-* |
+| Home | Date strip, past-date banner, calories and protein cards, weight/steps/sleep tiles, workout tracker (each day opens its workouts or starts one, D-34), measurements card | DATE-*, HOME-* |
+| Nutrition | Consumed (summary, meal slots folded to their kcal, meals and foods and opened to each meal, D-34; each meal's Edit, Save to my meals and Delete icons, D-33); Diet plan as an empty state only: "No diet plan yet. Your coach will add one here." (D-20); Saved | NUT-*, PLAN-007, SAVED-* |
+| Log meal | Date chip and calendar (D-33); a food added again can join the one already in the meal (D-34); meal type and tags; typed text read by AI; photo (meal or label) read by AI; voice using the phone's built-in speech-to-text (ADR-0005); food search; barcode; saved meals; review before saving; photo upload or public image link with warning | LOG-* |
 | Measurements | Bottom sheet, cm/in, mandatory waist fields, optional fields | MEAS-* |
-| Training | "No training plan yet", "Start an empty workout", log sets/reps/weight, workout history (D-20) | TRN-002…005 |
-| Progress | 4-week weight card, trend chart (1W/4W/12W/26W/All), weekly table vs Target row, days logged, measurements list | PRG-001…004, PRG-005 (without "Pre" row and week details), PRG-006 |
+| Training | "No training plan yet", "Start an empty workout", log sets/reps/weight, workout history, one card per date (D-20, D-34) | TRN-002…005 |
+| Progress | 4-week weight card, trend chart (1W/1M/3M/6M/All, D-34), weekly table vs Target row, days logged, measurements list | PRG-001…004, PRG-005 (without "Pre" row and week details), PRG-006 |
 | Offline | Logging works offline and syncs; named "needs internet" warnings | NFR-004, ADR-0007 |
 
 ## 3. Post-MVP (later releases)
@@ -62,8 +62,8 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-012 "+" scope | Meals only; tiles handle weight/steps/sleep |
 | Q-013 Target row | The user sets their own weekly workout target, target body weight and daily steps target (D-20). Post-MVP, once coaches exist: the Coach (and an allowed Head Coach) set them |
 | Q-016 No coach | Every user sets their own daily calorie, protein and steps targets, weekly workout target and target body weight (extended by D-20; first set for calorie and protein only) |
-| Q-017 Future dates | Not selectable |
-| Q-019 Week strip status box | Filled when at least one meal is logged that day |
+| Q-017 Future dates | Not selectable. The calendar browses up to 12 months ahead, greyed; tapping a greyed day says why (D-34) |
+| Q-019 Week strip status box | Filled when at least one meal is logged that day. The strip shows 7 days ending today (D-34) |
 | Q-022 Over target | Bar shows full in a warning colour; text "X kcal over" |
 | Q-023 "By meal" | Opens Nutrition › Consumed for that day |
 | Q-024 Weight tile | Follows the body-weight unit setting |
@@ -74,12 +74,12 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-029 Close (X) with input | Closes without warning |
 | Q-030 Same day twice | Weight, steps, sleep, measurements: one value per day; a new entry replaces it |
 | Q-031 Tags | Tags attach to a meal; meal type is required; tagged meals show a small label in their slot |
-| Q-032 Meal ••• menu | Edit, Delete, Save to my meals. Deleting a meal deletes its photo |
+| Q-032 Meal actions | Edit, Delete, Save to my meals, as icons on the meal (D-33; first a ••• menu). Deleting a meal deletes its photo |
 | Q-033 "Got it" | Remembered per user |
 | Q-034 Option totals | Post-MVP with diet plans (D-20). When built: each option shows its own kcal and protein |
 | Q-035 Option button | Post-MVP with diet plans (D-20). When built: "Log this option" logs it to that meal slot on the selected date |
 | Q-036 Re-log saved meal | Goes to the meal slot it was saved from; user can change it |
-| Q-037 Day status labels | "Nothing logged" or "N meals logged" |
+| Q-037 Day status labels | "Nothing logged" or "N meals logged", read out with each day of Log meal's calendar, which shows a dot on days with a meal (D-33) |
 | Q-042 Workout fields | Per exercise: sets × reps × weight; optional note |
 | Q-043 Progress formulas | 4-week change = latest weigh-in minus the weigh-in nearest 28 days earlier; weekly rate = change ÷ the weeks between the two weigh-ins (÷ 4 when they are 28 days apart); weekly table = averages over days that have entries; chart needs 2+ weigh-ins. *Weekly rate refined by D-30 (2026-10-30); was "change ÷ 4"* |
 | Q-044 Days logged | Out of days since the account was created, capped at the last 28 days |
@@ -98,7 +98,7 @@ slice's plan confirms its scope with the owner before work starts, as the Skelet
 |---|---|---|---|
 | 1 | Skeleton | Monorepo and CI; sign-up with 18+, verification, sign-in, reset, log out; IST dates; weight online and offline; self-access authorization. Plan: [`skeleton-slice.md`](../plans/skeleton-slice.md) | ACC-008, ACC-010, DATE-*, HOME-006 (weight), NFR-001, NFR-004 |
 | 2 | Home and daily tracking | Bottom navigation and header; Home: week strip, calories and protein cards, steps and sleep tiles, workout tracker, measurements card; the measurements sheet; own targets. Plan: [`home-daily-tracking-slice.md`](../plans/home-daily-tracking-slice.md) (D-23); HOME-005 and the week strip's status box come with meals in slice 3 | NAV-001, NAV-002, HOME-*, MEAS-*, ROLE-007 |
-| 3 | Meal logging (no AI) | Log meal: "+" button, date chip and day sheet, meal type and tags, food search, barcode, saved meals, tips, meal photo or public image link with warning, "AI meal reading is coming soon"; Nutrition: Consumed, the Diet plan empty state, Saved. Plan: [`meal-logging-slice.md`](../plans/meal-logging-slice.md) (D-26) | NAV-003, LOG-001…003, LOG-006 (meal photos), LOG-007, LOG-008, LOG-010, NUT-*, PLAN-007, SAVED-*, ACC-005 |
+| 3 | Meal logging (no AI) | Log meal: "+" button, date chip and day sheet (a calendar since D-33), meal type and tags, food search, barcode, saved meals, tips, meal photo or public image link with warning, "AI meal reading is coming soon"; Nutrition: Consumed, the Diet plan empty state, Saved (each meal's actions as icons since D-33; slots fold since D-34). Plan: [`meal-logging-slice.md`](../plans/meal-logging-slice.md) (D-26) | NAV-003, LOG-001…003, LOG-006 (meal photos), LOG-007, LOG-008, LOG-010, NUT-*, PLAN-007, SAVED-*, ACC-005 |
 | 4 | Training | "No training plan yet", empty workout, sets × reps × weight, history, lifting unit; the Home workout count. Plan: [`training-slice.md`](../plans/training-slice.md) (D-29); the lifting-unit setting comes with slice 6 | TRN-002…005, HOME-007 |
 | 5 | Progress | 4-week weight, average calories, days logged, trend chart, week table with Target row, measurements list. Plan: [`progress-slice.md`](../plans/progress-slice.md) (D-30), built beside slice 6 | PRG-001…006 |
 | 6 | Settings and account | Theme, units, the AI consent switch and record (no AI call), "India · Kolkata" as fixed text, change password, delete account and its web page. Plan: [`settings-slice.md`](../plans/settings-slice.md) (D-31) | ACC-001…004, ACC-006 (fixed text), ACC-007, ACC-009 |

@@ -8,7 +8,7 @@ export function Card({ title, children }: { title: string; children: ReactNode }
   const { colors } = useTheme();
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
-      <Text accessibilityRole="header" style={[styles.title, { color: colors.textMuted }]}>
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
         {title}
       </Text>
       {children}
@@ -16,7 +16,8 @@ export function Card({ title, children }: { title: string; children: ReactNode }
   );
 }
 
+// As Home's panels: r12, 12 between the parts of a card, titles 15 semi-bold.
 const styles = StyleSheet.create({
-  card: { padding: 16, borderRadius: 12, gap: 8 },
-  title: { fontWeight: '600' },
+  card: { padding: 16, borderRadius: 12, gap: 12 },
+  title: { fontSize: 15, fontWeight: '600' },
 });

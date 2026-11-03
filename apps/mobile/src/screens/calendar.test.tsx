@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { FUTURE_DAY, OLDER_DAY } from '../components/CalendarSheet';
 import { HeaderActions, HeaderTitle } from '../components/AppHeader';
 import { renderInApp } from '../testing/appHarness';
 import { AccountScreen } from './AccountScreen';
@@ -26,15 +27,30 @@ beforeEach(() => {
 });
 
 describe('REQ-NAV-002 calendar', () => {
-  it('REQ-NAV-002 opens on the selected month; future days cannot be picked (Q-017)', async () => {
+  it('REQ-NAV-002 opens on the selected month; a future day is greyed and says why it cannot be picked (Q-017, D-34)', async () => {
     await renderHome();
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
 
     expect(screen.getByText('October 2026')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Wednesday 28 October 2026, today' })).toBeSelected();
-    expect(screen.getByRole('button', { name: 'Thursday 29 October 2026' })).toBeDisabled();
+    const tomorrow = screen.getByRole('button', { name: 'Thursday 29 October 2026, not available' });
+    expect(tomorrow).toBeDisabled();
+    await fireEvent.press(tomorrow);
+    expect(screen.getByRole('alert')).toHaveTextContent(FUTURE_DAY);
+    expect(screen.getByText('October 2026')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Selected date: Today · Wed 28 Oct')).toBeOnTheScreen();
+  });
+
+  it('D-34 browses up to 12 months ahead, every day there greyed', async () => {
+    await renderHome();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
+
+    for (let month = 0; month < 12; month += 1) await fireEvent.press(screen.getByRole('button', { name: 'Next month' }));
+
+    expect(screen.getByText('October 2027')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Next month' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Friday 1 October 2027, not available' })).toBeDisabled();
   });
 
   it('D-23 goes back only as far as the 90 days the phone holds', async () => {
@@ -44,9 +60,13 @@ describe('REQ-NAV-002 calendar', () => {
     for (let month = 0; month < 3; month += 1) await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
 
     expect(screen.getByText('July 2026')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Thursday 30 July 2026' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Friday 31 July 2026' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Previous month' })).toBeDisabled();
+    // An older day is greyed too, and says why (D-34).
+    const older = screen.getByRole('button', { name: 'Thursday 30 July 2026, not available' });
+    expect(older).toBeDisabled();
+    await fireEvent.press(older);
+    expect(screen.getByRole('alert')).toHaveTextContent(OLDER_DAY);
   });
 
   it('REQ-DATE-001 choosing a day closes the calendar and selects it in the header, the banner and the week strip', async () => {
@@ -74,14 +94,14 @@ describe('REQ-NAV-002 calendar', () => {
   });
 });
 
-describe('D-23 week strip limit', () => {
-  it('D-23 the previous-week arrow stops at the week holding the first of the 90 days', async () => {
+describe('D-23 date strip limit', () => {
+  it('D-23 "Earlier days" stops at the 7 days holding the first of the 90 days', async () => {
     await renderHome();
-    const previous = await screen.findByRole('button', { name: 'Previous week' });
+    const earlier = await screen.findByRole('button', { name: 'Earlier days' });
 
-    for (let week = 0; week < 13; week += 1) await fireEvent.press(previous);
+    for (let span = 0; span < 13; span += 1) await fireEvent.press(earlier);
 
-    expect(screen.getByRole('button', { name: 'Previous week' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Earlier days' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Thursday 30 Jul' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Friday 31 Jul' })).toBeEnabled();
   });

@@ -1,13 +1,17 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Button } from 'react-native';
+import { View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { signUp } from '../auth/service';
 import { emailProblem, passwordProblem, TEXTS } from '../auth/texts';
-import { CheckBox, Field, Message, Screen, Text } from '../components/ui';
+import { FormScreen } from '../components/FormScreen';
+import { CheckBox, Field, Message, Text, TextButton } from '../components/ui';
+import { themedStyles } from '../theme';
+import { backToSignIn } from './navigation';
 
 // REQ-ACC-010, D-18: sign-up needs "I am 18 or older"; the result is always the neutral text.
 export function SignUpScreen() {
+  const styles = useStyles();
   const { deps } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -30,16 +34,39 @@ export function SignUpScreen() {
     else router.replace('/check-email');
   }
 
+  // As Sign in: the form scrolls to the field being typed in; the footer, with Sign up, rides above
+  // the keyboard.
   return (
-    <Screen>
-      <Text accessibilityRole="header">Create an account</Text>
-      <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
-      <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
-      <Text>{TEXTS.passwordRule}</Text>
+    <FormScreen
+      contentStyle={styles.content}
+      footer={
+        <>
+          <Message text={message} />
+          <TextButton title="Sign up" filled disabled={!adult || busy} onPress={() => void submit()} />
+          {adult ? null : <Text style={styles.hint}>{TEXTS.ageHint}</Text>}
+          <TextButton title="I already have an account" wide onPress={() => backToSignIn(router)} />
+        </>
+      }
+    >
+      <Text accessibilityRole="header" style={styles.heading}>
+        Create an account
+      </Text>
+      <View style={styles.fields}>
+        <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
+        <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
+        <Text style={styles.rule}>{TEXTS.passwordRule}</Text>
+      </View>
       <CheckBox label={TEXTS.ageConfirmation} checked={adult} onChange={setAdult} />
-      <Message text={message} />
-      <Button title="Sign up" disabled={!adult || busy} onPress={() => void submit()} />
-      <Button title="I already have an account" onPress={() => router.replace('/sign-in')} />
-    </Screen>
+    </FormScreen>
   );
 }
+
+// As Sign in: 24 between groups, 12 within one.
+const useStyles = themedStyles((c) => ({
+  content: { paddingTop: 32, gap: 24 },
+  heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
+  fields: { gap: 12 },
+  // The rule belongs to the password: closer to it than the fields are to each other.
+  rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
+  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+}));

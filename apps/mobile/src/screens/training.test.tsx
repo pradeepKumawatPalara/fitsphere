@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import * as client from '../api/client';
 import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
 import { TrainingScreen } from './TrainingScreen';
@@ -46,6 +47,21 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     expect(mockRouter.push).toHaveBeenLastCalledWith(`/workout/${id}`);
   });
 
+  it('D-34 workouts on the same date share one card, with all their exercises; tapping asks which to open', async () => {
+    const app = await renderInApp(<TrainingScreen />);
+    app.server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-26', [SQUAT]);
+    app.server.storeWorkoutFromElsewhere('1c8f2e3d-4b5a-4f6e-9d8c-7b6a5f4e3d2c', '2026-10-26', [PUSH_UP]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+
+    const card = await screen.findByRole('button', { name: /^Mon 26 Oct: 2 workouts · 2 exercises · (Squat, Push-up|Push-up, Squat)$/ });
+    expect(screen.queryAllByRole('button', { name: /^Mon 26 Oct: / })).toHaveLength(1);
+    await fireEvent.press(card);
+
+    expect(screen.getByRole('header', { name: 'Workouts on Mon 26 Oct' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /^Workout [12] · 1 exercise · Push-up$/ }));
+    expect(mockRouter.push).toHaveBeenLastCalledWith('/workout/1c8f2e3d-4b5a-4f6e-9d8c-7b6a5f4e3d2c');
+  });
+
   it('REQ-TRN-004 "Load older" reads the 90 days before the phone’s from the server and lists them, view-only', async () => {
     const { server } = await renderInApp(<TrainingScreen />);
     server.state.olderWorkouts = [
@@ -66,6 +82,20 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
 
     expect(await screen.findByText('No workouts from Sat 2 May to Thu 30 Jul.')).toBeOnTheScreen();
+  });
+
+  it('REQ-TRN-004 while older workouts load, only "Load older" waits; "Start an empty workout" stays ready', async () => {
+    await renderInApp(<TrainingScreen />);
+    // The server doesn't answer yet.
+    const pending = jest.spyOn(client, 'callApi').mockReturnValue(new Promise(() => {}));
+    try {
+      await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+
+      expect(screen.getByRole('button', { name: 'Load older' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Start an empty workout' })).toBeEnabled();
+    } finally {
+      pending.mockRestore();
+    }
   });
 
   it('ADR-0007 rule 6 "Load older" offline shows the named warning', async () => {

@@ -1,11 +1,11 @@
 import type { MealPhoto } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Image, Linking, Modal, Pressable, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, View } from 'react-native';
 import { jpegDataUri } from '../photos/bytes';
 import { usePhoto, type LoadedPhoto } from '../photos/loadPhoto';
 import { themedStyles } from '../theme';
 import { linkSite } from './MealPhotoField';
-import { Text } from './ui';
+import { Text, TextButton } from './ui';
 
 // A logged meal's photo or image link (REQ-LOG-006, REQ-LOG-010, REQ-NFR-006). The thumbnail opens
 // the viewing copy; photos are view-only, with no download. A link shows its site and opens in the
@@ -21,6 +21,7 @@ export function MealPhotoPreview({ mealId, photo }: { mealId: string; photo: Mea
         accessibilityRole="link"
         accessibilityLabel={`Open image link on ${linkSite(photo.url)}`}
         onPress={() => void Linking.openURL(photo.url)}
+        style={({ pressed }) => pressed && styles.pressed}
       >
         <Text style={styles.link}>Image link: {linkSite(photo.url)} ↗</Text>
       </Pressable>
@@ -28,7 +29,12 @@ export function MealPhotoPreview({ mealId, photo }: { mealId: string; photo: Mea
   }
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel="View meal photo" onPress={() => setOpen(true)}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View meal photo"
+        onPress={() => setOpen(true)}
+        style={({ pressed }) => pressed && styles.pressed}
+      >
         {thumbnail.kind === 'ready' ? (
           <Image accessibilityLabel="Meal photo" source={{ uri: jpegDataUri(thumbnail.base64) }} style={styles.thumbnail} />
         ) : (
@@ -51,7 +57,7 @@ function PhotoViewer({ mealId, mediaId, onClose }: { mealId: string; mediaId: st
         ) : (
           <Text style={styles.viewerText}>{photoNote(full)}</Text>
         )}
-        <Button title="Close" onPress={onClose} />
+        <TextButton title="Close" filled onPress={onClose} />
       </View>
     </Modal>
   );
@@ -63,11 +69,13 @@ function photoNote(photo: LoadedPhoto): string {
   return 'Photo not available yet.';
 }
 
+// The thumbnail is a tile (radius 12); the viewer's Close is filled, to show on the dark backdrop.
 const useStyles = themedStyles((c) => ({
-  thumbnail: { width: 64, height: 64, borderRadius: 8 },
-  note: { color: c.textMuted, fontSize: 12 },
-  link: { color: c.primaryStrong },
-  viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', padding: 16, gap: 16 },
+  thumbnail: { width: 64, height: 64, borderRadius: 12 },
+  note: { color: c.textMuted, fontSize: 13 },
+  pressed: { opacity: 0.6 },
+  link: { fontSize: 13, fontWeight: '600', color: c.primary },
+  viewer: { flex: 1, backgroundColor: c.scrimStrong, justifyContent: 'center', padding: 16, gap: 16 },
   full: { width: '100%', height: '80%' },
   viewerText: { color: c.onPrimary, textAlign: 'center' },
 }));

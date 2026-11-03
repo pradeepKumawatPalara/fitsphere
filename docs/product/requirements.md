@@ -43,6 +43,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given the Personal Training User view, when any main screen is shown, then tabs Home, Nutrition, Training, Progress are visible and each opens its screen.
 - Open: navigation for Coach and Head Coach views is not specified (Q-020). **Post-MVP** with those views (D-20, backlog B-17).
+- Each tab shows an icon over its label (D-34, amending D-23's text labels): filled for the tab shown, on a tinted pill, outlined for the others.
 
 ### REQ-NAV-002 — Common header
 - Requirement: Every main screen shows the selected date, a calendar shortcut and a profile avatar that opens Account settings.
@@ -269,6 +270,7 @@ B-22).
 - Acceptance criteria:
   - When a past date is selected, then cards, meals and tiles show that date's data.
   - Future dates cannot be selected (MVP default, Q-017).
+  - The calendar browses back to the month of the first of the phone's 90 days and up to 12 months ahead (D-34). Future days and days before the 90 are greyed; tapping one says why, "Future dates can't be chosen. Choose today or an earlier day." or "Only the last 90 days are on this phone. Choose a later day.", and screen readers hear "not available".
 
 ### REQ-DATE-002 — Past-date banner
 - Requirement: While a past date is selected, a banner shows the date and a "Back to today" shortcut.
@@ -291,7 +293,7 @@ B-22).
 - Requirement: The header shows the selected date and the user's username.
 
 ### REQ-HOME-002 — Week strip
-- Requirement: A Monday-to-Sunday strip shows a status box per day and highlights today and the selected day.
+- Requirement: A strip of 7 days ending today shows a status box per day and highlights today and the selected day (D-34, which replaced the first Monday-to-Sunday strip). Swiping, or "Earlier days" and "Later days", moves it 7 days at a time, back to the 7 holding the first of the phone's 90 days (D-23); no day after today is shown (Q-017). Home's workout tracker keeps Monday-to-Sunday weeks (REQ-HOME-007).
 - MVP default (D-18): a day's box is filled when at least one meal is logged that day (Q-019).
 - Built in the Home and daily tracking slice, except the status box, which comes with meals in the Meal logging slice (D-23).
 
@@ -321,6 +323,8 @@ B-22).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
+- Each day up to today can be tapped (D-34): a day with one workout opens it; a day with more shows how many on its dot and asks which to open; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
+- The tracker shows the Mon–Sun week of the date picked on Home (Q-026) and names it (D-34): "Workouts this week" for the current week, "Workouts that week" for an earlier one, with the week's dates under the title (e.g. "Mon 19 Oct – Sun 25 Oct"). A workout can be started on any day up to today of the week shown.
 - MVP default (D-18): an empty workout counts toward the weekly target (Q-025). The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
 - MVP default (D-29): every workout on the phone in the Mon–Sun week of the selected date counts, including those waiting to sync; a day may hold several workouts, each counted, and the day's dot shows once it has any.
@@ -375,9 +379,10 @@ B-22).
 ### REQ-NUT-003 — Meal slots
 - Requirement: Breakfast, Lunch, Snack and Dinner slots each show "Tap to add what you ate" with a "+" that opens Log meal preset to that slot and date.
 - MVP default (D-18): tags attach to a meal, which keeps its meal type; a tagged meal shows a small label in its slot (Q-031).
+- A slot with meals is folded at first (D-34): its kcal and number of meals ("640 kcal · 3 meals") and its foods on up to two lines (five names, then "+ N more"). The chevron, or the slot's heading, opens it to each meal's card with the time it was last saved in India time ("Saved 8:15 am") and its Edit, Save to my meals and Delete icons (REQ-NUT-004). The chevron is named "Show Breakfast meals" or "Hide Breakfast meals" and is 44 dp to tap. Every slot folds again when the day changes. An empty slot shows "Tap to add what you ate" and its "+" as before.
 
 ### REQ-NUT-004 — Meal menu: edit, delete, save to my meals
-- Requirement: Each logged meal has a "•••" menu with Edit, Delete and "Save to my meals" (MVP default, Q-032). "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
+- Requirement: Each logged meal offers Edit, Delete and "Save to my meals" (MVP default, Q-032), as icons on the meal, each named for screen readers and 44 dp to tap; Delete asks first (D-33, which replaced the first "•••" menu). A saved meal offers Delete the same way. "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
 
 ---
 
@@ -452,8 +457,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Requirement: Log meal opens from any "+" button and has a back button and a date chip.
 
 ### REQ-LOG-002 — Date picker sheet
-- Requirement: The date chip opens a "Log this meal to" sheet listing Today, Yesterday and the five days before, each with its logging status (e.g. "nothing logged"), plus "Another day…" which opens a calendar.
-- MVP default (D-18): each day shows "Nothing logged" or "N meals logged" (Q-037).
+- Requirement: The date chip opens a calendar titled "Log this meal to", on the selected month. Any past day of the phone's 90 days can be picked; future days cannot (Q-017). Each day with a meal has a dot, and each day is read out with its logging status (D-33, which replaced the first sheet listing Today, Yesterday and the five days before, plus "Another day…" for the calendar).
+- MVP default (D-18): the status is "Nothing logged" or "N meals logged" (Q-037).
 
 ### REQ-LOG-003 — Meal type and tags
 - Requirement: The user selects one meal type (Breakfast, Lunch, Snack, Dinner) and may add tags "Before training" and "Dessert".
@@ -482,6 +487,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode and Saved (your meals) are available and work without AI (REQ-ACC-005). When a barcode is not found, the user can type the values from the label (MVP default; ADR-0006).
 - **Post-MVP:** Eaten before (past meals) — Saved covers re-logging in the MVP (D-18, backlog B-03).
+- The same food added again (D-34): while a meal is built or edited, adding a listed food it already has (the same food-list item, dish or barcode) asks "Already in this meal": "Add to existing" puts the amounts together in one item; "Keep separate" adds it as its own item. When together they would pass 2,000 g or 10 portions, only "Keep separate" is offered. A food the user entered is never merged. Separately logged meals are not merged.
 - Acceptance criteria:
   - Given AI consent is off, when a scanned barcode is not found, then the user can type the label values and save the meal.
 - Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039).
@@ -533,6 +539,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
 - MVP default (D-29): newest first; the last 90 days from the phone, and older workouts read from the server online with "Load older", view-only (ADR-0007 rules 1 and 6).
+- One card per date (D-34): a date with several workouts shows them together, every exercise in one summary and "2 workouts" beside the date; tapping it asks which to open ("Workout 1 · …"). Each workout is still stored, edited and deleted on its own.
 
 ### REQ-TRN-005 — Lifting unit
 - Requirement: Lifting weights are entered and shown in the lifting-weight unit setting (REQ-ACC-002); changing the setting converts display of existing history.
@@ -575,9 +582,9 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - MVP default (D-30): the account's creation day is read from `GET /v1/me` once and kept on the phone; while it is unknown (offline), 28 days are counted.
 
 ### REQ-PRG-004 — Weight trend chart
-- Requirement: Chart with range filters 1W, 4W, 12W, 26W, All; empty state until enough weigh-ins exist.
+- Requirement: Chart with range filters 1W, 1M, 3M, 6M, All (D-34; first 1W, 4W, 12W, 26W, All); empty state until enough weigh-ins exist.
 - MVP default (D-18): the chart needs at least 2 weigh-ins (Q-043).
-- MVP default (D-30): 1W, 4W and 12W come from the phone; 26W and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages.
+- MVP default (D-30, amended by D-34): months are calendar months, back to the same date (or that month's last day); the chart opens on 1M. 1W, 1M and 3M come from the phone, 3M cut to the 90 days it holds so it works offline (up to 3 days short of three months); 6M and All also read older weigh-ins online (ADR-0007 rule 6, with a named warning offline) and plot weekly averages. The ranges are named "1 week", "1 month", "3 months", "6 months" and "All" for screen readers.
 
 ### REQ-PRG-005 — Week-by-week table
 - Requirement: Rows per week with Body Weight, Calories, Protein and Steps, and a Target row. Weekly values are averages over the days that have entries (MVP default, Q-043). The Target row shows the calorie and protein targets and the target body weight and daily steps target set by the coach (MVP default, Q-013). In the MVP these are the user's own targets (REQ-ROLE-007, D-20).

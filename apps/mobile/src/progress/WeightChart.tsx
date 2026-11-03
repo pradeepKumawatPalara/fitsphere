@@ -16,7 +16,7 @@ type Props = {
   /** Oldest first; at least 2. */
   points: readonly WeighInPoint[];
   unit: BodyWeightUnit;
-  /** Each point is a week's average (26W and All). */
+  /** Each point is a week's average (6M and All). */
   weekly: boolean;
 };
 
@@ -94,5 +94,6 @@ const styles = StyleSheet.create({
   line: { position: 'absolute', height: THICKNESS },
   dot: { position: 'absolute', width: DOT, height: DOT, borderRadius: DOT / 2 },
   dates: { flexDirection: 'row', justifyContent: 'space-between' },
-  small: { fontSize: 12 },
+  // Fixed-width digits; the drawing itself is unchanged.
+  small: { fontSize: 12, fontVariant: ['tabular-nums'] },
 });

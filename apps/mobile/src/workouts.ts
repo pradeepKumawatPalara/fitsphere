@@ -50,24 +50,41 @@ export function toExerciseText(exercise: WorkoutExercise, unit: BodyWeightUnit):
 
 /** Reads the sheet's fields, the weight typed in `unit`: the exercise, or the rule for the first
  * field that cannot be saved. */
-export function parseExercise(text: ExerciseText, unit: BodyWeightUnit): { exercise: WorkoutExercise } | { problem: string } {
+/** A typed lifting weight in grams, or null when it is out of range or not a number. */
+function liftWeightGrams(text: string, unit: BodyWeightUnit): number | null {
+  const value = parseOneDecimal(text);
+  const { min, max } = weightRangeIn(unit, LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX);
+  const grams = value === null || value < min || value > max ? null : toGrams(value, unit);
+  return grams !== null && isLiftWeightGramsInRange(grams) ? grams : null;
+}
+
+/** Each field's problem, if it has one, so the sheet can show every one under its field. */
+export function exerciseProblems(text: ExerciseText, unit: BodyWeightUnit): Partial<Record<keyof ExerciseText, string>> {
   const rules = exerciseRules(unit);
+  const problems: Partial<Record<keyof ExerciseText, string>> = {};
   const name = text.name.trim();
-  if (name.length === 0 || name.length > EXERCISE_NAME_MAX) return { problem: rules.name };
-  const sets = parseWholeNumber(text.sets, 1, EXERCISE_SETS_MAX);
-  if (sets === null) return { problem: rules.sets };
-  const reps = parseWholeNumber(text.reps, 1, EXERCISE_REPS_MAX);
-  if (reps === null) return { problem: rules.reps };
-  let weightGrams: number | null = null;
-  if (text.weight.trim() !== '') {
-    const value = parseOneDecimal(text.weight);
-    const { min, max } = weightRangeIn(unit, LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX);
-    weightGrams = value === null || value < min || value > max ? null : toGrams(value, unit);
-    if (weightGrams === null || !isLiftWeightGramsInRange(weightGrams)) return { problem: rules.weight };
-  }
+  if (name.length === 0 || name.length > EXERCISE_NAME_MAX) problems.name = rules.name;
+  if (parseWholeNumber(text.sets, 1, EXERCISE_SETS_MAX) === null) problems.sets = rules.sets;
+  if (parseWholeNumber(text.reps, 1, EXERCISE_REPS_MAX) === null) problems.reps = rules.reps;
+  if (text.weight.trim() !== '' && liftWeightGrams(text.weight, unit) === null) problems.weight = rules.weight;
+  if (text.note.trim().length > EXERCISE_NOTE_MAX) problems.note = rules.note;
+  return problems;
+}
+
+export function parseExercise(text: ExerciseText, unit: BodyWeightUnit): { exercise: WorkoutExercise } | { problem: string } {
+  const problems = exerciseProblems(text, unit);
+  const problem = problems.name ?? problems.sets ?? problems.reps ?? problems.weight ?? problems.note;
+  if (problem) return { problem };
   const note = text.note.trim();
-  if (note.length > EXERCISE_NOTE_MAX) return { problem: rules.note };
-  return { exercise: { name, sets, reps, weightGrams, note: note === '' ? null : note } };
+  return {
+    exercise: {
+      name: text.name.trim(),
+      sets: parseWholeNumber(text.sets, 1, EXERCISE_SETS_MAX)!,
+      reps: parseWholeNumber(text.reps, 1, EXERCISE_REPS_MAX)!,
+      weightGrams: text.weight.trim() === '' ? null : liftWeightGrams(text.weight, unit),
+      note: note === '' ? null : note,
+    },
+  };
 }
 
 /** e.g. "3 × 10 × 40.0 kg", or "3 × 10" with no weight. */

@@ -148,3 +148,53 @@ describe('REQ-ACC-010 Account setup', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith('/home');
   });
 });
+
+// Messages that name what is missing or wrong (owner review, 2 November); the limits are unchanged.
+describe('REQ-ACC-010 messages', () => {
+  it('Sign in names an empty email or password; wrong details stay neutral (D-11)', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<SignInScreen />, client);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(TEXTS.emailRule);
+    await fireEvent.changeText(screen.getByLabelText('Email'), 'someone@example.test');
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter your password.');
+    expect(client.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('Sign up shows what an email address looks like when the one typed isn’t one', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<SignUpScreen />, client);
+    await fillSignUp('someone.example.test');
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Enter an email address like name@example.com.');
+    expect(client.signUp).not.toHaveBeenCalled();
+  });
+
+  it('Skeleton decision 3 says the password takes 8 to 72 characters, above 72 too', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<SignUpScreen />, client);
+    await fillSignUp('someone@example.test', 'x'.repeat(73));
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Use 8 to 72 characters.');
+  });
+
+  it.each([
+    ['Sign up', SignUpScreen, 'Sign up'],
+    ['Account setup', AccountSetupScreen, 'Continue'],
+  ] as const)('D-18 %s says why its button waits until the 18+ box is ticked', async (_, Screen, title) => {
+    await renderWith(<Screen />, fakeAuthClient(fakeSession({})));
+
+    expect(screen.getByRole('button', { name: title })).toBeDisabled();
+    expect(screen.getByText('Tick "I am 18 or older" to continue.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    expect(screen.queryByText('Tick "I am 18 or older" to continue.')).toBeNull();
+  });
+});

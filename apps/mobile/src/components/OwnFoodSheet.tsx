@@ -1,9 +1,10 @@
 import type { MealItem } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Button, Modal, ScrollView, View } from 'react-native';
-import { itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
+import { View } from 'react-native';
+import { GRAMS_RULE, itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
 import { themedStyles } from '../theme';
-import { Text, TextInput } from './ui';
+import { Sheet } from './Sheet';
+import { Text, TextButton, TextInput, useFieldInputStyle, useFieldLabelStyle } from './ui';
 
 // "Enter your own food" (REQ-LOG-007): the values from the label, per 100 g, and the grams eaten.
 // Works offline and with AI off; saved with this meal only (MVP default). kcal, protein, carbs and
@@ -28,6 +29,8 @@ export function OwnFoodSheet({
   onClose(): void;
 }) {
   const styles = useStyles();
+  const fieldInput = useFieldInputStyle();
+  const fieldLabel = useFieldLabelStyle();
   const [name, setName] = useState(initialName);
   const [texts, setTexts] = useState<Record<Key, string>>({ kcal: '', proteinG: '', carbsG: '', fatG: '', fibreG: '' });
   const [gramsText, setGramsText] = useState('');
@@ -41,6 +44,16 @@ export function OwnFoodSheet({
     name.trim().length <= 120 &&
     grams !== null &&
     FIELDS.every(({ key, required }) => typeof values[key] === 'number' || (!required && values[key] === 'empty'));
+
+  // Why Add waits, when no field says so already.
+  const missing =
+    name.trim() === ''
+      ? "Enter the food's name."
+      : FIELDS.some(({ key, required }) => required && values[key] === 'empty')
+        ? 'Enter kcal, protein, carbs and fat to add.'
+        : gramsText.trim() === ''
+          ? GRAMS_RULE
+          : null;
 
   function add() {
     if (!valid || grams === null) return;
@@ -56,53 +69,52 @@ export function OwnFoodSheet({
   }
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
-          <Text accessibilityRole="header" style={styles.title}>
-            Enter your own food
-          </Text>
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            <Text>Type the values from the label, per 100 g.</Text>
-            <TextInput accessibilityLabel="Food name" value={name} onChangeText={setName} maxLength={120} style={styles.input} />
-            {FIELDS.map(({ key, label }) => (
-              <View key={key} style={styles.field}>
-                <Text>{label}</Text>
-                <TextInput
-                  accessibilityLabel={label}
-                  value={texts[key]}
-                  onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
-                  keyboardType="decimal-pad"
-                  style={styles.input}
-                />
-                {values[key] === 'invalid' ? <Text style={styles.problem}>Enter a number with at most one decimal.</Text> : null}
-              </View>
-            ))}
-            <View style={styles.field}>
-              <Text>Grams eaten</Text>
-              <TextInput
-                accessibilityLabel="Grams eaten"
-                value={gramsText}
-                onChangeText={setGramsText}
-                keyboardType="number-pad"
-                style={styles.input}
-              />
-            </View>
-            <Button title="Add" disabled={!valid} onPress={add} />
-            <Button title="Cancel" onPress={onClose} />
-          </ScrollView>
+    <Sheet
+      title="Enter your own food"
+      onClose={onClose}
+      actions={
+        <>
+          <TextButton title="Add" filled disabled={!valid} onPress={add} />
+          {missing ? <Text style={styles.hint}>{missing}</Text> : null}
+          <TextButton title="Cancel" wide onPress={onClose} />
+        </>
+      }
+    >
+      <Text style={styles.intro}>Type the values from the label, per 100 g.</Text>
+      <TextInput accessibilityLabel="Food name" value={name} onChangeText={setName} maxLength={120} style={fieldInput} />
+      {FIELDS.map(({ key, label, max }) => (
+        <View key={key} style={styles.field}>
+          <Text style={fieldLabel}>{label}</Text>
+          <TextInput
+            accessibilityLabel={label}
+            value={texts[key]}
+            onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
+            keyboardType="decimal-pad"
+            style={[fieldInput, styles.number]}
+          />
+          {values[key] === 'invalid' ? <Text style={styles.problem}>Enter 0 to {max}, with at most one decimal.</Text> : null}
         </View>
+      ))}
+      <View style={styles.field}>
+        <Text style={fieldLabel}>Grams eaten</Text>
+        <TextInput
+          accessibilityLabel="Grams eaten"
+          value={gramsText}
+          onChangeText={setGramsText}
+          keyboardType="number-pad"
+          style={[fieldInput, styles.number]}
+        />
+        {gramsText.trim() !== '' && grams === null ? <Text style={styles.problem}>{GRAMS_RULE}</Text> : null}
       </View>
-    </Modal>
+    </Sheet>
   );
 }
 
+// Fields as Field: a 13 label, 6 above its input; numbers in fixed-width digits.
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { maxHeight: '90%', backgroundColor: c.background, padding: 20, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  title: { fontSize: 18, fontWeight: '600', marginBottom: 8 },
-  body: { gap: 10, paddingBottom: 16 },
-  field: { gap: 4 },
-  input: { borderWidth: 1, borderColor: c.textFaint, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
-  problem: { color: c.error },
+  intro: { fontSize: 15, color: c.textMuted },
+  field: { gap: 6 },
+  number: { fontVariant: ['tabular-nums'] },
+  problem: { fontSize: 13, color: c.error },
+  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
 }));

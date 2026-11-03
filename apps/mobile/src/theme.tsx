@@ -19,7 +19,7 @@ export type ThemeColors = {
   border: string;
   text: string;
   textMuted: string;
-  /** Disabled text, placeholders and small print. */
+  /** Disabled text, field borders and small print. */
   textFaint: string;
   /** Buttons, links, the selected day and chart lines. */
   primary: string;
@@ -41,6 +41,10 @@ export type ThemeColors = {
   macroCarbs: string;
   macroFat: string;
   macroFibre: string;
+  /** Behind a sheet: dims the screen it opens over. */
+  scrim: string;
+  /** Behind the full-size photo viewer. */
+  scrimStrong: string;
 };
 
 export const LIGHT_COLORS: ThemeColors = {
@@ -50,7 +54,7 @@ export const LIGHT_COLORS: ThemeColors = {
   border: '#dde3ec',
   text: '#000',
   textMuted: '#555',
-  textFaint: '#999',
+  textFaint: '#858585',
   primary: '#1565c0',
   primaryStrong: '#0d47a1',
   onPrimary: '#fff',
@@ -65,6 +69,8 @@ export const LIGHT_COLORS: ThemeColors = {
   macroCarbs: '#ef6c00',
   macroFat: '#ad1457',
   macroFibre: '#2e7d32',
+  scrim: 'rgba(0,0,0,0.3)',
+  scrimStrong: 'rgba(0,0,0,0.9)',
 };
 
 export const DARK_COLORS: ThemeColors = {
@@ -89,6 +95,9 @@ export const DARK_COLORS: ThemeColors = {
   macroCarbs: '#ffb74d',
   macroFat: '#f48fb1',
   macroFibre: '#81c784',
+  // Darker on the dark screens, so a sheet still stands off the screen behind it.
+  scrim: 'rgba(0,0,0,0.5)',
+  scrimStrong: 'rgba(0,0,0,0.9)',
 };
 
 export type Scheme = 'light' | 'dark';
