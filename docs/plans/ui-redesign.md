@@ -40,6 +40,7 @@ that uses it, and then changes on every screen that uses it.
 | 2026-11-03 | D-35: the design language; Lucide icons; the Barlow fonts. |
 | 2026-11-03 | **The whole app changes at once** (owner, chat): the new colours, fonts and icons replace the old ones everywhere with the first built screen; the layouts then follow screen by screen. Not two themes side by side. |
 | 2026-11-03 | 1.1 Sign in locked (owner: "lock signin and go ahead"). |
+| 2026-11-03 | 1.2 Sign up locked. Built with one change for contrast: a met password rule shows a green tick but keeps its text muted, as the light theme's green is 4.4:1 against the background, under the 4.5:1 that text this small needs. |
 | 2026-11-03 | MVP defaults (D-18) for the two conflicts below, the owner having said to go ahead without choosing: field outlines take `inkSubtle`, placeholders `inkMuted`. The owner can choose the design's values instead. |
 
 ## Modules
@@ -62,7 +63,8 @@ new flow.
 |---|---|
 | 0 Foundation | Built with 1.1 on `ui-redesign`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
 | 1.1 Sign in | Locked and built (`ui-redesign`); the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is ready; the owner's phone check is next |
-| 1.2 Sign up | Designed (every state, dark and light); waiting for the owner |
+| 1.2 Sign up | Locked and built (`ui-redesign`); with it the checkbox and a field's rule line took their new look |
+| 1.3 Check your email | Designed; waiting for the owner |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.

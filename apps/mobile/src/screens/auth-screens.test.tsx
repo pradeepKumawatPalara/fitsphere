@@ -185,6 +185,38 @@ describe('REQ-ACC-010 Sign in, redesigned', () => {
   });
 });
 
+// The redesign's screen 1.2 (locked by the owner, 2026-11-03).
+describe('REQ-ACC-010 Sign up, redesigned', () => {
+  it('the password’s rule ticks once met, and turns red with the field when Sign up finds it broken', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<SignUpScreen />, client);
+    await fillSignUp('someone@example.test', 'short');
+    expect(screen.getByText(TEXTS.passwordRule)).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(TEXTS.passwordRule);
+    expect(screen.getByLabelText('Password').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'password1');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByLabelText(`${TEXTS.passwordRule} Done.`)).toBeOnTheScreen();
+    expect(client.signUp).not.toHaveBeenCalled();
+  });
+
+  it('names a problem with the email under the email field', async () => {
+    await renderWith(<SignUpScreen />, fakeAuthClient());
+    await fillSignUp('someone@', 'password1');
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+
+    const problem = screen.getByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.emailFormat);
+    expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+  });
+});
+
 describe('REQ-ACC-010 Account setup', () => {
   it('REQ-ACC-010 sends the confirmation and its text version once the box is ticked', async () => {
     const api = fakeApi({

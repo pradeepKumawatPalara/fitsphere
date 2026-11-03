@@ -1,5 +1,5 @@
 import { HeaderHeightContext } from 'expo-router/react-navigation';
-import { ArrowRight, CircleAlert, Eye, EyeOff, Info, WifiOff, type LucideIcon } from 'lucide-react-native';
+import { ArrowRight, Check, CircleAlert, Eye, EyeOff, Info, WifiOff, type LucideIcon } from 'lucide-react-native';
 import { Children, createContext, isValidElement, useContext, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -78,17 +78,19 @@ export function Screen({ children }: { children: ReactNode }) {
 /**
  * A field (D-35): its label above in capitals, the value in a sunken box whose outline turns caramel
  * while typing, and a problem with the value under it, the outline red. A password field has a
- * button to show or hide what is typed.
+ * button to show or hide what is typed. A `rule` the value must meet shows under it, a dot until it
+ * is met and then a tick; when the `error` is the rule itself, the rule shows as the problem.
  */
 export function Field({
   label,
   error,
+  rule,
   secureTextEntry,
   onFocus,
   onBlur,
   style,
   ...input
-}: { label: string; error?: string | null } & TextInputProps) {
+}: { label: string; error?: string | null; rule?: { text: string; met: boolean } } & TextInputProps) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -125,14 +127,45 @@ export function Field({
           </Pressable>
         ) : null}
       </View>
-      {error ? (
-        <View style={styles.problem}>
-          <CircleAlert size={16} color={colors.danger} />
-          <Text accessibilityRole="alert" style={styles.problemText}>
-            {error}
-          </Text>
+      {error ? <Problem text={error} /> : null}
+      {rule && error !== rule.text ? <Rule text={rule.text} met={rule.met} /> : null}
+    </View>
+  );
+}
+
+/** A problem with a field's value, under it, read out as soon as it shows. */
+function Problem({ text }: { text: string }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  return (
+    <View style={styles.underField}>
+      <CircleAlert size={16} color={colors.danger} />
+      <Text accessibilityRole="alert" style={styles.problemText}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * A rule for a field's value: a dot until it is met, then a green tick. The text stays muted, as the
+ * light theme's green is under 4.5:1 for text this small; screen readers hear "Done." once it is met.
+ */
+function Rule({ text, met }: { text: string; met: boolean }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  return (
+    <View style={styles.underField}>
+      {met ? (
+        <Check size={16} strokeWidth={2.5} color={colors.success} />
+      ) : (
+        <View style={styles.ruleDotSlot}>
+          <View style={styles.ruleDot} />
         </View>
-      ) : null}
+      )}
+      <Text accessibilityLabel={met ? `${text} Done.` : text} style={styles.ruleText}>
+        {text}
+      </Text>
     </View>
   );
 }
@@ -147,8 +180,10 @@ export function useFieldLabelStyle() {
   return useStyles().label;
 }
 
+/** A box to tick (D-35): square, 22, filled caramel with a dark tick once ticked. */
 export function CheckBox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -157,7 +192,9 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
       onPress={() => onChange(!checked)}
       style={({ pressed }) => [styles.checkRow, pressed && styles.pressed]}
     >
-      <View style={[styles.box, checked && styles.boxChecked]}>{checked ? <Text style={styles.tick}>✓</Text> : null}</View>
+      <View style={[styles.box, checked && styles.boxChecked]}>
+        {checked ? <Check size={16} strokeWidth={3} color={colors.onPrimary} /> : null}
+      </View>
       <Text style={styles.checkLabel}>{label}</Text>
     </Pressable>
   );
@@ -288,8 +325,11 @@ const useStyles = themedStyles((c) => ({
   // The dots of a hidden password, spaced.
   hidden: { letterSpacing: 2 },
   showHide: { width: 44, height: 44, marginRight: 4, alignItems: 'center', justifyContent: 'center' },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  underField: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
+  ruleDotSlot: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  ruleDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.inkSubtle },
+  ruleText: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
   input: {
     minHeight: 54,
     borderWidth: 1.5,
@@ -302,10 +342,9 @@ const useStyles = themedStyles((c) => ({
   },
   checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 },
   // Wraps beside the box rather than running off the screen.
-  checkLabel: { flexShrink: 1, fontSize: 15 },
-  box: { width: 24, height: 24, borderWidth: 2, borderColor: c.inkMuted, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  checkLabel: { flexShrink: 1, fontSize: 16, lineHeight: 22 },
+  box: { width: 22, height: 22, borderWidth: 1.5, borderColor: c.inkSubtle, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   boxChecked: { backgroundColor: c.primary, borderColor: c.primary },
-  tick: { color: c.onPrimary, fontWeight: '700' },
   choice: {
     minHeight: 40,
     alignItems: 'center',
