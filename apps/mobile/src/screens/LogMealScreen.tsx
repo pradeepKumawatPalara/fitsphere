@@ -39,8 +39,8 @@ import { Text, TextButton, TextInput } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
-import { addAmount, amountLimit, GRAMS_RULE, parseGrams, sameFood, withGrams, withPortions } from '../mealItems';
-import { describeItems, formatAmount, formatGrams, formatKcal, formatPortions, MEAL_TAG_LABELS } from '../meals';
+import { addAmount, amountLimit, GRAMS_RULE, gramsPerUnitOf, parseGrams, sameFood, unitsMax, withGrams, withPortions, withUnits } from '../mealItems';
+import { describeItems, formatAmount, formatGrams, formatKcal, formatMeasures, formatPortions, MEAL_TAG_LABELS, MEASURE_NAMES } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -271,7 +271,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                   accessibilityLabel={`Change ${item.name}`}
                   onPress={() => {
                     setGramsText(item.amount.unit === 'g' ? String(item.amount.value) : '');
-                    setPortions(item.amount.unit === 'portion' ? item.amount.value : 1);
+                    setPortions(item.amount.unit === 'g' ? 1 : item.amount.value);
                     setSheet({ change: index });
                   }}
                   style={({ pressed }) => [styles.itemAction, pressed && styles.pressed]}
@@ -372,6 +372,17 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                   },
                 ]
               : []),
+            ...(changing.amount.unit === 'measure' && portions !== changing.amount.value
+              ? [
+                  {
+                    label: `Change to ${formatMeasures(portions, changing.amount.measure)}`,
+                    onPress: () =>
+                      setItems((current) =>
+                        current.map((item, index) => (index === (sheet as { change: number }).change ? withUnits(item, portions) : item)),
+                      ),
+                  },
+                ]
+              : []),
             {
               label: 'Remove',
               destructive: true,
@@ -401,6 +412,13 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                 </View>
               ) : null}
             </View>
+          ) : changing.amount.unit === 'measure' ? (
+            <PortionStepper
+              value={portions}
+              onChange={setPortions}
+              max={unitsMax(gramsPerUnitOf(changing.amount))}
+              unit={MEASURE_NAMES[changing.amount.measure]}
+            />
           ) : (
             <PortionStepper value={portions} onChange={setPortions} />
           )}

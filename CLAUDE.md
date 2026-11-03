@@ -7,6 +7,14 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
+**Household units — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-36,
+2026-11-03).** Plan: `docs/plans/household-units.md` (Accepted). A listed food can be logged in a
+teaspoon, tablespoon, katori, glass or piece once the owner has measured it in
+`docs/data/household-measures-sheet.csv`; the starter rows are `pending` with no grams. Never fill
+in or approve a row without the owner's measurements. Still open, by the owner and only when the
+owner says so: migration 0009 on `fitsphere-dev` **before** running the updated API (until then
+`GET /v1/foods` fails), then `foods:import`.
+
 **UI refresh — branch `ui-refresh`, not merged yet; the owner's phone checks pending (D-33, D-34;
 2026-11-02 to 2026-11-03).** One branch, not pushed: the app restyled screen by screen and sheet by
 sheet (TextButton, Field, the shared Sheet and FormScreen frames, one pill style, one Cancel

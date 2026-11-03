@@ -342,6 +342,7 @@ describe('ADR-0002 second safety layer', () => {
       'applied_changes',
       'barcode_products',
       'dishes',
+      'food_measures',
       'foods',
       'head_coach_permission_answers',
       'links',

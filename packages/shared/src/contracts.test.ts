@@ -445,6 +445,47 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
     }
   });
 
+  it('D-36 a listed food may be in household units: halves from 0.5 to 10, with the grams they came to', () => {
+    const glasses = (value: number, grams: number) => ({ unit: 'measure', measure: 'glass', value, grams });
+    for (const amount of [glasses(0.5, 129), glasses(10, 2_000), { unit: 'measure', measure: 'teaspoon', value: 1, grams: 4.6 }]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
+    }
+    for (const amount of [
+      glasses(0.25, 64.5),
+      glasses(10.5, 1_000),
+      glasses(1, 0),
+      glasses(9, 2_322),
+      { unit: 'measure', measure: 'cup', value: 1, grams: 240 },
+      { unit: 'measure', measure: 'glass', value: 1 },
+    ]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
+    }
+    for (const source of ['dish', 'barcode', 'own'] as const) {
+      const result = mealItemSchema.safeParse({ ...item, source, amount: glasses(1, 258) });
+      expect(result.success).toBe(false);
+      expect(result.error && validationDetails(result.error, {})).toEqual([{ field: 'amount', issue: 'invalid_format' }]);
+    }
+  });
+
+  it('D-36 the food list gives each food its measured units', () => {
+    const milk = {
+      source: 'ifct2017',
+      code: 'L002',
+      name: 'Milk, whole, Cow',
+      foodGroup: 'Milk and Milk Products',
+      aliases: [],
+      proteinG: 3.26,
+      fibreG: 0,
+      fatG: 4.48,
+      carbsG: 4.94,
+      kcal: 73,
+      kcalEstimated: false,
+      measures: [{ measure: 'glass', grams: 258 }],
+    };
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [milk], dishes: [] }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [{ ...milk, measures: [{ measure: 'cup', grams: 240 }] }], dishes: [] }).success).toBe(false);
+  });
+
   it('D-28 the food list carries the dishes, per portion; both are null when the phone is current', () => {
     const flatbread = { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 120, proteinG: 3.6, carbsG: 20, fatG: 3, fibreG: 2 };
     expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [flatbread] }).success).toBe(true);

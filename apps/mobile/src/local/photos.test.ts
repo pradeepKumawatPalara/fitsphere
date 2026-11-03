@@ -205,6 +205,9 @@ describe('Local schema version 4', () => {
         CREATE TABLE meals (id TEXT PRIMARY KEY, day TEXT NOT NULL, meal_type TEXT NOT NULL, tags TEXT NOT NULL,
           items TEXT NOT NULL, recorded_at TEXT NOT NULL, kcal REAL NOT NULL, protein_g REAL NOT NULL, carbs_g REAL,
           fat_g REAL, fibre_g REAL, sync_state TEXT NOT NULL);
+        CREATE TABLE foods (source TEXT NOT NULL, code TEXT NOT NULL, name TEXT NOT NULL, food_group TEXT NOT NULL,
+          aliases TEXT NOT NULL, protein_g REAL NOT NULL, fibre_g REAL NOT NULL, fat_g REAL NOT NULL, carbs_g REAL NOT NULL,
+          kcal REAL NOT NULL, kcal_estimated INTEGER NOT NULL, PRIMARY KEY (source, code));
         PRAGMA user_version = 3;`);
       const mealId = id();
       await old.runAsync(`INSERT INTO meals VALUES (?, ?, 'lunch', '[]', ?, ?, 180, 4, NULL, NULL, NULL, 'synced')`, [
@@ -217,7 +220,7 @@ describe('Local schema version 4', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
       expect(await getEntry(old, 'meal', mealId)).toMatchObject({ id: mealId, photo: null });
       expect(await getMeta(old, 'cursor')).toBeNull();
     } finally {

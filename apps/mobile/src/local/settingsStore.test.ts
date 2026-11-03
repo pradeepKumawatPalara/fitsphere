@@ -70,7 +70,7 @@ describe('Local schema version 7', () => {
     try {
       // Version 6 as phones have it: build it with the current migrations, then drop what 7 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE settings; PRAGMA user_version = 6;');
+      await old.execAsync('DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 6;');
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(
         `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c1', 'weighIn.set', ?, ?, 'pending')`,
@@ -81,7 +81,7 @@ describe('Local schema version 7', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();

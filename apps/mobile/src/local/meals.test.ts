@@ -217,6 +217,7 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     carbsG: 1,
     kcal: 10,
     kcalEstimated: false,
+    measures: [],
   });
   const LIST = [
     food('A015', 'Rice, raw, milled'),
@@ -244,6 +245,13 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect((await searchFoods(db, 'ATTA')).map((found) => found.code)).toEqual(['A019']);
     expect((await searchFoods(db, 'dal gram')).map((found) => found.code)).toEqual(['B021']);
     expect((await searchFoods(db, 'r')).map((found) => found.code).slice(0, 2)).toEqual(['B021', 'A015']);
+  });
+
+  it('D-36 keeps each food’s household units with it', async () => {
+    const ghee = { ...food('T013', 'Ghee'), measures: [{ measure: 'teaspoon' as const, grams: 4.6 }, { measure: 'tablespoon' as const, grams: 13.5 }] };
+    await replaceFoods(db, 'v2', [ghee]);
+
+    expect(await searchFoods(db, 'ghee')).toEqual([ghee]);
   });
 
   it('D-26 finds a food by its alias', async () => {
@@ -286,6 +294,30 @@ describe('D-28 the cached dishes', () => {
   });
 });
 
+describe('Local schema version 8', () => {
+  it('D-36 the update from version 7 gives every cached food no units yet, and asks for the food list again', async () => {
+    const old = memoryDb();
+    try {
+      await old.execAsync(`
+        CREATE TABLE sync_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE foods (source TEXT NOT NULL, code TEXT NOT NULL, name TEXT NOT NULL, food_group TEXT NOT NULL,
+          aliases TEXT NOT NULL, protein_g REAL NOT NULL, fibre_g REAL NOT NULL, fat_g REAL NOT NULL, carbs_g REAL NOT NULL,
+          kcal REAL NOT NULL, kcal_estimated INTEGER NOT NULL, PRIMARY KEY (source, code));
+        PRAGMA user_version = 7;`);
+      await old.runAsync(`INSERT INTO foods VALUES ('ifct2017', 'L002', 'Milk, whole, Cow', 'Synthetic group', '[]', 1, 0, 1, 1, 10, 0)`, []);
+      await setMeta(old, 'food_list_version', 'v1');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
+      expect((await searchFoods(old, 'milk')).map((found) => found.measures)).toEqual([[]]);
+      expect(await getMeta(old, 'food_list_version')).toBeNull();
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
 describe('Local schema version 5', () => {
   it('D-28 the update from version 4 adds the dishes, keeps the meals and foods, and asks for the food list again', async () => {
     const old = memoryDb();
@@ -302,7 +334,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
       expect((await searchFoods(old, 'atta')).map((found) => found.code)).toEqual(['A019']);
       expect(await searchDishes(old, 'atta')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -327,7 +359,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 8 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);

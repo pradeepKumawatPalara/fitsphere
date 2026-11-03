@@ -24,10 +24,23 @@ beforeAll(async () => {
      values ($1, 'Test flatbread', 'piece', 173, 4.23, 25.67, 5.61, 4.54) on conflict (code) do nothing`,
     [TEST_DISH_CODE],
   );
+  // A synthetic unit (D-36): made-up grams for a teaspoon of ghee, whose food row must exist. The
+  // food list's own import (foods.test.ts) sets the row's real values.
+  await api.db.query(
+    `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source,
+       estimated, needs_review, hidden)
+     values ('ifct2017', 'T013', 'Ghee', 'Edible Oils and Fats', 0, 0, 100, 0, 900, 'estimated_fat_factor', true, true, false)
+     on conflict (source, code) do nothing`,
+  );
+  await api.db.query(
+    `insert into app.food_measures (source, code, measure, grams) values ('ifct2017', 'T013', 'teaspoon', 4.6)
+     on conflict do nothing`,
+  );
 });
 
 afterAll(async () => {
   await api.db.query('delete from app.dishes where code = $1', [TEST_DISH_CODE]);
+  await api.db.query(`delete from app.food_measures where code = 'T013' and measure = 'teaspoon'`);
   await api.close();
 });
 
@@ -275,6 +288,31 @@ describe('REQ-LOG-001 meals', () => {
     const reply = await syncOk(user, [mealSet(randomUUID(), { items: [{ ...ATTA, amount: { unit: 'portion', value: 1 } }] })]);
 
     expect(reply.results[0]?.error?.code).toBe('VALIDATION_FAILED');
+  });
+
+  it('D-36 a listed food in a unit it has is accepted, and keeps the grams and values it was logged with', async () => {
+    const user = await api.signUpWithAccount();
+    // 2 teaspoons of ghee at the synthetic 4.6 g each: the phone's snapshot for 9.2 g.
+    const teaspoons: MealItem = { ...GHEE, amount: { unit: 'measure', measure: 'teaspoon', value: 2, grams: 9.2 }, kcal: 82.8, fatG: 9.2 };
+
+    const reply = await syncOk(user, [mealSet(randomUUID(), { items: [teaspoons] }), savedSet(randomUUID(), { items: [teaspoons] })]);
+
+    expect(reply.results.map((result) => result.status)).toEqual(['accepted', 'accepted']);
+    const [meal] = reply.pull.meals;
+    expect(meal?.deleted === false && meal.items).toEqual([teaspoons]);
+  });
+
+  it.each<[string, Partial<MealItem>]>([
+    ['a unit the food does not have on the list', { amount: { unit: 'measure', measure: 'glass', value: 1, grams: 250 } }],
+    ['a unit of a food not on the list', { ref: 'A019', amount: { unit: 'measure', measure: 'teaspoon', value: 1, grams: 4.6 } }],
+  ])('D-36 %s is rejected, for a meal and a saved meal', async (_case, change) => {
+    const user = await api.signUpWithAccount();
+    const item: MealItem = { ...GHEE, ...change };
+
+    const reply = await syncOk(user, [mealSet(randomUUID(), { items: [item] }), savedSet(randomUUID(), { items: [item] })]);
+
+    expect(reply.results.map((result) => result.error?.code)).toEqual(['VALIDATION_FAILED', 'VALIDATION_FAILED']);
+    expect(await storedMeals(user.id)).toEqual([]);
   });
 
   it('D-28 a saved meal can hold a listed dish, but not an unlisted one', async () => {

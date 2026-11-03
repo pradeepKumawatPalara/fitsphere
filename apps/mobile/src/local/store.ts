@@ -410,6 +410,10 @@ const MIGRATIONS = [
      ${SYNC_STATE}
    );
    DELETE FROM sync_meta WHERE key = 'cursor';`,
+  // Household units (D-36): each food's measured units and the grams one holds, as JSON. The food
+  // list's version is cleared, so the next download brings them.
+  `ALTER TABLE foods ADD COLUMN measures TEXT NOT NULL DEFAULT '[]';
+   DELETE FROM sync_meta WHERE key = 'food_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -866,8 +870,8 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
     await db.runAsync('DELETE FROM foods', []);
     for (const food of foods) {
       await db.runAsync(
-        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           food.source,
           food.code,
@@ -880,6 +884,7 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
           food.carbsG,
           food.kcal,
           food.kcalEstimated ? 1 : 0,
+          JSON.stringify(food.measures),
         ],
       );
     }
@@ -907,6 +912,7 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     carbs_g: number;
     kcal: number;
     kcal_estimated: number;
+    measures: string;
   }>(
     `SELECT * FROM foods WHERE ${conditions.join(' AND ')}
      ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
@@ -924,6 +930,7 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     carbsG: row.carbs_g,
     kcal: row.kcal,
     kcalEstimated: row.kcal_estimated === 1,
+    measures: JSON.parse(row.measures) as Food['measures'],
   }));
 }
 

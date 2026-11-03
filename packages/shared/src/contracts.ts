@@ -307,6 +307,14 @@ export const MAX_MEAL_ITEMS = 30;
 export const MEAL_ITEM_GRAMS_MAX = 2_000;
 /** Portions of a dish, in halves (MVP default, D-26). */
 export const MEAL_ITEM_PORTIONS_MAX = 10;
+/**
+ * Household units a listed food can be logged in, once the owner has measured the grams one holds
+ * for that food (D-36): teaspoon 5 ml, tablespoon 15 ml, katori 200 ml, glass 250 ml, and piece.
+ */
+export const FOOD_MEASURES = ['teaspoon', 'tablespoon', 'katori', 'glass', 'piece'] as const;
+export type FoodMeasure = (typeof FOOD_MEASURES)[number];
+/** Units of a food, in halves, as a dish's portions (MVP default, D-36). */
+export const MEAL_ITEM_MEASURES_MAX = 10;
 /** The most one item can hold, whatever its amount. */
 export const MEAL_ITEM_KCAL_MAX = 20_000;
 export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
@@ -314,6 +322,15 @@ export const MEAL_ITEM_SOURCES = ['ifct2017', 'dish', 'barcode', 'own'] as const
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
 
 const nutrientSchema = z.number().min(0).max(MEAL_ITEM_NUTRIENT_MAX);
+
+/** A count in halves, from 0.5 to `max`. */
+function halvesSchema(max: number) {
+  return z
+    .number()
+    .min(0.5)
+    .max(max)
+    .refine((value) => Number.isInteger(value * 2));
+}
 
 /**
  * One food in a meal, with its values for the amount eaten. The values are a snapshot taken when
@@ -328,13 +345,13 @@ export const mealItemSchema = z
     name: z.string().trim().min(1).max(120),
     amount: z.discriminatedUnion('unit', [
       z.strictObject({ unit: z.literal('g'), value: z.int().min(1).max(MEAL_ITEM_GRAMS_MAX) }),
+      z.strictObject({ unit: z.literal('portion'), value: halvesSchema(MEAL_ITEM_PORTIONS_MAX) }),
+      // Units of a listed food (D-36), with the grams they came to, which the values are for.
       z.strictObject({
-        unit: z.literal('portion'),
-        value: z
-          .number()
-          .min(0.5)
-          .max(MEAL_ITEM_PORTIONS_MAX)
-          .refine((value) => Number.isInteger(value * 2)),
+        unit: z.literal('measure'),
+        measure: z.enum(FOOD_MEASURES),
+        value: halvesSchema(MEAL_ITEM_MEASURES_MAX),
+        grams: z.number().gt(0).max(MEAL_ITEM_GRAMS_MAX),
       }),
     ]),
     kcal: z.number().min(0).max(MEAL_ITEM_KCAL_MAX),
@@ -345,8 +362,15 @@ export const mealItemSchema = z
     /** Any value is estimated rather than published (oils and fats, dishes). */
     estimated: z.boolean(),
   })
-  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28).
-  .refine((item) => (item.source === 'dish') === (item.amount.unit === 'portion'), { path: ['amount'] });
+  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); a listed food
+  // may also be logged in a household unit (D-36).
+  .refine(
+    (item) =>
+      item.source === 'dish'
+        ? item.amount.unit === 'portion'
+        : item.amount.unit === 'g' || (item.amount.unit === 'measure' && item.source === 'ifct2017'),
+    { path: ['amount'] },
+  );
 export type MealItem = z.infer<typeof mealItemSchema>;
 
 const mealTagsSchema = z
@@ -548,7 +572,11 @@ const pulledItemSchema = z.object({
   source: z.enum(MEAL_ITEM_SOURCES),
   ref: z.string().nullable(),
   name: z.string(),
-  amount: z.object({ unit: z.enum(['g', 'portion']), value: z.number() }),
+  amount: z.discriminatedUnion('unit', [
+    z.object({ unit: z.literal('g'), value: z.number() }),
+    z.object({ unit: z.literal('portion'), value: z.number() }),
+    z.object({ unit: z.literal('measure'), measure: z.enum(FOOD_MEASURES), value: z.number(), grams: z.number() }),
+  ]),
   kcal: z.number(),
   proteinG: z.number(),
   carbsG: z.number().nullable(),
@@ -657,6 +685,8 @@ export const foodSchema = z.object({
   kcal: z.number(),
   /** The kcal value is estimated, not published (oils and fats: 9 kcal per g of fat, D-26). */
   kcalEstimated: z.boolean(),
+  /** The household units the owner has measured for this food, and the grams one holds (D-36). */
+  measures: z.array(z.object({ measure: z.enum(FOOD_MEASURES), grams: z.number() })),
 });
 export type Food = z.infer<typeof foodSchema>;
 

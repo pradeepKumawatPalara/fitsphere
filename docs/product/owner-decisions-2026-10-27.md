@@ -1068,14 +1068,19 @@ checksum), and the configuration template was left as it is.*
      A food offers a unit only once its row is measured and approved by the owner; grams stay
      available for every food. Never fill in or approve a row without the owner's measurements.
   2. **When:** after the redesign (modules 4 to 6), as its own small slice with a plan that the
-     owner accepts first.
+     owner accepts first. *Amended by the owner, 2026-11-03: "I accept the plan… go ahead and build
+     it. After that we will go for training tasks": built now, on the branch `ui-redesign`, before
+     the redesign's Training module. Plan: `docs/plans/household-units.md` (Accepted).*
 - **Interpretation:** HealthifyMe is a reference for the interaction only (an amount with a unit
   beside it and the grams it comes to); none of its data or wording is used. *(Confirm.)*
 - **Interpretation:** the sizes listed in answer 1 are examples; the plan proposes the units and
   sizes for the owner to approve. *(Confirm.)*
 - Unchanged until the plan is accepted: grams for listed foods, barcode products and your own food;
   portions for dishes (D-26, D-28); the meal contract; the invariants.
-- Doc changes: backlog B-27.
+- Doc changes: backlog B-27; the plan `docs/plans/household-units.md`; the sheet
+  `docs/data/household-measures-sheet.csv`; `data-model.md` (`food_measures`, the meal item's
+  amount, phone schema version 8); `api-conventions.md` (`GET /v1/foods`); `food-list-sources.md`;
+  REQ-LOG-007.
 
 ---
 

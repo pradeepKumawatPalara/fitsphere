@@ -352,7 +352,8 @@ Query: `version` (optional), the version of the list the phone already holds.
   "version": "Qm9VZx1…",
   "items": [
     { "source": "ifct2017", "code": "T013", "name": "Ghee", "foodGroup": "Edible Oils and Fats",
-      "aliases": [], "proteinG": 0, "fibreG": 0, "fatG": 100, "carbsG": 0, "kcal": 900, "kcalEstimated": true }
+      "aliases": [], "proteinG": 0, "fibreG": 0, "fatG": 100, "carbsG": 0, "kcal": 900, "kcalEstimated": true,
+      "measures": [{ "measure": "teaspoon", "grams": 4.6 }] }
   ],
   "dishes": [
     { "code": "test_dal", "name": "Test dal", "portionUnit": "katori", "kcal": 138.82, "proteinG": 7.42,
@@ -361,10 +362,13 @@ Query: `version` (optional), the version of the list the phone already holds.
 }
 ```
 - `items`: values are per 100 g edible portion. Rows hidden until checked are left out.
+- `measures` (D-36): the household units the owner has measured and approved for the food, in the
+  order teaspoon, tablespoon, katori, glass, piece, with the grams one holds; empty for most foods.
+  A meal item may use only a unit its food has here. The example's grams are synthetic.
 - `dishes` (D-28): the approved dishes of the standard-recipe sheet, with their values for one
   portion (`portionUnit`: `piece`, or `katori` of 200 ml). Always estimated. A recipe's
   ingredients and grams are never sent. The example is synthetic.
-- `version` changes whenever any value the phone receives changes, dishes included. When the
+- `version` changes whenever any value the phone receives changes, dishes and units included. When the
   query's `version` is already current, `items` and `dishes` are `null`, so the phone downloads
   the list only when it changed.
 - The list is reference data, not personal, and is the same for every signed-in user. Where its
