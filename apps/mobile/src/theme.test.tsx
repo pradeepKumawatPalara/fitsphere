@@ -189,9 +189,12 @@ describe('REQ-ACC-001 every colour comes from the theme', () => {
   const files = sourceFiles(__dirname);
 
   it('REQ-ACC-001 no colour code outside theme.tsx', () => {
+    // Hex codes, and rgb() or rgba() values such as a backdrop's.
     const found = files
       .filter((file) => relative(__dirname, file) !== 'theme.tsx')
-      .flatMap((file) => (readFileSync(file, 'utf8').match(/['"]#[0-9a-fA-F]{3,8}['"]/g) ?? []).map((code) => `${relative(__dirname, file)}: ${code}`));
+      .flatMap((file) =>
+        (readFileSync(file, 'utf8').match(/['"](#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))['"]/g) ?? []).map((code) => `${relative(__dirname, file)}: ${code}`),
+      );
     expect(found).toEqual([]);
   });
 

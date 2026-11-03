@@ -53,7 +53,7 @@ export function Sheet({ title, header, children, actions, scroll = true, onClose
 // As the screens: 24 at the sides, 12 between the parts of the body, 8 between the actions. The
 // title is 20, the size of a value; the main action is filled, Cancel and Close are links.
 const useStyles = themedStyles((c) => ({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.3)' },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: c.scrim },
   sheet: { maxHeight: '90%', backgroundColor: c.background, paddingTop: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   header: { paddingHorizontal: 24, paddingBottom: 12 },
   title: { fontSize: 20, fontWeight: '600' },

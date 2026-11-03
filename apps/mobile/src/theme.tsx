@@ -41,6 +41,10 @@ export type ThemeColors = {
   macroCarbs: string;
   macroFat: string;
   macroFibre: string;
+  /** Behind a sheet: dims the screen it opens over. */
+  scrim: string;
+  /** Behind the full-size photo viewer. */
+  scrimStrong: string;
 };
 
 export const LIGHT_COLORS: ThemeColors = {
@@ -65,6 +69,8 @@ export const LIGHT_COLORS: ThemeColors = {
   macroCarbs: '#ef6c00',
   macroFat: '#ad1457',
   macroFibre: '#2e7d32',
+  scrim: 'rgba(0,0,0,0.3)',
+  scrimStrong: 'rgba(0,0,0,0.9)',
 };
 
 export const DARK_COLORS: ThemeColors = {
@@ -89,6 +95,9 @@ export const DARK_COLORS: ThemeColors = {
   macroCarbs: '#ffb74d',
   macroFat: '#f48fb1',
   macroFibre: '#81c784',
+  // Darker on the dark screens, so a sheet still stands off the screen behind it.
+  scrim: 'rgba(0,0,0,0.5)',
+  scrimStrong: 'rgba(0,0,0,0.9)',
 };
 
 export type Scheme = 'light' | 'dark';

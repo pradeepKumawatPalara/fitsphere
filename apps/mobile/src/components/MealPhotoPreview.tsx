@@ -75,7 +75,7 @@ const useStyles = themedStyles((c) => ({
   note: { color: c.textMuted, fontSize: 13 },
   pressed: { opacity: 0.6 },
   link: { fontSize: 13, fontWeight: '600', color: c.primary },
-  viewer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', padding: 16, gap: 16 },
+  viewer: { flex: 1, backgroundColor: c.scrimStrong, justifyContent: 'center', padding: 16, gap: 16 },
   full: { width: '100%', height: '80%' },
   viewerText: { color: c.onPrimary, textAlign: 'center' },
 }));
