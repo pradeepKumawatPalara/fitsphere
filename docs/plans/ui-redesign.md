@@ -100,12 +100,12 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 5.1 Progress: weight and its chart, nutrition, the week, measurements | Locked and built; the chart is drawn with react-native-svg (in the app since D-35, so no new package or build), with the area under the line tinted |
 | 5.2 Weight history | Locked and built; "No weights from … to …" writes its days as everywhere else ("Fri 8 May"; they were shown as 2026-05-08) |
 | **6 Settings and account** | |
-| 6.1 Settings | Locked (2026-11-03); built with 6.6, as its Profile card needs the profile |
+| 6.1 Settings | Locked and built; a Profile card on top (the photo, the name, the email, Edit profile); the choices as square blocks with icons; the account's rows with their icons |
 | 6.2 Your targets and its entry sheet | Locked and built; tiles two by two with the target's icon, the body weight across both (the entry sheet is 2.4's) |
 | 6.3 Change password | Locked and built; each problem shows under its field, and a changed password as a green banner (the banner's `success` tone) |
 | 6.4 Delete account | Locked and built; the list's bullets became icons on a red tint |
 | 6.5 Log out | Locked and built; its warning takes the place of Log out and Delete account, on a red tint |
-| 6.6 Profile (new: the owner's request, 2026-11-03) | Locked with its plan `user-profile.md` (Accepted, 2026-11-03); being built |
+| 6.6 Profile (new: the owner's request, 2026-11-03) | Locked and built with its plan `user-profile.md` (Accepted; D-38); the header greets by the profile's first name and its avatar shows the photo |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.

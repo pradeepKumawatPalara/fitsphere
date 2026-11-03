@@ -7,6 +7,15 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
+**Profile — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-38,
+2026-11-03 to 2026-11-04).** Plan: `docs/plans/user-profile.md` (Accepted), REQ-ACC-011. Settings
+opens with a Profile card; the Profile screen keeps the user's photo, name, date of birth (18 or
+older), sex, height (mm), phone (+91) and address, all optional, with the latest weigh-in and the
+email read-only. Migration `0010_profiles.sql` (`app.profiles`, `app.media.kind`), sync change
+`profile.set`, phone schema version 9. **Run migration 0010 on `fitsphere-dev` before the updated
+API, and only when the owner says so.** Legal reviews the new data before real users (Q-049, L-07a).
+The redesign's module 6 (6.1 to 6.6) is locked and built.
+
 **Household units — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-36,
 2026-11-03).** Plan: `docs/plans/household-units.md` (Accepted). A listed food can be logged in a
 teaspoon, tablespoon, katori, glass or piece once the owner has measured it in

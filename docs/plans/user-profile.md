@@ -84,10 +84,21 @@ in the MVP, D-20); using the details for anything else, such as calorie suggesti
 - Phone: the version 9 upgrade; the Profile screen saves offline and syncs; each problem under its
   field; the greeting and avatar use the profile; the weight row logs today's weigh-in.
 
+## Progress
+Built on branch `ui-redesign` (not pushed), 2026-11-03 to 2026-11-04, as D-38:
+- Step 1, the server: the contract (`profileSetDataSchema`, `isAcceptedDateOfBirth`), migration
+  0010, `profile.set` and the pull's `profiles`, media kinds, deletion. Shared and API
+  (integration) tests pass.
+- Step 2, the phone: schema version 9, the Profile screen, the Settings card, the header's
+  greeting and avatar, "Your profile" among refused changes. Mobile tests pass.
+- Step 3, the docs: REQ-ACC-011, the data model, API conventions, the threat model, Legal's brief
+  (L-07a), the deletion page, the MVP defaults.
+
 ## Owner's steps
-- Approve this plan and lock the screens (Settings with its Profile card, and Profile).
+- ~~Approve this plan and lock the screens~~ (done, 2026-11-03).
 - On `fitsphere-dev`, only when the owner says so: migration 0010 **before** running the updated
   API (until then the sync fails, as with 0008 on 2026-11-02).
+- Check on the phone: no new development build is needed (no native code changed).
 
 ## Risks
 - Collecting contact data the app does not use yet (data minimisation); accepted by the owner,

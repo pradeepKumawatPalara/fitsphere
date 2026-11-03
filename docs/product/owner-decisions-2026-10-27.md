@@ -1095,6 +1095,26 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-TRN-002 and REQ-TRN-003; `mvp-scope.md`; `user-journeys.md`;
   `constraints-and-assumptions.md`; `FEATURE_STATUS.md`; the slice-4 manual test guide.
 
+## D-38 The profile: the user's basic details in Settings
+- Status: **Accepted** (owner request in chat, 2026-11-03; answers the same day; the plan
+  [`user-profile.md`](../plans/user-profile.md) approved, and the screens 6.1 and 6.6 locked, with
+  "approve lock it").
+- Request: Settings lets the user add and change their name, photo, address, sex, age, height,
+  weight, phone number and email, with the server keeping them.
+- Answers:
+  1. **Email:** shown read-only; changing the sign-in email stays out of the MVP.
+  2. **Age:** the date of birth is stored, and the age worked out from it; 18 or older
+     (REQ-ACC-010).
+  3. **Weight:** the latest weigh-in; changing it logs today's weigh-in, so Home, Progress and the
+     profile agree (invariant #6).
+  4. **Address and phone:** collected, both optional; private to the user, never sent to another
+     service, deleted with the account. Legal reviews them before real users (Q-049).
+- Built as REQ-ACC-011: migration 0010 (`app.profiles`, and `app.media.kind` for the profile
+  photo), the `profile.set` sync change and the profile in the pull, phone schema version 9.
+- Owner's step: run migration 0010 on `fitsphere-dev` **before** running the updated API.
+- Doc changes: REQ-ACC-011 and REQ-ACC-009; the data model; API conventions; the data and threat
+  model; Legal's brief; the account deletion page; `constraints-and-assumptions.md`; the plans.
+
 ---
 
 ## Proposed replacement wording for the two invariants

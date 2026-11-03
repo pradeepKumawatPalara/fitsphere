@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -644,13 +644,39 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Type: Privacy
 - Requirement: "Delete account" opens a separate flow. After the user confirms, FitSphere deletes the user's data from the database and file storage, ends all their links (the other side gets the neutral "<name> is no longer linked with you" message), and deletes the sign-in account. Only the security logs required by REQ-NFR-005 are kept, without health data (MVP default, Q-048; Legal to confirm, Q-049). Google Play also requires a web page: a simple page explains how to request deletion by email (Q-048). *(How: ADR-0004 rule 7.)*
 - Acceptance criteria:
-  - When the user confirms deletion, then their entries, plans, targets, settings, consent records, Head Coach permission answers and media are removed from the database and file storage, and they can no longer sign in.
+  - When the user confirms deletion, then their entries, plans, targets, settings, profile (REQ-ACC-011), consent records, Head Coach permission answers and media are removed from the database and file storage, and they can no longer sign in.
   - When the account is deleted, then each linked coach, Head Coach or trainee gets the neutral message, and their phones delete the user's data on their next sync (REQ-NFR-004).
   - The admin access log keeps its entries about the account, without health data (REQ-NFR-005).
   - A public web page explains how to request deletion by email. The owner acts on a request only after confirming it from the account's registered address, and only through the logged admin path (ADR-0004).
 - Status: unblocked — Q-048 answered for the MVP (D-18). Before real users, Legal confirms what is deleted and what is kept (Q-049). Asking for the password again is post-MVP (backlog E-01).
 - MVP (D-20): no links exist, so ending links and the neutral message apply post-MVP (backlog B-19).
 - MVP (D-31): built in the Settings slice as `DELETE /v1/me` (api-conventions): the photo files, then the user's rows, then the Supabase sign-in account, deleted with a secret key only the API holds. The page's text is [`docs/legal/account-deletion-page.md`](../legal/account-deletion-page.md) (draft). Acting on an emailed request needs the logged admin path, which is release-blocking task RB-04.
+
+### REQ-ACC-011 — Profile
+- Type: Functional, Privacy
+- Requirement: The user can add and change their basic details in Settings: a photo, their name,
+  date of birth, sex, height, phone number and address; the weight is their latest weigh-in; the
+  sign-in email is shown read-only. Every field is optional. *(Not in the BRD; the owner's request,
+  D-38.)*
+- Acceptance criteria:
+  - Given a date of birth that makes the user under 18, then it is refused with "Enter a date of
+    birth for someone 18 or older." (REQ-ACC-010); the profile shows the age a date gives.
+  - The height is kept in millimetres and shown in cm, or in inches when the measurements use
+    inches (invariant #6); 100 to 250 cm.
+  - The phone number is a 10-digit Indian mobile number, kept with +91 (invariant #5); not verified.
+  - An address is empty, or has line 1, the city, the state and a 6-digit PIN code; line 2 is
+    optional.
+  - "Log today's weight" saves today's weigh-in, as on Home (REQ-HOME-006).
+  - The profile is saved on the phone and synced, so it can be edited offline (ADR-0007); its photo
+    is kept and uploaded as a meal photo is (ADR-0002).
+  - The header greets the user by the first word of their name, and the avatar shows their photo,
+    when there are (REQ-HOME-001).
+  - Only the user can read or change their profile (REQ-NFR-001, D-20); no value is logged
+    (REQ-NFR-002); deleting the account deletes it and its photo (REQ-ACC-009).
+- Status: built (D-38). Before real users, Legal reviews the new data (Q-049).
+- MVP defaults (D-38): the sign-in email can't be changed; the phone is not verified; the weight
+  shown is the latest weigh-in on the phone (the last 90 days); a photo is cropped to its middle
+  square.
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
