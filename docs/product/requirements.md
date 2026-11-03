@@ -530,12 +530,12 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-TRN-002 — Empty state
 - Requirement: Until a coach sends a plan, Training shows "No training plan yet".
-- MVP (D-20): no one can send a training plan in the MVP, so Training always shows "No training plan yet", with "Start an empty workout" (REQ-TRN-003) and the workout history (REQ-TRN-004).
+- MVP (D-20): no one can send a training plan in the MVP, so Training always shows "No training plan yet", with "Log workout" (REQ-TRN-003; named "Start an empty workout" until D-37) and the workout history (REQ-TRN-004).
 
 ### REQ-TRN-003 — Empty workout
-- Requirement: "Start an empty workout" lets the user log a self-directed session.
+- Requirement: "Log workout" lets the user log a self-directed session. The BRD calls it "Start an empty workout"; the owner renamed the button (D-37).
 - MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout counts toward the weekly target (Q-025).
-- MVP defaults (D-29): "Start an empty workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
+- MVP defaults (D-29): "Log workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.

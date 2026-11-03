@@ -56,7 +56,7 @@ REQ-TRN-001..005, TRN-007, HOME-007
 1. Training tab → today's plan from coach, with exercise how-to (a coach-provided YouTube link — D-16).
 2. Starts the workout and logs sets × reps × weight per exercise in the lifting unit setting (MVP default, Q-042).
 3. Workout appears in history; Home workout tracker increments (e.g. "2 of 5 · 3 left").
-Alternate: no plan → "No training plan yet" → "Start an empty workout". In the MVP this is the
+Alternate: no plan → "No training plan yet" → "Log workout". In the MVP this is the
 only path (D-20).
 
 ## J-07 Trainee checks progress

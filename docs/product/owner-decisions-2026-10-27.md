@@ -1085,6 +1085,16 @@ checksum), and the configuration template was left as it is.*
   amount, phone schema version 8); `api-conventions.md` (`GET /v1/foods`); `food-list-sources.md`;
   REQ-LOG-007.
 
+## D-37 Training's button is "Log workout"
+- Status: **Accepted** (owner instruction in chat, 2026-11-03, while locking the redesign's 4.1).
+- Answer: the Training tab's button "Start an empty workout" is renamed **"Log workout"**. It does
+  the same as before: it saves a workout with no exercises on the selected date and opens it
+  (REQ-TRN-003, D-29, Q-025).
+- Unchanged: the BRD's wording in `docs/product/source/business-requirements.txt` (input, not
+  edited); "No training plan yet" and the rest of the tab.
+- Doc changes: REQ-TRN-002 and REQ-TRN-003; `mvp-scope.md`; `user-journeys.md`;
+  `constraints-and-assumptions.md`; `FEATURE_STATUS.md`; the slice-4 manual test guide.
+
 ---
 
 ## Proposed replacement wording for the two invariants

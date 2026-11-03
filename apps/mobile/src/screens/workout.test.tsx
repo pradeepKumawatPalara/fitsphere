@@ -44,7 +44,7 @@ async function startWorkout(pickDay?: string) {
     </>,
   );
   if (pickDay) await fireEvent.press(await screen.findByRole('button', { name: `Pick ${pickDay}` }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
   await screen.findByText(/^Workout · /);
   return { ...app, id: mockParams.id };
 }
@@ -65,7 +65,7 @@ async function addExercise(fields: Fields) {
 }
 
 describe('REQ-TRN-003 starting a workout', () => {
-  it('Q-025 "Start an empty workout" saves a workout with no exercises on today, opens it and syncs it', async () => {
+  it('Q-025 "Log workout" saves a workout with no exercises on today, opens it and syncs it', async () => {
     const { db, server, id } = await startWorkout();
 
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${id}`);
@@ -231,7 +231,7 @@ async function renderOfflineThenStart() {
     </>,
   );
   app.server.state.offline = true;
-  await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
   await screen.findByText(/^Workout · /);
   return { ...app, id: mockParams.id };
 }

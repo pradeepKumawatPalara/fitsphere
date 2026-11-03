@@ -93,13 +93,19 @@ export function formatSets(exercise: Pick<WorkoutExercise, 'sets' | 'reps' | 'we
   return exercise.weightGrams === null ? setsAndReps : `${setsAndReps} × ${formatWeight(exercise.weightGrams, unit)}`;
 }
 
-/** e.g. "3 exercises · Squat, Bench press, Row", or "No exercises". */
-export function workoutSummary(exercises: readonly Pick<WorkoutExercise, 'name'>[]): string {
-  if (exercises.length === 0) return 'No exercises';
+/** e.g. "3 exercises" and "Squat, Bench press, Row", or "No exercises" and no names. */
+export function workoutParts(exercises: readonly Pick<WorkoutExercise, 'name'>[]): { count: string; names: string } {
+  if (exercises.length === 0) return { count: 'No exercises', names: '' };
   const count = `${exercises.length} ${exercises.length === 1 ? 'exercise' : 'exercises'}`;
   const names = exercises
     .slice(0, 3)
     .map((exercise) => exercise.name)
     .join(', ');
-  return `${count} · ${names}${exercises.length > 3 ? ', …' : ''}`;
+  return { count, names: `${names}${exercises.length > 3 ? ', …' : ''}` };
+}
+
+/** e.g. "3 exercises · Squat, Bench press, Row", or "No exercises". */
+export function workoutSummary(exercises: readonly Pick<WorkoutExercise, 'name'>[]): string {
+  const { count, names } = workoutParts(exercises);
+  return names ? `${count} · ${names}` : count;
 }

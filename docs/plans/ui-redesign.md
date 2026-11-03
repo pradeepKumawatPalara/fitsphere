@@ -93,11 +93,11 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.8 Enter your own food | Locked and built |
 | 3.9 Meal photo | Locked and built; a logged meal's photo or link sits beside the meal card's icons; the viewer's text has its own colour, `onScrim`, readable on its dark backdrop in both themes |
 | **4 Training** | |
-| 4.1 Training: workout history | Next |
-| 4.2 A workout | |
-| 4.3 Exercise sheet | |
+| 4.1 Training: workout history | Locked and built; with it the button "Start an empty workout" is named "Log workout" (D-37) |
+| 4.2 A workout | Locked and built; Done is fixed at the foot, as Log meal's Save meal, and Delete workout ends the list |
+| 4.3 Exercise sheet | Locked and built |
 | **5 Progress** | |
-| 5.1 Progress: weight and its chart, nutrition, the week, measurements | |
+| 5.1 Progress: weight and its chart, nutrition, the week, measurements | Next |
 | 5.2 Weight history | |
 | **6 Settings and account** | |
 | 6.1 Settings | |

@@ -4,7 +4,7 @@ import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
 import { TrainingScreen } from './TrainingScreen';
 
-// The Training tab (REQ-TRN-002, REQ-TRN-004; D-20): the empty state, "Start an empty workout",
+// The Training tab (REQ-TRN-002, REQ-TRN-004; D-20): the empty state, "Log workout",
 // the workouts the user has logged, older ones read online (ADR-0007 rules 1 and 6), and rejected
 // workout changes (ADR-0007 rule 2). The workout screen is tested in workout.test.tsx.
 
@@ -20,11 +20,11 @@ const PUSH_UP = { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: n
 const OLD_ID = '7c2a9e40-1d3b-4f5a-9e6d-2b1c0a9f8e7d';
 
 describe('REQ-TRN-002 the Training tab', () => {
-  it('D-20 shows "No training plan yet", "Start an empty workout" and an empty history', async () => {
+  it('D-20 shows "No training plan yet", "Log workout" and an empty history', async () => {
     await renderInApp(<TrainingScreen />);
 
     expect(await screen.findByText('No training plan yet.')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Start an empty workout' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Log workout' })).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Workouts you have logged' })).toBeOnTheScreen();
     expect(screen.getByText('No workouts logged yet.')).toBeOnTheScreen();
   });
@@ -36,7 +36,7 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     const app = await renderInApp(<TrainingScreen />);
     app.server.storeWorkoutFromElsewhere(id, '2026-10-26', [SQUAT, PUSH_UP]);
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
 
     const rows = await screen.findAllByRole('button', { name: /^(Wed 28 Oct|Mon 26 Oct): / });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
@@ -51,7 +51,7 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     const app = await renderInApp(<TrainingScreen />);
     app.server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-26', [SQUAT]);
     app.server.storeWorkoutFromElsewhere('1c8f2e3d-4b5a-4f6e-9d8c-7b6a5f4e3d2c', '2026-10-26', [PUSH_UP]);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
 
     const card = await screen.findByRole('button', { name: /^Mon 26 Oct: 2 workouts · 2 exercises · (Squat, Push-up|Push-up, Squat)$/ });
     expect(screen.queryAllByRole('button', { name: /^Mon 26 Oct: / })).toHaveLength(1);
@@ -84,7 +84,7 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     expect(await screen.findByText('No workouts from Sat 2 May to Thu 30 Jul.')).toBeOnTheScreen();
   });
 
-  it('REQ-TRN-004 while older workouts load, only "Load older" waits; "Start an empty workout" stays ready', async () => {
+  it('REQ-TRN-004 while older workouts load, only "Load older" waits; "Log workout" stays ready', async () => {
     await renderInApp(<TrainingScreen />);
     // The server doesn't answer yet.
     const pending = jest.spyOn(client, 'callApi').mockReturnValue(new Promise(() => {}));
@@ -92,7 +92,7 @@ describe('REQ-TRN-004 workouts you have logged', () => {
       await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
 
       expect(screen.getByRole('button', { name: 'Load older' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'Start an empty workout' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Log workout' })).toBeEnabled();
     } finally {
       pending.mockRestore();
     }
@@ -112,7 +112,7 @@ describe('ADR-0007 rule 2 rejected workout changes', () => {
   it('D-29 shows "This workout wasn\'t saved…"; Edit opens the workout; Discard removes it', async () => {
     const { server } = await renderInApp(<TrainingScreen />);
     server.state.rejectWith = 'DAY_IN_FUTURE';
-    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
     const id = String(mockRouter.push.mock.calls[0]?.[0]).replace('/workout/', '');
 
     expect(

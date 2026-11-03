@@ -194,7 +194,7 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
       </>,
     );
     await synced();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Add exercise' }));
 
     expect(screen.getByLabelText('Exercise name')).toBeOnTheScreen();

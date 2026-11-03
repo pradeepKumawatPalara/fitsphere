@@ -129,7 +129,7 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
       undefined,
       withUnits({ lifting_weight_unit: 'lb' }),
     );
-    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
     await screen.findByText(/^Workout · /);
     return app;
   }

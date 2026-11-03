@@ -148,7 +148,7 @@ export function HomeScreen() {
     else setWorkoutDay(day);
   }
 
-  /** A new workout on that day, saved at once and opened, as Training's "Start an empty workout". */
+  /** A new workout on that day, saved at once and opened, as Training's "Log workout". */
   async function startWorkout(day: IstDay) {
     const id = await sync.startWorkout(day);
     router.push(`/workout/${id}`);

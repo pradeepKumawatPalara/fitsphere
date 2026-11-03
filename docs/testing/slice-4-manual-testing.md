@@ -14,8 +14,8 @@
 - Tick **Pass** only if every "You should see" line and the final expected result match. Otherwise
   tick **Fail** and write what you saw (a screenshot helps).
 - **Synthetic data only.** The exercises, weights and notes below are test values.
-- **Android shows button labels in capitals.** **Start an empty workout** appears on the phone as
-  START AN EMPTY WORKOUT.
+- **Android shows button labels in capitals.** **Log workout** appears on the phone as
+  LOG WORKOUT. (It was named "Log workout" until D-37, 2026-11-03.)
 - "Today" and "7 days ago" are IST days. Examples use Fri 30 Oct 2026 and Fri 23 Oct 2026; your
   dates will differ. **Run the whole guide within one IST day**, away from midnight.
 - The header at the top of each tab shows the **selected date** ("Today · Fri 30 Oct", or just
@@ -28,7 +28,7 @@
 
 | Area | Status | Tests |
 |---|---|---|
-| Training tab: "No training plan yet.", **Start an empty workout**, "Workouts you have logged" | Implemented | S4-01 |
+| Training tab: "No training plan yet.", **Log workout**, "Workouts you have logged" | Implemented | S4-01 |
 | Starting a workout (on the selected date; counts at once, even empty) | Implemented | S4-03, S4-11, S4-13 |
 | Exercises: name, sets, reps, weight in kg (optional), note (optional) | Implemented | S4-04 to S4-06 |
 | Exercise limits and messages; Cancel saves nothing | Implemented | S4-07, S4-08, S4-10 |
@@ -101,7 +101,7 @@ exercises per workout.
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
 | 1 | Bottom bar: **Training** | — | The header with "Today · <date>" |
-| 2 | Look at the top of the screen | — | A grey box "No training plan yet."; under it the button **Start an empty workout** |
+| 2 | Look at the top of the screen | — | A grey box "No training plan yet."; under it the button **Log workout** |
 | 3 | Look below the button | — | The heading "Workouts you have logged" and "No workouts logged yet." |
 | 4 | Look at the bottom | — | A **Load older** button |
 | 5 | Look for anything else | — | No workout list or templates, no exercise library, no plan to follow (not in the MVP) |
@@ -128,12 +128,12 @@ exercises per workout.
 - [ ] Fail
 - Actual result / notes:
 
-### S4-03 · Start an empty workout; it counts at once
-**Screen:** Training › Start an empty workout → Workout · **Covers:** REQ-TRN-003, Q-025, REQ-HOME-007, plan phone check 2 · **Start:** Home, today selected · **Data:** none
+### S4-03 · Log workout; it counts at once
+**Screen:** Training › Log workout → Workout · **Covers:** REQ-TRN-003, Q-025, REQ-HOME-007, plan phone check 2 · **Start:** Home, today selected · **Data:** none
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Bottom bar: **Training**; tap **Start an empty workout** | — | A screen with the title bar "Workout" and a back arrow. Inside: "Workout · Fri 30 Oct" (today), possibly "Waiting to sync" for a moment, "No exercises yet.", and buttons **Add exercise**, **Done** and a red **Delete workout** |
+| 1 | Bottom bar: **Training**; tap **Log workout** | — | A screen with the title bar "Workout" and a back arrow. Inside: "Workout · Fri 30 Oct" (today), possibly "Waiting to sync" for a moment, "No exercises yet.", and buttons **Add exercise**, **Done** and a red **Delete workout** |
 | 2 | Tap **Done** | — | Training. "No workouts logged yet." is gone; one row: "Fri 30 Oct" and "No exercises" (and "waiting to sync" only until it syncs) |
 | 3 | Bottom bar: **Home** | — | "Workouts this week": "1 of 4 · 3 left"; today's circle filled blue |
 
@@ -298,7 +298,7 @@ nothing.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Tap **Start an empty workout** | — | A new workout: "Workout · Fri 30 Oct", "No exercises yet." |
+| 1 | Tap **Log workout** | — | A new workout: "Workout · Fri 30 Oct", "No exercises yet." |
 | 2 | **Done** | — | Training lists two rows for today, newest first: "Fri 30 Oct · No exercises", then "Fri 30 Oct · 2 exercises · Bench press, Squat" |
 | 3 | **Home** | — | "2 of 4 · 2 left"; only today's circle filled |
 
@@ -330,12 +330,12 @@ and the weekly count.
 - Actual result / notes:
 
 ### S4-13 · A workout on a past date
-**Screen:** header 📅 → Training › Start an empty workout · **Covers:** REQ-TRN-003, Q-011, REQ-HOME-007 (D-23: the selected date's week), plan phone check 4 · **Start:** Home, today selected · **Data:** 7 days ago; Deadlift 3, 5, 80
+**Screen:** header 📅 → Training › Log workout · **Covers:** REQ-TRN-003, Q-011, REQ-HOME-007 (D-23: the selected date's week), plan phone check 4 · **Start:** Home, today selected · **Data:** 7 days ago; Deadlift 3, 5, 80
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
 | 1 | Header **📅**; tap the date 7 days before today (use ‹ if it is in last month) | e.g. 23 | The header shows "Fri 23 Oct" (no "Today ·"); Home shows "Showing Fri 23 Oct" and **Back to today** |
-| 2 | **Training**; **Start an empty workout** | — | "Workout · Fri 23 Oct" |
+| 2 | **Training**; **Log workout** | — | "Workout · Fri 23 Oct" |
 | 3 | **Add exercise**: Exercise name, Sets, Reps, Weight | `Deadlift`, `3`, `5`, `80` | **Save exercise**: "Deadlift", "3 × 5 × 80.0 kg" |
 | 4 | **Done** | — | Training: today's row first, then "Fri 23 Oct · 1 exercise · Deadlift" |
 | 5 | **Home** (Fri 23 Oct still selected) | — | "Workouts this week": "1 of 4 · 3 left", with that weekday's circle filled (the week of 23 Oct) |
@@ -363,7 +363,7 @@ server being disconnected can be ignored.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | **Start an empty workout** | — | "Workout · Fri 30 Oct" and **"Waiting to sync"** under it |
+| 1 | **Log workout** | — | "Workout · Fri 30 Oct" and **"Waiting to sync"** under it |
 | 2 | **Add exercise**: Exercise name, Sets, Reps | `Lunges`, `3`, `12` | **Save exercise**: "Lunges", "3 × 12"; "Waiting to sync" still shown |
 | 3 | **Done** | — | Training: newest first "Fri 30 Oct · 1 exercise · Lunges" with "waiting to sync", then "Fri 30 Oct · 2 exercises · Bench press, Squat", then "Fri 23 Oct · 1 exercise · Deadlift" |
 | 4 | **Home** | — | "2 of 4 · 2 left" (a workout waiting to sync counts) |
@@ -386,7 +386,7 @@ once, and syncs by itself when the connection returns.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | **Start an empty workout** › **Done**; again **Start an empty workout** › **Done** | — | Two new rows "Fri 30 Oct · No exercises" at the top |
+| 1 | **Log workout** › **Done**; again **Log workout** › **Done** | — | Two new rows "Fri 30 Oct · No exercises" at the top |
 | 2 | **Home** | — | "4 of 4 · target reached"; only today's circle filled |
 | 3 | **Training**; open each "No exercises" row; **Delete workout** › **Delete** | — | Both are gone |
 | 4 | **Home** | — | "2 of 4 · 2 left" |
@@ -465,7 +465,7 @@ the app has no way to delete them. Skip this test if that matters.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | **Start an empty workout** | — | A new workout |
+| 1 | **Log workout** | — | A new workout |
 | 2 | **Add exercise** 30 times | `E1` … `E30`, `1`, `1` | After the 30th, the **Add exercise** button is replaced by "A workout holds up to 30 exercises." |
 | 3 | Tap any card › **Remove exercise** | — | **Add exercise** comes back |
 | 4 | **Delete workout** › **Delete** | — | The workout is gone; Home "2 of 4 · 2 left" |
@@ -494,14 +494,14 @@ the app has no way to delete them. Skip this test if that matters.
 | "Load older" says "Something went wrong. Try again later." | The API couldn't be reached or refused the request. Check "API: ok" on Account › Development and `.dev-phone/api.log` |
 | App stuck on "Reloading…" | Force-stop the app (Android Settings › Apps › FitSphere › Force stop) and open it again |
 | A row says "not saved" in red, and Training or Home shows "This workout wasn't saved: … Edit or discard it." | The server refused the change. Note the reason text and the steps; don't discard it before reporting |
-| A workout was created on the wrong day | Check the header's date before tapping **Start an empty workout**: a workout uses the selected date, which stays where you left it until you tap **Back to today** or restart the app |
+| A workout was created on the wrong day | Check the header's date before tapping **Log workout**: a workout uses the selected date, which stays where you left it until you tap **Back to today** or restart the app |
 
 ## Results summary
 | Test | Title | Result | Notes |
 |---|---|---|---|
 | S4-01 | Training tab before any workout | | |
 | S4-02 | Home tracker before any workout | | |
-| S4-03 | Start an empty workout | | |
+| S4-03 | Log workout | | |
 | S4-04 | Exercise with weight and note | | |
 | S4-05 | Exercise without weight | | |
 | S4-06 | Third exercise; history row | | |

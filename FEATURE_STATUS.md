@@ -100,7 +100,7 @@ Nothing pending.
 ### 16. Training — 🟡 In Progress (60%)
 **Done:**
 - "No training plan yet" empty state
-- "Start an empty workout", with exercises as sets × reps × weight and a note
+- "Log workout", with exercises as sets × reps × weight and a note
 - "Workouts you have logged" history, including older workouts loaded from the server
 - Lifting weights in the unit chosen in Settings
 
