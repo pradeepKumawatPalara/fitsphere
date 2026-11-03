@@ -135,8 +135,8 @@ export function SaveMealSheet({
   );
 }
 
-/** "Breakfast", the longest meal, is about 4.5 em wide at the pills' 15. */
-const LONGEST_SLOT_EM = 4.5;
+/** "BREAKFAST", the longest meal, in the pills' condensed capitals: 4.29 em, measured from the font. */
+const LONGEST_SLOT_EM = 4.29;
 
 /**
  * "Already in this meal" (D-34): a food added again to the meal being built. "Add to existing" puts
@@ -173,29 +173,48 @@ export function DuplicateFoodSheet({
 }
 
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
-export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
+export function SlotPicker({
+  value,
+  onChange,
+  twoByTwo = false,
+}: {
+  value: MealType | null;
+  onChange(slot: MealType): void;
+  /** Always two by two, with taller blocks (re-logging a saved meal, the redesign's 3.2). */
+  twoByTwo?: boolean;
+}) {
   const styles = useStyles();
   const pill = useChoiceStyles();
   const { fontScale } = useWindowDimensions();
-  // The row's width, to lay the four out evenly: in one row when "Breakfast" fits a quarter of it
-  // (with the pill's padding and edge), otherwise two by two.
+  // The row's width, to lay the four out evenly: in one row when "BREAKFAST" fits a quarter of it
+  // (with the block's padding and edge), otherwise two by two. Each line is a row of its own: a
+  // wrapping row with percentage widths did not wrap on a narrow screen and ran off its side.
   const [rowWidth, setRowWidth] = useState(0);
-  const oneRow = (rowWidth - 3 * 8) / 4 >= 15 * LONGEST_SLOT_EM * fontScale + 2 * 8 + 3;
+  const oneRow = !twoByTwo && (rowWidth - 3 * 6) / 4 >= (15 * LONGEST_SLOT_EM + 9 * 0.5) * fontScale + 2 * 4 + 3;
+  const lines = oneRow ? [MEAL_TYPE_ORDER] : [MEAL_TYPE_ORDER.slice(0, 2), MEAL_TYPE_ORDER.slice(2)];
   return (
-    <View onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)} style={[styles.slots, !oneRow && styles.slotsGrid]}>
-      {MEAL_TYPE_ORDER.map((slot) => (
-        <Pressable
-          key={slot}
-          accessibilityRole="radio"
-          accessibilityLabel={MEAL_TYPE_LABELS[slot]}
-          accessibilityState={{ checked: value === slot }}
-          onPress={() => onChange(slot)}
-          style={({ pressed }) => [pill.choice, oneRow ? styles.slotInRow : styles.slotInGrid, value === slot && pill.chosen, pressed && pill.pressed]}
-        >
-          <Text numberOfLines={1} style={[pill.choiceText, value === slot && pill.chosenText]}>
-            {MEAL_TYPE_LABELS[slot]}
-          </Text>
-        </Pressable>
+    <View
+      testID="slot-picker"
+      onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
+      style={twoByTwo ? styles.slotLinesTall : styles.slotLines}
+    >
+      {lines.map((line, index) => (
+        <View key={line.join()} testID={`slot-line-${index}`} style={twoByTwo ? styles.slotLineTall : styles.slotLine}>
+          {line.map((slot) => (
+            <Pressable
+              key={slot}
+              accessibilityRole="radio"
+              accessibilityLabel={MEAL_TYPE_LABELS[slot]}
+              accessibilityState={{ checked: value === slot }}
+              onPress={() => onChange(slot)}
+              style={({ pressed }) => [pill.choice, twoByTwo ? styles.slotTall : styles.slot, value === slot && pill.chosen, pressed && pill.pressed]}
+            >
+              <Text numberOfLines={1} style={[pill.choiceText, !twoByTwo && styles.slotText, value === slot && pill.chosenText]}>
+                {MEAL_TYPE_LABELS[slot]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       ))}
     </View>
   );
@@ -236,7 +255,7 @@ export function RelogSheet({
       }
     >
       <Text style={styles.body}>To {dayLabel}</Text>
-      <SlotPicker value={chosen} onChange={setChosen} />
+      <SlotPicker value={chosen} onChange={setChosen} twoByTwo />
     </Sheet>
   );
 }
@@ -252,10 +271,14 @@ const useStyles = themedStyles((c) => ({
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   body: { fontSize: 16, lineHeight: 24 },
-  // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
-  // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
-  slots: { flexDirection: 'row', gap: 8 },
-  slotsGrid: { flexWrap: 'wrap' },
-  slotInRow: { flex: 1, paddingHorizontal: 8 },
-  slotInGrid: { flexGrow: 1, flexBasis: '40%', paddingHorizontal: 8 },
+  // The meals are choice blocks of one width, the chosen one filled. In Log meal (3.5) four across, 6
+  // apart, at 15 with little spacing so "BREAKFAST" fits a 390 phone; re-logging (3.2), two by two
+  // and taller.
+  slotLines: { gap: 6 },
+  slotLine: { flexDirection: 'row', gap: 6 },
+  slot: { flex: 1, paddingHorizontal: 4 },
+  slotText: { fontSize: 15, letterSpacing: 0.5 },
+  slotLinesTall: { gap: 8 },
+  slotLineTall: { flexDirection: 'row', gap: 8 },
+  slotTall: { flex: 1, minHeight: 48, paddingHorizontal: 8 },
 }));
