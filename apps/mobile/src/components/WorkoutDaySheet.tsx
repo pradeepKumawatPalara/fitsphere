@@ -1,9 +1,12 @@
 import type { IstDay, WorkoutExercise } from '@fitsphere/shared';
+import { ChevronRight, Dumbbell } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
 import { formatDay } from '../format';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { workoutSummary } from '../workouts';
-import { ActionsSheet } from './MealSheets';
 import { Sheet } from './Sheet';
-import { TextButton } from './ui';
+import { Text, TextButton } from './ui';
 
 type Props = {
   day: IstDay;
@@ -17,39 +20,85 @@ type Props = {
 
 // A day's workouts (REQ-HOME-007, REQ-TRN-004; D-34), from Home's tracker and Training's history:
 // with several, the one to open, each as "Workout 1 · 2 exercises · Squat, Push-up"; with none,
-// "Start a workout on this day".
+// "Start a workout on this day". The redesign's 2.6 (locked by the owner, 2026-11-03): a dumbbell
+// tile over the title; the workouts as a ruled list, each its name over its exercises.
 export function WorkoutDaySheet({ day, workouts, onOpen, onStart, onClose }: Props) {
-  if (workouts.length === 0) {
-    return (
-      <Sheet
-        title={`No workout on ${formatDay(day)}`}
-        onClose={onClose}
-        actions={
-          <>
-            {onStart ? (
-              <TextButton
-                title="Start a workout on this day"
-                filled
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const none = workouts.length === 0;
+  const title = none ? `No workout on ${formatDay(day)}` : `Workouts on ${formatDay(day)}`;
+  return (
+    <Sheet
+      header={
+        <View style={styles.head}>
+          <View style={styles.tile}>
+            <Dumbbell size={28} color={colors.accent} />
+          </View>
+          <Text accessibilityRole="header" style={styles.title}>
+            {title}
+          </Text>
+        </View>
+      }
+      onClose={onClose}
+      actions={
+        <>
+          {none && onStart ? (
+            <TextButton
+              title="Start a workout on this day"
+              filled
+              arrow
+              onPress={() => {
+                onClose();
+                onStart();
+              }}
+            />
+          ) : null}
+          <TextButton title="Cancel" wide onPress={onClose} />
+        </>
+      }
+    >
+      {none ? null : (
+        <View style={styles.list}>
+          {workouts.map((workout, index) => {
+            const name = `Workout ${index + 1}`;
+            const summary = workoutSummary(workout.exercises);
+            return (
+              <Pressable
+                key={workout.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${name} · ${summary}`}
                 onPress={() => {
                   onClose();
-                  onStart();
+                  onOpen(workout.id);
                 }}
-              />
-            ) : null}
-            <TextButton title="Cancel" wide onPress={onClose} />
-          </>
-        }
-      />
-    );
-  }
-  return (
-    <ActionsSheet
-      title={`Workouts on ${formatDay(day)}`}
-      actions={workouts.map((workout, index) => ({
-        label: `Workout ${index + 1} · ${workoutSummary(workout.exercises)}`,
-        onPress: () => onOpen(workout.id),
-      }))}
-      onClose={onClose}
-    />
+                style={({ pressed }) => [styles.row, index > 0 && styles.ruled, pressed && styles.pressed]}
+              >
+                <View style={styles.text}>
+                  <Text style={styles.name}>{name}</Text>
+                  <Text numberOfLines={1} style={styles.summary}>
+                    {summary}
+                  </Text>
+                </View>
+                <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </Sheet>
   );
 }
+
+// The tile 56, as the sheets' tiles; rows 64 tall on a raised card.
+const useStyles = themedStyles((c) => ({
+  head: { gap: 14 },
+  tile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
+  title: TYPE.sheetTitle,
+  list: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10 },
+  ruled: { borderTopWidth: 1, borderTopColor: c.border },
+  pressed: { opacity: 0.6 },
+  text: { flex: 1, gap: 2 },
+  name: { ...TYPE.metric, fontSize: 20, lineHeight: 22 },
+  summary: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+}));

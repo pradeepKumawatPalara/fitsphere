@@ -80,12 +80,12 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 2.2 Calendar sheet | Locked and built; with it every sheet took the new frame (card colour, grab handle, stripe corner, title in condensed capitals) |
 | 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | Locked and built; with it the date strip (also on Nutrition), the measurements card (also on Progress), the unsaved-change notice (also on Training) and + LOG took their new look. The tracker keeps the app's full summary ("1 of 4 · 3 left") |
 | 2.4 Entry sheet for weight, steps and sleep | Locked and built; Your targets uses the same sheet |
-| 2.5 Measurements sheet | Designed; waiting for the owner |
-| 2.6 A day's workouts sheet | Designed; waiting for the owner |
+| 2.5 Measurements sheet | Locked and built; with it every choice in the app (meal slots, Settings, Nutrition's tabs, the chart's ranges) became square blocks |
+| 2.6 A day's workouts sheet | Locked and built |
 | **3 Nutrition and Log meal** | |
-| 3.1 Nutrition, Consumed: eaten summary, meal slots, meal cards | |
-| 3.2 Meal actions and confirmations | |
-| 3.3 Nutrition, Saved | |
+| 3.1 Nutrition, Consumed: eaten summary, meal slots, meal cards | Designed; waiting for the owner |
+| 3.2 Meal actions and confirmations | Designed; waiting for the owner |
+| 3.3 Nutrition, Saved | Designed; waiting for the owner |
 | 3.4 Nutrition, Diet plan | |
 | 3.5 Log meal | |
 | 3.6 Food search and portions | |

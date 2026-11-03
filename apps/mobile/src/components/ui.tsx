@@ -201,8 +201,9 @@ export function CheckBox({ label, checked, onChange }: { label: string; checked:
 }
 
 /**
- * A choice among a few as a pill, the one spec for them all (meal slots, cm/in, Settings' choices,
- * Nutrition's tabs, the weight chart's range): 40 tall, a grey outline, the chosen one filled.
+ * A choice among a few as a square block, the one spec for them all (meal slots, cm/in, Settings'
+ * choices, Nutrition's tabs, the weight chart's range; D-35, with 2.5): 40 tall, radius 4, an outline
+ * in the subtle ink, the chosen one filled caramel; the label in condensed capitals.
  */
 export function useChoiceStyles() {
   const { choice, chosen, choiceText, chosenText, pressed } = useStyles();
@@ -356,13 +357,13 @@ const useStyles = themedStyles((c) => ({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 4,
     borderWidth: 1.5,
     borderColor: c.inkSubtle,
   },
   chosen: { backgroundColor: c.primary, borderColor: c.primary },
-  choiceText: { fontSize: 15 },
-  chosenText: { color: c.onPrimary, fontWeight: '600' },
+  choiceText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1, color: c.ink },
+  chosenText: { color: c.onPrimary },
   filled: {
     alignSelf: 'stretch',
     minHeight: 56,

@@ -6,12 +6,14 @@ import {
   type LengthUnit,
   type MeasurementsSetData,
 } from '@fitsphere/shared';
+import { ChevronDown, ChevronLeft, ChevronRight, CircleAlert, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { formatDay, measurementRange, parseLength } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, getMeta, setMeta } from '../local/store';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
 import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle, useFieldLabelStyle } from './ui';
 
@@ -55,6 +57,7 @@ type Props = {
 // more than one entry for a date.
 export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, onClose }: Props) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const fieldInput = useFieldInputStyle();
   const fieldLabel = useFieldLabelStyle();
   const pill = useChoiceStyles();
@@ -64,6 +67,8 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   const [texts, setTexts] = useState<Texts>(EMPTY);
   const [notes, setNotes] = useState('');
   const [showMore, setShowMore] = useState(false);
+  // The length being typed in: its outline caramel.
+  const [focused, setFocused] = useState<LengthKey | null>(null);
   const [busy, setBusy] = useState(false);
 
   // The day's entry, in the unit last chosen on this phone (MVP default, D-23).
@@ -141,21 +146,33 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   }
 
   function lengthField(key: LengthKey, label: string, guidance?: string) {
+    const refused = lengths[key] === 'invalid';
     return (
-      <View key={key} style={styles.field}>
-        <Text style={fieldLabel}>{label}</Text>
-        {guidance ? <Text style={styles.guidance}>{guidance}</Text> : null}
-        <View style={styles.inputRow}>
+      <View key={key} style={[styles.field, !guidance && styles.half]}>
+        <View style={styles.labelRow}>
+          <Text style={fieldLabel}>{label}</Text>
+          {guidance ? <Text style={styles.guidance}>{guidance}</Text> : null}
+        </View>
+        <View style={[styles.box, focused === key && styles.boxFocused, refused && styles.boxRefused]}>
           <TextInput
             accessibilityLabel={`${label} (${unit})`}
             value={texts[key]}
             onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
+            onFocus={() => setFocused(key)}
+            onBlur={() => setFocused((current) => (current === key ? null : current))}
             keyboardType="decimal-pad"
-            style={[fieldInput, styles.grow, styles.number]}
+            style={styles.number}
           />
           <Text style={styles.unitText}>{unit}</Text>
         </View>
-        {lengths[key] === 'invalid' ? <Text style={styles.problem}>{rule}</Text> : null}
+        {refused ? (
+          <View style={styles.problem}>
+            <CircleAlert size={16} color={colors.danger} />
+            <Text accessibilityRole="alert" style={styles.problemText}>
+              {rule}
+            </Text>
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -171,64 +188,66 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             accessibilityRole="button"
             accessibilityLabel="Close without saving"
             onPress={onClose}
-            style={({ pressed }) => [styles.close, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.square, pressed && styles.pressed]}
           >
-            <Text style={styles.closeText}>✕</Text>
+            <X size={20} strokeWidth={2.25} color={colors.inkMuted} />
           </Pressable>
         </View>
       }
       onClose={onClose}
       actions={
         <>
-          <TextButton title="Save measurements" filled disabled={!canSave || busy} onPress={() => void save()} />
+          <TextButton title="Save measurements" filled disabled={!canSave} busy={busy} onPress={() => void save()} />
           {REQUIRED.some(({ key }) => lengths[key] === 'empty') ? <Text style={styles.hint}>Enter both waist values to save.</Text> : null}
         </>
       }
     >
-      {mode === 'edit' ? (
-        <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
-          {formatDay(day)}
-        </Text>
-      ) : (
-        <View style={styles.row}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Previous day"
-            accessibilityState={{ disabled: day <= firstDay }}
-            disabled={day <= firstDay}
-            onPress={() => setDay(addDays(day, -1))}
-            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
-          >
-            <Text style={[styles.arrowText, day <= firstDay && styles.disabledText]}>‹</Text>
-          </Pressable>
+      <View style={styles.dateRow}>
+        {mode === 'edit' ? (
           <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
             {formatDay(day)}
           </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next day"
-            accessibilityState={{ disabled: day >= today }}
-            disabled={day >= today}
-            onPress={() => setDay(addDays(day, 1))}
-            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
-          >
-            <Text style={[styles.arrowText, day >= today && styles.disabledText]}>›</Text>
-          </Pressable>
+        ) : (
+          <View style={styles.row}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Previous day"
+              accessibilityState={{ disabled: day <= firstDay }}
+              disabled={day <= firstDay}
+              onPress={() => setDay(addDays(day, -1))}
+              style={({ pressed }) => [styles.square, day <= firstDay && styles.dimmed, pressed && styles.pressed]}
+            >
+              <ChevronLeft size={20} strokeWidth={2.25} color={day <= firstDay ? colors.inkSubtle : colors.accent} />
+            </Pressable>
+            <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={[styles.date, styles.dateBetween]}>
+              {formatDay(day)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Next day"
+              accessibilityState={{ disabled: day >= today }}
+              disabled={day >= today}
+              onPress={() => setDay(addDays(day, 1))}
+              style={({ pressed }) => [styles.square, day >= today && styles.dimmed, pressed && styles.pressed]}
+            >
+              <ChevronRight size={20} strokeWidth={2.25} color={day >= today ? colors.inkSubtle : colors.accent} />
+            </Pressable>
+          </View>
+        )}
+        <View style={styles.units}>
+          {(['cm', 'in'] as const).map((option) => (
+            <Pressable
+              key={option}
+              accessibilityRole="button"
+              accessibilityLabel={option}
+              accessibilityState={{ selected: unit === option }}
+              onPress={() => changeUnit(option)}
+              style={({ pressed }) => [pill.choice, styles.unit, unit === option && pill.chosen, pressed && pill.pressed]}
+            >
+              <Text style={[pill.choiceText, unit === option && pill.chosenText]}>{option}</Text>
+            </Pressable>
+          ))}
         </View>
-      )}
-      <View style={styles.row}>
-        {(['cm', 'in'] as const).map((option) => (
-          <Pressable
-            key={option}
-            accessibilityRole="button"
-            accessibilityLabel={option}
-            accessibilityState={{ selected: unit === option }}
-            onPress={() => changeUnit(option)}
-            style={({ pressed }) => [pill.choice, unit === option && pill.chosen, pressed && pill.pressed]}
-          >
-            <Text style={[pill.choiceText, unit === option && pill.chosenText]}>{option}</Text>
-          </Pressable>
-        ))}
       </View>
       {REQUIRED.map(({ key, label, guidance }) => lengthField(key, label, guidance))}
       <Pressable
@@ -238,11 +257,16 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
         onPress={() => setShowMore((open) => !open)}
         style={({ pressed }) => [styles.moreButton, pressed && styles.pressed]}
       >
-        <Text style={styles.more}>{showMore ? '▾' : '▸'} More measurements</Text>
+        {showMore ? (
+          <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
+        ) : (
+          <ChevronRight size={18} strokeWidth={2.25} color={colors.accent} />
+        )}
+        <Text style={styles.more}>More measurements</Text>
       </Pressable>
       {showMore ? (
         <>
-          {OPTIONAL.map(({ key, label }) => lengthField(key, label))}
+          <View style={styles.halves}>{OPTIONAL.map(({ key, label }) => lengthField(key, label))}</View>
           <View style={styles.field}>
             <Text style={fieldLabel}>Notes</Text>
             <TextInput
@@ -261,29 +285,54 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   );
 }
 
-// The title as the sheets' titles; fields as Field; cm/in as choice pills. Close, the arrows and
-// More measurements are 44 to tap.
+// The redesign's 2.5 (locked by the owner, 2026-11-03): the title as the sheets' titles; the date
+// between square arrows, cm/in as blocks beside it; each length in a sunken box with its unit, the
+// optional ones two to a row. Close, the arrows and More measurements are 44 to tap.
 const useStyles = themedStyles((c) => ({
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 20, fontWeight: '600' },
-  close: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontSize: 20 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  title: { ...TYPE.sheetTitle, flexShrink: 1 },
+  square: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  arrow: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  arrowText: { fontSize: 24 },
-  disabledText: { color: c.inkSubtle },
-  date: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  dimmed: { opacity: 0.45 },
+  date: { ...TYPE.metric, fontVariant: ['tabular-nums'] },
+  dateBetween: { minWidth: 96, textAlign: 'center' },
+  units: { flexDirection: 'row', gap: 6 },
+  unit: { width: 52, paddingHorizontal: 0 },
   pressed: { opacity: 0.6 },
   field: { gap: 6 },
-  guidance: { marginTop: -4, color: c.inkMuted, fontSize: 13 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // `grow` only in a row: in a column, flex: 1 holds Notes at its minimum height.
-  grow: { flex: 1 },
-  number: { fontVariant: ['tabular-nums'] },
-  unitText: { fontSize: 15, color: c.inkMuted },
-  notes: { minHeight: 96, textAlignVertical: 'top' },
-  problem: { fontSize: 13, color: c.danger },
-  hint: { fontSize: 13, color: c.inkMuted, textAlign: 'center' },
-  moreButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
-  more: { fontSize: 15, color: c.accent, fontWeight: '600' },
+  half: { flexBasis: '45%', flexGrow: 1 },
+  halves: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  labelRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8 },
+  guidance: { color: c.inkMuted, fontSize: 13, lineHeight: 18 },
+  box: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.inkSubtle,
+    backgroundColor: c.surfaceSunken,
+  },
+  boxFocused: { borderColor: c.accent },
+  boxRefused: { borderColor: c.danger },
+  number: { ...TYPE.input, flex: 1, paddingVertical: 12, fontVariant: ['tabular-nums'] },
+  unitText: { ...TYPE.label, fontSize: 14, color: c.inkMuted },
+  notes: { minHeight: 72, textAlignVertical: 'top' },
+  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
+  hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
+  moreButton: { alignSelf: 'flex-start', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  more: { ...TYPE.link, color: c.accent },
 }));
