@@ -291,7 +291,7 @@ B-22).
 - Requirement: The header shows the selected date and the user's username.
 
 ### REQ-HOME-002 — Week strip
-- Requirement: A Monday-to-Sunday strip shows a status box per day and highlights today and the selected day.
+- Requirement: A strip of 7 days ending today shows a status box per day and highlights today and the selected day (D-34, which replaced the first Monday-to-Sunday strip). Swiping, or "Earlier days" and "Later days", moves it 7 days at a time, back to the 7 holding the first of the phone's 90 days (D-23); no day after today is shown (Q-017). Home's workout tracker keeps Monday-to-Sunday weeks (REQ-HOME-007).
 - MVP default (D-18): a day's box is filled when at least one meal is logged that day (Q-019).
 - Built in the Home and daily tracking slice, except the status box, which comes with meals in the Meal logging slice (D-23).
 

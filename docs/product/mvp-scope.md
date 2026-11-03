@@ -63,7 +63,7 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-013 Target row | The user sets their own weekly workout target, target body weight and daily steps target (D-20). Post-MVP, once coaches exist: the Coach (and an allowed Head Coach) set them |
 | Q-016 No coach | Every user sets their own daily calorie, protein and steps targets, weekly workout target and target body weight (extended by D-20; first set for calorie and protein only) |
 | Q-017 Future dates | Not selectable |
-| Q-019 Week strip status box | Filled when at least one meal is logged that day |
+| Q-019 Week strip status box | Filled when at least one meal is logged that day. The strip shows 7 days ending today (D-34) |
 | Q-022 Over target | Bar shows full in a warning colour; text "X kcal over" |
 | Q-023 "By meal" | Opens Nutrition › Consumed for that day |
 | Q-024 Weight tile | Follows the body-weight unit setting |

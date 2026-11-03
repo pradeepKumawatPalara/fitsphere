@@ -956,10 +956,15 @@ checksum), and the configuration template was left as it is.*
      display only: each workout is still stored, synced, edited and deleted on its own, with its
      confirmation unchanged. Older workouts read from the server are grouped the same way and stay
      view-only.
+  3. **The date strip shows 7 days ending today (REQ-HOME-002).** Today is the last day, so no day
+     ahead is shown. Swiping and the arrows, renamed "Earlier days" and "Later days", move 7 days at
+     a time, back to the 7 holding the first of the phone's 90 days (D-23). This replaces the
+     Monday-to-Sunday weeks of the first swipeable strip (D-33's review, item 9). Home's workout
+     tracker keeps Monday-to-Sunday weeks.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
-- Doc changes: REQ-HOME-007 and REQ-TRN-004 in `docs/product/requirements.md`; Home and Training in
-  `docs/product/mvp-scope.md`.
+- Doc changes: REQ-HOME-002, REQ-HOME-007 and REQ-TRN-004 in `docs/product/requirements.md`; Home,
+  Training and Q-019 in `docs/product/mvp-scope.md`.
 
 ---
 

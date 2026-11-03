@@ -49,7 +49,7 @@ export function NutritionScreen() {
   const sync = useSync();
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string }>();
-  const { today, selected, firstDay, weekStart, select, showWeek } = useSelectedDay();
+  const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
   const [tab, setTab] = useState<Tab>(asTab(params.tab) ?? 'consumed');
   // "By meal" on Home opens Consumed (Q-023), even when another tab was open here.
   const [paramTab, setParamTab] = useState(params.tab);
@@ -71,7 +71,7 @@ export function NutritionScreen() {
     void Promise.all([
       listMealsOfDay(db, selected),
       dayNutrition(db, selected),
-      mealCounts(db, weekStart, addDays(weekStart, 6)),
+      mealCounts(db, stripStart, addDays(stripStart, 6)),
       listSavedMeals(db),
     ]).then(([dayMeals, nutrition, counts, savedMeals]) => {
       if (!active) return;
@@ -83,7 +83,7 @@ export function NutritionScreen() {
     return () => {
       active = false;
     };
-  }, [local.state, selected, weekStart, sync.version]);
+  }, [local.state, selected, stripStart, sync.version]);
 
   function logMeal(slot?: MealType) {
     router.push({ pathname: '/log-meal', params: { day: selected, ...(slot ? { slot } : {}) } });
@@ -96,10 +96,10 @@ export function NutritionScreen() {
           today={today}
           firstDay={firstDay}
           selected={selected}
-          weekStart={weekStart}
+          start={stripStart}
           mealDays={mealDays}
           onSelect={select}
-          onWeekChange={showWeek}
+          onShow={showDays}
         />
         {selected !== today ? (
           <View style={styles.banner}>

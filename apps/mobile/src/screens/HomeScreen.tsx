@@ -66,7 +66,7 @@ export function HomeScreen() {
   const bodyWeightUnit = useBodyWeightUnit();
   const texts = useMemo(() => dayValues(bodyWeightUnit), [bodyWeightUnit]);
   const router = useRouter();
-  const { today, selected, firstDay, weekStart, select, showWeek } = useSelectedDay();
+  const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
   const [values, setValues] = useState<DayValues>({});
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [targets, setTargets] = useState<Targets>({});
@@ -106,7 +106,7 @@ export function HomeScreen() {
       getEntry(db, 'measurements', selected),
       getMeta(db, 'measurement_unit'),
       dayNutrition(db, selected),
-      mealCounts(db, weekStart, addDays(weekStart, 6)),
+      mealCounts(db, stripStart, addDays(stripStart, 6)),
       listEntries(db, 'workout', monday, addDays(monday, 6)),
     ]).then(([entries, waiting, current, dayMeasurements, unit, nutrition, counts, workouts]) => {
       if (!active) return;
@@ -133,7 +133,7 @@ export function HomeScreen() {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
-  }, [local.state, selected, weekStart, sync.version, measurementsOpen, texts]);
+  }, [local.state, selected, stripStart, sync.version, measurementsOpen, texts]);
 
   const workoutCounts: Record<IstDay, number> = {};
   for (const workout of weekWorkouts) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
@@ -196,10 +196,10 @@ export function HomeScreen() {
           today={today}
           firstDay={firstDay}
           selected={selected}
-          weekStart={weekStart}
+          start={stripStart}
           mealDays={mealDays}
           onSelect={select}
-          onWeekChange={showWeek}
+          onShow={showDays}
         />
         {selected !== today ? (
           <View style={styles.banner}>

@@ -74,14 +74,14 @@ describe('REQ-NAV-002 calendar', () => {
   });
 });
 
-describe('D-23 week strip limit', () => {
-  it('D-23 the previous-week arrow stops at the week holding the first of the 90 days', async () => {
+describe('D-23 date strip limit', () => {
+  it('D-23 "Earlier days" stops at the 7 days holding the first of the 90 days', async () => {
     await renderHome();
-    const previous = await screen.findByRole('button', { name: 'Previous week' });
+    const earlier = await screen.findByRole('button', { name: 'Earlier days' });
 
-    for (let week = 0; week < 13; week += 1) await fireEvent.press(previous);
+    for (let span = 0; span < 13; span += 1) await fireEvent.press(earlier);
 
-    expect(screen.getByRole('button', { name: 'Previous week' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Earlier days' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Thursday 30 Jul' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Friday 31 Jul' })).toBeEnabled();
   });
