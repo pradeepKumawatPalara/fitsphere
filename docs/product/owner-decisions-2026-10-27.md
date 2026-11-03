@@ -941,6 +941,19 @@ checksum), and the configuration template was left as it is.*
   and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`; the texts
   in `docs/contracts/error-model.md`.
 
+## D-34 Changes from the owner's second phone review (2026-11-03)
+- Status: **Accepted** (owner instruction in chat, 2026-11-03, on the `ui-refresh` branch).
+- Answers:
+  1. **Home's workout tracker opens a day's workouts (REQ-HOME-007).** Each day up to today can be
+     tapped. One workout opens it; more than one shows the count on the dot and opens a sheet,
+     "Workouts on <day>", to choose which; none opens "No workout on <day>" with "Start a workout on
+     this day", which saves a workout on that day and opens it, as Training's "Start an empty
+     workout" does. Later days are greyed and cannot be tapped. Each day is named for screen
+     readers and is 44 dp to tap. The weekly count still counts each workout (Q-025, unchanged).
+- Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
+  invariants, the other D- decisions, privacy rules and the accepted ADRs.
+- Doc changes: REQ-HOME-007 in `docs/product/requirements.md`; Home in `docs/product/mvp-scope.md`.
+
 ---
 
 ## Proposed replacement wording for the two invariants

@@ -30,7 +30,7 @@ Only the Personal Training User view (D-20). Every account is a Personal Trainin
 | Settings | Theme, lifting unit, body-weight unit, AI consent toggle | ACC-001…005 |
 | Role | Every account is a Personal Training User; the role selector is hidden (D-20) | ROLE-001 (MVP default only) |
 | Own targets | The user sets their own daily calorie, protein and steps targets, weekly workout target and target body weight, labelled "Set by you" (D-20; extends Q-016) | ROLE-007 |
-| Home | Date strip, past-date banner, calories and protein cards, weight/steps/sleep tiles, workout tracker, measurements card | DATE-*, HOME-* |
+| Home | Date strip, past-date banner, calories and protein cards, weight/steps/sleep tiles, workout tracker (each day opens its workouts or starts one, D-34), measurements card | DATE-*, HOME-* |
 | Nutrition | Consumed (summary, meal slots, each meal's Edit, Save to my meals and Delete icons, D-33); Diet plan as an empty state only: "No diet plan yet. Your coach will add one here." (D-20); Saved | NUT-*, PLAN-007, SAVED-* |
 | Log meal | Date chip and day sheet; meal type and tags; typed text read by AI; photo (meal or label) read by AI; voice using the phone's built-in speech-to-text (ADR-0005); food search; barcode; saved meals; review before saving; photo upload or public image link with warning | LOG-* |
 | Measurements | Bottom sheet, cm/in, mandatory waist fields, optional fields | MEAS-* |

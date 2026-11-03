@@ -1,10 +1,10 @@
 import type { WorkoutExercise } from '@fitsphere/shared';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { Button } from 'react-native';
 import { AuthProvider } from '../auth/AuthProvider';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
-import { migrateLocal } from '../local/store';
+import { getEntry, migrateLocal } from '../local/store';
 import { SelectedDayProvider, useSelectedDay } from '../navigation/SelectedDayProvider';
 import { SyncProvider, useSync } from '../sync/SyncProvider';
 import { deps, fakeAuthClient, fakeSession } from '../testing/fakes';
@@ -72,16 +72,16 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     await renderHome(['2026-10-26']);
 
     expect(await screen.findByText('1 of 5 · 4 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Mon: workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Tue: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Monday 26 Oct: 1 workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Tuesday 27 Oct: no workout')).toBeOnTheScreen();
   });
 
   it('D-29 two workouts on one day count 2 with one dot; the week before is not counted', async () => {
     await renderHome(['2026-10-27', '2026-10-27', '2026-10-25']);
 
     expect(await screen.findByText('2 of 5 · 3 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Tue: workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Sun: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Tuesday 27 Oct: 2 workouts')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Sunday 1 Nov: future')).toBeOnTheScreen();
   });
 
   it('D-23 "target reached" once the week has as many workouts as the target', async () => {
@@ -97,9 +97,9 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Pick 2026-10-20' }));
 
     // The previous week, Mon 19 – Sun 25 Oct, holds one workout, on the Sunday.
-    expect(await screen.findByLabelText('Sun: workout')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Sunday 25 Oct: 1 workout')).toBeOnTheScreen();
     expect(screen.getByText('1 of 5 · 4 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Wed: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Wednesday 21 Oct: no workout')).toBeOnTheScreen();
   });
 
   it('REQ-HOME-007 a workout started on the phone counts at once, before it syncs', async () => {
@@ -110,7 +110,48 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Start a test workout' }));
 
     expect(await screen.findByText('1 of 5 · 4 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Wed: workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Wednesday 28 Oct: 1 workout')).toBeOnTheScreen();
+  });
+});
+
+describe('D-34 each day of the tracker can be tapped', () => {
+  it('a day with one workout opens it', async () => {
+    await renderHome(['2026-10-26']);
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct: 1 workout' }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\/00000000-0000-4000-a000-\d{12}$/));
+  });
+
+  it('a day with two shows 2 on its dot, and asks which to open', async () => {
+    await renderHome(['2026-10-27', '2026-10-27']);
+
+    const day = await screen.findByRole('button', { name: 'Tuesday 27 Oct: 2 workouts' });
+    expect(within(day).getByText('2')).toBeOnTheScreen();
+    await fireEvent.press(day);
+
+    expect(screen.getByRole('header', { name: 'Workouts on Tue 27 Oct' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: /^Workout [12] · No exercises$/ })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /^Workout [12] · 1 exercise · Squat$/ }));
+    expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\//));
+  });
+
+  it('a day up to today with none offers to start one on that day', async () => {
+    const { db } = await renderHome(['2026-10-26']);
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Tuesday 27 Oct: no workout' }));
+    expect(screen.getByRole('header', { name: 'No workout on Tue 27 Oct' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start a workout on this day' }));
+
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalled());
+    const id = String(mockRouter.push.mock.calls[0]![0]).replace('/workout/', '');
+    expect(await getEntry(db, 'workout', id)).toMatchObject({ day: '2026-10-27', exercises: [] });
+  });
+
+  it('a later day is greyed and cannot be tapped', async () => {
+    await renderHome([]);
+
+    expect(await screen.findByRole('button', { name: 'Thursday 29 Oct: future' })).toBeDisabled();
   });
 });
 

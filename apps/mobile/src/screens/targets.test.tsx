@@ -140,24 +140,36 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
 describe('REQ-HOME-007 workout tracker', () => {
   it('REQ-HOME-007 counts against the weekly target, with Mon–Sun dots', async () => {
     await render(
-      <WorkoutTracker day="2026-10-28" workoutDays={['2026-10-26']} count={1} target={5} onSetTarget={jest.fn()} />,
+      <WorkoutTracker
+        day="2026-10-28"
+        today="2026-10-28"
+        dayCounts={{ '2026-10-26': 1 }}
+        count={1}
+        target={5}
+        onSetTarget={jest.fn()}
+        onDay={jest.fn()}
+      />,
     );
 
     expect(screen.getByText('1 of 5 · 4 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Mon: workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Tue: no workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Sun: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Monday 26 Oct: 1 workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Tuesday 27 Oct: no workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Sunday 1 Nov: future')).toBeOnTheScreen();
   });
 
   it('D-23 reads "target reached" once the target is met', async () => {
-    await render(<WorkoutTracker day="2026-10-28" workoutDays={[]} count={5} target={5} onSetTarget={jest.fn()} />);
+    await render(
+      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={5} target={5} onSetTarget={jest.fn()} onDay={jest.fn()} />,
+    );
 
     expect(screen.getByText('5 of 5 · target reached')).toBeOnTheScreen();
   });
 
   it('REQ-ROLE-007 with no target, offers to set one', async () => {
     const onSetTarget = jest.fn();
-    await render(<WorkoutTracker day="2026-10-28" workoutDays={[]} count={0} target={null} onSetTarget={onSetTarget} />);
+    await render(
+      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={0} target={null} onSetTarget={onSetTarget} onDay={jest.fn()} />,
+    );
 
     expect(screen.getByText('0 workouts this week')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Set a weekly workout target' }));

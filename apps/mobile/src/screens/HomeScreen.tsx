@@ -12,6 +12,7 @@ import {
   type LengthUnit,
   type MealTotals,
   type TargetKind,
+  type WorkoutExercise,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -26,6 +27,7 @@ import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
+import { WorkoutDaySheet } from '../components/WorkoutDaySheet';
 import { WorkoutTracker } from '../components/WorkoutTracker';
 import { Text, TextButton } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
@@ -75,7 +77,9 @@ export function HomeScreen() {
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
   const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
-  const [weekWorkouts, setWeekWorkouts] = useState<{ count: number; days: IstDay[] }>({ count: 0, days: [] });
+  const [weekWorkouts, setWeekWorkouts] = useState<{ id: string; day: IstDay; exercises: WorkoutExercise[] }[]>([]);
+  // The tracker's day whose workouts are being chosen from, or started (D-34).
+  const [workoutDay, setWorkoutDay] = useState<IstDay | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -123,13 +127,29 @@ export function HomeScreen() {
       setMealDays(new Set(Object.keys(counts)));
       // Every workout on the phone in the selected date's week counts, an empty one too (Q-025), and
       // a day's dot shows once it has any (REQ-HOME-007; MVP default, D-29).
-      setWeekWorkouts({ count: workouts.length, days: [...new Set(workouts.map((workout) => workout.day))] });
+      setWeekWorkouts(workouts.map(({ id, day, exercises }) => ({ id, day, exercises })));
     });
     return () => {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
   }, [local.state, selected, weekStart, sync.version, measurementsOpen, texts]);
+
+  const workoutCounts: Record<IstDay, number> = {};
+  for (const workout of weekWorkouts) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
+
+  /** A tracker day: its one workout opens; with several, or none, the day's sheet (D-34). */
+  function openWorkoutDay(day: IstDay) {
+    const onDay = weekWorkouts.filter((workout) => workout.day === day);
+    if (onDay.length === 1) router.push(`/workout/${onDay[0]!.id}`);
+    else setWorkoutDay(day);
+  }
+
+  /** A new workout on that day, saved at once and opened, as Training's "Start an empty workout". */
+  async function startWorkout(day: IstDay) {
+    const id = await sync.startWorkout(day);
+    router.push(`/workout/${id}`);
+  }
 
   function openTargets() {
     router.push('/targets');
@@ -224,10 +244,12 @@ export function HomeScreen() {
         </View>
         <WorkoutTracker
           day={selected}
-          workoutDays={weekWorkouts.days}
-          count={weekWorkouts.count}
+          today={today}
+          dayCounts={workoutCounts}
+          count={weekWorkouts.length}
           target={targets.weekly_workouts ?? null}
           onSetTarget={openTargets}
+          onDay={openWorkoutDay}
         />
         <MeasurementsCard
           day={selected}
@@ -244,6 +266,15 @@ export function HomeScreen() {
             firstDay={firstDay}
             onSave={(input) => sync.save('measurements', input)}
             onClose={() => setMeasurementsSheet(null)}
+          />
+        ) : null}
+        {workoutDay ? (
+          <WorkoutDaySheet
+            day={workoutDay}
+            workouts={weekWorkouts.filter((workout) => workout.day === workoutDay)}
+            onOpen={(id) => router.push(`/workout/${id}`)}
+            onStart={() => void startWorkout(workoutDay)}
+            onClose={() => setWorkoutDay(null)}
           />
         ) : null}
         {sheet && sheetText ? (

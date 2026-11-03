@@ -321,6 +321,7 @@ B-22).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
+- Each day up to today can be tapped (D-34): a day with one workout opens it; a day with more shows how many on its dot and asks which to open; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
 - MVP default (D-18): an empty workout counts toward the weekly target (Q-025). The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
 - MVP default (D-29): every workout on the phone in the Mon–Sun week of the selected date counts, including those waiting to sync; a day may hold several workouts, each counted, and the day's dot shows once it has any.
