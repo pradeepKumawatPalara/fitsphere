@@ -22,7 +22,7 @@ does stay as they are. The owner's rules for it (chat, 2026-11-03):
 
 ## How it works
 1. **Design.** Each screen is drawn on the "FitSphere Redesign" canvas
-   (https://claude.ai/artifact/RmAvRMbBYiQSJ2mYiq9hfh, private to the owner), with every state in
+   (https://claude.ai/artifact/XrKdW5ZWHQ6WRvk3wL3KoP, private to the owner; made again on 2026-11-03 after the signed-in account changed), with every state in
    dark and light.
 2. **Lock.** The owner comments, or locks the screen. Only a locked screen is built.
 3. **Build.** One commit per locked screen, on one branch per module (`redesign/<n>-<module>`);
@@ -61,7 +61,7 @@ new flow.
 |---|---|
 | 0 Foundation | Built with 1.1 on `redesign/1-sign-in`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
 | 1.1 Sign in | Locked and built (`redesign/1-sign-in`); the owner's phone check waits for the new development build |
-| 1.2 Sign up | Next |
+| 1.2 Sign up | Designed (every state, dark and light); waiting for the owner |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.
