@@ -75,8 +75,8 @@ export function ProgressScreen() {
   );
 }
 
-// 24 between cards, as between groups on Home.
+// The redesign's 5.1 (locked by the owner, 2026-11-03): 20 between the cards.
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 16, gap: 24 },
+  content: { padding: 16, paddingBottom: 24, gap: 20 },
 });

@@ -181,6 +181,15 @@ describe('REQ-PRG-001 history', () => {
     expect(older?.path).toBe(`/users/${'0f8e5a1c-9b7d-4c1e-8a2b-3c4d5e6f7a8b'}/weigh-ins`);
   });
 
+  it('REQ-PRG-001 an older range with no weigh-ins says so, its days written as everywhere else', async () => {
+    const { server } = await renderApp('history');
+    server.state.older = [];
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+
+    expect(await screen.findByText(/^No weights from [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} to [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}\.$/)).toBeOnTheScreen();
+  });
+
   it('ADR-0007 rule 6 "Load older" offline shows the named warning', async () => {
     const { server } = await renderApp('history');
     server.state.offline = true;

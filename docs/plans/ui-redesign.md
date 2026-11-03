@@ -97,10 +97,10 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 4.2 A workout | Locked and built; Done is fixed at the foot, as Log meal's Save meal, and Delete workout ends the list |
 | 4.3 Exercise sheet | Locked and built |
 | **5 Progress** | |
-| 5.1 Progress: weight and its chart, nutrition, the week, measurements | Next |
-| 5.2 Weight history | |
+| 5.1 Progress: weight and its chart, nutrition, the week, measurements | Locked and built; the chart is drawn with react-native-svg (in the app since D-35, so no new package or build), with the area under the line tinted |
+| 5.2 Weight history | Locked and built; "No weights from … to …" writes its days as everywhere else ("Fri 8 May"; they were shown as 2026-05-08) |
 | **6 Settings and account** | |
-| 6.1 Settings | |
+| 6.1 Settings | Next |
 | 6.2 Your targets and its entry sheet | |
 | 6.3 Change password | |
 | 6.4 Delete account | |

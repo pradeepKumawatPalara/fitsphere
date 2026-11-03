@@ -6,13 +6,15 @@ import {
   type MeResponse,
   type WeighInsPage,
 } from '@fitsphere/shared';
+import { ClockArrowDown, WifiOff } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { WeighInList, type HistoryRow } from '../components/WeighInList';
-import { Text, TextButton } from '../components/ui';
+import { Banner, TextButton } from '../components/ui';
+import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listWeighIns } from '../local/store';
 import { useSync } from '../sync/SyncProvider';
@@ -30,7 +32,7 @@ export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [recent, setRecent] = useState<HistoryRow[]>([]);
   const [older, setOlder] = useState<HistoryRow[]>([]);
   const [oldestLoaded, setOldestLoaded] = useState(windowStart);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: 'info' | 'error'; offline?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -60,16 +62,17 @@ export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) 
     const result = await fetchOlder(from, to);
     setBusy(false);
     if (result === 'offline') {
-      setMessage(TEXTS.needsInternet('Loading older history'));
+      setMessage({ text: TEXTS.needsInternet('Loading older history'), tone: 'error', offline: true });
       return;
     }
     if (result === 'failed') {
-      setMessage(TEXTS.tryLater);
+      setMessage({ text: TEXTS.tryLater, tone: 'error' });
       return;
     }
     setOlder((rows) => [...rows, ...result]);
     setOldestLoaded(from);
-    if (result.length === 0) setMessage(`No weights from ${from} to ${to}.`);
+    // The days as everywhere else, e.g. "Fri 8 May" (the redesign's 5.2; they were shown as 2026-05-08).
+    if (result.length === 0) setMessage({ text: `No weights from ${formatDay(from)} to ${formatDay(to)}.`, tone: 'info' });
   }
 
   async function fetchOlder(from: string, to: string): Promise<HistoryRow[] | 'offline' | 'failed'> {
@@ -92,19 +95,16 @@ export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) 
       rows={[...recent, ...older]}
       footer={
         <View style={styles.footer}>
-          {message ? (
-            <Text accessibilityRole="alert" style={styles.message}>
-              {message}
-            </Text>
-          ) : null}
-          <TextButton title="Load older" outlined disabled={busy} onPress={() => void loadOlder()} />
+          {message ? <Banner tone={message.tone} text={message.text} {...(message.offline ? { icon: WifiOff } : {})} /> : null}
+          <TextButton title="Load older" outlined wide icon={ClockArrowDown} disabled={busy} onPress={() => void loadOlder()} />
         </View>
       }
     />
   );
 }
 
+// The redesign's 5.2 (locked by the owner, 2026-11-03): as Training's Load older (4.1), across the
+// screen under the list, its message as a banner.
 const styles = StyleSheet.create({
-  footer: { padding: 16, gap: 12 },
-  message: { fontSize: 15 },
+  footer: { paddingTop: 16, gap: 12 },
 });

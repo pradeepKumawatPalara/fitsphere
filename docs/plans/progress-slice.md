@@ -54,7 +54,9 @@ Not in this slice: the "Pre" row and week details (B-02); weeks and measurements
 - Body weight is shown with `formatWeight` and `fromGrams` from `@fitsphere/shared`; lengths with
   `fromMillimetres` and the phone's cm/in choice (`measurement_unit`).
 - There is no chart or SVG package. The chart is drawn with plain React Native views, so no native
-  package and no cloud build are needed.
+  package and no cloud build are needed. *Since the redesign's 5.1 (2026-11-03) it is drawn with
+  react-native-svg, which the app has had since D-35 for its icons: still no chart package, and no
+  new build.*
 
 ## Decisions
 **1. Working beside slice 6.**
