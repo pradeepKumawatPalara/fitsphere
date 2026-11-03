@@ -4,7 +4,7 @@
   approval
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-03 (1.1 Sign in locked and built with the foundation, on
-  `redesign/1-sign-in`; MVP defaults for the two contrast conflicts). Earlier the same day: the
+  `ui-redesign`; MVP defaults for the two contrast conflicts). Earlier the same day: the
   module plan; the owner chose to change the whole app's colours and fonts at once
 - Builds on: D-35 and the design language in [`docs/design/`](../design/) (`design-system.md`,
   `FitSphere-UI-UX-context.md`); the theme module of the
@@ -25,9 +25,10 @@ does stay as they are. The owner's rules for it (chat, 2026-11-03):
    (https://claude.ai/artifact/XrKdW5ZWHQ6WRvk3wL3KoP, private to the owner; made again on 2026-11-03 after the signed-in account changed), with every state in
    dark and light.
 2. **Lock.** The owner comments, or locks the screen. Only a locked screen is built.
-3. **Build.** One commit per locked screen, on one branch per module (`redesign/<n>-<module>`);
-   lint, typecheck and the tests pass before each commit. A pull request per module, opened and
-   pushed only when the owner says. The owner checks the screen on the phone.
+3. **Build.** One commit per locked screen, all on one branch, `ui-redesign`, in the owner's own
+   checkout (no second folder; owner, 2026-11-03); lint, typecheck and the tests pass before each
+   commit. Pushed and a pull request opened only when the owner says. The owner checks the screen
+   on the phone.
 4. **Next screen.**
 
 A shared part (a field, a button, the sheet frame) takes its new look with the first locked screen
@@ -59,8 +60,8 @@ new flow.
 ## Progress
 | Screen | Status |
 |---|---|
-| 0 Foundation | Built with 1.1 on `redesign/1-sign-in`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
-| 1.1 Sign in | Locked and built (`redesign/1-sign-in`); the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is ready; the owner's phone check is next |
+| 0 Foundation | Built with 1.1 on `ui-redesign`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
+| 1.1 Sign in | Locked and built (`ui-redesign`); the new development build (EAS `bb8ff50e`, 2026-11-03, with `react-native-svg`) is ready; the owner's phone check is next |
 | 1.2 Sign up | Designed (every state, dark and light); waiting for the owner |
 
 ## Module 0: the foundation

@@ -186,7 +186,7 @@ icons are Lucide (`lucide-react-native`, in place of `@expo/vector-icons`; it ne
 fonts are Barlow Condensed and Barlow (`@expo-google-fonts/*`, no new build). "The user's time
 zone" means Asia/Kolkata here (invariant 5). The redesign follows `docs/plans/ui-redesign.md`: each
 screen is designed on the owner's canvas, locked by the owner, then built; the app's colours, fonts
-and icons switched with the first screen, 1.1 Sign in (branch `redesign/1-sign-in`). Build only
+and icons switched with the first screen, 1.1 Sign in (branch `ui-redesign`). Build only
 locked screens.
 
 ## Working rules
