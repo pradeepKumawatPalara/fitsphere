@@ -66,7 +66,8 @@ new flow.
 | 1.2 Sign up | Locked and built (`ui-redesign`); with it the checkbox and a field's rule line took their new look |
 | 1.3 Check your email | Locked and built (`ui-redesign`); the sign-up text shows as a heading and its text, the same words |
 | 1.4 Email verified | Locked and built (`ui-redesign`); "Link expired" is the only new heading |
-| 1.5 Forgot password | Designed (every state, and the link sent); waiting for the owner |
+| 1.5 Forgot password | Locked and built (`ui-redesign`) |
+| 1.6 Set a new password | Designed (every state, and a link that failed); waiting for the owner |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.

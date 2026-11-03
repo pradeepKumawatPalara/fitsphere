@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import { RESET_REDIRECT, type AuthClient } from '../auth/service';
@@ -53,6 +53,27 @@ describe('REQ-ACC-010 Forgot password', () => {
 
     expect(await screen.findByText('Resetting a password needs an internet connection.')).toBeOnTheScreen();
     expect(screen.queryByText(TEXTS.resetSent)).toBeNull();
+  });
+
+  // The redesign's screen 1.5 (locked by the owner, 2026-11-03).
+  it('names a problem with the email under the email field, and sends nothing', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<ForgotPasswordScreen />, client);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Send reset link' }));
+    const problem = screen.getByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.emailRule);
+    expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+    expect(client.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('once the link is sent, the text takes the field’s place and Back to sign in is the one step left', async () => {
+    await requestReset(fakeAuthClient());
+
+    expect(await screen.findByText(TEXTS.resetSent)).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Email')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Send reset link' })).toBeNull();
+    expect(screen.getAllByRole('button').map((button) => button.props.accessibilityLabel)).toEqual(['Back to sign in']);
   });
 });
 
