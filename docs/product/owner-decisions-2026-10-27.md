@@ -1006,6 +1006,11 @@ checksum), and the configuration template was left as it is.*
      theme's chosen tint) and its label in blue, semibold; the others are muted. Labels are 13 so
      they fit under the icons. Each tab keeps its name and selected state for screen readers and
      is the full tab to tap, 64 dp above the navigation bar. Theme tokens only.
+  10. **Home's workout tracker names its week (REQ-HOME-007).** It shows the Mon–Sun week of the
+      date picked on Home (Q-026, unchanged), so its title reads "Workouts this week" for the
+      current week and "Workouts that week" for an earlier one, with the week's dates under it
+      ("Mon 19 Oct – Sun 25 Oct"); with no target the count says the same ("2 workouts that week").
+      As answer 1 gives, a day of an earlier week can be tapped to open or start its workouts.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
 - Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-NUT-003, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and

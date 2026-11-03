@@ -1,6 +1,6 @@
-import { istWeekDays, type IstDay } from '@fitsphere/shared';
+import { addDays, istWeekDays, istWeekStart, type IstDay } from '@fitsphere/shared';
 import { Pressable, View } from 'react-native';
-import { dayParts } from '../format';
+import { dayParts, formatDay } from '../format';
 import { themedStyles } from '../theme';
 import { Text, TextButton } from './ui';
 
@@ -21,18 +21,28 @@ type Props = {
 
 // The workout tracker (REQ-HOME-007): "1 of 5 · 4 left", with Mon–Sun dots marking workout days, a
 // day with more than one showing how many. Each day up to today can be tapped (D-34); later days
-// are greyed. Workouts are logged on the Training tab (D-29).
+// are greyed. Workouts are logged on the Training tab (D-29). It shows the week of the date picked
+// on Home (Q-026), so it names that week's dates: "Workouts this week" for this week, "Workouts that
+// week" for an earlier one (D-34).
 export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarget, onDay }: Props) {
   const styles = useStyles();
+  const monday = istWeekStart(day);
+  const thisWeek = monday === istWeekStart(today);
+  const which = thisWeek ? 'this week' : 'that week';
   const summary =
     target === null
-      ? `${count} ${count === 1 ? 'workout' : 'workouts'} this week`
+      ? `${count} ${count === 1 ? 'workout' : 'workouts'} ${which}`
       : count >= target
         ? `${count} of ${target} · target reached`
         : `${count} of ${target} · ${target - count} left`;
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Workouts this week</Text>
+      <View>
+        <Text style={styles.title}>Workouts {which}</Text>
+        <Text style={styles.week}>
+          {formatDay(monday)} – {formatDay(addDays(monday, 6))}
+        </Text>
+      </View>
       <Text style={styles.summary}>{summary}</Text>
       <View style={styles.dots}>
         {istWeekDays(day).map((weekDay) => {
@@ -67,6 +77,7 @@ export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarg
 const useStyles = themedStyles((c) => ({
   card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 10 },
   title: { fontSize: 15, fontWeight: '600' },
+  week: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
   summary: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
   dots: { flexDirection: 'row', justifyContent: 'space-between' },
   day: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 4 },

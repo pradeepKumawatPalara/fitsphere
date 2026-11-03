@@ -72,6 +72,9 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     await renderHome(['2026-10-26']);
 
     expect(await screen.findByText('1 of 5 · 4 left')).toBeOnTheScreen();
+    // This week, named with its dates (D-34).
+    expect(screen.getByText('Workouts this week')).toBeOnTheScreen();
+    expect(screen.getByText('Mon 26 Oct – Sun 1 Nov')).toBeOnTheScreen();
     expect(screen.getByLabelText('Monday 26 Oct: 1 workout')).toBeOnTheScreen();
     expect(screen.getByLabelText('Tuesday 27 Oct: no workout')).toBeOnTheScreen();
   });
@@ -100,6 +103,10 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     expect(await screen.findByLabelText('Sunday 25 Oct: 1 workout')).toBeOnTheScreen();
     expect(screen.getByText('1 of 5 · 4 left')).toBeOnTheScreen();
     expect(screen.getByLabelText('Wednesday 21 Oct: no workout')).toBeOnTheScreen();
+    // An earlier week says so, and which it is (D-34).
+    expect(screen.getByText('Workouts that week')).toBeOnTheScreen();
+    expect(screen.getByText('Mon 19 Oct – Sun 25 Oct')).toBeOnTheScreen();
+    expect(screen.queryByText('Workouts this week')).toBeNull();
   });
 
   it('REQ-HOME-007 a workout started on the phone counts at once, before it syncs', async () => {
@@ -146,6 +153,18 @@ describe('D-34 each day of the tracker can be tapped', () => {
     await waitFor(() => expect(mockRouter.push).toHaveBeenCalled());
     const id = String(mockRouter.push.mock.calls[0]![0]).replace('/workout/', '');
     expect(await getEntry(db, 'workout', id)).toMatchObject({ day: '2026-10-27', exercises: [] });
+  });
+
+  it('a workout can be started on a day of an earlier week too', async () => {
+    const { db } = await renderHome([], <PickDay day="2026-10-20" />);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Pick 2026-10-20' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Wednesday 21 Oct: no workout' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Start a workout on this day' }));
+
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalled());
+    const id = String(mockRouter.push.mock.calls[0]![0]).replace('/workout/', '');
+    expect(await getEntry(db, 'workout', id)).toMatchObject({ day: '2026-10-21' });
   });
 
   it('a later day is greyed and cannot be tapped', async () => {
