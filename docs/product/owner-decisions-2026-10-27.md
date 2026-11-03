@@ -1055,6 +1055,28 @@ checksum), and the configuration template was left as it is.*
 - Applied from 2026-11-03: the owner locked the redesign's first screen, 1.1 Sign in, and said to
   build it; the colours, fonts and icons switched with it (`docs/plans/ui-redesign.md`).
 
+## D-36 Household units for a food's amount, from the owner's measurements
+- Status: **Accepted** (owner instruction in chat, 2026-11-03, with the answers to two questions).
+- Context: on the redesign's canvas the owner asked for a choice of unit for a food's portion
+  besides grams, such as a tablespoon, a glass, half a glass or a bowl, taking HealthifyMe's serving
+  choice as the reference. A unit needs the grams it holds for each food: the IFCT list gives values
+  per 100 g only, and D-26 does not use NIN's household-measure tables.
+- Answers:
+  1. **Where the grams come from:** the owner's measured sheet, as with the dish recipes (D-26).
+     FitSphere fixes its own unit sizes (for example teaspoon 5 ml, tablespoon 15 ml, glass 250 ml,
+     half glass 125 ml, katori or bowl 200 ml) and the owner weighs one level measure of each food.
+     A food offers a unit only once its row is measured and approved by the owner; grams stay
+     available for every food. Never fill in or approve a row without the owner's measurements.
+  2. **When:** after the redesign (modules 4 to 6), as its own small slice with a plan that the
+     owner accepts first.
+- **Interpretation:** HealthifyMe is a reference for the interaction only (an amount with a unit
+  beside it and the grams it comes to); none of its data or wording is used. *(Confirm.)*
+- **Interpretation:** the sizes listed in answer 1 are examples; the plan proposes the units and
+  sizes for the owner to approve. *(Confirm.)*
+- Unchanged until the plan is accepted: grams for listed foods, barcode products and your own food;
+  portions for dishes (D-26, D-28); the meal contract; the invariants.
+- Doc changes: backlog B-27.
+
 ---
 
 ## Proposed replacement wording for the two invariants
