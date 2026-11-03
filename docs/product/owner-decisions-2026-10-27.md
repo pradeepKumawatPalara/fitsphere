@@ -983,11 +983,18 @@ checksum), and the configuration template was left as it is.*
      months. 6M and All read older weigh-ins online as 26W and All did, with the named warning
      offline ("Showing 6 months of weight needs an internet connection."). "All" is kept. Screen
      readers hear "1 week", "1 month", "3 months", "6 months" and "All".
+  7. **Nutrition's meal slots fold (REQ-NUT-003; D-33's review, item 10).** A slot with meals is
+     folded at first: its kcal and number of meals ("640 kcal · 3 meals") and its foods on up to two
+     lines (five names, then "+ N more"). The chevron, or the slot's heading, opens it to each
+     meal's card with "Saved 8:15 am" and the Edit, Save to my meals and Delete icons. The time is
+     the meal's stored `recordedAt`, the moment it was last saved (so an edit moves it), shown in
+     India time; no new field is stored. The chevron is named "Show/Hide <slot> meals" and is 44 dp
+     to tap. Which slots are open is kept on the screen only and resets when the day changes.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
-- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and REQ-PRG-004 in
-  `docs/product/requirements.md`; Home, Training, Log meal, Progress, Q-017 and Q-019 in
-  `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
+- Doc changes: REQ-HOME-002, REQ-HOME-007, REQ-NUT-003, REQ-TRN-004, REQ-LOG-007, REQ-DATE-001 and
+  REQ-PRG-004 in `docs/product/requirements.md`; Home, Nutrition, Training, Log meal, Progress, Q-017
+  and Q-019 in `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
   `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
 
 ---

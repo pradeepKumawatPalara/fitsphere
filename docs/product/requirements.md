@@ -377,6 +377,7 @@ B-22).
 ### REQ-NUT-003 — Meal slots
 - Requirement: Breakfast, Lunch, Snack and Dinner slots each show "Tap to add what you ate" with a "+" that opens Log meal preset to that slot and date.
 - MVP default (D-18): tags attach to a meal, which keeps its meal type; a tagged meal shows a small label in its slot (Q-031).
+- A slot with meals is folded at first (D-34): its kcal and number of meals ("640 kcal · 3 meals") and its foods on up to two lines (five names, then "+ N more"). The chevron, or the slot's heading, opens it to each meal's card with the time it was last saved in India time ("Saved 8:15 am") and its Edit, Save to my meals and Delete icons (REQ-NUT-004). The chevron is named "Show Breakfast meals" or "Hide Breakfast meals" and is 44 dp to tap. Every slot folds again when the day changes. An empty slot shows "Tap to add what you ate" and its "+" as before.
 
 ### REQ-NUT-004 — Meal menu: edit, delete, save to my meals
 - Requirement: Each logged meal offers Edit, Delete and "Save to my meals" (MVP default, Q-032), as icons on the meal, each named for screen readers and 44 dp to tap; Delete asks first (D-33, which replaced the first "•••" menu). A saved meal offers Delete the same way. "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).

@@ -47,6 +47,11 @@ async function meal(db: SqlDb, fields: { day?: string; mealType?: 'breakfast' | 
   return mealId;
 }
 
+/** Opens a meal slot, whose meals are folded at first (D-34). */
+async function open(slot: string) {
+  await fireEvent.press(await screen.findByRole('button', { name: `Show ${slot} meals` }));
+}
+
 beforeEach(() => {
   mockRouter.replace.mockClear();
   mockRouter.push.mockClear();
@@ -97,9 +102,17 @@ describe('REQ-NUT-002 and REQ-NUT-003 Consumed', () => {
     expect(await screen.findByLabelText('Eaten: 417 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('Protein: 10.3 g')).toBeOnTheScreen();
     expect(screen.getByLabelText('Fibre: 6.8 g')).toBeOnTheScreen();
+    // Each slot folded at first: its kcal, its meals and its foods (D-34).
+    expect(screen.getByText('237 kcal · 1 meal')).toBeOnTheScreen();
+    expect(screen.getByText('Wheat flour, atta, Ghee')).toBeOnTheScreen();
+    expect(screen.getByText('180 kcal · 1 meal')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Edit Lunch/ })).toBeNull();
+    await open('Lunch');
     expect(screen.getByRole('button', { name: 'Edit Lunch: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Edit Snack: Synthetic bar' })).toBeOnTheScreen();
     expect(screen.getByText('Dessert')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Edit Snack: Synthetic bar' })).toBeNull();
+    await open('Snack');
+    expect(screen.getByRole('button', { name: 'Edit Snack: Synthetic bar' })).toBeOnTheScreen();
     expect(screen.getAllByText('Tap to add what you ate')).toHaveLength(2);
   });
 
@@ -114,6 +127,50 @@ describe('REQ-NUT-002 and REQ-NUT-003 Consumed', () => {
   });
 });
 
+describe('D-34 meal slots fold and open', () => {
+  it('a slot opens to each meal with the time it was saved, in India time, and closes again', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db, { mealType: 'breakfast', items: [ATTA] });
+      await meal(db, { mealType: 'breakfast', items: [GHEE] });
+    });
+
+    expect(await screen.findByText('237 kcal · 2 meals')).toBeOnTheScreen();
+    const show = screen.getByRole('button', { name: 'Show Breakfast meals' });
+    expect(show).toHaveStyle({ width: 44, height: 44 });
+    await fireEvent.press(show);
+
+    expect(screen.getAllByText('Saved 9:00 am')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Hide Breakfast meals' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Hide Breakfast meals' }));
+    expect(screen.queryByText('Saved 9:00 am')).toBeNull();
+    expect(screen.getByText('Wheat flour, atta, Ghee')).toBeOnTheScreen();
+  });
+
+  it('a closed slot lists five foods, then how many more', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db, {
+        mealType: 'dinner',
+        items: ['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((letter) => ({ ...ATTA, ref: `X${letter}`, name: `Food ${letter}` })),
+      });
+    });
+
+    expect(await screen.findByText('Food A, Food B, Food C, Food D, Food E + 2 more')).toBeOnTheScreen();
+  });
+
+  it('opened slots close again when the day changes', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db);
+    });
+    await open('Lunch');
+    expect(screen.getByRole('button', { name: 'Hide Lunch meals' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 Oct' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, meal logged' }));
+
+    expect(await screen.findByRole('button', { name: 'Show Lunch meals' })).toBeOnTheScreen();
+  });
+});
+
 describe('REQ-NUT-004 the meal card’s actions', () => {
   it('REQ-NUT-004 Delete asks first, then removes the meal and sends the deletion', async () => {
     let mealId = '';
@@ -122,6 +179,7 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
     });
     await waitFor(() => expect(server.entries('meals').get(mealId)).toMatchObject({ deleted: false }));
 
+    await open('Lunch');
     const remove = await screen.findByRole('button', { name: 'Delete Lunch: Wheat flour, atta' });
     // The icons are 44 to tap; Delete's stands out in the "over" red from Edit's blue.
     expect(remove).toHaveStyle({ width: 44, height: 44 });
@@ -142,6 +200,7 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
       await meal(db);
     });
 
+    await open('Lunch');
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete Lunch: Wheat flour, atta' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -155,6 +214,7 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
       mealId = await meal(db);
     });
 
+    await open('Lunch');
     await fireEvent.press(await screen.findByRole('button', { name: 'Edit Lunch: Wheat flour, atta' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/log-meal', params: { mealId } });
@@ -165,6 +225,7 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
       await meal(seed, { mealType: 'dinner', tags: ['before_training'], items: [ATTA, GHEE] });
     });
 
+    await open('Dinner');
     await fireEvent.press(await screen.findByRole('button', { name: 'Save Dinner: Wheat flour, atta + 1 more to my meals' }));
     expect(screen.getByLabelText('Name')).toHaveDisplayValue('Wheat flour, atta + 1 more');
     await fireEvent.changeText(screen.getByLabelText('Name'), 'Two rotis with ghee');
@@ -210,6 +271,7 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
       ]),
     );
     await fireEvent.press(screen.getByRole('tab', { name: 'Consumed' }));
+    await open('Breakfast');
     expect(await screen.findByRole('button', { name: 'Edit Breakfast: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
   });
 
@@ -218,6 +280,7 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
       await meal(db);
     });
 
+    await open('Lunch');
     await fireEvent.press(await screen.findByRole('button', { name: 'Save Lunch: Wheat flour, atta to my meals' }));
     await fireEvent.changeText(screen.getByLabelText('Name'), '  ');
 

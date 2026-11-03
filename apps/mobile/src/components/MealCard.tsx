@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { MealItem, MealPhoto, MealTag, MealTotals } from '@fitsphere/shared';
 import type { ComponentProps } from 'react';
 import { Pressable, View } from 'react-native';
+import { formatIstTime } from '../format';
 import type { SyncState } from '../local/store';
 import { describeItems, formatGrams, formatKcal, MEAL_TAG_LABELS } from '../meals';
 import { themedStyles, useTheme } from '../theme';
@@ -17,6 +18,8 @@ type Props = {
   syncState: SyncState;
   /** A logged meal's photo or image link (REQ-LOG-006, REQ-LOG-010); saved meals have none. */
   photo?: { mealId: string; photo: MealPhoto } | null;
+  /** When a logged meal was last saved, shown as "Saved 8:15 am" in India time (D-34). */
+  savedAt?: string;
   /** A logged meal: opens it in Log meal. */
   onEdit?(): void;
   /** A logged meal: "Save to my meals". */
@@ -30,7 +33,7 @@ type Props = {
 // a small label per tag (Q-031), its photo or image link, and its actions as icons along the foot of
 // the card: Edit, Save to my meals and Delete for a logged meal, Delete for a saved one. Each icon is
 // 44 to tap and named for screen readers; Delete is red.
-export function MealCard({ title, items, tags, totals, syncState, photo, onEdit, onSave, onDelete, onPress }: Props) {
+export function MealCard({ title, items, tags, totals, syncState, photo, savedAt, onEdit, onSave, onDelete, onPress }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const note = syncState === 'pending' ? 'Waiting to sync' : syncState === 'rejected' ? 'Not saved' : null;
@@ -44,7 +47,10 @@ export function MealCard({ title, items, tags, totals, syncState, photo, onEdit,
           onPress={onPress}
           style={({ pressed }) => [styles.body, pressed && styles.pressed]}
         >
-          <Text style={styles.items}>{describeItems(items)}</Text>
+          <View style={styles.firstLine}>
+            <Text style={styles.items}>{describeItems(items)}</Text>
+            {savedAt ? <Text style={styles.saved}>Saved {formatIstTime(savedAt)}</Text> : null}
+          </View>
           <Text style={styles.values}>
             {formatKcal(totals.kcal)} · {formatGrams(totals.proteinG)} protein
           </Text>
@@ -109,7 +115,9 @@ const useStyles = themedStyles((c) => ({
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingRight: 10 },
   body: { flex: 1, gap: 6 },
   pressed: { opacity: 0.6 },
-  items: { fontSize: 15, fontWeight: '600' },
+  firstLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  items: { flexShrink: 1, fontSize: 15, fontWeight: '600' },
+  saved: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
   values: { fontSize: 15, color: c.text, fontVariant: ['tabular-nums'] },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tag: { fontSize: 13, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 12, backgroundColor: c.surfaceSelected, color: c.primaryStrong },

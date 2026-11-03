@@ -165,6 +165,8 @@ describe('REQ-NFR-006 photos and links on Nutrition', () => {
       await markUploaded(db, mediaId);
     });
 
+    // A slot's meals show once it is opened (D-34).
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show Lunch meals' }));
     expect(await screen.findByLabelText('Meal photo')).toHaveProp('source', { uri: `data:image/jpeg;base64,${FILES.thumbnail}` });
     await fireEvent.press(screen.getByRole('button', { name: 'View meal photo' }));
 
@@ -178,6 +180,7 @@ describe('REQ-NFR-006 photos and links on Nutrition', () => {
       await mealWithPhoto(db, { kind: 'link', url: 'https://images.example.com/meal.jpg' });
     });
 
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show Lunch meals' }));
     await fireEvent.press(await screen.findByRole('link', { name: 'Open image link on images.example.com' }));
 
     expect(open).toHaveBeenCalledWith('https://images.example.com/meal.jpg');

@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { addDays, type IstDay, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -18,10 +19,10 @@ import {
   type LocalMeal,
   type LocalSavedMeal,
 } from '../local/store';
-import { describeItems, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
+import { describeItems, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 
 type Tab = 'consumed' | 'plan' | 'saved';
 const TABS: { tab: Tab; label: string }[] = [
@@ -42,8 +43,12 @@ function asTab(value: string | undefined): Tab | null {
 
 // Nutrition (REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001/002): the selected day's meals by slot,
 // the Diet plan empty state (D-20) and the saved meals. Shares the selected date with Home.
+/** Food names shown in a closed slot, before "+ N more". */
+const FOODS_SHOWN = 5;
+
 export function NutritionScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const pill = useChoiceStyles();
   const local = useLocalDatabase();
   const sync = useSync();
@@ -63,6 +68,22 @@ export function NutritionScreen() {
   const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // The slots opened to show each meal (D-34): all closed again when the day changes.
+  const [open, setOpen] = useState<ReadonlySet<MealType>>(new Set());
+  const [openDay, setOpenDay] = useState(selected);
+  if (openDay !== selected) {
+    setOpenDay(selected);
+    setOpen(new Set());
+  }
+
+  function toggle(slot: MealType) {
+    setOpen((current) => {
+      const next = new Set(current);
+      if (next.has(slot)) next.delete(slot);
+      else next.add(slot);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -128,38 +149,72 @@ export function NutritionScreen() {
           <>
             <EatenSummary totals={totals} />
             {MEAL_TYPE_ORDER.map((slot) => {
+              const label = MEAL_TYPE_LABELS[slot];
               const slotMeals = meals.filter((meal) => meal.mealType === slot);
+              const isOpen = open.has(slot);
+              const kcal = slotMeals.reduce((sum, meal) => sum + meal.kcal, 0);
+              const names = [...new Set(slotMeals.flatMap((meal) => meal.items.map((item) => item.name)))];
+              const foods =
+                names.length > FOODS_SHOWN ? `${names.slice(0, FOODS_SHOWN).join(', ')} + ${names.length - FOODS_SHOWN} more` : names.join(', ');
+              // A slot with meals opens and closes from its heading or its chevron (D-34); screen
+              // readers get the chevron, so they don't hear two controls that do the same.
               return (
                 <View key={slot} style={styles.slot}>
                   <View style={styles.slotHeader}>
-                    <Text accessibilityRole="header" style={styles.slotTitle}>
-                      {MEAL_TYPE_LABELS[slot]}
-                    </Text>
+                    <Pressable accessible={false} disabled={slotMeals.length === 0} onPress={() => toggle(slot)} style={styles.slotHeading}>
+                      <Text accessibilityRole="header" style={styles.slotTitle}>
+                        {label}
+                      </Text>
+                      {slotMeals.length > 0 ? (
+                        <Text style={styles.slotTotal}>
+                          {formatKcal(kcal)} · {slotMeals.length} {slotMeals.length === 1 ? 'meal' : 'meals'}
+                        </Text>
+                      ) : null}
+                    </Pressable>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Add to ${MEAL_TYPE_LABELS[slot]}`}
+                      accessibilityLabel={`Add to ${label}`}
                       onPress={() => logMeal(slot)}
                       hitSlop={4}
                       style={({ pressed }) => [styles.slotAdd, pressed && styles.pressed]}
                     >
                       <Text style={styles.slotAddText}>+</Text>
                     </Pressable>
+                    {slotMeals.length > 0 ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isOpen ? 'Hide' : 'Show'} ${label} meals`}
+                        accessibilityState={{ expanded: isOpen }}
+                        onPress={() => toggle(slot)}
+                        style={({ pressed }) => [styles.chevron, pressed && styles.pressed]}
+                      >
+                        <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={22} color={colors.primary} />
+                      </Pressable>
+                    ) : null}
                   </View>
                   {slotMeals.length === 0 ? <Text style={styles.hint}>Tap to add what you ate</Text> : null}
-                  {slotMeals.map((meal) => (
-                    <MealCard
-                      key={meal.id}
-                      title={`${MEAL_TYPE_LABELS[slot]}: ${describeItems(meal.items)}`}
-                      items={meal.items}
-                      tags={meal.tags}
-                      totals={meal}
-                      syncState={meal.syncState}
-                      photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
-                      onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
-                      onSave={() => setSheet({ kind: 'saveMeal', meal })}
-                      onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
-                    />
-                  ))}
+                  {slotMeals.length > 0 && !isOpen ? (
+                    <Text numberOfLines={2} style={styles.foods}>
+                      {foods}
+                    </Text>
+                  ) : null}
+                  {isOpen
+                    ? slotMeals.map((meal) => (
+                        <MealCard
+                          key={meal.id}
+                          title={`${label}: ${describeItems(meal.items)}`}
+                          items={meal.items}
+                          tags={meal.tags}
+                          totals={meal}
+                          syncState={meal.syncState}
+                          photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
+                          savedAt={meal.recordedAt}
+                          onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
+                          onSave={() => setSheet({ kind: 'saveMeal', meal })}
+                          onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
+                        />
+                      ))
+                    : null}
                 </View>
               );
             })}
@@ -264,8 +319,13 @@ const useStyles = themedStyles((c) => ({
   // rather than wrap when the phone's text is large.
   tab: { flex: 1, paddingHorizontal: 8 },
   slot: { gap: 12, padding: 16, borderRadius: 12, backgroundColor: c.surface },
-  slotHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  slotHeader: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  // The heading takes the row's room, so tapping anywhere on it opens or closes the slot.
+  slotHeading: { flex: 1, minHeight: 44, justifyContent: 'center', gap: 2 },
   slotTitle: { fontSize: 15, fontWeight: '600' },
+  slotTotal: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  chevron: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  foods: { fontSize: 15, color: c.textMuted },
   slotAdd: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: c.primary, alignItems: 'center', justifyContent: 'center' },
   slotAddText: { color: c.primary, fontSize: 20, fontWeight: '600', lineHeight: 24 },
   pressed: { opacity: 0.6 },
