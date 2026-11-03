@@ -245,12 +245,12 @@ const useStyles = themedStyles((c) => ({
   menuRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },
   ruled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
-  menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
-  destructiveText: { color: c.over },
+  menuText: { fontSize: 15, fontWeight: '600', color: c.accent },
+  destructiveText: { color: c.danger },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   body: { fontSize: 15 },
-  problem: { fontSize: 13, color: c.error },
+  problem: { fontSize: 13, color: c.danger },
   // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
   // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
   slots: { flexDirection: 'row', gap: 8 },

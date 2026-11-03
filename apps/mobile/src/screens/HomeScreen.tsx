@@ -307,7 +307,7 @@ const useStyles = themedStyles((c) => ({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: c.warningSurface,
+    backgroundColor: c.accentTint,
   },
   body: { fontSize: 15 },
   panel: { padding: 20, borderRadius: 16, backgroundColor: c.surface, gap: 12 },

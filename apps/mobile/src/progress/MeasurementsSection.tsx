@@ -1,5 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
+import { ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { MeasurementsCard } from '../components/MeasurementsCard';
@@ -30,8 +30,8 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   if (!latest) {
     return (
       <Card title="Measurements">
-        <Text style={[styles.body, { color: colors.text }]}>{PROGRESS_TEXTS.noMeasurements}</Text>
-        <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.measurementsHint}</Text>
+        <Text style={[styles.body, { color: colors.ink }]}>{PROGRESS_TEXTS.noMeasurements}</Text>
+        <Text style={[styles.small, { color: colors.inkMuted }]}>{PROGRESS_TEXTS.measurementsHint}</Text>
         <TextButton title="Add first" outlined onPress={onAdd} />
       </Card>
     );
@@ -39,7 +39,7 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   const length = (mm: number) => `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
   return (
     <View style={styles.section}>
-      <Text accessibilityRole="header" style={[styles.heading, { color: colors.text }]}>
+      <Text accessibilityRole="header" style={[styles.heading, { color: colors.ink }]}>
         Measurements
       </Text>
       <TextButton title="Add measurements" outlined onPress={onAdd} />
@@ -48,8 +48,8 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
         <View style={[styles.table, { backgroundColor: colors.surface }]}>
           <View style={styles.row} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             <View style={styles.day} />
-            <Text style={[styles.value, styles.small, { color: colors.textMuted }]}>Upper waist</Text>
-            <Text style={[styles.value, styles.small, { color: colors.textMuted }]}>Lower waist</Text>
+            <Text style={[styles.value, styles.small, { color: colors.inkMuted }]}>Upper waist</Text>
+            <Text style={[styles.value, styles.small, { color: colors.inkMuted }]}>Lower waist</Text>
             <View style={styles.chevron} />
           </View>
           {older.map((entry) => {
@@ -65,12 +65,12 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
                 style={({ pressed }) => [styles.row, styles.ruled, { borderTopColor: colors.border }, pressed && styles.pressed]}
               >
                 <View style={styles.day}>
-                  <Text style={[styles.body, { color: colors.text }]}>{formatDay(entry.day)}</Text>
+                  <Text style={[styles.body, { color: colors.ink }]}>{formatDay(entry.day)}</Text>
                   {note ? <Text style={[styles.small, { color: colors.warning }]}>{note}</Text> : null}
                 </View>
-                <Text style={[styles.value, styles.body, styles.digits, { color: colors.text }]}>{upper}</Text>
-                <Text style={[styles.value, styles.body, styles.digits, { color: colors.text }]}>{lower}</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={styles.chevron} />
+                <Text style={[styles.value, styles.body, styles.digits, { color: colors.ink }]}>{upper}</Text>
+                <Text style={[styles.value, styles.body, styles.digits, { color: colors.ink }]}>{lower}</Text>
+                <ChevronRight size={16} color={colors.inkMuted} style={styles.chevron} />
               </Pressable>
             );
           })}

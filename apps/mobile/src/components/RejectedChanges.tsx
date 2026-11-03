@@ -130,7 +130,7 @@ export function RejectedChanges({ entries, onEdit, onDiscard }: Props) {
 
 const useStyles = themedStyles((c) => ({
   list: { gap: 8 },
-  item: { padding: 14, gap: 6, borderRadius: 12, borderWidth: 1.5, borderColor: c.error },
+  item: { padding: 14, gap: 6, borderRadius: 12, borderWidth: 1.5, borderColor: c.danger },
   what: { fontSize: 15, fontWeight: '600' },
   message: { fontSize: 15 },
   actions: { flexDirection: 'row', gap: 24 },

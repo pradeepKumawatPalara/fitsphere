@@ -8,7 +8,7 @@ export function Card({ title, children }: { title: string; children: ReactNode }
   const { colors } = useTheme();
   return (
     <View style={[styles.card, { backgroundColor: colors.surface }]}>
-      <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>
         {title}
       </Text>
       {children}

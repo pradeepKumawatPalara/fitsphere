@@ -74,5 +74,5 @@ export function ChangePasswordScreen() {
 
 const useStyles = themedStyles((c) => ({
   // The rule belongs to the new password: closer to it than the fields are to each other.
-  rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
+  rule: { marginTop: -6, fontSize: 13, color: c.inkMuted },
 }));

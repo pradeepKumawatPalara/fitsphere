@@ -82,7 +82,7 @@ const useStyles = themedStyles((c) => ({
   panel: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
   body: { fontSize: 15 },
   warning: { fontSize: 15, fontWeight: '600' },
-  confirm: { gap: 12, padding: 14, borderWidth: 1.5, borderColor: c.over, borderRadius: 12 },
+  confirm: { gap: 12, padding: 14, borderWidth: 1.5, borderColor: c.danger, borderRadius: 12 },
   // The way out on the left, the red action on the right, the same size.
   actions: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },

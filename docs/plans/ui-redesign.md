@@ -3,8 +3,9 @@
 - Status: **Draft** (from the owner's instructions in chat, 2026-11-03); waiting for the owner's
   approval
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-03 (the module plan; 1.1 Sign in designed; the owner chose to change the
-  whole app's colours and fonts at once)
+- Last updated: 2026-11-03 (1.1 Sign in locked and built with the foundation, on
+  `redesign/1-sign-in`; MVP defaults for the two contrast conflicts). Earlier the same day: the
+  module plan; the owner chose to change the whole app's colours and fonts at once
 - Builds on: D-35 and the design language in [`docs/design/`](../design/) (`design-system.md`,
   `FitSphere-UI-UX-context.md`); the theme module of the
   [Settings slice](settings-slice.md) (D-31); [`test-strategy.md`](../quality/test-strategy.md);
@@ -37,6 +38,8 @@ that uses it, and then changes on every screen that uses it.
 |---|---|
 | 2026-11-03 | D-35: the design language; Lucide icons; the Barlow fonts. |
 | 2026-11-03 | **The whole app changes at once** (owner, chat): the new colours, fonts and icons replace the old ones everywhere with the first built screen; the layouts then follow screen by screen. Not two themes side by side. |
+| 2026-11-03 | 1.1 Sign in locked (owner: "lock signin and go ahead"). |
+| 2026-11-03 | MVP defaults (D-18) for the two conflicts below, the owner having said to go ahead without choosing: field outlines take `inkSubtle`, placeholders `inkMuted`. The owner can choose the design's values instead. |
 
 ## Modules
 | # | Module | Screens and sheets | Requirements |
@@ -56,7 +59,9 @@ new flow.
 ## Progress
 | Screen | Status |
 |---|---|
-| 1.1 Sign in | Designed (every state, dark and light); waiting for the owner |
+| 0 Foundation | Built with 1.1 on `redesign/1-sign-in`: the tokens, the fonts, Lucide icons; the field, buttons, banner and form frame; the stripe corner and the wordmark |
+| 1.1 Sign in | Locked and built (`redesign/1-sign-in`); the owner's phone check waits for the new development build |
+| 1.2 Sign up | Next |
 
 ## Module 0: the foundation
 Built in the commit of the first locked screen.
@@ -101,7 +106,8 @@ build is on the phone, the redesign branch does not run on it.
 **Shared parts.** The field, the buttons, the checkbox, the banner, the form frame, the sheet frame
 and the choice blocks take the design system's specs when the first locked screen uses them.
 
-## Conflicts with the project's rules (for the owner)
+## Conflicts with the project's rules
+Both settled for now as MVP defaults (see Decisions); the owner can choose otherwise.
 1. **Field outlines.** The design draws an input's outline in `border` (about 1.6:1 on the dark
    background, 1.3:1 on the light). The app's tests require a field's edge to be at least 3:1, the
    WCAG minimum for a control's outline. Proposed: field outlines take `inkSubtle` (about 3.3:1 to

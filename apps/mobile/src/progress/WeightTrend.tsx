@@ -71,7 +71,7 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
   const fromServer = range === '6M' || range === 'All' ? older[range] : undefined;
   const waiting = (range === '6M' || range === 'All') && !fromServer && rangeNeedsServer(range, today, accountStart);
   const points = chartPoints(range, fromServer ? mergeWeighIns(weighIns, fromServer) : weighIns, today);
-  const text = { color: colors.text };
+  const text = { color: colors.ink };
 
   return (
     <Card title="Weight trend">
@@ -98,7 +98,7 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
             {message}
           </Text>
         ) : busy ? (
-          <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.chartLoading}</Text>
+          <Text style={[styles.small, { color: colors.inkMuted }]}>{PROGRESS_TEXTS.chartLoading}</Text>
         ) : null
       ) : points.length < 2 ? (
         <Text style={[styles.body, text]}>{PROGRESS_TEXTS.chartEmpty}</Text>

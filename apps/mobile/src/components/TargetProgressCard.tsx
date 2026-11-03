@@ -51,7 +51,7 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
       >
         <View
           testID={`${title}-bar`}
-          style={[styles.fill, { width: `${Math.min(percent, 100)}%`, backgroundColor: over ? colors.over : colors.primary }]}
+          style={[styles.fill, { width: `${Math.min(percent, 100)}%`, backgroundColor: over ? colors.warning : colors.primary }]}
         />
         {QUARTERS.map((left) => (
           <View key={left} style={[styles.tick, { left }]} />
@@ -70,12 +70,12 @@ const useStyles = themedStyles((c) => ({
   card: { gap: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   title: { fontSize: 15, fontWeight: '600' },
-  amount: { fontSize: 15, color: c.textMuted },
-  reading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5, color: c.text, fontVariant: ['tabular-nums'] },
+  amount: { fontSize: 15, color: c.inkMuted },
+  reading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5, color: c.ink, fontVariant: ['tabular-nums'] },
   track: { height: 14, borderRadius: 7, backgroundColor: c.track, overflow: 'hidden' },
   fill: { height: 14 },
   // Cut in the panel's colour, so a tick shows on the empty and the filled part alike.
   tick: { position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, backgroundColor: c.surface },
-  small: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
-  over: { fontSize: 13, color: c.over, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  small: { fontSize: 13, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  over: { fontSize: 13, color: c.warning, fontWeight: '600', fontVariant: ['tabular-nums'] },
 }));

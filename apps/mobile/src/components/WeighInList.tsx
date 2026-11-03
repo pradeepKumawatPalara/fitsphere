@@ -44,5 +44,5 @@ const useStyles = themedStyles((c) => ({
   },
   day: { fontSize: 15 },
   value: { fontSize: 15, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  empty: { padding: 16, fontSize: 15, color: c.textMuted },
+  empty: { padding: 16, fontSize: 15, color: c.inkMuted },
 }));

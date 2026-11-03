@@ -99,5 +99,5 @@ const useStyles = themedStyles((c) => ({
   number: { flex: 1 },
   field: { gap: 6 },
   digits: { fontVariant: ['tabular-nums'] },
-  problem: { fontSize: 13, color: c.error },
+  problem: { fontSize: 13, color: c.danger },
 }));

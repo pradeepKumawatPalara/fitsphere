@@ -12,7 +12,7 @@ import { PROGRESS_TEXTS, weeklyRateText, weightChangeText, weightText } from './
 export function WeightCard({ weighIns, unit }: { weighIns: readonly WeighInPoint[]; unit: BodyWeightUnit }) {
   const { colors } = useTheme();
   const result = fourWeekWeight(weighIns);
-  const text = { color: colors.text };
+  const text = { color: colors.ink };
 
   if (!result) {
     return (
@@ -27,7 +27,7 @@ export function WeightCard({ weighIns, unit }: { weighIns: readonly WeighInPoint
     <Hero>
       <View style={styles.reading}>
         <Text style={[styles.latest, text]}>{weightText(result.latest.weightGrams, unit)}</Text>
-        <Text style={[styles.caption, { color: colors.textMuted }]}>Latest weigh-in · {formatDay(result.latest.day)}</Text>
+        <Text style={[styles.caption, { color: colors.inkMuted }]}>Latest weigh-in · {formatDay(result.latest.day)}</Text>
       </View>
       <View style={styles.lines}>
         {result.changeGrams !== null && result.earlier ? (
@@ -46,7 +46,7 @@ function Hero({ children }: { children: ReactNode }) {
   const { colors } = useTheme();
   return (
     <View style={[styles.hero, { backgroundColor: colors.surface }]}>
-      <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.ink }]}>
         Weight over 4 weeks
       </Text>
       {children}

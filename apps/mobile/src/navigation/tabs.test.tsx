@@ -65,7 +65,7 @@ describe('D-34 the tab bar: an icon over each label', () => {
   it('the tab shown has its icon on a tinted pill, and the pill moves with the tab chosen', async () => {
     await renderTabs();
     await screen.findByText('Home content');
-    const tinted = { backgroundColor: LIGHT_COLORS.surfaceSelected };
+    const tinted = { backgroundColor: LIGHT_COLORS.accentTint };
 
     expect(shownIcon('home')).toHaveStyle(tinted);
     for (const tab of ['nutrition', 'training', 'progress']) expect(shownIcon(tab)).not.toHaveStyle(tinted);

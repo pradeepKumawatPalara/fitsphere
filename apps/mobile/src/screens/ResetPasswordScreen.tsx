@@ -50,7 +50,7 @@ export function ResetPasswordScreen() {
   if (link === 'checking') {
     return (
       <Screen>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.accent} />
       </Screen>
     );
   }
@@ -91,6 +91,6 @@ const useStyles = themedStyles((c) => ({
   heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
   fields: { gap: 12 },
   // The rule belongs to the password: closer to it than to anything else.
-  rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
+  rule: { marginTop: -6, fontSize: 13, color: c.inkMuted },
   body: { fontSize: 15 },
 }));

@@ -110,8 +110,8 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Search foods' }));
-    // As Field: 48 tall, radius 12, a 1.5 border, text 16.
-    expect(screen.getByLabelText('Search foods')).toHaveStyle({ minHeight: 48, borderRadius: 12, borderWidth: 1.5, fontSize: 16 });
+    // As Field: 54 tall, radius 4, a 1.5 outline, text 17.
+    expect(screen.getByLabelText('Search foods')).toHaveStyle({ minHeight: 54, borderRadius: 4, borderWidth: 1.5, fontSize: 17 });
     expect(fieldProblems()).toEqual([]);
 
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');

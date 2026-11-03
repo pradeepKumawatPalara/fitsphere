@@ -1,6 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type { MealItem, MealPhoto, MealTag, MealTotals } from '@fitsphere/shared';
-import type { ComponentProps } from 'react';
+import { Bookmark, SquarePen, Trash, type LucideIcon } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { formatIstTime } from '../format';
 import type { SyncState } from '../local/store';
@@ -40,7 +39,7 @@ export function MealCard({ title, items, tags, totals, syncState, photo, savedAt
   const note = syncState === 'pending' ? 'Waiting to sync' : syncState === 'rejected' ? 'Not saved' : null;
   // With Delete alone (a saved meal), it sits on the first line rather than a row of its own.
   const deleteOnly = !onEdit && !onSave;
-  const remove = <IconAction icon="trash-outline" label={`Delete ${title}`} color={colors.over} onPress={onDelete} />;
+  const remove = <IconAction icon={Trash} label={`Delete ${title}`} color={colors.danger} onPress={onDelete} />;
   return (
     <View style={[styles.card, deleteOnly && styles.cardDeleteOnly]}>
       <View style={[styles.top, deleteOnly && styles.topDeleteOnly]}>
@@ -74,8 +73,8 @@ export function MealCard({ title, items, tags, totals, syncState, photo, savedAt
       </View>
       {deleteOnly ? null : (
         <View style={styles.actions}>
-          {onEdit ? <IconAction icon="create-outline" label={`Edit ${title}`} color={colors.primary} onPress={onEdit} /> : null}
-          {onSave ? <IconAction icon="bookmark-outline" label={`Save ${title} to my meals`} color={colors.primary} onPress={onSave} /> : null}
+          {onEdit ? <IconAction icon={SquarePen} label={`Edit ${title}`} color={colors.accent} onPress={onEdit} /> : null}
+          {onSave ? <IconAction icon={Bookmark} label={`Save ${title} to my meals`} color={colors.accent} onPress={onSave} /> : null}
           {remove}
         </View>
       )}
@@ -84,12 +83,12 @@ export function MealCard({ title, items, tags, totals, syncState, photo, savedAt
 }
 
 function IconAction({
-  icon,
+  icon: Icon,
   label,
   color,
   onPress,
 }: {
-  icon: ComponentProps<typeof Ionicons>['name'];
+  icon: LucideIcon;
   label: string;
   color: string;
   onPress(): void;
@@ -102,7 +101,7 @@ function IconAction({
       onPress={onPress}
       style={({ pressed }) => [styles.action, pressed && styles.pressed]}
     >
-      <Ionicons name={icon} size={20} color={color} />
+      <Icon testID="icon" size={20} color={color} />
     </Pressable>
   );
 }
@@ -117,7 +116,7 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: c.border,
-    backgroundColor: c.background,
+    backgroundColor: c.bg,
   },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingRight: 10 },
   // A saved meal: Delete at the top right, centred on the foods' line; the card closes 12 below.
@@ -128,10 +127,10 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   firstLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   items: { flexShrink: 1, fontSize: 15, fontWeight: '600' },
-  saved: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
-  values: { fontSize: 15, color: c.text, fontVariant: ['tabular-nums'] },
+  saved: { fontSize: 13, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  values: { fontSize: 15, color: c.ink, fontVariant: ['tabular-nums'] },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tag: { fontSize: 13, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 12, backgroundColor: c.surfaceSelected, color: c.primaryStrong },
+  tag: { fontSize: 13, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 12, backgroundColor: c.accentTint, color: c.accent },
   note: { color: c.warning, fontSize: 13 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end' },
   action: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

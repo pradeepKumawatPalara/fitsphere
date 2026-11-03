@@ -202,7 +202,7 @@ const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
   header: { gap: 12 },
   plan: { padding: 16, borderRadius: 12, backgroundColor: c.surface },
-  planText: { fontSize: 15, color: c.textMuted },
+  planText: { fontSize: 15, color: c.inkMuted },
   heading: { marginTop: 12, fontSize: 15, fontWeight: '600' },
   row: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, gap: 4 },
   top: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
@@ -210,7 +210,7 @@ const useStyles = themedStyles((c) => ({
   day: { fontSize: 15, fontWeight: '600' },
   summary: { fontSize: 15, fontVariant: ['tabular-nums'] },
   body: { fontSize: 15 },
-  note: { fontSize: 13, color: c.textMuted },
-  problem: { fontSize: 13, color: c.error },
+  note: { fontSize: 13, color: c.inkMuted },
+  problem: { fontSize: 13, color: c.danger },
   footer: { paddingTop: 12, gap: 12 },
 }));

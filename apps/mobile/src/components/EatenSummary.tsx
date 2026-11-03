@@ -8,10 +8,10 @@ import { Text } from './ui';
 // selected date. A dash shows where there is no data: every value when nothing is logged, and a
 // nutrient no logged food has a value for (MVP default, D-26).
 const NUTRIENTS = [
-  { key: 'proteinG', label: 'Protein', colour: 'primary' },
-  { key: 'carbsG', label: 'Carbs', colour: 'macroCarbs' },
-  { key: 'fatG', label: 'Fat', colour: 'macroFat' },
-  { key: 'fibreG', label: 'Fibre', colour: 'macroFibre' },
+  { key: 'proteinG', label: 'Protein', colour: 'protein' },
+  { key: 'carbsG', label: 'Carbs', colour: 'carbs' },
+  { key: 'fatG', label: 'Fat', colour: 'fat' },
+  { key: 'fibreG', label: 'Fibre', colour: 'fiber' },
 ] as const satisfies readonly { key: string; label: string; colour: keyof ThemeColors }[];
 
 export function EatenSummary({ totals }: { totals: MealTotals | null }) {

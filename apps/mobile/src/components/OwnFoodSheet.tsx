@@ -112,9 +112,9 @@ export function OwnFoodSheet({
 
 // Fields as Field: a 13 label, 6 above its input; numbers in fixed-width digits.
 const useStyles = themedStyles((c) => ({
-  intro: { fontSize: 15, color: c.textMuted },
+  intro: { fontSize: 15, color: c.inkMuted },
   field: { gap: 6 },
   number: { fontVariant: ['tabular-nums'] },
-  problem: { fontSize: 13, color: c.error },
-  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+  problem: { fontSize: 13, color: c.danger },
+  hint: { fontSize: 13, color: c.inkMuted, textAlign: 'center' },
 }));

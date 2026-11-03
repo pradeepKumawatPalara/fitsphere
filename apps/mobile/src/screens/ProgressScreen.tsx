@@ -28,10 +28,10 @@ export function ProgressScreen() {
   // Read again when the measurements sheet closes, which may change the cm/in choice.
   const data = useProgressData(today, sheet);
 
-  if (!data) return <View style={[styles.screen, { backgroundColor: colors.background }]} />;
+  if (!data) return <View style={[styles.screen, { backgroundColor: colors.bg }]} />;
   const { accountStart } = data;
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <WeightCard weighIns={data.weighIns} unit={unit} />
         <WeightTrend

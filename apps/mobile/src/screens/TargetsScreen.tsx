@@ -1,5 +1,5 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type { TargetKind } from '@fitsphere/shared';
+import { SquarePen } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
@@ -61,11 +61,10 @@ export function TargetsScreen() {
             <View style={styles.head}>
               <Text style={styles.label}>{texts[kind].label}</Text>
               {/* The tile is the button; the pencil only shows it edits. */}
-              <Ionicons
+              <SquarePen
                 testID={`edit-${kind}`}
-                name="create-outline"
                 size={20}
-                color={colors.primary}
+                color={colors.accent}
                 importantForAccessibility="no"
                 accessibilityElementsHidden
               />
@@ -97,8 +96,8 @@ const useStyles = themedStyles((c) => ({
   row: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pressed: { opacity: 0.6 },
-  label: { fontSize: 13, color: c.textMuted },
+  label: { fontSize: 13, color: c.inkMuted },
   value: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  note: { fontSize: 13, color: c.textMuted },
-  problem: { fontSize: 13, color: c.error },
+  note: { fontSize: 13, color: c.inkMuted },
+  problem: { fontSize: 13, color: c.danger },
 }));

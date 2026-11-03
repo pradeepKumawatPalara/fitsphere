@@ -1050,6 +1050,8 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: `CLAUDE.md` ("Design source of truth"); the README in
   `docs/design/reference-fitsphere/`; D-33's and D-34's amendment lines; the tabs' note in
   `docs/architecture/constraints-and-assumptions.md`; `docs/README.md`.
+- Applied from 2026-11-03: the owner locked the redesign's first screen, 1.1 Sign in, and said to
+  build it; the colours, fonts and icons switched with it (`docs/plans/ui-redesign.md`).
 
 ---
 

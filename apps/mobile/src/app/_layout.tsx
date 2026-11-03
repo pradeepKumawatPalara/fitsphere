@@ -1,3 +1,4 @@
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
@@ -8,6 +9,7 @@ import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import { SettingsProvider } from '../settings/SettingsProvider';
 import { SyncProvider } from '../sync/SyncProvider';
 import { ThemeProvider, useTheme } from '../theme';
+import { FONT_FILES } from '../typography';
 
 const authDeps = createAuthDeps();
 
@@ -21,15 +23,15 @@ function LocalDatabaseForUser({ children }: { children: ReactNode }) {
 const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup'];
 
 // The screens. Their header as the tabs': the theme's colours, a flat edge, the title 17/600 as the
-// tabs' date, and the back arrow in blue.
+// tabs' date, and the back arrow in caramel.
 function AppStack() {
   const { colors } = useTheme();
   return (
     <Stack
       screenOptions={{
         title: 'FitSphere',
-        headerTintColor: colors.primary,
-        headerTitleStyle: { color: colors.text, fontSize: 17, fontWeight: '600' },
+        headerTintColor: colors.accent,
+        headerTitleStyle: { color: colors.ink, fontSize: 17, fontFamily: 'Barlow_600SemiBold' },
         headerShadowVisible: false,
       }}
     >
@@ -50,6 +52,10 @@ function AppStack() {
 }
 
 export default function RootLayout() {
+  // The design's fonts (D-35) load from the app's own files at start; if they fail, the phone's font
+  // stands in.
+  const [fontsLoaded, fontsFailed] = useFonts(FONT_FILES);
+  if (!fontsLoaded && !fontsFailed) return null;
   if (!authDeps) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', padding: 24 }}>

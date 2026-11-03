@@ -34,14 +34,14 @@ describe('REQ-ROLE-007 Your targets', () => {
     }
   });
 
-  it('each target shows a blue pencil at its top right, and the tile says it opens the target to edit', async () => {
+  it('each target shows a caramel pencil at its top right, and the tile says it opens the target to edit', async () => {
     await renderInApp(<TargetsScreen />);
 
     const tile = await screen.findByRole('button', { name: 'Daily calories: Not set' });
     expect(tile).toHaveProp('accessibilityHint', 'Opens it to edit');
     // In the tile's first row, beside its name; hidden from screen readers, the tile being the button.
     const pencil = within(tile).getByTestId('edit-calories', { includeHiddenElements: true });
-    expect(pencil).toHaveStyle({ color: LIGHT_COLORS.primary });
+    expect(pencil).toHaveProp('stroke', LIGHT_COLORS.accent);
     expect(within(pencil.parent!).getByText('Daily calories')).toBeOnTheScreen();
     for (const kind of ['protein', 'steps', 'weekly_workouts', 'body_weight']) {
       expect(screen.getByTestId(`edit-${kind}`, { includeHiddenElements: true })).toBeOnTheScreen();
@@ -141,7 +141,7 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={2_300} target={2_000} onSetTarget={jest.fn()} />);
 
     expect(screen.getByText('300 kcal over')).toBeOnTheScreen();
-    expect(screen.getByTestId('Calories-bar')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.over });
+    expect(screen.getByTestId('Calories-bar')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.warning });
   });
 
   it('REQ-HOME-004 protein over the target reads "X g over"', async () => {

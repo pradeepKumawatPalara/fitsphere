@@ -56,5 +56,5 @@ export function ApiStatus({ apiUrl, check }: Props) {
 const useStyles = themedStyles((c) => ({
   container: { alignItems: 'center', gap: 12 },
   status: { fontSize: 20, fontWeight: '600' },
-  address: { color: c.textMuted },
+  address: { color: c.inkMuted },
 }));

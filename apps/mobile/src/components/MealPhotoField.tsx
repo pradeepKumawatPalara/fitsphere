@@ -148,7 +148,7 @@ const useStyles = themedStyles((c) => ({
   buttons: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   thumbnail: { width: 72, height: 72, borderRadius: 12 },
-  hint: { fontSize: 13, color: c.textMuted },
+  hint: { fontSize: 13, color: c.inkMuted },
   body: { fontSize: 15 },
-  problem: { color: c.error },
+  problem: { color: c.danger },
 }));

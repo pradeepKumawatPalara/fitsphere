@@ -1,6 +1,6 @@
 import { AI_CONSENT_TEXT, type BodyWeightUnit, type ThemePreference } from '@fitsphere/shared';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Button, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { readAiConsent, saveAiConsent, type AiConsent } from '../api/account';
@@ -146,7 +146,7 @@ function LinkRow({ title, onPress }: { title: string; onPress(): void }) {
       style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
     >
       <Text style={styles.linkRowText}>{title}</Text>
-      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} importantForAccessibility="no" accessibilityElementsHidden />
+      <ChevronRight size={18} color={colors.inkMuted} importantForAccessibility="no" accessibilityElementsHidden />
     </Pressable>
   );
 }
@@ -257,7 +257,7 @@ function AiConsentSwitch() {
           accessibilityState={{ disabled: !state.online || state.busy, checked: on }}
           onValueChange={(value) => void change(value)}
           trackColor={{ false: colors.border, true: colors.primary }}
-          thumbColor={on ? colors.primaryStrong : colors.surface}
+          thumbColor={on ? colors.accent : colors.surface}
         />
       </View>
       <Text style={styles.help}>{AI_CONSENT_TEXT}</Text>
@@ -278,7 +278,7 @@ const useStyles = themedStyles((c) => ({
   // The Development section's heading, unchanged.
   heading: { fontSize: 17, fontWeight: '600' },
   body: { fontSize: 15 },
-  help: { fontSize: 13, color: c.textMuted },
+  help: { fontSize: 13, color: c.inkMuted },
   unitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   // Choice pills, as the meal choice on Log meal: the chosen one filled.
   choices: { flexDirection: 'row', gap: 8 },
@@ -291,10 +291,10 @@ const useStyles = themedStyles((c) => ({
   linkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   // Set apart from the panel: Log out full width and outlined, Delete account under it as red text.
   leave: { marginTop: 12, gap: 4 },
-  linkRowText: { fontSize: 15, fontWeight: '600', color: c.primary },
+  linkRowText: { fontSize: 15, fontWeight: '600', color: c.accent },
   pressed: { opacity: 0.6 },
   consent: { gap: 8 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  problem: { fontSize: 13, color: c.error },
+  problem: { fontSize: 13, color: c.danger },
   dev: { marginTop: 32, gap: 24, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 16 },
 }));

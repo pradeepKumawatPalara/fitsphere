@@ -29,7 +29,7 @@ export function WeightChart({ points, unit, weekly }: Props) {
   const last = points[points.length - 1]!;
   const geometry = chartGeometry(points, width, HEIGHT, DOT / 2, THICKNESS);
   const what = weekly ? `${points.length} weekly averages` : `${points.length} weigh-ins`;
-  const muted = { color: colors.textMuted };
+  const muted = { color: colors.inkMuted };
 
   return (
     <View

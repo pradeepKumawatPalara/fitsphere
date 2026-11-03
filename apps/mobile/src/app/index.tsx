@@ -9,7 +9,7 @@ export default function Start() {
   if (signedIn === null) {
     return (
       <View style={{ flex: 1, justifyContent: 'center' }}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.accent} />
       </View>
     );
   }

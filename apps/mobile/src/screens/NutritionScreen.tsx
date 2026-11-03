@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { addDays, type IstDay, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ChevronDown, ChevronUp } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
@@ -180,7 +180,7 @@ export function NutritionScreen() {
                         onPress={() => toggle(slot)}
                         style={({ pressed }) => [styles.chevron, pressed && styles.pressed]}
                       >
-                        <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={22} color={colors.primary} />
+                        {isOpen ? <ChevronUp size={22} color={colors.accent} /> : <ChevronDown size={22} color={colors.accent} />}
                       </Pressable>
                     ) : null}
                     <Pressable
@@ -312,7 +312,7 @@ const useStyles = themedStyles((c) => ({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: c.warningSurface,
+    backgroundColor: c.accentTint,
   },
   body: { fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
@@ -324,12 +324,12 @@ const useStyles = themedStyles((c) => ({
   // The heading takes the row's room, so tapping anywhere on it opens or closes the slot.
   slotHeading: { flex: 1, minHeight: 44, justifyContent: 'center', gap: 2 },
   slotTitle: { fontSize: 15, fontWeight: '600' },
-  slotTotal: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
+  slotTotal: { fontSize: 13, color: c.inkMuted, fontVariant: ['tabular-nums'] },
   chevron: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  foods: { fontSize: 15, color: c.textMuted },
-  slotAdd: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  slotAddText: { color: c.primary, fontSize: 20, fontWeight: '600', lineHeight: 24 },
+  foods: { fontSize: 15, color: c.inkMuted },
+  slotAdd: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: c.accent, alignItems: 'center', justifyContent: 'center' },
+  slotAddText: { color: c.accent, fontSize: 20, fontWeight: '600', lineHeight: 24 },
   pressed: { opacity: 0.6 },
-  hint: { fontSize: 15, color: c.textMuted },
-  empty: { fontSize: 15, color: c.textMuted, textAlign: 'center', paddingVertical: 24 },
+  hint: { fontSize: 15, color: c.inkMuted },
+  empty: { fontSize: 15, color: c.inkMuted, textAlign: 'center', paddingVertical: 24 },
 }));

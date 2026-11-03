@@ -54,7 +54,7 @@ export function Sheet({ title, header, children, actions, scroll = true, onClose
 // title is 20, the size of a value; the main action is filled, Cancel and Close are links.
 const useStyles = themedStyles((c) => ({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: c.scrim },
-  sheet: { maxHeight: '90%', backgroundColor: c.background, paddingTop: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  sheet: { maxHeight: '90%', backgroundColor: c.bg, paddingTop: 24, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
   header: { paddingHorizontal: 24, paddingBottom: 12 },
   title: { fontSize: 20, fontWeight: '600' },
   // The body gives way first when the keyboard leaves little room.
@@ -67,6 +67,6 @@ const useStyles = themedStyles((c) => ({
     gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: c.border,
-    backgroundColor: c.background,
+    backgroundColor: c.bg,
   },
 }));

@@ -75,6 +75,6 @@ const useStyles = themedStyles((c) => ({
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // A field as Field, its number at the size of a value, in fixed-width digits.
   input: { flex: 1, fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 15, color: c.textMuted },
-  problem: { fontSize: 13, color: c.error },
+  unit: { fontSize: 15, color: c.inkMuted },
+  problem: { fontSize: 13, color: c.danger },
 }));

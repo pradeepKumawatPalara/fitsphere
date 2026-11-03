@@ -72,9 +72,9 @@ function photoNote(photo: LoadedPhoto): string {
 // The thumbnail is a tile (radius 12); the viewer's Close is filled, to show on the dark backdrop.
 const useStyles = themedStyles((c) => ({
   thumbnail: { width: 64, height: 64, borderRadius: 12 },
-  note: { color: c.textMuted, fontSize: 13 },
+  note: { color: c.inkMuted, fontSize: 13 },
   pressed: { opacity: 0.6 },
-  link: { fontSize: 13, fontWeight: '600', color: c.primary },
+  link: { fontSize: 13, fontWeight: '600', color: c.accent },
   viewer: { flex: 1, backgroundColor: c.scrimStrong, justifyContent: 'center', padding: 16, gap: 16 },
   full: { width: '100%', height: '80%' },
   viewerText: { color: c.onPrimary, textAlign: 'center' },

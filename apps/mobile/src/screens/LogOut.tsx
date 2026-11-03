@@ -46,6 +46,6 @@ export function LogOut() {
 }
 
 const useStyles = themedStyles((c) => ({
-  warning: { gap: 12, padding: 14, borderWidth: 1.5, borderColor: c.over, borderRadius: 12 },
+  warning: { gap: 12, padding: 14, borderWidth: 1.5, borderColor: c.danger, borderRadius: 12 },
   text: { fontSize: 15 },
 }));

@@ -184,9 +184,10 @@ decision or an accepted ADR, those win and the conflict goes to the owner. Settl
 icons are Lucide (`lucide-react-native`, in place of `@expo/vector-icons`; it needs
 `react-native-svg` and so a new development build, so tell the owner before building), and the
 fonts are Barlow Condensed and Barlow (`@expo-google-fonts/*`, no new build). "The user's time
-zone" means Asia/Kolkata here (invariant 5). No app code uses the design language yet
-(`apps/mobile/src/theme.tsx` has its own colours and the icons are still Ionicons); restyle only
-when the owner asks.
+zone" means Asia/Kolkata here (invariant 5). The redesign follows `docs/plans/ui-redesign.md`: each
+screen is designed on the owner's canvas, locked by the owner, then built; the app's colours, fonts
+and icons switched with the first screen, 1.1 Sign in (branch `redesign/1-sign-in`). Build only
+locked screens.
 
 ## Working rules
 1. Inspect the actual repository before proposing changes.

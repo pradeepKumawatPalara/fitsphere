@@ -34,9 +34,9 @@ export function QuickTile({ label, value, syncState, onPress }: Props) {
 const useStyles = themedStyles((c) => ({
   tile: { flex: 1, minHeight: 88, paddingHorizontal: 12, paddingVertical: 14, borderRadius: 12, backgroundColor: c.surface, gap: 6 },
   pressed: { opacity: 0.6 },
-  label: { fontSize: 13, color: c.textMuted },
+  label: { fontSize: 13, color: c.inkMuted },
   value: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
   // "+ Add" reads as an action, not a value.
-  add: { color: c.primary },
+  add: { color: c.accent },
   note: { color: c.warning, fontSize: 13 },
 }));

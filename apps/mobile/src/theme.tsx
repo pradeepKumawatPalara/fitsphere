@@ -4,100 +4,118 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 import { useThemePreference } from './settings/SettingsProvider';
 
-// The app's light and dark colours (REQ-ACC-001; MVP defaults, D-31). Every colour on screen comes
-// from these tokens; a guard test refuses colour codes anywhere else. System follows the phone's
-// own setting; Light and Dark override it. Android's own dialogs and the keyboard follow the phone.
+// The app's light and dark colours (REQ-ACC-001; MVP defaults, D-31): the design system's tokens
+// (D-35; docs/design/design-system.md, "Colour tokens"). Every colour on screen comes from these
+// tokens; a guard test refuses colour codes anywhere else. System follows the phone's own setting;
+// Light and Dark override it. Android's own dialogs and the keyboard follow the phone.
 
 export type ThemeColors = {
-  /** Screens and sheets. */
-  background: string;
-  /** Cards and tiles. */
+  /** Screens. */
+  bg: string;
+  /** Cards, sheets and the tab bar. */
   surface: string;
-  /** A chosen row, chip or tag. */
-  surfaceSelected: string;
-  /** Hairlines and the borders of rows, cards and fields. */
+  /** Icon buttons and the chosen segment. */
+  surfaceRaised: string;
+  /** Inside fields and segment tracks. */
+  surfaceSunken: string;
+  /** Hairlines, dividers and the outlines of cards and secondary buttons. */
   border: string;
-  text: string;
-  textMuted: string;
-  /** Disabled text, field borders and small print. */
-  textFaint: string;
-  /** Buttons, links, the selected day and chart lines. */
-  primary: string;
-  /** A selected outline, or a link on a surface. */
-  primaryStrong: string;
-  /** Text on `primary`. */
-  onPrimary: string;
-  error: string;
-  /** Over a target (Q-022). */
-  over: string;
-  /** A target met, a logged day. */
-  success: string;
-  warning: string;
-  warningSurface: string;
-  /** The empty part of a progress bar or chart. */
+  /** The empty part of a bar or chart. */
   track: string;
-  neutral: string;
-  neutralLight: string;
-  macroCarbs: string;
-  macroFat: string;
-  macroFibre: string;
+  /** Text and numbers. */
+  ink: string;
+  /** Labels, hints, secondary text and placeholders. */
+  inkMuted: string;
+  /** Disabled text, future days and field outlines. */
+  inkSubtle: string;
+  /** Caramel as text or a mark: today, links, icons, the tab shown, an outline. */
+  accent: string;
+  /** A quiet caramel fill: banners, icon tiles, a chosen row, chip or tag. */
+  accentTint: string;
+  /** Caramel as a fill: the main button, the selected day, the avatar. */
+  primary: string;
+  primaryPressed: string;
+  /** Text and icons on `primary`. */
+  onPrimary: string;
+  protein: string;
+  carbs: string;
+  fat: string;
+  fiber: string;
+  /** Done, a target met, a logged day. */
+  success: string;
+  successTint: string;
+  /** Over a target (Q-022): gold, never red. */
+  warning: string;
+  /** Errors and actions that delete. */
+  danger: string;
+  dangerTint: string;
+  focus: string;
   /** Behind a sheet: dims the screen it opens over. */
   scrim: string;
   /** Behind the full-size photo viewer. */
   scrimStrong: string;
+  /** The signature corner's diagonal stripes. */
+  stripe: string;
 };
 
 export const LIGHT_COLORS: ThemeColors = {
-  background: '#fff',
-  surface: '#f1f5fb',
-  surfaceSelected: '#e3ecf8',
-  border: '#dde3ec',
-  text: '#000',
-  textMuted: '#555',
-  textFaint: '#858585',
-  primary: '#1565c0',
-  primaryStrong: '#0d47a1',
-  onPrimary: '#fff',
-  error: '#b00020',
-  over: '#c62828',
-  success: '#2e7d32',
-  warning: '#8a5a00',
-  warningSurface: '#fff4d6',
-  track: '#dde3ec',
-  neutral: '#455a64',
-  neutralLight: '#90a4ae',
-  macroCarbs: '#ef6c00',
-  macroFat: '#ad1457',
-  macroFibre: '#2e7d32',
-  scrim: 'rgba(0,0,0,0.3)',
+  bg: '#F4EFEC',
+  surface: '#FBF8F6',
+  surfaceRaised: '#FFFFFF',
+  surfaceSunken: '#EDE5E0',
+  border: '#DDD1CA',
+  track: '#E6DCD6',
+  ink: '#11212D',
+  inkMuted: '#3D4D55',
+  inkSubtle: '#8A817F',
+  accent: '#7D5434',
+  accentTint: '#F3E6DA',
+  primary: '#B58863',
+  primaryPressed: '#9C7150',
+  onPrimary: '#161616',
+  protein: '#7D5434',
+  carbs: '#A88B74',
+  fat: '#3D4D55',
+  fiber: '#6F8D9B',
+  success: '#3F7A5C',
+  successTint: 'rgba(63,122,92,0.10)',
+  warning: '#96650F',
+  danger: '#B0463A',
+  dangerTint: 'rgba(176,70,58,0.08)',
+  focus: '#11212D',
+  scrim: 'rgba(17,33,45,0.40)',
   scrimStrong: 'rgba(0,0,0,0.9)',
+  stripe: 'rgba(125,84,52,0.07)',
 };
 
 export const DARK_COLORS: ThemeColors = {
-  background: '#121417',
-  surface: '#1d232b',
-  surfaceSelected: '#23364f',
-  border: '#38414d',
-  text: '#ececec',
-  textMuted: '#b3bac4',
-  textFaint: '#8a939e',
-  primary: '#90caf9',
-  primaryStrong: '#bbdefb',
-  onPrimary: '#0b1f33',
-  error: '#ff8a80',
-  over: '#ef9a9a',
-  success: '#81c784',
-  warning: '#ffcc80',
-  warningSurface: '#3d3012',
-  track: '#38414d',
-  neutral: '#b0bec5',
-  neutralLight: '#78909c',
-  macroCarbs: '#ffb74d',
-  macroFat: '#f48fb1',
-  macroFibre: '#81c784',
-  // Darker on the dark screens, so a sheet still stands off the screen behind it.
-  scrim: 'rgba(0,0,0,0.5)',
+  bg: '#11212D',
+  surface: '#182B37',
+  surfaceRaised: '#213744',
+  surfaceSunken: '#0C1820',
+  border: '#2C4250',
+  track: '#263C49',
+  ink: '#F1EAE5',
+  inkMuted: '#A79E9C',
+  inkSubtle: '#6F7F88',
+  accent: '#C99A73',
+  accentTint: '#3A332C',
+  primary: '#B58863',
+  primaryPressed: '#9C7150',
+  onPrimary: '#161616',
+  protein: '#C99A73',
+  carbs: '#E3D5CC',
+  fat: '#8FA9B5',
+  fiber: '#6D8592',
+  success: '#7FB89A',
+  successTint: 'rgba(127,184,154,0.14)',
+  warning: '#E8C37C',
+  danger: '#E5806F',
+  dangerTint: 'rgba(229,128,111,0.12)',
+  focus: '#E3D5CC',
+  scrim: 'rgba(5,10,14,0.66)',
   scrimStrong: 'rgba(0,0,0,0.9)',
+  stripe: 'rgba(201,154,115,0.08)',
 };
 
 export type Scheme = 'light' | 'dark';
@@ -129,19 +147,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// The headers and tab bar in Barlow, a file per weight (typography.ts).
+const NAVIGATION_FONTS: Theme['fonts'] = {
+  regular: { fontFamily: 'Barlow_400Regular', fontWeight: 'normal' },
+  medium: { fontFamily: 'Barlow_500Medium', fontWeight: 'normal' },
+  bold: { fontFamily: 'Barlow_600SemiBold', fontWeight: 'normal' },
+  heavy: { fontFamily: 'Barlow_700Bold', fontWeight: 'normal' },
+};
+
 function navigationTheme(scheme: Scheme, colors: ThemeColors): Theme {
   const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
   return {
     ...base,
     colors: {
       ...base.colors,
-      primary: colors.primary,
-      background: colors.background,
-      card: colors.background,
-      text: colors.text,
+      primary: colors.accent,
+      background: colors.bg,
+      card: colors.bg,
+      text: colors.ink,
       border: colors.border,
-      notification: colors.error,
+      notification: colors.danger,
     },
+    fonts: NAVIGATION_FONTS,
   };
 }
 

@@ -74,7 +74,7 @@ const useStyles = themedStyles((c) => ({
   card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
   title: { fontSize: 15, fontWeight: '600' },
   body: { fontSize: 15 },
-  hint: { fontSize: 13, color: c.textMuted },
+  hint: { fontSize: 13, color: c.inkMuted },
   // Rows ruled like a tape reading.
   row: {
     flexDirection: 'row',
@@ -85,6 +85,6 @@ const useStyles = themedStyles((c) => ({
   },
   rowText: { fontSize: 15 },
   value: { fontWeight: '600', fontVariant: ['tabular-nums'] },
-  notes: { color: c.textMuted },
+  notes: { color: c.inkMuted },
   note: { fontSize: 13, color: c.warning },
 }));

@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import type { AuthClient } from '../auth/service';
 import { TEXTS } from '../auth/texts';
+import { LIGHT_COLORS } from '../theme';
 import { apiError, deps, fakeApi, fakeAuthClient, fakeSession, ME, OFFLINE } from '../testing/fakes';
 import { AccountSetupScreen } from './AccountSetupScreen';
 import { CheckEmailScreen } from './CheckEmailScreen';
@@ -129,6 +130,58 @@ describe('REQ-ACC-010 Sign in', () => {
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home');
     expect(api.calls.map((call) => `${call.method} ${call.path}`)).toEqual(['GET /me', 'POST /me']);
+  });
+});
+
+// The redesign's screen 1.1 (locked by the owner, 2026-11-03; D-35).
+describe('REQ-ACC-010 Sign in, redesigned', () => {
+  it('names an empty field under that field, its outline red; wrong details show above Sign in', async () => {
+    const client = fakeAuthClient();
+    client.signInWithPassword.mockResolvedValueOnce({
+      data: { session: null },
+      error: { name: 'AuthApiError', code: 'invalid_credentials', status: 400 },
+    });
+    await renderWith(<SignInScreen />, client);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    const problem = screen.getByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.emailRule);
+    expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Email').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+
+    await fillSignUp();
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(TEXTS.signInFailed);
+    expect(screen.getByLabelText('Email').parent).not.toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+  });
+
+  it('shows the password when asked, and hides it again', async () => {
+    await renderWith(<SignInScreen />, fakeAuthClient());
+    expect(screen.getByLabelText('Password')).toHaveProp('secureTextEntry', true);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Show password' }));
+    expect(screen.getByLabelText('Password')).toHaveProp('secureTextEntry', false);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Hide password' }));
+    expect(screen.getByLabelText('Password')).toHaveProp('secureTextEntry', true);
+  });
+
+  it('while signing in, a spinner takes the title’s place and Sign in cannot be pressed again', async () => {
+    const client = fakeAuthClient();
+    let answer: (value: { data: { session: null }; error: typeof OFFLINE }) => void = () => {};
+    client.signInWithPassword.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await renderWith(<SignInScreen />, client);
+    await fillSignUp();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    const button = screen.getByRole('button', { name: 'Sign in' });
+    expect(button).toBeBusy();
+    expect(button).toBeDisabled();
+    expect(within(button).queryByText('Sign in')).toBeNull();
+
+    answer({ data: { session: null }, error: OFFLINE });
+    expect(await screen.findByText('Signing in needs an internet connection.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
   });
 });
 

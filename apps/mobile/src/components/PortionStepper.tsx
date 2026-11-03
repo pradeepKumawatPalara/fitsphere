@@ -41,10 +41,10 @@ export function PortionStepper({ value, onChange }: { value: number; onChange(po
 
 const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  step: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSelected },
+  step: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
   off: { opacity: 0.4 },
   pressed: { opacity: 0.6 },
-  stepText: { fontSize: 22, fontWeight: '600', color: c.primaryStrong },
+  stepText: { fontSize: 22, fontWeight: '600', color: c.accent },
   // At the size of a value, in fixed-width digits.
   value: { minWidth: 110, textAlign: 'center', fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
 }));

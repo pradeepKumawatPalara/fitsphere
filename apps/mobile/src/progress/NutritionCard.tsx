@@ -21,7 +21,7 @@ type Props = {
 export function NutritionCard({ nutrition, today, accountStart, calorieTarget, onSetTarget }: Props) {
   const { colors } = useTheme();
   const average = averageCalories(nutrition, today);
-  const text = { color: colors.text };
+  const text = { color: colors.ink };
   return (
     <Card title="Average calories, last 4 weeks">
       {average === null ? (
@@ -31,11 +31,11 @@ export function NutritionCard({ nutrition, today, accountStart, calorieTarget, o
       )}
       {calorieTarget === null ? (
         <>
-          <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.noCalorieTarget}</Text>
+          <Text style={[styles.small, { color: colors.inkMuted }]}>{PROGRESS_TEXTS.noCalorieTarget}</Text>
           <TextButton title="Set a target" outlined onPress={onSetTarget} />
         </>
       ) : (
-        <Text style={[styles.small, { color: colors.textMuted }]}>Target {formatInteger(calorieTarget)} kcal a day</Text>
+        <Text style={[styles.small, { color: colors.inkMuted }]}>Target {formatInteger(calorieTarget)} kcal a day</Text>
       )}
       <Text style={[styles.body, text]}>{daysLoggedText(daysLogged(nutrition, today, accountStart))}</Text>
     </Card>

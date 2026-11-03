@@ -67,6 +67,6 @@ const useStyles = themedStyles((c) => ({
   heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
   fields: { gap: 12 },
   // The rule belongs to the password: closer to it than the fields are to each other.
-  rule: { marginTop: -6, fontSize: 13, color: c.textMuted },
-  hint: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+  rule: { marginTop: -6, fontSize: 13, color: c.inkMuted },
+  hint: { fontSize: 13, color: c.inkMuted, textAlign: 'center' },
 }));

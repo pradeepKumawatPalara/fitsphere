@@ -30,7 +30,7 @@ export function WeekTable({ rows, targets, unit, thisWeek }: Props) {
     <Card title="Week by week">
       <View style={[styles.row, { borderColor: colors.border }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {['Week', `Weight (${unit})`, 'kcal', 'Protein (g)', 'Steps'].map((heading, index) => (
-          <Text key={heading} style={[index === 0 ? styles.label : styles.value, styles.heading, { color: colors.textMuted }]}>
+          <Text key={heading} style={[index === 0 ? styles.label : styles.value, styles.heading, { color: colors.inkMuted }]}>
             {heading}
           </Text>
         ))}
@@ -49,21 +49,21 @@ export function WeekTable({ rows, targets, unit, thisWeek }: Props) {
           unit={unit}
         />
       ))}
-      <Text style={[styles.small, { color: colors.textMuted }]}>Averages over the days with entries.</Text>
+      <Text style={[styles.small, { color: colors.inkMuted }]}>Averages over the days with entries.</Text>
     </Card>
   );
 }
 
 function Row({ label, cells, unit, highlight = false }: { label: string; cells: Cells; unit: BodyWeightUnit; highlight?: boolean }) {
   const { colors } = useTheme();
-  const textStyle = [styles.value, { color: colors.text }, highlight ? styles.strong : null];
+  const textStyle = [styles.value, { color: colors.ink }, highlight ? styles.strong : null];
   return (
     <View
       accessible
       accessibilityLabel={`${label}: ${rowDescription(cells, unit)}`}
-      style={[styles.row, { borderColor: colors.border }, highlight ? { backgroundColor: colors.surfaceSelected } : null]}
+      style={[styles.row, { borderColor: colors.border }, highlight ? { backgroundColor: colors.accentTint } : null]}
     >
-      <Text style={[styles.label, { color: colors.text }, highlight ? styles.strong : null]}>{label}</Text>
+      <Text style={[styles.label, { color: colors.ink }, highlight ? styles.strong : null]}>{label}</Text>
       {/* One line each: a value too wide for its column (a large font setting) shrinks, never wraps. */}
       <Text numberOfLines={1} adjustsFontSizeToFit style={textStyle}>
         {cells.weight}

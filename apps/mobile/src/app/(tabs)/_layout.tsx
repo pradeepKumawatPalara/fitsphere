@@ -1,6 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { useContext, type ComponentProps } from 'react';
+import { Apple, ChartColumn, Dumbbell, House, type LucideIcon } from 'lucide-react-native';
+import { useContext } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { HeaderActions, HeaderTitle } from '../../components/AppHeader';
@@ -8,20 +8,18 @@ import { Text } from '../../components/ui';
 import { SelectedDayProvider } from '../../navigation/SelectedDayProvider';
 import { useTheme } from '../../theme';
 
-type IconName = ComponentProps<typeof Ionicons>['name'];
-
-/** Each tab's icon: filled while it is the tab shown, outlined otherwise (D-34, amending D-23). */
-const TAB_ICONS: Record<string, { active: IconName; idle: IconName }> = {
-  home: { active: 'home', idle: 'home-outline' },
-  nutrition: { active: 'nutrition', idle: 'nutrition-outline' },
-  training: { active: 'barbell', idle: 'barbell-outline' },
-  progress: { active: 'stats-chart', idle: 'stats-chart-outline' },
+/** Each tab's icon (D-34, amending D-23), from Lucide (D-35): outlines only. */
+const TAB_ICONS: Record<string, LucideIcon> = {
+  home: House,
+  nutrition: Apple,
+  training: Dumbbell,
+  progress: ChartColumn,
 };
 
 // The Personal Training User's main screens (REQ-NAV-001): four tabs under the common header
 // (REQ-NAV-002), sharing the selected date. Each tab is an icon over its label (D-34, amending
-// D-23): the tab shown has its filled icon on a tinted pill and its label in blue, the others an
-// outlined icon and a muted label. Theme tokens only.
+// D-23): the tab shown has its icon on a tinted pill and its icon and label in caramel, the others
+// are muted. Theme tokens only.
 export default function TabsLayout() {
   const { colors } = useTheme();
   // None outside the app (tests).
@@ -34,18 +32,16 @@ export default function TabsLayout() {
           headerRight: () => <HeaderActions />,
           // A flat edge, as the pushed screens' header.
           headerShadowVisible: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textMuted,
+          tabBarActiveTintColor: colors.accent,
+          tabBarInactiveTintColor: colors.inkMuted,
           // 64 for the pill and the label, above the phone's navigation bar.
-          tabBarStyle: { height: 64 + bottom, paddingTop: 6, backgroundColor: colors.background, borderTopColor: colors.border },
+          tabBarStyle: { height: 64 + bottom, paddingTop: 6, backgroundColor: colors.bg, borderTopColor: colors.border },
           tabBarIconStyle: styles.iconSlot,
           tabBarIcon: ({ focused }) => {
-            const icon = TAB_ICONS[route.name];
+            const Icon = TAB_ICONS[route.name];
             return (
-              <View testID={`tab-icon-${route.name}`} style={[styles.pill, focused && { backgroundColor: colors.surfaceSelected }]}>
-                {icon ? (
-                  <Ionicons name={focused ? icon.active : icon.idle} size={22} color={focused ? colors.primary : colors.textMuted} />
-                ) : null}
+              <View testID={`tab-icon-${route.name}`} style={[styles.pill, focused && { backgroundColor: colors.accentTint }]}>
+                {Icon ? <Icon size={22} color={focused ? colors.accent : colors.inkMuted} /> : null}
               </View>
             );
           },
