@@ -171,15 +171,7 @@ export function NutritionScreen() {
                         </Text>
                       ) : null}
                     </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Add to ${label}`}
-                      onPress={() => logMeal(slot)}
-                      hitSlop={4}
-                      style={({ pressed }) => [styles.slotAdd, pressed && styles.pressed]}
-                    >
-                      <Text style={styles.slotAddText}>+</Text>
-                    </Pressable>
+                    {/* The chevron sits before the "+", next to what it opens. */}
                     {slotMeals.length > 0 ? (
                       <Pressable
                         accessibilityRole="button"
@@ -191,6 +183,15 @@ export function NutritionScreen() {
                         <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={22} color={colors.primary} />
                       </Pressable>
                     ) : null}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Add to ${label}`}
+                      onPress={() => logMeal(slot)}
+                      hitSlop={4}
+                      style={({ pressed }) => [styles.slotAdd, pressed && styles.pressed]}
+                    >
+                      <Text style={styles.slotAddText}>+</Text>
+                    </Pressable>
                   </View>
                   {slotMeals.length === 0 ? <Text style={styles.hint}>Tap to add what you ate</Text> : null}
                   {slotMeals.length > 0 && !isOpen ? (
