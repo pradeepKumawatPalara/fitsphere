@@ -58,8 +58,15 @@ export const TYPE = {
   button: condensed('BarlowCondensed_800ExtraBold', 20, 1.5),
   buttonSecondary: condensed('BarlowCondensed_800ExtraBold', 18, 1.5),
   link: condensed('BarlowCondensed_800ExtraBold', 15, 1),
+  /** A sheet's title. */
+  sheetTitle: { ...condensed('BarlowCondensed_800ExtraBold', 34, 0.5), lineHeight: 36 },
+  /** The header's greeting. */
+  heading: { ...condensed('BarlowCondensed_800ExtraBold', 26, 0.5), lineHeight: 28 },
   /** Field labels and overlines, in the muted colour. */
   label: { ...condensed('BarlowCondensed_700Bold', 13, 1.5), lineHeight: 16 },
+  tab: { ...condensed('BarlowCondensed_700Bold', 12, 1.2), lineHeight: 14 },
+  /** A day of the month in a calendar, in fixed-width digits. */
+  dayNumber: { fontFamily: 'BarlowCondensed_700Bold', fontSize: 18, lineHeight: 20, fontVariant: ['tabular-nums'] },
   wordmark: condensed('BarlowCondensed_800ExtraBold', 18, 3),
   /** A field's value. */
   input: { fontFamily: 'Barlow_400Regular', fontSize: 17 },

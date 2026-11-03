@@ -1,54 +1,41 @@
 import { Tabs } from 'expo-router';
-import { Apple, ChartColumn, Dumbbell, House, type LucideIcon } from 'lucide-react-native';
 import { useContext } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { HeaderActions, HeaderTitle } from '../../components/AppHeader';
-import { Text } from '../../components/ui';
+import { StripeCorner } from '../../components/StripeCorner';
+import { TabBar } from '../../components/TabBar';
 import { SelectedDayProvider } from '../../navigation/SelectedDayProvider';
 import { useTheme } from '../../theme';
 
-/** Each tab's icon (D-34, amending D-23), from Lucide (D-35): outlines only. */
-const TAB_ICONS: Record<string, LucideIcon> = {
-  home: House,
-  nutrition: Apple,
-  training: Dumbbell,
-  progress: ChartColumn,
-};
+/** The header's height below the status bar: the date over the greeting, with room around them. */
+const HEADER = 72;
 
 // The Personal Training User's main screens (REQ-NAV-001): four tabs under the common header
-// (REQ-NAV-002), sharing the selected date. Each tab is an icon over its label (D-34, amending
-// D-23): the tab shown has its icon on a tinted pill and its icon and label in caramel, the others
-// are muted. Theme tokens only.
+// (REQ-NAV-002), sharing the selected date. The redesign's 2.1 (locked by the owner, 2026-11-03):
+// the app's own tab bar (TabBar), and a header with the stripe corner at its top right, the whole
+// triangle within the header. Theme tokens only.
 export default function TabsLayout() {
   const { colors } = useTheme();
   // None outside the app (tests).
-  const bottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const top = useContext(SafeAreaInsetsContext)?.top ?? 0;
+  const height = HEADER + top;
   return (
     <SelectedDayProvider>
       <Tabs
-        screenOptions={({ route }) => ({
+        tabBar={(props) => <TabBar {...props} />}
+        screenOptions={{
           headerTitle: () => <HeaderTitle />,
           headerRight: () => <HeaderActions />,
           // A flat edge, as the pushed screens' header.
           headerShadowVisible: false,
-          tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: colors.inkMuted,
-          // 64 for the pill and the label, above the phone's navigation bar.
-          tabBarStyle: { height: 64 + bottom, paddingTop: 6, backgroundColor: colors.bg, borderTopColor: colors.border },
-          tabBarIconStyle: styles.iconSlot,
-          tabBarIcon: ({ focused }) => {
-            const Icon = TAB_ICONS[route.name];
-            return (
-              <View testID={`tab-icon-${route.name}`} style={[styles.pill, focused && { backgroundColor: colors.accentTint }]}>
-                {Icon ? <Icon size={22} color={focused ? colors.accent : colors.inkMuted} /> : null}
-              </View>
-            );
-          },
-          tabBarLabel: ({ focused, color, children }) => (
-            <Text style={[styles.label, { color }, focused && styles.labelActive]}>{children}</Text>
+          headerStyle: { height },
+          headerBackground: () => (
+            <View style={{ flex: 1, overflow: 'hidden', backgroundColor: colors.bg }}>
+              <StripeCorner size={Math.min(200, height / 0.6)} />
+            </View>
           ),
-        })}
+        }}
       >
         <Tabs.Screen name="home" options={{ title: 'Home' }} />
         <Tabs.Screen name="nutrition" options={{ title: 'Nutrition' }} />
@@ -58,11 +45,3 @@ export default function TabsLayout() {
     </SelectedDayProvider>
   );
 }
-
-// The pill 56 by 32, radius 16; labels 13, the small-print size, so they fit under the icons.
-const styles = StyleSheet.create({
-  iconSlot: { width: 56, height: 32 },
-  pill: { width: 56, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  label: { marginTop: 4, fontSize: 13 },
-  labelActive: { fontWeight: '600' },
-});

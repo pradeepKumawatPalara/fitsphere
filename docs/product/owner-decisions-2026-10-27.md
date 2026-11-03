@@ -1019,7 +1019,9 @@ checksum), and the configuration template was left as it is.*
   REQ-PRG-004 and REQ-NAV-001 in `docs/product/requirements.md`; D-23's amendment; Home, Nutrition, Training, Log meal, Progress, Q-017
   and Q-019 in `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
   `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
-- Amended by D-35 (2026-11-03): answer 9's icons are Lucide in place of Ionicons.
+- Amended by D-35 (2026-11-03): answer 9's icons are Lucide in place of Ionicons. The redesign's
+  2.1, locked by the owner on 2026-11-03, marks the tab shown with a caramel bar along its top edge
+  in place of the tinted pill; its icon and label are caramel, the others muted.
 
 ## D-35 The app's design language, with Lucide icons and the Barlow fonts (amends D-33 and D-34)
 - Status: **Accepted** (owner instruction in chat, 2026-11-03).

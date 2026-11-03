@@ -74,11 +74,11 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 1.5 Forgot password | Locked and built |
 | 1.6 Set a new password | Locked and built |
 | 1.7 Account setup (the 18+ box) | Locked and built |
-| 1.8 App start (while the app opens) | Designed; waiting for the owner |
+| 1.8 App start (while the app opens) | Locked and built |
 | **2 App shell and Home** | |
-| 2.1 Tab bar and header (date, calendar, avatar) | Designed; waiting for the owner |
-| 2.2 Calendar sheet | Designed; waiting for the owner |
-| 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | |
+| 2.1 Tab bar and header (date, calendar, avatar) | Locked and built: the app's own tab bar, the tab shown marked by a caramel bar (amends D-34 answer 9); the header's stripe corner sized to fit it |
+| 2.2 Calendar sheet | Locked and built; with it every sheet took the new frame (card colour, grab handle, stripe corner, title in condensed capitals) |
+| 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | Next |
 | 2.4 Entry sheet for weight, steps and sleep | |
 | 2.5 Measurements sheet | |
 | 2.6 A day's workouts sheet | |
