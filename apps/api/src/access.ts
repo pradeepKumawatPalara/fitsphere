@@ -84,11 +84,12 @@ export function authorizeWeighInRead(caller: Account, userId: string): void {
 }
 
 /**
- * Who may upload or view a person's meal photos (permission matrix, meal logs). MVP (D-20): only
- * the person themselves. Anyone else gets 404, exactly as for a photo that does not exist (T-01).
- * Post-MVP (backlog B-19, B-20): their coach with an active link may view them.
+ * Who may upload or view a person's photos: their meal photos (permission matrix, meal logs) and
+ * their profile photo (REQ-ACC-011). MVP (D-20): only the person themselves. Anyone else gets 404,
+ * exactly as for a photo that does not exist (T-01). Post-MVP (backlog B-19, B-20): their coach with
+ * an active link may view their meal photos.
  */
-export function authorizeMealPhoto(caller: Account, userId: string): void {
+export function authorizePhoto(caller: Account, userId: string): void {
   if (caller.id !== userId) throw new ApiError('NOT_FOUND');
 }
 

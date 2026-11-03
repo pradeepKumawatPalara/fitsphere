@@ -2,8 +2,10 @@
 // Request schemas are strict: unknown fields are refused. Response schemas accept added fields,
 // because adding a field does not change the API version.
 import { z } from 'zod';
-import { addDays, isIstDay, type IstDay } from './dates.ts';
+import { addDays, isIstDay, yearsBetween, type IstDay } from './dates.ts';
 import {
+  HEIGHT_MM_MAX,
+  HEIGHT_MM_MIN,
   LIFT_WEIGHT_GRAMS_MAX,
   LIFT_WEIGHT_GRAMS_MIN,
   MEASUREMENT_MM_MAX,
@@ -293,6 +295,60 @@ export const settingSetDataSchema = z.discriminatedUnion('name', [
 ]);
 export type SettingSetData = z.infer<typeof settingSetDataSchema>;
 
+// The profile (REQ-ACC-011; docs/plans/user-profile.md): the user's own basic details, one per user,
+// synced like settings so it can be edited offline; the change received last wins (ADR-0007 rule 2).
+// Every field is optional. The height is stored in millimetres (invariant #6); the weight is not
+// here, being the latest weigh-in. Private to the user (D-20) and never logged (invariant #7).
+
+export const PROFILE_SET = 'profile.set';
+export const PROFILE_NAME_MAX = 60;
+/** The ages a date of birth may give: 18 or older, as at sign-up (REQ-ACC-010). */
+export const PROFILE_AGE_MIN = 18;
+export const PROFILE_AGE_MAX = 120;
+export const SEXES = ['female', 'male', 'other', 'prefer_not_to_say'] as const;
+export type Sex = (typeof SEXES)[number];
+export const ADDRESS_LINE_MAX = 100;
+/** A city's or a state's name. */
+export const ADDRESS_PLACE_MAX = 60;
+/** +91 and a 10-digit Indian mobile number (phase 1 serves India only, invariant #5); not verified. */
+export const PHONE_PATTERN = /^\+91[6-9]\d{9}$/;
+export const PIN_CODE_PATTERN = /^\d{6}$/;
+
+function profileTextSchema(max: number) {
+  return z.string().trim().min(1).max(max);
+}
+
+/** An address: empty (null), or line 1, the city, the state and the PIN code all given. */
+export const addressSchema = z.strictObject({
+  line1: profileTextSchema(ADDRESS_LINE_MAX),
+  line2: profileTextSchema(ADDRESS_LINE_MAX).nullable(),
+  city: profileTextSchema(ADDRESS_PLACE_MAX),
+  state: profileTextSchema(ADDRESS_PLACE_MAX),
+  pinCode: z.string().regex(PIN_CODE_PATTERN),
+});
+export type Address = z.infer<typeof addressSchema>;
+
+/** Whether a date of birth gives an age from 18 to 120 on `today` (an IST day). */
+export function isAcceptedDateOfBirth(dateOfBirth: IstDay, today: IstDay): boolean {
+  const age = yearsBetween(dateOfBirth, today);
+  return age >= PROFILE_AGE_MIN && age <= PROFILE_AGE_MAX;
+}
+
+/** The whole profile: a field left empty is null. */
+export const profileSetDataSchema = z.strictObject({
+  name: profileTextSchema(PROFILE_NAME_MAX).nullable(),
+  /** A calendar date, `YYYY-MM-DD`; the server also checks the age it gives (isAcceptedDateOfBirth). */
+  dateOfBirth: istDaySchema.nullable(),
+  sex: z.enum(SEXES).nullable(),
+  heightMm: z.int().min(HEIGHT_MM_MIN).max(HEIGHT_MM_MAX).nullable(),
+  phone: z.string().regex(PHONE_PATTERN).nullable(),
+  address: addressSchema.nullable(),
+  /** The profile photo, named by an ID made on the phone, as a meal photo is; null for none. */
+  photoMediaId: idSchema.nullable(),
+  setAt: instantSchema,
+});
+export type ProfileSetData = z.infer<typeof profileSetDataSchema>;
+
 // Meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*) and saved meals (REQ-SAVED-*). A meal's ID is
 // made on the phone, so it can be created, edited and deleted offline; IDs are per user, so a
 // change never reaches another user's meal (invariant #1).
@@ -557,6 +613,21 @@ export const settingSchema = z.object({
 });
 export type Setting = z.infer<typeof settingSchema>;
 
+export const profileSchema = z.object({
+  name: z.string().nullable(),
+  dateOfBirth: istDaySchema.nullable(),
+  sex: z.enum(SEXES).nullable(),
+  heightMm: z.int().nullable(),
+  phone: z.string().nullable(),
+  address: z
+    .object({ line1: z.string(), line2: z.string().nullable(), city: z.string(), state: z.string(), pinCode: z.string() })
+    .nullable(),
+  photoMediaId: idSchema.nullable(),
+  setAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Profile = z.infer<typeof profileSchema>;
+
 /** A meal's totals, computed by the server from its items: the sum of the known values, or null
  * when no item has that value (MVP default, D-26). */
 export const mealTotalsSchema = z.object({
@@ -629,6 +700,8 @@ export const syncResponseSchema = z.object({
     workouts: z.array(pulledWorkoutSchema),
     targets: z.array(targetSchema),
     settings: z.array(settingSchema),
+    /** The profile, when it changed after the cursor: at most one, the user's own. */
+    profiles: z.array(profileSchema).max(1),
     meals: z.array(pulledMealSchema),
     savedMeals: z.array(pulledSavedMealSchema),
     // Always empty in the MVP (ADR-0007 rule 3; D-20).

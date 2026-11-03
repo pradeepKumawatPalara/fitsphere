@@ -7,6 +7,7 @@ import {
   istToday,
   istWeekDays,
   istWeekStart,
+  yearsBetween,
 } from './dates.ts';
 
 // CI runs these under TZ=Asia/Kolkata and TZ=America/Los_Angeles (invariant #5).
@@ -88,6 +89,14 @@ describe('IST day helpers', () => {
     expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
     expect(addDays('2028-03-01', -1)).toBe('2028-02-29');
     expect(addDays('2026-10-28', -90)).toBe('2026-07-30');
+  });
+
+  it('REQ-ACC-011 counts whole years between two days, a 29 February birthday from 1 March', () => {
+    expect(yearsBetween('1994-06-14', '2026-06-13')).toBe(31);
+    expect(yearsBetween('1994-06-14', '2026-06-14')).toBe(32);
+    expect(yearsBetween('2008-02-29', '2026-02-28')).toBe(17);
+    expect(yearsBetween('2008-02-29', '2026-03-01')).toBe(18);
+    expect(yearsBetween('2008-02-29', '2028-02-29')).toBe(20);
   });
 
   it('accepts only real YYYY-MM-DD days', () => {

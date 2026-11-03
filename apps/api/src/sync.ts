@@ -1,6 +1,7 @@
 // POST /v1/sync (api-conventions; ADR-0007 option A; REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*,
-// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003).
+// REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, REQ-ACC-011).
 import {
+  isAcceptedDateOfBirth,
   isFutureIstDay,
   istToday,
   MEAL_DELETE,
@@ -10,6 +11,8 @@ import {
   mealTotals,
   MEASUREMENTS_SET,
   measurementsSetDataSchema,
+  PROFILE_SET,
+  profileSetDataSchema,
   SAVED_MEAL_DELETE,
   SAVED_MEAL_SET,
   savedMealDeleteDataSchema,
@@ -34,6 +37,7 @@ import {
   type IstDay,
   type MealItem,
   type MealPhoto,
+  type Profile,
   type PulledMeal,
   type PulledSavedMeal,
   type PulledWorkout,
@@ -276,6 +280,59 @@ const HANDLERS = new Map<string, Handler>([
     },
   ],
   [
+    PROFILE_SET,
+    // The user's profile (REQ-ACC-011): the whole profile, the change received last wins, as for
+    // settings. A date of birth must give an age of 18 to 120 today in IST (REQ-ACC-010). A new photo
+    // ID is claimed as the profile's, as a meal's is: one already used, or deleted, is refused, so a
+    // photo never moves or comes back; a photo the profile no longer has is deleted.
+    async (client, account, input, now) => {
+      const data = profileSetDataSchema.safeParse(input);
+      if (!data.success) return 'VALIDATION_FAILED';
+      const profile = data.data;
+      if (profile.dateOfBirth && !isAcceptedDateOfBirth(profile.dateOfBirth, istToday(now))) return 'VALIDATION_FAILED';
+      const before = await client.query<{ photo_media_id: string | null }>(
+        'select photo_media_id from app.profiles where user_id = $1',
+        [account.id],
+      );
+      const oldMediaId = before.rows[0]?.photo_media_id ?? null;
+      if (profile.photoMediaId && profile.photoMediaId !== oldMediaId) {
+        const claimed = await client.query(
+          `insert into app.media (user_id, id, kind) values ($1, $2, 'profile') on conflict (user_id, id) do nothing`,
+          [account.id, profile.photoMediaId],
+        );
+        if (claimed.rowCount === 0) return 'VALIDATION_FAILED';
+      }
+      if (oldMediaId && oldMediaId !== profile.photoMediaId) await deletePhoto(client, account.id, oldMediaId, now);
+      const address = profile.address;
+      await client.query(
+        `insert into app.profiles (user_id, name, date_of_birth, sex, height_mm, phone, address_line1, address_line2,
+           city, state, pin_code, photo_media_id, set_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         on conflict (user_id) do update set
+           name = excluded.name, date_of_birth = excluded.date_of_birth, sex = excluded.sex,
+           height_mm = excluded.height_mm, phone = excluded.phone, address_line1 = excluded.address_line1,
+           address_line2 = excluded.address_line2, city = excluded.city, state = excluded.state,
+           pin_code = excluded.pin_code, photo_media_id = excluded.photo_media_id, set_at = excluded.set_at`,
+        [
+          account.id,
+          profile.name,
+          profile.dateOfBirth,
+          profile.sex,
+          profile.heightMm,
+          profile.phone,
+          address?.line1 ?? null,
+          address?.line2 ?? null,
+          address?.city ?? null,
+          address?.state ?? null,
+          address?.pinCode ?? null,
+          profile.photoMediaId,
+          profile.setAt,
+        ],
+      );
+      return null;
+    },
+  ],
+  [
     MEAL_SET,
     // Creates the meal, or replaces the whole meal with this ID: the change received last wins
     // (ADR-0007 rule 2), including over an earlier deletion. The totals are computed here from the
@@ -297,18 +354,12 @@ const HANDLERS = new Map<string, Handler>([
       const newMediaId = mediaIdOf(meal.photo ?? null);
       if (newMediaId && newMediaId !== oldMediaId) {
         const claimed = await client.query(
-          'insert into app.media (user_id, id, meal_id) values ($1, $2, $3) on conflict (user_id, id) do nothing',
+          `insert into app.media (user_id, id, kind, meal_id) values ($1, $2, 'meal', $3) on conflict (user_id, id) do nothing`,
           [account.id, newMediaId, meal.id],
         );
         if (claimed.rowCount === 0) return 'VALIDATION_FAILED';
       }
-      if (oldMediaId && oldMediaId !== newMediaId) {
-        await client.query('update app.media set deleted_at = $3 where user_id = $1 and id = $2 and deleted_at is null', [
-          account.id,
-          oldMediaId,
-          now,
-        ]);
-      }
+      if (oldMediaId && oldMediaId !== newMediaId) await deletePhoto(client, account.id, oldMediaId, now);
       const totals = mealTotals(meal.items);
       await client.query(
         `insert into app.meals (user_id, id, day, meal_type, tags, items, kcal, protein_g, carbs_g, fat_g, fibre_g,
@@ -392,6 +443,15 @@ const HANDLERS = new Map<string, Handler>([
   ],
 ]);
 
+/** Marks a photo deleted at once, so no link is issued for it; its files are removed after the sync. */
+async function deletePhoto(client: pg.PoolClient, userId: string, mediaId: string, now: Date) {
+  await client.query('update app.media set deleted_at = $3 where user_id = $1 and id = $2 and deleted_at is null', [
+    userId,
+    mediaId,
+    now,
+  ]);
+}
+
 function mediaIdOf(photo: MealPhoto | null): string | null {
   return photo?.kind === 'photo' ? photo.mediaId : null;
 }
@@ -453,6 +513,7 @@ type ChangedRow = { change_seq: string } & (
   | { kind: 'workout'; item: StoredWorkout }
   | { kind: 'target'; item: SyncResponse['pull']['targets'][number] }
   | { kind: 'setting'; item: SyncResponse['pull']['settings'][number] }
+  | { kind: 'profile'; item: Profile }
   | { kind: 'meal'; item: StoredMeal }
   | { kind: 'savedMeal'; item: StoredSavedMeal }
 );
@@ -467,7 +528,7 @@ type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises:
 /**
  * The user's rows changed after `afterSeq`, oldest change first, from every synced table. They
  * share `app.change_seq`, so one cursor covers them all. Day data, meals and workouts included, is
- * limited to the 90-day window; targets, settings and saved meals are always included.
+ * limited to the 90-day window; targets, settings, the profile and saved meals are always included.
  */
 async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigint, windowStart: IstDay, limit: number) {
   const { rows } = await client.query<ChangedRow>(
@@ -506,6 +567,14 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
          json_build_object('name', name, 'value', value, 'setAt', set_at, 'updatedAt', updated_at)
        from app.settings where user_id = $1 and change_seq > $2
        union all
+       select 'profile', change_seq,
+         json_build_object('name', name, 'dateOfBirth', date_of_birth::text, 'sex', sex, 'heightMm', height_mm,
+           'phone', phone,
+           'address', case when address_line1 is null then null else json_build_object('line1', address_line1,
+             'line2', address_line2, 'city', city, 'state', state, 'pinCode', pin_code) end,
+           'photoMediaId', photo_media_id, 'setAt', set_at, 'updatedAt', updated_at)
+       from app.profiles where user_id = $1 and change_seq > $2
+       union all
        select 'meal', change_seq,
          json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'mealType', meal_type,
            'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
@@ -534,6 +603,7 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
     workouts: [],
     targets: [],
     settings: [],
+    profiles: [],
     meals: [],
     savedMeals: [],
     removals: [],
@@ -560,6 +630,9 @@ function toPull(rows: ChangedRow[]): SyncResponse['pull'] {
         break;
       case 'setting':
         pull.settings.push({ ...row.item, setAt: utc(row.item.setAt), updatedAt: utc(row.item.updatedAt) });
+        break;
+      case 'profile':
+        pull.profiles.push({ ...row.item, setAt: utc(row.item.setAt), updatedAt: utc(row.item.updatedAt) });
         break;
       case 'meal':
         pull.meals.push(toPulledMeal(row.item));

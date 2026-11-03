@@ -186,7 +186,7 @@ export function fakeServer(now: Date) {
         return result;
       });
       const after = request.cursor ? Number(request.cursor) : 0;
-      const pull: Record<ListName | 'removals', unknown[]> = {
+      const pull: Record<ListName | 'profiles' | 'removals', unknown[]> = {
         weighIns: [],
         steps: [],
         sleep: [],
@@ -194,6 +194,7 @@ export function fakeServer(now: Date) {
         workouts: [],
         targets: [],
         settings: [],
+        profiles: [],
         meals: [],
         savedMeals: [],
         removals: [],

@@ -86,6 +86,10 @@ export function isMeasurementMmInRange(mm: number): boolean {
   return Number.isInteger(mm) && mm >= MEASUREMENT_MM_MIN && mm <= MEASUREMENT_MM_MAX;
 }
 
+/** A person's height (REQ-ACC-011), in whole millimetres like a measurement: 100–250 cm. */
+export const HEIGHT_MM_MIN = 1_000;
+export const HEIGHT_MM_MAX = 2_500;
+
 /** Converts a length entered in `unit` to whole millimetres. */
 export function toMillimetres(value: number, unit: LengthUnit): number {
   return Math.round(value * MM_PER_UNIT[unit]);

@@ -349,6 +349,7 @@ describe('ADR-0002 second safety layer', () => {
       'meals',
       'measurements',
       'media',
+      'profiles',
       'saved_meals',
       'schema_migrations',
       'settings',
