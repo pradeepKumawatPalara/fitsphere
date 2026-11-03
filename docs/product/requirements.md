@@ -534,6 +534,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
 - MVP default (D-29): newest first; the last 90 days from the phone, and older workouts read from the server online with "Load older", view-only (ADR-0007 rules 1 and 6).
+- One card per date (D-34): a date with several workouts shows them together, every exercise in one summary and "2 workouts" beside the date; tapping it asks which to open ("Workout 1 · …"). Each workout is still stored, edited and deleted on its own.
 
 ### REQ-TRN-005 — Lifting unit
 - Requirement: Lifting weights are entered and shown in the lifting-weight unit setting (REQ-ACC-002); changing the setting converts display of existing history.

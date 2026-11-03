@@ -950,9 +950,16 @@ checksum), and the configuration template was left as it is.*
      this day", which saves a workout on that day and opens it, as Training's "Start an empty
      workout" does. Later days are greyed and cannot be tapped. Each day is named for screen
      readers and is 44 dp to tap. The weekly count still counts each workout (Q-025, unchanged).
+  2. **Training's history shows one card per date (REQ-TRN-004).** Workouts on the same date are
+     shown together: every exercise in one summary, "2 workouts" beside the date. Tapping a card
+     with one workout opens it; with more, the same "Workouts on <day>" sheet asks which. This is
+     display only: each workout is still stored, synced, edited and deleted on its own, with its
+     confirmation unchanged. Older workouts read from the server are grouped the same way and stay
+     view-only.
 - Unchanged: what is stored and synced, the confirmation steps, every validation limit, the
   invariants, the other D- decisions, privacy rules and the accepted ADRs.
-- Doc changes: REQ-HOME-007 in `docs/product/requirements.md`; Home in `docs/product/mvp-scope.md`.
+- Doc changes: REQ-HOME-007 and REQ-TRN-004 in `docs/product/requirements.md`; Home and Training in
+  `docs/product/mvp-scope.md`.
 
 ---
 

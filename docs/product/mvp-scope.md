@@ -34,7 +34,7 @@ Only the Personal Training User view (D-20). Every account is a Personal Trainin
 | Nutrition | Consumed (summary, meal slots, each meal's Edit, Save to my meals and Delete icons, D-33); Diet plan as an empty state only: "No diet plan yet. Your coach will add one here." (D-20); Saved | NUT-*, PLAN-007, SAVED-* |
 | Log meal | Date chip and day sheet; meal type and tags; typed text read by AI; photo (meal or label) read by AI; voice using the phone's built-in speech-to-text (ADR-0005); food search; barcode; saved meals; review before saving; photo upload or public image link with warning | LOG-* |
 | Measurements | Bottom sheet, cm/in, mandatory waist fields, optional fields | MEAS-* |
-| Training | "No training plan yet", "Start an empty workout", log sets/reps/weight, workout history (D-20) | TRN-002…005 |
+| Training | "No training plan yet", "Start an empty workout", log sets/reps/weight, workout history, one card per date (D-20, D-34) | TRN-002…005 |
 | Progress | 4-week weight card, trend chart (1W/4W/12W/26W/All), weekly table vs Target row, days logged, measurements list | PRG-001…004, PRG-005 (without "Pre" row and week details), PRG-006 |
 | Offline | Logging works offline and syncs; named "needs internet" warnings | NFR-004, ADR-0007 |
 

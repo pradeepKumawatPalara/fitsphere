@@ -14,6 +14,7 @@ import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { WorkoutDaySheet } from '../components/WorkoutDaySheet';
 import { Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -25,8 +26,15 @@ import { workoutSummary } from '../workouts';
 
 const CHUNK_DAYS = 90;
 
-/** A row of the history: a workout on the phone, or an older one read from the server. */
+/** A workout of the history: one on the phone, or an older one read from the server. */
 type Row = { id: string; day: string; exercises: Workout['exercises']; syncState: SyncState | null };
+
+/** The history's cards: one per date, holding that date's workouts in order (D-34). */
+export function byDate(rows: readonly Row[]): { day: string; workouts: Row[] }[] {
+  const days = new Map<string, Row[]>();
+  for (const row of rows) days.set(row.day, [...(days.get(row.day) ?? []), row]);
+  return [...days].map(([day, workouts]) => ({ day, workouts }));
+}
 
 // The Training tab (REQ-TRN-002…004). No one can send a training plan in the MVP, so it always
 // shows "No training plan yet" (D-20), then "Start an empty workout" and the workouts the user has
@@ -44,6 +52,8 @@ export function TrainingScreen() {
   const [older, setOlder] = useState<Row[]>([]);
   const [oldestLoaded, setOldestLoaded] = useState(firstDay);
   const [message, setMessage] = useState<string | null>(null);
+  // The date whose workouts are being chosen from, when it has more than one (D-34).
+  const [chooser, setChooser] = useState<string | null>(null);
   // Each button fades only while its own action runs.
   const [starting, setStarting] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -110,65 +120,78 @@ export function TrainingScreen() {
     return [...page.body.items].reverse().map(({ id, day, exercises }) => ({ id, day, exercises, syncState: null }));
   }
 
+  const days = byDate([...recent, ...older]);
+  const chosen = days.find((group) => group.day === chooser);
+
   return (
-    <FlatList
-      data={[...recent, ...older]}
-      keyExtractor={(row) => row.id}
-      contentContainerStyle={styles.content}
-      ListHeaderComponent={
-        <View style={styles.header}>
-          <View style={styles.plan}>
-            <Text style={styles.planText}>No training plan yet.</Text>
-          </View>
-          <TextButton title="Start an empty workout" filled disabled={starting} onPress={() => void start()} />
-          <RejectedChanges
-            entries={rejected}
-            onEdit={(entry) => open(String((entry.data as { id?: unknown }).id))}
-            onDiscard={(changeId) => void sync.discard(changeId)}
-          />
-          <Text accessibilityRole="header" style={styles.heading}>
-            Workouts you have logged
-          </Text>
-        </View>
-      }
-      renderItem={({ item }) => {
-        const label = `${formatDay(item.day)}: ${workoutSummary(item.exercises)}`;
-        const note = item.syncState === 'pending' ? 'waiting to sync' : item.syncState === 'rejected' ? 'not saved' : null;
-        const content = (
-          <>
-            <Text style={styles.day}>{formatDay(item.day)}</Text>
-            <Text style={styles.summary}>{workoutSummary(item.exercises)}</Text>
-            {note ? <Text style={item.syncState === 'rejected' ? styles.problem : styles.note}>{note}</Text> : null}
-          </>
-        );
-        // Older workouts are read from the server and only viewed (MVP default, D-29).
-        return item.syncState === null ? (
-          <View accessibilityLabel={label} style={styles.row}>
-            {content}
-          </View>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={label}
-            onPress={() => open(item.id)}
-            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-          >
-            {content}
-          </Pressable>
-        );
-      }}
-      ListEmptyComponent={<Text style={styles.note}>No workouts logged yet.</Text>}
-      ListFooterComponent={
-        <View style={styles.footer}>
-          {message ? (
-            <Text accessibilityRole="alert" style={styles.body}>
-              {message}
+    <>
+      <FlatList
+        data={days}
+        keyExtractor={(group) => group.day}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.plan}>
+              <Text style={styles.planText}>No training plan yet.</Text>
+            </View>
+            <TextButton title="Start an empty workout" filled disabled={starting} onPress={() => void start()} />
+            <RejectedChanges
+              entries={rejected}
+              onEdit={(entry) => open(String((entry.data as { id?: unknown }).id))}
+              onDiscard={(changeId) => void sync.discard(changeId)}
+            />
+            <Text accessibilityRole="header" style={styles.heading}>
+              Workouts you have logged
             </Text>
-          ) : null}
-          <TextButton title="Load older" outlined disabled={loadingOlder} onPress={() => void loadOlder()} />
-        </View>
-      }
-    />
+          </View>
+        }
+        renderItem={({ item: { day, workouts } }) => {
+          // One card per date: every exercise of the date's workouts together (D-34).
+          const summary = workoutSummary(workouts.flatMap((workout) => workout.exercises));
+          const count = workouts.length > 1 ? `${workouts.length} workouts` : null;
+          const label = `${formatDay(day)}: ${count ? `${count} · ` : ''}${summary}`;
+          const rejected = workouts.some((workout) => workout.syncState === 'rejected');
+          const note = rejected ? 'not saved' : workouts.some((workout) => workout.syncState === 'pending') ? 'waiting to sync' : null;
+          const content = (
+            <>
+              <View style={styles.top}>
+                <Text style={styles.day}>{formatDay(day)}</Text>
+                {count ? <Text style={styles.note}>{count}</Text> : null}
+              </View>
+              <Text style={styles.summary}>{summary}</Text>
+              {note ? <Text style={rejected ? styles.problem : styles.note}>{note}</Text> : null}
+            </>
+          );
+          // Older workouts are read from the server and only viewed (MVP default, D-29).
+          return workouts.every((workout) => workout.syncState === null) ? (
+            <View accessibilityLabel={label} style={styles.row}>
+              {content}
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              onPress={() => (workouts.length === 1 ? open(workouts[0]!.id) : setChooser(day))}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            >
+              {content}
+            </Pressable>
+          );
+        }}
+        ListEmptyComponent={<Text style={styles.note}>No workouts logged yet.</Text>}
+        ListFooterComponent={
+          <View style={styles.footer}>
+            {message ? (
+              <Text accessibilityRole="alert" style={styles.body}>
+                {message}
+              </Text>
+            ) : null}
+            <TextButton title="Load older" outlined disabled={loadingOlder} onPress={() => void loadOlder()} />
+          </View>
+        }
+      />
+      {chosen ? <WorkoutDaySheet day={chosen.day} workouts={chosen.workouts} onOpen={open} onClose={() => setChooser(null)} /> : null}
+    </>
   );
 }
 
@@ -182,6 +205,7 @@ const useStyles = themedStyles((c) => ({
   planText: { fontSize: 15, color: c.textMuted },
   heading: { marginTop: 12, fontSize: 15, fontWeight: '600' },
   row: { padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.border, gap: 4 },
+  top: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   pressed: { opacity: 0.6 },
   day: { fontSize: 15, fontWeight: '600' },
   summary: { fontSize: 15, fontVariant: ['tabular-nums'] },
