@@ -259,6 +259,17 @@ describe('REQ-ACC-010 Account setup', () => {
     expect(api.calls[1]?.body).toEqual({ ageConfirmed: true, ageConfirmationTextVersion: '2026-10-27' });
     expect(mockRouter.replace).toHaveBeenCalledWith('/home');
   });
+
+  // The redesign's screen 1.7 (locked by the owner, 2026-11-03).
+  it('says what to do under Continue until the box is ticked', async () => {
+    await renderWith(<AccountSetupScreen />, fakeAuthClient(fakeSession({})));
+
+    expect(screen.getByRole('header', { name: 'Set up your account' })).toBeOnTheScreen();
+    expect(screen.getByText(TEXTS.ageHint)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    expect(screen.queryByText(TEXTS.ageHint)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
 });
 
 // Messages that name what is missing or wrong (owner review, 2 November); the limits are unchanged.

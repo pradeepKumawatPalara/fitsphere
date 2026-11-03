@@ -73,11 +73,11 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 1.4 Email verified | Locked and built; "Link expired" is the only new heading |
 | 1.5 Forgot password | Locked and built |
 | 1.6 Set a new password | Locked and built |
-| 1.7 Account setup (the 18+ box) | Next |
-| 1.8 App start (while the app opens) | |
+| 1.7 Account setup (the 18+ box) | Locked and built |
+| 1.8 App start (while the app opens) | Designed; waiting for the owner |
 | **2 App shell and Home** | |
-| 2.1 Tab bar and header (date, calendar, avatar) | |
-| 2.2 Calendar sheet | |
+| 2.1 Tab bar and header (date, calendar, avatar) | Designed; waiting for the owner |
+| 2.2 Calendar sheet | Designed; waiting for the owner |
 | 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | |
 | 2.4 Entry sheet for weight, steps and sleep | |
 | 2.5 Measurements sheet | |
