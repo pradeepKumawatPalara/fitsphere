@@ -168,7 +168,7 @@ Resend from FitSphere's domain (D-20).
 If a referenced document does not exist, state that it is missing; do not invent its contents.
 
 ## Design source of truth
-The app's design language (owner, 2026-11-03). Follow it for UI work:
+The app's design language (D-35, 2026-11-03). Follow it for UI work:
 - `docs/design/design-system.md`: the brand palette, colour tokens for dark and light, type
   styles, shape, spacing and components.
 - `docs/design/FitSphere-UI-UX-context.md`: the visual direction, components, the app-shell
@@ -180,11 +180,13 @@ not build their features or apply their decisions here. What to build still come
 `docs/product/` and the slice plans.
 
 The project's rules come first: where a design file conflicts with an invariant, an owner
-decision or an accepted ADR, those win and the conflict goes to the owner. Known now: the design
-names Lucide icons and the Barlow fonts, but the app's icons are `@expo/vector-icons` (D-33) and
-any new package needs the owner's approval; "the user's time zone" means Asia/Kolkata here
-(invariant 5). No app code uses the design language yet (`apps/mobile/src/theme.tsx` has its own
-colours); restyle only when the owner asks.
+decision or an accepted ADR, those win and the conflict goes to the owner. Settled by D-35: the
+icons are Lucide (`lucide-react-native`, in place of `@expo/vector-icons`; it needs
+`react-native-svg` and so a new development build, so tell the owner before building), and the
+fonts are Barlow Condensed and Barlow (`@expo-google-fonts/*`, no new build). "The user's time
+zone" means Asia/Kolkata here (invariant 5). No app code uses the design language yet
+(`apps/mobile/src/theme.tsx` has its own colours and the icons are still Ionicons); restyle only
+when the owner asks.
 
 ## Working rules
 1. Inspect the actual repository before proposing changes.

@@ -945,6 +945,8 @@ checksum), and the configuration template was left as it is.*
   `docs/product/mvp-scope.md` and `docs/architecture/constraints-and-assumptions.md` (with A-004
   and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`; the texts
   in `docs/contracts/error-model.md`.
+- Amended by D-35 (2026-11-03): the icons are Lucide (`lucide-react-native`) in place of Ionicons
+  from `@expo/vector-icons`; the switch needs `react-native-svg` and so a new development build.
 
 ## D-34 Changes from the owner's second phone review (2026-11-03)
 - Status: **Accepted** (owner instruction in chat, 2026-11-03, on the `ui-refresh` branch).
@@ -1017,6 +1019,37 @@ checksum), and the configuration template was left as it is.*
   REQ-PRG-004 and REQ-NAV-001 in `docs/product/requirements.md`; D-23's amendment; Home, Nutrition, Training, Log meal, Progress, Q-017
   and Q-019 in `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
   `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
+- Amended by D-35 (2026-11-03): answer 9's icons are Lucide in place of Ionicons.
+
+## D-35 The app's design language, with Lucide icons and the Barlow fonts (amends D-33 and D-34)
+- Status: **Accepted** (owner instruction in chat, 2026-11-03).
+- Answers:
+  1. **The design language.** `docs/design/design-system.md` and
+     `docs/design/FitSphere-UI-UX-context.md` are the app's design language: palette, colour
+     tokens, type, shape, components, the app-shell pattern, UX principles and copy rules. The
+     `F0x-*-ui.md` files, moved to `docs/design/reference-fitsphere/`, are examples from a separate
+     FitSphere spec: their features are not built and their decisions not applied here. Where a
+     design file conflicts with an invariant, an owner decision or an accepted ADR, those win and
+     the conflict goes to the owner.
+  2. **Lucide icons** (`lucide-react-native`), as the design system names, replace Ionicons from
+     `@expo/vector-icons` (amends D-33 answer 1 and D-34 answer 9). Lucide draws with
+     `react-native-svg`, which has native code and is not in the current development build, so the
+     switch needs a new EAS development build; the owner is told before it starts (D-19).
+  3. **The Barlow fonts** are approved: Barlow Condensed and Barlow, from
+     `@expo-google-fonts/barlow-condensed` and `@expo-google-fonts/barlow`. They load through
+     `expo-font`, which is already in the development build, so they need no new build.
+- **Interpretation:** the owner's "approved" is read as confirming two points from the same chat:
+  sections 5 (locked screens), 7 (decisions) and 8 (tech choices) of the context file are
+  examples only, like the F0x files; and the context file's path to the F0x files is updated and
+  the design documents are added to `docs/README.md`. *(Confirm.)*
+- **Interpretation:** these answers choose the look and the packages; they do not start the
+  restyle. No app code changes and no package is installed until the owner asks (the owner's
+  "Don't change any app code yet", 2026-11-03). *(Confirm.)*
+- Unchanged: the invariants (including Asia/Kolkata for "today", invariant 5), the other D-
+  decisions, privacy rules and the accepted ADRs.
+- Doc changes: `CLAUDE.md` ("Design source of truth"); the README in
+  `docs/design/reference-fitsphere/`; D-33's and D-34's amendment lines; the tabs' note in
+  `docs/architecture/constraints-and-assumptions.md`; `docs/README.md`.
 
 ---
 

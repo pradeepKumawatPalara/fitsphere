@@ -1,6 +1,6 @@
 # Reference examples: FitSphere F0x UI designs
 
-These files are **examples only** (owner, 2026-11-03). They show how the design language in
+These files are **examples only** (D-35, 2026-11-03). They show how the design language in
 [`../design-system.md`](../design-system.md) and
 [`../FitSphere-UI-UX-context.md`](../FitSphere-UI-UX-context.md) was applied to the screens of a
 separate FitSphere spec. They are kept as received.

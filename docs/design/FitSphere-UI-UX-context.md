@@ -5,7 +5,7 @@ A summary of the design work done for FitSphere (Nov 2026): the visual language,
 - **Live references (Claude artifacts, private to Mudit):**
   - *FitSphere Design System*: tokens, type, components
   - *FitSphere Screens — Visual Direction*: all locked phone screens with their states under **Tweaks**
-- **Full specs in the FitSphere repo:** `docs/design/design-system.md` plus one `docs/design/F0x-*-ui.md` per feature.
+- **Full specs in the FitSphere repo:** `docs/design/design-system.md` plus one `docs/design/reference-fitsphere/F0x-*-ui.md` per feature.
 
 ---
 
