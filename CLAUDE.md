@@ -167,6 +167,25 @@ Resend from FitSphere's domain (D-20).
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.
 
+## Design source of truth
+The app's design language (owner, 2026-11-03). Follow it for UI work:
+- `docs/design/design-system.md`: the brand palette, colour tokens for dark and light, type
+  styles, shape, spacing and components.
+- `docs/design/FitSphere-UI-UX-context.md`: the visual direction, components, the app-shell
+  pattern, UX principles and copy rules. Its sections 5 (locked screens), 7 (decisions) and 8
+  (tech choices) belong to the reference design and are examples only.
+
+Examples only: `docs/design/reference-fitsphere/` (the `F0x-*-ui.md` files; see its README). Do
+not build their features or apply their decisions here. What to build still comes from
+`docs/product/` and the slice plans.
+
+The project's rules come first: where a design file conflicts with an invariant, an owner
+decision or an accepted ADR, those win and the conflict goes to the owner. Known now: the design
+names Lucide icons and the Barlow fonts, but the app's icons are `@expo/vector-icons` (D-33) and
+any new package needs the owner's approval; "the user's time zone" means Asia/Kolkata here
+(invariant 5). No app code uses the design language yet (`apps/mobile/src/theme.tsx` has its own
+colours); restyle only when the owner asks.
+
 ## Working rules
 1. Inspect the actual repository before proposing changes.
 2. Read relevant requirements, rules, contracts and accepted ADRs before implementation.
