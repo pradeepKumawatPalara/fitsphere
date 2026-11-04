@@ -190,12 +190,16 @@ describe('REQ-HOME-007 workout tracker', () => {
     expect(screen.getByLabelText('Sunday 1 Nov: future')).toBeOnTheScreen();
   });
 
-  it('D-23 reads "target reached" once the target is met', async () => {
+  it('D-41 reads "N workouts · target achieved" once the target is met or passed', async () => {
     await render(
-      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={5} target={5} onSetTarget={jest.fn()} onDay={jest.fn()} />,
+      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={7} target={5} onSetTarget={jest.fn()} onDay={jest.fn()} />,
     );
+    expect(screen.getByText('7 workouts · target achieved')).toBeOnTheScreen();
 
-    expect(screen.getByText('5 of 5 · target reached')).toBeOnTheScreen();
+    await render(
+      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={1} target={1} onSetTarget={jest.fn()} onDay={jest.fn()} />,
+    );
+    expect(screen.getByText('1 workout · target achieved')).toBeOnTheScreen();
   });
 
   it('REQ-ROLE-007 with no target, offers to set one', async () => {

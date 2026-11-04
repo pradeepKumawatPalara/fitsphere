@@ -201,8 +201,8 @@ One measurements entry per user per IST day (REQ-MEAS-001…006). The same `id`,
 
 ### `workouts` — Health
 Workouts the user logs themselves (REQ-TRN-003, REQ-TRN-004; D-20). Unlike the day values, a day
-may hold several workouts, and each counts toward the weekly target, even with no exercises
-(Q-025, REQ-HOME-007; MVP default, D-29).
+may hold several workouts, and each with at least one exercise counts toward the weekly target
+(REQ-HOME-007; D-41, replacing Q-025's default; MVP default, D-29).
 
 | Column | Type | Rules |
 |---|---|---|

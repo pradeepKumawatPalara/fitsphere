@@ -82,7 +82,7 @@ export function TrainingScreen() {
     router.push(`/workout/${id}`);
   }
 
-  /** A new workout on the selected date (as Q-011), saved at once; it counts already (Q-025). */
+  /** A new workout on the selected date (as Q-011), saved at once; it counts once it has an exercise (D-41). */
   async function start() {
     setStarting(true);
     const id = await sync.startWorkout(selected);

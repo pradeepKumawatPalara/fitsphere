@@ -129,8 +129,9 @@ export function HomeScreen() {
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
       setEaten(nutrition);
       setMealDays(new Set(Object.keys(counts)));
-      // Every workout on the phone in the selected date's week counts, an empty one too (Q-025), and
-      // a day's dot shows once it has any (REQ-HOME-007; MVP default, D-29).
+      // The selected date's week's workouts on the phone. Only those with an exercise count toward the
+      // week and show on their day (REQ-HOME-007; D-41, replacing Q-025's default); a day's square
+      // still opens its empty ones too.
       setWeekWorkouts(workouts.map(({ id, day, exercises }) => ({ id, day, exercises })));
     });
     return () => {
@@ -139,8 +140,9 @@ export function HomeScreen() {
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
   }, [local.state, selected, stripStart, sync.version, measurementsOpen, texts]);
 
+  const counted = weekWorkouts.filter((workout) => workout.exercises.length > 0);
   const workoutCounts: Record<IstDay, number> = {};
-  for (const workout of weekWorkouts) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
+  for (const workout of counted) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
 
   /** A tracker day: its one workout opens; with several, or none, the day's sheet (D-34). */
   function openWorkoutDay(day: IstDay) {
@@ -256,7 +258,7 @@ export function HomeScreen() {
           day={selected}
           today={today}
           dayCounts={workoutCounts}
-          count={weekWorkouts.length}
+          count={counted.length}
           target={targets.weekly_workouts ?? null}
           onSetTarget={openTargets}
           onDay={openWorkoutDay}

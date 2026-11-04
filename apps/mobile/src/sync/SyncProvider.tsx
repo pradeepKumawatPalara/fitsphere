@@ -49,7 +49,7 @@ type SyncContextValue = {
   /** A new ID for a meal or saved meal, made on the phone. */
   newId(): string;
   saveWeight(day: string, weightGrams: number): Promise<void>;
-  /** Saves a new workout with no exercises on `day` (Q-025) and returns its ID. */
+  /** Saves a new workout with no exercises on `day` and returns its ID; it counts once it has one (D-41). */
   startWorkout(day: string): Promise<string>;
   discard(changeId: string): Promise<void>;
 };
