@@ -75,6 +75,29 @@ const PACKAGED_BREAD: PackagedFood = {
   servingGrams: 50,
 };
 
+// A synthetic brand label with no fibre given (D-49): made-up values, not a real product's.
+const LABEL_BREAD: Food = {
+  source: 'brand_label',
+  code: 'test-bakers-white-bread',
+  name: 'Test Bakers White Bread',
+  foodGroup: 'Test Bakers',
+  aliases: ['Test Bakers'],
+  proteinG: 8,
+  fibreG: null,
+  fatG: 2,
+  carbsG: 50,
+  kcal: 250,
+  kcalEstimated: false,
+  measures: [],
+  portions: [{ label: 'Slice', grams: 25 }],
+};
+
+async function withLabels(db: SqlDb, server: FakeServer) {
+  server.state.foods = [...FOODS, LABEL_BREAD];
+  server.state.packaged = [PACKAGED_BREAD];
+  await replaceFoods(db, server.state.foodsVersion, [...FOODS, LABEL_BREAD], [], [PACKAGED_BREAD]);
+}
+
 async function withPackaged(db: SqlDb, server: FakeServer) {
   server.state.foods = FOODS;
   server.state.packaged = [PACKAGED_BREAD];
@@ -221,6 +244,33 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete from My foods' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect(await getEntry(db, 'myFood', MY_BREAD_ID)).toBeNull());
+  });
+});
+
+describe('D-49 brands’ own labels', () => {
+  it('are listed after the Indian foods and before Open Food Facts’ products, marked "Brand label", and credited', async () => {
+    await render(withLabels);
+    await search('test bakers');
+
+    const rows = await screen.findAllByRole('button', { name: /Test Bakers/ });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+    ]);
+    await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByText(/^Foods marked Brand label: values as each brand publishes them/)).toBeOnTheScreen();
+  });
+
+  it('a label with no fibre shows it as unknown, and is added by its serving', async () => {
+    await render(withLabels);
+    await search('white bread');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test Bakers White Bread, Brand label, 250 kcal per 100 g' }));
+
+    expect(screen.getByLabelText('Fibre: –')).toBeOnTheScreen();
+    await pickAmount({ measure: 'Slice (25 g)', quantity: '2' });
+    expect(screen.getByLabelText('Adds 125 kcal')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByLabelText('Test Bakers White Bread: 2 × slice (50 g), 125 kcal, 4.0 g protein')).toBeOnTheScreen();
   });
 });
 

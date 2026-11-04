@@ -21,6 +21,14 @@ quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync cha
 from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
 updated API, then `foods:import`; only when the owner says so.**
 
+**Brand labels — built on branch `feat/brand-labels` (D-49, 2026-11-04).** Brands' own published
+labels in `docs/data/brand-labels-sheet.csv`, read only from the brand's or manufacturer's own
+website, each row `proposed` until the owner approves it; approved rows join the food list as source
+`brand_label`. Never approve a row without the owner's word; never fill a row from retailers, other
+apps or memory. Migration `0015_brand_labels.sql`, phone schema version 12. Risk R-010, Legal L-16.
+**On `fitsphere-dev`: migrations 0012 to 0015 before the updated API, then `foods:import`; only when
+the owner says so.**
+
 **Packaged foods — built on branch `feat/packaged-foods` (D-48, ADR-0009, 2026-11-04).** Open Food
 Facts' products sold in India (9,764 with usable label values) are searchable by name and brand,
 tagged "Packaged", in their own table `app.packaged_foods` (migration `0014_packaged_foods.sql`) and
@@ -202,7 +210,7 @@ Resend from FitSphere's domain (D-20).
 - Original business requirements (input, not edited): `docs/product/source/business-requirements.txt`
 - Food list sources (IFCT 2017; used without NIN permission, D-25, accepted risk R-007), and
   dishes from FitSphere's standard-recipe sheet (D-26, amended): `docs/data/food-list-sources.md`,
-  `docs/data/standard-recipe-sheet.csv`
+  `docs/data/standard-recipe-sheet.csv`; brands' own labels (D-49): `docs/data/brand-labels-sheet.csv`
 - Source documents read for the food data, for Legal's review (Q-049): `docs/sources/README.md`
   (the PDFs are kept outside the repository)
 - Brief for Legal's review (Q-049), with the questions and the evidence checklist (not yet

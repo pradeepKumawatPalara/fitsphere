@@ -171,6 +171,16 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   - Details and hashes: [`docs/sources/README.md`](../sources/README.md).
 - Question: may FitSphere use the 200 ml katori size, keep the copies, and quote those passages?
 
+**L-16 Brands' own labels (MVP).**
+- Facts: since D-49 (2026-11-04) FitSphere keeps a sheet of packaged foods with the values their
+  brands publish on their own websites (`docs/data/brand-labels-sheet.csv`). Only the energy,
+  protein, carbohydrate, fat, fibre and serving are copied, never descriptions or images; each
+  row keeps the page and date; the owner approves each row. The websites are "all rights
+  reserved".
+- Questions: may FitSphere copy these nutrition facts from the brands' websites into its food list?
+  Does it matter that the same facts are printed on the packs, as FSSAI requires? Should FitSphere
+  ask brands, or prefer reading packs?
+
 **L-15 The Indian Nutrient Databank's recipes (MVP).**
 - Facts: since D-46 (2026-11-04) the food list holds INDB's 1,014 recipes with their values and
   servings ([`food-list-sources.md`](../data/food-list-sources.md)).
@@ -257,7 +267,7 @@ or "Not written yet" are not available yet.
 | E-07 | Hosting in Mumbai; media links; logs | [ADR-0002](../architecture/decisions/ADR-0002-backend-and-hosting.md), [ADR-0003](../architecture/decisions/ADR-0003-primary-database.md) | L-01, L-05 | In the repository (Accepted) |
 | E-08 | Sign-in, emails through Resend | [ADR-0004](../architecture/decisions/ADR-0004-accounts-auth-and-notifications.md) | L-01, L-02, L-06 | In the repository (Accepted) |
 | E-09 | AI provider, consent record | [ADR-0005](../architecture/decisions/ADR-0005-ai-meal-reading.md) | L-01, L-03 | In the repository (Accepted); AI not built |
-| E-10 | Food data: IFCT list, the Indian Nutrient Databank's recipes (no licence stated, credited; D-46, R-009), Open Food Facts (barcodes; since D-48 also its Indian products for search, ADR-0009); USDA FoodData Central's FNDDS (public domain, CC0; D-39) archived, not served (D-47) | [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) | L-09 to L-13 | In the repository (Accepted) |
+| E-10 | Food data: IFCT list, the Indian Nutrient Databank's recipes (no licence stated, credited; D-46, R-009), Open Food Facts (barcodes; since D-48 also its Indian products for search, ADR-0009); brands' own labels from their websites, approved by the owner (D-49, R-010); USDA FoodData Central's FNDDS (public domain, CC0; D-39) archived, not served (D-47) | [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) | L-09 to L-13 | In the repository (Accepted) |
 | E-11 | Where the IFCT values come from, the terms, the citation, the dish method | [`food-list-sources.md`](../data/food-list-sources.md) | L-09 to L-12 | In the repository (Draft) |
 | E-12 | The NIN documents read, with hashes and terms | [`docs/sources/README.md`](../sources/README.md) | L-09 to L-11 | In the repository (Draft) |
 | E-13 | The NIN PDFs and the IFCT compilation PDF | `D:\fitsphere-data\` on the owner's PC, identified by the hashes in E-11 and E-12 | L-09 to L-11 | On the owner's PC; available on request |

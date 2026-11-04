@@ -4,6 +4,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ImportedFood } from '../../src/foods/ifct.ts';
 import { importFoods, importPackagedFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
+import { BRAND_LABEL_SOURCE } from '../../src/foods/brandLabels.ts';
 import { INDB_GROUP, INDB_SOURCE } from '../../src/foods/indb.ts';
 import { startTestApi, type TestUser } from './app.ts';
 import { connect } from './database.ts';
@@ -52,6 +53,9 @@ beforeAll(async () => {
   );
   await importFoods(client, [TEST_CURRY], INDB_SOURCE);
   await importPortions(client, INDB_SOURCE, [{ code: TEST_CURRY.code, seq: 1, label: 'Bowl', grams: 180 }]);
+  // A synthetic brand label with a 10 g serving (D-49).
+  await importFoods(client, [{ ...TEST_CURRY, code: 'test-dairy-butter', name: 'Test Dairy Salted Butter', foodGroup: 'Test Dairy', fibreG: null, estimated: false }], BRAND_LABEL_SOURCE);
+  await importPortions(client, BRAND_LABEL_SOURCE, [{ code: 'test-dairy-butter', seq: 1, label: 'Serving', grams: 10 }]);
   // A synthetic packaged food with a 50 g serving (D-48).
   await importPackagedFoods(client, [
     { barcode: '8901234567890', name: 'Test sandwich bread', brand: 'Test Foods', kcal: 250, proteinG: 8, carbsG: 50, fatG: 2, fibreG: null, servingGrams: 50 },
@@ -61,6 +65,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await importPackagedFoods(client, []);
+  await importFoods(client, [], BRAND_LABEL_SOURCE);
   await importFoods(client, [], INDB_SOURCE);
   await importUsdaArchive(client, [], []);
   await api.close();
@@ -219,6 +224,26 @@ describe('D-39 meals with USDA servings (archived, D-47) and your own units', ()
     ]);
 
     expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'rejected', 'rejected', 'rejected']);
+  });
+
+  it('D-49 accepts a brand label in its serving, and refuses another serving', async () => {
+    const user = await api.signUpWithAccount();
+    const butter: MealItem = {
+      source: 'brand_label',
+      ref: 'test-dairy-butter',
+      name: 'Test Dairy Salted Butter',
+      amount: { unit: 'serving', label: 'Serving', value: 2, grams: 20 },
+      kcal: 53.4,
+      proteinG: 1.88,
+      carbsG: 1.66,
+      fatG: 1.04,
+      fibreG: null,
+      estimated: false,
+    };
+
+    const reply = await syncOk(user, [meal([butter]), meal([{ ...butter, amount: { unit: 'serving', label: 'Serving', value: 2, grams: 30 } }])]);
+
+    expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'rejected']);
   });
 
   it('accepts your own food by the slice, naming the My food it came from', async () => {

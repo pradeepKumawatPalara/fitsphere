@@ -3,6 +3,7 @@ import type { FoodsResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
+import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../../src/foods/brandLabels.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
 import { INDB_GROUP, INDB_SOURCE, readIndbCsv } from '../../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
@@ -270,6 +271,59 @@ describe('D-47 USDA foods: kept in their archive by foods:import, not in the foo
     } finally {
       await importUsdaArchive(client, [], []);
     }
+  });
+});
+
+// Synthetic brand labels: made-up values, not real products'.
+describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
+  const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes';
+  const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,';
+
+  it('imports the approved rows of the committed sheet whole, with their servings', async () => {
+    const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
+    try {
+      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(23);
+      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(16);
+    } finally {
+      await importFoods(client, [], BRAND_LABEL_SOURCE);
+    }
+  });
+
+  it('serves an approved label with its brand, its serving, and its fibre unknown when the label gives none', async () => {
+    const user = await api.signUpWithAccount();
+    const labels = readBrandLabelsSheet([SHEET_HEADER, BUTTER].join('\n'));
+    await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
+    await importPortions(client, BRAND_LABEL_SOURCE, labels.portions);
+    try {
+      const body: FoodsResponse = (await getFoods(user.token)).json();
+
+      expect(body.items?.find((food) => food.code === 'test-dairy-butter')).toEqual({
+        source: 'brand_label',
+        code: 'test-dairy-butter',
+        name: 'Test Dairy Salted Butter',
+        foodGroup: 'Test Dairy',
+        aliases: ['Test Dairy'],
+        proteinG: 0.5,
+        fibreG: null,
+        fatG: 80,
+        carbsG: 0.5,
+        kcal: 720,
+        kcalEstimated: false,
+        measures: [],
+        portions: [{ label: 'Serving', grams: 10 }],
+      });
+    } finally {
+      await importFoods(client, [], BRAND_LABEL_SOURCE);
+    }
+  });
+
+  it('keeps fibre required for every other source', async () => {
+    await expect(
+      client.query(
+        `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated, needs_review, hidden)
+         values ('indb', 'BFP998', 'Test', 'Test', 1, null, 1, 1, 21, 'published', true, false, false)`,
+      ),
+    ).rejects.toThrow(/foods_fibre_known/);
   });
 });
 

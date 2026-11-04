@@ -3,14 +3,16 @@
 // approved dishes of docs/data/standard-recipe-sheet.csv into app.dishes, and the approved units of
 // docs/data/household-measures-sheet.csv into app.food_measures, on DATABASE_URL; and USDA's
 // data/foods/usda-fndds-foods.csv (with usda-fndds-portions.csv) into its archive, not the food list;
-// and Open Food Facts' packaged foods sold in India, data/foods/off-india-products.csv, into
-// app.packaged_foods (ADR-0006 rule 1; D-28; D-36; D-39; D-46; D-47; D-48; ADR-0009;
-// docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
+// Open Food Facts' packaged foods sold in India, data/foods/off-india-products.csv, into
+// app.packaged_foods; and the approved rows of docs/data/brand-labels-sheet.csv into app.foods and
+// app.food_portions as source brand_label (ADR-0006 rule 1; D-28; D-36; D-39; D-46; D-47; D-48;
+// D-49; ADR-0009; docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
 // any row is wrong. Running it again gives the same tables.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
 import { readRecipeSheet } from '../src/foods/dishes.ts';
+import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../src/foods/brandLabels.ts';
 import { readIfctCsv } from '../src/foods/ifct.ts';
 import { INDB_SOURCE, readIndbCsv } from '../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../src/foods/importFoods.ts';
@@ -32,6 +34,7 @@ const usda = readUsdaCsv(
   readFileSync(path.join(root, 'data/foods/usda-fndds-foods.csv'), 'utf8'),
   readFileSync(path.join(root, 'data/foods/usda-fndds-portions.csv'), 'utf8'),
 );
+const labels = readBrandLabelsSheet(readFileSync(path.join(root, 'docs/data/brand-labels-sheet.csv'), 'utf8'));
 const packaged = readPackagedCsv(readFileSync(path.join(root, 'data/foods/off-india-products.csv'), 'utf8'));
 const indb = readIndbCsv(
   readFileSync(path.join(root, 'data/foods/indb-foods.csv'), 'utf8'),
@@ -58,6 +61,11 @@ try {
   console.log(`Kept ${archived} USDA foods in their archive, not in the food list.`);
   const packagedFoods = await importPackagedFoods(client, packaged);
   console.log(`Imported ${packagedFoods} packaged foods sold in India, from Open Food Facts.`);
+  const labelled = await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
+  const labelServings = await importPortions(client, BRAND_LABEL_SOURCE, labels.portions);
+  console.log(
+    `Imported ${labelled.total} approved brand labels with ${labelServings} servings. Not imported: ${labels.proposed} proposed (waiting for the owner's OK).`,
+  );
 } finally {
   await client.end();
 }
