@@ -1,9 +1,11 @@
 import { AI_CONSENT_TEXT, AI_CONSENT_TEXT_VERSION } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { useEffect } from 'react';
 import { TEXTS } from '../auth/texts';
 import { getEntry, getMeta, setMeta } from '../local/store';
 import { renderInApp } from '../testing/appHarness';
 import { OFFLINE } from '../testing/fakes';
+import { useSettings } from '../settings/SettingsProvider';
 import { AccountScreen } from './AccountScreen';
 import { ChangePasswordScreen } from './ChangePasswordScreen';
 import { DeleteAccountScreen } from './DeleteAccountScreen';
@@ -49,6 +51,24 @@ describe('REQ-ACC-001…006 the Settings screen', () => {
     expect(screen.getByText('Always dark.')).toBeOnTheScreen();
     expect(await getEntry(db, 'setting', 'theme')).toMatchObject({ value: 'dark' });
     await waitFor(() => expect(server.entries('settings').get('theme')).toMatchObject({ value: 'dark' }));
+  });
+
+  it('ADR-0007 choices made quickly are all saved and synced, the last one kept (phone test, 2026-11-04)', async () => {
+    // Each save starts before the one before it has finished, as with quick taps on the phone.
+    function ChooseQuickly() {
+      const { saveSetting } = useSettings();
+      useEffect(() => {
+        for (const theme of ['light', 'dark', 'system', 'dark'] as const) void saveSetting('theme', theme);
+        for (const unit of ['lb', 'kg', 'lb'] as const) void saveSetting('body_weight_unit', unit);
+      }, [saveSetting]);
+      return null;
+    }
+    const { db, server } = await renderInApp(<ChooseQuickly />);
+
+    await waitFor(async () => expect(await getEntry(db, 'setting', 'theme')).toMatchObject({ value: 'dark', syncState: 'synced' }));
+    expect(await getEntry(db, 'setting', 'body_weight_unit')).toMatchObject({ value: 'lb' });
+    await waitFor(() => expect(server.entries('settings').get('body_weight_unit')).toMatchObject({ value: 'lb' }));
+    expect(server.entries('settings').get('theme')).toMatchObject({ value: 'dark' });
   });
 
   it('REQ-ACC-002 and REQ-ACC-003 the two units are chosen on their own', async () => {
