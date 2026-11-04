@@ -5,6 +5,7 @@ import type { SqlDb } from '../local/sql';
 import { itemFromOwn, itemFromServings, parseOwnQuantity, withOwnQuantity, withServings } from '../mealItems';
 import { formatAmount } from '../meals';
 import { NOW, renderInApp } from '../testing/appHarness';
+import { pickAmount } from '../testing/foodPage';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
@@ -133,14 +134,13 @@ describe('D-39 Search foods with USDA foods and My foods', () => {
     await render();
     await search('bread');
     await fireEvent.press(await screen.findByRole('button', { name: 'Bread, white, USDA, 267 kcal per 100 g' }));
-    expect(screen.getByText('USDA · per 100 g: 267 kcal · 9.4 g protein')).toBeOnTheScreen();
+    expect(screen.getByText('Per 100 g: 267 kcal')).toBeOnTheScreen();
 
-    await fireEvent.press(screen.getByRole('radio', { name: 'Medium or regular slice' }));
-    expect(screen.getByText('One medium or regular slice is 28 g')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Half a medium or regular slice more' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Half a medium or regular slice more' }));
-    expect(screen.getByLabelText('Medium or regular slice: 2')).toBeOnTheScreen();
-    expect(screen.getByText(/= 56 g · 150 kcal/)).toBeOnTheScreen();
+    await pickAmount({ measure: 'Medium or regular slice (28 g)', quantity: '2' });
+    expect(screen.getByLabelText('Measure: Medium or regular slice (28 g)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Quantity: 2')).toBeOnTheScreen();
+    expect(screen.getByText('Net wt: 56 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 150 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('Protein: 5.3 g')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
@@ -151,7 +151,8 @@ describe('D-39 Search foods with USDA foods and My foods', () => {
     await render(withMyBread);
     await search('peanut');
     await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, my food, 180 kcal per slice' }));
-    expect(screen.getByText('My food · one slice: 180 kcal · 6.0 g protein')).toBeOnTheScreen();
+    expect(screen.getByText('One slice: 180 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: Slices')).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Slices eaten'), '1.25');
     expect(screen.getByText('Enter 0.1 to 100, with at most one decimal.')).toBeOnTheScreen();

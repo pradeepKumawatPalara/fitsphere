@@ -11,7 +11,7 @@ import { Text } from './ui';
 // nutrient no logged food has a value for (MVP default, D-26). The redesign's 3.1 (locked by the
 // owner, 2026-11-03): the kcal is Nutrition's hero number; each nutrient's colour is a square beside
 // its name, which stays in the muted ink, as some of the colours are under 4.5:1 for text.
-const NUTRIENTS = [
+export const NUTRIENTS = [
   { key: 'proteinG', label: 'Protein', colour: 'protein' },
   { key: 'carbsG', label: 'Carbs', colour: 'carbs' },
   { key: 'fatG', label: 'Fat', colour: 'fat' },
@@ -20,6 +20,7 @@ const NUTRIENTS = [
 
 export function EatenSummary({ totals }: { totals: MealTotals | null }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const kcal = totals ? formatKcal(totals.kcal) : '–';
   return (
     <View style={styles.card}>
@@ -28,32 +29,20 @@ export function EatenSummary({ totals }: { totals: MealTotals | null }) {
         <Text style={[styles.kcal, !totals && styles.none]}>{totals ? formatInteger(Math.round(totals.kcal)) : '–'}</Text>
         {totals ? <Text style={styles.unit}>kcal</Text> : null}
       </View>
-      <NutrientRow values={totals} />
-    </View>
-  );
-}
-
-/**
- * Protein, carbs, fat and fibre side by side under a hairline, each with its colour's square: the
- * Eaten card's, and what a food's amount adds (the owner, 2026-11-04). A dash where there is no value.
- */
-export function NutrientRow({ values }: { values: Pick<MealTotals, 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'> | null }) {
-  const styles = useStyles();
-  const { colors } = useTheme();
-  return (
-    <View style={styles.row}>
-      {NUTRIENTS.map(({ key, label, colour }, index) => {
-        const value = values ? formatGrams(values[key]) : '–';
-        return (
-          <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={[styles.nutrient, index > 0 && styles.divided]}>
-            <View style={styles.labelRow}>
-              <View style={[styles.swatch, { backgroundColor: colors[colour] }]} />
-              <Text style={styles.label}>{label}</Text>
+      <View style={styles.row}>
+        {NUTRIENTS.map(({ key, label, colour }, index) => {
+          const value = totals ? formatGrams(totals[key]) : '–';
+          return (
+            <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={[styles.nutrient, index > 0 && styles.divided]}>
+              <View style={styles.labelRow}>
+                <View style={[styles.swatch, { backgroundColor: colors[colour] }]} />
+                <Text style={styles.label}>{label}</Text>
+              </View>
+              <Text style={styles.value}>{value}</Text>
             </View>
-            <Text style={styles.value}>{value}</Text>
-          </View>
-        );
-      })}
+          );
+        })}
+      </View>
     </View>
   );
 }
