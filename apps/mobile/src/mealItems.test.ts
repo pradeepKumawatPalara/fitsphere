@@ -1,5 +1,5 @@
 import type { MealItem } from '@fitsphere/shared';
-import { addAmount, sameFood } from './mealItems';
+import { addAmount, sameFood, sameFoods } from './mealItems';
 
 // The same food added twice to one meal (D-34): a listed food is the same by its source and code;
 // putting the amounts together keeps within the most one food can have.
@@ -18,6 +18,17 @@ const ATTA: MealItem = {
 };
 const ROTI: MealItem = { ...ATTA, source: 'dish', ref: 'D001', name: 'Roti', amount: { unit: 'portion', value: 1 }, kcal: 120, proteinG: 3 };
 const OWN: MealItem = { ...ATTA, source: 'own', ref: null, name: 'Synthetic bar' };
+
+describe('REQ-SAVED-001 the same foods (a meal already saved)', () => {
+  it('the same foods and amounts in any order are the same; another amount or food is not', () => {
+    const roti = { ...ATTA, name: 'Roti', ref: 'X1' };
+    expect(sameFoods([ATTA, roti], [roti, ATTA])).toBe(true);
+    expect(sameFoods([ATTA], [{ ...ATTA, amount: { unit: 'g', value: 61 } }])).toBe(false);
+    expect(sameFoods([ATTA], [ATTA, roti])).toBe(false);
+    expect(sameFoods([ATTA], [{ ...ATTA, source: 'usda_fndds' }])).toBe(false);
+    expect(sameFoods([], [])).toBe(true);
+  });
+});
 
 describe('D-34 the same food in one meal', () => {
   it('is the same listed food by source and code, in the same unit; an own food never is', () => {

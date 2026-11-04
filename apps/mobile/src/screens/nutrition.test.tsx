@@ -240,6 +240,44 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
   });
 });
 
+describe('REQ-SAVED-001 a meal is saved once (the owner’s phone test, 2026-11-04)', () => {
+  it('once saved, its bookmark is filled; pressing it says where, and no second copy is made', async () => {
+    const { db } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      await meal(seed, { mealType: 'dinner', items: [ATTA, GHEE] });
+    });
+    await open('Dinner');
+    const bookmark = await screen.findByRole('button', { name: 'Save Dinner: Wheat flour, atta + 1 more to my meals' });
+    expect(within(bookmark).getByTestId('icon', { includeHiddenElements: true })).toHaveProp('fill', 'none');
+
+    await fireEvent.press(bookmark);
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Two rotis with ghee');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    const saved = await screen.findByRole('button', { name: 'Dinner: Wheat flour, atta + 1 more: saved to my meals as Two rotis with ghee' });
+    expect(saved).toBeSelected();
+    expect(within(saved).getByTestId('icon', { includeHiddenElements: true })).toHaveProp('fill', LIGHT_COLORS.accent);
+    await fireEvent.press(saved);
+
+    expect(screen.getByText('This meal is saved as Two rotis with ghee.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Go to Saved' }));
+    expect(await screen.findByRole('button', { name: 'Two rotis with ghee' })).toBeOnTheScreen();
+    expect(await listSavedMeals(db)).toHaveLength(1);
+  });
+
+  it('the same foods in another order, logged again on another day, count as saved too', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      await meal(seed, { mealType: 'dinner', items: [GHEE, ATTA] });
+      await saveEntry(seed, 'savedMeal', {
+        changeId: id(),
+        data: { id: id(), name: 'Synthetic dinner', mealType: 'lunch', tags: [], items: [ATTA, GHEE], savedAt: AT },
+      });
+    });
+    await open('Dinner');
+
+    expect(await screen.findByRole('button', { name: 'Dinner: Ghee + 1 more: saved to my meals as Synthetic dinner' })).toBeSelected();
+  });
+});
+
 describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
   async function seedSaved(db: SqlDb) {
     await saveEntry(db, 'savedMeal', {

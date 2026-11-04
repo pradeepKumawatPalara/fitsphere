@@ -34,7 +34,8 @@ export function ActionsSheet({
         <View style={styles.menu}>
           {actions.map((action, index) => (
             <Pressable
-              key={action.label}
+              // Labels may repeat (two saved meals with the same name), so the place keys it.
+              key={`${index} ${action.label}`}
               accessibilityRole="button"
               onPress={() => {
                 onClose();

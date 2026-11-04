@@ -188,6 +188,32 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     expect(screen.getByLabelText('Synthetic dal: 150 g, 160 kcal, 9.0 g protein')).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Dinner' })).toBeChecked();
   });
+
+  it('two saved meals with the same name are both listed (the owner’s phone test, 2026-11-04)', async () => {
+    const errors = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    await render({ day: TODAY }, async (db, server) => {
+      await withFoods(db, server);
+      for (const n of [1, 2]) {
+        await saveEntry(db, 'savedMeal', {
+          changeId: `00000000-0000-4000-b000-00000000010${n}`,
+          data: {
+            id: `00000000-0000-4000-c000-00000000010${n}`,
+            name: 'Dal rice',
+            mealType: 'lunch',
+            tags: [],
+            items: [{ source: 'own', ref: null, name: 'Dal rice', amount: { unit: 'g', value: 200 + n }, kcal: 300, proteinG: 9, carbsG: 50, fatG: 4, fibreG: 5, estimated: false }],
+            savedAt: NOW.toISOString(),
+          },
+        });
+      }
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Saved meals' }));
+
+    expect(screen.getAllByRole('button', { name: 'Dal rice (Dal rice)' })).toHaveLength(2);
+    expect(errors.mock.calls.some((call) => String(call[0]).includes('same key'))).toBe(false);
+    errors.mockRestore();
+  });
 });
 
 describe('REQ-LOG-003 and the review before saving', () => {

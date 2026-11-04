@@ -445,6 +445,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-SAVED-001 — Saved meals list
 - Requirement: Lists the user's saved meals; one tap re-logs a meal to the selected date, in the meal slot it was saved from; the user can change the slot (MVP default, Q-036).
+- MVP default (D-18; the owner's phone test, 2026-11-04): a meal is saved once. A logged meal whose foods and amounts, in any order, are already a saved meal shows a filled bookmark; tapping it says which saved meal it is and offers "Go to Saved", and no second copy is made.
 
 ### REQ-SAVED-002 — Empty state
 - Requirement: With no saved meals, an empty state explains how to save one from the Consumed tab.

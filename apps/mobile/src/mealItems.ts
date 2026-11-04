@@ -180,6 +180,18 @@ export function sameFood(a: MealItem, b: MealItem): boolean {
 }
 
 /**
+ * Whether two lists hold the same foods in the same amounts, in any order: a logged meal already in
+ * the saved meals (REQ-SAVED-001; the owner's phone test, 2026-11-04). Values follow from the foods
+ * and amounts, so they are not compared.
+ */
+export function sameFoods(a: readonly MealItem[], b: readonly MealItem[]): boolean {
+  const key = (item: MealItem) => `${item.source}|${item.ref ?? ''}|${item.name.trim().toLowerCase()}|${JSON.stringify(item.amount)}`;
+  const keys = (items: readonly MealItem[]) => items.map(key).sort();
+  const [left, right] = [keys(a), keys(b)];
+  return left.length === right.length && left.every((entry, index) => entry === right[index]);
+}
+
+/**
  * The existing item holding both amounts, its values from the ones it has (as changing its grams);
  * or null when together they would pass the most one food can have (2,000 g, 10 portions, or 10
  * units up to 2,000 g).
