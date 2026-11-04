@@ -1233,6 +1233,29 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: `food-list-sources.md`; the Legal brief (L-09); `constraints-and-assumptions.md`;
   the redesign plan's 3.6; the canvas boards 3.6.
 
+## D-45 A food's page: quantity, measure and the macronutrients breakdown
+- Status: **Accepted** (owner, in chat, 2026-11-04: "on selection all the macronutritients
+  breakdown should be visible", then, with two HealthifyMe screenshots, "I want it to look like
+  this… ignore the image for now"; the redesign's 3.6b, new, locked, "good to go").
+- Problem: choosing a food in Search foods opened a sheet showing what the amount adds as energy and
+  protein only, with the units as a row of choices and − and + to count them.
+- Answer: a food opens its own page, full screen over the results:
+  - its name, its source tag (USDA, Dish or My food) and its energy per 100 g, one piece or one
+    unit;
+  - **Quantity** and **Measure** side by side. Grams, and a My food's quantity, are typed. A
+    household unit (D-36), a USDA serving (D-39) or a dish's portion (D-28) is counted in halves:
+    tapping either box opens a picker with two wheels, quantity and measure, and Done. A listed
+    food's measures are Grams, its household units, then USDA's servings, each with the grams it
+    holds ("Glass (258 g)"). The limits are unchanged (2,000 g for one food; up to 10 portions);
+  - **Macronutrients breakdown:** the energy of that amount, with the weight it comes to ("Net wt:
+    56 g") or "Estimated" for a dish, then protein, carbs, fat and fibre, each on its own row with
+    its colour. A value the food has none for shows a dash, as does everything while the typed
+    quantity can't be added, with the rule under the box;
+  - **Add** at the foot; the back arrow returns to the same results. A My food keeps "Edit My
+    food".
+  No photo for now. Every food, dish and My food already holds the four values, so no data changes.
+- Doc changes: REQ-LOG-007; the redesign plan's 3.6 and 3.6b; the canvas boards 3.6b.
+
 ---
 
 ## Proposed replacement wording for the two invariants

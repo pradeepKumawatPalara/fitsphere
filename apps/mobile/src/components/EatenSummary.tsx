@@ -11,7 +11,7 @@ import { Text } from './ui';
 // nutrient no logged food has a value for (MVP default, D-26). The redesign's 3.1 (locked by the
 // owner, 2026-11-03): the kcal is Nutrition's hero number; each nutrient's colour is a square beside
 // its name, which stays in the muted ink, as some of the colours are under 4.5:1 for text.
-const NUTRIENTS = [
+export const NUTRIENTS = [
   { key: 'proteinG', label: 'Protein', colour: 'protein' },
   { key: 'carbsG', label: 'Carbs', colour: 'carbs' },
   { key: 'fatG', label: 'Fat', colour: 'fat' },
