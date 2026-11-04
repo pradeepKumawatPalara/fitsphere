@@ -1,12 +1,21 @@
 import { createHash } from 'node:crypto';
-import { API_BASE_PATH, foodsQuerySchema, validationDetails, type DishPortionUnit, type FoodMeasure, type FoodsResponse } from '@fitsphere/shared';
+import {
+  API_BASE_PATH,
+  foodsQuerySchema,
+  validationDetails,
+  type DishPortionUnit,
+  type FoodMeasure,
+  type FoodSource,
+  type FoodsResponse,
+} from '@fitsphere/shared';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { ApiError } from '../errors.ts';
 
 // GET /v1/foods (ADR-0006 rule 1): FitSphere's food list, for the phone to cache and search
 // offline, with the approved dishes and their values for one portion (D-28), and each food's
-// approved household units with the grams one holds (D-36). Reference data, the same for every
+// approved household units with the grams one holds (D-36), and each USDA food's servings (D-39).
+// Reference data, the same for every
 // signed-in user. Rows hidden until checked are left out, and so are the recipes' ingredients and
 // grams. The version changes whenever any value in the list changes.
 export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Pool, 'query'> }) {
@@ -15,7 +24,7 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
     if (!parsed.success) throw new ApiError('VALIDATION_FAILED', validationDetails(parsed.error, request.query));
 
     const { rows } = await deps.db.query<{
-      source: 'ifct2017';
+      source: FoodSource;
       code: string;
       name: string;
       food_group: string;
@@ -49,7 +58,15 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       const key = `${row.source} ${row.code}`;
       measuresOf.set(key, [...(measuresOf.get(key) ?? []), { measure: row.measure, grams: Number(row.grams) }]);
     }
-    const version = foodListVersion({ foods: rows, dishes: dishes.rows, measures: measures.rows });
+    const portions = await deps.db.query<{ source: string; code: string; label: string; grams: string }>(
+      'select source, code, label, grams from app.food_portions order by source, code, seq',
+    );
+    const portionsOf = new Map<string, { label: string; grams: number }[]>();
+    for (const row of portions.rows) {
+      const key = `${row.source} ${row.code}`;
+      portionsOf.set(key, [...(portionsOf.get(key) ?? []), { label: row.label, grams: Number(row.grams) }]);
+    }
+    const version = foodListVersion({ foods: rows, dishes: dishes.rows, measures: measures.rows, portions: portions.rows });
     if (parsed.data.version === version) return { version, items: null, dishes: null } satisfies FoodsResponse;
 
     const body: FoodsResponse = {
@@ -67,6 +84,7 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         kcal: Number(row.kcal),
         kcalEstimated: row.estimated,
         measures: measuresOf.get(`${row.source} ${row.code}`) ?? [],
+        portions: portionsOf.get(`${row.source} ${row.code}`) ?? [],
       })),
       dishes: dishes.rows.map((row) => ({
         code: row.code,
@@ -84,6 +102,6 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
 }
 
 /** A short hash of every value the phone receives, so any change gives a new version. */
-function foodListVersion(list: { foods: object[]; dishes: object[]; measures: object[] }): string {
+function foodListVersion(list: { foods: object[]; dishes: object[]; measures: object[]; portions: object[] }): string {
   return createHash('sha256').update(JSON.stringify(list)).digest('base64url').slice(0, 22);
 }

@@ -1,15 +1,18 @@
-// Writes the IFCT food list into app.foods (ADR-0006 rule 1), the approved dishes into app.dishes
-// (D-28) and the approved household units into app.food_measures (D-36). One transaction each:
-// every row is inserted or updated by its code, and rows no longer in the file are removed, so
-// running it again gives the same table.
+// Writes the food list into app.foods (ADR-0006 rule 1): IFCT 2017's foods, and USDA's FNDDS foods
+// with their servings in app.food_portions (D-39); the approved dishes into app.dishes (D-28); and
+// the approved household units into app.food_measures (D-36). One transaction each: every row is
+// inserted or updated by its code, and rows no longer in the file are removed, so running it again
+// gives the same table.
 import type pg from 'pg';
 import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
 import type { ImportedMeasure } from './measures.ts';
+import type { ImportedPortion } from './usda.ts';
 
 export type ImportResult = { total: number; hidden: number; estimated: number };
 
-export async function importFoods(client: pg.ClientBase, foods: ImportedFood[]): Promise<ImportResult> {
+/** The foods of one source; its foods no longer in the file are removed. */
+export async function importFoods(client: pg.ClientBase, foods: ImportedFood[], source: string = IFCT_SOURCE): Promise<ImportResult> {
   await client.query('begin');
   try {
     for (const food of foods) {
@@ -23,7 +26,7 @@ export async function importFoods(client: pg.ClientBase, foods: ImportedFood[]):
            kcal_source = excluded.kcal_source, estimated = excluded.estimated, needs_review = excluded.needs_review,
            hidden = excluded.hidden, note = excluded.note, aliases = excluded.aliases, updated_at = now()`,
         [
-          IFCT_SOURCE,
+          source,
           food.code,
           food.name,
           food.foodGroup,
@@ -42,7 +45,7 @@ export async function importFoods(client: pg.ClientBase, foods: ImportedFood[]):
       );
     }
     await client.query('delete from app.foods where source = $1 and not (code = any($2::text[]))', [
-      IFCT_SOURCE,
+      source,
       foods.map((food) => food.code),
     ]);
     await client.query('commit');
@@ -82,6 +85,28 @@ export async function importDishes(client: pg.ClientBase, dishes: ImportedDish[]
     throw error;
   }
   return dishes.length;
+}
+
+/** Makes app.food_portions hold exactly a source's servings. Run after importFoods for that source. */
+export async function importPortions(client: pg.ClientBase, source: string, portions: ImportedPortion[]): Promise<number> {
+  await client.query('begin');
+  try {
+    await client.query('delete from app.food_portions where source = $1', [source]);
+    for (const { code, seq, label, grams } of portions) {
+      await client.query('insert into app.food_portions (source, code, seq, label, grams) values ($1, $2, $3, $4, $5)', [
+        source,
+        code,
+        seq,
+        label,
+        grams,
+      ]);
+    }
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  }
+  return portions.length;
 }
 
 /**

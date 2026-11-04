@@ -374,8 +374,26 @@ export const MEAL_ITEM_MEASURES_MAX = 10;
 /** The most one item can hold, whatever its amount. */
 export const MEAL_ITEM_KCAL_MAX = 20_000;
 export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
-export const MEAL_ITEM_SOURCES = ['ifct2017', 'dish', 'barcode', 'own'] as const;
+export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'dish', 'barcode', 'own'] as const;
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
+/** The servings of a USDA food, in halves, as household units (more-foods plan). */
+export const MEAL_ITEM_SERVINGS_MAX = 10;
+export const SERVING_LABEL_MAX = 80;
+/**
+ * The units of a food the user enters (more-foods plan, the owner's addition, 2026-11-04), besides
+ * grams. Millilitres are counted as grams are; the others from 0.1 to 100, with one decimal.
+ */
+export const OWN_UNITS = ['ml', 'piece', 'slice', 'cup', 'katori', 'bowl', 'glass', 'tablespoon', 'teaspoon', 'serving'] as const;
+export type OwnUnit = (typeof OWN_UNITS)[number];
+export const OWN_UNIT_COUNT_MIN = 0.1;
+export const OWN_UNIT_COUNT_MAX = 100;
+
+/** Whether `value` is a quantity of `unit` a food the user entered can be logged in. */
+export function isOwnQuantity(unit: 'g' | OwnUnit, value: number): boolean {
+  if (unit === 'g' || unit === 'ml') return Number.isInteger(value) && value >= 1 && value <= MEAL_ITEM_GRAMS_MAX;
+  const tenths = value * 10;
+  return value >= OWN_UNIT_COUNT_MIN && value <= OWN_UNIT_COUNT_MAX && Math.abs(tenths - Math.round(tenths)) < 1e-9;
+}
 
 const nutrientSchema = z.number().min(0).max(MEAL_ITEM_NUTRIENT_MAX);
 
@@ -396,7 +414,7 @@ function halvesSchema(max: number) {
 export const mealItemSchema = z
   .strictObject({
     source: z.enum(MEAL_ITEM_SOURCES),
-    /** The IFCT code, dish code or barcode; null for your own food. */
+    /** The IFCT or USDA code, dish code or barcode; for your own food, its My food's ID, or null. */
     ref: z.string().min(1).max(64).nullable(),
     name: z.string().trim().min(1).max(120),
     amount: z.discriminatedUnion('unit', [
@@ -409,6 +427,15 @@ export const mealItemSchema = z
         value: halvesSchema(MEAL_ITEM_MEASURES_MAX),
         grams: z.number().gt(0).max(MEAL_ITEM_GRAMS_MAX),
       }),
+      // Servings of a USDA food, as USDA labels them, with the grams they came to.
+      z.strictObject({
+        unit: z.literal('serving'),
+        label: z.string().min(1).max(SERVING_LABEL_MAX),
+        value: halvesSchema(MEAL_ITEM_SERVINGS_MAX),
+        grams: z.number().gt(0).max(MEAL_ITEM_GRAMS_MAX),
+      }),
+      // Your own food in one of its units other than grams; the values are for this quantity.
+      z.strictObject({ unit: z.literal('own'), name: z.enum(OWN_UNITS), value: z.number() }),
     ]),
     kcal: z.number().min(0).max(MEAL_ITEM_KCAL_MAX),
     proteinG: nutrientSchema,
@@ -418,15 +445,19 @@ export const mealItemSchema = z
     /** Any value is estimated rather than published (oils and fats, dishes). */
     estimated: z.boolean(),
   })
-  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); a listed food
-  // may also be logged in a household unit (D-36).
-  .refine(
-    (item) =>
-      item.source === 'dish'
-        ? item.amount.unit === 'portion'
-        : item.amount.unit === 'g' || (item.amount.unit === 'measure' && item.source === 'ifct2017'),
-    { path: ['amount'] },
-  );
+  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); an IFCT food
+  // may also be logged in a household unit (D-36), a USDA food in its servings, and your own food in
+  // its unit (more-foods plan).
+  .refine((item) => ALLOWED_AMOUNTS[item.source].includes(item.amount.unit), { path: ['amount'] })
+  .refine((item) => item.amount.unit !== 'own' || isOwnQuantity(item.amount.name, item.amount.value), { path: ['amount', 'value'] });
+
+const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
+  ifct2017: ['g', 'measure'],
+  usda_fndds: ['g', 'serving'],
+  dish: ['portion'],
+  barcode: ['g'],
+  own: ['g', 'own'],
+};
 export type MealItem = z.infer<typeof mealItemSchema>;
 
 const mealTagsSchema = z
@@ -481,6 +512,49 @@ export const mealDeleteDataSchema = z.strictObject({
   deletedAt: instantSchema,
 });
 export type MealDeleteData = z.infer<typeof mealDeleteDataSchema>;
+
+// My foods (more-foods plan, proposed REQ-LOG-011): foods the user entered and saved, to log
+// again. Each is the user's own (D-20), synced like saved meals so it works offline. Its values are
+// per 100 g or 100 ml, or per one of its other unit.
+
+export const MY_FOOD_SET = 'myFood.set';
+export const MY_FOOD_DELETE = 'myFood.delete';
+export const MY_FOOD_NAME_MAX = 120;
+export const MY_FOOD_UNITS = ['g', ...OWN_UNITS] as const;
+export type MyFoodUnit = (typeof MY_FOOD_UNITS)[number];
+
+/** The most a value may be: per 100 g or ml as a label's, or per one unit (a slice, a bowl…). */
+export function myFoodValueMax(unit: MyFoodUnit, nutrient: 'kcal' | 'grams'): number {
+  const per100 = unit === 'g' || unit === 'ml';
+  if (nutrient === 'kcal') return per100 ? 900 : 2_000;
+  return per100 ? 100 : 200;
+}
+
+export const myFoodSetDataSchema = z
+  .strictObject({
+    id: idSchema,
+    name: z.string().trim().min(1).max(MY_FOOD_NAME_MAX),
+    unit: z.enum(MY_FOOD_UNITS),
+    kcal: z.number().min(0),
+    proteinG: z.number().min(0),
+    carbsG: z.number().min(0),
+    fatG: z.number().min(0),
+    fibreG: z.number().min(0).nullable(),
+    savedAt: instantSchema,
+  })
+  .refine(
+    (food) =>
+      food.kcal <= myFoodValueMax(food.unit, 'kcal') &&
+      [food.proteinG, food.carbsG, food.fatG, food.fibreG ?? 0].every((value) => value <= myFoodValueMax(food.unit, 'grams')),
+    { path: ['kcal'] },
+  );
+export type MyFoodSetData = z.infer<typeof myFoodSetDataSchema>;
+
+export const myFoodDeleteDataSchema = z.strictObject({
+  id: idSchema,
+  deletedAt: instantSchema,
+});
+export type MyFoodDeleteData = z.infer<typeof myFoodDeleteDataSchema>;
 
 export const SAVED_MEAL_SET = 'savedMeal.set';
 export const SAVED_MEAL_DELETE = 'savedMeal.delete';
@@ -647,6 +721,8 @@ const pulledItemSchema = z.object({
     z.object({ unit: z.literal('g'), value: z.number() }),
     z.object({ unit: z.literal('portion'), value: z.number() }),
     z.object({ unit: z.literal('measure'), measure: z.enum(FOOD_MEASURES), value: z.number(), grams: z.number() }),
+    z.object({ unit: z.literal('serving'), label: z.string(), value: z.number(), grams: z.number() }),
+    z.object({ unit: z.literal('own'), name: z.enum(OWN_UNITS), value: z.number() }),
   ]),
   kcal: z.number(),
   proteinG: z.number(),
@@ -690,6 +766,24 @@ export const pulledSavedMealSchema = z.discriminatedUnion('deleted', [
 ]);
 export type PulledSavedMeal = z.infer<typeof pulledSavedMealSchema>;
 
+export const pulledMyFoodSchema = z.discriminatedUnion('deleted', [
+  z.object({
+    deleted: z.literal(false),
+    id: idSchema,
+    name: z.string(),
+    unit: z.enum(MY_FOOD_UNITS),
+    kcal: z.number(),
+    proteinG: z.number(),
+    carbsG: z.number(),
+    fatG: z.number(),
+    fibreG: z.number().nullable(),
+    savedAt: instantSchema,
+    updatedAt: instantSchema,
+  }),
+  z.object({ deleted: z.literal(true), id: idSchema, updatedAt: instantSchema }),
+]);
+export type PulledMyFood = z.infer<typeof pulledMyFoodSchema>;
+
 export const syncResponseSchema = z.object({
   results: z.array(syncResultSchema),
   pull: z.object({
@@ -704,6 +798,7 @@ export const syncResponseSchema = z.object({
     profiles: z.array(profileSchema).max(1),
     meals: z.array(pulledMealSchema),
     savedMeals: z.array(pulledSavedMealSchema),
+    myFoods: z.array(pulledMyFoodSchema),
     // Always empty in the MVP (ADR-0007 rule 3; D-20).
     removals: z.array(z.never()),
   }),
@@ -740,7 +835,11 @@ function roundHundredths(value: number): number {
 export const IFCT_ACKNOWLEDGEMENT =
   'Longvah, T., Ananthan, R., Bhaskarachary, K. and Venkaiah, K. (2017). Indian Food Composition Tables 2017, National Institute of Nutrition, Indian Council of Medical Research, Hyderabad, Telangana, India.';
 
-export const FOOD_SOURCES = ['ifct2017'] as const;
+/** The credit USDA asks for, shown under search results with USDA foods (more-foods plan; CC0). */
+export const USDA_ACKNOWLEDGEMENT =
+  'U.S. Department of Agriculture, Agricultural Research Service. FoodData Central, FNDDS 2021–2023. fdc.nal.usda.gov.';
+
+export const FOOD_SOURCES = ['ifct2017', 'usda_fndds'] as const;
 export type FoodSource = (typeof FOOD_SOURCES)[number];
 
 /** One food of the list, per 100 g edible portion. */
@@ -760,6 +859,8 @@ export const foodSchema = z.object({
   kcalEstimated: z.boolean(),
   /** The household units the owner has measured for this food, and the grams one holds (D-36). */
   measures: z.array(z.object({ measure: z.enum(FOOD_MEASURES), grams: z.number() })),
+  /** A USDA food's servings as USDA labels them ("Medium or regular slice"), and their grams. */
+  portions: z.array(z.object({ label: z.string(), grams: z.number() })),
 });
 export type Food = z.infer<typeof foodSchema>;
 

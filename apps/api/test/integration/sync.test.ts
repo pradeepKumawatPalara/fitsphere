@@ -124,6 +124,7 @@ describe('ADR-0007 sync', () => {
       profiles: [],
       meals: [],
       savedMeals: [],
+      myFoods: [],
       removals: [],
     });
     expect(reply.hasMore).toBe(false);
