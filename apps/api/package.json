@@ -15,7 +15,8 @@
     "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts",
     "check:storage": "node --env-file-if-exists=.env scripts/check-storage.ts",
     "foods:import": "node --env-file-if-exists=.env scripts/foods-import.ts",
-    "usda:convert": "node scripts/usda-convert.ts"
+    "usda:convert": "node scripts/usda-convert.ts",
+    "indb:convert": "node scripts/indb-convert.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1159.0",

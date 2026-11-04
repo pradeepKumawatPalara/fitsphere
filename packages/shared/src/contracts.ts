@@ -374,9 +374,9 @@ export const MEAL_ITEM_MEASURES_MAX = 10;
 /** The most one item can hold, whatever its amount. */
 export const MEAL_ITEM_KCAL_MAX = 20_000;
 export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
-export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'dish', 'barcode', 'own'] as const;
+export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'dish', 'barcode', 'own'] as const;
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
-/** The servings of a USDA food, in halves, as household units (more-foods plan). */
+/** The servings of a USDA or INDB food, in halves, as household units (more-foods plan; D-46). */
 export const MEAL_ITEM_SERVINGS_MAX = 10;
 export const SERVING_LABEL_MAX = 80;
 /**
@@ -447,13 +447,14 @@ export const mealItemSchema = z
   })
   // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); an IFCT food
   // may also be logged in a household unit (D-36), a USDA food in its servings, and your own food in
-  // its unit (more-foods plan).
+  // its unit (more-foods plan); an INDB recipe in grams or its serving (D-46).
   .refine((item) => ALLOWED_AMOUNTS[item.source].includes(item.amount.unit), { path: ['amount'] })
   .refine((item) => item.amount.unit !== 'own' || isOwnQuantity(item.amount.name, item.amount.value), { path: ['amount', 'value'] });
 
 const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
   ifct2017: ['g', 'measure'],
   usda_fndds: ['g', 'serving'],
+  indb: ['g', 'serving'],
   dish: ['portion'],
   barcode: ['g'],
   own: ['g', 'own'],
@@ -839,7 +840,14 @@ export const IFCT_ACKNOWLEDGEMENT =
 export const USDA_ACKNOWLEDGEMENT =
   'U.S. Department of Agriculture, Agricultural Research Service. FoodData Central, FNDDS 2021–2023. fdc.nal.usda.gov.';
 
-export const FOOD_SOURCES = ['ifct2017', 'usda_fndds'] as const;
+/**
+ * The credit for the Indian Nutrient Databank's recipes (D-46): the article that publishes INDB, and
+ * where its data is. Shown with IFCT's and USDA's, behind Search foods' i.
+ */
+export const INDB_ACKNOWLEDGEMENT =
+  'Vijayakumar, A., Dubasi, H. B., Awasthi, A. and Jaacks, L. M. (2024). Development of an Indian Food Composition Database. Current Developments in Nutrition, 8(7), 103790. Indian Nutrient Databank (INDB): github.com/lindsayjaacks/Indian-Nutrient-Databank-INDB-.';
+
+export const FOOD_SOURCES = ['ifct2017', 'usda_fndds', 'indb'] as const;
 export type FoodSource = (typeof FOOD_SOURCES)[number];
 
 /** One food of the list, per 100 g edible portion. */

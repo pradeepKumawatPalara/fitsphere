@@ -1,4 +1,4 @@
-import { IFCT_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
 import { ChevronLeft, ChevronRight, Info, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
@@ -10,15 +10,17 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { FoodDetail, type FoodResult } from './FoodDetail';
+import { SOURCE_MARKS } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { Sheet } from './Sheet';
 import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
-// (ADR-0006 rule 1). Dishes (D-28) come first, then the Indian foods, the user's My foods and USDA's
-// (D-39), each marked. IFCT's acknowledgement is one tap away, behind the i at the top (D-25, changed
-// by D-44): the dishes' values come from IFCT too; USDA's credit is shown with it.
+// (ADR-0006 rule 1). Dishes (D-28) come first, then INDB's Indian recipes (D-46), IFCT's Indian
+// foods, the user's My foods and USDA's (D-39), each marked. IFCT's acknowledgement is one tap away,
+// behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT too; INDB's and
+// USDA's credits are shown with it.
 //
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
@@ -54,6 +56,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
         setResults([
           ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+          ...listed('indb'),
           ...listed('ifct2017'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
           ...listed('usda_fndds'),
@@ -153,14 +156,14 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               ) : (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`${result.food.name}, ${result.food.source === 'usda_fndds' ? 'USDA, ' : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
+                  accessibilityLabel={`${result.food.name}, ${SOURCE_MARKS[result.food.source] ? `${SOURCE_MARKS[result.food.source]}, ` : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
                   onPress={() => setChosen(result)}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>
                     <Text style={styles.name}>{result.food.name}</Text>
                     <View style={styles.detailLine}>
-                      {result.food.source === 'usda_fndds' ? <Text style={styles.mark}>USDA</Text> : null}
+                      {SOURCE_MARKS[result.food.source] ? <Text style={styles.mark}>{SOURCE_MARKS[result.food.source]}</Text> : null}
                       <Text style={styles.detail}>
                         {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
                       </Text>
@@ -174,6 +177,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       {sources ? (
         <Sheet title="Food sources" onClose={() => setSources(false)} actions={<TextButton title="Close" wide onPress={() => setSources(false)} />}>
           <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
+          <Text style={styles.source}>Foods marked INDB: {INDB_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked USDA: {USDA_ACKNOWLEDGEMENT}</Text>
         </Sheet>
       ) : null}

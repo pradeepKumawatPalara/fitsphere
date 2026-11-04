@@ -1256,6 +1256,32 @@ checksum), and the configuration template was left as it is.*
   No photo for now. Every food, dish and My food already holds the four values, so no data changes.
 - Doc changes: REQ-LOG-007; the redesign plan's 3.6 and 3.6b; the canvas boards 3.6b.
 
+## D-46 The Indian Nutrient Databank's recipes in the food list
+- Status: **Accepted** (owner, in chat, 2026-11-04: "Go with 2", then "implement this data as
+  well", choosing between asking INDB's authors for permission first and using it now with its
+  credit).
+- Problem: Search foods had few Indian dishes as eaten (curries, sabzis, dals, parathas): IFCT 2017
+  lists raw foods, FitSphere's own dishes wait for the owner's measured recipes (D-26), and USDA's
+  Indian-named foods are US recipes. The owner asked for an Indian dish list like HealthifyMe's and
+  for 3,000 to 4,000 foods to be made up; made-up values were refused, as they would be guesses
+  shown as nutrition data.
+- Answer: the Indian Nutrient Databank (INDB; Vijayakumar, Dubasi, Awasthi and Jaacks, *Current
+  Developments in Nutrition* 2024, 8(7), 103790) joins the food list:
+  - its **1,014 recipes**, with their values per 100 g as INDB computed them, all marked
+    **estimated**, and the one serving INDB gives each (917 of them, e.g. "Dosa (36.13 g)",
+    a bowl, a roti, a tall glass), counted in halves; its grams come from INDB's own per-serving values;
+  - tagged **"INDB"** in Search foods, listed after FitSphere's dishes and before IFCT's foods;
+    an INDB recipe opens on its serving, as INDB's values are per 100 g of the raw ingredients;
+  - credited in the "Food sources" sheet behind the i, with IFCT's and USDA's;
+  - not used for FitSphere's own dishes (D-26), which stay the owner's measured recipes.
+- Risk accepted: INDB's data has **no licence**; its recipes come from two copyrighted cookbooks
+  and websites, and its values mostly from IFCT 2017 (R-007). The owner accepts this as **R-009**,
+  as D-25 did for IFCT; the source is always credited and never hidden. Legal is asked (Q-049,
+  L-15). The authors were not asked; that stays open.
+- Doc changes: `food-list-sources.md`; the Legal brief (L-15, E-10); ADR-0006's licence row;
+  `constraints-and-assumptions.md` (R-009, the More foods row); the data model; REQ-LOG-007.
+  Migration `0012_indb_foods.sql`; no phone schema change.
+
 ---
 
 ## Proposed replacement wording for the two invariants

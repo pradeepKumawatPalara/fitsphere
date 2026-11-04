@@ -20,6 +20,13 @@ quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync cha
 from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
 updated API, then `foods:import`; only when the owner says so.**
 
+**Indian recipes — built on branch `feat/indb-foods` (D-46, 2026-11-04).** The Indian Nutrient
+Databank's 1,014 recipes join the food list, tagged "INDB", values estimated, each opening on its
+serving; credited behind Search foods' i. No licence is stated for INDB's data: accepted risk R-009,
+Legal asked (L-15). Migration `0012_indb_foods.sql`, no phone schema change. `npm run indb:convert`
+makes `data/foods/indb-*.csv` from `INDB.xlsx` (kept outside the repository). **On `fitsphere-dev`:
+migration 0012 before the updated API, then `foods:import`; only when the owner says so.**
+
 **Profile — merged (pull request #51); migration 0010 applied on `fitsphere-dev` by the owner
 (D-38, 2026-11-03 to 2026-11-04).** Plan: `docs/plans/user-profile.md` (Accepted), REQ-ACC-011. Settings
 opens with a Profile card; the Profile screen keeps the user's photo, name, date of birth (18 or
