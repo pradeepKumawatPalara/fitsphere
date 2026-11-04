@@ -463,6 +463,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-LOG-003 — Meal type and tags
 - Requirement: The user selects one meal type (Breakfast, Lunch, Snack, Dinner) and may add tags "Before training" and "Dessert".
 - MVP default (D-18): the meal type is required; tags are optional and attach to the meal (Q-031).
+- MVP (D-40): the tags are hidden in Log meal until coaches come (backlog B-28). A meal that has tags keeps them, and its card still shows them.
 
 ### REQ-LOG-004 — Free-text entry
 - Requirement: A free-text box with placeholder "Speak or type what you ate…" accepts a description; a sample entry is shown.

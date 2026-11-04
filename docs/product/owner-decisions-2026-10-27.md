@@ -1139,6 +1139,18 @@ checksum), and the configuration template was left as it is.*
   ADR-0006's open questions; the threat model; the deletion page; Legal's brief;
   `constraints-and-assumptions.md`; the plans.
 
+## D-40 The meal tags are hidden until coaches
+- Status: **Accepted** (owner, in chat, 2026-11-04, after the phone test: "go for option 2").
+- Question: what are "Before training" and "Dessert" for in Log meal, as the meal types are already
+  chosen there? They are the BRD's tags on a meal (REQ-LOG-003, Q-031); in the MVP they only show as a
+  label on the meal card, and their use, seeing what a client eats before training or how often they
+  have dessert, is a coach's (post-MVP, D-20). Beside the meal types, they read as two more meal types.
+- Answer: **hidden** in Log meal until coaches come (backlog B-28). A meal that has tags keeps them:
+  its card still shows them, and editing it keeps them. A saved meal logged again from Nutrition's
+  Saved tab keeps its tags, as before. The data model, contract and sync are unchanged.
+- Unchanged: the BRD (`docs/product/source/business-requirements.txt`, input, not edited).
+- Doc changes: REQ-LOG-003; backlog B-28; the redesign plan's 3.5; the canvas board 3.5.
+
 ---
 
 ## Proposed replacement wording for the two invariants
