@@ -171,6 +171,20 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   - Details and hashes: [`docs/sources/README.md`](../sources/README.md).
 - Question: may FitSphere use the 200 ml katori size, keep the copies, and quote those passages?
 
+**L-15 The Indian Nutrient Databank's recipes (MVP).**
+- Facts: since D-46 (2026-11-04) the food list holds INDB's 1,014 recipes with their values and
+  servings ([`food-list-sources.md`](../data/food-list-sources.md)).
+  - INDB is published with an open-access article (CC BY 4.0); its data, on GitHub, names no
+    licence.
+  - Its recipes come from two copyrighted cookbooks (*The Art & Science of Cooking*, *Basic Food
+    Preparation*) and from websites; its values mostly from IFCT 2017 (L-09).
+  - FitSphere copies the recipe names and the values per 100 g and per serving, not the
+    ingredients or methods; it credits the article and the databank behind Search foods' i.
+  - The owner accepted the risk (R-009) without asking the authors.
+- Questions: may FitSphere use INDB's data in the app as it does? Is the credit enough, and in the
+  right place? Should the authors be asked for permission, and do the cookbooks' or NIN's terms
+  reach the values?
+
 ### C. Dishes: FitSphere's standard-recipe method (D-26 answer 3, amended 2026-10-30)
 
 **L-12 Dish values calculated from IFCT values (MVP).**
@@ -183,7 +197,8 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
     own value for a boiled egg (M004) per gram of the cooked egg.
   - For oils and ghee, which IFCT gives no energy value, FitSphere uses 9 kcal per gram of fat. This
     is the general factor in FAO Food and Nutrition Paper 77.
-  - NIN's guidelines, the Indian Nutrient Databank and USDA data are not used.
+  - NIN's guidelines, the Indian Nutrient Databank and USDA data are not used for the dishes.
+    (INDB's recipes are listed as foods of their own since D-46: L-15.)
   - No dish has values yet; the sheet's gram fields are empty.
 - Questions:
   - Are values calculated from IFCT values covered by the same NIN terms (L-09)?
@@ -236,7 +251,7 @@ or "Not written yet" are not available yet.
 | E-07 | Hosting in Mumbai; media links; logs | [ADR-0002](../architecture/decisions/ADR-0002-backend-and-hosting.md), [ADR-0003](../architecture/decisions/ADR-0003-primary-database.md) | L-01, L-05 | In the repository (Accepted) |
 | E-08 | Sign-in, emails through Resend | [ADR-0004](../architecture/decisions/ADR-0004-accounts-auth-and-notifications.md) | L-01, L-02, L-06 | In the repository (Accepted) |
 | E-09 | AI provider, consent record | [ADR-0005](../architecture/decisions/ADR-0005-ai-meal-reading.md) | L-01, L-03 | In the repository (Accepted); AI not built |
-| E-10 | Food data: IFCT list, USDA FoodData Central's FNDDS (public domain, CC0, credited; D-39), Open Food Facts | [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) | L-09 to L-13 | In the repository (Accepted) |
+| E-10 | Food data: IFCT list, USDA FoodData Central's FNDDS (public domain, CC0, credited; D-39), the Indian Nutrient Databank's recipes (no licence stated, credited; D-46, R-009), Open Food Facts | [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) | L-09 to L-13 | In the repository (Accepted) |
 | E-11 | Where the IFCT values come from, the terms, the citation, the dish method | [`food-list-sources.md`](../data/food-list-sources.md) | L-09 to L-12 | In the repository (Draft) |
 | E-12 | The NIN documents read, with hashes and terms | [`docs/sources/README.md`](../sources/README.md) | L-09 to L-11 | In the repository (Draft) |
 | E-13 | The NIN PDFs and the IFCT compilation PDF | `D:\fitsphere-data\` on the owner's PC, identified by the hashes in E-11 and E-12 | L-09 to L-11 | On the owner's PC; available on request |

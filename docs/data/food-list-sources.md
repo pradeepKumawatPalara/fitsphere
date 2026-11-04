@@ -266,7 +266,8 @@ top of them:
 The IFCT list has raw ingredients, not cooked dishes, and no portions. A dish is therefore defined
 by FitSphere's own standard-recipe sheet, [`standard-recipe-sheet.csv`](standard-recipe-sheet.csv).
 The owner writes it by weighing raw ingredients, and approves it (D-26 answer 3, amended
-2026-10-30). NIN's guidelines, INDB data and USDA data are not used as sources (table below).
+2026-10-30). NIN's guidelines, INDB data and USDA data are not used as sources for the dishes
+(table below). INDB's recipes are listed as foods of their own since D-46 (section below).
 
 - **Values:** for each ingredient, IFCT's values per 100 g × its raw grams in one portion, added up
   and marked "estimated". Oils and ghee use the 9 kcal per gram of fat above.
@@ -411,6 +412,41 @@ The IFCT 2017 book says its egg values are not all for raw food:
 - **Coverage noted (2026-11-04):** 125 breads; 39 peanut-butter foods, including "Peanut butter
   sandwich, with regular peanut butter, on white bread"; about 25 Indian-named foods, which are US
   recipes, e.g. USDA's paneer has 22.5 g carbohydrate per 100 g. IFCT's foods come first in search.
+
+## Indian Nutrient Databank (INDB): Indian recipes (D-46)
+- **What:** 1,014 Indian recipes as cooked and eaten (curries, dals, sabzis, parathas, snacks,
+  drinks, sweets), each with its values per 100 g and one serving, published with Vijayakumar A,
+  Dubasi HB, Awasthi A, Jaacks LM, "Development of an Indian Food Composition Database", *Current
+  Developments in Nutrition* 2024;8(7):103790, doi:10.1016/j.cdnut.2024.103790. INDB computed the
+  values from each recipe's ingredients, mostly IFCT 2017's (2004's, UK CoFID's and USDA's where
+  IFCT has none), per 100 g of the ingredients' total weight, with no cooking-yield correction.
+- **Licence:** none stated for the data. The article is open access under CC BY 4.0; its data
+  statement says "All analysis codes and files are publicly and freely available on GitHub"; the
+  repository has no licence file. Its recipes come from *The Art & Science of Cooking* (490),
+  *Basic Food Preparation* (376) and websites (148). Used under owner decision D-46, accepted risk
+  R-009; Legal is asked (Q-049, L-15). The app shows `INDB_ACKNOWLEDGEMENT` with IFCT's and USDA's,
+  in Search foods' "Food sources" sheet behind the i.
+- **Files read:** from github.com/lindsayjaacks/Indian-Nutrient-Databank-INDB- at commit
+  `fbdb62bec519c6e2468582a799fb47e194b42558` (2025-04-08), downloaded 2026-11-04 to
+  `D:\fitsphere-data\indb-2026-11-04\`, outside the repository. Only `INDB.xlsx` is used:
+  1,063,585 bytes, SHA-256 `65f91911de09ebdb4b80c4a3dc3ff372a35420e05444239d8df8a42e8b5b9ecf`.
+  `recipes_servingsize.xlsx`, `recipes_names.xlsx`, `Units.xlsx` and `README.md` were read, not
+  used.
+- **Made with** `npm run indb:convert -w @fitsphere/api -- <INDB.xlsx>`
+  (`apps/api/src/foods/indb.ts`, read with `apps/api/src/foods/xlsx.ts`, no added library):
+  - `data/foods/indb-foods.csv`: 1,014 recipes, each with its INDB code (ASC, BFP or OSR and 3
+    digits), name, kcal, protein, carbohydrate, fat and fibre per 100 g, rounded to two decimals;
+    every value estimated. None left out.
+  - `data/foods/indb-portions.csv`: 917 servings, one per recipe, "1 <INDB's serving unit>", its
+    grams 100 × the serving's energy ÷ the energy per 100 g. INDB's protein, carbs and fat per
+    serving give the same weight, within 1 %, in all 915 recipes checked. The 97 recipes INDB
+    gives no serving stay in grams only.
+- **Checks:** `foods:import` refuses the files whole as it does USDA's (header, codes, values over
+  100 g or 1,000 kcal per 100 g, servings of unknown recipes or over 2,000 g). The committed files
+  load whole into PostgreSQL in the integration tests.
+- **In the app:** tagged "INDB", listed after FitSphere's dishes and before IFCT's foods; a recipe
+  opens on its serving, as INDB's per-100 g values are of the raw ingredients, not the cooked dish.
+  Not used for FitSphere's own dishes, which stay the owner's measured recipes (D-26).
 
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,

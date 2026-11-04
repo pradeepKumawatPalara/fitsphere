@@ -4,6 +4,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ImportedFood } from '../../src/foods/ifct.ts';
 import { importFoods, importPortions } from '../../src/foods/importFoods.ts';
+import { INDB_GROUP, INDB_SOURCE } from '../../src/foods/indb.ts';
 import { USDA_SOURCE } from '../../src/foods/usda.ts';
 import { startTestApi, type TestUser } from './app.ts';
 import { connect } from './database.ts';
@@ -33,6 +34,9 @@ const TEST_BREAD: ImportedFood = {
   aliases: [],
 };
 
+// A synthetic INDB recipe with its serving: made-up values, not INDB's (D-46).
+const TEST_CURRY: ImportedFood = { ...TEST_BREAD, code: 'BFP999', name: 'Test curry', foodGroup: INDB_GROUP, estimated: true };
+
 let client: pg.Client;
 let api: Awaited<ReturnType<typeof startTestApi>>;
 
@@ -43,10 +47,13 @@ beforeAll(async () => {
     { code: TEST_BREAD.code, seq: 1, label: 'Medium or regular slice', grams: 28 },
     { code: TEST_BREAD.code, seq: 2, label: 'Cup', grams: 40 },
   ]);
+  await importFoods(client, [TEST_CURRY], INDB_SOURCE);
+  await importPortions(client, INDB_SOURCE, [{ code: TEST_CURRY.code, seq: 1, label: 'Bowl', grams: 180 }]);
   api = await startTestApi({ now: () => NOW });
 });
 
 afterAll(async () => {
+  await importFoods(client, [], INDB_SOURCE);
   await importFoods(client, [], USDA_SOURCE);
   await api.close();
   await client.end();
@@ -159,6 +166,26 @@ describe('D-39 meals with USDA servings and your own units', () => {
     const reply = await syncOk(user, [meal([item as MealItem])]);
 
     expect(reply.results[0]).toMatchObject({ status: 'rejected', error: { code: 'VALIDATION_FAILED' } });
+  });
+
+  it('D-46 accepts an INDB recipe in its serving, and refuses one in another source’s serving', async () => {
+    const user = await api.signUpWithAccount();
+    const curry: MealItem = {
+      source: 'indb',
+      ref: TEST_CURRY.code,
+      name: 'Test curry',
+      amount: { unit: 'serving', label: 'Bowl', value: 1.5, grams: 270 },
+      kcal: 259.2,
+      proteinG: 11.07,
+      carbsG: 22.41,
+      fatG: 14.04,
+      fibreG: 4.86,
+      estimated: true,
+    };
+
+    const reply = await syncOk(user, [meal([curry]), meal([{ ...BREAD_ITEM, source: 'indb' }])]);
+
+    expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'rejected']);
   });
 
   it('accepts your own food by the slice, naming the My food it came from', async () => {

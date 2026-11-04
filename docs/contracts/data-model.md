@@ -319,7 +319,7 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
 | `meal_type` | `text` | `breakfast`, `lunch`, `snack` or `dinner`; required (REQ-LOG-003). Null once deleted |
 | `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
-| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000; portions 0.5–10 in halves; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000; or, D-39, a USDA serving with its label, 0.5–10 in halves with the grams they came to; or your own food's unit, `ml` 1–2,000 whole or another of its units 0.1–100 with one decimal), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that an IFCT food may be in a unit it has on `food_measures` (D-36), a USDA food in a serving it has on `food_portions` with its grams, and your own food in its unit (D-39). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
+| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `usda_fndds`, `indb`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000; portions 0.5–10 in halves; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000; or, D-39, a USDA serving with its label, 0.5–10 in halves with the grams they came to; or your own food's unit, `ml` 1–2,000 whole or another of its units 0.1–100 with one decimal), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that an IFCT food may be in a unit it has on `food_measures` (D-36), a USDA food in a serving it has on `food_portions` with its grams, and your own food in its unit (D-39). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
 | `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
 | `photo` | `jsonb` | **Health.** The meal's one photo, `{"kind": "photo", "mediaId": …}` (see `media`), or one public image link, `{"kind": "link", "url": "https://…"}` (REQ-LOG-010), or null (MVP default, D-26). A link is https only, with a host name, no user name or password, and at most 2,000 characters; FitSphere never fetches it. Null once deleted |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
@@ -397,7 +397,8 @@ Copies of meals kept for re-logging (REQ-SAVED-001, REQ-NUT-004 "Save to my meal
 ### `foods` — reference data
 FitSphere's food list (ADR-0006 rule 1; D-25, D-26, D-39), loaded from
 `data/foods/ifct2017-foods.csv` and, since migration 0011, USDA's
-`data/foods/usda-fndds-foods.csv` by `npm run foods:import`
+`data/foods/usda-fndds-foods.csv` and, since migration 0012, INDB's `data/foods/indb-foods.csv`
+(D-46) by `npm run foods:import`
 ([`food-list-sources.md`](../data/food-list-sources.md)). It is the same for every user and holds
 no personal data, so it has no `user_id` and no `change_seq`; the phone fetches it whole with
 `GET /v1/foods`.
@@ -405,7 +406,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `uuid` | Primary key |
-| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `usda_fndds` (D-39), code the 8-digit FNDDS food code, e.g. `51101000` |
+| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `usda_fndds` (D-39), code the 8-digit FNDDS food code, e.g. `51101000`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated |
 | `name`, `food_group` | `text` | Not null; as printed |
 | `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed |
 | `kcal` | `numeric(6,2)` | Not null. kcal per 100 g |
@@ -449,8 +450,9 @@ personal data, so no `user_id` and no `change_seq`; the phone fetches it with th
 
 ### `food_portions` — reference data
 A USDA food's servings (D-39), as USDA labels them, with the grams USDA publishes (not measured by
-the owner, unlike `food_measures`). Loaded from `data/foods/usda-fndds-portions.csv` by
-`foods:import`, replaced whole. Migration 0011.
+the owner, unlike `food_measures`); and an INDB recipe's one serving (D-46), with the grams INDB's
+own per-serving values give. Loaded from `data/foods/usda-fndds-portions.csv` and
+`data/foods/indb-portions.csv` by `foods:import`, each source replaced whole. Migration 0011.
 
 | Column | Type | Rules |
 |---|---|---|

@@ -97,18 +97,33 @@ function decimal(value: number): string {
 
 export type ImportedPortion = { code: string; seq: number; label: string; grams: number };
 
-const CODE = /^\d{8}$/;
+/**
+ * A food list kept as two CSV files in these columns, its foods per 100 g and their servings: USDA's,
+ * and INDB's recipes (D-46), whose values are all estimated.
+ */
+export type ServingList = { name: string; code: RegExp; codeRule: string; estimated: boolean };
+
+const USDA_LIST: ServingList = { name: 'USDA', code: /^\d{8}$/, codeRule: '8 digits', estimated: false };
 const NUMBER = /^\d{1,4}(\.\d{1,2})?$/;
 
 /** Parses and checks both files whole; any problem refuses all of it, naming the file and line. */
 export function readUsdaCsv(foodsText: string, portionsText: string): { foods: ImportedFood[]; portions: ImportedPortion[] } {
+  return readServingListCsv(USDA_LIST, foodsText, portionsText);
+}
+
+/** Reads one list's two files, as `readUsdaCsv` does USDA's. */
+export function readServingListCsv(
+  list: ServingList,
+  foodsText: string,
+  portionsText: string,
+): { foods: ImportedFood[]; portions: ImportedPortion[] } {
   const [foodsHeader, ...foodRows] = parseCsv(foodsText);
-  if (foodsHeader?.join(',') !== USDA_FOODS_HEADER.join(',')) throw new FoodListError('USDA foods: the header is not as expected');
+  if (foodsHeader?.join(',') !== USDA_FOODS_HEADER.join(',')) throw new FoodListError(`${list.name} foods: the header is not as expected`);
   const foods = foodRows.map((row, index): ImportedFood => {
-    const line = `USDA foods, line ${index + 2}`;
+    const line = `${list.name} foods, line ${index + 2}`;
     const [code = '', name = '', category = '', kcal = '', protein = '', carbs = '', fat = '', fibre = ''] = row;
     if (row.length !== USDA_FOODS_HEADER.length) throw new FoodListError(`${line}: ${row.length} fields`);
-    if (!CODE.test(code)) throw new FoodListError(`${line}: the food code is not 8 digits`);
+    if (!list.code.test(code)) throw new FoodListError(`${line}: the food code is not ${list.codeRule}`);
     if (!name.trim()) throw new FoodListError(`${line}: no name`);
     if (![kcal, protein, carbs, fat, fibre].every((value) => NUMBER.test(value))) throw new FoodListError(`${line}: a value is not a number`);
     // Pure fats pass 900 kcal by USDA's factors (lard: 902).
@@ -125,7 +140,7 @@ export function readUsdaCsv(foodsText: string, portionsText: string): { foods: I
       carbsG: carbs,
       kcal,
       kcalSource: 'published',
-      estimated: false,
+      estimated: list.estimated,
       needsReview: false,
       hidden: false,
       note: null,
@@ -133,13 +148,13 @@ export function readUsdaCsv(foodsText: string, portionsText: string): { foods: I
     };
   });
   const codes = new Set(foods.map((food) => food.code));
-  if (codes.size !== foods.length) throw new FoodListError('USDA foods: a food code appears twice');
+  if (codes.size !== foods.length) throw new FoodListError(`${list.name} foods: a food code appears twice`);
 
   const [portionsHeader, ...portionRows] = parseCsv(portionsText);
-  if (portionsHeader?.join(',') !== USDA_PORTIONS_HEADER.join(',')) throw new FoodListError('USDA portions: the header is not as expected');
+  if (portionsHeader?.join(',') !== USDA_PORTIONS_HEADER.join(',')) throw new FoodListError(`${list.name} portions: the header is not as expected`);
   const seen = new Set<string>();
   const portions = portionRows.map((row, index): ImportedPortion => {
-    const line = `USDA portions, line ${index + 2}`;
+    const line = `${list.name} portions, line ${index + 2}`;
     const [code = '', seq = '', description = '', grams = ''] = row;
     if (row.length !== USDA_PORTIONS_HEADER.length) throw new FoodListError(`${line}: ${row.length} fields`);
     if (!codes.has(code)) throw new FoodListError(`${line}: no food with this code`);

@@ -497,7 +497,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039). The
   food list holds IFCT 2017's Indian foods and, since D-39, USDA FoodData Central's FNDDS foods,
   each marked by its source; a USDA food can also be added in its servings, as USDA weighs them,
-  counted in halves. Your own food can be in any of several units and saved to My foods
+  counted in halves. Since D-46 it also holds the Indian Nutrient Databank's 1,014 Indian
+  recipes, marked "INDB", their values estimated, each with its serving. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods

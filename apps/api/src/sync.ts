@@ -520,15 +520,17 @@ async function itemsListed(client: pg.PoolClient, items: MealItem[]): Promise<bo
   return (await dishesListed(client, items)) && (await measuresListed(client, items)) && (await servingsListed(client, items));
 }
 
-/** A USDA serving must be on the list for its food, with the grams per serving it came to (D-39). */
+/** A USDA or INDB serving must be on the list for its food, with the grams per serving it came to (D-39, D-46). */
 async function servingsListed(client: pg.PoolClient, items: MealItem[]): Promise<boolean> {
   const used = items.flatMap((item) =>
-    item.amount.unit === 'serving' ? [{ code: item.ref ?? '', label: item.amount.label, grams: item.amount.grams / item.amount.value }] : [],
+    item.amount.unit === 'serving'
+      ? [{ source: item.source, code: item.ref ?? '', label: item.amount.label, grams: item.amount.grams / item.amount.value }]
+      : [],
   );
-  for (const { code, label, grams } of used) {
+  for (const { source, code, label, grams } of used) {
     const { rows } = await client.query<{ grams: string }>(
-      `select grams from app.food_portions where source = 'usda_fndds' and code = $1 and label = $2`,
-      [code, label],
+      'select grams from app.food_portions where source = $1 and code = $2 and label = $3',
+      [source, code, label],
     );
     // The phone multiplies the serving's grams by the count; allow for rounding to two decimals.
     if (!rows[0] || Math.abs(Number(rows[0].grams) - grams) > 0.02) return false;

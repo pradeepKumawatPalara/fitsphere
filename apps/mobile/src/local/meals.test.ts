@@ -269,6 +269,20 @@ describe('ADR-0006 rule 1 the cached food list', () => {
   it('returns each food’s values as numbers', async () => {
     expect(await searchFoods(db, 'ghee')).toEqual([food('T013', 'Ghee')]);
   });
+
+  it('D-46 lists INDB’s recipes, then IFCT’s foods, then USDA’s, each source up to the limit, so none hides another', async () => {
+    const recipe = (code: string, name: string) => ({ ...food(code, name), source: 'indb' as const });
+    const usda = (code: string, name: string) => ({ ...food(code, name), source: 'usda_fndds' as const });
+    await replaceFoods(db, 'v2', [
+      usda('31103010', 'Egg, whole, boiled or poached'),
+      food('M001', 'Egg, poultry, whole, raw'),
+      recipe('BFP201', 'Egg curry (Ande ki curry)'),
+      recipe('BFP202', 'Boiled egg (Ubla anda)'),
+      recipe('BFP203', 'Egg bhurji'),
+    ]);
+
+    expect((await searchFoods(db, 'egg', 2)).map((found) => found.code)).toEqual(['BFP203', 'BFP201', 'M001', '31103010']);
+  });
 });
 
 describe('D-28 the cached dishes', () => {

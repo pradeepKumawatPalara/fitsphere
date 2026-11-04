@@ -4,6 +4,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
+import { INDB_GROUP, INDB_SOURCE, readIndbCsv } from '../../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPortions } from '../../src/foods/importFoods.ts';
 import { readMeasuresSheet } from '../../src/foods/measures.ts';
 import { readUsdaCsv, USDA_SOURCE } from '../../src/foods/usda.ts';
@@ -293,6 +294,66 @@ describe('D-39 USDA foods: foods:import and GET /v1/foods', () => {
     }
     const { rows } = await client.query(`select 1 from app.food_portions where source = 'usda_fndds'`);
     expect(rows).toEqual([]);
+  });
+});
+
+// A synthetic INDB recipe: made-up values, not INDB's.
+describe('D-46 INDB recipes: foods:import and GET /v1/foods', () => {
+  const TEST_CURRY = {
+    code: 'BFP999',
+    name: 'Test curry',
+    foodGroup: INDB_GROUP,
+    proteinG: '4.1',
+    fibreG: '1.8',
+    fatG: '5.2',
+    carbsG: '8.3',
+    kcal: '96',
+    kcalSource: 'published' as const,
+    estimated: true,
+    needsReview: false,
+    hidden: false,
+    note: null,
+    aliases: [],
+  };
+
+  it('imports the committed INDB files whole, every recipe estimated', async () => {
+    const read = (name: string) => readFileSync(new URL(`../../../../data/foods/${name}`, import.meta.url), 'utf8');
+    const indb = readIndbCsv(read('indb-foods.csv'), read('indb-portions.csv'));
+    try {
+      expect((await importFoods(client, indb.foods, INDB_SOURCE)).total).toBe(1_014);
+      expect(await importPortions(client, INDB_SOURCE, indb.portions)).toBe(917);
+      const { rows } = await client.query(`select count(*)::int as n, bool_and(estimated) as estimated from app.foods where source = 'indb'`);
+      expect(rows).toEqual([{ n: 1_014, estimated: true }]);
+    } finally {
+      await importFoods(client, [], INDB_SOURCE);
+    }
+  });
+
+  it('serves an INDB recipe with its source, its serving and its values estimated', async () => {
+    const user = await api.signUpWithAccount();
+    await importFoods(client, [TEST_CURRY], INDB_SOURCE);
+    await importPortions(client, INDB_SOURCE, [{ code: TEST_CURRY.code, seq: 1, label: 'Bowl', grams: 180 }]);
+    try {
+      const body: FoodsResponse = (await getFoods(user.token)).json();
+
+      expect(body.items?.find((food) => food.code === TEST_CURRY.code)).toEqual({
+        source: 'indb',
+        code: TEST_CURRY.code,
+        name: 'Test curry',
+        foodGroup: INDB_GROUP,
+        aliases: [],
+        proteinG: 4.1,
+        fibreG: 1.8,
+        fatG: 5.2,
+        carbsG: 8.3,
+        kcal: 96,
+        kcalEstimated: true,
+        measures: [],
+        portions: [{ label: 'Bowl', grams: 180 }],
+      });
+    } finally {
+      await importFoods(client, [], INDB_SOURCE);
+    }
   });
 });
 

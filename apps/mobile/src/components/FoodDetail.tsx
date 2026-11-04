@@ -22,6 +22,7 @@ import { formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, OWN_UNIT_NAMES
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { NUTRIENTS } from './EatenSummary';
+import { SOURCE_MARKS } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { Sheet } from './Sheet';
 import { StripeCorner } from './StripeCorner';
@@ -107,7 +108,9 @@ export function FoodDetail({
   const styles = useStyles();
   const { colors } = useTheme();
   const measures = measuresOf(result);
-  const [measureIndex, setMeasureIndex] = useState(0);
+  // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
+  // so its serving, not grams of the cooked dish, gives INDB's own figures.
+  const [measureIndex, setMeasureIndex] = useState(result.kind === 'food' && result.food.source === 'indb' && result.food.portions.length > 0 ? 1 : 0);
   const [count, setCount] = useState(1);
   const [typed, setTyped] = useState(result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100');
   const [picking, setPicking] = useState(false);
@@ -115,7 +118,7 @@ export function FoodDetail({
   const item = itemOf(result, measure, count, typed);
 
   const name = result.kind === 'dish' ? result.dish.name : result.food.name;
-  const mark = result.kind === 'dish' ? 'Dish' : result.kind === 'mine' ? 'My food' : result.food.source === 'usda_fndds' ? 'USDA' : null;
+  const mark = result.kind === 'dish' ? 'Dish' : result.kind === 'mine' ? 'My food' : SOURCE_MARKS[result.food.source];
   const per =
     result.kind === 'dish'
       ? `One ${PORTION_UNIT_LABELS[result.dish.portionUnit]}: ${formatKcal(result.dish.kcal)}`

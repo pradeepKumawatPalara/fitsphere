@@ -1,0 +1,918 @@
+food_code,seq,description,grams
+ASC001,1,1 tea cup,210.5
+ASC002,1,1 tea cup,450
+ASC003,1,1 tea cup,158.5
+ASC004,1,1 tall glass,320
+ASC005,1,1 tall glass,268.5
+ASC006,1,1 tall glass,544.33
+ASC007,1,1 tall glass,502.83
+ASC008,1,1 glass,349.25
+ASC009,1,1 glass,356.75
+ASC010,1,1 glass,338.87
+ASC011,1,1 tall glass,432.2
+ASC012,1,1 tall glass,494.66
+ASC014,1,1 cup,191
+ASC015,1,1 tall glass,301.5
+ASC016,1,1 tall glass,345.5
+ASC017,1,1 tall glass,355.5
+ASC018,1,1 tall glass,364.5
+ASC019,1,1 tall glass,319.5
+ASC020,1,1 tall glass,303.5
+ASC021,1,1 tall glass,442.5
+ASC022,1,1 tall glass,423.25
+ASC023,1,1 triangle,55.75
+ASC024,1,1 triangle,50.75
+ASC025,1,1 triangle,60.75
+ASC026,1,1 triangle,55.75
+ASC027,1,1 triangle,58.25
+ASC028,1,1 triangle,58.25
+ASC029,1,1 triangle,60.75
+ASC030,1,1 triangle,47.83
+ASC031,1,1 triangle,87.88
+ASC032,1,1 triangle,82.88
+ASC033,1,1 triangle,27.87
+ASC034,1,1 triangle,97.25
+ASC035,1,1 triangle,74.25
+ASC036,1,1 triangle,68.3
+ASC037,1,1 triangle,59.5
+ASC038,1,1 triangle,59
+ASC039,1,1 triangle,75.75
+ASC040,1,1 triangle,75.75
+ASC041,1,1 toasted triangle,88.87
+ASC042,1,1 toasted triangle,88.87
+ASC043,1,1 toasted triangle,85.5
+ASC044,1,1 toasted triangle,84.64
+ASC045,1,1 triangle,223.5
+ASC046,1,1 toasted triangle,62.44
+ASC047,1,1 bowl,403
+ASC048,1,1 bowl,278
+ASC050,1,1 bowl,398
+ASC051,1,1 bowl,278
+ASC052,1,1 bowl,278
+ASC053,1,1 bowl,278
+ASC054,1,1 bowl,278
+ASC055,1,1 bowl,278
+ASC056,1,1 egg,151
+ASC057,1,1 egg,57.75
+ASC058,1,1 egg,56
+ASC059,1,1 egg,70
+ASC060,1,1 egg,101
+ASC061,1,1 omelette,143
+ASC062,1,1 omelette,262
+ASC063,1,1 pancake,42.27
+ASC064,1,1 pancake,110.38
+ASC065,1,1 pancake,117.15
+ASC066,1,1 pancake,65.78
+ASC067,1,1 pancake,71.15
+ASC068,1,1 cup,486.07
+ASC069,1,1 cup,415.42
+ASC070,1,1 cup,375.95
+ASC079,1,1 soup bowl,397.65
+ASC080,1,1 soup bowl,389.23
+ASC081,1,1 soup bowl,225.9
+ASC082,1,1 soup bowl,462.4
+ASC083,1,1 soup bowl,408.5
+ASC084,1,1 soup bowl,462.63
+ASC085,1,1 soup bowl,362.4
+ASC086,1,1 soup bowl,375.03
+ASC087,1,1 soup bowl,241.75
+ASC088,1,1 soup bowl,230.13
+ASC089,1,1 soup bowl,317.75
+ASC090,1,1 soup bowl,465.46
+ASC091,1,1 soup bowl,351.9
+ASC092,1,1 soup bowl,393
+ASC093,1,1 soup bowl,369.05
+ASC094,1,1 soup bowl,187.65
+ASC095,1,1 soup bowl,307
+ASC096,1,1 chapati,36
+ASC097,1,1 parantha,55.75
+ASC098,1,1 parantha,93.36
+ASC099,1,1 parantha,100.03
+ASC100,1,1 parantha,101.86
+ASC101,1,1 parantha,76.7
+ASC102,1,1 parantha,76.7
+ASC103,1,1 parantha,108.36
+ASC104,1,1 parantha,100.03
+ASC105,1,1 parantha,85.03
+ASC106,1,1 parantha,82.28
+ASC107,1,1 poori,124.9
+ASC108,1,1 poori,135
+ASC109,1,1 poori,130
+ASC110,1,1 poori,118.78
+ASC111,1,1 poori,119.2
+ASC112,1,1 parantha,55.67
+ASC113,1,1 plate,300
+ASC114,1,1 plate,307.9
+ASC115,1,1 plate,438.4
+ASC116,1,1 plate,358.4
+ASC117,1,1 plate,407.9
+ASC118,1,1 plate,837.9
+ASC119,1,1 plate,357.9
+ASC120,1,1 plate,183.1
+ASC121,1,1 plate,357.9
+ASC122,1,1 plate,207.82
+ASC123,1,1 plate,301.57
+ASC124,1,1 plate,319.16
+ASC125,1,1 plate,347.76
+ASC126,1,1 plate,216.16
+ASC127,1,1 plate,127.83
+ASC128,1,1 plate,217.5
+ASC129,1,1 plate,351.33
+ASC133,1,1 casserole dish,239.5
+ASC134,1,1 plate,299.58
+ASC135,1,1 plate,344.3
+ASC136,1,1 plate,397.5
+ASC137,1,1 plate,965.6
+ASC138,1,1 plate,261.5
+ASC139,1,1 plate,831.42
+ASC140,1,1 plate,514.5
+ASC141,1,1 plate,355.13
+ASC142,1,1 naan,53.17
+ASC143,1,1 bhatura,145.56
+ASC144,1,1 idli,25.06
+ASC146,1,1 dosa,209.66
+ASC147,1,1 dosa,73.41
+ASC148,1,1 uttapam,139.46
+ASC149,1,1 kaathi roll,148.34
+ASC150,1,1 roti,85
+ASC151,1,1 bowl,277
+ASC152,1,1 bowl,296
+ASC153,1,1 bowl,278.83
+ASC154,1,1 bowl,143.2
+ASC155,1,1 bowl,297.83
+ASC156,1,1 bowl,342.33
+ASC157,1,1 bowl,342.33
+ASC158,1,1 bowl,342.33
+ASC159,1,1 bowl,339.33
+ASC160,1,1 bowl,286.75
+ASC161,1,1 bowl,119.92
+ASC162,1,1 bowl,119.92
+ASC163,1,1 bowl,119.92
+ASC164,1,1 bowl,119.92
+ASC165,1,1 bowl,119.92
+ASC167,1,1 bowl,257.25
+ASC168,1,1 bowl,586.79
+ASC169,1,1 bowl,157.06
+ASC170,1,1 plate,256.5
+ASC171,1,1 bowl,175.75
+ASC172,1,1 bowl,150.75
+ASC173,1,1 bowl,166.25
+ASC174,1,1 bowl,190.75
+ASC175,1,1 bowl,204.25
+ASC177,1,1 bowl,325.83
+ASC178,1,1 bowl,105.75
+ASC179,1,1 bowl,149.54
+ASC180,1,1 bowl,149.54
+ASC181,1,1 bowl,199.54
+ASC182,1,1 bowl,149.54
+ASC183,1,1 bowl,149.54
+ASC184,1,1 bowl,110.5
+ASC185,1,1 bowl,248.25
+ASC186,1,1 capsicum,125.5
+ASC187,1,1 brinjal,55.37
+ASC189,1,1 tomato,135.5
+ASC190,1,1 bowl,277.33
+ASC191,1,1 bowl,277.33
+ASC192,1,1 bowl,277.33
+ASC193,1,1 bowl,277.33
+ASC194,1,1 bowl,287.33
+ASC195,1,1 bowl,202.33
+ASC196,1,1 bowl,202.33
+ASC197,1,1 bowl,139.25
+ASC198,1,1 bowl,780.5
+ASC199,1,1 bowl,806.17
+ASC200,1,1 bowl,701
+ASC201,1,1 bowl,731.17
+ASC202,1,1 bowl,727.17
+ASC203,1,1 bowl,711.17
+ASC204,1,1 bowl,713.17
+ASC205,1,1 bowl,713.17
+ASC206,1,1 bowl,762.5
+ASC207,1,1 bowl,741
+ASC208,1,1 bowl,302.5
+ASC209,1,1 bowl,215.97
+ASC210,1,1 bowl,423.52
+ASC211,1,1 bowl,78.38
+ASC212,1,1 bowl,270.66
+ASC213,1,1 bowl,430.88
+ASC214,1,1 bowl,670.58
+ASC215,1,1 bowl,295.5
+ASC216,1,1 bowl,1001.5
+ASC217,1,1 bowl,141.46
+ASC218,1,1 bowl,361.16
+ASC219,1,1 bowl,335.05
+ASC220,1,1 bowl,232
+ASC221,1,1 bowl,259.34
+ASC222,1,1 bowl,156.79
+ASC223,1,1 bowl,193.38
+ASC224,1,1 bowl,296.88
+ASC225,1,1 bowl,607
+ASC226,1,1 bowl,318.13
+ASC227,1,1 bowl,236.01
+ASC228,1,1 bowl,486.01
+ASC229,1,1 bowl,343.83
+ASC230,1,1 kofta,41.32
+ASC231,1,1 gushtaba,304.03
+ASC232,1,1 bowl,232.15
+ASC233,1,1 bowl,252.15
+ASC234,1,1 bowl,329
+ASC236,1,1 chop,349.64
+ASC237,1,1 kabab,171.21
+ASC238,1,1 piece,342.45
+ASC239,1,1 dish,187.63
+ASC240,1,1 bowl,247.93
+ASC241,1,1 chicken,1440.8
+ASC242,1,1 large piece,275.2
+ASC243,1,1 kabab,123.9
+ASC244,1,1 bowl,386.82
+ASC245,1,1 piece,123.75
+ASC246,1,1 bowl,253.97
+ASC247,1,1 piece,353.5
+ASC248,1,1 fillet,697.75
+ASC249,1,1 bowl,967.93
+ASC250,1,1 bowl,353.75
+ASC251,1,1 piece,35.5
+ASC252,1,1 piece,233.62
+ASC253,1,1 bowl,257.75
+ASC254,1,1 bowl,316.5
+ASC255,1,1 bowl,215.75
+ASC256,1,1 egg,159.75
+ASC257,1,1 bowl,389.56
+ASC258,1,1 bowl,169.92
+ASC259,1,1 bowl,203.75
+ASC260,1,1 bowl,341
+ASC261,1,1 bowl,215.42
+ASC262,1,1 bowl,236
+ASC263,1,1 bowl,246.5
+ASC264,1,1 bowl,152.5
+ASC265,1,1 bowl,304
+ASC269,1,1 bowl,177.67
+ASC270,1,1 bowl,122.67
+ASC271,1,1 bowl,152.67
+ASC272,1,1 bowl,152.67
+ASC273,1,1 bowl,152.67
+ASC274,1,1 bowl,177.67
+ASC275,1,1 bowl,104.67
+ASC276,1,1 bowl,157.67
+ASC277,1,1 bowl,328.88
+ASC278,1,1 bowl,192
+ASC279,1,1 vada,172.25
+ASC280,1,1 gunjia,174.75
+ASC281,1,1 teaspoon,17.7
+ASC282,1,1 bowl,401.11
+ASC283,1,1 bowl,278.11
+ASC285,1,1 bowl,232.43
+ASC286,1,1 bowl,230.43
+ASC287,1,1 bowl,289.43
+ASC288,1,1 bowl,254.43
+ASC289,1,1 bowl,254.43
+ASC290,1,1 bowl,304.43
+ASC291,1,1 bowl,405.43
+ASC292,1,1 bowl,290.22
+ASC293,1,1 bowl,159.62
+ASC294,1,1 bowl,98.3
+ASC295,1,1 bowl,167.81
+ASC296,1,1 bowl,96.5
+ASC297,1,1 bowl,158.04
+ASC298,1,1 bowl,155.04
+ASC299,1,1 bowl,95.39
+ASC300,1,1 bowl,232
+ASC301,1,1 bowl,213
+ASC302,1,1 bowl,249.5
+ASC304,1,1 ice-cream cup,371
+ASC305,1,1 ice-cream cup,456
+ASC307,1,1 ice-cream cup,321.25
+ASC308,1,1 ice-cream cup,271.45
+ASC309,1,1 souffle cup,237
+ASC310,1,1 souffle cup,244
+ASC311,1,1 souffle cup,217.5
+ASC312,1,1 souffle cup,220
+ASC313,1,1 souffle cup,202
+ASC314,1,1 bowl,365
+ASC315,1,1 cup,210.5
+ASC316,1,1 cup,279
+ASC317,1,1 bowl,89.13
+ASC318,1,1 bowl,253
+ASC319,1,1 bowl,292.25
+ASC320,1,1 bowl,318
+ASC321,1,1 kulfi,270.12
+ASC322,1,1 large slice,107.46
+ASC323,1,1 bowl,224
+ASC324,1,1 large slice,120.55
+ASC325,1,1 large slice,165.69
+ASC326,1,1 plate,123.17
+ASC327,1,1 large slice,325.75
+ASC328,1,1 large slice,133.63
+ASC329,1,1 bowl,226
+ASC330,1,1 piece,283.5
+ASC331,1,1 piece,259.5
+ASC332,1,1 bowl,122
+ASC333,1,1 bowl,142
+ASC334,1,1 bowl,127.5
+ASC335,1,1 burfi,43.56
+ASC336,1,1 burfi,56.75
+ASC337,1,1 burfi,72.13
+ASC338,1,1 burfi,32.5
+ASC339,1,1 burfi,28.67
+ASC340,1,1 burfi,38.31
+ASC341,1,1 ladoo,29.42
+ASC342,1,1 ladoo,36.38
+ASC343,1,1 ladoo,35.25
+ASC344,1,1 ladoo,27.5
+ASC345,1,1 bowl,90.13
+ASC346,1,1 slice,287.25
+ASC347,1,1 gunjia,106.47
+ASC348,1,1 gulab jamun,156.72
+ASC349,1,1 malqura,149.63
+ASC350,1,1 tukra,101.9
+ASC351,1,1 plate,674.5
+ASC352,1,1 plate,674.5
+ASC353,1,1 plate,674.5
+ASC354,1,1 plate,674.5
+ASC355,1,1 plate,634.5
+ASC356,1,1 plate,634.5
+ASC357,1,1 plate,644.5
+ASC358,1,1 plate,654.5
+ASC359,1,1 plate,646.75
+ASC360,1,1 bonda,179.21
+ASC361,1,1 samosa,140.94
+ASC362,1,1 samosa,134.87
+ASC363,1,1 samosa,134.87
+ASC364,1,1 kachori,87.21
+ASC365,1,1 kachori,100.68
+ASC366,1,1 cutlet,337.75
+ASC367,1,1 cutlet,331.33
+ASC368,1,1 cutlet,338.84
+ASC369,1,1 cutlet,348.96
+ASC370,1,1 cutlet,343.25
+ASC371,1,1 cutlet,327.84
+ASC372,1,1 toast,145
+ASC375,1,1 burger,515.25
+ASC376,1,1 piece,131.1
+ASC377,1,1 kabab,164.52
+ASC378,1,1 vada,269.75
+ASC379,1,1 vada,305.58
+ASC380,1,1 piece,334.09
+ASC381,1,1 plate,438.67
+ASC382,1,1 piece,24.62
+ASC383,1,1 spring roll,94.15
+ASC384,1,1 tablespoon,27.7
+ASC385,1,1 tablespoon,21
+ASC386,1,1 tablespoon,25.33
+ASC387,1,1 tablespoon,26.29
+ASC395,1,1 tart,71.69
+ASC396,1,1 tart,54.44
+ASC397,1,1 tart,36.19
+ASC398,1,1 tart,72.19
+ASC399,1,1 tart,77.19
+ASC400,1,1 tart,67.25
+ASC401,1,1 pie,340.33
+ASC402,1,1 pie,353.83
+ASC403,1,1 slice,177.13
+ASC404,1,1 slice,156.88
+ASC405,1,1 slice,184.25
+ASC407,1,1 puff,72.37
+ASC408,1,1 éclair,169.25
+ASC409,1,1 piece,59.15
+ASC411,1,1 patty,129.84
+ASC412,1,1 patty,103.96
+ASC413,1,1 bowl,296.75
+ASC414,1,1 bowl,366.75
+ASC415,1,1 bowl,366.75
+ASC416,1,1 bowl,396.75
+ASC417,1,1 piece,53.25
+ASC418,1,1 piece,68
+ASC419,1,1 piece,53.59
+ASC420,1,1 piece,58.87
+ASC421,1,1 piece,52.06
+ASC422,1,1 slice,55.87
+ASC423,1,1 slice,66.31
+ASC424,1,1 slice,72.84
+ASC425,1,1 slice,104.19
+ASC426,1,1 slice,116.5
+ASC427,1,1 slice,60.97
+ASC429,1,1 swiss roll,63.25
+ASC430,1,1 pastry,91.25
+ASC431,1,1 pastry,93.25
+ASC432,1,1 finger,71.5
+ASC433,1,1 slice,513
+ASC439,1,1 cookie,25.9
+ASC440,1,1 cookie,21.88
+ASC441,1,1 biscuit,14.31
+ASC442,1,1 biscuit,15.14
+ASC443,1,1 biscuit,18.75
+ASC444,1,1 biscuit,10.72
+ASC445,1,1 biscuit,17.78
+ASC446,1,1 biscuit,19.87
+ASC447,1,1 biscuit,11.01
+ASC448,1,1 biscuit,16.17
+ASC449,1,1 cookie,13.86
+ASC450,1,1 biscuit,29.71
+ASC451,1,1 biscuit,12.56
+ASC452,1,1 biscuit,17.56
+ASC453,1,1 biscuit,17.19
+ASC454,1,1 biscuit,16.64
+ASC455,1,1 biscuit,13.46
+ASC456,1,1 muthia,134.21
+ASC457,1,1 tikki,165.62
+ASC458,1,1 plate,273.62
+ASC459,1,1 burfi,21.17
+ASC460,1,1 plate,316.13
+ASC461,1,1 cheela,150.5
+ASC462,1,1 cheela,145.75
+ASC463,1,1 plate,220
+ASC464,1,1 poori,152.5
+ASC465,1,1 piece,26.25
+ASC466,1,1 piece,87.12
+ASC467,1,1 roti,53.38
+ASC468,1,1 plate,316
+ASC469,1,1 plate,191.33
+ASC470,1,1 ladoo,47.5
+ASC471,1,1 ladoo,35
+ASC472,1,1 roti,42.94
+ASC473,1,1 vada,162.75
+ASC474,1,1 piece,39.96
+BFP007,1,1 tea cup,256.7
+BFP008,1,1 tea cup,202
+BFP011,1,1 tea cup,190.5
+BFP013,1,1 tall glass,250.5
+BFP015,1,1 tall glass,340
+BFP019,1,1 tall glass,285
+BFP024,1,1 juice glass,140.02
+BFP026,1,1 tall glass,291
+BFP027,1,1 glass,570
+BFP029,1,1 glass,170.25
+BFP030,1,1 glass,178.58
+BFP031,1,1 glass,195.25
+BFP036,1,1 bowl,396.5
+BFP039,1,1 bowl,106.26
+BFP040,1,1 bowl,106.26
+BFP041,1,1 bowl,106.26
+BFP042,1,1 bowl,106.26
+BFP043,1,1 plate,235.66
+BFP044,1,1 bowl,54.59
+BFP045,1,1 bowl,97.83
+BFP046,1,1 cheela,227.33
+BFP047,1,1 cheela,212.33
+BFP052,1,1 small bowl,125.96
+BFP054,1,1 egg,68
+BFP055,1,1 egg,76
+BFP056,1,1 egg,76
+BFP057,1,1 egg,128
+BFP058,1,1 egg,152
+BFP059,1,1 cup,910
+BFP060,1,1 cup,870
+BFP062,1,1 cup,765
+BFP065,1,1 bowl,619.9
+BFP066,1,1 bowl,769.9
+BFP067,1,1 bowl,626.9
+BFP072,1,1 bowl,556
+BFP073,1,1 bowl,502.81
+BFP074,1,1 bowl,440.7
+BFP075,1,1 bowl,444.84
+BFP076,1,1 bowl,348.84
+BFP079,1,1 bowl,465.65
+BFP080,1,1 bowl,460.65
+BFP082,1,1 bowl,475.65
+BFP087,1,1 bowl,477
+BFP088,1,1 bowl,382.5
+BFP089,1,1 bowl,274.5
+BFP090,1,1 bowl,296.86
+BFP091,1,1 bowl,236.86
+BFP108,1,1 parantha,76.45
+BFP110,1,1 parantha,91.2
+BFP114,1,1 poori,90.89
+BFP115,1,1 poori,75.33
+BFP116,1,1 poori,102.93
+BFP117,1,1 poori,83.8
+BFP118,1,1 kachori,108.13
+BFP122,1,1 slice,297.3
+BFP124,1,1 pancake,121.5
+BFP125,1,1 pancake,110.25
+BFP127,1,1 pancake,134.37
+BFP132,1,1 plate,291.18
+BFP133,1,1 plate,325.66
+BFP134,1,1 plate,270.5
+BFP136,1,1 plate,471.9
+BFP137,1,1 plate,441.9
+BFP138,1,1 plate,396.9
+BFP141,1,1 plate,662.63
+BFP142,1,1 plate,668.13
+BFP143,1,1 plate,517.76
+BFP144,1,1 small bowl,574
+BFP147,1,1 idli,35.28
+BFP148,1,1 dosa,36.13
+BFP150,1,1 dosa,277.33
+BFP151,1,1 dosa,197.33
+BFP152,1,1 uttapam,68.04
+BFP153,1,1 appam,152.89
+BFP154,1,1 plate,254.25
+BFP155,1,1 shallow dish,374.31
+BFP157,1,1 small casserole dish,400.5
+BFP158,1,1 shallow dish,555.78
+BFP159,1,1 shallow dish,495.78
+BFP161,1,1 dish,1774.53
+BFP162,1,1 dish,1757.19
+BFP165,1,1 curry bowl,224.95
+BFP170,1,1 curry bowl,362.72
+BFP171,1,1 curry bowl,266.21
+BFP172,1,1 curry bowl,403.3
+BFP174,1,1 curry bowl,362.47
+BFP176,1,1 curry bowl,389.87
+BFP177,1,1 curry bowl,394.37
+BFP178,1,1 bowl,225.72
+BFP179,1,1 bowl,441.8
+BFP185,1,1 bowl,355.63
+BFP187,1,1 bowl,255.66
+BFP190,1,1 chops,147.61
+BFP194,1,1 bowl,366.47
+BFP196,1,1 bowl,617.09
+BFP197,1,1 bowl,373.09
+BFP198,1,1 kebab,54.69
+BFP199,1,1 kebab,44.99
+BFP201,1,1 kofta,390.92
+BFP203,1,1 bowl,461.59
+BFP204,1,1 bowl,248.7
+BFP205,1,1 bowl,262.91
+BFP206,1,1 bowl,222.91
+BFP207,1,1 bowl,573.74
+BFP208,1,1 bowl,295.09
+BFP210,1,1 kofta,398.99
+BFP212,1,1 joint,133.37
+BFP214,1,1 bowl,349.15
+BFP216,1,1 bowl,176.25
+BFP217,1,1 bowl,217.42
+BFP218,1,1 bowl,236.09
+BFP220,1,1 bowl,383.93
+BFP221,1,1 bowl,561.59
+BFP222,1,1 bowl,347.03
+BFP223,1,1 bowl,310.47
+BFP226,1,1 fillet,443.59
+BFP229,1,1 dish,325.55
+BFP230,1,1 bowl,286.12
+BFP231,1,1 fish,608.47
+BFP232,1,1 pie,305.59
+BFP233,1,1 casserole dish,283
+BFP234,1,1 dish,295.34
+BFP239,1,1 bowl,201.57
+BFP240,1,1 bowl,151.57
+BFP241,1,1 bowl,371.57
+BFP242,1,1 bowl,379.26
+BFP246,1,1 bowl,1020.08
+BFP249,1,1 bowl,750.26
+BFP250,1,1 bowl,750.26
+BFP257,1,1 bowl,335.09
+BFP258,1,1 bowl,198.42
+BFP259,1,1 bowl,198.42
+BFP261,1,1 roll,83.15
+BFP262,1,1 roll,145.62
+BFP263,1,1 bowl,200.59
+BFP264,1,1 bowl,116.18
+BFP266,1,1 small bowl,261.67
+BFP269,1,1 bowl,166.34
+BFP270,1,1 small bowl,342.75
+BFP272,1,1 small bowl,181.17
+BFP273,1,1 bowl,156.47
+BFP274,1,1 bowl,483.42
+BFP275,1,1 bowl,483.42
+BFP276,1,1 bowl,191.22
+BFP277,1,1 bowl,100.59
+BFP278,1,1 small bowl,388.5
+BFP279,1,1 bowl,199.5
+BFP280,1,1 bowl,241.02
+BFP282,1,1 portion,241.47
+BFP284,1,1 portion,355
+BFP286,1,1 potato,42.96
+BFP287,1,1 potato,77.29
+BFP288,1,1 potato,104.04
+BFP289,1,1 nest,191.46
+BFP290,1,1 bowl,108.5
+BFP291,1,1 bowl,595
+BFP292,1,1 dish,280.84
+BFP293,1,1 bowl,336.34
+BFP294,1,1 dish,484.84
+BFP296,1,1 small bowl,200.34
+BFP299,1,1 small bowl,222.5
+BFP300,1,1 small bowl,226.84
+BFP301,1,1 small bowl,218
+BFP302,1,1 basket,210
+BFP303,1,1 small plate,115.09
+BFP305,1,1 stuffed tomato,264.09
+BFP306,1,1 small mould,248.5
+BFP307,1,1 small mould,212.74
+BFP308,1,1 slice,233
+BFP310,1,1 cup,201.33
+BFP312,1,1 cup,387.25
+BFP313,1,1 cup,209.18
+BFP316,1,1 bowl,157.67
+BFP318,1,1 bowl,170.01
+BFP320,1,1 bowl,133.17
+BFP321,1,1 bowl,203.17
+BFP322,1,1 bowl,203.17
+BFP325,1,1 bowl,158.84
+BFP326,1,1 bowl,158.84
+BFP327,1,1 bowl,158.84
+BFP328,1,1 bowl,158.84
+BFP329,1,1 bowl,158.84
+BFP334,1,1 bowl,267.7
+BFP336,1,1 bowl,267.7
+BFP338,1,1 bowl,332.71
+BFP345,1,1 small bowl,225.5
+BFP346,1,1 ice cream cup,157.37
+BFP347,1,1 ice cream cup,181.12
+BFP348,1,1 ice cream cup,181.87
+BFP350,1,1 ice cream cup,199.38
+BFP351,1,1 sundae glass,240.47
+BFP352,1,1 sundae glass,243.75
+BFP353,1,1 tablespoon,16.67
+BFP354,1,1 ice cream cup,165.87
+BFP355,1,1 dish,250.38
+BFP356,1,1 cup,187.38
+BFP358,1,1 sundae glass,229.1
+BFP359,1,1 dish,250.95
+BFP361,1,1 orange case,121
+BFP362,1,1 tall stemmed glass,331
+BFP363,1,1 small mould,237
+BFP364,1,1 small mould,342
+BFP365,1,1 dish,202.75
+BFP366,1,1 souffle dish,242.5
+BFP367,1,1 souffle dish,241.25
+BFP368,1,1 souffle dish,228
+BFP369,1,1 souffle dish,236
+BFP370,1,1 souffle dish,243
+BFP371,1,1 bowl,120.5
+BFP372,1,1 tall stemmed glass,228.45
+BFP373,1,1 meringue,361.65
+BFP379,1,1 small plate,98.25
+BFP380,1,1 small mould,238
+BFP382,1,1 bowl,121.5
+BFP386,1,1 piece,301.87
+BFP388,1,1 piece,311.75
+BFP389,1,1 piece,311.75
+BFP390,1,1 piece,311.75
+BFP391,1,1 piece,314.55
+BFP392,1,1 piece,341.75
+BFP393,1,1 piece,317.43
+BFP396,1,1 piece,50.25
+BFP397,1,1 piece,139.72
+BFP401,1,1 piece,46.82
+BFP403,1,1 piece,60.13
+BFP404,1,1 piece,45
+BFP406,1,1 piece,30.25
+BFP407,1,1 piece,31.37
+BFP412,1,1 piece,35
+BFP413,1,1 piece,26.25
+BFP415,1,1 pakora,70.52
+BFP416,1,1 pakora,68.62
+BFP420,1,1 pakora,68.52
+BFP421,1,1 pakora,68.52
+BFP424,1,1 cutlet,180.84
+BFP425,1,1 cutlet,210.83
+BFP427,1,1 cutlet,240.83
+BFP428,1,1 cutlet,203.34
+BFP430,1,1 cutlet,233.33
+BFP431,1,1 samosa,100.93
+BFP436,1,1 vada,78.87
+BFP437,1,1 vada,85.54
+BFP439,1,1 dhokla,118.65
+BFP440,1,1 dhokla,42.48
+BFP442,1,1 tablespoon,16.42
+BFP443,1,1 tablespoon,18.92
+BFP444,1,1 tablespoon,18.92
+BFP445,1,1 tablespoon,16.04
+BFP446,1,1 tablespoon,12.4
+BFP447,1,1 tablespoon,32.91
+BFP448,1,1 tablespoon,13.92
+BFP450,1,1 tablespoon,10.82
+BFP451,1,1 tablespoon,32.96
+BFP452,1,1 tablespoon,27.81
+BFP453,1,1 tablespoon,42.81
+BFP455,1,1 sandwich,78.75
+BFP456,1,1 sandwich,76.75
+BFP457,1,1 sandwich,111.62
+BFP458,1,1 sandwich,55.25
+BFP459,1,1 sandwich,49.09
+BFP460,1,1 sandwich,57.66
+BFP461,1,1 sandwich,66.62
+BFP463,1,1 sandwich,22
+BFP466,1,1 ribbon,42.75
+BFP467,1,1 square,36.79
+BFP468,1,1 hot dog bun,194.37
+BFP470,1,1 sandwich,55
+BFP471,1,1 sandwich,82.75
+BFP472,1,1 sandwich,86.37
+BFP473,1,1 sandwich,108.38
+BFP476,1,1 piece,70.33
+BFP478,1,1 swiss roll,47.37
+BFP479,1,1 tablespoon,25
+BFP480,1,1 tablespoon,16.25
+BFP482,1,1 pastry,87.08
+BFP483,1,1 pastry,80.33
+BFP484,1,1 piece,79.81
+BFP485,1,1 piece,65.54
+BFP489,1,1 piece,61
+BFP491,1,1 piece,60.34
+BFP492,1,1 piece,64.12
+BFP495,1,1 piece,114.5
+BFP496,1,1 piece,99.17
+BFP498,1,1 tablespoon,23.94
+BFP499,1,1 tablespoon,16.2
+BFP500,1,1 tablespoon,19.4
+BFP502,1,1 biscuit,18.58
+BFP505,1,1 biscuit,60.5
+BFP506,1,1 gingerman,35.54
+BFP507,1,1 small,11.8
+BFP508,1,1 biscuit,20.71
+BFP509,1,1 biscuit,21.96
+BFP510,1,1 biscuit,20.77
+BFP511,1,1 biscuit,37.15
+BFP512,1,1 biscuit,21.96
+BFP513,1,1 shell,22.99
+BFP516,1,1 biscuit,17.91
+BFP517,1,1 cookies,17.58
+BFP518,1,1 straw,9.65
+BFP519,1,1 biscuit,12.15
+BFP521,1,1 pastry,52.25
+BFP522,1,1 flan,465.25
+BFP523,1,1 flan,404.15
+BFP527,1,1 tart,55.64
+BFP529,1,1 pie,388.73
+BFP531,1,1 pie,536
+BFP532,1,1 pie,698.5
+BFP534,1,1 bun,83.28
+BFP535,1,1 puff,138.38
+BFP536,1,1 swan,171.16
+BFP539,1,1 aigrette,41.4
+BFP541,1,1 horn,115.13
+BFP542,1,1 horn,73.92
+BFP544,1,1 patty,100.71
+BFP545,1,1 patty,115.71
+BFP561,1,1 piece,61.25
+BFP563,1,1 piece,25
+BFP564,1,1 piece,150.12
+BFP565,1,1 biscuit,14.54
+BFP566,1,1 vada,90.12
+BFP568,1,1 piece,12.9
+BFP569,1,1 piece,75.25
+BFP570,1,1 cheela,30.12
+BFP571,1,1 ladoo,36.25
+BFP573,1,1 piece,98.79
+BFP574,1,1 piece,38.75
+BFP575,1,1 roti,50.33
+BFP576,1,1 plate,360.33
+BFP577,1,1 plate,117.29
+BFP578,1,1 plate,95.33
+BFP579,1,1 idli,29.62
+BFP580,1,1 cheela,72.32
+BFP604,1,1 bowl,106.09
+BFP605,1,1 glass,211.92
+BFP606,1,1 small bowl,385.59
+BFP607,1,1 tall glass,340
+BFP608,1,1 tall glass,340
+BFP609,1,1 tall glass,340
+OSR001,1,1 glass,351.33
+OSR002,1,1 glass,534.17
+OSR004,1,1 cup,162.37
+OSR005,1,1 glass,253.47
+OSR006,1,1 glass,411
+OSR007,1,1 glass,628.5
+OSR008,1,1 cup,1115
+OSR009,1,1 cup,263.47
+OSR010,1,1 glass,262.74
+OSR011,1,1 bowl,207.67
+OSR012,1,1 bowl,650.37
+OSR013,1,1 bowl,331.06
+OSR014,1,1 bowl,176.73
+OSR015,1,1 roll,53.5
+OSR016,1,1 piece,392.87
+OSR017,1,1 glass,203.25
+OSR018,1,1 bowl,524
+OSR019,1,1 piece,60.25
+OSR020,1,1 piece,362.5
+OSR021,1,1 ladoo,43.88
+OSR022,1,1 slice,74.25
+OSR023,1,1 bowl,230.25
+OSR024,1,1 bowl,304.64
+OSR025,1,1 bowl,220.29
+OSR026,1,1 piece,148.54
+OSR027,1,1 sandwich,228
+OSR028,1,1 triangle,54.13
+OSR029,1,1 sandwich,260.63
+OSR030,1,1 triangle,239.7
+OSR031,1,1 biscuit,75.32
+OSR032,1,1 biscuit,128.5
+OSR033,1,1 cookie,156.5
+OSR034,1,1 biscuit,150.92
+OSR035,1,1 cookie,37.06
+OSR036,1,1 cookie,85.45
+OSR037,1,1 cookie,75.85
+OSR038,1,1 cookie,183.3
+OSR039,1,1 cookie,218.6
+OSR040,1,1 cookie,85.75
+OSR041,1,1 cookie,124.84
+OSR042,1,1 cookie,185.75
+OSR043,1,1 biscuit,47.3
+OSR045,1,1 biscuit,108.7
+OSR046,1,1 half-pints,386.5
+OSR047,1,1 half-pints,596.14
+OSR048,1,1 jar,162.5
+OSR049,1,1 jar,23.28
+OSR050,1,1 jar,393.38
+OSR051,1,1 small bowl,138.19
+OSR052,1,1 jar,51.12
+OSR053,1,1 jar,136.25
+OSR054,1,1 jar,241.5
+OSR055,1,1 jar,1174.67
+OSR056,1,1 bowl,112.17
+OSR057,1,1 jar,63.6
+OSR058,1,1 jar,259.29
+OSR059,1,1 jar,28.01
+OSR060,1,1 bowl,46.91
+OSR061,1,1 candy,76
+OSR062,1,1 plate,189.75
+OSR063,1,1 fillet,294
+OSR064,1,1 kebab,178.55
+OSR065,1,1 plate,444.71
+OSR066,1,1 plate,231.88
+OSR067,1,1 plate,286.58
+OSR068,1,1 piece,200
+OSR069,1,1 plate,497.5
+OSR070,1,1 egg,582
+OSR071,1,1 plate,116.45
+OSR072,1,1 omelette,194.25
+OSR073,1,1 chicken breast,167.5
+OSR074,1,1 bowl,231.87
+OSR075,1,1 bowl,740.39
+OSR076,1,1 plate,857.54
+OSR077,1,1 bowl,382.3
+OSR078,1,1 cauliflower steak,107.37
+OSR079,1,1 plate,96.59
+OSR080,1,1 small bowl,79.38
+OSR081,1,1 box,757
+OSR083,1,1 cup,52.46
+OSR085,1,1 small bowl,263.83
+OSR086,1,1 bowl,247
+OSR087,1,1 cup,161.04
+OSR088,1,1 bowl,232.15
+OSR089,1,1 bowl,144.25
+OSR090,1,1 bowl,156.5
+OSR091,1,1 bowl,102.52
+OSR092,1,1 bowl,53.66
+OSR093,1,1 souffle dish,451
+OSR094,1,1 souffle dish,1484.66
+OSR095,1,1 souffle dish,195.5
+OSR096,1,1 ml,3.62
+OSR097,1,1 gm,1.14
+OSR098,1,1 glass jar,24.4
+OSR099,1,1 bowl,271.36
+OSR100,1,1 cheela,52.07
+OSR101,1,1 plate,365.29
+OSR102,1,1 khakhra,75.69
+OSR103,1,1 pesarattu,26.56
+OSR104,1,1 thepla,36.45
+OSR105,1,1 puttu,420.1
+OSR106,1,1 pancake,104.42
+OSR107,1,1 bowl,318.25
+OSR108,1,1 plate,835.45
+OSR110,1,1 appam,290.37
+OSR111,1,1 plate,194.95
+OSR113,1,1 piece,30.86
+OSR114,1,1 plate,700.87
+OSR115,1,1 plate,100.23
+OSR116,1,1 plate,554.23
+OSR118,1,1 mulik/fritter,26.79
+OSR119,1,1 bowl,170.37
+OSR120,1,1 piece,66.81
+OSR121,1,1 slice,174.19
+OSR122,1,1 slice,99.95
+OSR123,1,1 square,59
+OSR124,1,1 slice,98.62
+OSR125,1,1 slice,163.69
+OSR126,1,1 slice,68.15
+OSR127,1,1 cake,848.25
+OSR128,1,1 bowl,150.79
+OSR129,1,1 bowl,223.42
+OSR130,1,1 bowl,295.08
+OSR131,1,1 bowl,523.53
+OSR132,1,1 bowl,318.42
+OSR133,1,1 bowl,392.22
+OSR134,1,1 bowl,610.75
+OSR135,1,1 cup,347.89
+OSR136,1,1 bowl,231.53
+OSR137,1,1 bowl,48.6
+OSR138,1,1 bowl,144
+OSR139,1,1 bowl,353.36
+OSR141,1,1 bowl,263.78
+OSR142,1,1 bowl,292.16
+OSR143,1,1 bowl,360.83
+OSR144,1,1 bowl,300.84
+OSR145,1,1 bowl,336.66
+OSR146,1,1 cake,696.58
+OSR147,1,1 plate,136.95
+OSR148,1,1 plate,173.69
+OSR151,1,1 dosa,33.04
+OSR152,1,1 bread roll,121
+OSR153,1,1 kabab,57.15
+OSR154,1,1 bowl,176.22
+OSR155,1,1 bowl,81.08
+OSR156,1,1 soup bowl,318.21

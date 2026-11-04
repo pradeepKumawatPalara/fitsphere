@@ -1,4 +1,4 @@
-import { USDA_ACKNOWLEDGEMENT, type Food } from '@fitsphere/shared';
+import { INDB_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Food } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
@@ -41,6 +41,22 @@ const FOODS: Food[] = [
   { source: 'usda_fndds', code: '51300100', name: 'Bread, whole wheat', foodGroup: 'Yeast breads', aliases: [], proteinG: 12.3, fibreG: 6, fatG: 3.5, carbsG: 43, kcal: 254, kcalEstimated: false, measures: [], portions: [] },
   { source: 'usda_fndds', code: '41205010', name: 'Dal', foodGroup: 'Bean, pea, legume dishes', aliases: [], proteinG: 8.6, fibreG: 7.5, fatG: 4.31, carbsG: 19.2, kcal: 145, kcalEstimated: false, measures: [], portions: [] },
   { source: 'ifct2017', code: 'B021', name: 'Red gram, dal', foodGroup: 'Grain Legumes', aliases: [], proteinG: 21.7, fibreG: 9.06, fatG: 1.56, carbsG: 55.23, kcal: 335, kcalEstimated: false, measures: [], portions: [] },
+  // An INDB recipe (D-46): synthetic values, every one estimated, with its serving.
+  {
+    source: 'indb',
+    code: 'BFP999',
+    name: 'Test dal fry',
+    foodGroup: 'Indian recipes (INDB)',
+    aliases: [],
+    proteinG: 5,
+    fibreG: 2,
+    fatG: 4,
+    carbsG: 12,
+    kcal: 100,
+    kcalEstimated: true,
+    measures: [],
+    portions: [{ label: 'Bowl', grams: 180 }],
+  },
 ];
 const MY_BREAD = { id: MY_BREAD_ID, name: 'Peanut butter bread', unit: 'slice' as const, kcal: 180, proteinG: 6, carbsG: 20, fatG: 9, fibreG: 1.5 };
 
@@ -113,8 +129,13 @@ describe('D-39 Search foods with USDA foods and My foods', () => {
     await search('dal');
 
     const rows = await screen.findAllByRole('button', { name: /per 100 g/ });
-    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual(['Red gram, dal, 335 kcal per 100 g', 'Dal, USDA, 145 kcal per 100 g']);
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Test dal fry, INDB, 100 kcal per 100 g, estimated',
+      'Red gram, dal, 335 kcal per 100 g',
+      'Dal, USDA, 145 kcal per 100 g',
+    ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByText(`Foods marked INDB: ${INDB_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
     expect(screen.getByText(`Foods marked USDA: ${USDA_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
   });
 
@@ -190,6 +211,26 @@ describe('D-39 Search foods with USDA foods and My foods', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete from My foods' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect(await getEntry(db, 'myFood', MY_BREAD_ID)).toBeNull());
+  });
+});
+
+describe('D-46 INDB’s Indian recipes', () => {
+  it('a recipe opens on its serving, counted in halves, its values estimated', async () => {
+    await render();
+    await search('dal fry');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test dal fry, INDB, 100 kcal per 100 g, estimated' }));
+    expect(screen.getByText('Per 100 g: 100 kcal (estimated)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: Bowl (180 g)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Quantity: 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 180 kcal')).toBeOnTheScreen();
+
+    await pickAmount({ quantity: '1.5' });
+    expect(screen.getByText('Net wt: 270 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 270 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 13.5 g')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByLabelText('Test dal fry: 1.5 × bowl (270 g), 270 kcal, 13.5 g protein')).toBeOnTheScreen();
   });
 });
 

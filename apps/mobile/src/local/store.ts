@@ -1025,34 +1025,23 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
 /** Foods a statement writes when the list is replaced: 13 values each, within SQLite's 999. */
 const FOOD_ROWS_PER_INSERT = 50;
 
+/** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, then USDA's (D-39, D-46). */
+const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'usda_fndds'];
+
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in
- * the name or an alias, ignoring case. IFCT's Indian foods come before USDA's (D-39); within each,
- * names starting with the first word come first.
+ * the name or an alias, ignoring case. Each source gives up to `limit` foods, in SEARCH_ORDER, so a
+ * long list from one never hides another's; within each, names starting with the first word come
+ * first.
  */
 export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise<Food[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
   const conditions = words.map(() => `(lower(name) LIKE ? ESCAPE '\\' OR lower(aliases) LIKE ? ESCAPE '\\')`);
-  const rows = await db.getAllAsync<{
-    source: Food['source'];
-    code: string;
-    name: string;
-    food_group: string;
-    aliases: string;
-    protein_g: number;
-    fibre_g: number;
-    fat_g: number;
-    carbs_g: number;
-    kcal: number;
-    kcal_estimated: number;
-    measures: string;
-    portions: string;
-  }>(
-    `SELECT * FROM foods WHERE ${conditions.join(' AND ')}
-     ORDER BY source = 'usda_fndds', lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), limit],
-  );
+  const rows = [];
+  for (const source of SEARCH_ORDER) {
+    rows.push(...(await searchSource(db, source, words, conditions, limit)));
+  }
   return rows.map((row) => ({
     source: row.source,
     code: row.code,
@@ -1068,6 +1057,29 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     measures: JSON.parse(row.measures) as Food['measures'],
     portions: JSON.parse(row.portions) as Food['portions'],
   }));
+}
+
+/** One source's matches for `searchFoods`. */
+function searchSource(db: SqlDb, source: Food['source'], words: string[], conditions: string[], limit: number) {
+  return db.getAllAsync<{
+    source: Food['source'];
+    code: string;
+    name: string;
+    food_group: string;
+    aliases: string;
+    protein_g: number;
+    fibre_g: number;
+    fat_g: number;
+    carbs_g: number;
+    kcal: number;
+    kcal_estimated: number;
+    measures: string;
+    portions: string;
+  }>(
+    `SELECT * FROM foods WHERE source = ? AND ${conditions.join(' AND ')}
+     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
+    [source, ...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), limit],
+  );
 }
 
 /**
