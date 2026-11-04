@@ -93,8 +93,8 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.8 Enter your own food | Locked and built; since D-39 (locked 2026-11-04), the unit, values per 100 g or ml or per one unit, the quantity, "Save to My foods", and editing or deleting a My food |
 | 3.9 Meal photo | Locked and built; a logged meal's photo or link sits beside the meal card's icons; the viewer's text has its own colour, `onScrim`, readable on its dark backdrop in both themes |
 | **4 Training** | |
-| 4.1 Training: workout history | Locked and built; with it the button "Start an empty workout" is named "Log workout" (D-37) |
-| 4.2 A workout | Locked and built; Done is fixed at the foot, as Log meal's Save meal, and Delete workout ends the list |
+| 4.1 Training: workout history | Locked and built; with it the button "Start an empty workout" is named "Log workout" (D-37). Since D-42 (2026-11-04, locked) each workout has its own row with a pencil and a bin, and each date "Log another workout" |
+| 4.2 A workout | Locked and built; Done is fixed at the foot, as Log meal's Save meal, and Delete workout ends the list. Since D-42 (2026-11-04, locked) no Done, the title numbers the workout, and each exercise has a pencil and a bin |
 | 4.3 Exercise sheet | Locked and built |
 | **5 Progress** | |
 | 5.1 Progress: weight and its chart, nutrition, the week, measurements | Locked and built; the chart is drawn with react-native-svg (in the app since D-35, so no new package or build), with the area under the line tinted |

@@ -290,6 +290,22 @@ export function TextButton({
   );
 }
 
+/** A small icon that acts (edit, delete), 40 wide and 44 tall to tap; read out by its label. */
+export function IconButton({ label, onPress, children }: { label: string; onPress(): void; children: ReactNode }) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={4}
+      style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
 /**
  * A banner (D-35): an icon and a short text on a quiet fill. `info` in caramel; `error` on a red tint
  * with a red edge; `success` (a step that is done, as a changed password) on a green tint with a green
@@ -404,6 +420,7 @@ const useStyles = themedStyles((c) => ({
   end: { alignSelf: 'flex-end' },
   pressed: { opacity: 0.6 },
   disabled: { opacity: 0.4 },
+  iconButton: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   destructiveEdge: { borderColor: c.danger },
   destructiveText: { color: c.danger },
   banner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4 },

@@ -132,7 +132,10 @@ export function HomeScreen() {
       // The selected date's week's workouts on the phone. Only those with an exercise count toward the
       // week and show on their day (REQ-HOME-007; D-41, replacing Q-025's default); a day's square
       // still opens its empty ones too.
-      setWeekWorkouts(workouts.map(({ id, day, exercises }) => ({ id, day, exercises })));
+      // In the order they were started, so "Workout 1" is the day's first (D-42).
+      setWeekWorkouts(
+        workouts.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).map(({ id, day, exercises }) => ({ id, day, exercises })),
+      );
     });
     return () => {
       active = false;

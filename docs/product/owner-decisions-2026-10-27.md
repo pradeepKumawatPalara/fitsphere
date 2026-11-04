@@ -1181,7 +1181,19 @@ checksum), and the configuration template was left as it is.*
   Training's "Log workout" button is unchanged. A weekly target of up to 14 workouts (REQ-ROLE-007)
   can therefore be met with two a day.
 - Replaces: D-34's "a day with one workout opens it", on Home and on Training.
-- Doc changes: REQ-HOME-007 and REQ-TRN-004; the redesign plan's 2.6; the canvas board 2.6.
+- **Then, the same day (owner, after testing it: "I need the similar option in Training tab as well…
+  remove DONE… Delete Workout/Exercise on the same card as a small icon near edit icon"; the
+  redesign's 4.1 and 4.2 changed and locked, "good to go"):**
+  - Training's date card lists its workouts, each on its own row ("Workout 1", "Workout 2", in the
+    order started) with a pencil to open it and a red bin to delete it, and "Log another workout"
+    under them. Deleting asks first ("Delete Workout 2 on Tue 3 Nov? It leaves your history and your
+    weekly count."). Older workouts read from the server stay view-only, with no icons.
+  - A workout is titled with its place, "Workout 2 · Tue 3 Nov". Each exercise has a pencil and a red
+    bin; removing asks first ("Remove Squat from this workout?").
+  - **No Done:** each exercise is saved when "Save exercise" is pressed, so the workout has no Done
+    button; the header's back arrow leaves.
+- Doc changes: REQ-HOME-007, REQ-TRN-003 and REQ-TRN-004; `constraints-and-assumptions.md`; the
+  redesign plan's 2.6, 4.1 and 4.2; the canvas boards 2.6, 4.1 and 4.2.
 
 ---
 

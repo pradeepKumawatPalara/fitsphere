@@ -8,15 +8,15 @@ import {
   type WorkoutsPage,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { ChevronRight, ClipboardList, ClockArrowDown, Plus, WifiOff } from 'lucide-react-native';
+import { ClipboardList, ClockArrowDown, Plus, SquarePen, Trash, WifiOff } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
+import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
-import { WorkoutDaySheet } from '../components/WorkoutDaySheet';
-import { Banner, Text, TextButton } from '../components/ui';
+import { Banner, IconButton, Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
@@ -24,27 +24,29 @@ import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { workoutParts, workoutSummary } from '../workouts';
+import { workoutSummary } from '../workouts';
 
 const CHUNK_DAYS = 90;
 
 /** A workout of the history: one on the phone, or an older one read from the server. */
-type Row = { id: string; day: string; exercises: Workout['exercises']; syncState: SyncState | null };
+type Row = { id: string; day: string; exercises: Workout['exercises']; recordedAt: string; syncState: SyncState | null };
 
 /** What "Load older" says: that a range was empty (info), or why it could not load (error). */
 type Message = { text: string; tone: 'info' | 'error'; offline?: boolean };
 
-/** The history's cards: one per date, holding that date's workouts in order (D-34). */
+/** The history's cards: one per date, newest first, holding that date's workouts in the order they were started (D-34). */
 export function byDate(rows: readonly Row[]): { day: string; workouts: Row[] }[] {
   const days = new Map<string, Row[]>();
   for (const row of rows) days.set(row.day, [...(days.get(row.day) ?? []), row]);
-  return [...days].map(([day, workouts]) => ({ day, workouts }));
+  return [...days].map(([day, workouts]) => ({ day, workouts: [...workouts].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)) }));
 }
 
 // The Training tab (REQ-TRN-002…004). No one can send a training plan in the MVP, so it always
 // shows "No training plan yet" (D-20), then "Log workout" (D-37) and the workouts the user has
 // logged: the last 90 IST days from the phone, and older ones read from the server online, 90 days
-// at a time, view-only (ADR-0007 rules 1 and 6; MVP default, D-29).
+// at a time, view-only (ADR-0007 rules 1 and 6; MVP default, D-29). Each date's card lists its
+// workouts ("Workout 1", "Workout 2"…), each with edit and delete, and "Log another workout" on that
+// date (D-42).
 export function TrainingScreen() {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -58,8 +60,8 @@ export function TrainingScreen() {
   const [older, setOlder] = useState<Row[]>([]);
   const [oldestLoaded, setOldestLoaded] = useState(firstDay);
   const [message, setMessage] = useState<Message | null>(null);
-  // The date whose workouts are being chosen from, when it has more than one (D-34).
-  const [chooser, setChooser] = useState<string | null>(null);
+  // The workout being deleted, once asked (D-42).
+  const [deleting, setDeleting] = useState<{ id: string; day: string; name: string } | null>(null);
   // Each button fades only while its own action runs.
   const [starting, setStarting] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -70,7 +72,7 @@ export function TrainingScreen() {
     let active = true;
     void Promise.all([listEntries(db, 'workout', firstDay, today), rejectedChanges(db)]).then(([workouts, waiting]) => {
       if (!active) return;
-      setRecent(workouts.map(({ id, day, exercises, syncState }) => ({ id, day, exercises, syncState })));
+      setRecent(workouts.map(({ id, day, exercises, recordedAt, syncState }) => ({ id, day, exercises, recordedAt, syncState })));
       setRejected(waiting.filter((change) => change.type === WORKOUT_SET || change.type === WORKOUT_DELETE));
     });
     return () => {
@@ -123,11 +125,10 @@ export function TrainingScreen() {
     );
     if (page.kind !== 'ok') return page.kind === 'offline' ? 'offline' : 'failed';
     // The server sends oldest first; the history shows newest first.
-    return [...page.body.items].reverse().map(({ id, day, exercises }) => ({ id, day, exercises, syncState: null }));
+    return [...page.body.items].reverse().map(({ id, day, exercises, recordedAt }) => ({ id, day, exercises, recordedAt, syncState: null }));
   }
 
   const days = byDate([...recent, ...older]);
-  const chosen = days.find((group) => group.day === chooser);
 
   return (
     <>
@@ -156,58 +157,72 @@ export function TrainingScreen() {
           </View>
         }
         renderItem={({ item: { day, workouts } }) => {
-          // One card per date: every exercise of the date's workouts together (D-34).
-          const exercises = workouts.flatMap((workout) => workout.exercises);
-          const summary = workoutSummary(exercises);
-          const { count: exerciseCount, names } = workoutParts(exercises);
-          const count = workouts.length > 1 ? `${workouts.length} workouts` : null;
-          const label = `${formatDay(day)}: ${count ? `${count} · ` : ''}${summary}`;
-          const rejected = workouts.some((workout) => workout.syncState === 'rejected');
-          const note = rejected ? 'not saved' : workouts.some((workout) => workout.syncState === 'pending') ? 'waiting to sync' : null;
+          // One card per date (D-34), each workout on its own row with edit and delete (D-42).
           // Older workouts are read from the server and only viewed (MVP default, D-29).
           const viewOnly = workouts.every((workout) => workout.syncState === null);
           const [weekday, date, month] = formatDay(day).split(' ');
-          const content = (
-            <>
-              <View style={styles.dateBlock}>
+          return (
+            <View
+              accessibilityLabel={`${formatDay(day)}: ${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}`}
+              style={[styles.card, viewOnly && styles.cardViewOnly]}
+            >
+              <View style={styles.dateBlock} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
                 <Text style={styles.weekday}>{weekday}</Text>
                 <Text style={styles.date}>{date}</Text>
                 <Text style={styles.month}>{month}</Text>
               </View>
-              <View style={styles.text}>
-                <View style={styles.countLine}>
-                  <Text style={styles.count}>{exerciseCount}</Text>
-                  {count ? <Text style={styles.tag}>{count}</Text> : null}
-                </View>
-                {names ? (
-                  <Text numberOfLines={1} style={styles.names}>
-                    {names}
-                  </Text>
-                ) : null}
-                {note ? (
-                  <View style={styles.noteLine}>
-                    <View style={[styles.dot, rejected && styles.dotProblem]} />
-                    <Text style={[styles.note, rejected && styles.problem]}>{note}</Text>
-                  </View>
-                ) : null}
+              <View style={styles.rows}>
+                {workouts.map((workout, index) => {
+                  const name = `Workout ${index + 1}`;
+                  const summary = workoutSummary(workout.exercises);
+                  const rejected = workout.syncState === 'rejected';
+                  const note = rejected ? 'not saved' : workout.syncState === 'pending' ? 'waiting to sync' : null;
+                  const text = (
+                    <>
+                      <Text style={styles.name}>{name}</Text>
+                      <Text numberOfLines={1} style={styles.summary}>
+                        {summary}
+                      </Text>
+                      {note ? (
+                        <View style={styles.noteLine}>
+                          <View style={[styles.dot, rejected && styles.dotProblem]} />
+                          <Text style={[styles.note, rejected && styles.problem]}>{note}</Text>
+                        </View>
+                      ) : null}
+                    </>
+                  );
+                  return (
+                    <View key={workout.id} style={[styles.row, index > 0 && styles.ruled]}>
+                      {viewOnly ? (
+                        <View accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}`} style={styles.rowText}>
+                          {text}
+                        </View>
+                      ) : (
+                        <>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}`}
+                            onPress={() => open(workout.id)}
+                            style={({ pressed }) => [styles.rowText, pressed && styles.pressed]}
+                          >
+                            {text}
+                          </Pressable>
+                          <IconButton label={`Edit ${name} on ${formatDay(day)}`} onPress={() => open(workout.id)}>
+                            <SquarePen size={20} color={colors.accent} />
+                          </IconButton>
+                          <IconButton label={`Delete ${name} on ${formatDay(day)}`} onPress={() => setDeleting({ id: workout.id, day, name })}>
+                            <Trash size={20} color={colors.danger} />
+                          </IconButton>
+                        </>
+                      )}
+                    </View>
+                  );
+                })}
+                {viewOnly ? null : (
+                  <TextButton title="Log another workout" icon={Plus} disabled={starting} onPress={() => void start(day)} />
+                )}
               </View>
-              {viewOnly ? null : <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />}
-            </>
-          );
-          return viewOnly ? (
-            <View accessibilityLabel={label} style={[styles.card, styles.cardViewOnly]}>
-              {content}
             </View>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              // The day's workouts, and another to log on that day (D-42).
-              onPress={() => setChooser(day)}
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-            >
-              {content}
-            </Pressable>
           );
         }}
         ListEmptyComponent={<Text style={styles.empty}>No workouts logged yet.</Text>}
@@ -218,23 +233,25 @@ export function TrainingScreen() {
           </View>
         }
       />
-      {chosen ? (
-        <WorkoutDaySheet
-          day={chosen.day}
-          workouts={chosen.workouts}
-          onOpen={open}
-          onStart={() => void start(chosen.day)}
-          onClose={() => setChooser(null)}
+      {deleting ? (
+        <ConfirmSheet
+          title="Delete workout?"
+          message={`Delete ${deleting.name} on ${formatDay(deleting.day)}? It leaves your history and your weekly count.`}
+          cancelLabel="Keep"
+          confirmLabel="Delete"
+          onConfirm={() => void sync.remove('workout', deleting.id)}
+          onClose={() => setDeleting(null)}
         />
       ) : null}
     </>
   );
 }
 
-// The redesign's 4.1 (locked by the owner, 2026-11-03): the plan's message in a card with its tile,
-// as Nutrition's diet plan (3.4); Log workout the filled main action; each date a raised card with a
-// date block, the exercises in condensed capitals and their names under them, and a chevron when it
-// opens; older workouts, view-only, on the plain card colour with no chevron; Load older outlined
+// The redesign's 4.1 (locked by the owner, 2026-11-03; each workout's row locked 2026-11-04): the
+// plan's message in a card with its tile, as Nutrition's diet plan (3.4); Log workout the filled main
+// action; each date a raised card with a date block and its workouts as ruled rows, each its name in
+// condensed capitals over its exercises, with a pencil and a red bin, and "Log another workout"
+// under them; older workouts, view-only, on the plain card colour with no icons; Load older outlined
 // across the screen, its message as a banner.
 const useStyles = themedStyles((c) => ({
   content: { padding: 16, gap: 12 },
@@ -245,11 +262,11 @@ const useStyles = themedStyles((c) => ({
   heading: { ...TYPE.label, marginTop: 12, color: c.inkMuted },
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 14,
     paddingVertical: 10,
     paddingLeft: 10,
-    paddingRight: 8,
+    paddingRight: 4,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: c.border,
@@ -261,22 +278,12 @@ const useStyles = themedStyles((c) => ({
   weekday: { ...TYPE.label, fontSize: 11, lineHeight: 13, letterSpacing: 1, color: c.inkMuted },
   date: { ...TYPE.metric, fontSize: 26, lineHeight: 28 },
   month: { ...TYPE.label, fontSize: 11, lineHeight: 13, letterSpacing: 1, color: c.accent },
-  text: { flex: 1, gap: 3 },
-  countLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
-  count: { ...TYPE.metric, fontSize: 18, lineHeight: 20, textTransform: 'uppercase' },
-  tag: {
-    ...TYPE.label,
-    fontSize: 12,
-    lineHeight: 14,
-    letterSpacing: 1,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: 'hidden',
-    backgroundColor: c.accentTint,
-    color: c.accent,
-  },
-  names: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  rows: { flex: 1, minWidth: 0 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4 },
+  ruled: { borderTopWidth: 1, borderTopColor: c.border },
+  rowText: { flex: 1, minWidth: 0, gap: 2 },
+  name: { ...TYPE.metric, fontSize: 17, lineHeight: 20, letterSpacing: 0.5, textTransform: 'uppercase' },
+  summary: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
   noteLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.inkMuted },
   dotProblem: { backgroundColor: c.danger },

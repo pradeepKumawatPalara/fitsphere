@@ -51,14 +51,21 @@ export function ActionsSheet({
   );
 }
 
-/** Asks before something that cannot be undone, such as deleting a meal (MVP default, D-26). */
+/**
+ * Asks before something that cannot be undone, such as deleting a meal (MVP default, D-26), with an
+ * optional `message` under the title and the way out's label (Cancel, or Keep).
+ */
 export function ConfirmSheet({
   title,
+  message,
+  cancelLabel = 'Cancel',
   confirmLabel,
   onConfirm,
   onClose,
 }: {
   title: string;
+  message?: string;
+  cancelLabel?: string;
   confirmLabel: string;
   onConfirm(): void;
   onClose(): void;
@@ -72,7 +79,7 @@ export function ConfirmSheet({
       actions={
         <View style={styles.pair}>
           <View style={styles.half}>
-            <TextButton title="Cancel" outlined wide onPress={onClose} />
+            <TextButton title={cancelLabel} outlined wide onPress={onClose} />
           </View>
           <View style={styles.half}>
             <TextButton
@@ -88,7 +95,9 @@ export function ConfirmSheet({
           </View>
         </View>
       }
-    />
+    >
+      {message ? <Text style={styles.message}>{message}</Text> : null}
+    </Sheet>
   );
 }
 
@@ -261,6 +270,7 @@ export function RelogSheet({
 }
 
 const useStyles = themedStyles((c) => ({
+  message: { fontSize: 16, lineHeight: 24, color: c.ink },
   // The redesign's 3.6: ruled rows on a raised card, each action in caramel capitals.
   menu: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   menuRow: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 12 },
