@@ -3,7 +3,7 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import * as SQLite from 'expo-sqlite';
-import type { SqlDb } from './sql';
+import { oneTransactionAtATime, type SqlDb } from './sql';
 import { getMeta, migrateLocal, setMeta } from './store';
 
 export const DATABASE_NAME = 'fitsphere.db';
@@ -69,7 +69,7 @@ async function openEncrypted(): Promise<LocalDatabase> {
     await db.execAsync(`PRAGMA key = "x'${key}'"`);
   }
   await migrateLocal(db);
-  return { db, cipherVersion: cipher.cipher_version };
+  return { db: oneTransactionAtATime(db), cipherVersion: cipher.cipher_version };
 }
 
 async function databaseKey(): Promise<string> {

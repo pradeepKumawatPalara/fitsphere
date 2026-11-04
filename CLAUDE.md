@@ -7,16 +7,21 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
-**Profile — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-38,
-2026-11-03 to 2026-11-04).** Plan: `docs/plans/user-profile.md` (Accepted), REQ-ACC-011. Settings
+**Fixing the owner's phone-test bugs (from 2026-11-04).** The redesign (D-35), household units
+(D-36) and the profile (D-38) are merged into `main` (pull request #51, 2026-11-04). The owner
+tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
+off `main`. Data-loss and sync bugs first.
+
+**Profile — merged (pull request #51); migration 0010 applied on `fitsphere-dev` by the owner
+(D-38, 2026-11-03 to 2026-11-04).** Plan: `docs/plans/user-profile.md` (Accepted), REQ-ACC-011. Settings
 opens with a Profile card; the Profile screen keeps the user's photo, name, date of birth (18 or
 older), sex, height (mm), phone (+91) and address, all optional, with the latest weigh-in and the
 email read-only. Migration `0010_profiles.sql` (`app.profiles`, `app.media.kind`), sync change
-`profile.set`, phone schema version 9. **Run migration 0010 on `fitsphere-dev` before the updated
-API, and only when the owner says so.** Legal reviews the new data before real users (Q-049, L-07a).
+`profile.set`, phone schema version 9. Any other database needs migration 0010 before this API
+runs. Legal reviews the new data before real users (Q-049, L-07a).
 The redesign's module 6 (6.1 to 6.6) is locked and built.
 
-**Household units — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-36,
+**Household units — merged (pull request #51); the owner's measurements pending (D-36,
 2026-11-03).** Plan: `docs/plans/household-units.md` (Accepted). A listed food can be logged in a
 teaspoon, tablespoon, katori, glass or piece once the owner has measured it in
 `docs/data/household-measures-sheet.csv`; the starter rows are `pending` with no grams. Never fill
@@ -24,8 +29,8 @@ in or approve a row without the owner's measurements. Migration 0009 and `foods:
 `fitsphere-dev` on 2026-11-03 at the owner's go (0 units: no row approved yet). After approving
 rows, run `foods:import` again.
 
-**UI refresh — branch `ui-refresh`, not merged yet; the owner's phone checks pending (D-33, D-34;
-2026-11-02 to 2026-11-03).** One branch, not pushed: the app restyled screen by screen and sheet by
+**UI refresh — merged (pull request #50; D-33, D-34; 2026-11-02 to 2026-11-03).** Since restyled
+again by the redesign (D-35). It was: the app restyled screen by screen and sheet by
 sheet (TextButton, Field, the shared Sheet and FormScreen frames, one pill style, one Cancel
 standard, scrim tokens), then the changes from the owner's two phone reviews: D-33 (an icon
 package, `@expo/vector-icons`, JavaScript only and needing no new build; meal-card icons in place
