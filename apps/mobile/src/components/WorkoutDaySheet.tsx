@@ -1,5 +1,5 @@
 import type { IstDay, WorkoutExercise } from '@fitsphere/shared';
-import { ChevronRight, Dumbbell } from 'lucide-react-native';
+import { ChevronRight, Dumbbell, Plus } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { formatDay } from '../format';
 import { themedStyles, useTheme } from '../theme';
@@ -13,15 +13,16 @@ type Props = {
   /** That day's workouts, in the order they were started. */
   workouts: readonly { id: string; exercises: readonly Pick<WorkoutExercise, 'name'>[] }[];
   onOpen(id: string): void;
-  /** Starts a workout on the day; offered when it has none. */
+  /** Starts a new workout on the day: the first, or another (D-42). */
   onStart?(): void;
   onClose(): void;
 };
 
 // A day's workouts (REQ-HOME-007, REQ-TRN-004; D-34), from Home's tracker and Training's history:
-// with several, the one to open, each as "Workout 1 · 2 exercises · Squat, Push-up"; with none,
-// "Start a workout on this day". The redesign's 2.6 (locked by the owner, 2026-11-03): a dumbbell
-// tile over the title; the workouts as a ruled list, each its name over its exercises.
+// each to open, as "Workout 1 · 2 exercises · Squat, Push-up", and "Log another workout" to start a
+// new one on that day (D-42: a day may hold several, each with its own exercises); with none, "Start
+// a workout on this day". The redesign's 2.6 (locked by the owner, 2026-11-03): a dumbbell tile over
+// the title; the workouts as a ruled list, each its name over its exercises.
 export function WorkoutDaySheet({ day, workouts, onOpen, onStart, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -33,11 +34,12 @@ export function WorkoutDaySheet({ day, workouts, onOpen, onStart, onClose }: Pro
       onClose={onClose}
       actions={
         <>
-          {none && onStart ? (
+          {onStart ? (
             <TextButton
-              title="Start a workout on this day"
+              title={none ? 'Start a workout on this day' : 'Log another workout'}
               filled
-              arrow
+              arrow={none}
+              {...(none ? {} : { icon: Plus })}
               onPress={() => {
                 onClose();
                 onStart();

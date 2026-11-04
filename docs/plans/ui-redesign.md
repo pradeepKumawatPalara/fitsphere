@@ -81,7 +81,7 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | Locked and built; with it the date strip (also on Nutrition), the measurements card (also on Progress), the unsaved-change notice (also on Training) and + LOG took their new look. The tracker keeps the app's full summary ("1 of 4 · 3 left"). Since D-41 (2026-11-04) the tracker reads "N workouts · target achieved" once met, and each day shows its count as a number |
 | 2.4 Entry sheet for weight, steps and sleep | Locked and built; Your targets uses the same sheet |
 | 2.5 Measurements sheet | Locked and built; with it every choice in the app (meal slots, Settings, Nutrition's tabs, the chart's ranges) became square blocks |
-| 2.6 A day's workouts sheet | Locked and built |
+| 2.6 A day's workouts sheet | Locked and built. Since D-42 (2026-11-04) it opens for any day, with "Log another workout" |
 | **3 Nutrition and Log meal** | |
 | 3.1 Nutrition, Consumed: eaten summary, meal slots, meal cards | Locked and built. For contrast, each nutrient's colour is a square beside its name, the name in the muted ink (the light theme's carbs colour is about 3:1) |
 | 3.2 Meal actions and confirmations | Locked and built; with it a sheet can open with a tile over its title (SheetHeading), used by 2.6 too |

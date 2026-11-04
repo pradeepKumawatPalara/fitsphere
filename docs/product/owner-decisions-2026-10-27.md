@@ -1168,6 +1168,21 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-007 and REQ-TRN-003; `mvp-scope.md`; `constraints-and-assumptions.md`
   (Q-025 and the Training defaults); the data model's `workouts`; the redesign plan's 2.3.
 
+
+## D-42 Another workout on the same day
+- Status: **Accepted** (owner, in chat, 2026-11-04, after the phone test: "User should be able to add
+  Workout and inside workout there can be multiple exercises… we need this functionality").
+- Problem: a day could hold several workouts, each with its own exercises (D-29), but tapping a day
+  with one workout, on Home's tracker or Training's date card, opened that workout (D-34), so the
+  user could only add exercises to it; another workout on that day was hidden.
+- Answer: tapping a day up to today, on Home, or a date's card on Training, always opens that day's
+  sheet: its workouts to open ("Workout 1 · …"), and **"Log another workout"**, which saves a new,
+  empty workout on that day and opens it. A day with none still offers "Start a workout on this day".
+  Training's "Log workout" button is unchanged. A weekly target of up to 14 workouts (REQ-ROLE-007)
+  can therefore be met with two a day.
+- Replaces: D-34's "a day with one workout opens it", on Home and on Training.
+- Doc changes: REQ-HOME-007 and REQ-TRN-004; the redesign plan's 2.6; the canvas board 2.6.
+
 ---
 
 ## Proposed replacement wording for the two invariants

@@ -140,12 +140,21 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
 });
 
 describe('D-34 each day of the tracker can be tapped', () => {
-  it('a day with one workout opens it', async () => {
-    await renderHome(['2026-10-26']);
+  it('D-42 a day with one workout lists it, and offers another workout on that day', async () => {
+    const { db } = await renderHome(['2026-10-26']);
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct: 1 workout' }));
-
+    expect(screen.getByRole('header', { name: 'Workouts on Mon 26 Oct' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Workout 1 · 1 exercise · Squat' }));
     expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\/00000000-0000-4000-a000-\d{12}$/));
+    mockRouter.push.mockClear();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Monday 26 Oct: 1 workout' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Log another workout' }));
+
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalledTimes(1));
+    const id = (mockRouter.push.mock.calls[0]![0] as string).slice('/workout/'.length);
+    expect(await getEntry(db, 'workout', id)).toMatchObject({ day: '2026-10-26', exercises: [] });
   });
 
   it('a day with two shows 2 on its square, and asks which to open, listing an empty one too (D-41)', async () => {

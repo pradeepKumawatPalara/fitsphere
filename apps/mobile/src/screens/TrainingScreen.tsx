@@ -82,10 +82,10 @@ export function TrainingScreen() {
     router.push(`/workout/${id}`);
   }
 
-  /** A new workout on the selected date (as Q-011), saved at once; it counts once it has an exercise (D-41). */
-  async function start() {
+  /** A new workout on `day`, by default the selected date (as Q-011), saved at once; it counts once it has an exercise (D-41). */
+  async function start(day: string = selected) {
     setStarting(true);
-    const id = await sync.startWorkout(selected);
+    const id = await sync.startWorkout(day);
     setStarting(false);
     open(id);
   }
@@ -202,7 +202,8 @@ export function TrainingScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={label}
-              onPress={() => (workouts.length === 1 ? open(workouts[0]!.id) : setChooser(day))}
+              // The day's workouts, and another to log on that day (D-42).
+              onPress={() => setChooser(day)}
               style={({ pressed }) => [styles.card, pressed && styles.pressed]}
             >
               {content}
@@ -217,7 +218,15 @@ export function TrainingScreen() {
           </View>
         }
       />
-      {chosen ? <WorkoutDaySheet day={chosen.day} workouts={chosen.workouts} onOpen={open} onClose={() => setChooser(null)} /> : null}
+      {chosen ? (
+        <WorkoutDaySheet
+          day={chosen.day}
+          workouts={chosen.workouts}
+          onOpen={open}
+          onStart={() => void start(chosen.day)}
+          onClose={() => setChooser(null)}
+        />
+      ) : null}
     </>
   );
 }

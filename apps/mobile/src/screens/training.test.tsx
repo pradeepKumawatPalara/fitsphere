@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as client from '../api/client';
+import { getEntry } from '../local/store';
 import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
 import { TrainingScreen } from './TrainingScreen';
@@ -44,7 +45,24 @@ describe('REQ-TRN-004 workouts you have logged', () => {
       'Mon 26 Oct: 2 exercises · Squat, Push-up',
     ]);
     await fireEvent.press(rows[1]!);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Workout 1 · 2 exercises · Squat, Push-up' }));
     expect(mockRouter.push).toHaveBeenLastCalledWith(`/workout/${id}`);
+  });
+
+  it('D-42 a date’s card offers another workout on that date, which opens new and empty', async () => {
+    const app = await renderInApp(<TrainingScreen />);
+    app.server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-26', [SQUAT]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
+    mockRouter.push.mockClear();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mon 26 Oct: 1 exercise · Squat' }));
+    expect(screen.getByRole('header', { name: 'Workouts on Mon 26 Oct' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Log another workout' }));
+
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\//)));
+    const newId = (mockRouter.push.mock.calls[0]![0] as string).slice('/workout/'.length);
+    expect(newId).not.toBe('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b');
+    expect(await getEntry(app.db, 'workout', newId)).toMatchObject({ day: '2026-10-26', exercises: [] });
   });
 
   it('D-34 workouts on the same date share one card, with all their exercises; tapping asks which to open', async () => {
