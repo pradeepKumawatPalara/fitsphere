@@ -146,9 +146,20 @@ owner before it is built:
   - saving, logging, editing and deleting a My food, offline too;
   - the version 10 upgrade.
 
+## Progress
+Built on branch `feat/more-foods`, 2026-11-04:
+- Step 3, the server: migration 0011; `npm run usda:convert` and `foods:import` (5,431 foods,
+  14,738 servings); `GET /v1/foods` with servings; `myFood.set` and `myFood.delete`; the serving
+  check on meals. Shared, API and integration tests pass, the real files loading whole.
+- Step 4, the phone: schema version 10; Search foods with My foods and USDA foods; servings; your
+  own food in any unit; My foods saved, edited and deleted; Log meal's change sheet. Mobile tests
+  pass.
+- Step 5, the docs: D-39, REQ-LOG-011, the data model, API conventions, `food-list-sources.md`,
+  ADR-0006's row, the threat model, the deletion page, Legal's brief, the MVP defaults.
+
 ## Owner's steps
 - ~~Approve this plan, including USDA's portion weights as published~~ (done, 2026-11-04).
-- Lock the designs (step 2).
+- ~~Lock the designs (step 2)~~ (done, 2026-11-04: "good to go").
 - On `fitsphere-dev`, when the owner says so: migration 0011, then `foods:import`.
 
 ## Risks

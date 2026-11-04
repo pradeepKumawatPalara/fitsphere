@@ -383,6 +383,33 @@ The IFCT 2017 book says its egg values are not all for raw food:
       example, asking NIN (the copyright page gives ifct2017@gmail.com and nin@ap.nic.in), or
       accepting the sampling text as enough.
 
+## USDA FoodData Central: FNDDS 2021–2023 (D-39)
+- **What:** USDA's "as eaten" foods (FNDDS, the Food and Nutrient Database for Dietary Studies,
+  2021–2023, released 10/2024), with the serving weights recorded in the US diet survey. Values per
+  100 g.
+- **Licence:** "USDA FoodData Central data are in the public domain and they are not copyrighted.
+  They are published under CC0 1.0 Universal" (fdc.nal.usda.gov/api-guide, read 2026-11-04). USDA
+  asks to be credited; the app shows `USDA_ACKNOWLEDGEMENT` under the search results.
+- **File read:** `FoodData_Central_survey_food_json_2024-10-31.zip`, 3,835,292 bytes, SHA-256
+  `dfb06ae7ddc397ccd570b91c14b75438ab2ba39f64f22d321f61d4a52a77f3eb`, from
+  fdc.nal.usda.gov/download-datasets, kept in `D:\fitsphere-data\usda-fndds-2024-10-31\`, outside
+  the repository.
+- **Made with** `npm run usda:convert -w @fitsphere/api -- <surveyDownload.json>`
+  (`apps/api/src/foods/usda.ts`):
+  - `data/foods/usda-fndds-foods.csv`: 5,431 foods, each with its food code, name, WWEIA category
+    and kcal, protein, carbohydrate (by difference), fat and total dietary fibre per 100 g,
+    rounded to two decimals. "Milk, human" has no values and is left out.
+  - `data/foods/usda-fndds-portions.csv`: 14,738 servings in USDA's order. Left out (MVP default):
+    "Quantity not specified"; servings counted in ounces or cubic inches ("1 oz", "per fl oz of
+    beverage"); names over 80 characters (16 turkey cuts); and a second serving with the same name.
+    A cup or bottle that only names its ounces ("1 cup (8 fl oz)") stays, its grams shown.
+- **Checks:** `foods:import` refuses the files whole on a wrong header, a code that is not 8 digits,
+  a value over 100 g or 1,000 kcal per 100 g (lard has 902), or a serving of an unknown food, over
+  2,000 g or in ounces. The committed files load whole into PostgreSQL in the integration tests.
+- **Coverage noted (2026-11-04):** 125 breads; 39 peanut-butter foods, including "Peanut butter
+  sandwich, with regular peanut butter, on white bread"; about 25 Indian-named foods, which are US
+  recipes, e.g. USDA's paneer has 22.5 g carbohydrate per 100 g. IFCT's foods come first in search.
+
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,
 so the food can be logged as "1 glass" or "2 teaspoons" as well as in grams (plan:

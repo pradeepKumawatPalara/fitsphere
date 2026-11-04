@@ -1115,6 +1115,30 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-ACC-011 and REQ-ACC-009; the data model; API conventions; the data and threat
   model; Legal's brief; the account deletion page; `constraints-and-assumptions.md`; the plans.
 
+## D-39 More foods: USDA's list, your own food in any unit, and My foods
+- Status: **Accepted** (the owner, in chat, 2026-11-04: the request after the phone test, the choice
+  of options 1 and 2, "go ahead" with the plan [`more-foods.md`](../plans/more-foods.md), and "good
+  to go" locking the redesign's 3.6 and 3.8).
+- Request: Search foods finds too little ("like HealthifyMe"); peanut butter bread should be logged
+  by the slice; and your own food should have a unit and a quantity.
+- Answers:
+  1. **USDA FoodData Central's FNDDS 2021–2023** joins IFCT 2017 in the food list: 5,431 foods as
+     eaten, public domain (CC0), with USDA's credit under the results. ADR-0006 rule 1 already
+     allows USDA as a source with the source recorded per item, so the ADR stands. IFCT's Indian
+     foods come first in search. HealthifyMe's list is its own and is not copied.
+  2. **USDA's servings** ("Medium or regular slice", "1 tablespoon") are used with the grams USDA
+     publishes, not measured by the owner; unlike D-36's household units, which stay measured-only.
+  3. **Your own food in any unit** (the owner's addition): grams, ml, piece, slice, cup, katori, bowl,
+     glass, tablespoon, teaspoon or serving; values per 100 g or ml, or per one unit; and the
+     quantity eaten.
+  4. **My foods** (REQ-LOG-011): your own food saved to log again, synced, editable and deletable.
+- Built: migration 0011 (`app.food_portions`, `app.my_foods`, `usda_fndds` in `app.foods`), the sync
+  changes `myFood.set` and `myFood.delete`, phone schema version 10, `npm run usda:convert`.
+- Owner's steps: on `fitsphere-dev`, migration 0011, then `foods:import`.
+- Doc changes: REQ-LOG-007 and REQ-LOG-011; the data model; API conventions; `food-list-sources.md`;
+  ADR-0006's open questions; the threat model; the deletion page; Legal's brief;
+  `constraints-and-assumptions.md`; the plans.
+
 ---
 
 ## Proposed replacement wording for the two invariants

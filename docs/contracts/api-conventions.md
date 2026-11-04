@@ -215,6 +215,8 @@ Request:
   | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
   | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
   | `setting.set` | `name`, `value`, `setAt` | `name` is `theme` (`system`, `light` or `dark`), `body_weight_unit` or `lifting_weight_unit` (`kg` or `lb`); a value another name allows is refused (data model, `settings`) |
+  | `myFood.set` | `id`, `name`, `unit`, `kcal`, `proteinG`, `carbsG`, `fatG`, `fibreG`, `savedAt` | A My food (REQ-LOG-011, D-39): creates it or replaces it whole. `unit` and the values' limits are in the data model (`my_foods`); `fibreG` may be `null` |
+  | `myFood.delete` | `id`, `deletedAt` | Deletes the user's My food with that ID; meals logged from it keep their values |
   | `profile.set` | `name`, `dateOfBirth`, `sex`, `heightMm`, `phone`, `address`, `photoMediaId`, `setAt` | The whole profile (REQ-ACC-011, D-38); each field `null` when empty. `address` is `null` or `{ line1, line2, city, state, pinCode }` with `line2` `null` when empty. A date of birth giving an age under 18 or over 120 on today's IST day, or a field outside its rule (data model, `profiles`), is `VALIDATION_FAILED`. `photoMediaId` names the profile photo; an ID already used, or deleted, is refused (data model, `media`) |
 
 - An `id` in a meal or saved-meal change is made on the phone and names only the caller's own
@@ -301,6 +303,8 @@ Response `200`:
   (backlog E-02).
 - **Re-checked every time:** every change is authorized when it arrives, never when it was
   queued (invariant #1, D-10).
+- `myFoods` entries are `{ "deleted": false, … }` with the food, or `{ "deleted": true, "id",
+  "updatedAt" }` for one the user deleted, which the phone then removes (D-39).
 - `profiles` holds the user's profile when it changed since the cursor: at most one entry, and
   only ever the caller's own (D-20). The values in the example are synthetic.
 - `removals` is always empty in the MVP. Its contents are defined with the first slice that puts

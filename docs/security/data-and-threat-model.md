@@ -21,6 +21,8 @@ permission matrix below:
   permission answers).
 - **A coach's data:** coaching activity — for a Head Coach, counts per coach (D-13) — and the
   coach's own personal logs if they also use the Personal Training User role.
+- **My foods (REQ-LOG-011, D-39):** foods the user entered and saved, with their values; part of
+  the user's meal data, private to the user in the MVP.
 - **The profile (REQ-ACC-011, D-38):** the user's photo, name, date of birth, sex and height
   (body data, treated as health data), and their phone number and address (contact data). Every
   field is optional; the weight shown is a weigh-in. Private to the user in the MVP, never logged,
@@ -80,6 +82,7 @@ MVP only the "Trainee (self)" and "Anyone else" columns apply (D-20, above).
 | Workouts and Progress | View, edit (A-004) | View, read-only (D-18) | View, read-only (D-11, D-18) | — | — | — |
 | External links the trainee added (e.g. YouTube) instead of an upload | View, edit (REQ-LOG-010, D-16) | View (D-18) | View (D-18) | — | — link hidden (D-16); the content stays viewable by anyone who has the link (R-004) | — in FitSphere; outside it, anyone who has the link (R-004) |
 | Saved meals | View, edit (REQ-SAVED-001, REQ-NUT-004) | — (D-18) | — (D-18) | — | — | — |
+| My foods | View, edit (REQ-LOG-011, D-39) | — (D-20) | — (D-20) | — | — | — |
 | Calorie and protein targets | Their own: view, edit (REQ-ROLE-007; Q-016, D-20). Set by a coach: view only (REQ-PLAN-001, invariant 2) | View, edit (REQ-ROLE-006, D-11) | View, edit (REQ-ROLE-004, D-13) | — | — | — |
 | Weekly workout target, target body weight and daily steps target | Their own: view, edit (REQ-ROLE-007, D-20). Set by a coach: view only (REQ-HOME-007, REQ-PRG-005, invariant 2) | View, edit (REQ-ROLE-006, D-14; Q-013 MVP default) | View, edit (REQ-ROLE-004, D-14; Q-013 MVP default) | — | — | — |
 | Diet plan and training plan | View | View, edit (REQ-ROLE-006) | View, edit (D-08, D-13) | — | — | — |
