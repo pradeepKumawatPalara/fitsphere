@@ -58,7 +58,8 @@ export type ImportedFood = {
   foodGroup: string;
   /** Grams per 100 g edible portion, as printed (two decimals). */
   proteinG: string;
-  fibreG: string;
+  /** Null only for a brand label that gives none (D-49). */
+  fibreG: string | null;
   fatG: string;
   carbsG: string;
   /** kcal per 100 g: as printed, or estimated from fat for the oils and fats. */

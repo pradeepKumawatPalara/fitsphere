@@ -30,7 +30,7 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       food_group: string;
       aliases: string[];
       protein_g: string;
-      fibre_g: string;
+      fibre_g: string | null;
       fat_g: string;
       carbs_g: string;
       kcal: string;
@@ -96,7 +96,7 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         foodGroup: row.food_group,
         aliases: row.aliases,
         proteinG: Number(row.protein_g),
-        fibreG: Number(row.fibre_g),
+        fibreG: row.fibre_g === null ? null : Number(row.fibre_g),
         fatG: Number(row.fat_g),
         carbsG: Number(row.carbs_g),
         kcal: Number(row.kcal),

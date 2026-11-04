@@ -541,6 +541,26 @@ const MIGRATIONS = [
      serving_grams REAL
    );
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // Brand labels (D-49): a label may give no fibre, so a food's fibre may be unknown. The cached list
+  // is made again with fibre_g allowed to be null; its version is cleared, so the next download fills it.
+  `DROP TABLE foods;
+   CREATE TABLE foods (
+     source TEXT NOT NULL,
+     code TEXT NOT NULL,
+     name TEXT NOT NULL,
+     food_group TEXT NOT NULL,
+     aliases TEXT NOT NULL,
+     protein_g REAL NOT NULL,
+     fibre_g REAL,
+     fat_g REAL NOT NULL,
+     carbs_g REAL NOT NULL,
+     kcal REAL NOT NULL,
+     kcal_estimated INTEGER NOT NULL,
+     measures TEXT NOT NULL DEFAULT '[]',
+     portions TEXT NOT NULL DEFAULT '[]',
+     PRIMARY KEY (source, code)
+   );
+   DELETE FROM sync_meta WHERE key = 'food_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1093,8 +1113,8 @@ export async function searchPackaged(db: SqlDb, query: string, limit = 30): Prom
   }));
 }
 
-/** The order the food list's sources are searched and listed in: INDB's Indian recipes, then IFCT's Indian foods (D-46, D-47). */
-const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017'];
+/** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, then brand labels (D-46, D-47, D-49). */
+const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_label'];
 
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in
@@ -1136,7 +1156,7 @@ function searchSource(db: SqlDb, source: Food['source'], words: string[], condit
     food_group: string;
     aliases: string;
     protein_g: number;
-    fibre_g: number;
+    fibre_g: number | null;
     fat_g: number;
     carbs_g: number;
     kcal: number;

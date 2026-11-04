@@ -406,9 +406,9 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `uuid` | Primary key |
-| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated. (`usda_fndds`, D-39, until migration 0013 moved those rows to `usda_foods`, D-47) |
+| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated; or `brand_label` (D-49), code FitSphere's own, e.g. `maggi-2-minute-masala-noodles`, an approved row of the brand-labels sheet. (`usda_fndds`, D-39, until migration 0013 moved those rows to `usda_foods`, D-47) |
 | `name`, `food_group` | `text` | Not null; as printed |
-| `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed |
+| `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed. Since migration 0015 `fibre_g` may be null for a `brand_label` whose label gives none (D-49) |
 | `kcal` | `numeric(6,2)` | Not null. kcal per 100 g |
 | `kcal_source` | `text` | `published` (as printed) or `estimated_fat_factor` (oils and fats: 9 kcal per g of fat, D-26) |
 | `estimated` | `boolean` | True when `kcal` is estimated |
@@ -599,6 +599,8 @@ rule 5 and D-14 require.
 - **Version 11** (packaged foods, D-48) adds `packaged_foods` (barcode, name, brand, the five values
   per 100 g, serving grams), filled with the food list, and clears `food_list_version`, so the next
   download brings them.
+- **Version 12** (brand labels, D-49) makes `foods` again with `fibre_g` allowed to be null (a brand
+  label that gives no fibre), and clears `food_list_version`, so the next download fills it.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

@@ -134,6 +134,7 @@ describe('Migration runner (data model, "Changes")', () => {
       '0012_indb_foods.sql',
       '0013_usda_archive.sql',
       '0014_packaged_foods.sql',
+      '0015_brand_labels.sql',
     ]);
     for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods']) {
       expect(await tableExists(table)).toBe(true);

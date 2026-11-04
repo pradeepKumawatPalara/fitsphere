@@ -1328,6 +1328,29 @@ checksum), and the configuration template was left as it is.*
   E-10); `constraints-and-assumptions.md`; the data model; REQ-LOG-007; `docs/README.md`;
   `CLAUDE.md`. Migration `0014_packaged_foods.sql`; phone schema version 11.
 
+## D-49 Brands' own labels, approved by the owner
+- Status: **Accepted** (owner, in chat, 2026-11-04: "okay start with option 2, the brands' own
+  labels", the second of the three sources offered with D-48).
+- Answer:
+  - A **brand-labels sheet**, `docs/data/brand-labels-sheet.csv`: one row a product, with its brand,
+    name, values per 100 g (or 100 ml), the serving its label gives, the **official page** it was
+    read from and the date. Rows are read from the brand's or manufacturer's own website only, never
+    from retailers, other apps or Open Food Facts; values are copied as printed, and per-100 g values
+    are worked out from per-serving ones only where the page gives no per-100 g column, which the
+    row's notes say.
+  - A row is `proposed` until the owner approves it; only approved rows reach the food list, as
+    source `brand_label`, tagged "Brand label", listed after My foods and before Open Food Facts'
+    products, with their serving. Never approve a row without the owner's word.
+  - A label may give no dietary fibre: it is shown as unknown (–), not 0. The food list allows an
+    unknown fibre for brand labels only.
+  - The app's credit says the values are the brands' own, with the page each was read from kept.
+- Risk: brands' websites are "all rights reserved"; copying the nutrition facts printed on a label
+  is taken to be reuse of facts, which Legal is asked to confirm (R-010, L-16).
+- Doc changes: `food-list-sources.md`; the Legal brief (L-16, E-10); `constraints-and-assumptions.md`
+  (R-010, the More foods row); the data model; REQ-LOG-007; `CLAUDE.md`. Migration
+  `0015_brand_labels.sql`; phone schema version 12 (the cached food list is made again so a fibre
+  may be unknown).
+
 ---
 
 ## Proposed replacement wording for the two invariants

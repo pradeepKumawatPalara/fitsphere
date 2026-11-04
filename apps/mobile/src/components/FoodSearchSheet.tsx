@@ -10,7 +10,7 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { FoodDetail, type FoodResult } from './FoodDetail';
-import { SOURCE_MARKS } from './foodSources';
+import { BRAND_LABEL_CREDIT, SOURCE_MARKS } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { Sheet } from './Sheet';
@@ -18,8 +18,8 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). Dishes (D-28) come first, then INDB's Indian recipes (D-46), IFCT's Indian
-// foods and the user's My foods (D-39), then packaged foods sold in India from Open Food Facts, by
-// name or brand (D-48), each marked; USDA's foods are no longer listed (D-47). IFCT's acknowledgement
+// foods and the user's My foods (D-39), then brands' own labels approved by the owner (D-49), then
+// packaged foods sold in India from Open Food Facts, by name or brand (D-48), each marked; USDA's foods are no longer listed (D-47). IFCT's acknowledgement
 // is one tap away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT
 // too; INDB's and Open Food Facts' credits are shown with it.
 //
@@ -66,6 +66,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           ...listed('indb'),
           ...listed('ifct2017'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
+          ...listed('brand_label'),
           ...packaged.map((food): Result => ({ kind: 'packaged', food })),
         ]);
         setListCached(listVersion !== null);
@@ -210,6 +211,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         <Sheet title="Food sources" onClose={() => setSources(false)} actions={<TextButton title="Close" wide onPress={() => setSources(false)} />}>
           <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked INDB: {INDB_ACKNOWLEDGEMENT}</Text>
+          <Text style={styles.source}>Foods marked Brand label: {BRAND_LABEL_CREDIT}</Text>
           <Text style={styles.source}>Foods marked Packaged: {OFF_ATTRIBUTION}.</Text>
         </Sheet>
       ) : null}

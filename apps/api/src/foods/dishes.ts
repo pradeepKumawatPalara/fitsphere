@@ -250,7 +250,8 @@ function approvedDish(
     proteinG: forPortion(parts, (food) => food.proteinG),
     carbsG: forPortion(parts, (food) => food.carbsG),
     fatG: forPortion(parts, (food) => food.fatG),
-    fibreG: forPortion(parts, (food) => food.fibreG),
+    // IFCT gives every food's fibre; only a brand label may give none (D-49), and none is an ingredient.
+    fibreG: forPortion(parts, (food) => food.fibreG ?? fail(`${food.code} gives no fibre`)),
   };
   if (dish.kcal > PORTION_KCAL_MAX) fail(`one portion would have ${dish.kcal} kcal, more than ${PORTION_KCAL_MAX}: check the grams`);
   for (const value of [dish.proteinG, dish.carbsG, dish.fatG, dish.fibreG]) {

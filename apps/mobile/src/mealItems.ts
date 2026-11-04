@@ -44,7 +44,7 @@ export function itemFromFood(food: Food, grams: number): MealItem {
     proteinG: forGrams(food.proteinG, grams),
     carbsG: forGrams(food.carbsG, grams),
     fatG: forGrams(food.fatG, grams),
-    fibreG: forGrams(food.fibreG, grams),
+    fibreG: food.fibreG === null ? null : forGrams(food.fibreG, grams),
     estimated: food.kcalEstimated,
   };
 }
@@ -131,7 +131,7 @@ function valuesFor(food: Food, grams: number) {
     proteinG: forGrams(food.proteinG, grams),
     carbsG: forGrams(food.carbsG, grams),
     fatG: forGrams(food.fatG, grams),
-    fibreG: forGrams(food.fibreG, grams),
+    fibreG: food.fibreG === null ? null : forGrams(food.fibreG, grams),
   };
 }
 
