@@ -5,11 +5,15 @@ import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount, signIn } from '../auth/service';
 import { TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
-import { Field, Message, Text, TextButton } from '../components/ui';
+import { DisplayHeading } from '../components/DisplayHeading';
+import { Banner, Field, Message, TextButton } from '../components/ui';
+import { Wordmark } from '../components/Wordmark';
 import { themedStyles } from '../theme';
 import { goAfterAccountCheck } from './navigation';
 
-// REQ-ACC-010: sign in, then GET /v1/me and account setup if needed.
+// REQ-ACC-010: sign in, then GET /v1/me and account setup if needed. The redesign's screen 1.1
+// (locked by the owner, 2026-11-03): an empty field is named under that field; any other problem
+// shows above Sign in.
 export function SignInScreen() {
   const styles = useStyles();
   const { deps } = useAuth();
@@ -19,20 +23,22 @@ export function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [missing, setMissing] = useState<{ email?: string; password?: string }>({});
   const [message, setMessage] = useState<string | null>(null);
 
   async function submit() {
     // An empty field is named; wrong details stay one neutral text (D-11).
+    setMessage(null);
     if (!email.trim()) {
-      setMessage(TEXTS.emailRule);
+      setMissing({ email: TEXTS.emailRule });
       return;
     }
     if (!password) {
-      setMessage(TEXTS.passwordRequired);
+      setMissing({ password: TEXTS.passwordRequired });
       return;
     }
+    setMissing({});
     setBusy(true);
-    setMessage(null);
     const result = await signIn(deps, email, password);
     if (result === 'signedIn') {
       setMessage(goAfterAccountCheck(router, await ensureAccount(deps), 'Signing in'));
@@ -45,38 +51,57 @@ export function SignInScreen() {
   }
 
   // The form scrolls to the field being typed in; the footer, with Sign in, rides above the keyboard.
+  // While signing in, a spinner takes Sign in's place and the form dims.
   return (
     <FormScreen
-      contentStyle={styles.content}
+      contentStyle={[styles.content, busy && styles.busy]}
       footer={
         <>
-          <Message text={message} />
-          <TextButton title="Sign in" filled disabled={busy} onPress={() => void submit()} />
-          <TextButton title="Create an account" wide onPress={() => router.push('/sign-up')} />
+          <Message text={message} offline={message === TEXTS.needsInternet('Signing in')} />
+          <TextButton title="Sign in" filled arrow busy={busy} onPress={() => void submit()} />
+          <TextButton title="Create an account" outlined wide onPress={() => router.push('/sign-up')} />
         </>
       }
     >
+      <Wordmark />
       {notice === 'accountDeleted' ? (
         <View style={styles.notice}>
-          <Text accessibilityRole="alert">{TEXTS.accountDeleted}</Text>
+          <Banner tone="info" text={TEXTS.accountDeleted} />
         </View>
       ) : null}
-      <Text accessibilityRole="header" style={styles.heading}>
-        Sign in
-      </Text>
+      <DisplayHeading text="Sign in" style={styles.heading} />
       <View style={styles.fields}>
-        <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
-        <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />
-        <TextButton title="Forgot password?" onPress={() => router.push('/forgot-password')} />
+        <Field
+          label="Email"
+          error={missing.email}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoComplete="email"
+        />
+        <Field
+          label="Password"
+          error={missing.password}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="current-password"
+        />
+        <View style={styles.forgot}>
+          <TextButton title="Forgot password?" end onPress={() => router.push('/forgot-password')} />
+        </View>
       </View>
     </FormScreen>
   );
 }
 
-// Spacing as on Home and Log meal: 24 between groups, 12 within one, 8 in the footer.
-const useStyles = themedStyles((c) => ({
-  content: { paddingTop: 32, gap: 24 },
-  notice: { padding: 14, borderRadius: 12, backgroundColor: c.surface },
-  heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
-  fields: { gap: 12 },
+// From the wordmark: 48 to the heading (32 to a notice first), 40 to the fields, 18 between them;
+// Forgot password sits close under the password.
+const useStyles = themedStyles(() => ({
+  content: { paddingTop: 24, gap: 0 },
+  busy: { opacity: 0.6 },
+  notice: { marginTop: 32 },
+  heading: { marginTop: 48 },
+  fields: { marginTop: 40, gap: 18 },
+  forgot: { marginTop: -10 },
 }));

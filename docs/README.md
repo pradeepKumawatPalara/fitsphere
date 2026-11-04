@@ -17,7 +17,7 @@ Last updated: 2026-11-03
 | 2 | `docs/README.md` (this file) | Draft | Project owner | Index |
 | 3 | [`product/product-brief.md`](product/product-brief.md) | Draft | Project owner | Problem, users, scope, non-goals |
 | 3a | [`product/glossary.md`](product/glossary.md) | Draft | Project owner | Terms the documents use inconsistently or leave undefined |
-| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-34) and follow-ups |
+| 3b | [`product/owner-decisions-2026-10-27.md`](product/owner-decisions-2026-10-27.md) | Accepted | Project owner | Owner answers to open questions (D-01 to D-35) and follow-ups |
 | 3c | [`product/mvp-scope.md`](product/mvp-scope.md) | Accepted | Project owner | What the MVP includes, what is post-MVP, MVP defaults for open questions (D-18), and the order of the MVP slices. Since D-20 the MVP is the Personal Training User view only |
 | 3d | [`product/backlog.md`](product/backlog.md) | Draft | Project owner | Post-MVP items and deferred edge cases (D-18), including Coach and Head Coach (D-20); release-blocking tasks and the Skeleton checks to run before release (D-22) |
 | 4 | [`product/requirements.md`](product/requirements.md) | Draft | Project owner | Testable REQ IDs |
@@ -40,6 +40,10 @@ Last updated: 2026-11-03
 | 16 | [`plans/training-slice.md`](plans/training-slice.md) | Accepted | Project owner | Slice 4, Training: scope, MVP defaults, steps, checks and progress (D-29). Built in parallel with slice 3 and merged after it on 2026-10-30 (#23, #25, #27, #28); migration 0007 on `fitsphere-dev` and the owner's checks are pending |
 | 17 | [`plans/progress-slice.md`](plans/progress-slice.md) | Accepted | Project owner | Slice 5, Progress: scope, decisions, MVP defaults, steps, checks and progress (D-30). Built beside slice 6; reads existing data only (no server change, no migration). Merged on 2026-10-30 (#41, #42, #44); automated checks pass; the phone checks are deferred to before the release (D-32: backlog S5-01 to S5-07) |
 | 18 | [`plans/settings-slice.md`](plans/settings-slice.md) | Accepted | Project owner | Slice 6, Settings and account: scope, MVP defaults, steps, checks and progress (D-31). Built in parallel with slice 5; merged on 2026-10-30 and 2026-10-31 (#43, #45, #46, #47, #48); automated checks pass. Pending, by the owner: the secret key and migration 0008. The phone checks are deferred to before the release (D-32: backlog S6-01 to S6-09) |
+| 19 | [`design/design-system.md`](design/design-system.md), [`design/FitSphere-UI-UX-context.md`](design/FitSphere-UI-UX-context.md) | Accepted | Project owner | The app's design language (D-35): palette, colour tokens, type, shape, components, UX principles and copy rules; Lucide icons and the Barlow fonts. Sections 5, 7 and 8 of the context file are examples only. The app follows it from the redesign's first screen (branch `ui-redesign`) |
+| 20 | [`plans/ui-redesign.md`](plans/ui-redesign.md) | Draft | Project owner | The UI redesign: modules, the design-lock-build loop per screen, the foundation (tokens, fonts, icons, one new development build), conflicts with the project's rules, progress. The whole app's colours and fonts change at once (owner, 2026-11-03) |
+| 21 | [`plans/household-units.md`](plans/household-units.md) | Accepted | Project owner | Household units for a listed food's amount (D-36): teaspoon, tablespoon, katori, glass and piece, from the owner's measured sheet [`data/household-measures-sheet.csv`](data/household-measures-sheet.csv) (starter rows pending, no grams). Built on `ui-redesign`; migration 0009 and the import on `fitsphere-dev` and the measurements are the owner's |
+| 22 | [`plans/user-profile.md`](plans/user-profile.md) | Accepted | Project owner | The profile (D-38, REQ-ACC-011): the user's photo, name, date of birth, sex, height, phone and address in Settings, the weight as the latest weigh-in, the email read-only. Built on `ui-redesign`; migration 0010 on `fitsphere-dev` is the owner's, before the updated API runs |
 
 ## Rules and policies
 Provided by the owner on 2026-11-02 and kept as given, in
@@ -60,6 +64,9 @@ Provided by the owner on 2026-11-02 and kept as given, in
 - [`product/source/business-requirements.txt`](product/source/business-requirements.txt) — original BRD.
   `requirements.md` is derived from it and is now the authoritative version.
 - [`pre-development-guide.md`](pre-development-guide.md) — the process this repository follows.
+- [`design/reference-fitsphere/`](design/reference-fitsphere/README.md) — the F0x UI designs of a
+  separate FitSphere spec, kept as examples of the design language only (D-35): their features are
+  not built and their decisions not applied here.
 
 ## Owners
 The project owner (sole developer) owns and approves every document. Legal compliance has a

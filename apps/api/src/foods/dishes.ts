@@ -277,7 +277,8 @@ function forPortion(parts: readonly Part[], valueOf: (food: ImportedFood) => str
   return Math.round(sum / 10_000) / 100;
 }
 
-function isCalendarDate(text: string): boolean {
+/** A real date written YYYY-MM-DD; also used by the household-measures sheet. */
+export function isCalendarDate(text: string): boolean {
   const match = DATE.exec(text);
   if (!match) return false;
   const [, year, month, day] = match.map(Number) as [number, number, number, number];

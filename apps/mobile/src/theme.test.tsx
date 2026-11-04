@@ -1,9 +1,10 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text, TextInput } from './components/ui';
 import { applyServerEntries } from './local/store';
 import { useSettings } from './settings/SettingsProvider';
 import { renderInApp } from './testing/appHarness';
 import { DARK_COLORS, LIGHT_COLORS, resolveScheme, ThemeProvider, useTheme, type ThemeColors } from './theme';
+import { TYPE } from './typography';
 
 // Appearance (REQ-ACC-001; MVP defaults, D-31): System follows the phone; Light and Dark override
 // it. Every colour comes from the theme's tokens, and text is readable in both palettes.
@@ -23,7 +24,7 @@ function Probe() {
   const { saveSetting } = useSettings();
   return (
     <>
-      <Text testID="probe">{`${scheme} ${colors.background}`}</Text>
+      <Text testID="probe">{`${scheme} ${colors.bg}`}</Text>
       <Text accessibilityRole="button" onPress={() => void saveSetting('theme', 'dark')}>
         Choose Dark
       </Text>
@@ -53,22 +54,22 @@ describe('REQ-ACC-001 System, Light and Dark', () => {
   it('D-31 with nothing chosen the app follows the phone', async () => {
     mockPhoneScheme = 'dark';
     await renderWithTheme();
-    expect(await screen.findByText(`dark ${DARK_COLORS.background}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`dark ${DARK_COLORS.bg}`)).toBeOnTheScreen();
   });
 
   it('REQ-ACC-001 Light keeps the app light on a dark phone', async () => {
     mockPhoneScheme = 'dark';
     await renderWithTheme('light');
-    expect(await screen.findByText(`light ${LIGHT_COLORS.background}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`light ${LIGHT_COLORS.bg}`)).toBeOnTheScreen();
   });
 
   it('REQ-ACC-001 choosing Dark applies at once', async () => {
     await renderWithTheme('system');
-    expect(await screen.findByText(`light ${LIGHT_COLORS.background}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`light ${LIGHT_COLORS.bg}`)).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByText('Choose Dark'));
 
-    expect(await screen.findByText(`dark ${DARK_COLORS.background}`)).toBeOnTheScreen();
+    expect(await screen.findByText(`dark ${DARK_COLORS.bg}`)).toBeOnTheScreen();
   });
 
   it('REQ-ACC-001 text takes the theme’s colour, and a colour in its style still wins', async () => {
@@ -76,11 +77,11 @@ describe('REQ-ACC-001 System, Light and Dark', () => {
     await renderInApp(
       <ThemeProvider>
         <Text>Plain</Text>
-        <Text style={{ color: DARK_COLORS.error }}>Warning</Text>
+        <Text style={{ color: DARK_COLORS.danger }}>Warning</Text>
       </ThemeProvider>,
     );
-    expect(await screen.findByText('Plain')).toHaveStyle({ color: DARK_COLORS.text });
-    expect(screen.getByText('Warning')).toHaveStyle({ color: DARK_COLORS.error });
+    expect(await screen.findByText('Plain')).toHaveStyle({ color: DARK_COLORS.ink });
+    expect(screen.getByText('Warning')).toHaveStyle({ color: DARK_COLORS.danger });
   });
 
   it.each([
@@ -95,29 +96,29 @@ describe('REQ-ACC-001 System, Light and Dark', () => {
           <TextInput
             accessibilityLabel="Field"
             placeholder="Hint"
-            placeholderTextColor={colors.error}
-            cursorColor={colors.error}
-            selectionColor={colors.error}
-            selectionHandleColor={colors.error}
-            style={{ color: colors.error }}
+            placeholderTextColor={colors.danger}
+            cursorColor={colors.danger}
+            selectionColor={colors.danger}
+            selectionHandleColor={colors.danger}
+            style={{ color: colors.danger }}
           />
         </ThemeProvider>,
       );
       const field = await screen.findByLabelText('Field');
 
-      expect(field).toHaveStyle({ color: colors.text });
+      expect(field).toHaveStyle({ color: colors.ink });
       expect(field.props).toMatchObject({
-        placeholderTextColor: colors.textMuted,
-        cursorColor: colors.primary,
-        selectionHandleColor: colors.primary,
-        selectionColor: colors.surfaceSelected,
+        placeholderTextColor: colors.inkMuted,
+        cursorColor: colors.accent,
+        selectionHandleColor: colors.accent,
+        selectionColor: colors.accentTint,
       });
       // Readable on screens, sheets and cards, and while selected.
-      for (const ground of [colors.background, colors.surface]) {
-        expect(contrast(colors.text, ground)).toBeGreaterThanOrEqual(4.5);
+      for (const ground of [colors.bg, colors.surface]) {
+        expect(contrast(colors.ink, ground)).toBeGreaterThanOrEqual(4.5);
         expect(contrast(field.props.placeholderTextColor, ground)).toBeGreaterThanOrEqual(4.5);
       }
-      expect(contrast(colors.text, field.props.selectionColor)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(colors.ink, field.props.selectionColor)).toBeGreaterThanOrEqual(4.5);
     },
   );
 });
@@ -137,13 +138,39 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+// The design's fonts (D-35): on Android a custom font does not follow fontWeight, so the shared Text
+// names Barlow's file for the weight and drops the weight.
+describe('D-35 the design’s fonts', () => {
+  it('text takes Barlow’s file for its weight, and a nested text keeps its parent’s font unless it gives a weight', async () => {
+    await render(
+      <Text testID="total" style={{ fontWeight: '600' }}>
+        Total <Text testID="amount">2,000</Text> <Text testID="unit" style={{ fontWeight: '700' }}>kcal</Text>
+      </Text>,
+    );
+    expect(screen.getByTestId('total')).toHaveStyle({ fontFamily: 'Barlow_600SemiBold', fontWeight: 'normal' });
+    expect(screen.getByTestId('amount')).not.toHaveStyle({ fontFamily: 'Barlow_400Regular' });
+    expect(screen.getByTestId('unit')).toHaveStyle({ fontFamily: 'Barlow_700Bold', fontWeight: 'normal' });
+  });
+
+  it('plain text is Barlow regular, and a type style keeps its own file', async () => {
+    await render(
+      <>
+        <Text>Plain</Text>
+        <Text style={TYPE.display}>Heading</Text>
+      </>,
+    );
+    expect(screen.getByText('Plain')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
+    expect(screen.getByText('Heading')).toHaveStyle({ fontFamily: 'BarlowCondensed_800ExtraBold', textTransform: 'uppercase' });
+  });
+});
+
 describe('REQ-ACC-001 readable in both palettes', () => {
   it.each([
     ['light', LIGHT_COLORS],
     ['dark', DARK_COLORS],
-  ] as [string, ThemeColors][])('the %s palette: body text, muted text, primary and error are at least 4.5:1 on screens and cards', (_, colors) => {
-    for (const ground of [colors.background, colors.surface]) {
-      for (const ink of [colors.text, colors.textMuted, colors.primary, colors.error]) {
+  ] as [string, ThemeColors][])('the %s palette: body text, muted text, caramel text and error text are at least 4.5:1 on screens and cards, and text on a caramel button too', (_, colors) => {
+    for (const ground of [colors.bg, colors.surface]) {
+      for (const ink of [colors.ink, colors.inkMuted, colors.accent, colors.danger]) {
         expect(contrast(ink, ground)).toBeGreaterThanOrEqual(4.5);
       }
     }
@@ -153,11 +180,22 @@ describe('REQ-ACC-001 readable in both palettes', () => {
   it.each([
     ['light', LIGHT_COLORS],
     ['dark', DARK_COLORS],
-  ] as [string, ThemeColors][])('the %s palette: field borders are at least 3:1 on screens, cards and chosen chips, and lighter than muted text', (_, colors) => {
-    for (const ground of [colors.background, colors.surface, colors.surfaceSelected]) {
-      expect(contrast(colors.textFaint, ground)).toBeGreaterThanOrEqual(3);
+  ] as [string, ThemeColors][])('the %s palette: text on the photo viewer’s backdrop is at least 4.5:1', (_, colors) => {
+    // scrimStrong is 90 % black, so the screen behind adds at most a tenth of its own light.
+    const behind = luminance(colors.bg) * 0.1;
+    const ratio = (luminance(colors.onScrim) + 0.05) / (behind + 0.05);
+    expect(colors.scrimStrong).toBe('rgba(0,0,0,0.9)');
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ['light', LIGHT_COLORS],
+    ['dark', DARK_COLORS],
+  ] as [string, ThemeColors][])('the %s palette: field outlines are at least 3:1 on screens, cards and inside the field, and lighter than muted text', (_, colors) => {
+    for (const ground of [colors.bg, colors.surface, colors.surfaceSunken]) {
+      expect(contrast(colors.inkSubtle, ground)).toBeGreaterThanOrEqual(3);
     }
-    expect(contrast(colors.textFaint, colors.background)).toBeLessThan(contrast(colors.textMuted, colors.background));
+    expect(contrast(colors.inkSubtle, colors.bg)).toBeLessThan(contrast(colors.inkMuted, colors.bg));
   });
 
   it('both palettes have every token', () => {

@@ -1,8 +1,9 @@
 // Texts the app shows for sign-in (error model, "Texts the app shows"). They come from the app,
 // never from Supabase, so they cannot reveal whether an address is registered (REQ-ACC-010, D-11).
 export const TEXTS = {
-  signUpSent:
-    "Check your email. If this address can be used for a new account, we've sent a link to finish signing up.",
+  // After sign-up, as a heading and its text (the redesign's 1.3, D-35).
+  signUpSentHeading: 'Check your email',
+  signUpSent: "If this address can be used for a new account, we've sent a link to finish signing up.",
   resetSent: "If an account uses this address, we've sent a link to reset the password.",
   signInFailed: 'Email or password is incorrect.',
   ageConfirmation: 'I am 18 or older',

@@ -1,7 +1,9 @@
 import { addDays, istWeekDays, istWeekStart, type IstDay } from '@fitsphere/shared';
+import { Check } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { dayParts, formatDay } from '../format';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Text, TextButton } from './ui';
 
 type Props = {
@@ -23,9 +25,11 @@ type Props = {
 // day with more than one showing how many. Each day up to today can be tapped (D-34); later days
 // are greyed. Workouts are logged on the Training tab (D-29). It shows the week of the date picked
 // on Home (Q-026), so it names that week's dates: "Workouts this week" for this week, "Workouts that
-// week" for an earlier one (D-34).
+// week" for an earlier one (D-34). The redesign's 2.3 (locked by the owner, 2026-11-03): a square per
+// day, caramel with a tick (or the count) on a workout day, dashed when there was none, dimmed ahead.
 export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarget, onDay }: Props) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const monday = istWeekStart(day);
   const thisWeek = monday === istWeekStart(today);
   const which = thisWeek ? 'this week' : 'that week';
@@ -43,7 +47,7 @@ export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarg
           {formatDay(monday)} – {formatDay(addDays(monday, 6))}
         </Text>
       </View>
-      <Text style={styles.summary}>{summary}</Text>
+      <Text style={[styles.summary, target !== null && count >= target && styles.reached]}>{summary}</Text>
       <View style={styles.dots}>
         {istWeekDays(day).map((weekDay) => {
           const workouts = dayCounts[weekDay] ?? 0;
@@ -58,34 +62,43 @@ export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarg
               accessibilityState={{ disabled: future }}
               disabled={future}
               onPress={() => onDay(weekDay)}
-              style={({ pressed }) => [styles.day, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.day, future && styles.later, pressed && styles.pressed]}
             >
-              <View style={[styles.dot, workouts > 0 && styles.done, future && styles.later]}>
-                {workouts > 1 ? <Text style={styles.dotCount}>{workouts}</Text> : null}
+              <View style={[styles.slot, workouts > 0 ? styles.done : future ? styles.ahead : styles.open]}>
+                {workouts === 1 ? <Check size={18} strokeWidth={3} color={colors.onPrimary} /> : null}
+                {workouts > 1 ? <Text style={styles.slotCount}>{workouts}</Text> : null}
               </View>
-              <Text style={[styles.dotLabel, future && styles.laterText]}>{parts.weekday.charAt(0)}</Text>
+              <Text style={[styles.slotLabel, weekDay === today && styles.todayText]}>{parts.weekday.charAt(0)}</Text>
             </Pressable>
           );
         })}
       </View>
-      {target === null ? <TextButton title="Set a weekly workout target" outlined onPress={onSetTarget} /> : null}
+      {target === null ? (
+        <View style={styles.setTarget}>
+          <TextButton title="Set a weekly workout target" outlined onPress={onSetTarget} />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-// Each day 44 wide and at least 44 tall to tap; its dot 22, holding the count when there are two or more.
+// Each day a square 40 tall, 6 apart, with its initial under it; the whole day is the button.
 const useStyles = themedStyles((c) => ({
-  card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 10 },
-  title: { fontSize: 15, fontWeight: '600' },
-  week: { fontSize: 13, color: c.textMuted, fontVariant: ['tabular-nums'] },
-  summary: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  dots: { flexDirection: 'row', justifyContent: 'space-between' },
-  day: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 4 },
+  card: { padding: 16, borderRadius: 4, backgroundColor: c.surface, gap: 4 },
+  title: { ...TYPE.label, color: c.inkMuted },
+  week: { fontSize: 13, lineHeight: 18, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  summary: { ...TYPE.metric, marginTop: 4 },
+  reached: { color: c.success },
+  dots: { flexDirection: 'row', gap: 6, marginTop: 10 },
+  day: { flex: 1, minHeight: 44, alignItems: 'center', gap: 6 },
   pressed: { opacity: 0.6 },
-  dot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: c.primary, alignItems: 'center', justifyContent: 'center' },
+  later: { opacity: 0.45 },
+  slot: { alignSelf: 'stretch', height: 40, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   done: { backgroundColor: c.primary },
-  later: { borderColor: c.textFaint },
-  dotCount: { color: c.onPrimary, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  dotLabel: { fontSize: 12, color: c.textMuted },
-  laterText: { color: c.textFaint },
+  open: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: c.inkSubtle },
+  ahead: { backgroundColor: c.track },
+  slotCount: { ...TYPE.metric, fontSize: 17, lineHeight: 20, color: c.onPrimary },
+  slotLabel: { ...TYPE.label, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted },
+  todayText: { color: c.accent },
+  setTarget: { marginTop: 10 },
 }));

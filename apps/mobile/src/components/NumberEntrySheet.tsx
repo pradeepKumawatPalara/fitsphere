@@ -1,8 +1,10 @@
+import { CircleAlert } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
+import { Text, TextButton, TextInput } from './ui';
 
 type Props = {
   title: string;
@@ -20,11 +22,15 @@ type Props = {
 };
 
 // A bottom sheet for one number: a weight, steps, sleep or a target (REQ-HOME-006, REQ-ROLE-007).
-// Nothing is saved until the value is valid; Cancel closes without saving.
+// Nothing is saved until the value is valid; Cancel closes without saving. The redesign's 2.4 (locked
+// by the owner, 2026-11-03): the number large in a sunken box with its unit, the outline caramel
+// while typing and red with the rule under it when the value can't be saved; a spinner on Save.
 export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, onSave, onClose }: Props) {
   const styles = useStyles();
-  const fieldInput = useFieldInputStyle();
+  const { colors } = useTheme();
   const [text, setText] = useState(initialText);
+  // The field opens focused, the keyboard up.
+  const [focused, setFocused] = useState(true);
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -46,35 +52,53 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
       onClose={onClose}
       actions={
         <>
-          <TextButton title="Save" filled disabled={busy} onPress={() => void save()} />
+          <TextButton title="Save" filled busy={busy} onPress={() => void save()} />
           <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >
-      <View style={styles.inputRow}>
+      <View style={[styles.box, focused && styles.boxFocused, problem ? styles.boxProblem : null]}>
         <TextInput
           accessibilityLabel={label}
           value={text}
           onChangeText={setText}
           keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
           autoFocus
-          style={[fieldInput, styles.input]}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={styles.input}
         />
         <Text style={styles.unit}>{unit}</Text>
       </View>
       {problem ? (
-        <Text accessibilityRole="alert" style={styles.problem}>
-          {problem}
-        </Text>
+        <View style={styles.problem}>
+          <CircleAlert size={16} color={colors.danger} />
+          <Text accessibilityRole="alert" style={styles.problemText}>
+            {problem}
+          </Text>
+        </View>
       ) : null}
     </Sheet>
   );
 }
 
+// A box 76 tall, the number 44 in condensed fixed-width figures.
 const useStyles = themedStyles((c) => ({
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  // A field as Field, its number at the size of a value, in fixed-width digits.
-  input: { flex: 1, fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 15, color: c.textMuted },
-  problem: { fontSize: 13, color: c.error },
+  box: {
+    minHeight: 76,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.inkSubtle,
+    backgroundColor: c.surfaceSunken,
+  },
+  boxFocused: { borderColor: c.accent },
+  boxProblem: { borderColor: c.danger },
+  input: { ...TYPE.metric, flex: 1, fontSize: 44, lineHeight: 48, paddingVertical: 8 },
+  unit: { ...TYPE.label, fontSize: 20, lineHeight: 24, letterSpacing: 1 },
+  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
 }));

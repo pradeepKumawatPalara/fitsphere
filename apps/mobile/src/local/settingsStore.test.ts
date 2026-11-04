@@ -70,7 +70,7 @@ describe('Local schema version 7', () => {
     try {
       // Version 6 as phones have it: build it with the current migrations, then drop what 7 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE settings; PRAGMA user_version = 6;');
+      await old.execAsync('DROP TABLE profile; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 6;');
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(
         `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c1', 'weighIn.set', ?, ?, 'pending')`,
@@ -81,7 +81,7 @@ describe('Local schema version 7', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 7 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
@@ -90,5 +90,40 @@ describe('Local schema version 7', () => {
     } finally {
       await old.closeAsync();
     }
+  });
+});
+
+describe('Local schema version 9', () => {
+  it('REQ-ACC-011 the update from version 8 adds no profile yet, keeps the data and the outbox, and clears the cursor', async () => {
+    const old = memoryDb();
+    try {
+      // Version 8 as phones have it: build it with the current migrations, then drop what 9 adds.
+      await migrateLocal(old);
+      await old.execAsync('DROP TABLE profile; PRAGMA user_version = 8;');
+      await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
+      await old.runAsync(
+        `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c1', 'setting.set', ?, ?, 'pending')`,
+        [JSON.stringify({ name: 'theme', value: 'dark', setAt: AT }), AT],
+      );
+      await setMeta(old, 'cursor', '99');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
+      expect(await getEntry(old, 'profile', 'profile')).toBeNull();
+      expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
+      expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
+      expect(await getMeta(old, 'cursor')).toBeNull();
+    } finally {
+      await old.closeAsync();
+    }
+  });
+
+  it('ADR-0007 a profile waiting to sync keeps the phone’s value over the pull', async () => {
+    const mine = { name: 'Mine', dateOfBirth: null, sex: null, heightMm: null, phone: null, address: null, photoMediaId: null, setAt: AT };
+    await saveEntry(db, 'profile', { changeId: 'c1', data: mine });
+
+    await applyServerEntries(db, 'profile', [{ ...mine, name: 'Theirs' }]);
+    expect(await getEntry(db, 'profile', 'profile')).toMatchObject({ name: 'Mine', syncState: 'pending' });
   });
 });

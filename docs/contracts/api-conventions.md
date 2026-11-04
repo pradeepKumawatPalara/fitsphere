@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -215,6 +215,7 @@ Request:
   | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
   | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
   | `setting.set` | `name`, `value`, `setAt` | `name` is `theme` (`system`, `light` or `dark`), `body_weight_unit` or `lifting_weight_unit` (`kg` or `lb`); a value another name allows is refused (data model, `settings`) |
+  | `profile.set` | `name`, `dateOfBirth`, `sex`, `heightMm`, `phone`, `address`, `photoMediaId`, `setAt` | The whole profile (REQ-ACC-011, D-38); each field `null` when empty. `address` is `null` or `{ line1, line2, city, state, pinCode }` with `line2` `null` when empty. A date of birth giving an age under 18 or over 120 on today's IST day, or a field outside its rule (data model, `profiles`), is `VALIDATION_FAILED`. `photoMediaId` names the profile photo; an ID already used, or deleted, is refused (data model, `media`) |
 
 - An `id` in a meal or saved-meal change is made on the phone and names only the caller's own
   meal: the same `id` from another user creates or changes that user's own (invariant #1).
@@ -226,6 +227,9 @@ Request:
   default, D-23).
 - `setting.set` sets the user's current value of that setting, replacing the old one; the change
   received last wins, as for targets (MVP default, D-31).
+- `profile.set` replaces the user's whole profile; the change received last wins, as for settings.
+  A photo the profile no longer names is deleted (D-38). Its photo's files use the media routes,
+  as a meal photo's do.
 - `workout.set` creates the user's workout with that `id`, or replaces the whole workout; the day
   rules above apply, but a day may hold several workouts. It also restores a deleted workout.
   `workout.delete` keeps the workout's row without its content, so other phones learn of the
@@ -264,6 +268,10 @@ Response `200`:
     "settings": [
       { "name": "body_weight_unit", "value": "lb", "setAt": "…", "updatedAt": "…" }
     ],
+    "profiles": [
+      { "name": "Asha Verma", "dateOfBirth": "1994-06-14", "sex": "female", "heightMm": 1620,
+        "phone": "+919876543210", "address": null, "photoMediaId": null, "setAt": "…", "updatedAt": "…" }
+    ],
     "removals": []
   },
   "cursor": "opaque-string",
@@ -278,7 +286,7 @@ Response `200`:
 - **Who wins:** for the same day, the change the server receives last wins; `recordedAt` does not
   decide (ADR-0007 rule 2).
 - **Pull:** the user's own weigh-ins, steps, sleep, measurements, meals and workouts for the last
-  90 IST days, and their current targets, settings and saved meals (ADR-0007 rule 1). With `cursor: null`,
+  90 IST days, and their current targets, settings, profile and saved meals (ADR-0007 rule 1). With `cursor: null`,
   all of them; otherwise only those changed since the cursor. All the lists share one change
   sequence, so one cursor covers them, and entries are returned in the order they changed. At most
   500 entries per response, across the lists; when `hasMore` is `true`, the phone calls again with
@@ -293,6 +301,8 @@ Response `200`:
   (backlog E-02).
 - **Re-checked every time:** every change is authorized when it arrives, never when it was
   queued (invariant #1, D-10).
+- `profiles` holds the user's profile when it changed since the cursor: at most one entry, and
+  only ever the caller's own (D-20). The values in the example are synthetic.
 - `removals` is always empty in the MVP. Its contents are defined with the first slice that puts
   other people's data on a phone (ADR-0007 rule 3; D-20).
 - Adding these lists did not change the version: a phone reads the lists it knows.
@@ -352,7 +362,8 @@ Query: `version` (optional), the version of the list the phone already holds.
   "version": "Qm9VZx1…",
   "items": [
     { "source": "ifct2017", "code": "T013", "name": "Ghee", "foodGroup": "Edible Oils and Fats",
-      "aliases": [], "proteinG": 0, "fibreG": 0, "fatG": 100, "carbsG": 0, "kcal": 900, "kcalEstimated": true }
+      "aliases": [], "proteinG": 0, "fibreG": 0, "fatG": 100, "carbsG": 0, "kcal": 900, "kcalEstimated": true,
+      "measures": [{ "measure": "teaspoon", "grams": 4.6 }] }
   ],
   "dishes": [
     { "code": "test_dal", "name": "Test dal", "portionUnit": "katori", "kcal": 138.82, "proteinG": 7.42,
@@ -361,10 +372,13 @@ Query: `version` (optional), the version of the list the phone already holds.
 }
 ```
 - `items`: values are per 100 g edible portion. Rows hidden until checked are left out.
+- `measures` (D-36): the household units the owner has measured and approved for the food, in the
+  order teaspoon, tablespoon, katori, glass, piece, with the grams one holds; empty for most foods.
+  A meal item may use only a unit its food has here. The example's grams are synthetic.
 - `dishes` (D-28): the approved dishes of the standard-recipe sheet, with their values for one
   portion (`portionUnit`: `piece`, or `katori` of 200 ml). Always estimated. A recipe's
   ingredients and grams are never sent. The example is synthetic.
-- `version` changes whenever any value the phone receives changes, dishes included. When the
+- `version` changes whenever any value the phone receives changes, dishes and units included. When the
   query's `version` is already current, `items` and `dishes` are `null`, so the phone downloads
   the list only when it changed.
 - The list is reference data, not personal, and is the same for every signed-in user. Where its

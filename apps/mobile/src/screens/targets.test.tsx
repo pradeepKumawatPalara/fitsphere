@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WorkoutTracker } from '../components/WorkoutTracker';
 import { getEntry } from '../local/store';
@@ -34,15 +35,18 @@ describe('REQ-ROLE-007 Your targets', () => {
     }
   });
 
-  it('each target shows a blue pencil at its top right, and the tile says it opens the target to edit', async () => {
+  it('each target shows a caramel pencil at its top right, and the tile says it opens the target to edit', async () => {
     await renderInApp(<TargetsScreen />);
 
     const tile = await screen.findByRole('button', { name: 'Daily calories: Not set' });
     expect(tile).toHaveProp('accessibilityHint', 'Opens it to edit');
-    // In the tile's first row, beside its name; hidden from screen readers, the tile being the button.
+    // In the tile's first row, opposite its icon, the name under them (6.2); hidden from screen readers,
+    // the tile being the button.
     const pencil = within(tile).getByTestId('edit-calories', { includeHiddenElements: true });
-    expect(pencil).toHaveStyle({ color: LIGHT_COLORS.primary });
-    expect(within(pencil.parent!).getByText('Daily calories')).toBeOnTheScreen();
+    expect(pencil).toHaveProp('stroke', LIGHT_COLORS.accent);
+    expect(pencil.parent!.children).toHaveLength(2);
+    expect(within(pencil.parent!).queryByText('Daily calories')).toBeNull();
+    expect(within(tile).getByText('Daily calories')).toBeOnTheScreen();
     for (const kind of ['protein', 'steps', 'weekly_workouts', 'body_weight']) {
       expect(screen.getByTestId(`edit-${kind}`, { includeHiddenElements: true })).toBeOnTheScreen();
     }
@@ -103,7 +107,8 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
   it('REQ-ROLE-007 with no target, shows the amount eaten without a percentage, and "Set a target" opens the targets', async () => {
     await renderInApp(<HomeScreen />);
 
-    expect(await screen.findByText('0 kcal eaten')).toBeOnTheScreen();
+    // Calories is Home's hero: its number and words are read out as one.
+    expect(await screen.findByLabelText('0 kcal eaten')).toBeOnTheScreen();
     expect(screen.getByText('0 g eaten')).toBeOnTheScreen();
     expect(screen.queryByText(/%$/)).toBeNull();
 
@@ -124,7 +129,7 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
 
     // A target applies to past days too (Q-014 MVP default, D-23).
     expect(await screen.findByText('0 of 2,000 kcal')).toBeOnTheScreen();
-    expect(screen.getByText('2,000 kcal remaining')).toBeOnTheScreen();
+    expect(screen.getByLabelText('2,000 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('120 g remaining')).toBeOnTheScreen();
     expect(screen.getByText('0 of 4 · 4 left')).toBeOnTheScreen();
   });
@@ -134,14 +139,28 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
 
     expect(screen.getByText('75%')).toBeOnTheScreen();
     expect(screen.getByText('500 kcal remaining')).toBeOnTheScreen();
-    expect(screen.getByTestId('Calories-bar')).toHaveStyle({ width: '75%' });
+    // Plates: 10 here, 8 of them caramel.
+    expect(screen.getByTestId('Calories-bar')).toHaveAccessibilityValue({ min: 0, max: 100, now: 75 });
+    const plates = screen.getAllByTestId('Calories-plate');
+    expect(plates).toHaveLength(10);
+    expect(plates.filter((plate) => StyleSheet.flatten(plate.props.style).backgroundColor === LIGHT_COLORS.primary)).toHaveLength(8);
+  });
+
+  it('D-35 as the hero, what is left is the big number, with 20 plates', async () => {
+    await render(<TargetProgressCard title="Calories" unit="kcal" eaten={1_500} target={2_000} onSetTarget={jest.fn()} hero />);
+
+    expect(screen.getByLabelText('500 kcal remaining')).toBeOnTheScreen();
+    expect(screen.getByText('500')).toBeOnTheScreen();
+    expect(screen.getByText('1,500 of 2,000 kcal')).toBeOnTheScreen();
+    expect(screen.getAllByTestId('Calories-plate')).toHaveLength(20);
   });
 
   it('Q-022 over the target: the bar is full in the warning colour, with "X kcal over"', async () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={2_300} target={2_000} onSetTarget={jest.fn()} />);
 
     expect(screen.getByText('300 kcal over')).toBeOnTheScreen();
-    expect(screen.getByTestId('Calories-bar')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.over });
+    expect(screen.getByTestId('Calories-bar')).toHaveAccessibilityValue({ now: 100 });
+    for (const plate of screen.getAllByTestId('Calories-plate')) expect(plate).toHaveStyle({ backgroundColor: LIGHT_COLORS.warning });
   });
 
   it('REQ-HOME-004 protein over the target reads "X g over"', async () => {

@@ -1,8 +1,10 @@
 import type { IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
+import { ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { addMonths, formatLongDay, formatMonth, monthWeeks } from '../format';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
 import { Text, TextButton } from './ui';
 
@@ -40,6 +42,7 @@ export const OLDER_DAY = 'Only the last 90 days are on this phone. Choose a late
 // has a dot, and each day's status (Q-037) is read out.
 export function CalendarSheet({ title, today, firstDay, selected, counts, onSelect, onClose }: Props) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const [month, setMonth] = useState(selected.slice(0, 7));
   // Why the greyed day just tapped cannot be picked.
   const [notice, setNotice] = useState<string | null>(null);
@@ -51,37 +54,46 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
     setNotice(null);
   }
 
-  // In the sheets' frame. Days as on the week strip: the selected day a filled pill, today in blue
-  // with a bar under it.
+  // In the sheets' frame (the redesign's 2.2, locked by the owner 2026-11-03): the month in display
+  // capitals, under Log meal's title; square days, today outlined in caramel, the selected day
+  // filled; greyed days dimmed.
   return (
     <Sheet
-      title={title}
       onClose={onClose}
       header={
         <View style={styles.monthRow}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Previous month"
-            accessibilityState={{ disabled: !canGoBack }}
-            disabled={!canGoBack}
-            onPress={() => showMonth(addMonths(month, -1))}
-            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
-          >
-            <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
-          </Pressable>
-          <Text accessibilityRole="header" style={styles.title}>
-            {formatMonth(month)}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next month"
-            accessibilityState={{ disabled: !canGoForward }}
-            disabled={!canGoForward}
-            onPress={() => showMonth(addMonths(month, 1))}
-            style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
-          >
-            <Text style={[styles.arrowText, !canGoForward && styles.disabledText]}>›</Text>
-          </Pressable>
+          <View style={styles.monthTitle}>
+            {title ? (
+              <Text accessibilityRole="header" style={styles.overline}>
+                {title}
+              </Text>
+            ) : null}
+            <Text accessibilityRole="header" style={styles.title}>
+              {formatMonth(month)}
+            </Text>
+          </View>
+          <View style={styles.arrows}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Previous month"
+              accessibilityState={{ disabled: !canGoBack }}
+              disabled={!canGoBack}
+              onPress={() => showMonth(addMonths(month, -1))}
+              style={({ pressed }) => [styles.arrow, !canGoBack && styles.dimmed, pressed && styles.pressed]}
+            >
+              <ChevronLeft size={22} strokeWidth={2.25} color={canGoBack ? colors.accent : colors.inkSubtle} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Next month"
+              accessibilityState={{ disabled: !canGoForward }}
+              disabled={!canGoForward}
+              onPress={() => showMonth(addMonths(month, 1))}
+              style={({ pressed }) => [styles.arrow, !canGoForward && styles.dimmed, pressed && styles.pressed]}
+            >
+              <ChevronRight size={22} strokeWidth={2.25} color={canGoForward ? colors.accent : colors.inkSubtle} />
+            </Pressable>
+          </View>
         </View>
       }
       actions={<TextButton title="Close" wide onPress={onClose} />}
@@ -117,15 +129,19 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
                       onClose();
                     }
                   }}
-                  style={({ pressed }) => [styles.cell, pressed && styles.pressed]}
+                  style={({ pressed }) => [
+                    styles.cell,
+                    styles.day,
+                    isToday && !isSelected && styles.today,
+                    isSelected && styles.selected,
+                    disabled && styles.dimmed,
+                    pressed && styles.pressed,
+                  ]}
                 >
-                  <View style={[styles.day, isSelected && styles.selected]}>
-                    <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, disabled && styles.disabledText]}>
-                      {Number(day.slice(8))}
-                    </Text>
-                    <View style={[styles.todayBar, isToday && styles.todayBarShown, isToday && isSelected && styles.todayBarOnSelected]} />
-                    {counts ? <View style={[styles.dot, count > 0 && styles.dotShown, count > 0 && isSelected && styles.dotOnSelected]} /> : null}
-                  </View>
+                  <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, disabled && styles.disabledText]}>
+                    {Number(day.slice(8))}
+                  </Text>
+                  {counts ? <View style={[styles.dot, count > 0 && styles.dotShown, count > 0 && isSelected && styles.dotOnSelected]} /> : null}
                 </Pressable>
               );
             })}
@@ -133,36 +149,51 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, onSele
         ))}
       </View>
       {notice ? (
-        <Text accessibilityRole="alert" style={styles.notice}>
-          {notice}
-        </Text>
+        <View style={styles.notice}>
+          <CircleAlert size={16} color={colors.danger} />
+          <Text accessibilityRole="alert" style={styles.noticeText}>
+            {notice}
+          </Text>
+        </View>
       ) : null}
     </Sheet>
   );
 }
 
+// Days 44 tall with 4 between them; the arrows 44 square, raised, radius 8.
 const useStyles = themedStyles((c) => ({
-  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 20, fontWeight: '600' },
-  arrow: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  arrowText: { fontSize: 24 },
+  monthRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
+  monthTitle: { flexShrink: 1, gap: 4 },
+  overline: { ...TYPE.label, color: c.inkMuted },
+  title: TYPE.sheetTitle,
+  arrows: { flexDirection: 'row', gap: 8 },
+  arrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pressed: { opacity: 0.6 },
+  dimmed: { opacity: 0.45 },
   month: { gap: 4 },
-  week: { flexDirection: 'row' },
+  week: { flexDirection: 'row', gap: 4 },
   cell: { flex: 1, alignItems: 'center' },
-  heading: { paddingVertical: 4, fontSize: 12, color: c.textMuted, textAlign: 'center' },
-  day: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  heading: { ...TYPE.label, paddingVertical: 4, color: c.inkMuted, textAlign: 'center' },
+  day: { height: 44, justifyContent: 'center', gap: 2, borderRadius: 4 },
+  today: { borderWidth: 2, borderColor: c.accent },
   selected: { backgroundColor: c.primary },
-  date: { fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  todayText: { color: c.primary, fontWeight: '700' },
-  selectedText: { color: c.onPrimary, fontWeight: '700' },
-  disabledText: { color: c.textFaint },
-  todayBar: { marginTop: 2, width: 14, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
-  todayBarShown: { backgroundColor: c.primary },
-  todayBarOnSelected: { backgroundColor: c.onPrimary },
-  notice: { fontSize: 13, color: c.error, textAlign: 'center' },
+  date: TYPE.dayNumber,
+  todayText: { color: c.accent },
+  selectedText: { color: c.onPrimary },
+  disabledText: { color: c.inkSubtle },
+  notice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  noticeText: { ...TYPE.small, flexShrink: 1, color: c.danger, textAlign: 'center' },
   // A day with a meal, in the green of the week strip's filled status.
-  dot: { marginTop: 2, width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'transparent' },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'transparent' },
   dotShown: { backgroundColor: c.success },
   dotOnSelected: { backgroundColor: c.onPrimary },
 }));

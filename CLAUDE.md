@@ -7,6 +7,23 @@ targets set by their coach; Coaches manage their trainees; Head Coaches manage C
 Coach and Head Coach are post-MVP.
 
 ## Current phase
+**Profile — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-38,
+2026-11-03 to 2026-11-04).** Plan: `docs/plans/user-profile.md` (Accepted), REQ-ACC-011. Settings
+opens with a Profile card; the Profile screen keeps the user's photo, name, date of birth (18 or
+older), sex, height (mm), phone (+91) and address, all optional, with the latest weigh-in and the
+email read-only. Migration `0010_profiles.sql` (`app.profiles`, `app.media.kind`), sync change
+`profile.set`, phone schema version 9. **Run migration 0010 on `fitsphere-dev` before the updated
+API, and only when the owner says so.** Legal reviews the new data before real users (Q-049, L-07a).
+The redesign's module 6 (6.1 to 6.6) is locked and built.
+
+**Household units — built on branch `ui-redesign`, not pushed; the owner's steps pending (D-36,
+2026-11-03).** Plan: `docs/plans/household-units.md` (Accepted). A listed food can be logged in a
+teaspoon, tablespoon, katori, glass or piece once the owner has measured it in
+`docs/data/household-measures-sheet.csv`; the starter rows are `pending` with no grams. Never fill
+in or approve a row without the owner's measurements. Migration 0009 and `foods:import` ran on
+`fitsphere-dev` on 2026-11-03 at the owner's go (0 units: no row approved yet). After approving
+rows, run `foods:import` again.
+
 **UI refresh — branch `ui-refresh`, not merged yet; the owner's phone checks pending (D-33, D-34;
 2026-11-02 to 2026-11-03).** One branch, not pushed: the app restyled screen by screen and sheet by
 sheet (TextButton, Field, the shared Sheet and FormScreen frames, one pill style, one Cancel
@@ -166,6 +183,28 @@ Resend from FitSphere's domain (D-20).
 - Runbook (Draft — local setup, configuration names, paused project): `docs/operations/runbook.md`
 
 If a referenced document does not exist, state that it is missing; do not invent its contents.
+
+## Design source of truth
+The app's design language (D-35, 2026-11-03). Follow it for UI work:
+- `docs/design/design-system.md`: the brand palette, colour tokens for dark and light, type
+  styles, shape, spacing and components.
+- `docs/design/FitSphere-UI-UX-context.md`: the visual direction, components, the app-shell
+  pattern, UX principles and copy rules. Its sections 5 (locked screens), 7 (decisions) and 8
+  (tech choices) belong to the reference design and are examples only.
+
+Examples only: `docs/design/reference-fitsphere/` (the `F0x-*-ui.md` files; see its README). Do
+not build their features or apply their decisions here. What to build still comes from
+`docs/product/` and the slice plans.
+
+The project's rules come first: where a design file conflicts with an invariant, an owner
+decision or an accepted ADR, those win and the conflict goes to the owner. Settled by D-35: the
+icons are Lucide (`lucide-react-native`, in place of `@expo/vector-icons`; it needs
+`react-native-svg` and so a new development build, so tell the owner before building), and the
+fonts are Barlow Condensed and Barlow (`@expo-google-fonts/*`, no new build). "The user's time
+zone" means Asia/Kolkata here (invariant 5). The redesign follows `docs/plans/ui-redesign.md`: each
+screen is designed on the owner's canvas, locked by the owner, then built; the app's colours, fonts
+and icons switched with the first screen, 1.1 Sign in (branch `ui-redesign`). Build only
+locked screens.
 
 ## Working rules
 1. Inspect the actual repository before proposing changes.

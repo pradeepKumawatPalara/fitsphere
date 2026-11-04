@@ -1,15 +1,20 @@
 import { useRouter } from 'expo-router';
+import { Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { requestPasswordReset } from '../auth/service';
 import { emailProblem, TEXTS } from '../auth/texts';
+import { DisplayHeading } from '../components/DisplayHeading';
 import { FormScreen } from '../components/FormScreen';
-import { Field, Message, Text, TextButton } from '../components/ui';
+import { Banner, Field, Message, TextButton } from '../components/ui';
+import { Wordmark } from '../components/Wordmark';
 import { themedStyles } from '../theme';
 import { backToSignIn } from './navigation';
 
-// REQ-ACC-010, D-11: the same neutral text whether or not the address is registered.
+// REQ-ACC-010, D-11: the same neutral text whether or not the address is registered. The redesign's
+// screen 1.5 (locked by the owner, 2026-11-03): a problem with the email shows under it; once the
+// link is sent, the text shows in a banner in the field's place.
 export function ForgotPasswordScreen() {
   const styles = useStyles();
   const { deps } = useAuth();
@@ -17,16 +22,15 @@ export function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   async function submit() {
-    const problem = emailProblem(email);
-    if (problem) {
-      setMessage(problem);
-      return;
-    }
-    setBusy(true);
     setMessage(null);
+    const problem = emailProblem(email);
+    setEmailError(problem);
+    if (problem) return;
+    setBusy(true);
     const result = await requestPasswordReset(deps, email);
     setBusy(false);
     if (result === 'offline') setMessage(TEXTS.needsInternet('Resetting a password'));
@@ -37,37 +41,43 @@ export function ForgotPasswordScreen() {
   // above the keyboard. Once the link is sent, going back to sign in is the step left.
   return (
     <FormScreen
-      contentStyle={styles.content}
+      contentStyle={[styles.content, busy && styles.busy]}
       footer={
-        <>
-          {sent ? null : (
-            <>
-              <Message text={message} />
-              <TextButton title="Send reset link" filled disabled={busy} onPress={() => void submit()} />
-            </>
-          )}
-          <TextButton title="Back to sign in" filled={sent} wide onPress={() => backToSignIn(router)} />
-        </>
+        sent ? (
+          <TextButton title="Back to sign in" filled onPress={() => backToSignIn(router)} />
+        ) : (
+          <>
+            <Message text={message} offline={message === TEXTS.needsInternet('Resetting a password')} />
+            <TextButton title="Send reset link" filled arrow busy={busy} onPress={() => void submit()} />
+            <TextButton title="Back to sign in" outlined wide onPress={() => backToSignIn(router)} />
+          </>
+        )
       }
     >
-      <Text accessibilityRole="header" style={styles.heading}>
-        Forgot password
-      </Text>
-      {sent ? (
-        <View style={styles.notice}>
-          <Text style={styles.body}>{TEXTS.resetSent}</Text>
-        </View>
-      ) : (
-        <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoComplete="email" />
-      )}
+      <Wordmark />
+      <DisplayHeading text="Forgot password" style={styles.heading} />
+      <View style={styles.below}>
+        {sent ? (
+          <Banner tone="info" icon={Mail} text={TEXTS.resetSent} />
+        ) : (
+          <Field
+            label="Email"
+            error={emailError}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+        )}
+      </View>
     </FormScreen>
   );
 }
 
-// As Sign in: 24 between groups.
-const useStyles = themedStyles((c) => ({
-  content: { paddingTop: 32, gap: 24 },
-  heading: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5 },
-  notice: { padding: 14, borderRadius: 12, backgroundColor: c.surface },
-  body: { fontSize: 15 },
+// As Sign in: from the wordmark, 48 to the heading and 40 to the field or the banner.
+const useStyles = themedStyles(() => ({
+  content: { paddingTop: 24, gap: 0 },
+  busy: { opacity: 0.6 },
+  heading: { marginTop: 48 },
+  below: { marginTop: 40 },
 }));

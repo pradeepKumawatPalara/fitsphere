@@ -4,10 +4,10 @@
 
 | Attribute | Value |
 |---|---|
-| Document | `testing-rules.md` (referred to in the standard set as the Testing Rules) |
-| Version | 1.2 |
-| Status | Proposed — change to Approved on sign-off (agents treat unapproved documents as guidance only, SDLC Rules G-12) |
-| Issue date | 2026-10-23 (v1.2 and v1.1); v1.0 issued 2026-10-21 |
+| Document | `STANDARD_IT_TESTING_RULES.md` |
+| Version | 1.0 |
+| Status | Baseline issued for organizational adoption and tailoring |
+| Issue date | 2026-10-21 |
 | Document owner | *To be assigned by the adopting organization (see GOV-004)* |
 | Review cycle | At least annually, and after any trigger event listed in GOV-021 |
 | Audience | Developers, manual testers, automation engineers, QA leads, architects, security testers, business analysts, product owners, DevOps/platform engineers, release managers, auditors, and AI-based QA agents |
@@ -16,7 +16,7 @@
 
 ## Table of Contents
 
-- [0. How to Use This Standard](#0-how-to-use-this-standard) (0.7: place in the standard set)
+- [0. How to Use This Standard](#0-how-to-use-this-standard)
 - [A. Governance and Standard Applicability (GOV)](#a-governance-and-standard-applicability-gov)
 - [B. Universal Testing Principles (PRIN)](#b-universal-testing-principles-prin)
 - [C. Requirements and Acceptance Criteria (REQ)](#c-requirements-and-acceptance-criteria-req)
@@ -50,7 +50,6 @@
 - [Annex 5. Rule Prefix Index](#annex-5-rule-prefix-index)
 - [Annex 6. Standards Alignment and References](#annex-6-standards-alignment-and-references)
 - [Annex 7. Known Limitations and Areas Requiring Tailoring](#annex-7-known-limitations-and-areas-requiring-tailoring)
-- [Annex 8. Core Rule Profiles by Risk Tier](#annex-8-core-rule-profiles-by-risk-tier)
 
 ---
 
@@ -107,35 +106,6 @@ This document is a reusable organizational testing standard. It is **informed by
 ### 0.6 Use by AI-based QA agents
 
 This standard is written to be machine-readable as well as human-readable. AI agents that apply it MUST additionally follow Section V (AIQA rules). Agents SHOULD cite rule IDs in findings, report the exact evidence on which each conclusion rests, and treat Applicability conditions as preconditions that must be established from project facts, not assumed.
-
-**Use as instructions for AI coding agents.** This document is the canonical reference. It is too large to be loaded in full into an agent's working context at the start of every session without displacing task context and reducing adherence. Projects using AI coding agents SHOULD instead:
-
-1. load a short, always-present digest built from the Annex 8 core profile rules that apply to the project;
-2. load section extracts (for example, API, data, UI, or security rules) only when the agent works on matching code or activities;
-3. let the agent consult this full document on demand during specification, planning, and review; and
-4. enforce the most critical rules through automated controls rather than instructions alone (AIQA-031).
-
-Digests and extracts are derived artifacts governed by AIQA-030; where they differ from this document, this document prevails.
-
-### 0.7 Place in the standard set
-
-This document is one of eight organizational standards: `security-privacy-policy.md`, `ai-usage-policy.md`, `sdlc-rules.md`, `architecture-decision-framework.md`, `it-standard-rules.md`, `code-review-rules.md`, `release-rules.md`, and this document.
-
-- **Conflict order:** law and regulation → client contracts → Security & Privacy Policy → AI Usage Policy → SDLC Rules → Architecture Decision Framework / Code Review Rules / Release Rules / IT Standard Rules / Testing Rules → approved project ADRs and project rules → stack-specific rules → tool defaults. A higher document wins when two documents conflict. A lower document MAY add stricter requirements; that is not a conflict. Within the same level, the stricter rule applies. Report conflicts; never choose silently. A project deviation needs a recorded exception (owner, reason, expiry). GOV-003 applies within this order.
-- **Tags.** Rules here are not tagged [H]/[A]/[B]; they apply to humans and AI agents alike unless the rule names one of them.
-- **Data classes** (Public, Internal, Confidential, Restricted) are defined only in the Security & Privacy Policy §1; Annex 2 uses them.
-- **Exceptions.** Section X is the detailed form of the set-wide exception rule.
-
-| SDLC phase | Parts of this standard to use |
-|---|---|
-| 0 Readiness | Section A (GOV), Annex 2 |
-| 1 Requirements | Section C (REQ), Annex 2 (assign the risk tier) |
-| 2 Design | PRIN-010, SEC-055, NFR targets for Section K |
-| 3 Plan | Sections D (PLAN) and E (DES, TDATA); Annex 8 core profile for the risk tier |
-| 4 Configure | Section 0.6 digest and extracts; Sections M (AUTO), P (ENV), Q (CICD) |
-| 5 Build & Verify | Annex 8 core profile; Sections F–N and V (AIQA) as the change requires |
-| 6 Release | Sections Q (CICD) and W (REL); MET-020 |
-| 7 Operate & Learn | Section O (DEF), REL-015, Section X (IMP) |
 
 ---
 
@@ -333,7 +303,7 @@ This document is one of eight organizational standards: `security-privacy-policy
 | ID | Requirement | Applicability | Verification and evidence |
 |---|---|---|---|
 | DES-001 | Test design MUST start from identified test conditions derived from requirements, risks, designs, interfaces, and known failure modes. | Universal | Test condition list or equivalent in test design records. |
-| DES-002 | For Tier 1–2 functionality, test design records MUST state the technique(s) used for each material test condition, so that coverage can be reasoned about; for Tier 3 functionality they SHOULD do so. | Conditional — Tier 1–3 | Technique field in test cases or design notes. |
+| DES-002 | Test design records MUST state the technique(s) used for each material test condition, so that coverage can be reasoned about. | Conditional — Tier 1–2; SHOULD for Tier 3 | Technique field in test cases or design notes. |
 | DES-003 | Equivalence partitioning MUST be applied to inputs and outputs that have classes of behavior, including invalid classes. | Universal | Partition tables; tests per valid and invalid partition. |
 | DES-004 | Boundary-value analysis MUST be applied to ordered inputs, limits, ranges, lengths, sizes, counts, dates, and amounts, testing on, just below, and just above each boundary as relevant. | Universal | Boundary tables; boundary tests. |
 | DES-005 | Decision tables or equivalent rule-combination analysis MUST be used where outcomes depend on combinations of conditions. | Conditional — multi-condition business rules | Decision tables; tests per rule column (or justified reduction). |
@@ -371,7 +341,7 @@ This document is one of eight organizational standards: `security-privacy-policy
 | TDATA-001 | A test data strategy MUST define sources, creation methods, ownership, refresh frequency, privacy controls, and cleanup for each environment. | Universal | Test data strategy section. |
 | TDATA-002 | Test data MUST be representative of production characteristics that matter to the test (volume, distributions, edge cases, relationships, history, locales) without copying real personal data unless permitted under TDATA-004. | Universal | Data profile comparison or rationale. |
 | TDATA-003 | Synthetic data SHOULD be the default for non-production environments. | Universal | Data source records. |
-| TDATA-004 | Real production data containing personal, confidential, or regulated information MUST NOT be used unmasked in non-production environments (Security & Privacy Policy SP-23.15); production-derived data that has been masked or anonymised under TDATA-005 to TDATA-007 MAY be used only if (a) a documented legal and privacy basis exists, (b) it is approved by the data owner and privacy function, and (c) equivalent production-grade protections are applied. | Conditional — when production data is requested | Approval record; control verification. |
+| TDATA-004 | Real production data containing personal, confidential, or regulated information MUST NOT be used in non-production environments unless (a) a documented legal and privacy basis exists, (b) it is approved by the data owner and privacy function, and (c) equivalent production-grade protections are applied. | Conditional — when production data is requested | Approval record; control verification. |
 | TDATA-005 | When production-derived data is used, it MUST be masked, pseudonymized, tokenized, or anonymized using techniques assessed for re-identification risk, and the assessment MUST be recorded. | Conditional — production-derived data | Masking specification; re-identification risk assessment. |
 | TDATA-006 | Masking MUST preserve the properties required by tests (formats, referential integrity, uniqueness, distributions) and MUST be verified to do so. | Conditional — masked data | Masking verification results. |
 | TDATA-007 | Masking and anonymization MUST NOT be assumed effective merely because direct identifiers were removed; quasi-identifiers and free-text fields MUST be considered. | Conditional — masked data | Risk assessment covering quasi-identifiers and free text. |
@@ -695,7 +665,7 @@ This document is one of eight organizational standards: `security-privacy-policy
 | ID | Requirement | Applicability | Verification and evidence |
 |---|---|---|---|
 | SEC-007 | Authentication MUST be tested for valid, invalid, locked, disabled, expired, and not-yet-activated accounts. | Conditional — authentication exists | Authentication test matrix. |
-| SEC-008 | Authentication, registration, and recovery responses and timing MUST be tested to confirm they do not reveal whether an account, email address, or record exists (Security & Privacy Policy SP-22.3). | Conditional — authentication exists | Enumeration tests. |
+| SEC-008 | Authentication responses and timing SHOULD be tested to confirm they do not reveal whether an account exists, unless such disclosure is an accepted, documented design decision. | Conditional — authentication exists | Enumeration tests. |
 | SEC-009 | Brute-force and credential-stuffing protections (throttling, lockout, step-up challenges) MUST be tested for effectiveness and for not enabling easy denial of service against legitimate users. | Conditional — authentication exists | Throttling tests. |
 | SEC-010 | Multi-factor authentication MUST be tested for enrollment, verification, bypass attempts, recovery flows, and replay of one-time codes. | Conditional — MFA used | MFA test results. |
 | SEC-011 | Password and credential reset, recovery, and change flows MUST be tested for token unpredictability, expiry, single use, and binding to the correct account. | Conditional — credential recovery exists | Recovery flow tests. |
@@ -777,7 +747,7 @@ This document is one of eight organizational standards: `security-privacy-policy
 | ID | Requirement | Applicability | Verification and evidence |
 |---|---|---|---|
 | SEC-049 | Third-party and open-source dependencies, including transitive dependencies and container base images, MUST be scanned for known vulnerabilities on every build and on a schedule for released artifacts. | Universal | Software composition analysis results. |
-| SEC-050 | A software bill of materials (SBOM) SHOULD be generated for each release artifact in a standard format, and MUST be generated where required by contract or regulation. | Universal | SBOM per release. |
+| SEC-050 | A software bill of materials (SBOM) SHOULD be generated for each release artifact in a standard format, and MUST be generated where required by contract or regulation. | Universal; MUST when required | SBOM per release. |
 | SEC-051 | Build provenance SHOULD be generated and verified for release artifacts, using a recognized framework (for example, SLSA build levels) proportionate to risk tier. | Conditional — Tier 1–2 | Provenance attestations; verification logs. |
 | SEC-052 | Dependencies MUST be obtained from approved sources, and the pipeline SHOULD defend against dependency confusion, typosquatting, and unpinned or mutable references. | Universal | Repository configuration; lockfiles; policy checks. |
 | SEC-053 | Vulnerability findings MUST be triaged for actual exploitability and exposure in context, and the triage decision MUST be recorded; findings MUST NOT be dismissed solely because a scanner score is low or ignored solely because it is high. | Universal | Triage records with rationale. |
@@ -800,12 +770,12 @@ Different approaches find different classes of weakness; no single approach is s
 
 | ID | Requirement | Applicability | Verification and evidence |
 |---|---|---|---|
-| SEC-054 | Each project MUST define its security verification scope by applying the OWASP ASVS (or, for mobile, MASVS) level that the Security & Privacy Policy (SP-1.4) sets for its highest data class, or an approved organizational equivalent, and MUST record that mapping. | Universal | Security baseline mapping in test strategy. |
-| SEC-055 | Threat modeling MUST be performed for Tier 1–2 systems, for any system within the scope of Security & Privacy Policy SP-23.5, and for significant architectural changes, and MUST be updated when trust boundaries, data flows, or external exposure change. | Conditional — Tier 1–2, SP-23.5 scope, or significant change | Threat model with date and reviewers. |
+| SEC-054 | Each project MUST define its security verification scope by mapping its risk tier to a security requirement baseline (for example, an ASVS or MASVS verification level) or an approved organizational equivalent. | Universal | Security baseline mapping in test strategy. |
+| SEC-055 | Threat modeling MUST be performed for Tier 1–2 systems and for significant architectural changes, and MUST be updated when trust boundaries, data flows, or external exposure change. | Conditional — Tier 1–2 or significant change | Threat model with date and reviewers. |
 | SEC-056 | SAST MUST run in CI for supported languages, with a documented policy on which finding severities block merges. | Universal | CI configuration; policy. |
 | SEC-057 | DAST or equivalent dynamic testing SHOULD run against a deployed test environment for internet-facing or Tier 1–2 applications, including authenticated areas where feasible. | Conditional — internet-facing or Tier 1–2 | DAST reports. |
 | SEC-058 | Fuzzing SHOULD be applied to parsers, file processors, protocol handlers, and public interfaces of Tier 1–2 systems. | Conditional — Tier 1–2 with such components | Fuzzing harnesses and results. |
-| SEC-059 | Manual penetration testing MUST be performed by qualified, independent testers for Tier 1 systems before initial release and after major changes, and SHOULD be performed periodically thereafter at a frequency set by risk; for Tier 2 systems it SHOULD be performed before initial release and after major changes. Penetration testing required by the Security & Privacy Policy (SP-27.3) applies in addition. | Conditional — Tier 1–2 | Penetration test report; remediation tracking. |
+| SEC-059 | Manual penetration testing MUST be performed by qualified, independent testers for Tier 1 systems before initial release and after major changes, and SHOULD be performed periodically thereafter at a frequency set by risk. | Conditional — Tier 1; SHOULD for Tier 2 | Penetration test report; remediation tracking. |
 | SEC-060 | Tool output MUST NOT be reported as a complete security assessment; reports MUST state which approaches were used, their coverage, and their limitations. | Universal | Security report limitations section. |
 | SEC-061 | Security regression tests MUST be added for every fixed security defect where automation is feasible. | Universal | Linked regression tests (see DEF-036). |
 | SEC-062 | Security testing scope MUST include mobile, desktop, and embedded clients where they hold secrets, cache sensitive data, or implement security controls (see MOB and EMB rules). | Conditional — such clients exist | Client security test results. |
@@ -815,7 +785,7 @@ Different approaches find different classes of weakness; no single approach is s
 | ID | Requirement | Applicability | Verification and evidence |
 |---|---|---|---|
 | SEC-063 | Security defects MUST be recorded in an access-restricted tracking location, with details limited to those with a need to know. | Universal | Tracker access controls. |
-| SEC-064 | Security defects MUST be rated using a documented method that considers exploitability, exposure, and impact in the specific context, and remediation timeframes MUST follow the deadlines in the Security & Privacy Policy (SP-24.3) for each rating. | Universal | Rating records; policy reference. |
+| SEC-064 | Security defects MUST be rated using a documented method that considers exploitability, exposure, and impact in the specific context, and remediation timeframes MUST be set by organizational policy for each rating. | Universal | Rating records; policy reference. |
 | SEC-065 | The organization SHOULD maintain a vulnerability disclosure and handling process for externally reported issues, aligned with recognized vulnerability disclosure and handling guidance. | Universal | Published disclosure policy; handling records. |
 | SEC-066 | Releases MUST NOT proceed with open security defects at or above the blocking rating defined by policy, unless an exception is approved by the designated security authority (see EXC rules). | Universal | Release gate evidence; exception records. |
 
@@ -852,7 +822,7 @@ Different approaches find different classes of weakness; no single approach is s
 | RES-001 | Availability, durability, recovery time, and recovery point objectives MUST be defined by the business for Tier 1–2 services; this standard does not set them. | Conditional — Tier 1–2 | Approved objectives. |
 | RES-002 | Failure modes of each critical component and dependency MUST be identified (for example, by failure mode and effects analysis or equivalent), and tests MUST verify the specified response to each. | Conditional — Tier 1–2 | Failure mode catalog with linked tests. |
 | RES-003 | Fault tolerance MUST be verified by injecting faults (process termination, instance loss, dependency errors, latency, resource exhaustion, clock skew, disk full) in a controlled environment. | Conditional — fault tolerance claimed | Fault-injection results. |
-| RES-004 | Controlled fault-injection experiments in production (chaos engineering) MUST NOT be performed without explicit authorization, a defined blast radius, abort criteria, monitoring, and rollback (see ENV-025). | Conditional — production experiments | Experiment plan and authorization. |
+| RES-004 | Controlled fault-injection experiments in production (chaos engineering) MAY be performed only with explicit authorization, defined blast radius, abort criteria, monitoring, and rollback (see ENV-025). | Conditional — production experiments | Experiment plan and authorization. |
 | RES-005 | Graceful degradation MUST be verified: when non-critical features fail, critical functions MUST continue to work as specified. | Conditional — degradation strategy defined | Degradation tests. |
 | RES-006 | Retry storms and cascading failures MUST be tested by simulating dependency recovery after an outage and verifying that backoff, jitter, queuing, and load shedding prevent overload. | Architecture-dependent — distributed systems | Recovery-surge test results. |
 | RES-007 | Failover (between instances, zones, regions, or sites) MUST be tested end-to-end, including data consistency after failover and failback. | Architecture-dependent — failover designed | Failover test records with timings. |
@@ -1053,7 +1023,6 @@ Different approaches find different classes of weakness; no single approach is s
 | AUTO-039 | Execution time of critical suites SHOULD be monitored, and suites SHOULD be optimized or split when they slow feedback below the project's agreed threshold. | Universal | Duration trends. |
 | AUTO-040 | Mutation testing or fault seeding MAY be used to assess the fault-detection ability of suites for Tier 1–2 logic. | Conditional — Tier 1–2 | Mutation results. |
 | AUTO-041 | Test tooling and frameworks MUST be kept within supported versions, and upgrades MUST be validated by running the suite before and after. | Universal | Tool version records. |
-| AUTO-042 | Where tests for Tier 1–2 logic were generated wholly or largely by an AI agent, mutation testing or fault seeding SHOULD be used to confirm that the tests detect injected faults, and surviving mutants in critical logic SHOULD be reviewed. | Conditional — Tier 1–2 with AI-generated tests | Mutation results; surviving-mutant review notes. |
 
 ---
 
@@ -1481,22 +1450,6 @@ Different approaches find different classes of weakness; no single approach is s
 | AIQA-021 | The effectiveness of AI QA agents SHOULD be evaluated periodically (for example, seeded-defect detection rate, false positive rate, report accuracy against ground truth). | Conditional — AI QA agents used | Agent evaluation reports. |
 | AIQA-022 | The model, version, configuration, and instructions of an AI QA agent MUST be recorded with each set of results it produces. | Conditional — AI QA agents used | Result metadata. |
 
-### V.4 AI-authored code and specification-driven development
-
-**Intent and rationale.** When an AI coding agent writes production code, the dominant risk shifts from "the code was not tested" to "the code was tested only against itself": the same session that wrote the implementation also writes tests that confirm whatever the implementation does. These rules keep the specification, not the implementation, as the test basis, define independence for agent-written work, and keep agent-written code under the same gates as human-written code.
-
-| ID | Requirement | Applicability | Verification and evidence |
-|---|---|---|---|
-| AIQA-023 | Where development is specification-driven, the approved specification files MUST be treated as the requirements and test basis: each acceptance criterion in a specification MUST carry a stable identifier satisfying REQ-001, and changes to specification files MUST be handled as requirement changes under REQ-013 and REQ-022. | Conditional — specification-driven development | Specification files under version control with criterion identifiers; change history linked to impact analysis. |
-| AIQA-024 | Expected results for tests of AI-authored code MUST be derived from the specification, requirements, or an independent oracle (DES-012, DES-013); an agent MUST NOT derive expected results by running or reading the implementation under test, except for tests labeled as characterization tests under AIQA-019. | Conditional — AI-authored code | Test-to-criterion trace; review checklist (AIQA-018). |
-| AIQA-025 | For the purposes of PRIN-004, DES-015, and DEF-014, an AI agent session that produced a change (including subagents that share its context) MUST be treated as the author of that change; tests or reviews produced in the same session MUST NOT be counted as independent verification. | Conditional — AI-authored code | Session or agent identifiers in test and review records. |
-| AIQA-026 | For Tier 1–2 functionality, tests verifying AI-authored code MUST be written or independently reviewed in a separate context that works from the specification and public interfaces rather than from the implementing session's reasoning (for example, a fresh agent session, a separate subagent without the implementation context, or a human tester); for Tier 3 functionality this SHOULD be done. | Conditional — AI-authored code, Tier 1–3 | Records identifying the separate context or reviewer. |
-| AIQA-027 | An agent MUST NOT report a task as complete, fixed, or ready for review unless it has executed the relevant tests against the final version of the change in that session and reports the command run and the result counts (CICD-016); when tests could not be run, it MUST say so and MUST NOT describe the change as verified. | Conditional — AI-authored code | Completion messages cross-checked against execution logs. |
-| AIQA-028 | When a test fails, the agent MUST determine against the specification whether the code or the test is wrong and MUST record that determination with its reason; it MUST NOT change expected results, assertions, or snapshots to match new behavior without citing the specification criterion or approved decision that justifies the change. | Conditional — AI-authored code | Diff review; rationale in change description. |
-| AIQA-029 | AI-authored changes MUST pass the same merge and release gates as human-authored changes (CICD-001 to CICD-005), and for Tier 1–2 repositories at least one approving review before merge MUST be given by a competent human; AI review MAY supplement that human review but MUST NOT replace it. | Conditional — AI-authored code | Merge records showing human approval. |
-| AIQA-030 | Agent instruction files that encode this standard (for example, project instruction files, rule files, skills, and hook configurations) MUST be version-controlled, reviewed like code, and MUST record the version of this standard they derive from; where they conflict with this standard, this standard prevails and the conflict MUST be corrected. | Conditional — AI coding agents used | Instruction files in the repository with version references; review records. |
-| AIQA-031 | Rules that MUST NOT be excepted (EXC-008), and other rules whose breach is hard to reverse, SHOULD be enforced by automated controls (pipeline gates, branch protection, agent tool-use hooks, environment guards) rather than by agent instructions alone, because instructions guide an agent's behavior but do not guarantee it. | Conditional — AI coding agents used | Control configuration; tests demonstrating that the controls block violations. |
-
 ---
 
 ## W. Test Completion and Release Sign-Off (REL)
@@ -1538,7 +1491,7 @@ Different approaches find different classes of weakness; no single approach is s
 | EXC-005 | Every exception MUST have an expiry date; expired exceptions MUST be closed, renewed through re-approval, or escalated, and MUST NOT remain silently active. | Universal | Expiry tracking; renewal records. |
 | EXC-006 | Exceptions MUST be recorded in a central exception register visible to auditors and to the owner of this standard. | Universal | Register. |
 | EXC-007 | Exceptions to security, privacy, safety, or legal compliance rules MUST additionally be approved by the corresponding specialist authority. | Conditional — those rule areas | Specialist approvals. |
-| EXC-008 | The following rules MUST NOT be excepted, because they implement the essential safeguards named in GOV-026: SEC-001 (authorization of security testing); TDATA-004 conditions (a) and (b) (real personal data); ENV-024 and DATA-029 (environment guards on destructive operations); AIQA-010 (no unauthorized destructive actions by agents); PRIN-005 (objective reporting); AIQA-001 and AIQA-027 (no fabricated or unexecuted results); and AIQA-007 and AUTO-037 (no weakening of tests to obtain a pass). | Universal | Exception register review. |
+| EXC-008 | Some rules MUST NOT be excepted: SEC-001 (authorization of security testing), PRIN-005 (objective reporting), AIQA-001 (no fabricated results), and TDATA-004 conditions (a) and (b) for real personal data. | Universal | Exception register review. |
 | EXC-009 | In an emergency, a deviation MAY be made with verbal or messaged approval from an authorized approver, but it MUST be recorded as a formal exception within the period defined by policy. | Conditional — emergencies | Retrospective exception records. |
 | EXC-010 | Exceptions SHOULD be reviewed periodically for trends; repeated exceptions against the same rule MUST trigger review of the rule (GOV-021). | Universal | Exception trend analysis. |
 
@@ -1779,9 +1732,7 @@ Terms follow common usage in ISO/IEC/IEEE 29119-1 and the ISTQB glossary in spir
 | Term | Definition in this standard |
 |---|---|
 | Acceptance criteria | Conditions a feature must satisfy to be accepted by its business owner. |
-| Agent session | A single working context of an AI agent, including any subagents that share that context; the unit treated as the author of AI-produced work (AIQA-025). |
 | Artifact | A versioned, deployable or distributable output of a build (package, image, binary, bundle). |
-| Author | The person or agent session that produced a work product (code, test, specification); verification by the author is not independent verification. |
 | Characterization test | A test that records current behavior, without asserting that behavior is correct. |
 | Compensating control | An alternative safeguard that reduces the risk created by not meeting a rule. |
 | Confirmation testing | Re-execution of a failed test to verify a fix (sometimes called re-testing). |
@@ -1799,8 +1750,6 @@ Terms follow common usage in ISO/IEC/IEEE 29119-1 and the ISTQB glossary in spir
 | Residual risk | Risk remaining after testing and mitigation, accepted for release. |
 | Risk tier | The criticality classification of a system or change used to scale testing rigor (Annex 2). |
 | Severity | The degree of impact a defect has on the system, its users, data, or the business. |
-| Specification (spec) | An approved, version-controlled description of required behavior, including acceptance criteria, used as the requirements and test basis in specification-driven development (AIQA-023). |
-| Specification-driven development | A practice in which approved specifications are written and agreed before implementation and serve as the source of truth for code generation, tests, and review. |
 | Test basis | The information from which tests are derived (requirements, designs, risks, interfaces, regulations). |
 | Test condition | A testable aspect of a component or system identified from the test basis. |
 | Test double | A replacement for a real dependency in testing (stub, mock, fake, spy, simulator). |
@@ -1817,7 +1766,7 @@ Organizations MAY adopt this model or replace it (GOV-009). Tiers are assigned t
 |---|---|---|---|---|
 | Safety | Failure could contribute to injury or loss of life | Indirect safety relevance | None | None |
 | Financial impact | Major direct loss or misstatement possible | Significant loss possible | Limited loss | Negligible |
-| Data sensitivity (Security & Privacy Policy §1 classes) | Restricted data at large scale | Restricted or Confidential data | Internal data only | Public data only |
+| Data sensitivity | Large-scale sensitive or regulated personal data | Personal or confidential data | Internal data only | Public data only |
 | Legal or regulatory exposure | Regulated function or mandatory reporting | Contractual obligations with penalties | Policy obligations only | None material |
 | User reach | Public or essential service for many users | Many internal or external users | One team or department | Individual or experimental use |
 | Recoverability | Effects irreversible or very hard to reverse | Costly to reverse | Reversible with effort | Trivially reversible |
@@ -1865,10 +1814,6 @@ These scales are **reference examples**. Projects MUST define their own scales (
 | Rare data-corruption path in a retired-soon feature, with a reliable mitigation in place | S1 | P2 | Impact is severe, but mitigation reduces urgency. |
 | Company name misspelled on the public home page | S4 | P1 | Impact is cosmetic, but visibility makes it urgent. |
 | Report total wrong in one locale used by few internal users | S2 | P3 | Wrong results, limited exposure, workaround available. |
-
-### A3.4 Relationship to review finding severity
-
-Code review findings are graded with the Code Review Rules scale (§9); defects use the scale above. The two correspond as S1 ≈ Critical, S2 ≈ High, S3 ≈ Medium, S4 ≈ Low. Vulnerability severity from scanners uses CVSS as set in the Security & Privacy Policy (SP-24.2).
 
 ---
 
@@ -1967,7 +1912,7 @@ System owner and authorizer; tester(s) or organization; targets (with identifier
 | RSRC | K | Resource consumption | 5 | RSRC-001 to RSRC-005 |
 | OPS | K | Operational readiness and observability | 8 | OPS-001 to OPS-008 |
 | UI | L | User interface and client-side | 20 | UI-001 to UI-020 |
-| AUTO | M | Automation engineering | 42 | AUTO-001 to AUTO-042 |
+| AUTO | M | Automation engineering | 41 | AUTO-001 to AUTO-041 |
 | REG | N | Regression and change impact | 16 | REG-001 to REG-016 |
 | DEF | O | Defect management | 36 | DEF-001 to DEF-036 |
 | ENV | P | Environment and configuration | 26 | ENV-001 to ENV-026 |
@@ -1977,7 +1922,7 @@ System owner and authorizer; tester(s) or organization; targets (with identifier
 | PRIV | T | Privacy | 12 | PRIV-001 to PRIV-012 |
 | COMPL | T | Regulatory and compliance | 8 | COMPL-001 to COMPL-008 |
 | AIA | U | AI-enabled application testing | 34 | AIA-001 to AIA-034 |
-| AIQA | V | AI-assisted testing, QA agents, and AI-authored code | 31 | AIQA-001 to AIQA-031 |
+| AIQA | V | AI-assisted testing and QA agents | 22 | AIQA-001 to AIQA-022 |
 | REL | W | Test completion and release sign-off | 15 | REL-001 to REL-015 |
 | EXC | X | Exception management | 10 | EXC-001 to EXC-010 |
 | IMP | X | Continuous improvement | 7 | IMP-001 to IMP-007 |
@@ -1999,9 +1944,9 @@ System owner and authorizer; tester(s) or organization; targets (with identifier
 | EMB | Z | Embedded and device software | 5 | EMB-001 to EMB-005 |
 | BATCH | Z | Batch and scheduled processing | 4 | BATCH-001 to BATCH-004 |
 | SAFE | Z | Safety-critical behavior | 5 | SAFE-001 to SAFE-005 |
-| **Total** | | **56 prefixes** | **839** | |
+| **Total** | | **56 prefixes** | **829** | |
 
-Counts were generated mechanically from the rule tables in this version. By strongest normative keyword in the requirement text: **768** rules contain MUST or MUST NOT, **68** contain SHOULD (and no MUST), and **3** contain only MAY. Many MUST rules are conditional; see each rule's Applicability column.
+Counts were generated mechanically from the rule tables in this version. By strongest normative keyword in the requirement text: **757** rules contain MUST or MUST NOT, **68** contain SHOULD (and no MUST), and **4** contain only MAY. Many MUST rules are conditional; see each rule's Applicability column.
 
 ---
 
@@ -2080,51 +2025,6 @@ These are listed to help projects find domain-specific requirements. Versions we
 7. **Organizational calibration is needed** for the risk-tier model, severity and priority scales, approval authorities, retention periods, and remediation timeframes.
 8. **External standard versions change.** Versions in Annex 6 reflect the issue date and must be re-verified at each review.
 9. **Effort and cost.** Full application of conditional rules to Tier 1 systems is resource-intensive; the tailoring rules (GOV-026, GOV-027) are intended to keep effort proportional without removing essential safeguards.
-10. **Agent context limits.** The full standard is not designed to be loaded wholesale into an AI agent's working context at every session. See Section 0.6 and Annex 8 for the recommended digest-and-extract approach.
-
----
-
-## Annex 8. Core Rule Profiles by Risk Tier
-
-### A8.1 Purpose and status
-
-This annex lists a **prioritized core set** of rules for each risk tier. It serves three purposes:
-
-1. an onboarding checklist for teams new to this standard;
-2. the first-pass review set for audits and release readiness; and
-3. the source for the always-loaded digest given to AI coding agents (Section 0.6).
-
-The core profile **does not change the applicability of any rule** and is not a tailoring decision (GOV-006). Every other rule still applies when its Applicability condition is met and is assessed through the applicability matrix (GOV-002). Each listed rule also remains subject to its own Applicability column; for example, a Tier 1–2 rule listed under "Core" is still not applicable to a Tier 4 project.
-
-Profiles are cumulative: Tier 2 = Core + Tier 2 additions; Tier 1 = Core + Tier 2 additions + Tier 1 additions.
-
-### A8.2 Profiles
-
-| Area | Core (all tiers) | Add for Tier 2 | Add for Tier 1 |
-|---|---|---|---|
-| Governance and honest reporting | GOV-002, GOV-009, PRIN-005, PRIN-017, MET-019, MET-020 | GOV-014, PLAN-005 | GOV-019, PRIN-004 |
-| Requirements and specifications | REQ-002, REQ-005, REQ-009, REQ-011, REQ-014, REQ-018, AIQA-023 | REQ-015, REQ-022 | — |
-| Planning and completion | PLAN-001, PLAN-012, PLAN-020 | PLAN-019 | — |
-| Test design and test data | DES-003, DES-004, DES-009, DES-012, DES-016, TDATA-003, TDATA-004, TDATA-009 | DES-002, DES-015, TDATA-005 | — |
-| Functional behavior | FUNC-001, FUNC-003, FUNC-011, FUNC-027, FUNC-028, FUNC-029 | FUNC-014 | — |
-| Test levels and static testing | LVL-003, LVL-004, LVL-013, LVL-016, STAT-001, STAT-003 | LVL-007, STAT-005 | — |
-| Security | SEC-019, SEC-022, SEC-025, SEC-034, SEC-049, SEC-053, SEC-054, SEC-056, SEC-066 | SEC-044, SEC-055, SEC-057, SEC-059 | SEC-051 |
-| Data integrity | DATA-007, DATA-026, DATA-029 | DATA-014, DATA-016, DATA-017, DATA-019 | — |
-| Non-functional and operations | OPS-001, OPS-002, DR-002 | PERF-001, PERF-003, RES-001, RES-008, A11Y-004, OPS-005, DR-003 | — |
-| Automation | AUTO-013, AUTO-015, AUTO-019, AUTO-020, AUTO-029, AUTO-031, AUTO-037 | AUTO-042 | AUTO-040 |
-| Regression and defects | REG-001, REG-004, REG-009, DEF-002, DEF-007, DEF-008 | DEF-014, DEF-023 | — |
-| Environments | ENV-008, ENV-014, ENV-021, ENV-024 | — | — |
-| CI/CD and release | CICD-001, CICD-002, CICD-012, CICD-013, CICD-016, CICD-031, REL-002, REL-005, REL-007 | CICD-024, CICD-026, CICD-033 | CICD-009, CICD-021, DOC-004 |
-| AI coding and QA agents | AIQA-001, AIQA-007, AIQA-010, AIQA-012, AIQA-017, AIQA-024, AIQA-025, AIQA-027, AIQA-028, AIQA-029, AIQA-030, AIQA-031 | AIQA-026 | — |
-| AI-enabled features (when present) | AIA-005, AIA-007, AIA-018, AIA-019, AIA-026 | AIA-011, AIA-033 | — |
-
-### A8.3 Non-exceptable rules
-
-The rules listed in EXC-008 belong to every profile regardless of tier and SHOULD be backed by automated controls (AIQA-031).
-
-### A8.4 Maintenance
-
-The standard owner (GOV-004) MUST review this annex at each revision so that it stays consistent with the rule tables. Agent digests derived from it MUST be regenerated when it changes (AIQA-030).
 
 ---
 
@@ -2133,7 +2033,5 @@ The standard owner (GOV-004) MUST review this annex at each revision so that it 
 | Version | Date | Summary | Approver |
 |---|---|---|---|
 | 1.0 | 2026-10-21 | Initial issue. 829 rules across 56 prefixes. | *To be recorded by the adopting organization* |
-| 1.2 | 2026-10-23 | Renamed to `testing-rules.md` and aligned with the eight-document standard set: added Section 0.7 (set-wide conflict order, data classes, phase use); SEC-054 now takes the ASVS level from the Security & Privacy Policy; SEC-008 raised to MUST to match SP-22.3; SEC-055, SEC-059, and SEC-064 cross-referenced to SP-23.5, SP-27.3, and SP-24.3; TDATA-004 prohibits unmasked production data (SP-23.15) while keeping conditions (a)–(c) for masked data; Annex 2 uses the Security & Privacy Policy data classes; added Annex A3.4 mapping defect severity to review finding severity; status set to Proposed. | *To be recorded by the adopting organization* |
-| 1.1 | 2026-10-23 | Added V.4 (AIQA-023 to AIQA-031) for AI-authored code and specification-driven development; added AUTO-042 (mutation testing for AI-generated tests); expanded EXC-008 non-exceptable rules to match GOV-026; reworded RES-004 from MAY to MUST NOT; moved normative keywords out of the Applicability column for DES-002, SEC-050, SEC-059; added agent-usage guidance (Section 0.6), glossary terms, Annex 7 item 10, and Annex 8 core rule profiles. 839 rules across 56 prefixes. | *To be recorded by the adopting organization* |
 
 *End of document.*

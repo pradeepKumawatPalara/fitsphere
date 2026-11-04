@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
   migration 0008, and the phone's `settings` table, version 7; D-31). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
   same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
   Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
@@ -269,6 +269,29 @@ Coaches never see them (REQ-NFR-001, D-13).
 - With no row the defaults apply: `system`, `kg`, `kg` (`DEFAULT_SETTINGS`, shared). The units are
   display settings only: weights stay stored in grams (invariant #6).
 
+### `profiles` — Health and contact
+The user's profile (REQ-ACC-011; D-38; [`user-profile.md`](../plans/user-profile.md)): one row per
+user, synced like settings, so it can be edited offline. Every field is optional. Private to the
+user: no coach or Head Coach sees it in the MVP (D-20). Migration 0010.
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id` | `uuid` | Primary key. References `users`, deleted with the user |
+| `name` | `text` | 1 to 60 characters, trimmed, or null |
+| `date_of_birth` | `date` | **Health.** Or null. The API refuses one that makes the user under 18 or over 120 on today's IST day (REQ-ACC-010) |
+| `sex` | `text` | **Health.** `female`, `male`, `other` or `prefer_not_to_say`, or null |
+| `height_mm` | `integer` | **Health.** Whole millimetres, 1,000 to 2,500 (100–250 cm; invariant #6), or null |
+| `phone` | `text` | **Contact.** `+91` and a 10-digit Indian mobile number (first digit 6 to 9), or null. Not verified |
+| `address_line1`, `address_line2`, `city`, `state`, `pin_code` | `text` | **Contact.** All null, or line 1 (1–100 characters), the city and the state (1–60 each) and a 6-digit PIN code; line 2 (1–100) optional |
+| `photo_media_id` | `uuid` | The profile photo's row in `media` (kind `profile`), or null |
+| `set_at` | `timestamptz` | Not null. When it was saved, on the phone (UTC) |
+| `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
+| `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
+
+- `profile.set` replaces the whole profile: the change the server receives last wins, as for
+  settings. The weight is not stored here: the profile shows the latest weigh-in (`weigh_ins`).
+- Never logged (invariant #7). Legal reviews the new data before real users (Q-049).
+
 ### `ai_consents` — personal
 Each change of the user's AI meal-reading consent (REQ-ACC-004; Q-065 MVP default, D-18): on or
 off, when and which version of the consent text was shown. The latest row is the current choice;
@@ -296,7 +319,7 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
 | `meal_type` | `text` | `breakfast`, `lunch`, `snack` or `dinner`; required (REQ-LOG-003). Null once deleted |
 | `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
-| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000, or portions 0.5–10 in halves), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
+| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000; portions 0.5–10 in halves; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that a listed food may be in a unit it has on `food_measures` (D-36). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
 | `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
 | `photo` | `jsonb` | **Health.** The meal's one photo, `{"kind": "photo", "mediaId": …}` (see `media`), or one public image link, `{"kind": "link", "url": "https://…"}` (REQ-LOG-010), or null (MVP default, D-26). A link is https only, with a host name, no user name or password, and at most 2,000 characters; FitSphere never fetches it. Null once deleted |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
@@ -315,21 +338,25 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
   Nothing references `meals` by foreign key, so it can be partitioned by month later (ADR-0003).
 
 ### `media` — Health
-One row per meal photo (REQ-LOG-006; ADR-0002 rules 1–5). The files — a viewing copy of about
+One row per photo: a meal's (REQ-LOG-006) or, since migration 0010, the profile's (REQ-ACC-011);
+ADR-0002 rules 1–5. The files — a viewing copy of about
 200 KB and a thumbnail — are in a private storage bucket at `meals/<user_id>/<id>.jpg` and
 `meals/<user_id>/<id>-thumb.jpg`, never in the database. Keys are made of IDs only.
 
 | Column | Type | Rules |
 |---|---|---|
 | `user_id`, `id` | `uuid` | Primary key together. `id` is made on the phone, so a photo can be taken offline; the same `id` from another user is that user's own photo (invariant #1) |
-| `meal_id` | `uuid` | The meal that named it first. A photo never moves to another meal |
+| `kind` | `text` | `meal` or `profile` (migration 0010; every older row is `meal`) |
+| `meal_id` | `uuid` | For a meal photo, the meal that named it first; null for the profile photo. A photo never moves to another meal, nor between a meal and the profile |
 | `created_at` | `timestamptz` | Not null. When the meal that names it was synced |
 | `deleted_at` | `timestamptz` | Server time the photo was removed from its meal, or its meal deleted. From then on no link is issued for it |
 | `files_removed_at` | `timestamptz` | When its files were last removed from storage, once every upload link issued before `deleted_at` had expired |
 
-- Created by `meal.set` when the meal names a photo ID the user has not used. An ID already used
-  by another meal, or already deleted, is refused (`VALIDATION_FAILED`), so a deleted photo
-  never comes back.
+- Created by `meal.set` when the meal names a photo ID the user has not used, or by `profile.set`
+  for the profile's. An ID already used by another meal or by the profile, or already deleted, is
+  refused (`VALIDATION_FAILED`), so a deleted photo never comes back. A profile photo's files use
+  the same bucket and keys as a meal photo's.
+- A `profile.set` with another photo or none marks the old profile photo deleted, as below.
 - A `meal.set` with another photo or none, and a `meal.delete`, mark the old photo deleted.
   After each sync, the API removes the files of the user's deleted photos from storage, and
   repeats this at later syncs until no upload link issued before the deletion can still work
@@ -390,6 +417,19 @@ only while its recipe is approved; the recipe's ingredients and grams are not st
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 
 The values are IFCT values per 100 g × the recipe's measured grams, so a dish is always estimated.
+
+### `food_measures` — reference data
+The household units of the food list (D-36): the `approved` rows of
+`docs/data/household-measures-sheet.csv`, loaded by `npm run foods:import`
+([`food-list-sources.md`](../data/food-list-sources.md), "Household units"). Migration 0009. Not
+personal data, so no `user_id` and no `change_seq`; the phone fetches it with the food list.
+
+| Column | Type | Rules |
+|---|---|---|
+| (`source`, `code`, `measure`) | | Primary key; (`source`, `code`) references `foods` and goes with it |
+| `measure` | `text` | `teaspoon` (5 ml), `tablespoon` (15 ml), `katori` (200 ml), `glass` (250 ml) or `piece` |
+| `grams` | `numeric(6,2)` | More than 0, at most 1,000: the grams one unit of the food holds, of its edible part, as the owner weighed it |
+| `updated_at` | `timestamptz` | Server time of the import that wrote the row |
 
 ### `barcode_products` — reference data
 Products looked up on Open Food Facts by barcode (ADR-0006 rule 2). Kept apart from `foods` and
@@ -459,11 +499,12 @@ rule 5 and D-14 require.
 | `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
 | `meals` | `id` (key), `day`, `meal_type`, `tags`, `items` and `photo` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3; `photo` version 4 |
 | `saved_meals` | `id` (key), `name`, `meal_type`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day. Schema version 3 |
-| `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3 |
+| `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g, `measures` (JSON) | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3; `measures` version 8 |
 | `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
 | `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
+| `profile` | `id` (key, always `profile`), `name`, `date_of_birth`, `sex`, `height_mm`, `phone`, `address` (JSON), `photo_media_id`, `set_at`, `sync_state` | **Health and contact.** The user's profile (REQ-ACC-011), at most one row. Never pruned. Its photo is a row of `photos` whose `meal_id` is `profile`. Schema version 9 (D-38) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
@@ -493,6 +534,11 @@ rule 5 and D-14 require.
   sync pulls them.
 - **Version 7** (Settings slice, D-31) adds `settings` and clears the sync cursor so the next sync
   pulls the settings the account already has.
+- **Version 8** (household units, D-36) adds `foods.measures`, each food's units and the grams one
+  holds, and clears `food_list_version` so the next download brings them.
+- **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
+  pulls the profile the account already has. A profile change is matched in the outbox by its type
+  alone, there being one profile.
 - **Photos** (REQ-LOG-006; D-14): a new photo is saved in the same transaction as the meal that
   names it. It is uploaded after a sync once its meal's change has been accepted; until then it
   counts as unsynced (the log-out warning includes it) and is never cleared automatically, and
@@ -520,8 +566,9 @@ rule 5 and D-14 require.
 | `workouts` | While the account exists, as above | With the account. A workout the user deletes keeps an empty row with its day and deletion time |
 | `targets` | While the account exists | With the account. A target someone else set keeps its row, without their ID, when their account is deleted (backlog E-02) |
 | `meals`, `saved_meals` | While the account exists; a deleted one keeps only its ID, its day (meals) and when it was deleted | With the account. Phase 1 has no backups (R-005) |
-| `foods`, `dishes`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`) |
+| `foods`, `dishes`, `food_measures`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`, `food_measures`) |
 | `settings` | While the account exists | With the account |
+| `profiles` | While the account exists | With the account, its photo's files first (REQ-ACC-009, D-38) |
 | `ai_consents` | While the account exists, every change kept | With the account (REQ-ACC-009; Legal confirms, Q-049) |
 | `media` | While the account exists; a deleted photo's files leave storage after the next sync | With the account: every file of the user's photos is removed from storage first, deleted photos included (REQ-ACC-009) |
 | `applied_changes` | While the account exists | With the account |

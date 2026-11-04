@@ -121,6 +121,7 @@ describe('ADR-0007 sync', () => {
       workouts: [],
       targets: [],
       settings: [],
+      profiles: [],
       meals: [],
       savedMeals: [],
       removals: [],

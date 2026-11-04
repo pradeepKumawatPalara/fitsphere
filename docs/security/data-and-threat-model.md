@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01); legal obligations: Legal (Q-049)
-- Last updated: 2026-10-29 (Meal logging slice, D-26: what Open Food Facts receives; meal photo
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-29 (Meal logging slice, D-26: what Open Food Facts receives; meal photo
   links, T-08; photos on the phone, T-03). 2026-10-28
   (D-20: MVP scope of the matrix and threats; own targets)
 
@@ -21,6 +21,10 @@ permission matrix below:
   permission answers).
 - **A coach's data:** coaching activity — for a Head Coach, counts per coach (D-13) — and the
   coach's own personal logs if they also use the Personal Training User role.
+- **The profile (REQ-ACC-011, D-38):** the user's photo, name, date of birth, sex and height
+  (body data, treated as health data), and their phone number and address (contact data). Every
+  field is optional; the weight shown is a weigh-in. Private to the user in the MVP, never logged,
+  deleted with the account; Legal reviews it before real users (Q-049).
 - **Account data:** email address, password, the "I am 18 or older" confirmation (D-18) and
   invitations. Whether an email address has a
   FitSphere account is itself sensitive, because it reveals that the person uses a health app
@@ -81,6 +85,7 @@ MVP only the "Trainee (self)" and "Anyone else" columns apply (D-20, above).
 | Diet plan and training plan | View | View, edit (REQ-ROLE-006) | View, edit (D-08, D-13) | — | — | — |
 | Who made the latest change to a target or plan ("Set by <name>"), and when | View (D-13, D-14) | View (D-13, D-14) | View (D-13, D-14) | — | — | — |
 | Settings and AI consent | View, change (REQ-ACC-*) | — never (D-13) | — never (D-13) | — never (D-13) | — | — |
+| Profile: photo, name, date of birth, sex, height, phone, address | View, change (REQ-ACC-011, D-38) | — in the MVP (D-20); what a coach may see is for Q-059 | — | — | — | — |
 | Head Coach permission answer | View, change (REQ-ROLE-013) | Status: allowed / declined / pending (D-14) | Status only: allowed, with the trainee's name (D-13, D-14) | Counted only, no name (D-13, D-14) | — | — |
 
 When a link ends, or a trainee withdraws Head Coach permission, the former coach's or Head

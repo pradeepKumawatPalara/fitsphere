@@ -945,6 +945,8 @@ checksum), and the configuration template was left as it is.*
   `docs/product/mvp-scope.md` and `docs/architecture/constraints-and-assumptions.md` (with A-004
   and the tabs' note); `docs/product/user-journeys.md`; `docs/quality/test-strategy.md`; the texts
   in `docs/contracts/error-model.md`.
+- Amended by D-35 (2026-11-03): the icons are Lucide (`lucide-react-native`) in place of Ionicons
+  from `@expo/vector-icons`; the switch needs `react-native-svg` and so a new development build.
 
 ## D-34 Changes from the owner's second phone review (2026-11-03)
 - Status: **Accepted** (owner instruction in chat, 2026-11-03, on the `ui-refresh` branch).
@@ -1017,6 +1019,101 @@ checksum), and the configuration template was left as it is.*
   REQ-PRG-004 and REQ-NAV-001 in `docs/product/requirements.md`; D-23's amendment; Home, Nutrition, Training, Log meal, Progress, Q-017
   and Q-019 in `docs/product/mvp-scope.md`; D-30's amendment; the chart in `constraints-and-assumptions.md`,
   `docs/plans/progress-slice.md`, `docs/quality/test-strategy.md` and backlog S5-03.
+- Amended by D-35 (2026-11-03): answer 9's icons are Lucide in place of Ionicons. The redesign's
+  2.1, locked by the owner on 2026-11-03, marks the tab shown with a caramel bar along its top edge
+  in place of the tinted pill; its icon and label are caramel, the others muted.
+
+## D-35 The app's design language, with Lucide icons and the Barlow fonts (amends D-33 and D-34)
+- Status: **Accepted** (owner instruction in chat, 2026-11-03).
+- Answers:
+  1. **The design language.** `docs/design/design-system.md` and
+     `docs/design/FitSphere-UI-UX-context.md` are the app's design language: palette, colour
+     tokens, type, shape, components, the app-shell pattern, UX principles and copy rules. The
+     `F0x-*-ui.md` files, moved to `docs/design/reference-fitsphere/`, are examples from a separate
+     FitSphere spec: their features are not built and their decisions not applied here. Where a
+     design file conflicts with an invariant, an owner decision or an accepted ADR, those win and
+     the conflict goes to the owner.
+  2. **Lucide icons** (`lucide-react-native`), as the design system names, replace Ionicons from
+     `@expo/vector-icons` (amends D-33 answer 1 and D-34 answer 9). Lucide draws with
+     `react-native-svg`, which has native code and is not in the current development build, so the
+     switch needs a new EAS development build; the owner is told before it starts (D-19).
+  3. **The Barlow fonts** are approved: Barlow Condensed and Barlow, from
+     `@expo-google-fonts/barlow-condensed` and `@expo-google-fonts/barlow`. They load through
+     `expo-font`, which is already in the development build, so they need no new build.
+- **Interpretation:** the owner's "approved" is read as confirming two points from the same chat:
+  sections 5 (locked screens), 7 (decisions) and 8 (tech choices) of the context file are
+  examples only, like the F0x files; and the context file's path to the F0x files is updated and
+  the design documents are added to `docs/README.md`. *(Confirm.)*
+- **Interpretation:** these answers choose the look and the packages; they do not start the
+  restyle. No app code changes and no package is installed until the owner asks (the owner's
+  "Don't change any app code yet", 2026-11-03). *(Confirm.)*
+- Unchanged: the invariants (including Asia/Kolkata for "today", invariant 5), the other D-
+  decisions, privacy rules and the accepted ADRs.
+- Doc changes: `CLAUDE.md` ("Design source of truth"); the README in
+  `docs/design/reference-fitsphere/`; D-33's and D-34's amendment lines; the tabs' note in
+  `docs/architecture/constraints-and-assumptions.md`; `docs/README.md`.
+- Applied from 2026-11-03: the owner locked the redesign's first screen, 1.1 Sign in, and said to
+  build it; the colours, fonts and icons switched with it (`docs/plans/ui-redesign.md`).
+
+## D-36 Household units for a food's amount, from the owner's measurements
+- Status: **Accepted** (owner instruction in chat, 2026-11-03, with the answers to two questions).
+- Context: on the redesign's canvas the owner asked for a choice of unit for a food's portion
+  besides grams, such as a tablespoon, a glass, half a glass or a bowl, taking HealthifyMe's serving
+  choice as the reference. A unit needs the grams it holds for each food: the IFCT list gives values
+  per 100 g only, and D-26 does not use NIN's household-measure tables.
+- Answers:
+  1. **Where the grams come from:** the owner's measured sheet, as with the dish recipes (D-26).
+     FitSphere fixes its own unit sizes (for example teaspoon 5 ml, tablespoon 15 ml, glass 250 ml,
+     half glass 125 ml, katori or bowl 200 ml) and the owner weighs one level measure of each food.
+     A food offers a unit only once its row is measured and approved by the owner; grams stay
+     available for every food. Never fill in or approve a row without the owner's measurements.
+  2. **When:** after the redesign (modules 4 to 6), as its own small slice with a plan that the
+     owner accepts first. *Amended by the owner, 2026-11-03: "I accept the plan… go ahead and build
+     it. After that we will go for training tasks": built now, on the branch `ui-redesign`, before
+     the redesign's Training module. Plan: `docs/plans/household-units.md` (Accepted).*
+- *Later the same day:* asked why units are not open for every food, the owner chose to keep
+  measured units only (not 1 ml as 1 g for every food, nor units the user sets), with a wider
+  starter sheet: 62 rows for 52 foods, all `pending`, no grams.
+- **Interpretation:** HealthifyMe is a reference for the interaction only (an amount with a unit
+  beside it and the grams it comes to); none of its data or wording is used. *(Confirm.)*
+- **Interpretation:** the sizes listed in answer 1 are examples; the plan proposes the units and
+  sizes for the owner to approve. *(Confirm.)*
+- Unchanged until the plan is accepted: grams for listed foods, barcode products and your own food;
+  portions for dishes (D-26, D-28); the meal contract; the invariants.
+- Doc changes: backlog B-27; the plan `docs/plans/household-units.md`; the sheet
+  `docs/data/household-measures-sheet.csv`; `data-model.md` (`food_measures`, the meal item's
+  amount, phone schema version 8); `api-conventions.md` (`GET /v1/foods`); `food-list-sources.md`;
+  REQ-LOG-007.
+
+## D-37 Training's button is "Log workout"
+- Status: **Accepted** (owner instruction in chat, 2026-11-03, while locking the redesign's 4.1).
+- Answer: the Training tab's button "Start an empty workout" is renamed **"Log workout"**. It does
+  the same as before: it saves a workout with no exercises on the selected date and opens it
+  (REQ-TRN-003, D-29, Q-025).
+- Unchanged: the BRD's wording in `docs/product/source/business-requirements.txt` (input, not
+  edited); "No training plan yet" and the rest of the tab.
+- Doc changes: REQ-TRN-002 and REQ-TRN-003; `mvp-scope.md`; `user-journeys.md`;
+  `constraints-and-assumptions.md`; `FEATURE_STATUS.md`; the slice-4 manual test guide.
+
+## D-38 The profile: the user's basic details in Settings
+- Status: **Accepted** (owner request in chat, 2026-11-03; answers the same day; the plan
+  [`user-profile.md`](../plans/user-profile.md) approved, and the screens 6.1 and 6.6 locked, with
+  "approve lock it").
+- Request: Settings lets the user add and change their name, photo, address, sex, age, height,
+  weight, phone number and email, with the server keeping them.
+- Answers:
+  1. **Email:** shown read-only; changing the sign-in email stays out of the MVP.
+  2. **Age:** the date of birth is stored, and the age worked out from it; 18 or older
+     (REQ-ACC-010).
+  3. **Weight:** the latest weigh-in; changing it logs today's weigh-in, so Home, Progress and the
+     profile agree (invariant #6).
+  4. **Address and phone:** collected, both optional; private to the user, never sent to another
+     service, deleted with the account. Legal reviews them before real users (Q-049).
+- Built as REQ-ACC-011: migration 0010 (`app.profiles`, and `app.media.kind` for the profile
+  photo), the `profile.set` sync change and the profile in the pull, phone schema version 9.
+- Owner's step: run migration 0010 on `fitsphere-dev` **before** running the updated API.
+- Doc changes: REQ-ACC-011 and REQ-ACC-009; the data model; API conventions; the data and threat
+  model; Legal's brief; the account deletion page; `constraints-and-assumptions.md`; the plans.
 
 ---
 

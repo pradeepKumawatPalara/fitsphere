@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import { RESET_REDIRECT, type AuthClient } from '../auth/service';
 import { TEXTS } from '../auth/texts';
+import { LIGHT_COLORS } from '../theme';
 import { deps, fakeApi, fakeAuthClient, fakeSession, OFFLINE } from '../testing/fakes';
 import { ForgotPasswordScreen } from './ForgotPasswordScreen';
 import { ResetPasswordScreen } from './ResetPasswordScreen';
@@ -53,6 +54,27 @@ describe('REQ-ACC-010 Forgot password', () => {
 
     expect(await screen.findByText('Resetting a password needs an internet connection.')).toBeOnTheScreen();
     expect(screen.queryByText(TEXTS.resetSent)).toBeNull();
+  });
+
+  // The redesign's screen 1.5 (locked by the owner, 2026-11-03).
+  it('names a problem with the email under the email field, and sends nothing', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<ForgotPasswordScreen />, client);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Send reset link' }));
+    const problem = screen.getByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.emailRule);
+    expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+    expect(client.resetPasswordForEmail).not.toHaveBeenCalled();
+  });
+
+  it('once the link is sent, the text takes the field’s place and Back to sign in is the one step left', async () => {
+    await requestReset(fakeAuthClient());
+
+    expect(await screen.findByText(TEXTS.resetSent)).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Email')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Send reset link' })).toBeNull();
+    expect(screen.getAllByRole('button').map((button) => button.props.accessibilityLabel)).toEqual(['Back to sign in']);
   });
 });
 
@@ -132,5 +154,32 @@ describe('REQ-ACC-010 Set a new password', () => {
     await renderWith(<ResetPasswordScreen />, client);
 
     expect(await screen.findByText(TEXTS.resetLinkInvalid)).toBeOnTheScreen();
+  });
+
+  // The redesign's screen 1.6 (locked by the owner, 2026-11-03).
+  it('a link that cannot be used shows under the heading, with Forgot password the one step left', async () => {
+    mockParams = { error: 'access_denied' };
+    await renderWith(<ResetPasswordScreen />, fakeAuthClient());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(TEXTS.resetLinkInvalid);
+    expect(screen.getByRole('header', { name: 'Set a new password' })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('New password')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Forgot password' }));
+    expect(mockRouter.replace).toHaveBeenCalledWith('/forgot-password');
+  });
+
+  it('names a reused password under the field, its outline red, with the rule still ticked', async () => {
+    mockParams = { code: 'one-time-code' };
+    const client = fakeAuthClient(fakeSession({}));
+    client.updateUser.mockResolvedValueOnce({ error: { name: 'AuthApiError', code: 'same_password', status: 422 } });
+    await renderWith(<ResetPasswordScreen />, client);
+    await fireEvent.changeText(await screen.findByLabelText('New password'), 'new-password-1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Set password' }));
+
+    const problem = await screen.findByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.samePassword);
+    expect(within(problem.parent!.parent!).getByLabelText('New password')).toBeOnTheScreen();
+    expect(screen.getByLabelText('New password').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+    expect(screen.getByLabelText(`${TEXTS.passwordRule} Done.`)).toBeOnTheScreen();
   });
 });

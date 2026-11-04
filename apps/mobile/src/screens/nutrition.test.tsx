@@ -123,7 +123,7 @@ describe('REQ-NUT-002 and REQ-NUT-003 Consumed', () => {
 
     expect(await screen.findByRole('button', { name: 'Tuesday 27 Oct, meal logged' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Monday 26 Oct' })).toBeOnTheScreen();
-    expect(screen.getByTestId('status-2026-10-27')).toHaveStyle({ backgroundColor: '#2e7d32' });
+    expect(screen.getByTestId('status-2026-10-27')).toHaveStyle({ backgroundColor: LIGHT_COLORS.success });
   });
 });
 
@@ -181,12 +181,14 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
 
     await open('Lunch');
     const remove = await screen.findByRole('button', { name: 'Delete Lunch: Wheat flour, atta' });
-    // The icons are 44 to tap; Delete's stands out in the "over" red from Edit's blue.
+    // The icons are 44 to tap; Delete's stands out in red from Edit's caramel.
     expect(remove).toHaveStyle({ width: 44, height: 44 });
-    expect(within(remove).getByText(/./)).toHaveStyle({ color: LIGHT_COLORS.over });
-    expect(within(screen.getByRole('button', { name: 'Edit Lunch: Wheat flour, atta' })).getByText(/./)).toHaveStyle({
-      color: LIGHT_COLORS.primary,
-    });
+    const icon = { includeHiddenElements: true };
+    expect(within(remove).getByTestId('icon', icon)).toHaveProp('stroke', LIGHT_COLORS.danger);
+    expect(within(screen.getByRole('button', { name: 'Edit Lunch: Wheat flour, atta' })).getByTestId('icon', icon)).toHaveProp(
+      'stroke',
+      LIGHT_COLORS.accent,
+    );
     await fireEvent.press(remove);
     expect(screen.getByText('Delete this meal?')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
@@ -254,6 +256,17 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     expect(screen.getByText('No saved meals yet. In Consumed, tap the bookmark on a meal to save it to your meals.')).toBeOnTheScreen();
   });
 
+  // The redesign's 3.3 (locked by the owner, 2026-11-03).
+  it('a saved meal shows its name over its foods, and logging it opens with its name as the title', async () => {
+    await renderInApp(<NutritionScreen />, undefined, seedSaved);
+    await fireEvent.press(await screen.findByRole('tab', { name: 'Saved' }));
+
+    const card = await screen.findByRole('button', { name: 'Synthetic dinner' });
+    expect(within(card).getByText('Synthetic dinner')).toBeOnTheScreen();
+    await fireEvent.press(card);
+    expect(screen.getByRole('header', { name: 'Log Synthetic dinner' })).toBeOnTheScreen();
+  });
+
   it('Q-036 tapping a saved meal re-logs it to the selected date, in its slot unless the user changes it', async () => {
     const { db } = await renderInApp(<NutritionScreen />, undefined, seedSaved);
     await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct' }));
@@ -316,7 +329,7 @@ describe('Home with meals (REQ-HOME-002…005, REQ-NAV-003)', () => {
     });
 
     expect(await screen.findByText('237 of 2,000 kcal')).toBeOnTheScreen();
-    expect(screen.getByText('1,763 kcal remaining')).toBeOnTheScreen();
+    expect(screen.getByLabelText('1,763 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('6 g eaten')).toBeOnTheScreen();
   });
 

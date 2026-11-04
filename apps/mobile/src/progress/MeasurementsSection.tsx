@@ -1,12 +1,13 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
+import { ChevronRight, Plus } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { MeasurementsCard } from '../components/MeasurementsCard';
 import { Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import type { LocalMeasurements } from '../local/store';
-import { useTheme } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Card } from './Card';
 import { PROGRESS_TEXTS } from './texts';
 
@@ -23,6 +24,7 @@ type Props = {
 // waists, each row opening that date's entry to edit. With none, "Add first" and the weekly waist
 // recommendation.
 export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props) {
+  const styles = useStyles();
   const { colors } = useTheme();
   // Folded at first, so the screen stays short.
   const [showAll, setShowAll] = useState(false);
@@ -30,8 +32,10 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   if (!latest) {
     return (
       <Card title="Measurements">
-        <Text style={[styles.body, { color: colors.text }]}>{PROGRESS_TEXTS.noMeasurements}</Text>
-        <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.measurementsHint}</Text>
+        <View style={styles.emptyText}>
+          <Text style={styles.body}>{PROGRESS_TEXTS.noMeasurements}</Text>
+          <Text style={styles.small}>{PROGRESS_TEXTS.measurementsHint}</Text>
+        </View>
         <TextButton title="Add first" outlined onPress={onAdd} />
       </Card>
     );
@@ -39,17 +43,19 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   const length = (mm: number) => `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
   return (
     <View style={styles.section}>
-      <Text accessibilityRole="header" style={[styles.heading, { color: colors.text }]}>
-        Measurements
-      </Text>
-      <TextButton title="Add measurements" outlined onPress={onAdd} />
+      <View style={styles.headingRow}>
+        <Text accessibilityRole="header" style={styles.heading}>
+          Measurements
+        </Text>
+        <TextButton title="Add measurements" outlined icon={Plus} onPress={onAdd} />
+      </View>
       <MeasurementsCard day={latest.day} entry={latest} unit={unit} onAdd={onAdd} onEdit={() => onEdit(latest.day)} />
       {older.length > 0 && showAll ? (
-        <View style={[styles.table, { backgroundColor: colors.surface }]}>
+        <View style={styles.table}>
           <View style={styles.row} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             <View style={styles.day} />
-            <Text style={[styles.value, styles.small, { color: colors.textMuted }]}>Upper waist</Text>
-            <Text style={[styles.value, styles.small, { color: colors.textMuted }]}>Lower waist</Text>
+            <Text style={[styles.value, styles.columnHeading]}>Upper waist</Text>
+            <Text style={[styles.value, styles.columnHeading]}>Lower waist</Text>
             <View style={styles.chevron} />
           </View>
           {older.map((entry) => {
@@ -62,15 +68,17 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
                 accessibilityRole="button"
                 accessibilityLabel={`Edit measurements, ${formatDay(entry.day)}: Upper waist ${upper}, Lower waist ${lower}`}
                 onPress={() => onEdit(entry.day)}
-                style={({ pressed }) => [styles.row, styles.ruled, { borderTopColor: colors.border }, pressed && styles.pressed]}
+                style={({ pressed }) => [styles.row, styles.ruled, pressed && styles.pressed]}
               >
                 <View style={styles.day}>
-                  <Text style={[styles.body, { color: colors.text }]}>{formatDay(entry.day)}</Text>
-                  {note ? <Text style={[styles.small, { color: colors.warning }]}>{note}</Text> : null}
+                  <Text style={styles.body}>{formatDay(entry.day)}</Text>
+                  {note ? <Text style={[styles.note, entry.syncState === 'rejected' && styles.problem]}>{note}</Text> : null}
                 </View>
-                <Text style={[styles.value, styles.body, styles.digits, { color: colors.text }]}>{upper}</Text>
-                <Text style={[styles.value, styles.body, styles.digits, { color: colors.text }]}>{lower}</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={styles.chevron} />
+                <Text style={[styles.value, styles.length]}>{upper}</Text>
+                <Text style={[styles.value, styles.length]}>{lower}</Text>
+                <View style={styles.chevron}>
+                  <ChevronRight size={18} strokeWidth={2.25} color={colors.accent} />
+                </View>
               </Pressable>
             );
           })}
@@ -86,18 +94,25 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   );
 }
 
-// The table as Home's ruled rows: 48 tall, the waists in fixed-width digits, right-aligned.
-const styles = StyleSheet.create({
+// The redesign's 5.1 (locked by the owner, 2026-11-03): the section's heading in condensed capitals
+// beside its Add button; older entries ruled on a raised card, the waists in condensed figures, each
+// row opening with a chevron; a waiting entry's note muted, one not saved in red.
+const useStyles = themedStyles((c) => ({
   section: { gap: 12 },
-  heading: { fontSize: 15, fontWeight: '600' },
-  body: { fontSize: 15 },
-  small: { fontSize: 13 },
-  table: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 4 },
+  headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  heading: { ...TYPE.metric, lineHeight: 24, color: c.ink },
+  emptyText: { gap: 2 },
+  body: { fontSize: 15, lineHeight: 22, color: c.ink },
+  small: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  table: { paddingLeft: 16, paddingRight: 8, paddingVertical: 4, borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   row: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
-  ruled: { borderTopWidth: StyleSheet.hairlineWidth },
+  ruled: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
-  day: { flex: 1 },
+  day: { flex: 1, gap: 2 },
   value: { width: 84, textAlign: 'right' },
-  digits: { fontVariant: ['tabular-nums'] },
-  chevron: { width: 16 },
-});
+  columnHeading: { ...TYPE.label, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted },
+  length: { ...TYPE.label, fontSize: 17, lineHeight: 20, letterSpacing: 0, textTransform: 'none', fontVariant: ['tabular-nums'], color: c.ink },
+  note: { ...TYPE.label, fontSize: 11, lineHeight: 13, letterSpacing: 1, color: c.inkMuted },
+  problem: { color: c.danger },
+  chevron: { width: 20, alignItems: 'center' },
+}));

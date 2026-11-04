@@ -98,6 +98,20 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     data: { id: MEAL_ID, name: 'Two rotis', mealType: 'dinner', tags: [], items: [ATTA], savedAt: AT },
     stored: { name: 'Two rotis', items: [ATTA], kcal: 192 },
   },
+  profile: {
+    key: 'profile',
+    data: {
+      name: 'Synthetic Person',
+      dateOfBirth: '1994-06-14',
+      sex: 'female',
+      heightMm: 1620,
+      phone: '+919876543210',
+      address: { line1: '12 Example Lane', line2: null, city: 'Pune', state: 'Maharashtra', pinCode: '411001' },
+      photoMediaId: null,
+      setAt: AT,
+    },
+    stored: { name: 'Synthetic Person', heightMm: 1620, address: { line1: '12 Example Lane', line2: null, city: 'Pune', state: 'Maharashtra', pinCode: '411001' }, photoMediaId: null },
+  },
 };
 const KINDS = Object.keys(SAMPLES) as EntryKind[];
 

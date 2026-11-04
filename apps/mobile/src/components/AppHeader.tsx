@@ -1,29 +1,36 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { Calendar } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
-import { formatDay, nameFromEmail } from '../format';
+import { formatDay } from '../format';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { greetingName } from '../profile';
 import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { CalendarSheet } from './CalendarSheet';
+import { ProfilePhoto, useProfile } from './ProfilePhoto';
 import { Text } from './ui';
 
-// The common header of the main screens (REQ-NAV-002, REQ-HOME-001): the user's name and the
-// selected date on the left; the calendar shortcut and the profile avatar on the right.
+// The common header of the main screens (REQ-NAV-002, REQ-HOME-001): the selected date over the
+// greeting on the left; the calendar shortcut and the profile avatar on the right. The redesign's
+// 2.1 (locked by the owner, 2026-11-03): the date in condensed capitals, caramel when it is today;
+// the greeting under it in display capitals. The greeting uses the profile's first name, and the
+// avatar its photo (REQ-ACC-011), when there are.
 
 export function HeaderTitle() {
   const styles = useStyles();
   const { email } = useAuth();
+  const profile = useProfile();
   const { today, selected } = useSelectedDay();
   const date = selected === today ? `Today · ${formatDay(selected)}` : formatDay(selected);
   return (
-    <View>
-      <Text numberOfLines={1} style={styles.name}>
-        Hi, {nameFromEmail(email)}
-      </Text>
-      <Text accessibilityLabel={`Selected date: ${date}`} style={styles.date}>
+    <View style={styles.title}>
+      <Text accessibilityLabel={`Selected date: ${date}`} style={[styles.date, selected === today && styles.today]}>
         {date}
+      </Text>
+      <Text numberOfLines={1} style={styles.name}>
+        Hi, {greetingName(profile?.name, email)}
       </Text>
     </View>
   );
@@ -33,10 +40,10 @@ export function HeaderActions() {
   const styles = useStyles();
   const { colors } = useTheme();
   const { email } = useAuth();
+  const profile = useProfile();
   const { today, selected, firstDay, select } = useSelectedDay();
   const router = useRouter();
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const initial = nameFromEmail(email).charAt(0).toUpperCase() || '?';
   return (
     <View style={styles.actions}>
       <Pressable
@@ -46,18 +53,16 @@ export function HeaderActions() {
         hitSlop={2}
         style={({ pressed }) => [styles.calendar, pressed && styles.pressed]}
       >
-        <Ionicons name="calendar-outline" size={22} color={colors.primary} />
+        <Calendar size={22} color={colors.accent} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Account"
         onPress={() => router.push('/account')}
         hitSlop={2}
-        style={({ pressed }) => [styles.ring, pressed && styles.pressed]}
+        style={({ pressed }) => pressed && styles.pressed}
       >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        <ProfilePhoto mediaId={profile?.photoMediaId ?? null} name={greetingName(profile?.name, email)} size={44} />
       </Pressable>
       {calendarOpen ? (
         <CalendarSheet
@@ -72,15 +77,23 @@ export function HeaderActions() {
   );
 }
 
-// The calendar is a blue icon on a tinted tile (radius 12, as tiles elsewhere); the account is the
-// user's initial on a blue disc inside a blue ring. Both 40 across, 44 to tap.
+// The calendar is a caramel icon on a raised square; the account is the profile photo, or the user's
+// initial on a caramel square. Both 44, radius 8.
 const useStyles = themedStyles((c) => ({
-  name: { fontSize: 13, color: c.textMuted },
-  date: { fontSize: 17, fontWeight: '600' },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 12 },
-  calendar: { width: 40, height: 40, borderRadius: 12, backgroundColor: c.surfaceSelected, alignItems: 'center', justifyContent: 'center' },
-  ring: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  avatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: c.primary, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: c.onPrimary, fontSize: 15, fontWeight: '700' },
+  title: { gap: 4 },
+  date: { ...TYPE.label, color: c.inkMuted },
+  today: { color: c.accent },
+  name: TYPE.heading,
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 16 },
+  calendar: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pressed: { opacity: 0.6 },
 }));

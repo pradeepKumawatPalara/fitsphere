@@ -16,8 +16,8 @@ jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchPar
 
 const TODAY = '2026-10-28';
 const FOODS: Food[] = [
-  { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false },
-  { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true },
+  { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [] },
+  { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true, measures: [] },
 ];
 
 type FakeServer = Parameters<NonNullable<Parameters<typeof renderInApp>[2]>>[1];
@@ -215,8 +215,8 @@ describe('REQ-LOG-003 and the review before saving', () => {
     expect(screen.getByLabelText('Wheat flour, atta: 90 g, 288 kcal, 9.5 g protein')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Ghee' }));
-    // Remove stands out in the "over" red.
-    expect(screen.getByText('Remove')).toHaveStyle({ color: LIGHT_COLORS.over });
+    // Remove stands out in red.
+    expect(screen.getByText('Remove')).toHaveStyle({ color: LIGHT_COLORS.danger });
     await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
     expect(screen.queryByText('Ghee')).toBeNull();
     expect(screen.getByLabelText('Total: 288 kcal, 9.5 g protein')).toBeOnTheScreen();
@@ -472,5 +472,128 @@ describe('D-28 dishes, logged in portions', () => {
     };
     expect(await getEntry(db, 'meal', row!.id)).toMatchObject({ items: [dish], kcal: 225 });
     await waitFor(() => expect(server.entries('meals').get(row!.id)).toMatchObject({ items: [dish], totals: { kcal: 225, proteinG: 12 } }));
+  });
+});
+
+// A listed food with a household unit (D-36). The 258 g for a glass is synthetic, not a measurement.
+const MILK: Food = {
+  source: 'ifct2017',
+  code: 'L002',
+  name: 'Milk, whole, Cow',
+  foodGroup: 'Milk and Milk Products',
+  aliases: [],
+  proteinG: 3.26,
+  fibreG: 0,
+  fatG: 4.48,
+  carbsG: 4.94,
+  kcal: 73,
+  kcalEstimated: false,
+  measures: [{ measure: 'glass', grams: 258 }],
+};
+
+async function withMilk(db: SqlDb, server: FakeServer) {
+  server.state.foods = [...FOODS, MILK];
+  await replaceFoods(db, server.state.foodsVersion, [...FOODS, MILK]);
+}
+
+async function chooseMilk() {
+  await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
+  await fireEvent.changeText(screen.getByLabelText('Search foods'), 'milk');
+  await fireEvent.press(await screen.findByRole('button', { name: /^Milk, whole, Cow/ }));
+}
+
+async function addGlasses(more = 0) {
+  await chooseMilk();
+  await fireEvent.press(screen.getByRole('radio', { name: 'glass' }));
+  for (let press = 0; press < more; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a glass more' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+}
+
+describe('D-36 household units', () => {
+  it('a food with a unit offers Grams and the unit; a unit is counted in halves, its values for the grams it comes to', async () => {
+    await render({ day: TODAY }, withMilk);
+    await chooseMilk();
+
+    expect(screen.getByRole('radio', { name: 'Grams' })).toBeChecked();
+    expect(screen.getByLabelText('Grams eaten')).toHaveDisplayValue('100');
+    await fireEvent.press(screen.getByRole('radio', { name: 'glass' }));
+
+    expect(screen.getByRole('radio', { name: 'glass' })).toBeChecked();
+    expect(screen.queryByLabelText('Grams eaten')).toBeNull();
+    expect(screen.getByLabelText('Glasses: 1')).toBeOnTheScreen();
+    expect(screen.getByText('One glass (250 ml) is 258 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 188 kcal and 8.4 g protein')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Half a glass fewer' }));
+    expect(screen.getByLabelText('Glasses: 0.5')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Half a glass fewer' })).toBeDisabled();
+
+    // 7.5 glasses is 1,935 g; 8 would pass 2,000 g, the most for one food.
+    for (let press = 0; press < 20; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a glass more' }));
+    expect(screen.getByLabelText('Glasses: 7.5')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Half a glass more' })).toBeDisabled();
+
+    for (let press = 0; press < 12; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a glass fewer' }));
+    expect(screen.getByLabelText('Adds 283 kcal and 12.6 g protein')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByLabelText('Milk, whole, Cow: 1.5 glasses (387 g), 283 kcal, 12.6 g protein')).toBeOnTheScreen();
+  });
+
+  it('a food without units is in grams only, as before', async () => {
+    await render({ day: TODAY }, withMilk);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');
+    await fireEvent.press(await screen.findByRole('button', { name: /^Wheat flour, atta/ }));
+
+    expect(screen.queryByRole('radio', { name: 'Grams' })).toBeNull();
+    expect(screen.getByLabelText('Grams eaten')).toBeOnTheScreen();
+  });
+
+  it('the review changes a unit item’s count; the same food in the same unit joins it, and in grams stays apart (D-34)', async () => {
+    await render({ day: TODAY }, withMilk);
+    await addGlasses();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Milk, whole, Cow' }));
+    expect(screen.getByLabelText('Glasses: 1')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Half a glass more' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Change to 1.5 glasses' }));
+    expect(screen.getByLabelText('Milk, whole, Cow: 1.5 glasses (387 g), 283 kcal, 12.6 g protein')).toBeOnTheScreen();
+
+    await addGlasses();
+    expect(
+      await screen.findByText('Milk, whole, Cow is already in this meal (1.5 glasses (387 g)). Add 1 glass (258 g) to it, for 2.5 glasses (645 g) in all?'),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add to existing' }));
+    expect(screen.getByLabelText('Milk, whole, Cow: 2.5 glasses (645 g), 471 kcal, 21.0 g protein')).toBeOnTheScreen();
+
+    await addFood('milk', /^Milk, whole, Cow/, '100');
+    expect(screen.queryByRole('button', { name: 'Add to existing' })).toBeNull();
+    expect(screen.getByLabelText('Milk, whole, Cow: 100 g, 73 kcal, 3.3 g protein')).toBeOnTheScreen();
+  });
+
+  it('saving keeps the unit, the count and the grams they came to, with their values', async () => {
+    const { db, server } = await render({ day: TODAY }, withMilk);
+    await addGlasses();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Breakfast' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
+    const glass: MealItem = {
+      source: 'ifct2017',
+      ref: 'L002',
+      name: 'Milk, whole, Cow',
+      amount: { unit: 'measure', measure: 'glass', value: 1, grams: 258 },
+      kcal: 188.34,
+      proteinG: 8.41,
+      carbsG: 12.75,
+      fatG: 11.56,
+      fibreG: 0,
+      estimated: false,
+    };
+    expect(await getEntry(db, 'meal', row!.id)).toMatchObject({ items: [glass] });
+    await waitFor(() => expect(server.entries('meals').get(row!.id)).toMatchObject({ items: [glass] }));
   });
 });

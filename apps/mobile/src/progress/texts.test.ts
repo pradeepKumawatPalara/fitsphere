@@ -1,5 +1,4 @@
 import {
-  averageCaloriesText,
   daysLoggedText,
   weekLabel,
   weeklyRateText,
@@ -34,8 +33,7 @@ describe('Progress texts', () => {
     expect(weeklyRateText(-20, 'kg')).toBe('No weekly change');
   });
 
-  it('writes calories, counts and week labels', () => {
-    expect(averageCaloriesText(1850)).toBe('1,850 kcal a day');
+  it('writes counts and week labels', () => {
     expect(daysLoggedText({ logged: 12, total: 27 })).toBe('Meals logged: 12 of 27 days');
     expect(daysLoggedText({ logged: 0, total: 1 })).toBe('Meals logged: 0 of 1 day');
     expect(wholeCell(10_000)).toBe('10,000');

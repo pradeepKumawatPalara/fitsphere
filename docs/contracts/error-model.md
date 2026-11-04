@@ -91,7 +91,7 @@ reveal whether an address is registered.
 
 | Situation | Text | Source |
 |---|---|---|
-| After sign-up, whatever Supabase returns | "Check your email. If this address can be used for a new account, we've sent a link to finish signing up." | REQ-ACC-010, D-11; wording is an MVP default (D-18) |
+| After sign-up, whatever Supabase returns | "Check your email. If this address can be used for a new account, we've sent a link to finish signing up." Since the redesign (D-35), the same words as a heading, "Check your email", and its text. | REQ-ACC-010, D-11; wording is an MVP default (D-18) |
 | After "Forgot password", whatever Supabase returns | "If an account uses this address, we've sent a link to reset the password." | REQ-ACC-010, D-11; wording is an MVP default (D-18) |
 | Sign-in fails | "Email or password is incorrect." | REQ-ACC-010 |
 | Sign-in with a field empty | "Enter your email address." or "Enter your password." Wrong details still get the neutral sign-in failure text | REQ-ACC-010; D-33 |

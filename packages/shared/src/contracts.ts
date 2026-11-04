@@ -2,8 +2,10 @@
 // Request schemas are strict: unknown fields are refused. Response schemas accept added fields,
 // because adding a field does not change the API version.
 import { z } from 'zod';
-import { addDays, isIstDay, type IstDay } from './dates.ts';
+import { addDays, isIstDay, yearsBetween, type IstDay } from './dates.ts';
 import {
+  HEIGHT_MM_MAX,
+  HEIGHT_MM_MIN,
   LIFT_WEIGHT_GRAMS_MAX,
   LIFT_WEIGHT_GRAMS_MIN,
   MEASUREMENT_MM_MAX,
@@ -293,6 +295,60 @@ export const settingSetDataSchema = z.discriminatedUnion('name', [
 ]);
 export type SettingSetData = z.infer<typeof settingSetDataSchema>;
 
+// The profile (REQ-ACC-011; docs/plans/user-profile.md): the user's own basic details, one per user,
+// synced like settings so it can be edited offline; the change received last wins (ADR-0007 rule 2).
+// Every field is optional. The height is stored in millimetres (invariant #6); the weight is not
+// here, being the latest weigh-in. Private to the user (D-20) and never logged (invariant #7).
+
+export const PROFILE_SET = 'profile.set';
+export const PROFILE_NAME_MAX = 60;
+/** The ages a date of birth may give: 18 or older, as at sign-up (REQ-ACC-010). */
+export const PROFILE_AGE_MIN = 18;
+export const PROFILE_AGE_MAX = 120;
+export const SEXES = ['female', 'male', 'other', 'prefer_not_to_say'] as const;
+export type Sex = (typeof SEXES)[number];
+export const ADDRESS_LINE_MAX = 100;
+/** A city's or a state's name. */
+export const ADDRESS_PLACE_MAX = 60;
+/** +91 and a 10-digit Indian mobile number (phase 1 serves India only, invariant #5); not verified. */
+export const PHONE_PATTERN = /^\+91[6-9]\d{9}$/;
+export const PIN_CODE_PATTERN = /^\d{6}$/;
+
+function profileTextSchema(max: number) {
+  return z.string().trim().min(1).max(max);
+}
+
+/** An address: empty (null), or line 1, the city, the state and the PIN code all given. */
+export const addressSchema = z.strictObject({
+  line1: profileTextSchema(ADDRESS_LINE_MAX),
+  line2: profileTextSchema(ADDRESS_LINE_MAX).nullable(),
+  city: profileTextSchema(ADDRESS_PLACE_MAX),
+  state: profileTextSchema(ADDRESS_PLACE_MAX),
+  pinCode: z.string().regex(PIN_CODE_PATTERN),
+});
+export type Address = z.infer<typeof addressSchema>;
+
+/** Whether a date of birth gives an age from 18 to 120 on `today` (an IST day). */
+export function isAcceptedDateOfBirth(dateOfBirth: IstDay, today: IstDay): boolean {
+  const age = yearsBetween(dateOfBirth, today);
+  return age >= PROFILE_AGE_MIN && age <= PROFILE_AGE_MAX;
+}
+
+/** The whole profile: a field left empty is null. */
+export const profileSetDataSchema = z.strictObject({
+  name: profileTextSchema(PROFILE_NAME_MAX).nullable(),
+  /** A calendar date, `YYYY-MM-DD`; the server also checks the age it gives (isAcceptedDateOfBirth). */
+  dateOfBirth: istDaySchema.nullable(),
+  sex: z.enum(SEXES).nullable(),
+  heightMm: z.int().min(HEIGHT_MM_MIN).max(HEIGHT_MM_MAX).nullable(),
+  phone: z.string().regex(PHONE_PATTERN).nullable(),
+  address: addressSchema.nullable(),
+  /** The profile photo, named by an ID made on the phone, as a meal photo is; null for none. */
+  photoMediaId: idSchema.nullable(),
+  setAt: instantSchema,
+});
+export type ProfileSetData = z.infer<typeof profileSetDataSchema>;
+
 // Meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*) and saved meals (REQ-SAVED-*). A meal's ID is
 // made on the phone, so it can be created, edited and deleted offline; IDs are per user, so a
 // change never reaches another user's meal (invariant #1).
@@ -307,6 +363,14 @@ export const MAX_MEAL_ITEMS = 30;
 export const MEAL_ITEM_GRAMS_MAX = 2_000;
 /** Portions of a dish, in halves (MVP default, D-26). */
 export const MEAL_ITEM_PORTIONS_MAX = 10;
+/**
+ * Household units a listed food can be logged in, once the owner has measured the grams one holds
+ * for that food (D-36): teaspoon 5 ml, tablespoon 15 ml, katori 200 ml, glass 250 ml, and piece.
+ */
+export const FOOD_MEASURES = ['teaspoon', 'tablespoon', 'katori', 'glass', 'piece'] as const;
+export type FoodMeasure = (typeof FOOD_MEASURES)[number];
+/** Units of a food, in halves, as a dish's portions (MVP default, D-36). */
+export const MEAL_ITEM_MEASURES_MAX = 10;
 /** The most one item can hold, whatever its amount. */
 export const MEAL_ITEM_KCAL_MAX = 20_000;
 export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
@@ -314,6 +378,15 @@ export const MEAL_ITEM_SOURCES = ['ifct2017', 'dish', 'barcode', 'own'] as const
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
 
 const nutrientSchema = z.number().min(0).max(MEAL_ITEM_NUTRIENT_MAX);
+
+/** A count in halves, from 0.5 to `max`. */
+function halvesSchema(max: number) {
+  return z
+    .number()
+    .min(0.5)
+    .max(max)
+    .refine((value) => Number.isInteger(value * 2));
+}
 
 /**
  * One food in a meal, with its values for the amount eaten. The values are a snapshot taken when
@@ -328,13 +401,13 @@ export const mealItemSchema = z
     name: z.string().trim().min(1).max(120),
     amount: z.discriminatedUnion('unit', [
       z.strictObject({ unit: z.literal('g'), value: z.int().min(1).max(MEAL_ITEM_GRAMS_MAX) }),
+      z.strictObject({ unit: z.literal('portion'), value: halvesSchema(MEAL_ITEM_PORTIONS_MAX) }),
+      // Units of a listed food (D-36), with the grams they came to, which the values are for.
       z.strictObject({
-        unit: z.literal('portion'),
-        value: z
-          .number()
-          .min(0.5)
-          .max(MEAL_ITEM_PORTIONS_MAX)
-          .refine((value) => Number.isInteger(value * 2)),
+        unit: z.literal('measure'),
+        measure: z.enum(FOOD_MEASURES),
+        value: halvesSchema(MEAL_ITEM_MEASURES_MAX),
+        grams: z.number().gt(0).max(MEAL_ITEM_GRAMS_MAX),
       }),
     ]),
     kcal: z.number().min(0).max(MEAL_ITEM_KCAL_MAX),
@@ -345,8 +418,15 @@ export const mealItemSchema = z
     /** Any value is estimated rather than published (oils and fats, dishes). */
     estimated: z.boolean(),
   })
-  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28).
-  .refine((item) => (item.source === 'dish') === (item.amount.unit === 'portion'), { path: ['amount'] });
+  // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); a listed food
+  // may also be logged in a household unit (D-36).
+  .refine(
+    (item) =>
+      item.source === 'dish'
+        ? item.amount.unit === 'portion'
+        : item.amount.unit === 'g' || (item.amount.unit === 'measure' && item.source === 'ifct2017'),
+    { path: ['amount'] },
+  );
 export type MealItem = z.infer<typeof mealItemSchema>;
 
 const mealTagsSchema = z
@@ -533,6 +613,21 @@ export const settingSchema = z.object({
 });
 export type Setting = z.infer<typeof settingSchema>;
 
+export const profileSchema = z.object({
+  name: z.string().nullable(),
+  dateOfBirth: istDaySchema.nullable(),
+  sex: z.enum(SEXES).nullable(),
+  heightMm: z.int().nullable(),
+  phone: z.string().nullable(),
+  address: z
+    .object({ line1: z.string(), line2: z.string().nullable(), city: z.string(), state: z.string(), pinCode: z.string() })
+    .nullable(),
+  photoMediaId: idSchema.nullable(),
+  setAt: instantSchema,
+  updatedAt: instantSchema,
+});
+export type Profile = z.infer<typeof profileSchema>;
+
 /** A meal's totals, computed by the server from its items: the sum of the known values, or null
  * when no item has that value (MVP default, D-26). */
 export const mealTotalsSchema = z.object({
@@ -548,7 +643,11 @@ const pulledItemSchema = z.object({
   source: z.enum(MEAL_ITEM_SOURCES),
   ref: z.string().nullable(),
   name: z.string(),
-  amount: z.object({ unit: z.enum(['g', 'portion']), value: z.number() }),
+  amount: z.discriminatedUnion('unit', [
+    z.object({ unit: z.literal('g'), value: z.number() }),
+    z.object({ unit: z.literal('portion'), value: z.number() }),
+    z.object({ unit: z.literal('measure'), measure: z.enum(FOOD_MEASURES), value: z.number(), grams: z.number() }),
+  ]),
   kcal: z.number(),
   proteinG: z.number(),
   carbsG: z.number().nullable(),
@@ -601,6 +700,8 @@ export const syncResponseSchema = z.object({
     workouts: z.array(pulledWorkoutSchema),
     targets: z.array(targetSchema),
     settings: z.array(settingSchema),
+    /** The profile, when it changed after the cursor: at most one, the user's own. */
+    profiles: z.array(profileSchema).max(1),
     meals: z.array(pulledMealSchema),
     savedMeals: z.array(pulledSavedMealSchema),
     // Always empty in the MVP (ADR-0007 rule 3; D-20).
@@ -657,6 +758,8 @@ export const foodSchema = z.object({
   kcal: z.number(),
   /** The kcal value is estimated, not published (oils and fats: 9 kcal per g of fat, D-26). */
   kcalEstimated: z.boolean(),
+  /** The household units the owner has measured for this food, and the grams one holds (D-36). */
+  measures: z.array(z.object({ measure: z.enum(FOOD_MEASURES), grams: z.number() })),
 });
 export type Food = z.infer<typeof foodSchema>;
 

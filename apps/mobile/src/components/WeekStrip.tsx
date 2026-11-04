@@ -1,9 +1,11 @@
 import { addDays, type IstDay } from '@fitsphere/shared';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { dayParts } from '../format';
 import { stripStarts } from '../navigation/SelectedDayProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { Text } from './ui';
 
 type Props = {
@@ -30,6 +32,7 @@ type Props = {
 // shown are there for screen readers; the arrows move them.
 export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect, onShow }: Props) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const canGoBack = addDays(start, -1) >= firstDay;
   const canGoOn = addDays(start, 7) <= today;
   const starts = stripStarts(firstDay, today);
@@ -64,18 +67,26 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
           accessibilityState={{ selected: isSelected, disabled: outOfRange }}
           disabled={outOfRange}
           onPress={() => onSelect(day)}
-          style={({ pressed }) => [styles.day, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.day,
+            isToday && !isSelected && styles.today,
+            isSelected && styles.selected,
+            outOfRange && styles.dimmed,
+            pressed && styles.pressed,
+          ]}
         >
-          <View style={[styles.pill, isSelected && styles.selected]}>
-            <Text style={[styles.weekday, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
-              {parts.weekday}
-            </Text>
-            <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
-              {parts.date}
-            </Text>
-            <View style={[styles.todayBar, isToday && styles.todayBarShown, isToday && isSelected && styles.todayBarOnSelected]} />
-          </View>
-          {mealDays ? <View testID={`status-${day}`} style={[styles.status, logged && styles.statusFilled]} /> : null}
+          <Text style={[styles.weekday, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
+            {parts.weekday}
+          </Text>
+          <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
+            {parts.date}
+          </Text>
+          {mealDays ? (
+            <View
+              testID={`status-${day}`}
+              style={[styles.status, logged && styles.statusFilled, isSelected && (logged ? styles.statusOnSelected : styles.statusOpenOnSelected)]}
+            />
+          ) : null}
         </Pressable>
       );
     });
@@ -90,9 +101,9 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
         disabled={!canGoBack}
         onPress={() => onShow(addDays(start, -7))}
         hitSlop={8}
-        style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.arrow, !canGoBack && styles.dimmed, pressed && styles.pressed]}
       >
-        <Text style={[styles.arrowText, !canGoBack && styles.disabledText]}>‹</Text>
+        <ChevronLeft size={20} strokeWidth={2.25} color={canGoBack ? colors.accent : colors.inkSubtle} />
       </Pressable>
       <View testID="week-pages" style={styles.pages} onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}>
         {pageWidth === 0 ? (
@@ -128,33 +139,33 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
         disabled={!canGoOn}
         onPress={() => onShow(addDays(start, 7))}
         hitSlop={8}
-        style={({ pressed }) => [styles.arrow, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.arrow, !canGoOn && styles.dimmed, pressed && styles.pressed]}
       >
-        <Text style={[styles.arrowText, !canGoOn && styles.disabledText]}>›</Text>
+        <ChevronRight size={20} strokeWidth={2.25} color={canGoOn ? colors.accent : colors.inkSubtle} />
       </Pressable>
     </View>
   );
 }
 
+// The redesign's 2.3 (locked by the owner, 2026-11-03): square days 64 tall and 4 apart, today outlined
+// in caramel, the selected day filled; a day with a meal has a green mark under its date.
 const useStyles = themedStyles((c) => ({
-  row: { flexDirection: 'row', alignItems: 'center' },
-  arrow: { paddingHorizontal: 6, paddingVertical: 12 },
-  arrowText: { fontSize: 24 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  arrow: { width: 28, height: 64, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.6 },
+  dimmed: { opacity: 0.45 },
   pages: { flex: 1 },
-  // Evenly spaced, the arrows' gap included, as when the arrows and days shared one row.
-  week: { flexDirection: 'row', justifyContent: 'space-evenly' },
-  day: { alignItems: 'center', width: 40, gap: 6 },
-  pill: { alignItems: 'center', alignSelf: 'stretch', paddingTop: 6, paddingBottom: 5, borderRadius: 20 },
+  week: { flexDirection: 'row', gap: 4 },
+  day: { flex: 1, height: 64, alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 4 },
+  today: { borderWidth: 2, borderColor: c.accent },
   selected: { backgroundColor: c.primary },
-  weekday: { fontSize: 12, color: c.textMuted },
-  date: { fontSize: 16, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  todayText: { color: c.primary, fontWeight: '700' },
-  selectedText: { color: c.onPrimary, fontWeight: '700' },
-  disabledText: { color: c.textFaint },
-  todayBar: { marginTop: 3, width: 14, height: 2, borderRadius: 1, backgroundColor: 'transparent' },
-  todayBarShown: { backgroundColor: c.primary },
-  todayBarOnSelected: { backgroundColor: c.onPrimary },
-  status: { width: 18, height: 4, borderRadius: 2, backgroundColor: c.track },
+  weekday: { ...TYPE.label, fontSize: 11, lineHeight: 13, letterSpacing: 1, color: c.ink },
+  date: { ...TYPE.dayNumber, fontSize: 20, lineHeight: 22 },
+  todayText: { color: c.accent },
+  selectedText: { color: c.onPrimary },
+  disabledText: { color: c.inkSubtle },
+  status: { width: 14, height: 4, borderRadius: 2, backgroundColor: c.track },
   statusFilled: { backgroundColor: c.success },
+  statusOnSelected: { backgroundColor: c.onPrimary },
+  statusOpenOnSelected: { backgroundColor: c.scrim },
 }));

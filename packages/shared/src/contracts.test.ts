@@ -6,6 +6,7 @@ import {
   DEFAULT_SETTINGS,
   errorBodySchema,
   foodsResponseSchema,
+  isAcceptedDateOfBirth,
   isPublicLink,
   mealItemSchema,
   mealPhotoSchema,
@@ -13,6 +14,7 @@ import {
   mealTotals,
   measurementsSetDataSchema,
   meSetupRequestSchema,
+  profileSetDataSchema,
   pulledWorkoutSchema,
   SETTING_NAMES,
   SETTING_VALUES,
@@ -298,6 +300,97 @@ describe('REQ-ACC-004 AI consent request', () => {
   });
 });
 
+describe('REQ-ACC-011 profile.set data', () => {
+  const FULL = {
+    name: 'Synthetic Person',
+    dateOfBirth: '1994-06-14',
+    sex: 'female',
+    heightMm: 1620,
+    phone: '+919876543210',
+    address: { line1: '12 Example Lane', line2: null, city: 'Pune', state: 'Maharashtra', pinCode: '411001' },
+    photoMediaId: CHANGE_ID,
+    setAt: RECORDED_AT,
+  };
+  const EMPTY = {
+    name: null,
+    dateOfBirth: null,
+    sex: null,
+    heightMm: null,
+    phone: null,
+    address: null,
+    photoMediaId: null,
+    setAt: RECORDED_AT,
+  };
+
+  it('REQ-ACC-011 accepts a full profile, and an empty one: every field is optional', () => {
+    expect(profileSetDataSchema.parse(FULL)).toEqual(FULL);
+    expect(profileSetDataSchema.parse(EMPTY)).toEqual(EMPTY);
+  });
+
+  it('REQ-ACC-011 trims the name and refuses one that is blank or over 60 characters', () => {
+    expect(profileSetDataSchema.parse({ ...FULL, name: '  Synthetic  ' }).name).toBe('Synthetic');
+    expect(profileSetDataSchema.safeParse({ ...FULL, name: '   ' }).success).toBe(false);
+    expect(profileSetDataSchema.safeParse({ ...FULL, name: 'x'.repeat(61) }).success).toBe(false);
+  });
+
+  it('REQ-ACC-011 the sex is one of the four choices', () => {
+    for (const sex of ['female', 'male', 'other', 'prefer_not_to_say']) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, sex }).success).toBe(true);
+    }
+    expect(profileSetDataSchema.safeParse({ ...FULL, sex: 'unknown' }).success).toBe(false);
+  });
+
+  it('invariant #6 the height is whole millimetres from 100 to 250 cm', () => {
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 1000 }).success).toBe(true);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 2500 }).success).toBe(true);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 999 }).success).toBe(false);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 2501 }).success).toBe(false);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 1620.5 }).success).toBe(false);
+  });
+
+  it('invariant #5 the phone is +91 and a 10-digit Indian mobile number', () => {
+    for (const phone of ['+919876543210', '+916000000000']) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, phone }).success).toBe(true);
+    }
+    for (const phone of ['9876543210', '+91987654321', '+9198765432100', '+915876543210', '+449876543210', '+91 98765 43210']) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, phone }).success).toBe(false);
+    }
+  });
+
+  it('REQ-ACC-011 an address is all or nothing: line 1, city, state and a 6-digit PIN code; line 2 optional', () => {
+    const address = FULL.address;
+    expect(profileSetDataSchema.safeParse({ ...FULL, address: { ...address, line2: 'Near the park' } }).success).toBe(true);
+    for (const field of ['line1', 'city', 'state', 'pinCode']) {
+      const partial: Record<string, unknown> = { ...address };
+      delete partial[field];
+      expect(profileSetDataSchema.safeParse({ ...FULL, address: partial }).success).toBe(false);
+    }
+    for (const pinCode of ['41100', '4110011', '41100a']) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, address: { ...address, pinCode } }).success).toBe(false);
+    }
+  });
+
+  it('REQ-ACC-011 the date of birth is a calendar date', () => {
+    expect(profileSetDataSchema.safeParse({ ...FULL, dateOfBirth: '1994-02-30' }).success).toBe(false);
+    expect(profileSetDataSchema.safeParse({ ...FULL, dateOfBirth: '14-06-1994' }).success).toBe(false);
+  });
+
+  it('REQ-ACC-010 a date of birth must give an age from 18 to 120', () => {
+    expect(isAcceptedDateOfBirth('2008-11-03', '2026-11-03')).toBe(true);
+    expect(isAcceptedDateOfBirth('2008-11-04', '2026-11-03')).toBe(false);
+    expect(isAcceptedDateOfBirth('1906-11-03', '2026-11-03')).toBe(true);
+    expect(isAcceptedDateOfBirth('1905-11-03', '2026-11-03')).toBe(false);
+    expect(isAcceptedDateOfBirth('2030-01-01', '2026-11-03')).toBe(false);
+  });
+
+  it('REQ-NFR-001 refuses a change that names a user, and one without its time', () => {
+    expect(detailsFor(profileSetDataSchema, { ...EMPTY, userId: CHANGE_ID })).toEqual([{ field: 'userId', issue: 'unknown_field' }]);
+    const untimed: Record<string, unknown> = { ...EMPTY };
+    delete untimed.setAt;
+    expect(detailsFor(profileSetDataSchema, untimed)).toEqual([{ field: 'setAt', issue: 'required' }]);
+  });
+});
+
 describe('REQ-NFR-004 sync request and response', () => {
   it('REQ-NFR-004 accepts the request from the contract', () => {
     const request = {
@@ -341,6 +434,7 @@ describe('REQ-NFR-004 sync request and response', () => {
         workouts: [],
         targets: [],
         settings: [],
+        profiles: [],
         meals: [],
         savedMeals: [],
         removals: [],
@@ -443,6 +537,47 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
       expect(result.success).toBe(false);
       expect(result.error && validationDetails(result.error, {})).toEqual([{ field: 'amount', issue: 'invalid_format' }]);
     }
+  });
+
+  it('D-36 a listed food may be in household units: halves from 0.5 to 10, with the grams they came to', () => {
+    const glasses = (value: number, grams: number) => ({ unit: 'measure', measure: 'glass', value, grams });
+    for (const amount of [glasses(0.5, 129), glasses(10, 2_000), { unit: 'measure', measure: 'teaspoon', value: 1, grams: 4.6 }]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
+    }
+    for (const amount of [
+      glasses(0.25, 64.5),
+      glasses(10.5, 1_000),
+      glasses(1, 0),
+      glasses(9, 2_322),
+      { unit: 'measure', measure: 'cup', value: 1, grams: 240 },
+      { unit: 'measure', measure: 'glass', value: 1 },
+    ]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
+    }
+    for (const source of ['dish', 'barcode', 'own'] as const) {
+      const result = mealItemSchema.safeParse({ ...item, source, amount: glasses(1, 258) });
+      expect(result.success).toBe(false);
+      expect(result.error && validationDetails(result.error, {})).toEqual([{ field: 'amount', issue: 'invalid_format' }]);
+    }
+  });
+
+  it('D-36 the food list gives each food its measured units', () => {
+    const milk = {
+      source: 'ifct2017',
+      code: 'L002',
+      name: 'Milk, whole, Cow',
+      foodGroup: 'Milk and Milk Products',
+      aliases: [],
+      proteinG: 3.26,
+      fibreG: 0,
+      fatG: 4.48,
+      carbsG: 4.94,
+      kcal: 73,
+      kcalEstimated: false,
+      measures: [{ measure: 'glass', grams: 258 }],
+    };
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [milk], dishes: [] }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [{ ...milk, measures: [{ measure: 'cup', grams: 240 }] }], dishes: [] }).success).toBe(false);
   });
 
   it('D-28 the food list carries the dishes, per portion; both are null when the phone is current', () => {

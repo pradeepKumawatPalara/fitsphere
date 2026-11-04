@@ -4,7 +4,8 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
-import { importDishes, importFoods } from '../../src/foods/importFoods.ts';
+import { importDishes, importFoods, importMeasures } from '../../src/foods/importFoods.ts';
+import { readMeasuresSheet } from '../../src/foods/measures.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 import { connect } from './database.ts';
@@ -14,6 +15,7 @@ import { connect } from './database.ts';
 
 const FOODS = readIfctCsv(readFileSync(new URL('../../../../data/foods/ifct2017-foods.csv', import.meta.url), 'utf8'));
 const SHEET = readRecipeSheet(readFileSync(new URL('../../../../docs/data/standard-recipe-sheet.csv', import.meta.url), 'utf8'), FOODS);
+const MEASURES = readMeasuresSheet(readFileSync(new URL('../../../../docs/data/household-measures-sheet.csv', import.meta.url), 'utf8'), FOODS);
 
 // Synthetic dishes: made-up values, not recipe data.
 const TEST_DAL: ImportedDish = { code: 'test_dal', name: 'Test dal', portionUnit: 'katori', kcal: 138.82, proteinG: 7.42, carbsG: 19.6, fatG: 3.05, fibreG: 3.33 };
@@ -128,6 +130,7 @@ describe('authorization: GET /v1/foods', () => {
       carbsG: 0,
       kcal: 900,
       kcalEstimated: true,
+      measures: [],
     });
     expect(body.items?.find((food) => food.code === 'E021')?.aliases).toEqual(['Gooseberry']);
   });
@@ -216,5 +219,52 @@ describe('D-28 dishes: foods:import and GET /v1/foods', () => {
     const { rows } = await client.query<{ code: string }>('select code from app.dishes order by code');
     expect(rows).toEqual([{ code: 'test_dal' }]);
     await importDishes(client, SHEET.dishes);
+  });
+});
+
+// Synthetic units: made-up grams, not the owner's measurements.
+describe('D-36 household units: foods:import and GET /v1/foods', () => {
+  it('the committed sheet has no approved row yet, so no food has a unit', async () => {
+    expect(await importMeasures(client, MEASURES.measures)).toBe(0);
+    const { rows } = await client.query('select 1 from app.food_measures');
+    expect(rows).toEqual([]);
+  });
+
+  it('serves each food’s units in a fixed order, with the grams one holds; the version changes with them', async () => {
+    const user = await api.signUpWithAccount();
+    const first: FoodsResponse = (await getFoods(user.token)).json();
+    await importMeasures(client, [
+      { code: 'T013', measure: 'tablespoon', grams: 13.5 },
+      { code: 'T013', measure: 'teaspoon', grams: 4.6 },
+      { code: 'L002', measure: 'glass', grams: 258 },
+    ]);
+    try {
+      const body: FoodsResponse = (await getFoods(user.token, `?version=${first.version}`)).json();
+
+      expect(body.version).not.toBe(first.version);
+      expect(body.items?.find((food) => food.code === 'T013')?.measures).toEqual([
+        { measure: 'teaspoon', grams: 4.6 },
+        { measure: 'tablespoon', grams: 13.5 },
+      ]);
+      expect(body.items?.find((food) => food.code === 'L002')?.measures).toEqual([{ measure: 'glass', grams: 258 }]);
+      expect(body.items?.find((food) => food.code === 'A019')?.measures).toEqual([]);
+    } finally {
+      await importMeasures(client, MEASURES.measures);
+    }
+  });
+
+  it('a unit no longer approved is removed at the next import, and a failure part-way changes nothing', async () => {
+    await importMeasures(client, [
+      { code: 'L002', measure: 'glass', grams: 258 },
+      { code: 'T013', measure: 'teaspoon', grams: 4.6 },
+    ]);
+    expect(await importMeasures(client, [{ code: 'L002', measure: 'glass', grams: 258 }])).toBe(1);
+    const units = () => client.query('select code, measure, grams::text from app.food_measures order by code');
+    expect((await units()).rows).toEqual([{ code: 'L002', measure: 'glass', grams: '258.00' }]);
+
+    await expect(importMeasures(client, [{ code: 'T013', measure: 'teaspoon', grams: 4.6 }, { code: 'L999', measure: 'glass', grams: 250 }])).rejects.toThrow();
+
+    expect((await units()).rows).toEqual([{ code: 'L002', measure: 'glass', grams: '258.00' }]);
+    await importMeasures(client, MEASURES.measures);
   });
 });

@@ -1,21 +1,16 @@
 import { Stack } from 'expo-router';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
-import type { ReactNode } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
 import TabsLayout from '../app/(tabs)/_layout';
-import { AuthProvider } from '../auth/AuthProvider';
 import { ComingLaterScreen } from '../screens/ComingLaterScreen';
-import { deps, fakeAuthClient, fakeApi, fakeSession } from '../testing/fakes';
+import { routerProviders } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
 
 // REQ-NAV-001 and REQ-NAV-002 with the real expo-router navigators. The screens behind the tabs
 // are stand-ins; Home's own behaviour is tested in screens/home.test.tsx.
 
-function Providers({ children }: { children: ReactNode }) {
-  return <AuthProvider deps={deps(fakeAuthClient(fakeSession()), fakeApi({}).fetchImpl)}>{children}</AuthProvider>;
-}
-
 async function renderTabs() {
+  const Providers = await routerProviders();
   return renderRouter(
     {
       _layout: () => <Stack screenOptions={{ headerShown: false }} />,
@@ -49,31 +44,29 @@ describe('REQ-NAV-001 bottom navigation', () => {
   });
 });
 
-/**
- * The icon a tab shows: React Navigation draws each tab's icon twice, as focused and as not, and
- * shows one of them (opacity 1).
- */
-function shownIcon(tab: string) {
-  const shown = screen
-    .getAllByTestId(`tab-icon-${tab}`)
-    .filter((icon) => StyleSheet.flatten(icon.parent?.props.style)?.opacity === 1);
-  expect(shown).toHaveLength(1);
-  return shown[0]!;
-}
-
-describe('D-34 the tab bar: an icon over each label', () => {
-  it('the tab shown has its icon on a tinted pill, and the pill moves with the tab chosen', async () => {
+// The redesign's 2.1 (locked by the owner, 2026-11-03), in place of D-34's tinted pill.
+describe('REQ-NAV-001 the tab bar: an icon over each label', () => {
+  it('the tab shown has a caramel bar along its top edge and is read out as selected; both move with the tab chosen', async () => {
     await renderTabs();
     await screen.findByText('Home content');
-    const tinted = { backgroundColor: LIGHT_COLORS.surfaceSelected };
+    const marked = { backgroundColor: LIGHT_COLORS.accent };
 
-    expect(shownIcon('home')).toHaveStyle(tinted);
-    for (const tab of ['nutrition', 'training', 'progress']) expect(shownIcon(tab)).not.toHaveStyle(tinted);
+    expect(screen.getByTestId('tab-marker-home')).toHaveStyle(marked);
+    for (const tab of ['nutrition', 'training', 'progress']) expect(screen.getByTestId(`tab-marker-${tab}`)).not.toHaveStyle(marked);
+    expect(screen.getByRole('tab', { name: 'Home' })).toBeSelected();
 
     await fireEvent.press(screen.getByText('Progress'));
 
-    expect(shownIcon('progress')).toHaveStyle(tinted);
-    expect(shownIcon('home')).not.toHaveStyle(tinted);
+    expect(screen.getByTestId('tab-marker-progress')).toHaveStyle(marked);
+    expect(screen.getByTestId('tab-marker-home')).not.toHaveStyle(marked);
+    expect(screen.getByRole('tab', { name: 'Progress' })).toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Home' })).not.toBeSelected();
+  });
+
+  it('the header shows the selected date in caramel while it is today, over the greeting', async () => {
+    await renderTabs();
+
+    expect(await screen.findByLabelText(/^Selected date: Today · /)).toHaveStyle({ color: LIGHT_COLORS.accent });
   });
 });
 

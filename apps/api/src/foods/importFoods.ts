@@ -1,9 +1,11 @@
-// Writes the IFCT food list into app.foods (ADR-0006 rule 1), and the approved dishes into
-// app.dishes (D-28). One transaction each: every row is inserted or updated by its code, and rows no
-// longer in the file are removed, so running it again gives the same table.
+// Writes the IFCT food list into app.foods (ADR-0006 rule 1), the approved dishes into app.dishes
+// (D-28) and the approved household units into app.food_measures (D-36). One transaction each:
+// every row is inserted or updated by its code, and rows no longer in the file are removed, so
+// running it again gives the same table.
 import type pg from 'pg';
 import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
+import type { ImportedMeasure } from './measures.ts';
 
 export type ImportResult = { total: number; hidden: number; estimated: number };
 
@@ -80,4 +82,28 @@ export async function importDishes(client: pg.ClientBase, dishes: ImportedDish[]
     throw error;
   }
   return dishes.length;
+}
+
+/**
+ * Makes app.food_measures hold exactly the approved units: a unit no longer approved is removed, so
+ * the phones stop offering it at their next food-list download. Run after importFoods.
+ */
+export async function importMeasures(client: pg.ClientBase, measures: ImportedMeasure[]): Promise<number> {
+  await client.query('begin');
+  try {
+    await client.query('delete from app.food_measures');
+    for (const { code, measure, grams } of measures) {
+      await client.query('insert into app.food_measures (source, code, measure, grams) values ($1, $2, $3, $4)', [
+        IFCT_SOURCE,
+        code,
+        measure,
+        grams,
+      ]);
+    }
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  }
+  return measures.length;
 }

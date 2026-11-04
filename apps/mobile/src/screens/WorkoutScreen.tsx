@@ -1,7 +1,9 @@
 import { MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Dumbbell, Plus, SquarePen, Trash } from 'lucide-react-native';
+import { useContext, useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { Text, TextButton } from '../components/ui';
@@ -10,7 +12,8 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { EMPTY_EXERCISE, formatSets, toExerciseText } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
@@ -22,11 +25,14 @@ type Sheet = { index: number | null };
 // started, even with no exercises (Q-025).
 export function WorkoutScreen() {
   const styles = useStyles();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const local = useLocalDatabase();
   const sync = useSync();
   const unit = useLiftingWeightUnit();
+  // The fixed footer clears the phone's navigation bar; none outside the app (tests).
+  const insets = useContext(SafeAreaInsetsContext);
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -51,7 +57,10 @@ export function WorkoutScreen() {
     // Deleted, or no longer on this phone.
     return (
       <View style={styles.gone}>
-        <Text style={styles.body}>This workout is not on this phone.</Text>
+        <View style={styles.goneTile}>
+          <Dumbbell size={26} color={colors.accent} />
+        </View>
+        <Text style={styles.goneText}>This workout is not on this phone.</Text>
         <TextButton title="Done" filled onPress={() => router.back()} />
       </View>
     );
@@ -67,48 +76,68 @@ export function WorkoutScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <Text accessibilityRole="header" style={styles.title}>
-        Workout · {formatDay(workout.day)}
-      </Text>
-      {syncState === 'pending' ? <Text style={styles.note}>Waiting to sync</Text> : null}
-      <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
-      {workout.exercises.length === 0 ? <Text style={styles.note}>No exercises yet.</Text> : null}
-      {workout.exercises.map((exercise, index) => (
-        <Pressable
-          key={index}
-          accessibilityRole="button"
-          accessibilityLabel={`${exercise.name}: ${formatSets(exercise, unit)}`}
-          onPress={() => setSheet({ index })}
-          style={({ pressed }) => [styles.exercise, pressed && styles.pressed]}
-        >
-          <Text style={styles.name}>{exercise.name}</Text>
-          <Text style={styles.sets}>{formatSets(exercise, unit)}</Text>
-          {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
-        </Pressable>
-      ))}
-      {workout.exercises.length < MAX_WORKOUT_EXERCISES ? (
-        <TextButton title="Add exercise" outlined onPress={() => setSheet({ index: null })} />
-      ) : (
-        <Text style={styles.note}>A workout holds up to {MAX_WORKOUT_EXERCISES} exercises.</Text>
-      )}
-      <TextButton title="Done" filled onPress={() => router.back()} />
-      <View style={styles.danger}>
-        {confirming ? (
-          <View accessibilityRole="alert" style={styles.confirm}>
-            <Text style={styles.body}>Delete this workout? It leaves your history and your weekly count.</Text>
-            <View style={styles.actions}>
-              <View style={styles.half}>
-                <TextButton title="Keep" outlined wide onPress={() => setConfirming(false)} />
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.titleGroup}>
+          <Text accessibilityRole="header" style={styles.title}>
+            Workout · <Text style={styles.titleDay}>{formatDay(workout.day)}</Text>
+          </Text>
+          {syncState === 'pending' ? (
+            <View style={styles.noteLine}>
+              <View style={styles.dot} />
+              <Text style={styles.syncNote}>Waiting to sync</Text>
+            </View>
+          ) : null}
+        </View>
+        <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
+        {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
+        {workout.exercises.map((exercise, index) => (
+          <Pressable
+            key={index}
+            accessibilityRole="button"
+            accessibilityLabel={`${exercise.name}: ${formatSets(exercise, unit)}`}
+            onPress={() => setSheet({ index })}
+            style={({ pressed }) => [styles.exercise, pressed && styles.pressed]}
+          >
+            <View style={styles.number}>
+              <Text style={styles.numberText}>{String(index + 1).padStart(2, '0')}</Text>
+            </View>
+            <View style={styles.exerciseText}>
+              <Text style={styles.name}>{exercise.name}</Text>
+              <Text style={styles.sets}>{formatSets(exercise, unit)}</Text>
+              {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
+            </View>
+            <SquarePen size={20} color={colors.accent} />
+          </Pressable>
+        ))}
+        {workout.exercises.length < MAX_WORKOUT_EXERCISES ? (
+          <TextButton title="Add exercise" outlined wide icon={Plus} onPress={() => setSheet({ index: null })} />
+        ) : (
+          <Text style={styles.note}>A workout holds up to {MAX_WORKOUT_EXERCISES} exercises.</Text>
+        )}
+        <View style={styles.danger}>
+          {confirming ? (
+            <View accessibilityRole="alert" style={styles.confirm}>
+              <View style={styles.confirmText}>
+                <Trash size={20} color={colors.danger} />
+                <Text style={styles.body}>Delete this workout? It leaves your history and your weekly count.</Text>
               </View>
-              <View style={styles.half}>
-                <TextButton title="Delete" outlined wide destructive onPress={() => void deleteWorkout()} />
+              <View style={styles.actions}>
+                <View style={styles.half}>
+                  <TextButton title="Keep" outlined wide onPress={() => setConfirming(false)} />
+                </View>
+                <View style={styles.half}>
+                  <TextButton title="Delete" outlined wide destructive onPress={() => void deleteWorkout()} />
+                </View>
               </View>
             </View>
-          </View>
-        ) : (
-          <TextButton title="Delete workout" destructive onPress={() => setConfirming(true)} />
-        )}
+          ) : (
+            <TextButton title="Delete workout" destructive icon={Trash} onPress={() => setConfirming(true)} />
+          )}
+        </View>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 12 + (insets?.bottom ?? 0) }]}>
+        <TextButton title="Done" filled onPress={() => router.back()} />
       </View>
       {sheet ? (
         <ExerciseSheet
@@ -127,7 +156,7 @@ export function WorkoutScreen() {
           onClose={() => setSheet(null)}
         />
       ) : null}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -138,21 +167,57 @@ function isFor(change: OutboxEntry, id: string): boolean {
   );
 }
 
-// 12 within the list of exercises; Done is the main action, filled; Delete workout is a red link set
-// apart below it, and its confirmation is as every confirmation: Keep on the left, Delete in red on
-// the right, the same size.
+// The redesign's 4.2 (locked by the owner, 2026-11-03): the date in caramel in a condensed title;
+// each exercise on a card with its number and a pencil, its sets in condensed figures; Add exercise
+// outlined across the screen; Delete workout a red link at the end, its confirmation on a red tint
+// (Keep on the left, Delete in red on the right, the same size); Done fixed at the foot, as Log
+// meal's Save meal.
 const useStyles = themedStyles((c) => ({
-  content: { padding: 16, gap: 12 },
-  title: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  exercise: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 4 },
+  screen: { flex: 1, backgroundColor: c.bg },
+  content: { padding: 16, paddingBottom: 24, gap: 12 },
+  titleGroup: { gap: 6 },
+  title: { ...TYPE.heading, fontSize: 30, lineHeight: 32, fontVariant: ['tabular-nums'] },
+  titleDay: { color: c.accent },
+  noteLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.inkMuted },
+  syncNote: { ...TYPE.label, letterSpacing: 1, color: c.inkMuted },
+  empty: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: c.border,
+    fontSize: 15,
+    lineHeight: 22,
+    color: c.inkMuted,
+    textAlign: 'center',
+  },
+  exercise: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 16,
+    borderRadius: 4,
+    backgroundColor: c.surface,
+  },
   pressed: { opacity: 0.6 },
-  name: { fontSize: 15, fontWeight: '600' },
-  sets: { fontSize: 15, fontVariant: ['tabular-nums'] },
-  body: { fontSize: 15 },
-  note: { fontSize: 13, color: c.textMuted },
-  danger: { paddingTop: 12 },
-  confirm: { padding: 16, gap: 12, borderRadius: 12, borderWidth: 1.5, borderColor: c.over },
-  actions: { flexDirection: 'row', gap: 12 },
+  number: { width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSunken },
+  numberText: { ...TYPE.metric, fontSize: 16, lineHeight: 18, color: c.accent },
+  exerciseText: { flex: 1, gap: 2 },
+  name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  sets: { ...TYPE.metric },
+  body: { flexShrink: 1, fontSize: 15, lineHeight: 22 },
+  note: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  danger: { paddingTop: 8 },
+  confirm: { padding: 16, gap: 14, borderRadius: 4, borderWidth: 1.5, borderColor: c.danger, backgroundColor: c.dangerTint },
+  confirmText: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  actions: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
+  footer: { paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.bg },
   gone: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
+  goneTile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
+  goneText: { fontSize: 17, lineHeight: 26 },
 }));

@@ -1,15 +1,18 @@
 import { barcodeSchema, OFF_ATTRIBUTION, type BarcodeProduct, type MealItem } from '@fitsphere/shared';
+import { PenLine, ScanBarcode, WifiOff } from 'lucide-react-native';
 import { useState, type ComponentType } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { lookUpBarcode } from '../api/barcodes';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { GRAMS_RULE, hasKcalAndProtein, itemFromBarcode, parseGrams, productName } from '../mealItems';
 import { formatGrams, formatKcal } from '../meals';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import { BarcodeCamera, type ScannerProps } from './BarcodeCamera';
+import { GramsBox } from './GramsBox';
 import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useFieldInputStyle } from './ui';
+import { Banner, Problem, Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 type Step =
   | { kind: 'scan' }
@@ -36,10 +39,12 @@ export function BarcodeSheet({
   Scanner?: ComponentType<ScannerProps>;
 }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   const fieldInput = useFieldInputStyle();
   const { deps } = useAuth();
   const [step, setStep] = useState<Step>({ kind: 'scan' });
   const [typed, setTyped] = useState('');
+  const [typing, setTyping] = useState(false);
   const [gramsText, setGramsText] = useState('100');
 
   async function lookUp(barcode: string) {
@@ -54,6 +59,7 @@ export function BarcodeSheet({
   }
 
   const typedValid = barcodeSchema.safeParse(typed.trim()).success;
+  const typedRefused = typed.trim() !== '' && !typedValid;
   const grams = parseGrams(gramsText);
   const found = step.kind === 'found' ? step : null;
   const usable = found && hasKcalAndProtein(found.product) ? found.product : null;
@@ -63,16 +69,19 @@ export function BarcodeSheet({
     <TextButton
       title="Enter your own food"
       outlined
+      wide
+      icon={PenLine}
       onPress={() => {
         onClose();
         onOwnFood(name);
       }}
     />
   );
-  const scanAgain = <TextButton title="Scan another barcode" onPress={() => setStep({ kind: 'scan' })} />;
+  const scanAgain = <TextButton title="Scan another barcode" icon={ScanBarcode} onPress={() => setStep({ kind: 'scan' })} />;
 
   return (
     <Sheet
+      title={found ? productName(found.product) : 'Scan barcode'}
       onClose={onClose}
       actions={
         <>
@@ -97,57 +106,45 @@ export function BarcodeSheet({
     >
       {step.kind === 'scan' ? (
         <>
-          <Text accessibilityRole="header" style={styles.title}>
-            Scan barcode
-          </Text>
           <Scanner onScanned={(barcode) => void lookUp(barcode)} />
-          <Text style={styles.body}>Or type the digits under the barcode:</Text>
+          <Text style={styles.muted}>Or type the digits under the barcode:</Text>
           <TextInput
             accessibilityLabel="Barcode digits"
             value={typed}
             onChangeText={setTyped}
+            onFocus={() => setTyping(true)}
+            onBlur={() => setTyping(false)}
             keyboardType="number-pad"
             maxLength={14}
-            style={[fieldInput, styles.number]}
+            style={[fieldInput, styles.number, typing && styles.typing, typedRefused && styles.refused]}
           />
-          {typed.trim() !== '' && !typedValid ? <Text style={styles.problem}>Enter the 8 to 14 digits under the barcode.</Text> : null}
+          {typedRefused ? <Problem text="Enter the 8 to 14 digits under the barcode." /> : null}
         </>
       ) : null}
 
       {step.kind === 'looking' ? (
-        <Text accessibilityRole="progressbar" style={styles.muted}>
-          Looking up the barcode…
-        </Text>
+        <View style={styles.looking}>
+          <ActivityIndicator color={colors.accent} />
+          <Text accessibilityRole="progressbar" style={styles.muted}>
+            Looking up the barcode…
+          </Text>
+        </View>
       ) : null}
 
       {found ? (
         <>
-          <Text accessibilityRole="header" style={styles.title}>
-            {productName(found.product)}
-          </Text>
           {usable ? (
             <>
-              <Text style={styles.body}>
+              <Text style={styles.muted}>
                 Per 100 g: {formatKcal(usable.kcal)} · {formatGrams(usable.proteinG)} protein
               </Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  accessibilityLabel="Grams eaten"
-                  value={gramsText}
-                  onChangeText={setGramsText}
-                  keyboardType="number-pad"
-                  style={[fieldInput, styles.grow, styles.number]}
-                />
-                <Text style={styles.unit}>g</Text>
-              </View>
+              <GramsBox value={gramsText} onChangeText={setGramsText} refused={!preview} />
               {preview ? (
                 <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`} style={styles.preview}>
                   = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
                 </Text>
               ) : (
-                <Text accessibilityRole="alert" style={styles.problem}>
-                  {GRAMS_RULE}
-                </Text>
+                <Problem text={GRAMS_RULE} />
               )}
             </>
           ) : (
@@ -175,9 +172,7 @@ export function BarcodeSheet({
 
       {step.kind === 'offline' ? (
         <>
-          <Text accessibilityRole="alert" style={styles.body}>
-            {TEXTS.needsInternet('Looking up a barcode')}
-          </Text>
+          <Banner tone="error" icon={WifiOff} text={TEXTS.needsInternet('Looking up a barcode')} />
           {ownFood()}
           {scanAgain}
         </>
@@ -185,9 +180,7 @@ export function BarcodeSheet({
 
       {step.kind === 'unavailable' ? (
         <>
-          <Text accessibilityRole="alert" style={styles.body}>
-            Barcode lookup isn’t available right now. Try again later, or enter your own food.
-          </Text>
+          <Banner tone="error" text="Barcode lookup isn’t available right now. Try again later, or enter your own food." />
           {ownFood()}
           {scanAgain}
         </>
@@ -196,16 +189,23 @@ export function BarcodeSheet({
   );
 }
 
-// As Search foods: the title as the sheets' titles, what an addition comes to at the size of a value.
+// The redesign's 3.7 (locked by the owner, 2026-11-03), as Search foods (3.6): the product's name as
+// the sheet's title, the grams large in their box, what an addition comes to in condensed figures;
+// no connection or no lookup as an error banner; "Enter your own food" outlined across the sheet.
 const useStyles = themedStyles((c) => ({
-  title: { fontSize: 20, fontWeight: '600' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  grow: { flex: 1 },
-  number: { fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 15, color: c.textMuted },
-  body: { fontSize: 15 },
-  muted: { fontSize: 15, color: c.textMuted },
-  preview: { fontSize: 20, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  attribution: { color: c.textMuted, fontSize: 13 },
-  problem: { fontSize: 13, color: c.error },
+  number: { letterSpacing: 1, fontVariant: ['tabular-nums'] },
+  typing: { borderColor: c.accent },
+  refused: { borderColor: c.danger },
+  looking: {
+    minHeight: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    borderRadius: 4,
+    backgroundColor: c.surfaceSunken,
+  },
+  body: { fontSize: 16, lineHeight: 24 },
+  muted: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
+  preview: { ...TYPE.metric },
+  attribution: { color: c.inkMuted, fontSize: 12, lineHeight: 16 },
 }));

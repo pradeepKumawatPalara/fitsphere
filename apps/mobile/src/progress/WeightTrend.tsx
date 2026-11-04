@@ -1,10 +1,11 @@
 import type { BodyWeightUnit, IstDay } from '@fitsphere/shared';
+import { WifiOff } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
-import { Text, TextButton, useChoiceStyles } from '../components/ui';
-import { useTheme } from '../theme';
+import { Banner, Text, TextButton, useChoiceStyles } from '../components/ui';
+import { themedStyles, useTheme } from '../theme';
 import {
   CHART_RANGES,
   chartPoints,
@@ -44,12 +45,13 @@ type Props = {
 // online once per range and kept in memory only (ADR-0007 rules 1 and 6); offline they show the
 // named warning, and choosing the range again tries again.
 export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns }: Props) {
+  const styles = useStyles();
   const { deps } = useAuth();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
   const [range, setRange] = useState<ChartRange>('1M');
   const [older, setOlder] = useState<Partial<Record<OnlineRange, WeighInPoint[]>>>({});
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; offline: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const chosen = useRef<ChartRange>('1M');
 
@@ -64,14 +66,15 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
     setBusy(false);
     if (Array.isArray(result)) setOlder((current) => ({ ...current, [next]: result }));
     else if (chosen.current === next) {
-      setMessage(result === 'offline' ? TEXTS.needsInternet(PROGRESS_TEXTS.chartStep[next]) : TEXTS.tryLater);
+      setMessage(
+        result === 'offline' ? { text: TEXTS.needsInternet(PROGRESS_TEXTS.chartStep[next]), offline: true } : { text: TEXTS.tryLater, offline: false },
+      );
     }
   }
 
   const fromServer = range === '6M' || range === 'All' ? older[range] : undefined;
   const waiting = (range === '6M' || range === 'All') && !fromServer && rangeNeedsServer(range, today, accountStart);
   const points = chartPoints(range, fromServer ? mergeWeighIns(weighIns, fromServer) : weighIns, today);
-  const text = { color: colors.text };
 
   return (
     <Card title="Weight trend">
@@ -94,28 +97,43 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
       </View>
       {waiting ? (
         message ? (
-          <Text accessibilityRole="alert" style={[styles.body, text]}>
-            {message}
-          </Text>
+          <Banner tone="error" text={message.text} {...(message.offline ? { icon: WifiOff } : {})} />
         ) : busy ? (
-          <Text style={[styles.small, { color: colors.textMuted }]}>{PROGRESS_TEXTS.chartLoading}</Text>
+          <View style={styles.loading}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={styles.loadingText}>{PROGRESS_TEXTS.chartLoading}</Text>
+          </View>
         ) : null
       ) : points.length < 2 ? (
-        <Text style={[styles.body, text]}>{PROGRESS_TEXTS.chartEmpty}</Text>
+        <Text style={styles.empty}>{PROGRESS_TEXTS.chartEmpty}</Text>
       ) : (
         <WeightChart points={points} unit={unit} weekly={rangeIsWeekly(range)} />
       )}
-      <TextButton title="All weigh-ins" onPress={onAllWeighIns} />
+      <TextButton title="All weigh-ins" arrow onPress={onAllWeighIns} />
     </Card>
   );
 }
 
-// The ranges are choice pills sharing the row: the chosen one filled, as the chosen meal and day are
-// elsewhere.
-const styles = StyleSheet.create({
+// The ranges are choice blocks sharing the row: the chosen one filled, as the chosen meal and day are
+// elsewhere. The redesign's 5.1 (locked by the owner, 2026-11-03): a range still loading waits in a
+// sunken box, one with too few weigh-ins says so in a dashed box, and a range that cannot load
+// says why in a banner.
+const useStyles = themedStyles((c) => ({
   ranges: { flexDirection: 'row', gap: 6 },
   range: { flex: 1, paddingHorizontal: 0 },
   rangeText: { fontVariant: ['tabular-nums'] },
-  body: { fontSize: 15 },
-  small: { fontSize: 13 },
-});
+  loading: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 4, backgroundColor: c.surfaceSunken },
+  loadingText: { fontSize: 14, color: c.inkMuted },
+  empty: {
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: c.border,
+    fontSize: 15,
+    lineHeight: 22,
+    color: c.inkMuted,
+    textAlign: 'center',
+  },
+}));

@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { insertNewPhoto, type PhotoFiles } from '../local/photos';
-import { deleteEntry, discardRejected, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
+import { deleteEntry, discardRejected, PROFILE_KEY, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
 import { uploadPhotos } from './photoSync';
 import { refreshFoodList, syncNow, type SyncOutcome } from './syncClient';
 
@@ -29,7 +29,7 @@ const expoNetwork: NetworkWatcher = {
  * keeps the ID and start time it was given by `startWorkout`.
  */
 export type EntryInput = {
-  [K in EntryKind]: K extends 'target' | 'setting'
+  [K in EntryKind]: K extends 'target' | 'setting' | 'profile'
     ? Omit<ChangeData[K], 'setAt'>
     : K extends 'savedMeal'
       ? Omit<ChangeData[K], 'savedAt'>
@@ -42,7 +42,7 @@ type SyncContextValue = {
   /** Changes whenever local data may have changed; screens read again. */
   version: number;
   status: SyncOutcome | 'idle' | 'syncing';
-  /** `newPhoto`: the files of a photo just taken for this meal, saved with it (REQ-LOG-006). */
+  /** `newPhoto`: the files of a photo just taken for this meal or the profile, saved with it (REQ-LOG-006). */
   save<K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }): Promise<void>;
   /** Deletes a meal, saved meal (REQ-NUT-004) or workout (REQ-TRN-003). */
   remove(kind: DeletableKind, id: string): Promise<void>;
@@ -123,10 +123,11 @@ export function SyncProvider({
     async <K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }) => {
       if (!db) throw new Error('The phone database is not open');
       const savedAt = now().toISOString();
-      const stamp = kind === 'target' || kind === 'setting' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
+      const stamp = kind === 'target' || kind === 'setting' || kind === 'profile' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
       // A workout keeps the start time `startWorkout` gave it.
       const data = (kind === 'workout' ? input : { ...input, [stamp]: savedAt }) as unknown as ChangeData[K];
-      const mealId = (input as { id?: string }).id;
+      // The photo belongs to the meal, or to the profile.
+      const mealId = kind === 'profile' ? PROFILE_KEY : (input as { id?: string }).id;
       await saveEntry(
         db,
         kind,

@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -43,7 +43,7 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Acceptance criteria:
   - Given the Personal Training User view, when any main screen is shown, then tabs Home, Nutrition, Training, Progress are visible and each opens its screen.
 - Open: navigation for Coach and Head Coach views is not specified (Q-020). **Post-MVP** with those views (D-20, backlog B-17).
-- Each tab shows an icon over its label (D-34, amending D-23's text labels): filled for the tab shown, on a tinted pill, outlined for the others.
+- Each tab shows an icon over its label (D-34, amending D-23's text labels). Since the redesign's 2.1 (D-35, locked by the owner 2026-11-03): Lucide outline icons, labels in condensed capitals, and the tab shown in caramel with a bar along its top edge, the others muted; read out as selected.
 
 ### REQ-NAV-002 — Common header
 - Requirement: Every main screen shows the selected date, a calendar shortcut and a profile avatar that opens Account settings.
@@ -487,7 +487,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode and Saved (your meals) are available and work without AI (REQ-ACC-005). When a barcode is not found, the user can type the values from the label (MVP default; ADR-0006).
 - **Post-MVP:** Eaten before (past meals) — Saved covers re-logging in the MVP (D-18, backlog B-03).
-- The same food added again (D-34): while a meal is built or edited, adding a listed food it already has (the same food-list item, dish or barcode) asks "Already in this meal": "Add to existing" puts the amounts together in one item; "Keep separate" adds it as its own item. When together they would pass 2,000 g or 10 portions, only "Keep separate" is offered. A food the user entered is never merged. Separately logged meals are not merged.
+- Household units (D-36): a listed food can be added in grams or, once the owner has measured it, in a household unit (teaspoon, tablespoon, katori, glass or piece), counted in halves from 0.5 to 10 and at most 2,000 g. The grams one unit holds come only from the owner's household-measures sheet. Barcode products and your own food stay in grams; dishes in portions.
+- The same food added again (D-34): while a meal is built or edited, adding a listed food it already has (the same food-list item, dish or barcode) asks "Already in this meal": "Add to existing" puts the amounts together in one item; "Keep separate" adds it as its own item. A food in a household unit joins only the same food in the same unit. When together they would pass 2,000 g, 10 portions or the most units of that food, only "Keep separate" is offered. A food the user entered is never merged. Separately logged meals are not merged.
 - Acceptance criteria:
   - Given AI consent is off, when a scanned barcode is not found, then the user can type the label values and save the meal.
 - Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039).
@@ -529,12 +530,12 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-TRN-002 — Empty state
 - Requirement: Until a coach sends a plan, Training shows "No training plan yet".
-- MVP (D-20): no one can send a training plan in the MVP, so Training always shows "No training plan yet", with "Start an empty workout" (REQ-TRN-003) and the workout history (REQ-TRN-004).
+- MVP (D-20): no one can send a training plan in the MVP, so Training always shows "No training plan yet", with "Log workout" (REQ-TRN-003; named "Start an empty workout" until D-37) and the workout history (REQ-TRN-004).
 
 ### REQ-TRN-003 — Empty workout
-- Requirement: "Start an empty workout" lets the user log a self-directed session.
+- Requirement: "Log workout" lets the user log a self-directed session. The BRD calls it "Start an empty workout"; the owner renamed the button (D-37).
 - MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout counts toward the weekly target (Q-025).
-- MVP defaults (D-29): "Start an empty workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
+- MVP defaults (D-29): "Log workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
@@ -643,13 +644,39 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Type: Privacy
 - Requirement: "Delete account" opens a separate flow. After the user confirms, FitSphere deletes the user's data from the database and file storage, ends all their links (the other side gets the neutral "<name> is no longer linked with you" message), and deletes the sign-in account. Only the security logs required by REQ-NFR-005 are kept, without health data (MVP default, Q-048; Legal to confirm, Q-049). Google Play also requires a web page: a simple page explains how to request deletion by email (Q-048). *(How: ADR-0004 rule 7.)*
 - Acceptance criteria:
-  - When the user confirms deletion, then their entries, plans, targets, settings, consent records, Head Coach permission answers and media are removed from the database and file storage, and they can no longer sign in.
+  - When the user confirms deletion, then their entries, plans, targets, settings, profile (REQ-ACC-011), consent records, Head Coach permission answers and media are removed from the database and file storage, and they can no longer sign in.
   - When the account is deleted, then each linked coach, Head Coach or trainee gets the neutral message, and their phones delete the user's data on their next sync (REQ-NFR-004).
   - The admin access log keeps its entries about the account, without health data (REQ-NFR-005).
   - A public web page explains how to request deletion by email. The owner acts on a request only after confirming it from the account's registered address, and only through the logged admin path (ADR-0004).
 - Status: unblocked — Q-048 answered for the MVP (D-18). Before real users, Legal confirms what is deleted and what is kept (Q-049). Asking for the password again is post-MVP (backlog E-01).
 - MVP (D-20): no links exist, so ending links and the neutral message apply post-MVP (backlog B-19).
 - MVP (D-31): built in the Settings slice as `DELETE /v1/me` (api-conventions): the photo files, then the user's rows, then the Supabase sign-in account, deleted with a secret key only the API holds. The page's text is [`docs/legal/account-deletion-page.md`](../legal/account-deletion-page.md) (draft). Acting on an emailed request needs the logged admin path, which is release-blocking task RB-04.
+
+### REQ-ACC-011 — Profile
+- Type: Functional, Privacy
+- Requirement: The user can add and change their basic details in Settings: a photo, their name,
+  date of birth, sex, height, phone number and address; the weight is their latest weigh-in; the
+  sign-in email is shown read-only. Every field is optional. *(Not in the BRD; the owner's request,
+  D-38.)*
+- Acceptance criteria:
+  - Given a date of birth that makes the user under 18, then it is refused with "Enter a date of
+    birth for someone 18 or older." (REQ-ACC-010); the profile shows the age a date gives.
+  - The height is kept in millimetres and shown in cm, or in inches when the measurements use
+    inches (invariant #6); 100 to 250 cm.
+  - The phone number is a 10-digit Indian mobile number, kept with +91 (invariant #5); not verified.
+  - An address is empty, or has line 1, the city, the state and a 6-digit PIN code; line 2 is
+    optional.
+  - "Log today's weight" saves today's weigh-in, as on Home (REQ-HOME-006).
+  - The profile is saved on the phone and synced, so it can be edited offline (ADR-0007); its photo
+    is kept and uploaded as a meal photo is (ADR-0002).
+  - The header greets the user by the first word of their name, and the avatar shows their photo,
+    when there are (REQ-HOME-001).
+  - Only the user can read or change their profile (REQ-NFR-001, D-20); no value is logged
+    (REQ-NFR-002); deleting the account deletes it and its photo (REQ-ACC-009).
+- Status: built (D-38). Before real users, Legal reviews the new data (Q-049).
+- MVP defaults (D-38): the sign-in email can't be changed; the phone is not verified; the weight
+  shown is the latest weigh-in on the phone (the last 90 days); a photo is cropped to its middle
+  square.
 
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security

@@ -58,7 +58,7 @@ const PRODUCT: BarcodeProduct = {
 };
 
 const FOODS: Food[] = [
-  { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false },
+  { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [] },
 ];
 
 /** The sync's state, so a test can let it settle before going on or ending. */
@@ -110,8 +110,9 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Search foods' }));
-    // As Field: 48 tall, radius 12, a 1.5 border, text 16.
-    expect(screen.getByLabelText('Search foods')).toHaveStyle({ minHeight: 48, borderRadius: 12, borderWidth: 1.5, fontSize: 16 });
+    // As Field: a box 54 tall, radius 4, a 1.5 outline (the search icon beside the text), text 17.
+    expect(screen.getByLabelText('Search foods').parent).toHaveStyle({ minHeight: 54, borderRadius: 4, borderWidth: 1.5 });
+    expect(screen.getByLabelText('Search foods')).toHaveStyle({ fontSize: 17 });
     expect(fieldProblems()).toEqual([]);
 
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');
@@ -193,7 +194,7 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
       </>,
     );
     await synced();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Start an empty workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Add exercise' }));
 
     expect(screen.getByLabelText('Exercise name')).toBeOnTheScreen();

@@ -4,7 +4,7 @@
   account and how to ask for deletion by email, as Google Play requires (REQ-ACC-009; Q-048 MVP
   default, D-18). Not published.
 - Owner: Project owner (D-01); reviewed by Legal (Q-049, L-04)
-- Last updated: 2026-10-30 (Settings slice, step 2; D-31)
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2; D-31)
 
 ## Before it is published
 The parts in [square brackets] are not decided yet. Nothing in them may be filled in by guessing.
@@ -34,7 +34,7 @@ FitSphere is a fitness app by [developer name as shown on Google Play].
 
 ## Delete your account in the app
 1. Open FitSphere and sign in.
-2. Tap your initial at the top right of the screen to open **Settings**.
+2. Tap your photo or initial at the top right of the screen to open **Settings**.
 3. Tap **Delete account**, read what will be deleted, and confirm.
 
 Your account and your data are deleted straight away. You need an internet connection.
@@ -49,6 +49,7 @@ is yours before we delete anything, and we tell you when it is done. [We handle 
 - Your sign-in account: your email address and password.
 - Everything you logged in FitSphere: weights, steps, sleep, body measurements, meals and their
   photos, saved meals, workouts and targets.
+- Your profile and its photo: your name, date of birth, sex, height, phone number and address.
 - Your settings, and every record of your choices about AI meal reading.
 
 When you delete your account in the app, the copy on your phone is deleted too. If you asked by

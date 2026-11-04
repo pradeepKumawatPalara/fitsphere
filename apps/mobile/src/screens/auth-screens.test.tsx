@@ -1,22 +1,26 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import type { AuthClient } from '../auth/service';
 import { TEXTS } from '../auth/texts';
+import { LIGHT_COLORS } from '../theme';
 import { apiError, deps, fakeApi, fakeAuthClient, fakeSession, ME, OFFLINE } from '../testing/fakes';
 import { AccountSetupScreen } from './AccountSetupScreen';
 import { CheckEmailScreen } from './CheckEmailScreen';
 import { SignInScreen } from './SignInScreen';
 import { SignUpScreen } from './SignUpScreen';
+import { VerifiedScreen } from './VerifiedScreen';
 
 const mockRouter = { replace: jest.fn() };
+let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({
   useRouter: () => mockRouter,
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockParams,
 }));
 
 beforeEach(() => {
   mockRouter.replace.mockClear();
+  mockParams = {};
 });
 
 async function renderWith(element: ReactElement, client: AuthClient, fetchImpl = fakeApi({}).fetchImpl) {
@@ -83,10 +87,12 @@ describe('REQ-ACC-010 Sign up', () => {
     expect(client.signUp).not.toHaveBeenCalled();
   });
 
-  it('D-11 the check-email screen shows the neutral text', async () => {
+  it('D-11 the check-email screen shows the neutral text, under its heading', async () => {
     await render(<CheckEmailScreen />);
 
+    expect(screen.getByRole('header', { name: TEXTS.signUpSentHeading })).toBeOnTheScreen();
     expect(screen.getByText(TEXTS.signUpSent)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Back to sign in' })).toBeOnTheScreen();
   });
 });
 
@@ -132,6 +138,112 @@ describe('REQ-ACC-010 Sign in', () => {
   });
 });
 
+// The redesign's screen 1.1 (locked by the owner, 2026-11-03; D-35).
+describe('REQ-ACC-010 Sign in, redesigned', () => {
+  it('names an empty field under that field, its outline red; wrong details show above Sign in', async () => {
+    const client = fakeAuthClient();
+    client.signInWithPassword.mockResolvedValueOnce({
+      data: { session: null },
+      error: { name: 'AuthApiError', code: 'invalid_credentials', status: 400 },
+    });
+    await renderWith(<SignInScreen />, client);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    const problem = screen.getByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.emailRule);
+    expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Email').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+
+    await fillSignUp();
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(TEXTS.signInFailed);
+    expect(screen.getByLabelText('Email').parent).not.toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+  });
+
+  it('shows the password when asked, and hides it again', async () => {
+    await renderWith(<SignInScreen />, fakeAuthClient());
+    expect(screen.getByLabelText('Password')).toHaveProp('secureTextEntry', true);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Show password' }));
+    expect(screen.getByLabelText('Password')).toHaveProp('secureTextEntry', false);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Hide password' }));
+    expect(screen.getByLabelText('Password')).toHaveProp('secureTextEntry', true);
+  });
+
+  it('while signing in, a spinner takes the title’s place and Sign in cannot be pressed again', async () => {
+    const client = fakeAuthClient();
+    let answer: (value: { data: { session: null }; error: typeof OFFLINE }) => void = () => {};
+    client.signInWithPassword.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await renderWith(<SignInScreen />, client);
+    await fillSignUp();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    const button = screen.getByRole('button', { name: 'Sign in' });
+    expect(button).toBeBusy();
+    expect(button).toBeDisabled();
+    expect(within(button).queryByText('Sign in')).toBeNull();
+
+    answer({ data: { session: null }, error: OFFLINE });
+    expect(await screen.findByText('Signing in needs an internet connection.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+  });
+});
+
+// The redesign's screen 1.2 (locked by the owner, 2026-11-03).
+describe('REQ-ACC-010 Sign up, redesigned', () => {
+  it('the password’s rule ticks once met, and turns red with the field when Sign up finds it broken', async () => {
+    const client = fakeAuthClient();
+    await renderWith(<SignUpScreen />, client);
+    await fillSignUp('someone@example.test', 'short');
+    expect(screen.getByText(TEXTS.passwordRule)).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(TEXTS.passwordRule);
+    expect(screen.getByLabelText('Password').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'password1');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByLabelText(`${TEXTS.passwordRule} Done.`)).toBeOnTheScreen();
+    expect(client.signUp).not.toHaveBeenCalled();
+  });
+
+  it('names a problem with the email under the email field', async () => {
+    await renderWith(<SignUpScreen />, fakeAuthClient());
+    await fillSignUp('someone@', 'password1');
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+
+    const problem = screen.getByRole('alert');
+    expect(problem).toHaveTextContent(TEXTS.emailFormat);
+    expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
+  });
+});
+
+// The redesign's screen 1.4 (locked by the owner, 2026-11-03), opened by the link in the verify email.
+describe('REQ-ACC-010 Email verified', () => {
+  it('says the email is verified, and Sign in goes to sign in', async () => {
+    await render(<VerifiedScreen />);
+
+    expect(screen.getByRole('header', { name: 'Your email is verified' })).toBeOnTheScreen();
+    expect(screen.getByText('Sign in to continue.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(mockRouter.replace).toHaveBeenCalledWith('/sign-in');
+  });
+
+  it('says the link expired when Supabase adds an error to it', async () => {
+    mockParams = { error: 'access_denied' };
+    await render(<VerifiedScreen />);
+
+    expect(screen.getByRole('header', { name: 'Link expired' })).toBeOnTheScreen();
+    expect(
+      screen.getByText('This link has expired or was already used. Sign in, or sign up again for a new link.'),
+    ).toBeOnTheScreen();
+  });
+});
+
 describe('REQ-ACC-010 Account setup', () => {
   it('REQ-ACC-010 sends the confirmation and its text version once the box is ticked', async () => {
     const api = fakeApi({
@@ -146,6 +258,17 @@ describe('REQ-ACC-010 Account setup', () => {
 
     expect(api.calls[1]?.body).toEqual({ ageConfirmed: true, ageConfirmationTextVersion: '2026-10-27' });
     expect(mockRouter.replace).toHaveBeenCalledWith('/home');
+  });
+
+  // The redesign's screen 1.7 (locked by the owner, 2026-11-03).
+  it('says what to do under Continue until the box is ticked', async () => {
+    await renderWith(<AccountSetupScreen />, fakeAuthClient(fakeSession({})));
+
+    expect(screen.getByRole('header', { name: 'Set up your account' })).toBeOnTheScreen();
+    expect(screen.getByText(TEXTS.ageHint)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+    expect(screen.queryByText(TEXTS.ageHint)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
 });
 

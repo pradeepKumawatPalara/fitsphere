@@ -1,13 +1,16 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
+import { Bookmark, Plus, Trash } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
 import { themedStyles } from '../theme';
-import { Sheet } from './Sheet';
-import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle } from './ui';
+import { TYPE } from '../typography';
+import { Sheet, SheetHeading } from './Sheet';
+import { Field, Text, TextButton, useChoiceStyles } from './ui';
 
 // Bottom sheets for the meal menus (REQ-NUT-004, REQ-SAVED-001): a list of actions, a
-// confirmation, a name, and re-logging a saved meal.
+// confirmation, a name, and re-logging a saved meal. The redesign's 3.2 (locked by the owner,
+// 2026-11-03): the confirmation, the name and re-logging open with a tile over the title.
 
 export function ActionsSheet({
   title,
@@ -64,7 +67,7 @@ export function ConfirmSheet({
   // As every confirmation: the way out on the left, the action in red on the right, the same size.
   return (
     <Sheet
-      title={title}
+      header={<SheetHeading icon={Trash} title={title} danger />}
       onClose={onClose}
       actions={
         <View style={styles.pair}>
@@ -99,13 +102,11 @@ export function SaveMealSheet({
   onSave(name: string): void;
   onClose(): void;
 }) {
-  const styles = useStyles();
-  const fieldInput = useFieldInputStyle();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
   return (
     <Sheet
-      title="Save to my meals"
+      header={<SheetHeading icon={Bookmark} title="Save to my meals" />}
       onClose={onClose}
       actions={
         <>
@@ -122,20 +123,20 @@ export function SaveMealSheet({
         </>
       }
     >
-      <TextInput
-        accessibilityLabel="Name"
+      <Field
+        label="Name"
         value={name}
         onChangeText={setName}
         maxLength={SAVED_MEAL_NAME_MAX}
-        style={fieldInput}
+        autoCapitalize="sentences"
+        error={trimmed === '' ? 'Enter a name.' : null}
       />
-      {trimmed === '' ? <Text style={styles.problem}>Enter a name.</Text> : null}
     </Sheet>
   );
 }
 
-/** "Breakfast", the longest meal, is about 4.5 em wide at the pills' 15. */
-const LONGEST_SLOT_EM = 4.5;
+/** "BREAKFAST", the longest meal, in the pills' condensed capitals: 4.29 em, measured from the font. */
+const LONGEST_SLOT_EM = 4.29;
 
 /**
  * "Already in this meal" (D-34): a food added again to the meal being built. "Add to existing" puts
@@ -172,29 +173,48 @@ export function DuplicateFoodSheet({
 }
 
 /** Picks the meal slot; the one given is preselected (Q-036), or none yet. */
-export function SlotPicker({ value, onChange }: { value: MealType | null; onChange(slot: MealType): void }) {
+export function SlotPicker({
+  value,
+  onChange,
+  twoByTwo = false,
+}: {
+  value: MealType | null;
+  onChange(slot: MealType): void;
+  /** Always two by two, with taller blocks (re-logging a saved meal, the redesign's 3.2). */
+  twoByTwo?: boolean;
+}) {
   const styles = useStyles();
   const pill = useChoiceStyles();
   const { fontScale } = useWindowDimensions();
-  // The row's width, to lay the four out evenly: in one row when "Breakfast" fits a quarter of it
-  // (with the pill's padding and edge), otherwise two by two.
+  // The row's width, to lay the four out evenly: in one row when "BREAKFAST" fits a quarter of it
+  // (with the block's padding and edge), otherwise two by two. Each line is a row of its own: a
+  // wrapping row with percentage widths did not wrap on a narrow screen and ran off its side.
   const [rowWidth, setRowWidth] = useState(0);
-  const oneRow = (rowWidth - 3 * 8) / 4 >= 15 * LONGEST_SLOT_EM * fontScale + 2 * 8 + 3;
+  const oneRow = !twoByTwo && (rowWidth - 3 * 6) / 4 >= (15 * LONGEST_SLOT_EM + 9 * 0.5) * fontScale + 2 * 4 + 3;
+  const lines = oneRow ? [MEAL_TYPE_ORDER] : [MEAL_TYPE_ORDER.slice(0, 2), MEAL_TYPE_ORDER.slice(2)];
   return (
-    <View onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)} style={[styles.slots, !oneRow && styles.slotsGrid]}>
-      {MEAL_TYPE_ORDER.map((slot) => (
-        <Pressable
-          key={slot}
-          accessibilityRole="radio"
-          accessibilityLabel={MEAL_TYPE_LABELS[slot]}
-          accessibilityState={{ checked: value === slot }}
-          onPress={() => onChange(slot)}
-          style={({ pressed }) => [pill.choice, oneRow ? styles.slotInRow : styles.slotInGrid, value === slot && pill.chosen, pressed && pill.pressed]}
-        >
-          <Text numberOfLines={1} style={[pill.choiceText, value === slot && pill.chosenText]}>
-            {MEAL_TYPE_LABELS[slot]}
-          </Text>
-        </Pressable>
+    <View
+      testID="slot-picker"
+      onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
+      style={twoByTwo ? styles.slotLinesTall : styles.slotLines}
+    >
+      {lines.map((line, index) => (
+        <View key={line.join()} testID={`slot-line-${index}`} style={twoByTwo ? styles.slotLineTall : styles.slotLine}>
+          {line.map((slot) => (
+            <Pressable
+              key={slot}
+              accessibilityRole="radio"
+              accessibilityLabel={MEAL_TYPE_LABELS[slot]}
+              accessibilityState={{ checked: value === slot }}
+              onPress={() => onChange(slot)}
+              style={({ pressed }) => [pill.choice, twoByTwo ? styles.slotTall : styles.slot, value === slot && pill.chosen, pressed && pill.pressed]}
+            >
+              <Text numberOfLines={1} style={[pill.choiceText, !twoByTwo && styles.slotText, value === slot && pill.chosenText]}>
+                {MEAL_TYPE_LABELS[slot]}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       ))}
     </View>
   );
@@ -218,7 +238,7 @@ export function RelogSheet({
   const [chosen, setChosen] = useState(slot);
   return (
     <Sheet
-      title={`Log ${name}`}
+      header={<SheetHeading icon={Plus} title={`Log ${name}`} />}
       onClose={onClose}
       actions={
         <>
@@ -235,26 +255,30 @@ export function RelogSheet({
       }
     >
       <Text style={styles.body}>To {dayLabel}</Text>
-      <SlotPicker value={chosen} onChange={setChosen} />
+      <SlotPicker value={chosen} onChange={setChosen} twoByTwo />
     </Sheet>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  menu: { borderRadius: 12, backgroundColor: c.surface },
-  menuRow: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },
-  ruled: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+  // The redesign's 3.6: ruled rows on a raised card, each action in caramel capitals.
+  menu: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  menuRow: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 12 },
+  ruled: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
-  menuText: { fontSize: 15, fontWeight: '600', color: c.primary },
-  destructiveText: { color: c.over },
+  menuText: { ...TYPE.link, fontSize: 16, color: c.accent },
+  destructiveText: { color: c.danger },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-  body: { fontSize: 15 },
-  problem: { fontSize: 13, color: c.error },
-  // The meals are choice pills of one width: the chosen one filled, as the selected day is on the
-  // week strip. Two by two, each takes half the row (two of 40% fit beside each other, three don't).
-  slots: { flexDirection: 'row', gap: 8 },
-  slotsGrid: { flexWrap: 'wrap' },
-  slotInRow: { flex: 1, paddingHorizontal: 8 },
-  slotInGrid: { flexGrow: 1, flexBasis: '40%', paddingHorizontal: 8 },
+  body: { fontSize: 16, lineHeight: 24 },
+  // The meals are choice blocks of one width, the chosen one filled. In Log meal (3.5) four across, 6
+  // apart, at 15 with little spacing so "BREAKFAST" fits a 390 phone; re-logging (3.2), two by two
+  // and taller.
+  slotLines: { gap: 6 },
+  slotLine: { flexDirection: 'row', gap: 6 },
+  slot: { flex: 1, paddingHorizontal: 4 },
+  slotText: { fontSize: 15, letterSpacing: 0.5 },
+  slotLinesTall: { gap: 8 },
+  slotLineTall: { flexDirection: 'row', gap: 8 },
+  slotTall: { flex: 1, minHeight: 48, paddingHorizontal: 8 },
 }));

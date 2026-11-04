@@ -36,11 +36,6 @@ export function weeklyRateText(rateGrams: number, unit: BodyWeightUnit): string 
   return `${rateGrams < 0 ? 'Down' : 'Up'} ${size.toFixed(1)} ${unit} a week`;
 }
 
-/** e.g. "1,850 kcal a day". */
-export function averageCaloriesText(kcal: number): string {
-  return `${formatInteger(kcal)} kcal a day`;
-}
-
 /** e.g. "Meals logged: 12 of 27 days". */
 export function daysLoggedText({ logged, total }: { logged: number; total: number }): string {
   return `Meals logged: ${logged} of ${total} ${total === 1 ? 'day' : 'days'}`;

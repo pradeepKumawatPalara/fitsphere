@@ -383,6 +383,31 @@ The IFCT 2017 book says its egg values are not all for raw food:
       example, asking NIN (the copyright page gives ifct2017@gmail.com and nin@ap.nic.in), or
       accepting the sampling text as enough.
 
+## Household units: FitSphere's household-measures sheet (D-36)
+`docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,
+so the food can be logged as "1 glass" or "2 teaspoons" as well as in grams (plan:
+[`household-units.md`](../plans/household-units.md)). The grams come only from the owner's own
+weighing: no published table is used (NIN's household-measure tables are not a source, D-26).
+
+| Column | Rule |
+|---|---|
+| `ifct_code`, `food` | An IFCT row, named exactly as the list names it; not one hidden until checked |
+| `measure` | `teaspoon (5 ml)`, `tablespoon (15 ml)`, `katori (200 ml)`, `glass (250 ml)` or `piece` |
+| `status` | `pending` (not imported) or `approved` (the owner's OK: imported) |
+| `grams_per_measure` | More than 0, at most 1,000, at most two decimals: one level unit, the edible part only (a banana peeled, an almond shelled), as IFCT's values are per 100 g edible portion |
+| `measured_by`, `date` | Required once approved; the date as YYYY-MM-DD |
+| `notes` | How to weigh it |
+
+- One row per food and unit. `npm run foods:import` checks the whole sheet with the IFCT list and
+  refuses all of it if any row is wrong, naming the line; only approved rows reach
+  `app.food_measures`, and a row no longer approved is removed at the next import.
+- The starter rows, 62 for 52 foods (the owner's choice of measured units for every food,
+  2026-11-03), are `pending`, with no grams, in the order they are weighed: drinks by the glass;
+  ghee and six oils by the teaspoon and tablespoon; jaggery; atta, maida, rice, poha and rava;
+  five raw dals by the katori; nuts, seeds and dried fruit; fruit by the piece or katori;
+  vegetables by the piece; egg; paneer. Never fill in or approve a row without the owner's
+  measurements.
+
 ### Cooked-dish and portion sources considered and not used
 
 Searched and read on 2026-10-29 and 2026-10-30. Page numbers are the printed ones. The NIN

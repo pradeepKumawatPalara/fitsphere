@@ -44,7 +44,8 @@
           "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs and to take meal photos.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

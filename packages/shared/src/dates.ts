@@ -52,6 +52,17 @@ export function istWeekDays(day: IstDay): IstDay[] {
   return Array.from({ length: 7 }, (_, index) => addDays(monday, index));
 }
 
+/**
+ * Whole years from `birthDay` to `day`: a person's age on `day`. Born on 29 February, they turn a
+ * year older on 1 March in other years.
+ */
+export function yearsBetween(birthDay: IstDay, day: IstDay): number {
+  const [birthYear, birthMonth, birthDate] = birthDay.split('-').map(Number) as [number, number, number];
+  const [year, month, date] = day.split('-').map(Number) as [number, number, number];
+  const beforeBirthday = month < birthMonth || (month === birthMonth && date < birthDate);
+  return year - birthYear - (beforeBirthday ? 1 : 0);
+}
+
 function dayStartUtcMs(day: IstDay): number {
   if (!isIstDay(day)) throw new RangeError('Not a YYYY-MM-DD day');
   return Date.parse(`${day}T00:00:00Z`);

@@ -1,8 +1,9 @@
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { formatDay } from '../format';
 import type { LocalMeasurements } from '../local/store';
 import { themedStyles } from '../theme';
+import { TYPE } from '../typography';
 import { Text, TextButton } from './ui';
 
 type Props = {
@@ -28,7 +29,8 @@ const ROWS: { key: LengthKey; label: string }[] = [
 ];
 
 // The measurements card (REQ-HOME-008), always on Home (D-24). It shows the selected date's entry
-// with "Edit measurements", or, with none, the weekly waist prompt and "Add measurements".
+// with "Edit measurements", or, with none, the weekly waist prompt and "Add measurements". The
+// redesign's 2.3 (locked by the owner, 2026-11-03): ruled rows, the readings in condensed figures.
 export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
   const styles = useStyles();
   if (!entry) {
@@ -37,7 +39,9 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
         <Text style={styles.title}>Measurements</Text>
         <Text style={styles.body}>No measurements for {formatDay(day)}.</Text>
         <Text style={styles.hint}>Log your upper and lower waist once a week.</Text>
-        <TextButton title="Add measurements" outlined onPress={onAdd} />
+        <View style={styles.add}>
+          <TextButton title="Add measurements" outlined onPress={onAdd} />
+        </View>
       </View>
     );
   }
@@ -54,7 +58,7 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
           return (
             <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={styles.row}>
               <Text style={styles.rowText}>{label}</Text>
-              <Text style={[styles.rowText, styles.value]}>{value}</Text>
+              <Text style={styles.value}>{value}</Text>
             </View>
           );
         })}
@@ -64,27 +68,30 @@ export function MeasurementsCard({ day, entry, unit, onAdd, onEdit }: Props) {
           {entry.notes}
         </Text>
       ) : null}
-      {note ? <Text style={styles.note}>{note}</Text> : null}
+      {note ? <Text style={[styles.note, entry.syncState === 'rejected' && styles.notSaved]}>{note}</Text> : null}
       <TextButton title="Edit measurements" onPress={onEdit} />
     </View>
   );
 }
 
 const useStyles = themedStyles((c) => ({
-  card: { padding: 16, borderRadius: 12, backgroundColor: c.surface, gap: 8 },
-  title: { fontSize: 15, fontWeight: '600' },
-  body: { fontSize: 15 },
-  hint: { fontSize: 13, color: c.textMuted },
+  card: { padding: 16, borderRadius: 4, backgroundColor: c.surface, gap: 8 },
+  title: { ...TYPE.label, color: c.inkMuted },
+  body: { fontSize: 15, lineHeight: 22 },
+  hint: { ...TYPE.small, color: c.inkMuted },
+  add: { marginTop: 4 },
   // Rows ruled like a tape reading.
   row: {
+    minHeight: 40,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: c.border,
+    borderBottomWidth: 1,
+    borderBottomColor: c.border,
   },
-  rowText: { fontSize: 15 },
-  value: { fontWeight: '600', fontVariant: ['tabular-nums'] },
-  notes: { color: c.textMuted },
-  note: { fontSize: 13, color: c.warning },
+  rowText: { fontSize: 15, color: c.inkMuted },
+  value: TYPE.dayNumber,
+  notes: { color: c.inkMuted },
+  note: { fontSize: 12, lineHeight: 16, color: c.inkMuted },
+  notSaved: { color: c.danger },
 }));

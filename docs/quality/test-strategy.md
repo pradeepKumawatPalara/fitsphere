@@ -246,7 +246,8 @@ without rework; (a), (b) and (d) show the schema can hold them (D-20).
   version 6.
 - Units (component tests): every weight on screen in lb, typed values kept in grams and shown back
   unchanged, switching units converting what is shown, the two units independent, the limits in lb.
-- Theme (component tests): System, Light and Dark; contrast of at least 4.5:1 in both palettes; a
+- Theme (component tests): System, Light and Dark; contrast of at least 4.5:1 in both palettes, and
+  field outlines of at least 3:1; the design's fonts, Barlow's file for each weight (D-35); a
   guard against colour codes outside `theme.tsx` and `Text` or `TextInput` from `react-native`
   outside `components/ui.tsx`.
 - Settings, change password and delete account (component tests): each section; theme and unit

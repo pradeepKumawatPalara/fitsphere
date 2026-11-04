@@ -4,7 +4,7 @@
   is open and blocks real users ([`mvp-scope.md`](../product/mvp-scope.md) slice 8; ADR-0002 to
   ADR-0005).
 - Owner: Project owner (D-01). Answers: Legal.
-- Last updated: 2026-10-30
+- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30
 - Record: [Q-049](../architecture/constraints-and-assumptions.md#account-security-and-quality)
 
 This brief collects, in one place, what FitSphere needs Legal to answer before real users, and
@@ -114,6 +114,16 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   delete or revoke that content (accepted risk R-004; D-16, D-17).
 - Question: is this warning enough?
 
+**L-07a The profile (MVP; D-38).**
+- Facts: in Settings the user may add, all optional, a photo, their name, date of birth, sex,
+  height, phone number (+91, not verified) and address; the weight shown is their latest weigh-in,
+  and the sign-in email is shown read-only (REQ-ACC-011). FitSphere does not use these details for
+  anything yet, shows them to no one else in the MVP (D-20), never sends them to another service,
+  never logs them, and deletes them, with the photo, with the account (REQ-ACC-009). They are
+  stored in Mumbai with the rest (ADR-0002); the date of birth must give an age of 18 or more.
+- Question: may FitSphere collect contact details (phone, address) it does not use yet (data
+  minimisation), and what must the notice say about them and about the body details?
+
 **L-08 Coaches (post-MVP).**
 - What a coach sees of a trainee's data (Q-059). Whether the trainee's permission step for a Head
   Coach meets the Act's consent rules, and how long its answers are kept after an account is
@@ -217,8 +227,8 @@ or "Not written yet" are not available yet.
 | E-01 | System boundary, external services, trust boundaries | [`system-context.md`](../architecture/system-context.md), [`flow.md`](../../flow.md) | L-01 | In the repository (Draft) |
 | E-02 | What is stored, field by field, and on the phone; retention | [`data-model.md`](../contracts/data-model.md) | L-01, L-04, L-05 | In the repository (Draft) |
 | E-03 | Data categories, threats, permission matrix, open risks | [`data-and-threat-model.md`](../security/data-and-threat-model.md) | L-01 to L-08 | In the repository (Draft) |
-| E-04 | Requirements: REQ-NFR-002, REQ-NFR-005, REQ-ACC-004, REQ-ACC-009, REQ-ACC-010, REQ-LOG-010 | [`requirements.md`](../product/requirements.md) | L-02 to L-07 | In the repository (Draft) |
-| E-05 | Owner decisions D-09, D-13, D-14, D-16 to D-20, D-25 to D-27 | [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md) | All | In the repository (Accepted) |
+| E-04 | Requirements: REQ-NFR-002, REQ-NFR-005, REQ-ACC-004, REQ-ACC-009, REQ-ACC-010, REQ-ACC-011, REQ-LOG-010 | [`requirements.md`](../product/requirements.md) | L-02 to L-07a | In the repository (Draft) |
+| E-05 | Owner decisions D-09, D-13, D-14, D-16 to D-20, D-25 to D-27, D-38 | [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md) | All | In the repository (Accepted) |
 | E-06 | Accepted risks R-003, R-004, R-005, R-007, R-008; MVP defaults | [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md) | All | In the repository |
 | E-07 | Hosting in Mumbai; media links; logs | [ADR-0002](../architecture/decisions/ADR-0002-backend-and-hosting.md), [ADR-0003](../architecture/decisions/ADR-0003-primary-database.md) | L-01, L-05 | In the repository (Accepted) |
 | E-08 | Sign-in, emails through Resend | [ADR-0004](../architecture/decisions/ADR-0004-accounts-auth-and-notifications.md) | L-01, L-02, L-06 | In the repository (Accepted) |

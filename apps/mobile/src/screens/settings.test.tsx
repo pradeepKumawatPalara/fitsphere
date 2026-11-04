@@ -1,5 +1,5 @@
 import { AI_CONSENT_TEXT, AI_CONSENT_TEXT_VERSION } from '@fitsphere/shared';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { TEXTS } from '../auth/texts';
 import { getEntry, getMeta, setMeta } from '../local/store';
 import { renderInApp } from '../testing/appHarness';
@@ -31,8 +31,9 @@ describe('REQ-ACC-001…006 the Settings screen', () => {
       expect(await screen.findByRole('header', { name: heading })).toBeOnTheScreen();
     }
     expect(screen.getByText('India · Kolkata')).toBeOnTheScreen();
-    expect(screen.getByText('Signed in as user@example.test')).toBeOnTheScreen();
-    for (const button of ['Your targets', 'Change password', 'Log out', 'Delete account']) {
+    // The signed-in email is on the Profile card (6.1).
+    expect(within(screen.getByLabelText('Profile')).getByText('user@example.test')).toBeOnTheScreen();
+    for (const button of ['Edit profile', 'Your targets', 'Change password', 'Log out', 'Delete account']) {
       expect(screen.getByRole('button', { name: button })).toBeOnTheScreen();
     }
   });
@@ -137,6 +138,18 @@ describe('REQ-ACC-007 change password', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(text);
     expect(client.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('6.3 each problem shows under its own field, the new password’s rule ticked once met', async () => {
+    await renderInApp(<ChangePasswordScreen />);
+    expect(await screen.findByLabelText(TEXTS.passwordRule)).toBeOnTheScreen();
+
+    await fill('', 'short');
+
+    const problems = await screen.findAllByRole('alert');
+    expect(problems.map((problem) => problem.props.children)).toEqual([TEXTS.currentPasswordRequired, TEXTS.passwordRule]);
+    await fireEvent.changeText(screen.getByLabelText('New password'), 'synthetic-new-pass');
+    expect(screen.getByLabelText(`${TEXTS.passwordRule} Done.`)).toBeOnTheScreen();
   });
 
   it('REQ-ACC-007 the same password as now, and no connection, get their own texts', async () => {

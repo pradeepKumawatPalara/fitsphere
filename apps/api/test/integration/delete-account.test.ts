@@ -85,12 +85,13 @@ function deleteMe(token?: string, server = api) {
 
 /**
  * A user with data in every table a user owns: a meal whose first photo was replaced (deleted, and
- * not yet marked as removed) and whose second is live, plus a setting and a consent record.
+ * not yet marked as removed) and whose second is live, a profile with its photo (REQ-ACC-011), plus
+ * a setting and a consent record.
  */
 async function userWithData(server = api) {
   const user = await server.signUpWithAccount();
   const mealId = randomUUID();
-  const [oldPhoto, livePhoto] = [randomUUID(), randomUUID()];
+  const [oldPhoto, livePhoto, profilePhoto] = [randomUUID(), randomUUID(), randomUUID()];
   const meal = (mediaId: string) =>
     change('meal.set', { id: mealId, day: TODAY, mealType: 'lunch', tags: [], items: [ITEM], photo: { kind: 'photo', mediaId }, recordedAt: AT });
   await sync(user, [
@@ -114,6 +115,16 @@ async function userWithData(server = api) {
     meal(livePhoto),
     change('savedMeal.set', { id: randomUUID(), name: 'Synthetic lunch', mealType: 'lunch', tags: [], items: [ITEM], savedAt: AT }),
     change('setting.set', { name: 'body_weight_unit', value: 'lb', setAt: AT }),
+    change('profile.set', {
+      name: 'Synthetic Person',
+      dateOfBirth: '1994-06-14',
+      sex: 'other',
+      heightMm: 1700,
+      phone: '+919876543210',
+      address: { line1: '12 Example Lane', line2: null, city: 'Pune', state: 'Maharashtra', pinCode: '411001' },
+      photoMediaId: profilePhoto,
+      setAt: AT,
+    }),
   ], server);
   const consent = await server.app.inject({
     method: 'PUT',
@@ -125,7 +136,10 @@ async function userWithData(server = api) {
   // Each sync already removes a replaced photo's files, again until its upload links expire
   // (removeDeletedPhotos); only what the deletion removes is checked.
   removed.length = 0;
-  return { user, files: [...photoKeys(user.id, oldPhoto), ...photoKeys(user.id, livePhoto)] };
+  return {
+    user,
+    files: [...photoKeys(user.id, oldPhoto), ...photoKeys(user.id, livePhoto), ...photoKeys(user.id, profilePhoto)],
+  };
 }
 
 /** How many rows each table that has a `user_id` holds for the user, plus their `users` row. */
@@ -157,6 +171,7 @@ const EVERY_TABLE = [
   'meals',
   'measurements',
   'media',
+  'profiles',
   'saved_meals',
   'settings',
   'sleep_logs',
