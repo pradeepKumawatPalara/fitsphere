@@ -222,11 +222,10 @@ describe('REQ-LOG-003 and the review before saving', () => {
     expect(screen.getByLabelText('Total: 288 kcal, 9.5 g protein')).toBeOnTheScreen();
   });
 
-  it('REQ-LOG-003 saving keeps the date, meal type and tags, syncs the meal, and goes back', async () => {
+  it('REQ-LOG-003 saving keeps the date and meal type, syncs the meal, and goes back', async () => {
     const { db, server } = await render({ day: '2026-10-26' });
     await addFood('atta', /^Wheat flour, atta/, '60');
     await fireEvent.press(screen.getByRole('radio', { name: 'Snack' }));
-    await fireEvent.press(screen.getByRole('checkbox', { name: 'Before training' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
 
@@ -235,7 +234,7 @@ describe('REQ-LOG-003 and the review before saving', () => {
       'SELECT id, day, meal_type, tags, kcal FROM meals',
       [],
     );
-    expect(rows).toEqual([{ id: expect.any(String), day: '2026-10-26', meal_type: 'snack', tags: '["before_training"]', kcal: 192 }]);
+    expect(rows).toEqual([{ id: expect.any(String), day: '2026-10-26', meal_type: 'snack', tags: '[]', kcal: 192 }]);
     await waitFor(() => expect(server.entries('meals').get(rows[0]!.id)).toMatchObject({ deleted: false, mealType: 'snack' }));
   });
 
@@ -348,7 +347,19 @@ describe('REQ-NUT-004 Edit', () => {
     expect(screen.getByLabelText('Date: Sun 25 Oct')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: /^Date:/ })).toBeNull();
     expect(screen.getByRole('radio', { name: 'Lunch' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Dessert' })).toBeChecked();
+  });
+
+  it('D-40 offers no tags, and a meal edited keeps the tags it has', async () => {
+    const { db } = await render({ mealId: MEAL_ID }, seedMeal);
+    await screen.findByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein');
+
+    expect(screen.queryByRole('checkbox', { name: 'Dessert' })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Before training' })).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Dinner' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(await getEntry(db, 'meal', MEAL_ID)).toMatchObject({ mealType: 'dinner', tags: ['dessert'] });
   });
 
   it('REQ-NUT-004 saving replaces the same meal', async () => {

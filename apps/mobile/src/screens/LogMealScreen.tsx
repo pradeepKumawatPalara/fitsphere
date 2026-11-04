@@ -3,7 +3,6 @@ import {
   istToday,
   MAX_MEAL_ITEMS,
   mealTotals,
-  MEAL_TAGS,
   MEAL_TYPES,
   syncWindowStart,
   type IstDay,
@@ -15,7 +14,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Bookmark,
   Calendar,
-  Check,
   ChevronDown,
   CircleAlert,
   PenLine,
@@ -65,7 +63,6 @@ import {
   formatOwnUnits,
   formatPortions,
   formatServings,
-  MEAL_TAG_LABELS,
   MEASURE_NAMES,
   OWN_UNIT_NAMES,
   ownQuantityLabel,
@@ -77,9 +74,10 @@ import { TYPE } from '../typography';
 type Params = { day?: string; slot?: string; mealId?: string };
 type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number };
 
-// Log meal (REQ-LOG-001…003, REQ-LOG-006…008, REQ-LOG-010; REQ-ACC-005): the date, the meal type
-// and tags, foods added by search, barcode, your own food or a saved meal, an optional photo or
-// image link, and a review before saving.
+// Log meal (REQ-LOG-001…003, REQ-LOG-006…008, REQ-LOG-010; REQ-ACC-005): the date, the meal type,
+// foods added by search, barcode, your own food or a saved meal, an optional photo or image link,
+// and a review before saving. The tags "Before training" and "Dessert" are hidden until coaches
+// (D-40): a meal edited here keeps the tags it has, and a saved meal's tags come with it.
 // Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
@@ -176,9 +174,6 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     });
   }
 
-  function toggleTag(tag: MealTag) {
-    setTags((current) => (current.includes(tag) ? current.filter((entry) => entry !== tag) : [...current, tag]));
-  }
 
   async function save() {
     if (!mealType || items.length === 0) return;
@@ -229,21 +224,6 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             Meal
           </Text>
           <SlotPicker value={mealType} onChange={setMealType} />
-          <View style={styles.tags}>
-            {MEAL_TAGS.map((tag) => (
-              <Pressable
-                key={tag}
-                accessibilityRole="checkbox"
-                accessibilityLabel={MEAL_TAG_LABELS[tag]}
-                accessibilityState={{ checked: tags.includes(tag) }}
-                onPress={() => toggleTag(tag)}
-                style={[styles.tag, tags.includes(tag) && styles.tagOn]}
-              >
-                {tags.includes(tag) ? <Check size={16} strokeWidth={3} color={colors.accent} /> : null}
-                <Text style={[styles.tagText, tags.includes(tag) && styles.tagOnText]}>{MEAL_TAG_LABELS[tag]}</Text>
-              </Pressable>
-            ))}
-          </View>
         </View>
 
         {/* Typed, spoken and photo reading come with AI meal reading (slice 7; D-26). */}
@@ -576,21 +556,6 @@ const useStyles = themedStyles((c) => ({
   },
   chipText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1 },
   heading: { ...TYPE.label, color: c.inkMuted },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tag: {
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: c.inkSubtle,
-  },
-  // A tag is ticked, not chosen: lighter than a chosen meal.
-  tagOn: { backgroundColor: c.accentTint, borderColor: c.accent },
-  tagText: { ...TYPE.label, fontSize: 14, letterSpacing: 1, color: c.ink },
-  tagOnText: { color: c.accent },
   ai: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.accentTint },
   aiWords: { flex: 1, gap: 2 },
   aiTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },
