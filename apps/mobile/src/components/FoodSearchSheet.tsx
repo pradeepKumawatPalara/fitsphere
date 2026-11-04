@@ -1,10 +1,10 @@
-import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type MealItem } from '@fitsphere/shared';
 import { ChevronLeft, ChevronRight, Info, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getMeta, searchDishes, searchFoods, searchMyFoods, type LocalMyFood } from '../local/store';
+import { getMeta, searchDishes, searchFoods, searchMyFoods, searchPackaged, type LocalMyFood } from '../local/store';
 import { formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
@@ -18,9 +18,10 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). Dishes (D-28) come first, then INDB's Indian recipes (D-46), IFCT's Indian
-// foods and the user's My foods (D-39), each marked; USDA's foods are no longer listed (D-47). IFCT's
-// acknowledgement is one tap away, behind the i at the top (D-25, changed by D-44): the dishes'
-// values come from IFCT too; INDB's credit is shown with it.
+// foods and the user's My foods (D-39), then packaged foods sold in India from Open Food Facts, by
+// name or brand (D-48), each marked; USDA's foods are no longer listed (D-47). IFCT's acknowledgement
+// is one tap away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT
+// too; INDB's and Open Food Facts' credits are shown with it.
 //
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
@@ -50,8 +51,14 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([searchDishes(db, query), searchFoods(db, query), searchMyFoods(db, query), getMeta(db, 'food_list_version')]).then(
-      ([dishes, foods, mine, listVersion]) => {
+    void Promise.all([
+      searchDishes(db, query),
+      searchFoods(db, query),
+      searchMyFoods(db, query),
+      searchPackaged(db, query),
+      getMeta(db, 'food_list_version'),
+    ]).then(
+      ([dishes, foods, mine, packaged, listVersion]) => {
         if (!active) return;
         const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
         setResults([
@@ -59,6 +66,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           ...listed('indb'),
           ...listed('ifct2017'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
+          ...packaged.map((food): Result => ({ kind: 'packaged', food })),
         ]);
         setListCached(listVersion !== null);
       },
@@ -114,7 +122,13 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           <FlatList
             data={results}
             keyExtractor={(result) =>
-              result.kind === 'dish' ? `dish:${result.dish.code}` : result.kind === 'mine' ? `mine:${result.food.id}` : `${result.food.source}:${result.food.code}`
+              result.kind === 'dish'
+                ? `dish:${result.dish.code}`
+                : result.kind === 'mine'
+                  ? `mine:${result.food.id}`
+                  : result.kind === 'packaged'
+                    ? `packaged:${result.food.barcode}`
+                    : `${result.food.source}:${result.food.code}`
             }
             style={[styles.list, results.length > 0 && styles.listCard]}
             keyboardShouldPersistTaps="handled"
@@ -152,6 +166,25 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                   </View>
                   <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
                 </Pressable>
+              ) : result.kind === 'packaged' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${result.food.name}, ${result.food.brand ? `${result.food.brand}, ` : ''}packaged, ${formatKcal(result.food.kcal)} per 100 g`}
+                  onPress={() => setChosen(result)}
+                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                >
+                  <View style={styles.rowText}>
+                    <Text style={styles.name}>{result.food.name}</Text>
+                    <View style={styles.detailLine}>
+                      <Text style={styles.mark}>Packaged</Text>
+                      <Text numberOfLines={1} style={styles.detail}>
+                        {result.food.brand ? `${result.food.brand} · ` : ''}
+                        {formatKcal(result.food.kcal)} per 100 g
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+                </Pressable>
               ) : (
                 <Pressable
                   accessibilityRole="button"
@@ -177,6 +210,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         <Sheet title="Food sources" onClose={() => setSources(false)} actions={<TextButton title="Close" wide onPress={() => setSources(false)} />}>
           <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked INDB: {INDB_ACKNOWLEDGEMENT}</Text>
+          <Text style={styles.source}>Foods marked Packaged: {OFF_ATTRIBUTION}.</Text>
         </Sheet>
       ) : null}
       {chosen ? (

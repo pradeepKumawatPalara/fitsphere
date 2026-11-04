@@ -107,7 +107,7 @@ describe('Migration runner (data model, "Changes")', () => {
     await food('ifct2017', 'A019', 'Test atta');
     await client.query(`insert into app.food_portions (source, code, seq, label, grams) values ('usda_fndds', '99999901', 1, 'Slice', 28)`);
 
-    expect(await migrate(client, all)).toEqual(['0013_usda_archive.sql']);
+    expect(await migrate(client, all.filter((migration) => migration.name <= '0013_usda_archive.sql'))).toEqual(['0013_usda_archive.sql']);
 
     expect((await client.query('select source, code from app.foods')).rows).toEqual([{ source: 'ifct2017', code: 'A019' }]);
     expect((await client.query('select code, name, kcal from app.usda_foods')).rows).toEqual([{ code: '99999901', name: 'Test bread', kcal: '267.00' }]);
@@ -133,8 +133,9 @@ describe('Migration runner (data model, "Changes")', () => {
       '0011_more_foods.sql',
       '0012_indb_foods.sql',
       '0013_usda_archive.sql',
+      '0014_packaged_foods.sql',
     ]);
-    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions']) {
+    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods']) {
       expect(await tableExists(table)).toBe(true);
     }
   });

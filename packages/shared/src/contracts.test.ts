@@ -643,15 +643,29 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
       measures: [{ measure: 'glass', grams: 258 }],
       portions: [],
     };
-    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [milk], dishes: [] }).success).toBe(true);
-    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [{ ...milk, measures: [{ measure: 'cup', grams: 240 }] }], dishes: [] }).success).toBe(false);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [milk], dishes: [], packaged: [] }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [{ ...milk, measures: [{ measure: 'cup', grams: 240 }] }], dishes: [], packaged: [] }).success).toBe(false);
   });
 
   it('D-28 the food list carries the dishes, per portion; both are null when the phone is current', () => {
     const flatbread = { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 120, proteinG: 3.6, carbsG: 20, fatG: 3, fibreG: 2 };
-    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [flatbread] }).success).toBe(true);
-    expect(foodsResponseSchema.safeParse({ version: 'v1', items: null, dishes: null }).success).toBe(true);
-    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [{ ...flatbread, portionUnit: 'cup' }] }).success).toBe(false);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [flatbread], packaged: [] }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: null, dishes: null, packaged: null }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [{ ...flatbread, portionUnit: 'cup' }], packaged: [] }).success).toBe(false);
+  });
+
+  it('D-48 the food list carries the packaged foods apart, each per 100 g with its serving in grams or none', () => {
+    // A synthetic packaged food: made-up values.
+    const butter = { barcode: '8901234567890', name: 'Test butter', brand: null, kcal: 720, proteinG: 0.5, carbsG: 0.5, fatG: 80, fibreG: null, servingGrams: 10 };
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [], packaged: [butter] }).success).toBe(true);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [], packaged: [{ ...butter, kcal: null }] }).success).toBe(false);
+    expect(foodsResponseSchema.safeParse({ version: 'v1', items: [], dishes: [] }).success).toBe(false);
+  });
+
+  it('D-48 a product by its barcode may be logged in grams or by its serving', () => {
+    const product = { ...item, source: 'barcode', ref: '8901234567890', estimated: false };
+    expect(mealItemSchema.safeParse({ ...product, amount: { unit: 'serving', label: 'Serving', value: 1.5, grams: 15 } }).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...product, amount: { unit: 'portion', value: 1 } }).success).toBe(false);
   });
 
   it('sums the known values, and gives null only when no item has that value', () => {

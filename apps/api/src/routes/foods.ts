@@ -66,8 +66,26 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       const key = `${row.source} ${row.code}`;
       portionsOf.set(key, [...(portionsOf.get(key) ?? []), { label: row.label, grams: Number(row.grams) }]);
     }
-    const version = foodListVersion({ foods: rows, dishes: dishes.rows, measures: measures.rows, portions: portions.rows });
-    if (parsed.data.version === version) return { version, items: null, dishes: null } satisfies FoodsResponse;
+    // Packaged foods sold in India, from Open Food Facts' data, kept apart from the list (D-48).
+    const packaged = await deps.db.query<{
+      barcode: string;
+      name: string;
+      brand: string | null;
+      kcal: string;
+      protein_g: string;
+      carbs_g: string;
+      fat_g: string;
+      fibre_g: string | null;
+      serving_grams: string | null;
+    }>('select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams from app.packaged_foods order by barcode');
+    const version = foodListVersion({
+      foods: rows,
+      dishes: dishes.rows,
+      measures: measures.rows,
+      portions: portions.rows,
+      packaged: packaged.rows,
+    });
+    if (parsed.data.version === version) return { version, items: null, dishes: null, packaged: null } satisfies FoodsResponse;
 
     const body: FoodsResponse = {
       version,
@@ -96,12 +114,23 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         fatG: Number(row.fat_g),
         fibreG: Number(row.fibre_g),
       })),
+      packaged: packaged.rows.map((row) => ({
+        barcode: row.barcode,
+        name: row.name,
+        brand: row.brand,
+        kcal: Number(row.kcal),
+        proteinG: Number(row.protein_g),
+        carbsG: Number(row.carbs_g),
+        fatG: Number(row.fat_g),
+        fibreG: row.fibre_g === null ? null : Number(row.fibre_g),
+        servingGrams: row.serving_grams === null ? null : Number(row.serving_grams),
+      })),
     };
     return body;
   });
 }
 
 /** A short hash of every value the phone receives, so any change gives a new version. */
-function foodListVersion(list: { foods: object[]; dishes: object[]; measures: object[]; portions: object[] }): string {
+function foodListVersion(list: { foods: object[]; dishes: object[]; measures: object[]; portions: object[]; packaged: object[] }): string {
   return createHash('sha256').update(JSON.stringify(list)).digest('base64url').slice(0, 22);
 }

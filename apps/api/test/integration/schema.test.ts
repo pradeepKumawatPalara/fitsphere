@@ -351,6 +351,7 @@ describe('ADR-0002 second safety layer', () => {
       'measurements',
       'media',
       'my_foods',
+      'packaged_foods',
       'profiles',
       'saved_meals',
       'schema_migrations',

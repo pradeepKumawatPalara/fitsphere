@@ -22,6 +22,7 @@ import {
   searchDishes,
   searchFoods,
   searchMyFoods,
+  searchPackaged,
   setMeta,
 } from './store';
 
@@ -293,6 +294,40 @@ describe('ADR-0006 rule 1 the cached food list', () => {
   });
 });
 
+// Synthetic packaged foods (D-48): made-up values, not real products.
+const BUTTER = { barcode: '8901234567890', name: 'Test salted butter', brand: 'Test Dairy', kcal: 720, proteinG: 0.5, carbsG: 0.5, fatG: 80, fibreG: null, servingGrams: 10 };
+const BISCUIT = { barcode: '96385074', name: 'Butter biscuits', brand: 'Other Foods', kcal: 480, proteinG: 7, carbsG: 70, fatG: 19, fibreG: 2, servingGrams: null };
+
+describe('D-48 the cached packaged foods', () => {
+  it('keeps them apart from the food list, replaced with it, and finds them by name or brand, ignoring case', async () => {
+    const atta: Food = {
+      source: 'ifct2017',
+      code: 'A019',
+      name: 'Wheat flour, atta',
+      foodGroup: 'Synthetic group',
+      aliases: [],
+      proteinG: 10,
+      fibreG: 11,
+      fatG: 1.5,
+      carbsG: 64,
+      kcal: 320,
+      kcalEstimated: false,
+      measures: [],
+      portions: [],
+    };
+    await replaceFoods(db, 'v1', [atta], [], [BUTTER, BISCUIT]);
+
+    expect(await searchPackaged(db, 'BUTTER')).toEqual([BISCUIT, BUTTER]);
+    expect(await searchPackaged(db, 'test dairy')).toEqual([BUTTER]);
+    expect(await searchPackaged(db, 'butter dairy')).toEqual([BUTTER]);
+    expect(await searchPackaged(db, 'atta')).toEqual([]);
+    expect((await searchFoods(db, 'butter')).length).toBe(0);
+
+    await replaceFoods(db, 'v2', [], [], [BISCUIT]);
+    expect(await searchPackaged(db, 'butter')).toEqual([BISCUIT]);
+  });
+});
+
 describe('D-28 the cached dishes', () => {
   // Synthetic dishes: made-up values for one portion.
   const FLATBREAD: Dish = { code: 'test_flatbread', name: 'Test flatbread', portionUnit: 'piece', kcal: 173, proteinG: 4.23, carbsG: 25.67, fatG: 5.61, fibreG: 4.54 };
@@ -333,7 +368,7 @@ describe('Local schema version 8', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 11 });
       expect((await searchFoods(old, 'milk')).map((found) => found.measures)).toEqual([[]]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
     } finally {
@@ -358,7 +393,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 11 });
       expect((await searchFoods(old, 'atta')).map((found) => found.code)).toEqual(['A019']);
       expect(await searchDishes(old, 'atta')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -383,10 +418,31 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 11 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
+describe('Local schema version 11', () => {
+  it('D-48 the update from version 10 adds the packaged foods, and asks for the food list again', async () => {
+    const old = memoryDb();
+    try {
+      await migrateLocal(old);
+      await old.execAsync('DROP TABLE packaged_foods; PRAGMA user_version = 10;');
+      await setMeta(old, 'food_list_version', 'v1');
+      await setMeta(old, 'cursor', '99');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 11 });
+      expect(await searchPackaged(old, 'butter')).toEqual([]);
+      expect(await getMeta(old, 'food_list_version')).toBeNull();
+      expect(await getMeta(old, 'cursor')).toBe('99');
     } finally {
       await old.closeAsync();
     }
@@ -399,7 +455,7 @@ describe('Local schema version 10', () => {
     try {
       // Version 9 as phones have it: build it with the current migrations, then drop what 10 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; PRAGMA user_version = 9;');
+      await old.execAsync('DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; PRAGMA user_version = 9;');
       await old.runAsync(
         `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures)
          VALUES ('ifct2017', 'A019', 'Wheat flour, atta', 'Synthetic group', '[]', 10, 11, 1.5, 64, 320, 0, '[]')`,
@@ -410,7 +466,7 @@ describe('Local schema version 10', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 11 });
       expect((await searchFoods(old, 'atta')).map((found) => found.portions)).toEqual([[]]);
       expect(await searchMyFoods(old, 'bread')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();

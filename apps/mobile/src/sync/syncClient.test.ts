@@ -15,6 +15,7 @@ import {
   saveWeighIn,
   searchDishes,
   searchFoods,
+  searchPackaged,
   setMeta,
   unsyncedCount,
 } from '../local/store';
@@ -292,6 +293,17 @@ describe('Meal logging: the sync client', () => {
     server.state.foods = [];
     expect(await refreshFoodList(db, auth(server))).toBe('updated');
     expect(await searchFoods(db, 'atta')).toEqual([]);
+  });
+
+  it('D-48 downloads the packaged foods with the food list', async () => {
+    const server = fakeServer(NOW);
+    // A synthetic packaged food: made-up values.
+    const butter = { barcode: '8901234567890', name: 'Test salted butter', brand: 'Test Dairy', kcal: 720, proteinG: 0.5, carbsG: 0.5, fatG: 80, fibreG: null, servingGrams: 10 };
+    server.state.packaged = [butter];
+
+    expect(await refreshFoodList(db, auth(server))).toBe('updated');
+
+    expect(await searchPackaged(db, 'test dairy')).toEqual([butter]);
   });
 
   it('D-28 downloads the dishes with the food list, and drops one the server no longer lists', async () => {

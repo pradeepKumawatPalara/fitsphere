@@ -1,4 +1,4 @@
-import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, type Food } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type PackagedFood } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
@@ -60,6 +60,25 @@ type FakeServer = Parameters<NonNullable<Parameters<typeof renderInApp>[2]>>[1];
 async function withFoods(db: SqlDb, server: FakeServer) {
   server.state.foods = FOODS;
   await replaceFoods(db, server.state.foodsVersion, FOODS);
+}
+
+// A synthetic packaged food with a 50 g serving (D-48): made-up values, not a real product's.
+const PACKAGED_BREAD: PackagedFood = {
+  barcode: '8901234567890',
+  name: 'Test sandwich bread',
+  brand: 'Test Bakers',
+  kcal: 250,
+  proteinG: 8,
+  carbsG: 50,
+  fatG: 2,
+  fibreG: null,
+  servingGrams: 50,
+};
+
+async function withPackaged(db: SqlDb, server: FakeServer) {
+  server.state.foods = FOODS;
+  server.state.packaged = [PACKAGED_BREAD];
+  await replaceFoods(db, server.state.foodsVersion, FOODS, [], [PACKAGED_BREAD]);
 }
 
 async function withMyBread(db: SqlDb, server: FakeServer) {
@@ -202,6 +221,46 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete from My foods' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect(await getEntry(db, 'myFood', MY_BREAD_ID)).toBeNull());
+  });
+});
+
+describe('D-48 packaged foods sold in India', () => {
+  it('are found by brand, after the Indian foods, marked "Packaged" with their brand, and credited to Open Food Facts', async () => {
+    await render(withPackaged);
+    await search('bread');
+
+    const rows = await screen.findAllByRole('button', { name: /bread/i });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+    ]);
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'test bakers');
+    expect(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByText(`Foods marked Packaged: ${OFF_ATTRIBUTION}.`)).toBeOnTheScreen();
+  });
+
+  it('are added in grams or by their label’s serving, logged as the barcode product they are', async () => {
+    const { db } = await render(withPackaged);
+    await search('test bakers');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g' }));
+
+    expect(screen.getByText('Test Bakers · Per 100 g: 250 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: Grams')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 250 kcal')).toBeOnTheScreen();
+    await pickAmount({ measure: 'Serving (50 g)', quantity: '1.5' });
+    expect(screen.getByText('Net wt: 75 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 188 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 6.0 g')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByLabelText('Test sandwich bread (Test Bakers): 1.5 × serving (75 g), 188 kcal, 6.0 g protein')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
+    expect((await getEntry(db, 'meal', row!.id))?.items).toEqual([
+      expect.objectContaining({ source: 'barcode', ref: '8901234567890', amount: { unit: 'serving', label: 'Serving', value: 1.5, grams: 75 } }),
+    ]);
   });
 });
 

@@ -21,6 +21,7 @@ Answered Q- items stay listed: they record what the decision rests on.
 | ADR-0006 | [Food data](ADR-0006-food-data.md): search, barcode and (if any) health-data integrations — chosen: FitSphere's own food list, cached on the phone, plus Open Food Facts for barcodes; no health-platform sync in the MVP | Accepted (D-18) | Q-015, Q-039, Q-049, Q-053, Q-063 |
 | ADR-0007 | [Offline storage, sync and conflict resolution](ADR-0007-offline-storage-and-sync.md) (D-04) — chosen: Expo SQLite on the phone, an outbox and one sync endpoint in the Node API; decided inputs below | Accepted (D-18) | Q-030, Q-055, Q-059, Q-075, Q-077, REQ-NFR-004 |
 | ADR-0008 | Media storage (audio/video release) — planned slot named in ADR-0002; audio and video are future scope | Missing | Q-049, Q-089, Q-090, Q-091, Q-092 |
+| ADR-0009 | [Packaged food search](ADR-0009-packaged-food-search.md) — chosen: Open Food Facts' data export, its products sold in India, in their own table and on the phone, searchable by name and brand; amends ADR-0006 rule 2 | Accepted (D-48) | Q-049, C-005, C-008, D-47 |
 
 Recommended order: ADR-0001 → 0002 → 0003 → 0004, then 0007 before offline logging is built,
 0005/0006 before the features that need them, and 0008 before the audio/video release. Each is
