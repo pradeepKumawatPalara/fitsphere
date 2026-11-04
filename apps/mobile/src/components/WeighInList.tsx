@@ -16,6 +16,7 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
   const unit = useBodyWeightUnit();
   return (
     <FlatList
+      keyboardShouldPersistTaps="handled"
       data={rows}
       keyExtractor={(row) => row.day}
       style={styles.list}

@@ -53,7 +53,7 @@ export function DeleteAccountScreen() {
   // Destructive actions are red and never filled; in the confirmation, keeping the account weighs the
   // same as deleting it. No fixed footer, so Delete is never pinned in reach.
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text accessibilityRole="header" style={styles.title}>
         Delete your <Text style={styles.titleAccent}>account</Text>
       </Text>

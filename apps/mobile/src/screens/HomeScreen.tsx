@@ -196,7 +196,7 @@ export function HomeScreen() {
   const sheetText = sheet ? texts[sheet.kind] : null;
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <WeekStrip
           today={today}
           firstDay={firstDay}

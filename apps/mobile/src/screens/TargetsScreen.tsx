@@ -47,7 +47,7 @@ export function TargetsScreen() {
 
   const text = editing ? texts[editing] : null;
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {TARGET_ORDER.map((kind) => {
         const target = targets[kind];
         const value = target ? texts[kind].format(target.value) : 'Not set';
