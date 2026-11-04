@@ -85,8 +85,8 @@ Read from `FoodData_Central_survey_food_json_2024-10-31.zip`: 3,835,292 bytes, S
 - **Size:** the trimmed CSV is about 1 MB, not the 10 MB estimated, so the list adds about 1 MB on
   the server and on the phone.
 - **MVP defaults:**
-  - left out: servings in ounces ("1 oz", "1 fl oz"), since India uses metric, and "Quantity not
-    specified";
+  - left out: servings in ounces ("1 oz", "1 fl oz") and cubic inches, since India uses metric,
+    and "Quantity not specified";
   - kept: "Guideline amount per …" servings, as USDA gives them.
 
 ## Data and API
@@ -117,7 +117,11 @@ owner before it is built:
 1. **Data check, no app change:** download FNDDS, count the foods and portions, check bread,
    peanut butter and Indian foods, measure the sizes. Report to the owner. *Done 2026-11-04 (see
    "Step 1 results").*
-2. **Design** on the canvas; the owner locks it.
+2. **Design** on the canvas; the owner locks it. *Designed 2026-11-04, waiting for the owner:*
+   - 3.6 gains "Search with My foods", "USDA food by serving" and "My food by its unit", and the
+     USDA credit;
+   - 3.8 gains the unit choice, values per 100 g or per one unit, the quantity, "Save to My foods"
+     (ticked at first; MVP default), and "Edit a My food" and "Delete a My food".
 3. **Server:** migration 0011, the import, the contract, `myFood.set` and `myFood.delete`, tests.
 4. **Phone:** schema version 10, search, servings, My foods, tests.
 5. **Docs:**
