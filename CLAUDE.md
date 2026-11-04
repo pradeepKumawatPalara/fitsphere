@@ -21,6 +21,14 @@ quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync cha
 from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
 updated API, then `foods:import`; only when the owner says so.**
 
+**Packaged foods — built on branch `feat/packaged-foods` (D-48, ADR-0009, 2026-11-04).** Open Food
+Facts' products sold in India (9,764 with usable label values) are searchable by name and brand,
+tagged "Packaged", in their own table `app.packaged_foods` (migration `0014_packaged_foods.sql`) and
+on the phone (schema version 11); logged as barcode products, in grams or by their serving.
+`npm run off:convert` makes `data/foods/off-india-products.csv` from Open Food Facts' export (kept
+outside the repository). Legal asked about ODbL share-alike (L-13). **On `fitsphere-dev`: migrations
+0012 to 0014 before the updated API, then `foods:import`; only when the owner says so.**
+
 **Indian food data only — built on branch `feat/indian-only` (D-47, 2026-11-04).** USDA's foods leave
 the food list for an archive (migration `0013_usda_archive.sql`); search shows dishes, INDB, IFCT and
 My foods. **On `fitsphere-dev`: migrations 0012 and 0013 before the updated API, then `foods:import`;
@@ -153,7 +161,8 @@ Approved stack:
   recognised on the phone only (ADR-0005, Accepted — D-18). Paid use needs the owner's sign-off
   on billing and the monthly cap (C-008, Q-087).
 - Food data: FitSphere's own food list plus Open Food Facts for barcodes (ADR-0006, Accepted —
-  D-18).
+  D-18), and Open Food Facts' Indian products for search by name and brand (ADR-0009, Accepted —
+  D-48).
 - Offline: Expo SQLite on the phone, an outbox and one sync endpoint (ADR-0007, Accepted — D-18).
 
 The validation steps of ADR-0001 to ADR-0007 run in the first slices.

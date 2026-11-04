@@ -4,6 +4,7 @@
 // archive, app.usda_foods and app.usda_food_portions, not to the food list (D-47). One transaction each: every row is
 // inserted or updated by its code, and rows no longer in the file are removed, so running it again
 // gives the same table.
+import type { PackagedFood } from '@fitsphere/shared';
 import type pg from 'pg';
 import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
@@ -143,6 +144,42 @@ export async function importUsdaArchive(client: pg.ClientBase, foods: ImportedFo
         `insert into app.usda_food_portions (code, seq, label, grams)
          select code, seq, label, grams from jsonb_to_recordset($1::jsonb) as row (code text, seq integer, label text, grams numeric)`,
         [JSON.stringify(batch)],
+      );
+    }
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  }
+  return foods.length;
+}
+
+/** Makes app.packaged_foods hold exactly the file's packaged foods (D-48), in one transaction. */
+export async function importPackagedFoods(client: pg.ClientBase, foods: readonly PackagedFood[]): Promise<number> {
+  await client.query('begin');
+  try {
+    await client.query('delete from app.packaged_foods');
+    for (const batch of batches(foods)) {
+      await client.query(
+        `insert into app.packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams)
+         select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams
+         from jsonb_to_recordset($1::jsonb) as row (barcode text, name text, brand text, kcal numeric, protein_g numeric,
+           carbs_g numeric, fat_g numeric, fibre_g numeric, serving_grams numeric)`,
+        [
+          JSON.stringify(
+            batch.map((food) => ({
+              barcode: food.barcode,
+              name: food.name,
+              brand: food.brand,
+              kcal: food.kcal,
+              protein_g: food.proteinG,
+              carbs_g: food.carbsG,
+              fat_g: food.fatG,
+              fibre_g: food.fibreG,
+              serving_grams: food.servingGrams,
+            })),
+          ),
+        ],
       );
     }
     await client.query('commit');

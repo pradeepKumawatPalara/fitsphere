@@ -90,7 +90,7 @@ export async function refreshFoodList(db: SqlDb, auth: AuthDeps): Promise<FoodLi
   const parsed = foodsResponseSchema.safeParse(response.body);
   if (!parsed.success) return 'failed';
   if (parsed.data.items === null) return 'current';
-  await replaceFoods(db, parsed.data.version, parsed.data.items, parsed.data.dishes ?? []);
+  await replaceFoods(db, parsed.data.version, parsed.data.items, parsed.data.dishes ?? [], parsed.data.packaged ?? []);
   return 'updated';
 }
 

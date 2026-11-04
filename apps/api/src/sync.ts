@@ -16,6 +16,7 @@ import {
   MY_FOOD_SET,
   myFoodDeleteDataSchema,
   myFoodSetDataSchema,
+  PACKAGED_SERVING_LABEL,
   PROFILE_SET,
   profileSetDataSchema,
   SAVED_MEAL_DELETE,
@@ -522,7 +523,8 @@ async function itemsListed(client: pg.PoolClient, items: MealItem[]): Promise<bo
 
 /**
  * An INDB serving must be on the list for its food, with the grams per serving it came to (D-46); a
- * USDA serving, logged before USDA's foods were archived, on the archive (D-39, D-47).
+ * USDA serving, logged before USDA's foods were archived, on the archive (D-39, D-47); a packaged
+ * food's, on the packaged foods, as their one "Serving" (D-48).
  */
 async function servingsListed(client: pg.PoolClient, items: MealItem[]): Promise<boolean> {
   const used = items.flatMap((item) =>
@@ -534,11 +536,17 @@ async function servingsListed(client: pg.PoolClient, items: MealItem[]): Promise
     const { rows } =
       source === 'usda_fndds'
         ? await client.query<{ grams: string }>('select grams from app.usda_food_portions where code = $1 and label = $2', [code, label])
-        : await client.query<{ grams: string }>('select grams from app.food_portions where source = $1 and code = $2 and label = $3', [
-            source,
-            code,
-            label,
-          ]);
+        : source === 'barcode'
+          ? await client.query<{ grams: string }>('select serving_grams as grams from app.packaged_foods where barcode = $1 and $2 = $3', [
+              code,
+              label,
+              PACKAGED_SERVING_LABEL,
+            ])
+          : await client.query<{ grams: string }>('select grams from app.food_portions where source = $1 and code = $2 and label = $3', [
+              source,
+              code,
+              label,
+            ]);
     // The phone multiplies the serving's grams by the count; allow for rounding to two decimals.
     if (!rows[0] || Math.abs(Number(rows[0].grams) - grams) > 0.02) return false;
   }

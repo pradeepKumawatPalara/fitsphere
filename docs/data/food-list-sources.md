@@ -453,6 +453,36 @@ The IFCT 2017 book says its egg values are not all for raw food:
   opens on its serving, as INDB's per-100 g values are of the raw ingredients, not the cooked dish.
   Not used for FitSphere's own dishes, which stay the owner's measured recipes (D-26).
 
+## Open Food Facts: packaged foods sold in India (D-48)
+- **What:** Open Food Facts' products whose countries include India, with the values their labels
+  give per 100 g (per 100 ml for a drink, taken as 100 g) and, where given in grams, one serving.
+  Crowd-sourced: contributors copy them from the packs.
+- **Licence:** the Open Database License (ODbL), allowing commercial use with attribution and
+  share-alike; the app shows `OFF_ATTRIBUTION` ("Contains data from Open Food Facts, available under
+  the Open Database License") behind Search foods' i. Kept in its own table, `packaged_foods`, on the
+  server and the phone (ADR-0006 rule 2, ADR-0009). Legal is asked about the share-alike duty
+  (Q-049, L-13).
+- **File read:** `en.openfoodfacts.org.products.csv.gz`, Open Food Facts' export of 2026-11-04
+  (Last-Modified 2026-11-04 09:04 GMT), 1,528,045,350 bytes, SHA-256
+  `224fa0410236f4b77274c70d70cfe76be10ca9b377e1e47a2530202309db08fc`, from
+  static.openfoodfacts.org/data, kept in `D:\fitsphere-data\off-2026-11-04\`, outside the
+  repository.
+- **Made with** `npm run off:convert -w @fitsphere/api -- <the .csv.gz>`
+  (`apps/api/src/foods/offIndia.ts`; read a line at a time):
+  - 4,893,449 products read; 25,838 sold in India; **9,764 kept**, 6,263 with a serving in grams.
+  - Left out: 11,759 with kcal, protein, carbohydrate or fat missing or out of range (each 0 to 100 g,
+    together at most 105 g; kcal at most 1,000); 194 whose energy does not agree with them (4 kcal a
+    gram of protein and carbohydrate, 9 of fat, within a quarter or 20 kcal); 3,206 with no usable
+    name; 915 whose barcode is not a valid GS1 code for one product (its check digit, and not an
+    in-store code: an EAN-8 starting 0 or 2, an EAN-13 starting 2).
+  - The brand is the first one named. kJ are turned into kcal ÷ 4.184 when kcal are not given. A
+    serving in millilitres is left out.
+- **Checks:** `foods:import` refuses the file whole on a wrong header, an invalid or repeated
+  barcode, or a value out of range. The committed file loads whole into PostgreSQL in the
+  integration tests.
+- **Coverage noted (2026-11-04):** about 2,850 brands; among them Amul 322 products (name or brand),
+  Britannia 322, Haldiram's 206, Maggi 148, Parle 147, Mother Dairy 46.
+
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,
 so the food can be logged as "1 glass" or "2 teaspoons" as well as in grams (plan:

@@ -5,6 +5,7 @@ import {
   type Dish,
   type Food,
   type MealItem,
+  type PackagedFood,
   type SyncResult,
   type TargetKind,
   type Workout,
@@ -63,6 +64,8 @@ export function fakeServer(now: Date) {
     /** The food list GET /v1/foods serves, with its dishes, and its version. */
     foods: [] as Food[],
     dishes: [] as Dish[],
+    /** The packaged foods it serves with them (D-48). */
+    packaged: [] as PackagedFood[],
     foodsVersion: 'foods-v1',
     /** Products GET /v1/barcodes/{barcode} knows; any other barcode is not found. */
     barcodes: {} as Record<string, BarcodeProduct>,
@@ -148,7 +151,12 @@ export function fakeServer(now: Date) {
     if (method === 'GET' && path === '/me') return json(200, ME);
     if (method === 'GET' && path === '/foods') {
       const current = url.searchParams.get('version') === state.foodsVersion;
-      return json(200, { version: state.foodsVersion, items: current ? null : state.foods, dishes: current ? null : state.dishes });
+      return json(200, {
+        version: state.foodsVersion,
+        items: current ? null : state.foods,
+        dishes: current ? null : state.dishes,
+        packaged: current ? null : state.packaged,
+      });
     }
     const barcode = /^\/barcodes\/(\d+)$/.exec(path)?.[1];
     if (method === 'GET' && barcode) {

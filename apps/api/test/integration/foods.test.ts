@@ -5,8 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
 import { INDB_GROUP, INDB_SOURCE, readIndbCsv } from '../../src/foods/indb.ts';
-import { importDishes, importFoods, importMeasures, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
+import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
 import { readMeasuresSheet } from '../../src/foods/measures.ts';
+import { readPackagedCsv } from '../../src/foods/offIndia.ts';
 import { readUsdaCsv } from '../../src/foods/usda.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
@@ -145,7 +146,7 @@ describe('ADR-0006 rule 1 the list version', () => {
     const first: FoodsResponse = (await getFoods(user.token)).json();
 
     const same: FoodsResponse = (await getFoods(user.token, `?version=${first.version}`)).json();
-    expect(same).toEqual({ version: first.version, items: null, dishes: null });
+    expect(same).toEqual({ version: first.version, items: null, dishes: null, packaged: null });
 
     await client.query(`update app.foods set name = 'Gooseberry' where code = 'E021'`);
     try {
@@ -268,6 +269,47 @@ describe('D-47 USDA foods: kept in their archive by foods:import, not in the foo
       expect(new Set(body.items?.map((food) => food.source))).toEqual(new Set(['ifct2017']));
     } finally {
       await importUsdaArchive(client, [], []);
+    }
+  });
+});
+
+// A synthetic packaged food: made-up values, not a real product's.
+describe('D-48 packaged foods sold in India: foods:import and GET /v1/foods', () => {
+  const TEST_BREAD = {
+    barcode: '8901234567890',
+    name: 'Test sandwich bread',
+    brand: 'Test Foods',
+    kcal: 250,
+    proteinG: 8,
+    carbsG: 50,
+    fatG: 2,
+    fibreG: null,
+    servingGrams: 50,
+  };
+
+  it('imports the committed file whole', async () => {
+    const packaged = readPackagedCsv(readFileSync(new URL('../../../../data/foods/off-india-products.csv', import.meta.url), 'utf8'));
+    try {
+      expect(await importPackagedFoods(client, packaged)).toBe(9_764);
+      expect((await client.query('select count(*)::int as n from app.packaged_foods')).rows).toEqual([{ n: 9_764 }]);
+    } finally {
+      await importPackagedFoods(client, []);
+    }
+  });
+
+  it('serves them apart from the food list, with their serving; the version changes with them', async () => {
+    const user = await api.signUpWithAccount();
+    const first: FoodsResponse = (await getFoods(user.token)).json();
+    await importPackagedFoods(client, [TEST_BREAD]);
+    try {
+      const body: FoodsResponse = (await getFoods(user.token, `?version=${first.version}`)).json();
+
+      expect(body.version).not.toBe(first.version);
+      expect(body.packaged).toEqual([TEST_BREAD]);
+      expect(body.items?.some((food) => food.code === TEST_BREAD.barcode)).toBe(false);
+      expect((await getFoods(user.token, `?version=${body.version}`)).json()).toEqual({ version: body.version, items: null, dishes: null, packaged: null });
+    } finally {
+      await importPackagedFoods(client, []);
     }
   });
 });

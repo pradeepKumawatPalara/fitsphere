@@ -3,7 +3,7 @@ import { istToday, type MealItem, type SyncResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ImportedFood } from '../../src/foods/ifct.ts';
-import { importFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
+import { importFoods, importPackagedFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
 import { INDB_GROUP, INDB_SOURCE } from '../../src/foods/indb.ts';
 import { startTestApi, type TestUser } from './app.ts';
 import { connect } from './database.ts';
@@ -52,10 +52,15 @@ beforeAll(async () => {
   );
   await importFoods(client, [TEST_CURRY], INDB_SOURCE);
   await importPortions(client, INDB_SOURCE, [{ code: TEST_CURRY.code, seq: 1, label: 'Bowl', grams: 180 }]);
+  // A synthetic packaged food with a 50 g serving (D-48).
+  await importPackagedFoods(client, [
+    { barcode: '8901234567890', name: 'Test sandwich bread', brand: 'Test Foods', kcal: 250, proteinG: 8, carbsG: 50, fatG: 2, fibreG: null, servingGrams: 50 },
+  ]);
   api = await startTestApi({ now: () => NOW });
 });
 
 afterAll(async () => {
+  await importPackagedFoods(client, []);
   await importFoods(client, [], INDB_SOURCE);
   await importUsdaArchive(client, [], []);
   await api.close();
@@ -189,6 +194,31 @@ describe('D-39 meals with USDA servings (archived, D-47) and your own units', ()
     const reply = await syncOk(user, [meal([curry]), meal([{ ...BREAD_ITEM, source: 'indb' }])]);
 
     expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'rejected']);
+  });
+
+  it('D-48 accepts a packaged food in its serving, with the grams it came to, and refuses another', async () => {
+    const user = await api.signUpWithAccount();
+    const bread: MealItem = {
+      source: 'barcode',
+      ref: '8901234567890',
+      name: 'Test sandwich bread (Test Foods)',
+      amount: { unit: 'serving', label: 'Serving', value: 1.5, grams: 75 },
+      kcal: 187.5,
+      proteinG: 6,
+      carbsG: 37.5,
+      fatG: 1.5,
+      fibreG: null,
+      estimated: false,
+    };
+
+    const reply = await syncOk(user, [
+      meal([bread]),
+      meal([{ ...bread, amount: { unit: 'serving', label: 'Serving', value: 1.5, grams: 90 } }]),
+      meal([{ ...bread, amount: { unit: 'serving', label: 'Slice', value: 1.5, grams: 75 } }]),
+      meal([{ ...bread, ref: '96385074' }]),
+    ]);
+
+    expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'rejected', 'rejected', 'rejected']);
   });
 
   it('accepts your own food by the slice, naming the My food it came from', async () => {

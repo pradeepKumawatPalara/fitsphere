@@ -217,11 +217,17 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
     Legal to confirm).
   - The app shows "Contains data from Open Food Facts, available under the Open Database License"
     where a product is shown.
+  - Since D-48 (2026-11-04, ADR-0009), FitSphere also takes Open Food Facts' **whole data export**:
+    its 9,764 products sold in India with usable values (name, brand, values per 100 g, serving)
+    go in their own table, `packaged_foods`, and a copy goes to every phone, for search by name and
+    brand. The credit is behind Search foods' i.
   - When a user adds a product to a meal, the meal keeps the product's name and its values for the
     amount eaten. The phone keeps a copy of each meal.
   - FitSphere stores no product images.
 - Questions:
-  - Does keeping the products in their own table limit the share-alike duty to that table?
+  - Does keeping the products in their own table limit the share-alike duty to that table, now that
+    a copy of the Indian products is on every phone (D-48)? Must FitSphere offer that copy under
+    the ODbL?
   - Are users' meals that copy a product's values a derivative database, a produced work, or
     neither?
   - What must FitSphere publish or offer, and is the attribution text enough, and shown in the
@@ -251,7 +257,7 @@ or "Not written yet" are not available yet.
 | E-07 | Hosting in Mumbai; media links; logs | [ADR-0002](../architecture/decisions/ADR-0002-backend-and-hosting.md), [ADR-0003](../architecture/decisions/ADR-0003-primary-database.md) | L-01, L-05 | In the repository (Accepted) |
 | E-08 | Sign-in, emails through Resend | [ADR-0004](../architecture/decisions/ADR-0004-accounts-auth-and-notifications.md) | L-01, L-02, L-06 | In the repository (Accepted) |
 | E-09 | AI provider, consent record | [ADR-0005](../architecture/decisions/ADR-0005-ai-meal-reading.md) | L-01, L-03 | In the repository (Accepted); AI not built |
-| E-10 | Food data: IFCT list, the Indian Nutrient Databank's recipes (no licence stated, credited; D-46, R-009), Open Food Facts; USDA FoodData Central's FNDDS (public domain, CC0; D-39) archived, not served (D-47) | [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) | L-09 to L-13 | In the repository (Accepted) |
+| E-10 | Food data: IFCT list, the Indian Nutrient Databank's recipes (no licence stated, credited; D-46, R-009), Open Food Facts (barcodes; since D-48 also its Indian products for search, ADR-0009); USDA FoodData Central's FNDDS (public domain, CC0; D-39) archived, not served (D-47) | [ADR-0006](../architecture/decisions/ADR-0006-food-data.md) | L-09 to L-13 | In the repository (Accepted) |
 | E-11 | Where the IFCT values come from, the terms, the citation, the dish method | [`food-list-sources.md`](../data/food-list-sources.md) | L-09 to L-12 | In the repository (Draft) |
 | E-12 | The NIN documents read, with hashes and terms | [`docs/sources/README.md`](../sources/README.md) | L-09 to L-11 | In the repository (Draft) |
 | E-13 | The NIN PDFs and the IFCT compilation PDF | `D:\fitsphere-data\` on the owner's PC, identified by the hashes in E-11 and E-12 | L-09 to L-11 | On the owner's PC; available on request |

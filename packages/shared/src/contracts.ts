@@ -456,7 +456,8 @@ const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
   usda_fndds: ['g', 'serving'],
   indb: ['g', 'serving'],
   dish: ['portion'],
-  barcode: ['g'],
+  // A packaged food by its barcode, also in the serving its label gives in grams (D-48).
+  barcode: ['g', 'serving'],
   own: ['g', 'own'],
 };
 export type MealItem = z.infer<typeof mealItemSchema>;
@@ -898,12 +899,35 @@ export const foodsQuerySchema = z.strictObject({
   version: z.string().min(1).max(64).optional(),
 });
 
+/**
+ * A packaged food sold in India, from Open Food Facts' data (D-48; ADR-0009): its values per 100 g as
+ * its label gives them, kept apart from FitSphere's own food list (ADR-0006 rule 2).
+ */
+export const packagedFoodSchema = z.object({
+  barcode: z.string(),
+  name: z.string(),
+  brand: z.string().nullable(),
+  kcal: z.number(),
+  proteinG: z.number(),
+  carbsG: z.number(),
+  fatG: z.number(),
+  fibreG: z.number().nullable(),
+  /** One serving's grams, when its label gives the serving in grams. */
+  servingGrams: z.number().nullable(),
+});
+export type PackagedFood = z.infer<typeof packagedFoodSchema>;
+
+/** The name a packaged food's serving is logged under (D-48). */
+export const PACKAGED_SERVING_LABEL = 'Serving';
+
 export const foodsResponseSchema = z.object({
   version: z.string(),
   /** Null when the phone's `version` is already current. */
   items: z.array(foodSchema).nullable(),
   /** The dishes, per portion; null exactly when `items` is. */
   dishes: z.array(dishSchema).nullable(),
+  /** The packaged foods sold in India, from Open Food Facts (D-48); null exactly when `items` is. */
+  packaged: z.array(packagedFoodSchema).nullable(),
 });
 export type FoodsResponse = z.infer<typeof foodsResponseSchema>;
 

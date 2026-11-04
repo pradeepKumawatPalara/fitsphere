@@ -454,6 +454,22 @@ measured by the owner, unlike `food_measures`). Loaded from `data/foods/indb-por
 `foods:import`, replaced whole. Migration 0011; USDA's servings, held here from D-39, moved to
 `usda_food_portions` with migration 0013 (D-47).
 
+### `packaged_foods` — reference data
+Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009): loaded from
+`data/foods/off-india-products.csv` by `foods:import`, replaced whole. Migration 0014. Kept apart from
+`foods` and from `barcode_products` (ADR-0006 rule 2). Not personal data; row level security on, no
+policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
+
+| Column | Type | Rules |
+|---|---|---|
+| `barcode` | `text` | Primary key; 8 to 14 digits |
+| `name` | `text` | 1 to 120 characters |
+| `brand` | `text` | Null, or 1 to 80 characters: the first brand Open Food Facts names |
+| `kcal` | `numeric(6,2)` | 0 to 1,000, per 100 g |
+| `protein_g`, `carbs_g`, `fat_g` | `numeric(6,2)` | 0 to 100, per 100 g |
+| `fibre_g` | `numeric(6,2)` | Null, or 0 to 100, per 100 g |
+| `serving_grams` | `numeric(7,2)` | Null, or more than 0 and at most 2,000: one serving, when the label gives it in grams |
+
 ### `usda_foods`, `usda_food_portions` — archive
 USDA's FNDDS foods and their servings (D-39), archived, not served (D-47): the same columns as
 `foods` (code, name, food group, the five values per 100 g) and `food_portions` (code, seq, label,
@@ -580,6 +596,9 @@ rule 5 and D-14 require.
 - **Version 10** (more foods, D-39) adds `foods.portions` (a USDA food's servings) and `my_foods`,
   and clears `food_list_version` and the sync cursor, so the next download brings USDA's foods and
   the next sync the user's My foods. The food list is written 50 rows a statement.
+- **Version 11** (packaged foods, D-48) adds `packaged_foods` (barcode, name, brand, the five values
+  per 100 g, serving grams), filled with the food list, and clears `food_list_version`, so the next
+  download brings them.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

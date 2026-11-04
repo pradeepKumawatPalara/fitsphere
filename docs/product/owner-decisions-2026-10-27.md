@@ -1303,6 +1303,31 @@ checksum), and the configuration template was left as it is.*
   (E-10); `constraints-and-assumptions.md`; the data model; REQ-LOG-007 and REQ-LOG-011;
   `CLAUDE.md`.
 
+## D-48 Packaged foods searchable by brand, from Open Food Facts' data
+- Status: **Accepted** (owner, in chat, 2026-11-04: "okay start with 1, push once done").
+- Problem: the owner asked for a database of Indian packaged foods "like HealthifyMe", searchable by
+  brand (an Amul bread), with values "as per published official sources", and as many items as
+  possible. Copying another app's database was refused: it is that company's property. India has
+  no public database of branded foods.
+- Options given: (1) Open Food Facts' data, products sold in India; (2) brands' own labels,
+  collected and approved by the owner; (3) GS1 India's DataKart, under an agreement. The owner chose
+  (1) to start; (2) and (3) stay for later.
+- Answer ([ADR-0009](../architecture/decisions/ADR-0009-packaged-food-search.md), the
+  [packaged-foods plan](../plans/packaged-foods.md)):
+  - Open Food Facts' export of 2026-11-04 gives **9,764 packaged products sold in India** with usable
+    label values (6,263 with a serving in grams), across about 2,850 brands; they go in their own
+    table, `app.packaged_foods`, apart from FitSphere's food list, and to the phone with the list.
+  - Search foods finds them by name or brand, after My foods, tagged "Packaged" with the brand. A
+    product is logged as a barcode product, in grams or by its label's serving ("Serving (50 g)").
+  - Open Food Facts is credited in its own wording behind Search foods' i.
+  - The values are as Open Food Facts gives them (copied from labels by its contributors), after
+    checks: a valid barcode, a name, kcal, protein, carbs and fat per 100 g in range and agreeing.
+- Changes: ADR-0006 rule 2 used Open Food Facts for barcodes only; ADR-0009 adds name and brand
+  search from its data export. Legal is asked about the share-alike duty for the copies (L-13).
+- Doc changes: ADR-0009; the packaged-foods plan; `food-list-sources.md`; the Legal brief (L-13,
+  E-10); `constraints-and-assumptions.md`; the data model; REQ-LOG-007; `docs/README.md`;
+  `CLAUDE.md`. Migration `0014_packaged_foods.sql`; phone schema version 11.
+
 ---
 
 ## Proposed replacement wording for the two invariants

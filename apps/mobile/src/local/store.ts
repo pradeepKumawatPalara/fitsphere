@@ -38,6 +38,7 @@ import {
   type TargetSetData,
   type WeighInSetData,
   type WorkoutSetData,
+  type PackagedFood,
 } from '@fitsphere/shared';
 import type { BindValue, SqlDb } from './sql';
 
@@ -526,6 +527,20 @@ const MIGRATIONS = [
      ${SYNC_STATE}
    );
    DELETE FROM sync_meta WHERE key IN ('food_list_version', 'cursor');`,
+  // Packaged foods sold in India, from Open Food Facts (D-48): kept apart from the food list, as on
+  // the server. The food list's version is cleared, so the next download brings them.
+  `CREATE TABLE packaged_foods (
+     barcode TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     brand TEXT,
+     kcal REAL NOT NULL,
+     protein_g REAL NOT NULL,
+     carbs_g REAL NOT NULL,
+     fat_g REAL NOT NULL,
+     fibre_g REAL,
+     serving_grams REAL
+   );
+   DELETE FROM sync_meta WHERE key = 'food_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -982,11 +997,26 @@ export async function listSavedMeals(db: SqlDb): Promise<LocalSavedMeal[]> {
 }
 
 /**
- * Replaces the cached food list (ADR-0006 rule 1) and its dishes (D-28), and records its version, in
- * one transaction.
+ * Replaces the cached food list (ADR-0006 rule 1), its dishes (D-28) and the packaged foods (D-48),
+ * and records its version, in one transaction.
  */
-export async function replaceFoods(db: SqlDb, version: string, foods: Food[], dishes: readonly Dish[] = []): Promise<void> {
+export async function replaceFoods(
+  db: SqlDb,
+  version: string,
+  foods: Food[],
+  dishes: readonly Dish[] = [],
+  packaged: readonly PackagedFood[] = [],
+): Promise<void> {
   await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM packaged_foods', []);
+    for (let start = 0; start < packaged.length; start += PACKAGED_ROWS_PER_INSERT) {
+      const batch = packaged.slice(start, start + PACKAGED_ROWS_PER_INSERT);
+      await db.runAsync(
+        `INSERT INTO packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        batch.flatMap((food) => [food.barcode, food.name, food.brand, food.kcal, food.proteinG, food.carbsG, food.fatG, food.fibreG, food.servingGrams]),
+      );
+    }
     await db.runAsync('DELETE FROM dishes', []);
     for (const dish of dishes) {
       await db.runAsync(
@@ -1024,6 +1054,44 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
 
 /** Foods a statement writes when the list is replaced: 13 values each, within SQLite's 999. */
 const FOOD_ROWS_PER_INSERT = 50;
+/** Packaged foods a statement writes: 9 values each, within SQLite's 999. */
+const PACKAGED_ROWS_PER_INSERT = 100;
+
+/**
+ * Searches the packaged foods, offline (D-48): every word must appear in the name or the brand,
+ * ignoring case; names or brands starting with the first word come first.
+ */
+export async function searchPackaged(db: SqlDb, query: string, limit = 30): Promise<PackagedFood[]> {
+  const words = searchWords(query);
+  if (words.length === 0) return [];
+  const conditions = words.map(() => `(lower(name) LIKE ? ESCAPE '\\' OR lower(coalesce(brand, '')) LIKE ? ESCAPE '\\')`);
+  const rows = await db.getAllAsync<{
+    barcode: string;
+    name: string;
+    brand: string | null;
+    kcal: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fibre_g: number | null;
+    serving_grams: number | null;
+  }>(
+    `SELECT * FROM packaged_foods WHERE ${conditions.join(' AND ')}
+     ORDER BY (lower(name) LIKE ? OR lower(coalesce(brand, '')) LIKE ?) DESC, name COLLATE NOCASE LIMIT ?`,
+    [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), startsWith(words[0]!), limit],
+  );
+  return rows.map((row) => ({
+    barcode: row.barcode,
+    name: row.name,
+    brand: row.brand,
+    kcal: row.kcal,
+    proteinG: row.protein_g,
+    carbsG: row.carbs_g,
+    fatG: row.fat_g,
+    fibreG: row.fibre_g,
+    servingGrams: row.serving_grams,
+  }));
+}
 
 /** The order the food list's sources are searched and listed in: INDB's Indian recipes, then IFCT's Indian foods (D-46, D-47). */
 const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017'];

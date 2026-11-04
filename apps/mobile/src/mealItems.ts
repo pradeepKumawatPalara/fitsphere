@@ -7,12 +7,14 @@ import {
   myFoodValueMax,
   OWN_UNIT_COUNT_MAX,
   OWN_UNIT_COUNT_MIN,
+  PACKAGED_SERVING_LABEL,
   type BarcodeProduct,
   type Dish,
   type Food,
   type MealItem,
   type MyFoodSetData,
   type MyFoodUnit,
+  type PackagedFood,
 } from '@fitsphere/shared';
 import { formatMeasures, formatOwnUnits, formatServings } from './meals';
 import { parseOneDecimal, parseWholeNumber } from './format';
@@ -157,6 +159,33 @@ export function servingsMax(gramsPerServing: number): number {
 export function itemFromServings(food: Food, serving: FoodServing, count: number): MealItem {
   const grams = gramsOfUnits(serving.grams, count);
   return { ...itemFromFood(food, 1), amount: { unit: 'serving', label: serving.label, value: count, grams }, ...valuesFor(food, grams) };
+}
+
+/** A packaged food's name, with its brand (D-48), as a product found by its barcode is named. */
+export function packagedName(food: Pick<PackagedFood, 'name' | 'brand'>): string {
+  return (food.brand ? `${food.name} (${food.brand})` : food.name).slice(0, 120);
+}
+
+/** A packaged food sold in India (D-48), eaten in `grams`: logged as a product found by its barcode. */
+export function itemFromPackaged(food: PackagedFood, grams: number): MealItem {
+  return {
+    source: 'barcode',
+    ref: food.barcode,
+    name: packagedName(food),
+    amount: { unit: 'g', value: grams },
+    kcal: forGrams(food.kcal, grams),
+    proteinG: forGrams(food.proteinG, grams),
+    carbsG: forGrams(food.carbsG, grams),
+    fatG: forGrams(food.fatG, grams),
+    fibreG: food.fibreG === null ? null : forGrams(food.fibreG, grams),
+    estimated: false,
+  };
+}
+
+/** `count` servings of a packaged food, as its label gives one in grams, counted in halves (D-48). */
+export function itemFromPackagedServings(food: PackagedFood & { servingGrams: number }, count: number): MealItem {
+  const grams = gramsOfUnits(food.servingGrams, count);
+  return { ...itemFromPackaged(food, grams), amount: { unit: 'serving', label: PACKAGED_SERVING_LABEL, value: count, grams } };
 }
 
 /** The same item for another number of servings, from the values and grams it already has. */

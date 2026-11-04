@@ -1,4 +1,4 @@
-import type { Dish, Food, MealItem } from '@fitsphere/shared';
+import type { Dish, Food, MealItem, PackagedFood } from '@fitsphere/shared';
 import { ChevronDown, ChevronLeft, SquarePen } from 'lucide-react-native';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -10,6 +10,8 @@ import {
   itemFromFood,
   itemFromFoodUnits,
   itemFromMyFood,
+  itemFromPackaged,
+  itemFromPackagedServings,
   itemFromServings,
   ownQuantityRule,
   parseGrams,
@@ -34,7 +36,12 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 // food's quantity are typed; household units (D-36), USDA's servings (D-39) and a dish's portions
 // (D-28) are counted in halves, chosen with the measure in a two-column picker.
 
-export type FoodResult = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food } | { kind: 'mine'; food: LocalMyFood };
+export type FoodResult =
+  | { kind: 'dish'; dish: Dish }
+  | { kind: 'food'; food: Food }
+  | { kind: 'mine'; food: LocalMyFood }
+  // A packaged food sold in India, from Open Food Facts (D-48).
+  | { kind: 'packaged'; food: PackagedFood };
 
 /** One way to measure the food: typed, or counted in halves up to `max`. */
 type Measure = { key: string; label: string; counted: boolean; max: number };
@@ -51,8 +58,18 @@ function capital(text: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
-/** A listed food's are Grams, its household units, then USDA's servings; a dish's, its portion; a My food's, its unit. */
+/**
+ * A listed food's are Grams, its household units, then its servings; a dish's, its portion; a My
+ * food's, its unit; a packaged food's, Grams and the serving its label gives in grams (D-48).
+ */
 function measuresOf(result: FoodResult): Measure[] {
+  if (result.kind === 'packaged') {
+    const grams = result.food.servingGrams;
+    return [
+      { key: 'g', label: 'Grams', counted: false, max: 0 },
+      ...(grams === null ? [] : [{ key: 'serving', label: `Serving (${formatUnitGrams(grams)})`, counted: true, max: servingsMax(grams) }]),
+    ];
+  }
   if (result.kind === 'dish') return [{ key: 'portion', label: capital(PORTION_UNIT_LABELS[result.dish.portionUnit]), counted: true, max: PORTIONS_MAX }];
   if (result.kind === 'mine') {
     const unit = result.food.unit;
@@ -81,6 +98,12 @@ function itemOf(result: FoodResult, measure: Measure, count: number, typed: stri
   if (result.kind === 'mine') {
     const quantity = parseOwnQuantity(typed, result.food.unit);
     return quantity === null ? null : itemFromMyFood(result.food, quantity);
+  }
+  if (result.kind === 'packaged') {
+    const servingGrams = result.food.servingGrams;
+    if (measure.key === 'serving' && servingGrams !== null) return itemFromPackagedServings({ ...result.food, servingGrams }, count);
+    const grams = parseGrams(typed);
+    return grams === null ? null : itemFromPackaged(result.food, grams);
   }
   if (measure.key === 'g') {
     const grams = parseGrams(typed);
@@ -118,7 +141,8 @@ export function FoodDetail({
   const item = itemOf(result, measure, count, typed);
 
   const name = result.kind === 'dish' ? result.dish.name : result.food.name;
-  const mark = result.kind === 'dish' ? 'Dish' : result.kind === 'mine' ? 'My food' : SOURCE_MARKS[result.food.source];
+  const mark =
+    result.kind === 'dish' ? 'Dish' : result.kind === 'mine' ? 'My food' : result.kind === 'packaged' ? 'Packaged' : SOURCE_MARKS[result.food.source];
   const per =
     result.kind === 'dish'
       ? `One ${PORTION_UNIT_LABELS[result.dish.portionUnit]}: ${formatKcal(result.dish.kcal)}`
@@ -126,7 +150,9 @@ export function FoodDetail({
         ? result.food.unit === 'g' || result.food.unit === 'ml'
           ? `Per 100 ${result.food.unit}: ${formatKcal(result.food.kcal)}`
           : `One ${OWN_UNIT_NAMES[result.food.unit].one}: ${formatKcal(result.food.kcal)}`
-        : `Per 100 g: ${formatKcal(result.food.kcal)}${result.food.kcalEstimated ? ' (estimated)' : ''}`;
+        : result.kind === 'packaged'
+          ? `${result.food.brand ? `${result.food.brand} · ` : ''}Per 100 g: ${formatKcal(result.food.kcal)}`
+          : `Per 100 g: ${formatKcal(result.food.kcal)}${result.food.kcalEstimated ? ' (estimated)' : ''}`;
   // Beside the energy: the weight the amount comes to, or that a dish's values are estimated.
   const note = !item
     ? null
