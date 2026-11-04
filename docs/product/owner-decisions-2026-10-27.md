@@ -1146,8 +1146,8 @@ checksum), and the configuration template was left as it is.*
   label on the meal card, and their use, seeing what a client eats before training or how often they
   have dessert, is a coach's (post-MVP, D-20). Beside the meal types, they read as two more meal types.
 - Answer: **hidden** in Log meal until coaches come (backlog B-28). A meal that has tags keeps them:
-  its card still shows them, editing it keeps them, and a saved meal's tags come with it when it is
-  logged again. The data model, contract and sync are unchanged.
+  its card still shows them, and editing it keeps them. A saved meal logged again from Nutrition's
+  Saved tab keeps its tags, as before. The data model, contract and sync are unchanged.
 - Unchanged: the BRD (`docs/product/source/business-requirements.txt`, input, not edited).
 - Doc changes: REQ-LOG-003; backlog B-28; the redesign plan's 3.5; the canvas board 3.5.
 

@@ -77,7 +77,7 @@ type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number }
 // Log meal (REQ-LOG-001…003, REQ-LOG-006…008, REQ-LOG-010; REQ-ACC-005): the date, the meal type,
 // foods added by search, barcode, your own food or a saved meal, an optional photo or image link,
 // and a review before saving. The tags "Before training" and "Dessert" are hidden until coaches
-// (D-40): a meal edited here keeps the tags it has, and a saved meal's tags come with it.
+// (D-40): a meal edited here keeps the tags it has.
 // Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
 // with a meal, whose date then stays the same (MVP default, D-26).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
