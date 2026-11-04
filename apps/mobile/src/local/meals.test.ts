@@ -270,18 +270,26 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect(await searchFoods(db, 'ghee')).toEqual([food('T013', 'Ghee')]);
   });
 
-  it('D-46 lists INDB’s recipes, then IFCT’s foods, then USDA’s, each source up to the limit, so none hides another', async () => {
+  it('D-46 lists INDB’s recipes, then IFCT’s foods, each source up to the limit, so neither hides the other', async () => {
     const recipe = (code: string, name: string) => ({ ...food(code, name), source: 'indb' as const });
-    const usda = (code: string, name: string) => ({ ...food(code, name), source: 'usda_fndds' as const });
     await replaceFoods(db, 'v2', [
-      usda('31103010', 'Egg, whole, boiled or poached'),
       food('M001', 'Egg, poultry, whole, raw'),
       recipe('BFP201', 'Egg curry (Ande ki curry)'),
       recipe('BFP202', 'Boiled egg (Ubla anda)'),
       recipe('BFP203', 'Egg bhurji'),
     ]);
 
-    expect((await searchFoods(db, 'egg', 2)).map((found) => found.code)).toEqual(['BFP203', 'BFP201', 'M001', '31103010']);
+    expect((await searchFoods(db, 'egg', 2)).map((found) => found.code)).toEqual(['BFP203', 'BFP201', 'M001']);
+  });
+
+  it('D-47 never lists a USDA food a phone still holds from before', async () => {
+    await db.runAsync(
+      `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures, portions)
+       VALUES ('usda_fndds', '31103010', 'Egg, whole, boiled or poached', 'Eggs', '[]', 12.4, 0, 9.96, 0.96, 143, 0, '[]', '[]')`,
+      [],
+    );
+
+    expect(await searchFoods(db, 'boiled')).toEqual([]);
   });
 });
 

@@ -3,9 +3,8 @@ import { istToday, type MealItem, type SyncResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ImportedFood } from '../../src/foods/ifct.ts';
-import { importFoods, importPortions } from '../../src/foods/importFoods.ts';
+import { importFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
 import { INDB_GROUP, INDB_SOURCE } from '../../src/foods/indb.ts';
-import { USDA_SOURCE } from '../../src/foods/usda.ts';
 import { startTestApi, type TestUser } from './app.ts';
 import { connect } from './database.ts';
 
@@ -42,11 +41,15 @@ let api: Awaited<ReturnType<typeof startTestApi>>;
 
 beforeAll(async () => {
   client = await connect();
-  await importFoods(client, [TEST_BREAD], USDA_SOURCE);
-  await importPortions(client, USDA_SOURCE, [
-    { code: TEST_BREAD.code, seq: 1, label: 'Medium or regular slice', grams: 28 },
-    { code: TEST_BREAD.code, seq: 2, label: 'Cup', grams: 40 },
-  ]);
+  // USDA's foods are archived (D-47): a meal with a USDA serving, logged before, checks against it.
+  await importUsdaArchive(
+    client,
+    [TEST_BREAD],
+    [
+      { code: TEST_BREAD.code, seq: 1, label: 'Medium or regular slice', grams: 28 },
+      { code: TEST_BREAD.code, seq: 2, label: 'Cup', grams: 40 },
+    ],
+  );
   await importFoods(client, [TEST_CURRY], INDB_SOURCE);
   await importPortions(client, INDB_SOURCE, [{ code: TEST_CURRY.code, seq: 1, label: 'Bowl', grams: 180 }]);
   api = await startTestApi({ now: () => NOW });
@@ -54,7 +57,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await importFoods(client, [], INDB_SOURCE);
-  await importFoods(client, [], USDA_SOURCE);
+  await importUsdaArchive(client, [], []);
   await api.close();
   await client.end();
 });
@@ -146,8 +149,8 @@ describe('REQ-LOG-011 My foods through POST /v1/sync', () => {
   });
 });
 
-describe('D-39 meals with USDA servings and your own units', () => {
-  it('accepts a USDA food in a serving on its list, with the grams it came to', async () => {
+describe('D-39 meals with USDA servings (archived, D-47) and your own units', () => {
+  it('accepts a USDA food in a serving on its archived list, with the grams it came to', async () => {
     const user = await api.signUpWithAccount();
 
     const reply = await syncOk(user, [meal([BREAD_ITEM])]);

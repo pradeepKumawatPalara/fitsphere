@@ -93,6 +93,31 @@ describe('Migration runner (data model, "Changes")', () => {
     expect(checksum('select 1;\r\nselect 2;\r\n')).toBe(checksum('select 1;\nselect 2;\n'));
   });
 
+  it('D-47 0013 moves the USDA foods and servings already in the food list to their archive, and the list takes none again', async () => {
+    const all = await readMigrations();
+    await migrate(client, all.filter((migration) => migration.name < '0013'));
+    const food = (source: string, code: string, name: string) =>
+      client.query(
+        `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated, needs_review, hidden)
+         values ($1, $2, $3, 'Test', 9.4, 2.3, 3.6, 49.2, 267, 'published', false, false, false)`,
+        [source, code, name],
+      );
+    // Synthetic rows: made-up values.
+    await food('usda_fndds', '99999901', 'Test bread');
+    await food('ifct2017', 'A019', 'Test atta');
+    await client.query(`insert into app.food_portions (source, code, seq, label, grams) values ('usda_fndds', '99999901', 1, 'Slice', 28)`);
+
+    expect(await migrate(client, all)).toEqual(['0013_usda_archive.sql']);
+
+    expect((await client.query('select source, code from app.foods')).rows).toEqual([{ source: 'ifct2017', code: 'A019' }]);
+    expect((await client.query('select code, name, kcal from app.usda_foods')).rows).toEqual([{ code: '99999901', name: 'Test bread', kcal: '267.00' }]);
+    expect((await client.query('select code, seq, label, grams from app.usda_food_portions')).rows).toEqual([
+      { code: '99999901', seq: 1, label: 'Slice', grams: '28.00' },
+    ]);
+    expect((await client.query('select count(*)::int as n from app.food_portions')).rows).toEqual([{ n: 0 }]);
+    await expect(food('usda_fndds', '99999902', 'Another bread')).rejects.toThrow(/foods_source_check/);
+  });
+
   it('applies the real migrations to an empty database', async () => {
     expect(await migrate(client, await readMigrations())).toEqual([
       '0001_skeleton.sql',
@@ -107,8 +132,9 @@ describe('Migration runner (data model, "Changes")', () => {
       '0010_profiles.sql',
       '0011_more_foods.sql',
       '0012_indb_foods.sql',
+      '0013_usda_archive.sql',
     ]);
-    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods']) {
+    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions']) {
       expect(await tableExists(table)).toBe(true);
     }
   });

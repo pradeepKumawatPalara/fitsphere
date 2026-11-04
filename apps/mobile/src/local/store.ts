@@ -1025,8 +1025,8 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
 /** Foods a statement writes when the list is replaced: 13 values each, within SQLite's 999. */
 const FOOD_ROWS_PER_INSERT = 50;
 
-/** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, then USDA's (D-39, D-46). */
-const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'usda_fndds'];
+/** The order the food list's sources are searched and listed in: INDB's Indian recipes, then IFCT's Indian foods (D-46, D-47). */
+const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017'];
 
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in

@@ -495,10 +495,9 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Acceptance criteria:
   - Given AI consent is off, when a scanned barcode is not found, then the user can type the label values and save the meal.
 - Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039). The
-  food list holds IFCT 2017's Indian foods and, since D-39, USDA FoodData Central's FNDDS foods,
-  each marked by its source; a USDA food can also be added in its servings, as USDA weighs them,
-  counted in halves. Since D-46 it also holds the Indian Nutrient Databank's 1,014 Indian
-  recipes, marked "INDB", their values estimated, each with its serving. Your own food can be in any of several units and saved to My foods
+  food list holds Indian food data only (D-47): IFCT 2017's Indian foods and, since D-46, the
+  Indian Nutrient Databank's 1,014 Indian recipes, marked "INDB", their values estimated, each
+  with its serving, counted in halves. USDA's FNDDS foods (D-39) are archived, not listed. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods
@@ -510,7 +509,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
     glass, tablespoon, teaspoon or serving), its values per 100 g or ml or per one unit, and the
     quantity eaten. kcal, protein, carbs and fat are required, fibre optional.
   - "Save to My foods" is ticked at first; a saved food shows in Search foods, marked "My food",
-    after the Indian foods and before USDA's.
+    after the Indian foods.
   - Picking a My food asks only its quantity; editing it or deleting it (after a confirmation) never
     changes a meal already logged.
   - My foods work offline and sync; only the user sees them (REQ-NFR-001, D-20); they are deleted

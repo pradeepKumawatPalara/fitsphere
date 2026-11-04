@@ -4,6 +4,8 @@
   published, and adding a unit and quantity for each food the user enters)
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-04
+- Changed by D-47 (2026-11-04): USDA's foods are archived, not served; Part 1 describes what was
+  built and is kept in the archive. My foods and your own food's units (Part 2) stay.
 - Builds on: ADR-0006 rule 1 (values only from a source whose licence allows it, "IFCT if
   permitted, otherwise USDA or other permitted sources; record the source per item"); D-25; D-26;
   D-36 (household units); REQ-LOG-001, REQ-LOG-007, REQ-SAVED-001; the redesign's 3.6 and 3.8

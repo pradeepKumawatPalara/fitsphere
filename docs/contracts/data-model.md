@@ -396,9 +396,9 @@ Copies of meals kept for re-logging (REQ-SAVED-001, REQ-NUT-004 "Save to my meal
 
 ### `foods` — reference data
 FitSphere's food list (ADR-0006 rule 1; D-25, D-26, D-39), loaded from
-`data/foods/ifct2017-foods.csv` and, since migration 0011, USDA's
-`data/foods/usda-fndds-foods.csv` and, since migration 0012, INDB's `data/foods/indb-foods.csv`
-(D-46) by `npm run foods:import`
+`data/foods/ifct2017-foods.csv` and, since migration 0012, INDB's `data/foods/indb-foods.csv`
+(D-46) by `npm run foods:import`. USDA's foods (migration 0011, D-39) moved to `usda_foods` with
+migration 0013 (D-47)
 ([`food-list-sources.md`](../data/food-list-sources.md)). It is the same for every user and holds
 no personal data, so it has no `user_id` and no `change_seq`; the phone fetches it whole with
 `GET /v1/foods`.
@@ -406,7 +406,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `uuid` | Primary key |
-| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `usda_fndds` (D-39), code the 8-digit FNDDS food code, e.g. `51101000`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated |
+| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated. (`usda_fndds`, D-39, until migration 0013 moved those rows to `usda_foods`, D-47) |
 | `name`, `food_group` | `text` | Not null; as printed |
 | `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed |
 | `kcal` | `numeric(6,2)` | Not null. kcal per 100 g |
@@ -449,10 +449,17 @@ personal data, so no `user_id` and no `change_seq`; the phone fetches it with th
 | `updated_at` | `timestamptz` | Server time of the import that wrote the row |
 
 ### `food_portions` — reference data
-A USDA food's servings (D-39), as USDA labels them, with the grams USDA publishes (not measured by
-the owner, unlike `food_measures`); and an INDB recipe's one serving (D-46), with the grams INDB's
-own per-serving values give. Loaded from `data/foods/usda-fndds-portions.csv` and
-`data/foods/indb-portions.csv` by `foods:import`, each source replaced whole. Migration 0011.
+An INDB recipe's one serving (D-46), with the grams INDB's own per-serving values give (not
+measured by the owner, unlike `food_measures`). Loaded from `data/foods/indb-portions.csv` by
+`foods:import`, replaced whole. Migration 0011; USDA's servings, held here from D-39, moved to
+`usda_food_portions` with migration 0013 (D-47).
+
+### `usda_foods`, `usda_food_portions` — archive
+USDA's FNDDS foods and their servings (D-39), archived, not served (D-47): the same columns as
+`foods` (code, name, food group, the five values per 100 g) and `food_portions` (code, seq, label,
+grams), keyed by the 8-digit code. Filled by migration 0013 from `foods`, then by `foods:import`
+from `data/foods/usda-fndds-*.csv`. Read only by the sync check of a USDA serving in a meal logged
+before D-47. Row level security on, no policies.
 
 | Column | Type | Rules |
 |---|---|---|

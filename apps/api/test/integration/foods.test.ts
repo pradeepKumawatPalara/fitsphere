@@ -5,9 +5,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
 import { INDB_GROUP, INDB_SOURCE, readIndbCsv } from '../../src/foods/indb.ts';
-import { importDishes, importFoods, importMeasures, importPortions } from '../../src/foods/importFoods.ts';
+import { importDishes, importFoods, importMeasures, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
 import { readMeasuresSheet } from '../../src/foods/measures.ts';
-import { readUsdaCsv, USDA_SOURCE } from '../../src/foods/usda.ts';
+import { readUsdaCsv } from '../../src/foods/usda.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 import { connect } from './database.ts';
@@ -226,7 +226,7 @@ describe('D-28 dishes: foods:import and GET /v1/foods', () => {
 });
 
 // A synthetic USDA food: made-up values, not USDA's.
-describe('D-39 USDA foods: foods:import and GET /v1/foods', () => {
+describe('D-47 USDA foods: kept in their archive by foods:import, not in the food list', () => {
   const TEST_BREAD = {
     code: '99999901',
     name: 'Test bread',
@@ -244,56 +244,31 @@ describe('D-39 USDA foods: foods:import and GET /v1/foods', () => {
     aliases: [],
   };
 
-  it('imports the committed USDA files whole, within the tables’ limits', async () => {
+  it('archives the committed USDA files whole, within the tables’ limits', async () => {
     const read = (name: string) => readFileSync(new URL(`../../../../data/foods/${name}`, import.meta.url), 'utf8');
     const usda = readUsdaCsv(read('usda-fndds-foods.csv'), read('usda-fndds-portions.csv'));
     try {
-      expect((await importFoods(client, usda.foods, USDA_SOURCE)).total).toBe(5_431);
-      expect(await importPortions(client, USDA_SOURCE, usda.portions)).toBe(14_738);
-      const { rows } = await client.query(`select count(*)::int as n from app.foods where source = 'usda_fndds'`);
-      expect(rows).toEqual([{ n: 5_431 }]);
+      expect(await importUsdaArchive(client, usda.foods, usda.portions)).toBe(5_431);
+      const { rows } = await client.query(
+        'select (select count(*)::int from app.usda_foods) as foods, (select count(*)::int from app.usda_food_portions) as portions',
+      );
+      expect(rows).toEqual([{ foods: 5_431, portions: 14_738 }]);
     } finally {
-      await importFoods(client, [], USDA_SOURCE);
+      await importUsdaArchive(client, [], []);
     }
   });
 
-  it('serves a USDA food with its source and servings in USDA’s order; the version changes with them', async () => {
+  it('serves no USDA food: GET /v1/foods lists IFCT’s foods only', async () => {
     const user = await api.signUpWithAccount();
-    const first: FoodsResponse = (await getFoods(user.token)).json();
-    await importFoods(client, [TEST_BREAD], USDA_SOURCE);
-    await importPortions(client, USDA_SOURCE, [
-      { code: TEST_BREAD.code, seq: 2, label: 'Cup', grams: 40 },
-      { code: TEST_BREAD.code, seq: 1, label: 'Medium or regular slice', grams: 28 },
-    ]);
+    await importUsdaArchive(client, [TEST_BREAD], [{ code: TEST_BREAD.code, seq: 1, label: 'Medium or regular slice', grams: 28 }]);
     try {
-      const body: FoodsResponse = (await getFoods(user.token, `?version=${first.version}`)).json();
+      const body: FoodsResponse = (await getFoods(user.token)).json();
 
-      expect(body.version).not.toBe(first.version);
-      expect(body.items?.find((food) => food.code === TEST_BREAD.code)).toEqual({
-        source: 'usda_fndds',
-        code: TEST_BREAD.code,
-        name: 'Test bread',
-        foodGroup: 'Test breads',
-        aliases: [],
-        proteinG: 9.4,
-        fibreG: 2.3,
-        fatG: 3.6,
-        carbsG: 49.2,
-        kcal: 267,
-        kcalEstimated: false,
-        measures: [],
-        portions: [
-          { label: 'Medium or regular slice', grams: 28 },
-          { label: 'Cup', grams: 40 },
-        ],
-      });
-      // The IFCT foods stay as they were.
-      expect(body.items?.filter((food) => food.source === 'ifct2017')).toHaveLength(539);
+      expect(body.items?.some((food) => food.code === TEST_BREAD.code)).toBe(false);
+      expect(new Set(body.items?.map((food) => food.source))).toEqual(new Set(['ifct2017']));
     } finally {
-      await importFoods(client, [], USDA_SOURCE);
+      await importUsdaArchive(client, [], []);
     }
-    const { rows } = await client.query(`select 1 from app.food_portions where source = 'usda_fndds'`);
-    expect(rows).toEqual([]);
   });
 });
 

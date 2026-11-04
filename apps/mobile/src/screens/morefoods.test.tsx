@@ -1,4 +1,4 @@
-import { INDB_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Food } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, type Food } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
@@ -20,28 +20,23 @@ const TODAY = '2026-10-28';
 const MY_BREAD_ID = '00000000-0000-4000-d000-000000000001';
 const FOODS: Food[] = [
   { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [], portions: [] },
+  // INDB recipes (D-46): synthetic values, every one estimated, each with its serving.
   {
-    source: 'usda_fndds',
-    code: '51101000',
-    name: 'Bread, white',
-    foodGroup: 'Yeast breads',
+    source: 'indb',
+    code: 'BFP901',
+    name: 'Test bread toast',
+    foodGroup: 'Indian recipes (INDB)',
     aliases: [],
     proteinG: 9.43,
     fibreG: 2.3,
     fatG: 3.59,
     carbsG: 49.2,
     kcal: 267,
-    kcalEstimated: false,
+    kcalEstimated: true,
     measures: [],
-    portions: [
-      { label: 'Small or thin/very thin slice', grams: 24 },
-      { label: 'Medium or regular slice', grams: 28 },
-    ],
+    portions: [{ label: 'Slice', grams: 28 }],
   },
-  { source: 'usda_fndds', code: '51300100', name: 'Bread, whole wheat', foodGroup: 'Yeast breads', aliases: [], proteinG: 12.3, fibreG: 6, fatG: 3.5, carbsG: 43, kcal: 254, kcalEstimated: false, measures: [], portions: [] },
-  { source: 'usda_fndds', code: '41205010', name: 'Dal', foodGroup: 'Bean, pea, legume dishes', aliases: [], proteinG: 8.6, fibreG: 7.5, fatG: 4.31, carbsG: 19.2, kcal: 145, kcalEstimated: false, measures: [], portions: [] },
   { source: 'ifct2017', code: 'B021', name: 'Red gram, dal', foodGroup: 'Grain Legumes', aliases: [], proteinG: 21.7, fibreG: 9.06, fatG: 1.56, carbsG: 55.23, kcal: 335, kcalEstimated: false, measures: [], portions: [] },
-  // An INDB recipe (D-46): synthetic values, every one estimated, with its serving.
   {
     source: 'indb',
     code: 'BFP999',
@@ -85,13 +80,13 @@ async function search(text: string) {
 describe('D-39 the amounts', () => {
   const bread = FOODS[1]!;
 
-  it('a USDA serving: its grams × the count, the values for those grams', () => {
-    const item = itemFromServings(bread, bread.portions[1]!, 2);
+  it('a serving: its grams × the count, the values for those grams, estimated', () => {
+    const item = itemFromServings(bread, bread.portions[0]!, 2);
 
-    expect(item).toMatchObject({ source: 'usda_fndds', ref: '51101000', amount: { unit: 'serving', label: 'Medium or regular slice', value: 2, grams: 56 } });
+    expect(item).toMatchObject({ source: 'indb', ref: 'BFP901', estimated: true, amount: { unit: 'serving', label: 'Slice', value: 2, grams: 56 } });
     expect(item.kcal).toBeCloseTo(149.52);
-    expect(formatAmount(item.amount)).toBe('2 × medium or regular slice (56 g)');
-    expect(withServings(item, 1).amount).toEqual({ unit: 'serving', label: 'Medium or regular slice', value: 1, grams: 28 });
+    expect(formatAmount(item.amount)).toBe('2 × slice (56 g)');
+    expect(withServings(item, 1).amount).toEqual({ unit: 'serving', label: 'Slice', value: 1, grams: 28 });
   });
 
   it('your own food per one slice, per 100 ml or per 100 g', () => {
@@ -123,49 +118,45 @@ describe('D-39 the amounts', () => {
   });
 });
 
-describe('D-39 Search foods with USDA foods and My foods', () => {
-  it('lists the Indian foods first, then USDA’s marked "USDA", and credits USDA with IFCT behind the i', async () => {
+describe('D-47 Search foods with Indian foods and My foods', () => {
+  it('lists INDB’s recipes, then IFCT’s foods, and credits IFCT and INDB behind the i, no USDA', async () => {
     await render();
     await search('dal');
 
     const rows = await screen.findAllByRole('button', { name: /per 100 g/ });
-    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Test dal fry, INDB, 100 kcal per 100 g, estimated',
-      'Red gram, dal, 335 kcal per 100 g',
-      'Dal, USDA, 145 kcal per 100 g',
-    ]);
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual(['Test dal fry, INDB, 100 kcal per 100 g, estimated', 'Red gram, dal, 335 kcal per 100 g']);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
     expect(screen.getByText(`Foods marked INDB: ${INDB_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
-    expect(screen.getByText(`Foods marked USDA: ${USDA_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
+    expect(screen.queryByText(/USDA/)).toBeNull();
   });
 
-  it('puts My foods before USDA’s, marked "My food"', async () => {
+  it('puts My foods after the Indian foods, marked "My food"', async () => {
     await render(withMyBread);
     await search('bread');
 
-    const rows = await screen.findAllByRole('button', { name: /^(Peanut butter bread|Bread)/ });
+    const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
       'Peanut butter bread, my food, 180 kcal per slice',
-      'Bread, white, USDA, 267 kcal per 100 g',
-      'Bread, whole wheat, USDA, 254 kcal per 100 g',
     ]);
   });
 
-  it('adds a USDA food by its slice, counted in halves, with the grams the slices come to', async () => {
+  it('adds a recipe by its slice, counted in halves, with the grams the slices come to', async () => {
     await render();
-    await search('bread');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Bread, white, USDA, 267 kcal per 100 g' }));
-    expect(screen.getByText('Per 100 g: 267 kcal')).toBeOnTheScreen();
+    await search('toast');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test bread toast, INDB, 267 kcal per 100 g, estimated' }));
+    expect(screen.getByText('Per 100 g: 267 kcal (estimated)')).toBeOnTheScreen();
 
-    await pickAmount({ measure: 'Medium or regular slice (28 g)', quantity: '2' });
-    expect(screen.getByLabelText('Measure: Medium or regular slice (28 g)')).toBeOnTheScreen();
+    await pickAmount({ quantity: '2' });
+    expect(screen.getByLabelText('Measure: Slice (28 g)')).toBeOnTheScreen();
     expect(screen.getByLabelText('Quantity: 2')).toBeOnTheScreen();
     expect(screen.getByText('Net wt: 56 g')).toBeOnTheScreen();
     expect(screen.getByLabelText('Adds 150 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('Protein: 5.3 g')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
-    expect(screen.getByLabelText('Bread, white: 2 × medium or regular slice (56 g), 150 kcal, 5.3 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Test bread toast: 2 × slice (56 g), 150 kcal, 5.3 g protein')).toBeOnTheScreen();
   });
 
   it('adds a My food in its own unit, and its quantity’s rule shows under the box', async () => {
