@@ -8,12 +8,13 @@ import {
   type WorkoutsPage,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { ClipboardList, ClockArrowDown, Plus, SquarePen, Trash, WifiOff } from 'lucide-react-native';
+import { Calendar, ChevronDown, ClipboardList, ClockArrowDown, Plus, SquarePen, Trash, WifiOff } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { callApi } from '../api/client';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
+import { CalendarSheet } from '../components/CalendarSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { Banner, IconButton, Text, TextButton } from '../components/ui';
@@ -46,7 +47,8 @@ export function byDate(rows: readonly Row[]): { day: string; workouts: Row[] }[]
 // logged: the last 90 IST days from the phone, and older ones read from the server online, 90 days
 // at a time, view-only (ADR-0007 rules 1 and 6; MVP default, D-29). Each date's card lists its
 // workouts ("Workout 1", "Workout 2"…), each with edit and delete, and "Log another workout" on that
-// date (D-42).
+// date (D-42). A date chip above Log workout, as Log meal's, picks the day it logs to: it sets the
+// app's selected date, so the header shows the same day (D-43).
 export function TrainingScreen() {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -54,7 +56,7 @@ export function TrainingScreen() {
   const local = useLocalDatabase();
   const sync = useSync();
   const router = useRouter();
-  const { today, selected, firstDay } = useSelectedDay();
+  const { today, selected, firstDay, select } = useSelectedDay();
   const [recent, setRecent] = useState<Row[]>([]);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [older, setOlder] = useState<Row[]>([]);
@@ -62,6 +64,8 @@ export function TrainingScreen() {
   const [message, setMessage] = useState<Message | null>(null);
   // The workout being deleted, once asked (D-42).
   const [deleting, setDeleting] = useState<{ id: string; day: string; name: string } | null>(null);
+  // The calendar of the date chip (D-43).
+  const [choosingDay, setChoosingDay] = useState(false);
   // Each button fades only while its own action runs.
   const [starting, setStarting] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
@@ -145,6 +149,16 @@ export function TrainingScreen() {
               </View>
               <Text style={styles.planText}>No training plan yet.</Text>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Date: ${formatDay(selected)}`}
+              onPress={() => setChoosingDay(true)}
+              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            >
+              <Calendar size={18} color={colors.accent} />
+              <Text style={styles.chipText}>{selected === today ? `Today, ${formatDay(selected)}` : formatDay(selected)}</Text>
+              <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
+            </Pressable>
             <TextButton title="Log workout" filled icon={Plus} disabled={starting} onPress={() => void start()} />
             <RejectedChanges
               entries={rejected}
@@ -233,6 +247,16 @@ export function TrainingScreen() {
           </View>
         }
       />
+      {choosingDay ? (
+        <CalendarSheet
+          title="Log this workout to"
+          today={today}
+          firstDay={firstDay}
+          selected={selected}
+          onSelect={select}
+          onClose={() => setChoosingDay(false)}
+        />
+      ) : null}
       {deleting ? (
         <ConfirmSheet
           title="Delete workout?"
@@ -248,8 +272,8 @@ export function TrainingScreen() {
 }
 
 // The redesign's 4.1 (locked by the owner, 2026-11-03; each workout's row locked 2026-11-04): the
-// plan's message in a card with its tile, as Nutrition's diet plan (3.4); Log workout the filled main
-// action; each date a raised card with a date block and its workouts as ruled rows, each its name in
+// plan's message in a card with its tile, as Nutrition's diet plan (3.4); the date a raised chip, as
+// Log meal's (D-43); Log workout the filled main action; each date a raised card with a date block and its workouts as ruled rows, each its name in
 // condensed capitals over its exercises, with a pencil and a red bin, and "Log another workout"
 // under them; older workouts, view-only, on the plain card colour with no icons; Load older outlined
 // across the screen, its message as a banner.
@@ -260,6 +284,19 @@ const useStyles = themedStyles((c) => ({
   planTile: { width: 48, height: 48, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
   planText: { flexShrink: 1, fontSize: 15, lineHeight: 22 },
   heading: { ...TYPE.label, marginTop: 12, color: c.inkMuted },
+  chip: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+  },
+  chipText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1 },
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',

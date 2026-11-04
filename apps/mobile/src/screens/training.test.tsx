@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as client from '../api/client';
+import { HeaderTitle } from '../components/AppHeader';
 import { getEntry } from '../local/store';
 import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
@@ -28,6 +29,32 @@ describe('REQ-TRN-002 the Training tab', () => {
     expect(screen.getByRole('button', { name: 'Log workout' })).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Workouts you have logged' })).toBeOnTheScreen();
     expect(screen.getByText('No workouts logged yet.')).toBeOnTheScreen();
+  });
+});
+
+describe('D-43 the date a new workout is logged to', () => {
+  it('the date chip opens "Log this workout to"; an earlier day picked there is the header’s, and Log workout logs to it', async () => {
+    const app = await renderInApp(
+      <>
+        <HeaderTitle />
+        <TrainingScreen />
+      </>,
+    );
+    const chip = await screen.findByRole('button', { name: 'Date: Wed 28 Oct' });
+    expect(screen.getByText('Today, Wed 28 Oct')).toBeOnTheScreen();
+
+    await fireEvent.press(chip);
+    expect(await screen.findByRole('header', { name: 'Log this workout to' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Monday 26 October 2026' }));
+
+    expect(screen.queryByRole('header', { name: 'Log this workout to' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Date: Mon 26 Oct' })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Selected date: Mon 26 Oct')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Log workout' }));
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\//)));
+    const id = (mockRouter.push.mock.calls[0]![0] as string).slice('/workout/'.length);
+    expect(await getEntry(app.db, 'workout', id)).toMatchObject({ day: '2026-10-26', exercises: [] });
   });
 });
 
