@@ -120,7 +120,14 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     expect(screen.queryByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Wheat flour, atta, 320 kcal per 100 g' }));
     await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '60');
-    expect(screen.getByLabelText('Adds 192 kcal and 6.3 g protein')).toBeOnTheScreen();
+    // What it adds, with all four nutrients (the owner, 2026-11-04).
+    expect(screen.getByLabelText('Adds 192 kcal')).toBeOnTheScreen();
+    expect(['Protein', 'Carbs', 'Fat', 'Fibre'].map((name) => screen.getByLabelText(new RegExp(`^${name}: `)).props.accessibilityLabel)).toEqual([
+      'Protein: 6.3 g',
+      'Carbs: 38.5 g',
+      'Fat: 0.9 g',
+      'Fibre: 6.8 g',
+    ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
@@ -486,12 +493,14 @@ describe('D-28 dishes, logged in portions', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Half a portion fewer' }));
     expect(screen.getByLabelText('Portions: 0.5')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Half a portion fewer' })).toBeDisabled();
-    expect(screen.getByLabelText('Adds 60 kcal and 1.8 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 60 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 1.8 g')).toBeOnTheScreen();
 
     for (let press = 0; press < 25; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a portion more' }));
     expect(screen.getByLabelText('Portions: 10')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Half a portion more' })).toBeDisabled();
-    expect(screen.getByLabelText('Adds 1,200 kcal and 36.0 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 1,200 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 36.0 g')).toBeOnTheScreen();
 
     for (let press = 0; press < 17; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a portion fewer' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
@@ -594,7 +603,8 @@ describe('D-36 household units', () => {
     expect(screen.queryByLabelText('Grams eaten')).toBeNull();
     expect(screen.getByLabelText('Glasses: 1')).toBeOnTheScreen();
     expect(screen.getByText('One glass (250 ml) is 258 g')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Adds 188 kcal and 8.4 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 188 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 8.4 g')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Half a glass fewer' }));
     expect(screen.getByLabelText('Glasses: 0.5')).toBeOnTheScreen();
@@ -606,7 +616,8 @@ describe('D-36 household units', () => {
     expect(screen.getByRole('button', { name: 'Half a glass more' })).toBeDisabled();
 
     for (let press = 0; press < 12; press += 1) await fireEvent.press(screen.getByRole('button', { name: 'Half a glass fewer' }));
-    expect(screen.getByLabelText('Adds 283 kcal and 12.6 g protein')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 283 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 12.6 g')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     expect(screen.getByLabelText('Milk, whole, Cow: 1.5 glasses (387 g), 283 kcal, 12.6 g protein')).toBeOnTheScreen();

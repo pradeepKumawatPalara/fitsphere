@@ -140,7 +140,8 @@ describe('D-39 Search foods with USDA foods and My foods', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Half a medium or regular slice more' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Half a medium or regular slice more' }));
     expect(screen.getByLabelText('Medium or regular slice: 2')).toBeOnTheScreen();
-    expect(screen.getByText(/= 56 g · 150 kcal · 5.3 g protein/)).toBeOnTheScreen();
+    expect(screen.getByText(/= 56 g · 150 kcal/)).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 5.3 g')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     expect(screen.getByLabelText('Bread, white: 2 × medium or regular slice (56 g), 150 kcal, 5.3 g protein')).toBeOnTheScreen();

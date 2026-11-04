@@ -23,6 +23,7 @@ import { formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, OWN_UNIT_NAMES
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { NutrientRow } from './EatenSummary';
 import { GramsBox } from './GramsBox';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { PortionStepper } from './PortionStepper';
@@ -231,10 +232,14 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         </>
       )}
       {preview ? (
-        <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`} style={styles.preview}>
-          = {preview.amount.unit === 'measure' || preview.amount.unit === 'serving' ? `${formatUnitGrams(preview.amount.grams)} · ` : ''}
-          {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
-        </Text>
+        // What the amount adds: its energy, then all four nutrients (the owner, 2026-11-04).
+        <View>
+          <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)}`} style={styles.preview}>
+            = {preview.amount.unit === 'measure' || preview.amount.unit === 'serving' ? `${formatUnitGrams(preview.amount.grams)} · ` : ''}
+            {formatKcal(preview.kcal)}
+          </Text>
+          <NutrientRow values={preview} />
+        </View>
       ) : (
         <Problem text={chosen.kind === 'mine' ? ownQuantityRule(chosen.food.unit) : GRAMS_RULE} />
       )}
@@ -365,7 +370,8 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
 // search fills the screen under a header with the back arrow, its title and the i; the search in a
 // sunken box with its icon; the results ruled on a raised card down to the keyboard, each opening
 // with a chevron; the food sources in a sheet; grams large in a box with their unit, red with the
-// rule under them when they can't be added; what an addition comes to in condensed figures. A food with household units (D-36) offers Grams and its units as choice blocks, as the
+// rule under them when they can't be added; what an addition comes to in condensed figures, then its
+// protein, carbs, fat and fibre in the Eaten card's row (locked 2026-11-04). A food with household units (D-36) offers Grams and its units as choice blocks, as the
 // meal choice's, which wrap at their own widths; a unit is counted with the portions' − and +.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1, backgroundColor: c.bg },

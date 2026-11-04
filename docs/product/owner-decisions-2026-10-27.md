@@ -1233,6 +1233,17 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: `food-list-sources.md`; the Legal brief (L-09); `constraints-and-assumptions.md`;
   the redesign plan's 3.6; the canvas boards 3.6.
 
+## D-45 A food's amount shows all four nutrients
+- Status: **Accepted** (owner, in chat, 2026-11-04: "on selection all the macronutritients
+  breakdown should be visible"; the redesign's 3.6 changed and locked, "I approved the design for
+  3.6").
+- Problem: choosing a food in Search foods showed what the amount adds as energy and protein only.
+- Answer: under the amount, "= 412 kcal" (with the grams first for a unit or a serving), then
+  protein, carbs, fat and fibre for that amount, side by side with their colours, as Nutrition's
+  Eaten card shows them. A My food with no fibre shows a dash. Every food, dish and My food already
+  holds the four values, so no data changes.
+- Doc changes: REQ-LOG-007; the redesign plan's 3.6; the canvas boards 3.6.
+
 ---
 
 ## Proposed replacement wording for the two invariants
