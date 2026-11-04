@@ -1,6 +1,7 @@
 # More foods plan
 
-- Status: **Draft**, waiting for the owner's approval
+- Status: **Accepted** (the owner, in chat, 2026-11-04: "go ahead", with USDA's portion weights as
+  published, and adding a unit and quantity for each food the user enters)
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-04
 - Builds on: ADR-0006 rule 1 (values only from a source whose licence allows it, "IFCT if
@@ -49,28 +50,58 @@ with Indian dishes (cost and privacy need the owner).
 - **The peanut butter bread example:** "Bread, white" × 2 slices plus "Peanut butter" × 1
   tablespoon. Step 1 checks whether FNDDS also has a ready "peanut butter sandwich".
 
-## Part 2: My foods (proposed REQ-LOG-011)
-- **Saving one:** "Enter your own food" gets "Save to My foods". A saved food keeps its name, its
-  values per 100 g as today, and optionally one serving with its grams, for example "slice = 40 g".
-- **Using one:** My foods show first in Search foods, marked "My food". One is logged in grams, or
-  in its serving (0.5 to 10 in halves).
+## Part 2: your own food in any unit, and My foods (proposed REQ-LOG-011)
+- **Unit and quantity (the owner's addition, 2026-11-04):** "Enter your own food" asks for each
+  food's unit and quantity:
+  - **Units:** grams (g), millilitres (ml), piece, slice, cup, katori, bowl, glass, tablespoon,
+    teaspoon or serving. The list is fixed (MVP default).
+  - **Values:** for grams or millilitres, per 100 g or 100 ml, as a label prints them, with the
+    quantity eaten in g or ml (1 to 2,000). For any other unit, per one of that unit, for example
+    "1 slice: 180 kcal, 6 g protein…".
+  - **Quantity:** 0.1 to 100, with at most one decimal (MVP default). The grams of a slice need not
+    be known.
+- **Saving one:** "Save to My foods" keeps the food's name, unit and values.
+- **Using one:** My foods show first in Search foods, marked "My food". Picking one asks only the
+  quantity, in its unit.
 - **Changing and deleting:** a My food can be edited or deleted from its sheet. Meals already
   logged keep their values (snapshot, as today).
 - **Sync:** synced like saved meals, with `myFood.set` and `myFood.delete`, so it works offline
   and on another phone. It is the user's own and private (D-20), never logged (invariant 7), and
   deleted with the account.
 
+## Step 1 results (2026-11-04)
+Read from `FoodData_Central_survey_food_json_2024-10-31.zip`: 3,835,292 bytes, SHA-256
+`dfb06ae7ddc397ccd570b91c14b75438ab2ba39f64f22d321f61d4a52a77f3eb`, kept in
+`D:\fitsphere-data\usda-fndds-2024-10-31\`, outside the repository.
+- **Foods:** 5,432, in 172 categories. All but one have kcal, protein, fat, carbohydrate and fibre
+  per 100 g; the one without values is left out.
+- **Servings:** 3.1 per food on average, at most 15, besides "Quantity not specified". 675 foods
+  have a slice, for example "Bread, white": "1 medium or regular slice" 28 g, "1 small or
+  thin/very thin slice" 24 g, "1 large or thick slice" 43 g. Peanut butter has "1 tablespoon" 16 g.
+- **Coverage:** 125 breads; 39 peanut-butter foods, including "Peanut butter sandwich, with regular
+  peanut butter, on white bread" (382 kcal per 100 g; "1 sandwich" 92 g). About 25 Indian-named
+  foods: dal, chicken curry, biryani, paneer and others. These are US recipes, for example USDA's
+  paneer has 22.5 g carbohydrate per 100 g; IFCT and the owner's dishes stay first.
+- **Size:** the trimmed CSV is about 1 MB, not the 10 MB estimated, so the list adds about 1 MB on
+  the server and on the phone.
+- **MVP defaults:**
+  - left out: servings in ounces ("1 oz", "1 fl oz"), since India uses metric, and "Quantity not
+    specified";
+  - kept: "Guideline amount per …" servings, as USDA gives them.
+
 ## Data and API
 - **Migration 0011:**
   - `app.foods.source` adds `usda_fndds`;
   - `app.food_portions` (source, code, label, grams);
-  - `app.my_foods` (user ID, ID, name, values per 100 g, serving label and grams, saved and deleted
-    times, change number), with row level security on and deleted with the user.
+  - `app.my_foods` (user ID, ID, name, unit, its values per 100 g, 100 ml or one unit, saved and
+    deleted times, change number), with row level security on and deleted with the user.
 - **Meal items:**
   - a new source `usda_fndds`;
-  - a new amount `{ unit: 'serving', label, value, grams }`, for a USDA portion or a My food's
-    serving. The server checks that a USDA portion is on the list with those grams.
-  - A My food item stays source `own`, with its ID as `ref`.
+  - a new amount `{ unit: 'serving', label, value, grams }` for a USDA portion; the server checks
+    that the portion is on the list with those grams;
+  - for the user's own food, an amount in any of Part 2's units, `{ unit: 'own', name, value }`:
+    the quantity eaten in that unit, with the item's values for that quantity, as today;
+  - a My food item stays source `own`, with its ID as `ref`.
 - **`GET /v1/foods`** adds each food's portions. **The sync pull** adds `myFoods`.
 - **Phone:** schema version 10, adding the foods' portions and `my_foods`.
 
@@ -79,12 +110,13 @@ The redesign's rule applies: each new screen part is designed on the canvas and 
 owner before it is built:
 - Search foods with USDA foods and My foods (3.6);
 - the serving choice for a USDA food;
-- "Save to My foods" and the serving in Enter your own food (3.8);
+- the unit, quantity and "Save to My foods" in Enter your own food (3.8);
 - editing or deleting a My food.
 
 ## Steps
 1. **Data check, no app change:** download FNDDS, count the foods and portions, check bread,
-   peanut butter and Indian foods, measure the sizes. Report to the owner.
+   peanut butter and Indian foods, measure the sizes. Report to the owner. *Done 2026-11-04 (see
+   "Step 1 results").*
 2. **Design** on the canvas; the owner locks it.
 3. **Server:** migration 0011, the import, the contract, `myFood.set` and `myFood.delete`, tests.
 4. **Phone:** schema version 10, search, servings, My foods, tests.
@@ -105,11 +137,13 @@ owner before it is built:
 - **Phone:**
   - the search order;
   - a USDA food in slices with the right values;
+  - your own food in each unit, with values per 100 g or ml or per one unit, and the quantity's
+    limits;
   - saving, logging, editing and deleting a My food, offline too;
   - the version 10 upgrade.
 
 ## Owner's steps
-- Approve this plan, including USDA's portion weights as published.
+- ~~Approve this plan, including USDA's portion weights as published~~ (done, 2026-11-04).
 - Lock the designs (step 2).
 - On `fitsphere-dev`, when the owner says so: migration 0011, then `foods:import`.
 
