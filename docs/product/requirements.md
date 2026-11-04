@@ -325,7 +325,7 @@ B-22).
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
 - Each day up to today can be tapped (D-34): a day with one workout opens it; a day with more shows how many on its dot and asks which to open; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
 - The tracker shows the Mon–Sun week of the date picked on Home (Q-026) and names it (D-34): "Workouts this week" for the current week, "Workouts that week" for an earlier one, with the week's dates under the title (e.g. "Mon 19 Oct – Sun 25 Oct"). A workout can be started on any day up to today of the week shown.
-- MVP default (D-18): an empty workout counts toward the weekly target (Q-025). The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
+- D-41 (replacing Q-025's MVP default): only a workout with at least one exercise counts toward the weekly target; the card reads "N of T · K left", and once the target is met "N workouts · target achieved", with each day's count as a number. The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
 - MVP default (D-29): every workout on the phone in the Mon–Sun week of the selected date counts, including those waiting to sync; a day may hold several workouts, each counted, and the day's dot shows once it has any.
 
@@ -555,7 +555,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-TRN-003 — Empty workout
 - Requirement: "Log workout" lets the user log a self-directed session. The BRD calls it "Start an empty workout"; the owner renamed the button (D-37).
-- MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout counts toward the weekly target (Q-025).
+- MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout is saved but counts toward the weekly target only once it has an exercise (D-41).
 - MVP defaults (D-29): "Log workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
 
 ### REQ-TRN-004 — Workout history

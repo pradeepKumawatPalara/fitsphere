@@ -21,8 +21,8 @@ type Sheet = { index: number | null };
 
 // One workout (REQ-TRN-003): its exercises as sets × reps × weight with an optional note (Q-042).
 // Every change is saved on the phone at once and synced (ADR-0007); there is no draft and no
-// "Finish" step (MVP default, D-29). The workout counts toward the week from the moment it is
-// started, even with no exercises (Q-025).
+// "Finish" step (MVP default, D-29). The workout counts toward the week once it has an exercise
+// (D-41).
 export function WorkoutScreen() {
   const styles = useStyles();
   const { colors } = useTheme();

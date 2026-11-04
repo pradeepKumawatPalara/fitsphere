@@ -15,8 +15,8 @@ import { HomeScreen } from './HomeScreen';
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
-// The Home workout tracker with real workouts (REQ-HOME-007; Q-025; MVP default, D-29). The
-// tracker's texts are tested on their own in targets.test.tsx.
+// The Home workout tracker with real workouts (REQ-HOME-007; MVP default, D-29; D-41: only a workout
+// with an exercise counts). The tracker's texts are tested on their own in targets.test.tsx.
 
 // Wednesday 28 October 2026, 09:00 IST. The week shown is Mon 26 Oct – Sun 1 Nov.
 const NOW = new Date('2026-10-28T03:30:00Z');
@@ -34,13 +34,17 @@ beforeEach(() => {
   mockRouter.push.mockClear();
 });
 
-/** Home, with workouts and a weekly target of 5 already on the server, so the first sync brings them. */
-async function renderHome(workoutDays: string[], extra?: ReactNode) {
+/**
+ * Home, with workouts (each with a squat) and a weekly target of 5 already on the server, so the
+ * first sync brings them; `emptyDays` adds workouts with no exercise.
+ */
+async function renderHome(workoutDays: string[], extra?: ReactNode, emptyDays: string[] = []) {
   const db = memoryDb();
   await migrateLocal(db);
   const server = fakeServer(NOW);
   server.storeTargetFromElsewhere('weekly_workouts', 5);
-  workoutDays.forEach((day, index) => server.storeWorkoutFromElsewhere(newId(), day, index % 2 === 0 ? [] : [SQUAT]));
+  workoutDays.forEach((day) => server.storeWorkoutFromElsewhere(newId(), day, [SQUAT]));
+  emptyDays.forEach((day) => server.storeWorkoutFromElsewhere(newId(), day, []));
   const client = fakeAuthClient(fakeSession({ age_confirmed: true, age_confirmation_text_version: '2026-10-27' }));
   await render(
     <AuthProvider deps={deps(client, server.fetchImpl)}>
@@ -64,14 +68,23 @@ function PickDay({ day }: { day: string }) {
 
 function StartWorkout() {
   const sync = useSync();
-  return <Button title="Start a test workout" onPress={() => void sync.startWorkout('2026-10-28')} />;
+  return (
+    <>
+      <Button title="Start a test workout" onPress={() => void sync.startWorkout('2026-10-28')} />
+      <Button
+        title="Save a test workout with a squat"
+        onPress={() => void sync.save('workout', { id: newId(), day: '2026-10-28', exercises: [SQUAT], recordedAt: NOW.toISOString() })}
+      />
+    </>
+  );
 }
 
 describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
-  it('Q-025 one workout with no exercises counts: "1 of 5 · 4 left" and its dot', async () => {
-    await renderHome(['2026-10-26']);
+  it('D-41 a workout with an exercise counts, "1 of 5 · 4 left" with 1 on its day; an empty one does not', async () => {
+    await renderHome(['2026-10-26'], undefined, ['2026-10-27']);
 
     expect(await screen.findByText('1 of 5 · 4 left')).toBeOnTheScreen();
+    expect(within(screen.getByRole('button', { name: 'Monday 26 Oct: 1 workout' })).getByText('1')).toBeOnTheScreen();
     // This week, named with its dates (D-34).
     expect(screen.getByText('Workouts this week')).toBeOnTheScreen();
     expect(screen.getByText('Mon 26 Oct – Sun 1 Nov')).toBeOnTheScreen();
@@ -87,10 +100,11 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     expect(screen.getByLabelText('Sunday 1 Nov: future')).toBeOnTheScreen();
   });
 
-  it('D-23 "target reached" once the week has as many workouts as the target', async () => {
-    await renderHome(['2026-10-26', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-28']);
+  it('D-41 "target achieved" once the week has as many workouts as the target, or more', async () => {
+    await renderHome(['2026-10-26', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-28', '2026-10-28', '2026-10-28']);
 
-    expect(await screen.findByText('5 of 5 · target reached')).toBeOnTheScreen();
+    expect(await screen.findByText('7 workouts · target achieved')).toBeOnTheScreen();
+    expect(within(screen.getByRole('button', { name: 'Wednesday 28 Oct: 4 workouts' })).getByText('4')).toBeOnTheScreen();
   });
 
   it('Q-026 the count follows the week of the selected date', async () => {
@@ -109,12 +123,16 @@ describe('REQ-HOME-007 the workout tracker counts real workouts', () => {
     expect(screen.queryByText('Workouts this week')).toBeNull();
   });
 
-  it('REQ-HOME-007 a workout started on the phone counts at once, before it syncs', async () => {
+  it('D-41 a workout started on the phone counts once it has an exercise, before it syncs', async () => {
     const { server } = await renderHome([], <StartWorkout />);
     await screen.findByText('0 of 5 · 5 left');
     server.state.offline = true;
 
     await fireEvent.press(screen.getByRole('button', { name: 'Start a test workout' }));
+    await waitFor(() => expect(screen.getByText('0 of 5 · 5 left')).toBeOnTheScreen());
+    expect(screen.getByLabelText('Wednesday 28 Oct: no workout')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save a test workout with a squat' }));
 
     expect(await screen.findByText('1 of 5 · 4 left')).toBeOnTheScreen();
     expect(screen.getByLabelText('Wednesday 28 Oct: 1 workout')).toBeOnTheScreen();
@@ -130,16 +148,17 @@ describe('D-34 each day of the tracker can be tapped', () => {
     expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\/00000000-0000-4000-a000-\d{12}$/));
   });
 
-  it('a day with two shows 2 on its dot, and asks which to open', async () => {
-    await renderHome(['2026-10-27', '2026-10-27']);
+  it('a day with two shows 2 on its square, and asks which to open, listing an empty one too (D-41)', async () => {
+    await renderHome(['2026-10-27', '2026-10-27'], undefined, ['2026-10-27']);
 
     const day = await screen.findByRole('button', { name: 'Tuesday 27 Oct: 2 workouts' });
     expect(within(day).getByText('2')).toBeOnTheScreen();
     await fireEvent.press(day);
 
     expect(screen.getByRole('header', { name: 'Workouts on Tue 27 Oct' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: /^Workout [12] · No exercises$/ })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: /^Workout [12] · 1 exercise · Squat$/ }));
+    expect(screen.getByRole('button', { name: /^Workout [123] · No exercises$/ })).toBeOnTheScreen();
+    expect(screen.getAllByRole('button', { name: /^Workout [123] · 1 exercise · Squat$/ })).toHaveLength(2);
+    await fireEvent.press(screen.getAllByRole('button', { name: /^Workout [123] · 1 exercise · Squat$/ })[0]!);
     expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\//));
   });
 

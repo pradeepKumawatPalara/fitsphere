@@ -1,8 +1,7 @@
 import { addDays, istWeekDays, istWeekStart, type IstDay } from '@fitsphere/shared';
-import { Check } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { dayParts, formatDay } from '../format';
-import { themedStyles, useTheme } from '../theme';
+import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
 import { Text, TextButton } from './ui';
 
@@ -10,9 +9,9 @@ type Props = {
   /** Any day of the Mon–Sun week shown: the selected date's week. */
   day: IstDay;
   today: IstDay;
-  /** Workouts on each day of that week. */
+  /** Workouts with at least one exercise on each day of that week (D-41). */
   dayCounts: Readonly<Record<IstDay, number>>;
-  /** Workouts completed that week; an empty workout counts (Q-025). */
+  /** Workouts with at least one exercise that week; an empty one does not count (D-41). */
   count: number;
   /** The user's weekly workout target, or null (REQ-ROLE-007). */
   target: number | null;
@@ -21,15 +20,15 @@ type Props = {
   onDay(day: IstDay): void;
 };
 
-// The workout tracker (REQ-HOME-007): "1 of 5 · 4 left", with Mon–Sun dots marking workout days, a
-// day with more than one showing how many. Each day up to today can be tapped (D-34); later days
-// are greyed. Workouts are logged on the Training tab (D-29). It shows the week of the date picked
-// on Home (Q-026), so it names that week's dates: "Workouts this week" for this week, "Workouts that
-// week" for an earlier one (D-34). The redesign's 2.3 (locked by the owner, 2026-11-03): a square per
-// day, caramel with a tick (or the count) on a workout day, dashed when there was none, dimmed ahead.
+// The workout tracker (REQ-HOME-007): "1 of 5 · 4 left", and once the target is met "7 workouts ·
+// target achieved" (D-41), with a square per day, Mon–Sun, holding that day's workouts as a number
+// (D-41). Only a workout with at least one exercise counts (D-41). Each day up to today can be tapped
+// (D-34); later days are greyed. Workouts are logged on the Training tab (D-29). It shows the week of
+// the date picked on Home (Q-026), so it names that week's dates: "Workouts this week" for this week,
+// "Workouts that week" for an earlier one (D-34). The redesign's 2.3 (locked by the owner,
+// 2026-11-03): caramel on a workout day, dashed when there was none, dimmed ahead.
 export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarget, onDay }: Props) {
   const styles = useStyles();
-  const { colors } = useTheme();
   const monday = istWeekStart(day);
   const thisWeek = monday === istWeekStart(today);
   const which = thisWeek ? 'this week' : 'that week';
@@ -37,7 +36,7 @@ export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarg
     target === null
       ? `${count} ${count === 1 ? 'workout' : 'workouts'} ${which}`
       : count >= target
-        ? `${count} of ${target} · target reached`
+        ? `${count} ${count === 1 ? 'workout' : 'workouts'} · target achieved`
         : `${count} of ${target} · ${target - count} left`;
   return (
     <View style={styles.card}>
@@ -65,8 +64,7 @@ export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarg
               style={({ pressed }) => [styles.day, future && styles.later, pressed && styles.pressed]}
             >
               <View style={[styles.slot, workouts > 0 ? styles.done : future ? styles.ahead : styles.open]}>
-                {workouts === 1 ? <Check size={18} strokeWidth={3} color={colors.onPrimary} /> : null}
-                {workouts > 1 ? <Text style={styles.slotCount}>{workouts}</Text> : null}
+                {workouts > 0 ? <Text style={styles.slotCount}>{workouts}</Text> : null}
               </View>
               <Text style={[styles.slotLabel, weekDay === today && styles.todayText]}>{parts.weekday.charAt(0)}</Text>
             </Pressable>

@@ -1151,6 +1151,23 @@ checksum), and the configuration template was left as it is.*
 - Unchanged: the BRD (`docs/product/source/business-requirements.txt`, input, not edited).
 - Doc changes: REQ-LOG-003; backlog B-28; the redesign plan's 3.5; the canvas board 3.5.
 
+
+## D-41 The weekly workouts card: clearer words, a number on each day, and only real workouts count
+- Status: **Accepted** (owner, in chat, 2026-11-04, after the phone test).
+- Question: Home's "Workouts this week" read "7 of 5 · target reached", with a tick on one day and
+  "3" on two others; it made no sense to the owner. Each "Log workout" counted, even with no exercise
+  (Q-025's MVP default).
+- Answers:
+  1. **Words:** once the target is met or passed, "7 workouts · target achieved"; below it, as
+     before, "2 of 5 · 3 left".
+  2. **A number on every workout day:** 1, 2, 3…, never a tick.
+  3. **Empty workouts don't count** (replacing Q-025's MVP default): only a workout with at least one
+     exercise counts toward the week and shows on its day. An empty workout is still saved, listed
+     on Training and in its day's sheet, and counts once an exercise is added.
+- Unchanged: how a workout is started and saved (D-29, D-37); the target itself (REQ-ROLE-007).
+- Doc changes: REQ-HOME-007 and REQ-TRN-003; `mvp-scope.md`; `constraints-and-assumptions.md`
+  (Q-025 and the Training defaults); the data model's `workouts`; the redesign plan's 2.3.
+
 ---
 
 ## Proposed replacement wording for the two invariants
