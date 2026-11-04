@@ -32,7 +32,7 @@ export function ProgressScreen() {
   const { accountStart } = data;
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <WeightCard weighIns={data.weighIns} unit={unit} />
         <WeightTrend
           weighIns={data.weighIns}

@@ -60,7 +60,7 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
   const router = useRouter();
   const theme = THEMES.find((option) => option.value === settings.theme) ?? THEMES[0]!;
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <ProfileCard email={email} onEdit={() => router.push('/profile')} />
 
       <Section title="Appearance">

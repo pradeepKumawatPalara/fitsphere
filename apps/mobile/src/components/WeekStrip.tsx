@@ -111,6 +111,7 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
           <View style={styles.week}>{days(start)}</View>
         ) : (
           <ScrollView
+            keyboardShouldPersistTaps="handled"
             testID="week-scroll"
             ref={pager}
             horizontal

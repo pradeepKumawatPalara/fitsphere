@@ -77,7 +77,7 @@ export function WorkoutScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.titleGroup}>
           <Text accessibilityRole="header" style={styles.title}>
             Workout · <Text style={styles.titleDay}>{formatDay(workout.day)}</Text>

@@ -132,6 +132,7 @@ export function TrainingScreen() {
   return (
     <>
       <FlatList
+        keyboardShouldPersistTaps="handled"
         data={days}
         keyExtractor={(group) => group.day}
         contentContainerStyle={styles.content}
