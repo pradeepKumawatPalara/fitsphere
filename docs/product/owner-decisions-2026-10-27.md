@@ -1195,6 +1195,21 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-007, REQ-TRN-003 and REQ-TRN-004; `constraints-and-assumptions.md`; the
   redesign plan's 2.6, 4.1 and 4.2; the canvas boards 2.6, 4.1 and 4.2.
 
+## D-43 The date of a new workout on Training
+- Status: **Accepted** (owner, in chat, 2026-11-04, after the phone test: "When I log a Meal, I have
+  calendar option on top for date selection. I need the similar on Training tab when adding a
+  workout"; the redesign's 4.1 changed and locked, "good to go").
+- Problem: "Log workout" logs to the app's selected date (D-29), but that date is changed only from
+  the header's calendar icon, which the owner had not found, so a past day's workout seemed
+  impossible to log.
+- Answer: Training has a date chip above "Log workout", as Log meal's ("Today, Wed 4 Nov" with a
+  calendar icon). It opens the calendar titled **"Log this workout to"**, with the same days as the
+  header's (today back through the phone's 90 days; no future day). The day picked becomes the app's
+  selected date, so the header shows it too, and "Log workout" logs to it. Workouts already logged,
+  and editing them, are unchanged; a started workout's date stays fixed (backlog E-15).
+- Doc changes: REQ-TRN-003; `constraints-and-assumptions.md`; the redesign plan's 4.1; the canvas
+  boards 4.1 and 2.2.
+
 ---
 
 ## Proposed replacement wording for the two invariants

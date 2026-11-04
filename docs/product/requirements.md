@@ -558,6 +558,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Requirement: "Log workout" lets the user log a self-directed session. The BRD calls it "Start an empty workout"; the owner renamed the button (D-37).
 - MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout is saved but counts toward the weekly target only once it has an exercise (D-41).
 - MVP defaults (D-29): "Log workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
+- D-43: a date chip above "Log workout", as Log meal's, opens the calendar "Log this workout to"; the day picked becomes the app's selected date, which "Log workout" logs to.
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
