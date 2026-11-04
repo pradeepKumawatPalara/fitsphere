@@ -107,12 +107,13 @@ describe('D-39 the amounts', () => {
 });
 
 describe('D-39 Search foods with USDA foods and My foods', () => {
-  it('lists the Indian foods first, then USDA’s marked "USDA", and credits USDA under IFCT', async () => {
+  it('lists the Indian foods first, then USDA’s marked "USDA", and credits USDA with IFCT behind the i', async () => {
     await render();
     await search('dal');
 
     const rows = await screen.findAllByRole('button', { name: /per 100 g/ });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual(['Red gram, dal, 335 kcal per 100 g', 'Dal, USDA, 145 kcal per 100 g']);
+    await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     expect(screen.getByText(`Foods marked USDA: ${USDA_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
   });
 

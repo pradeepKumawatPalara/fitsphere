@@ -669,7 +669,8 @@
   3. **The owner accepts the risk** as R-007 in `constraints-and-assumptions.md`. The NIN licence
      is not a release blocker.
   4. **The app shows the IFCT acknowledgement text** given in `food-list-sources.md` wherever
-     IFCT values are shown.
+     IFCT values are shown. *Changed by D-44 (2026-11-04): on the search screen it is behind an i,
+     one tap away.*
 - Unchanged: the invariants, the other D- decisions, privacy rules and the accepted ADRs.
   ADR-0006's decision stands; it now notes that its licence question was decided here.
 - Doc changes: `docs/data/food-list-sources.md`; `constraints-and-assumptions.md` (R-007, Q-039);
@@ -1209,6 +1210,28 @@ checksum), and the configuration template was left as it is.*
   and editing them, are unchanged; a started workout's date stays fixed (backlog E-15).
 - Doc changes: REQ-TRN-003; `constraints-and-assumptions.md`; the redesign plan's 4.1; the canvas
   boards 4.1 and 2.2.
+
+## D-44 Search foods fills the screen; the food sources behind an i
+- Status: **Accepted** (owner, in chat, 2026-11-04, after the phone test: "I need this search food in
+  the full screen mode, and the instructions written below should go in a "i" icon and only be
+  visible once clicked. The goal is to make the searched food list visible to the max items without
+  scrolling"; the redesign's 3.6 changed and locked, "good to go", after being told this changes
+  D-25 answer 4).
+- Problem: Search foods was a sheet. With the keyboard up, its title, its Close button and the two
+  food-source credits under the results left room for about three results.
+- Answer:
+  - Search foods fills the screen: a header with a back arrow ("Close search"), the title and an
+    **i** ("Food sources"); the search box; then the results, down to the keyboard. There is no
+    Close at the foot.
+  - The credits, IFCT's ("Food values: …") and USDA's ("Foods marked USDA: …"), move into a "Food
+    sources" sheet that the i opens. They are no longer on screen until it is tapped.
+  - A food's amount still opens as a sheet, now over the results; "Back to search" returns to them.
+- Changes: **D-25 answer 4** ("the app shows the IFCT acknowledgement text wherever IFCT values are
+  shown"): the acknowledgement is now one tap away on the search screen, behind the i. The owner
+  chose this knowing it is part of how the use of IFCT without NIN's permission is handled
+  (R-007); Legal is asked about it (Q-049, L-09).
+- Doc changes: `food-list-sources.md`; the Legal brief (L-09); `constraints-and-assumptions.md`;
+  the redesign plan's 3.6; the canvas boards 3.6.
 
 ---
 

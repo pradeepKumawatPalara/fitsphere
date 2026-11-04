@@ -137,7 +137,9 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   - The values are kept in a CSV file in FitSphere's private GitHub repository. They are loaded
     into the database and sent to each user's phone, which keeps a copy for offline search.
   - Each meal keeps the values for the amount eaten.
-  - The app shows the book's own citation wherever IFCT values are shown (D-25).
+  - The app shows the book's own citation wherever IFCT values are shown (D-25). Since D-44
+    (2026-11-04) it is one tap away: Search foods has an i ("Food sources") that opens it, with
+    USDA's credit; it is not on screen until tapped.
   - The book's copyright page says:
     > The use and dissemination of the data in this book is encouraged. This publication can be
     > reproduced for personal use with full acknowledgment of the source. However, no part of this
@@ -146,7 +148,8 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
 - FitSphere's current approach: the owner decided to use the list without asking NIN for
   permission, and accepted the risk as R-007, "not a release blocker" (D-25).
 - Question: what is FitSphere's exposure under these terms, and what would reduce it (for example
-  asking NIN for permission, changing the attribution, or removing the data)? The owner's decision
+  asking NIN for permission, changing the attribution, or removing the data)? Is a citation one tap
+  away, behind an i, "full acknowledgment of the source", or must it stay on screen (D-44)? The owner's decision
   stands unless the owner changes it; Legal's view informs that choice.
 
 **L-10 Where the values were copied from (MVP).**
