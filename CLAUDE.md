@@ -12,6 +12,14 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**More foods — built on branch `feat/more-foods` (D-39, 2026-11-04).** Plan: `docs/plans/more-foods.md`
+(Accepted), REQ-LOG-011. USDA FoodData Central's FNDDS foods (CC0, 5,431, with their servings as USDA
+weighs them) join IFCT's in the food list, after the Indian foods; your own food takes a unit and
+quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync changes `myFood.set` and
+`myFood.delete`, phone schema version 10. `npm run usda:convert` makes `data/foods/usda-fndds-*.csv`
+from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
+updated API, then `foods:import`; only when the owner says so.**
+
 **Profile — merged (pull request #51); migration 0010 applied on `fitsphere-dev` by the owner
 (D-38, 2026-11-03 to 2026-11-04).** Plan: `docs/plans/user-profile.md` (Accepted), REQ-ACC-011. Settings
 opens with a Profile card; the Profile screen keeps the user's photo, name, date of birth (18 or

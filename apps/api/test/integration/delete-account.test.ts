@@ -115,6 +115,7 @@ async function userWithData(server = api) {
     meal(livePhoto),
     change('savedMeal.set', { id: randomUUID(), name: 'Synthetic lunch', mealType: 'lunch', tags: [], items: [ITEM], savedAt: AT }),
     change('setting.set', { name: 'body_weight_unit', value: 'lb', setAt: AT }),
+    change('myFood.set', { id: randomUUID(), name: 'Synthetic snack', unit: 'piece', kcal: 90, proteinG: 2, carbsG: 12, fatG: 4, fibreG: null, savedAt: AT }),
     change('profile.set', {
       name: 'Synthetic Person',
       dateOfBirth: '1994-06-14',
@@ -171,6 +172,7 @@ const EVERY_TABLE = [
   'meals',
   'measurements',
   'media',
+  'my_foods',
   'profiles',
   'saved_meals',
   'settings',

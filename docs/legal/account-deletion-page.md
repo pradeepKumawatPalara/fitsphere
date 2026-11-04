@@ -48,7 +48,7 @@ is yours before we delete anything, and we tell you when it is done. [We handle 
 ## What is deleted
 - Your sign-in account: your email address and password.
 - Everything you logged in FitSphere: weights, steps, sleep, body measurements, meals and their
-  photos, saved meals, workouts and targets.
+  photos, saved meals, My foods, workouts and targets.
 - Your profile and its photo: your name, date of birth, sex, height, phone number and address.
 - Your settings, and every record of your choices about AI meal reading.
 

@@ -491,7 +491,27 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - The same food added again (D-34): while a meal is built or edited, adding a listed food it already has (the same food-list item, dish or barcode) asks "Already in this meal": "Add to existing" puts the amounts together in one item; "Keep separate" adds it as its own item. A food in a household unit joins only the same food in the same unit. When together they would pass 2,000 g, 10 portions or the most units of that food, only "Keep separate" is offered. A food the user entered is never merged. Separately logged meals are not merged.
 - Acceptance criteria:
   - Given AI consent is off, when a scanned barcode is not found, then the user can type the label values and save the meal.
-- Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039).
+- Food data sources: FitSphere's own food list and Open Food Facts (ADR-0006, answers Q-039). The
+  food list holds IFCT 2017's Indian foods and, since D-39, USDA FoodData Central's FNDDS foods,
+  each marked by its source; a USDA food can also be added in its servings, as USDA weighs them,
+  counted in halves. Your own food can be in any of several units and saved to My foods
+  (REQ-LOG-011).
+
+### REQ-LOG-011 — My foods
+- Type: Functional
+- Requirement: A food the user enters can be saved to "My foods" and logged again from Search foods,
+  in its own unit. *(Not in the BRD; the owner's request, D-39.)*
+- Acceptance criteria:
+  - "Enter your own food" asks for the food's unit (grams, ml, piece, slice, cup, katori, bowl,
+    glass, tablespoon, teaspoon or serving), its values per 100 g or ml or per one unit, and the
+    quantity eaten. kcal, protein, carbs and fat are required, fibre optional.
+  - "Save to My foods" is ticked at first; a saved food shows in Search foods, marked "My food",
+    after the Indian foods and before USDA's.
+  - Picking a My food asks only its quantity; editing it or deleting it (after a confirmation) never
+    changes a meal already logged.
+  - My foods work offline and sync; only the user sees them (REQ-NFR-001, D-20); they are deleted
+    with the account (REQ-ACC-009).
+- Status: built (D-39).
 
 ### REQ-LOG-008 — Guidance
 - Requirement: Best-practice tips (amounts in grams; raw vs cooked; name each food separately).

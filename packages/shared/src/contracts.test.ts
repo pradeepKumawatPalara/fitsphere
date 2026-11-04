@@ -7,6 +7,8 @@ import {
   errorBodySchema,
   foodsResponseSchema,
   isAcceptedDateOfBirth,
+  isOwnQuantity,
+  myFoodSetDataSchema,
   isPublicLink,
   mealItemSchema,
   mealPhotoSchema,
@@ -300,6 +302,69 @@ describe('REQ-ACC-004 AI consent request', () => {
   });
 });
 
+describe('more foods: USDA servings, your own units and My foods', () => {
+  const USDA_BREAD = {
+    source: 'usda_fndds',
+    ref: '51101000',
+    name: 'Bread, white',
+    amount: { unit: 'serving', label: 'Medium or regular slice', value: 2, grams: 56 },
+    kcal: 149.5,
+    proteinG: 5.28,
+    carbsG: 27.55,
+    fatG: 2.01,
+    fibreG: 1.29,
+    estimated: false,
+  };
+  const OWN_BREAD = {
+    source: 'own',
+    ref: CHANGE_ID,
+    name: 'Peanut butter bread',
+    amount: { unit: 'own', name: 'slice', value: 2 },
+    kcal: 360,
+    proteinG: 12,
+    carbsG: 40,
+    fatG: 18,
+    fibreG: 3,
+    estimated: false,
+  };
+
+  it('a USDA food in grams or its servings (halves to 10), and in nothing else', () => {
+    expect(mealItemSchema.safeParse(USDA_BREAD).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { unit: 'g', value: 56 } }).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value: 1.25 } }).success).toBe(false);
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value: 10.5 } }).success).toBe(false);
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { unit: 'measure', measure: 'glass', value: 1, grams: 250 } }).success).toBe(false);
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, source: 'ifct2017' }).success).toBe(false);
+  });
+
+  it('your own food in grams, millilitres (1 to 2,000) or another unit (0.1 to 100, one decimal)', () => {
+    expect(mealItemSchema.safeParse(OWN_BREAD).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...OWN_BREAD, ref: null, amount: { unit: 'own', name: 'ml', value: 250 } }).success).toBe(true);
+    for (const value of [0.1, 1.5, 100]) {
+      expect(mealItemSchema.safeParse({ ...OWN_BREAD, amount: { unit: 'own', name: 'slice', value } }).success).toBe(true);
+    }
+    for (const value of [0, 0.05, 1.25, 100.5]) {
+      expect(mealItemSchema.safeParse({ ...OWN_BREAD, amount: { unit: 'own', name: 'slice', value } }).success).toBe(false);
+    }
+    expect(mealItemSchema.safeParse({ ...OWN_BREAD, amount: { unit: 'own', name: 'ml', value: 2.5 } }).success).toBe(false);
+    expect(mealItemSchema.safeParse({ ...OWN_BREAD, amount: { unit: 'own', name: 'plate', value: 1 } }).success).toBe(false);
+    expect(mealItemSchema.safeParse({ ...OWN_BREAD, source: 'barcode' }).success).toBe(false);
+    expect(isOwnQuantity('g', 2_000)).toBe(true);
+    expect(isOwnQuantity('g', 2_001)).toBe(false);
+  });
+
+  it('REQ-LOG-011 a My food: values per 100 g or ml up to 900 kcal and 100 g; per one unit up to 2,000 kcal and 200 g', () => {
+    const food = { id: CHANGE_ID, name: 'Peanut butter bread', unit: 'slice', kcal: 180, proteinG: 6, carbsG: 20, fatG: 9, fibreG: null, savedAt: RECORDED_AT };
+    expect(myFoodSetDataSchema.safeParse(food).success).toBe(true);
+    expect(myFoodSetDataSchema.safeParse({ ...food, kcal: 2_000, proteinG: 200 }).success).toBe(true);
+    expect(myFoodSetDataSchema.safeParse({ ...food, kcal: 2_001 }).success).toBe(false);
+    expect(myFoodSetDataSchema.safeParse({ ...food, unit: 'g', kcal: 901 }).success).toBe(false);
+    expect(myFoodSetDataSchema.safeParse({ ...food, unit: 'ml', fatG: 101 }).success).toBe(false);
+    expect(myFoodSetDataSchema.safeParse({ ...food, name: '  ' }).success).toBe(false);
+    expect(detailsFor(myFoodSetDataSchema, { ...food, userId: CHANGE_ID })).toEqual([{ field: 'userId', issue: 'unknown_field' }]);
+  });
+});
+
 describe('REQ-ACC-011 profile.set data', () => {
   const FULL = {
     name: 'Synthetic Person',
@@ -437,6 +502,7 @@ describe('REQ-NFR-004 sync request and response', () => {
         profiles: [],
         meals: [],
         savedMeals: [],
+        myFoods: [],
         removals: [],
       },
       cursor: 'opaque-string',
@@ -575,6 +641,7 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
       kcal: 73,
       kcalEstimated: false,
       measures: [{ measure: 'glass', grams: 258 }],
+      portions: [],
     };
     expect(foodsResponseSchema.safeParse({ version: 'v1', items: [milk], dishes: [] }).success).toBe(true);
     expect(foodsResponseSchema.safeParse({ version: 'v1', items: [{ ...milk, measures: [{ measure: 'cup', grams: 240 }] }], dishes: [] }).success).toBe(false);

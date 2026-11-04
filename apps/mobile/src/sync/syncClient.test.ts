@@ -280,7 +280,7 @@ describe('Meal logging: the sync client', () => {
   it('ADR-0006 rule 1 downloads the food list once, then only when its version changes', async () => {
     const server = fakeServer(NOW);
     server.state.foods = [
-      { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [] },
+      { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [], portions: [] },
     ];
 
     expect(await refreshFoodList(db, auth(server))).toBe('updated');
@@ -312,7 +312,7 @@ describe('Meal logging: the sync client', () => {
   it('ADR-0006 rule 1 without a connection the food list on the phone is kept', async () => {
     const server = fakeServer(NOW);
     server.state.foods = [
-      { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true, measures: [] },
+      { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true, measures: [], portions: [] },
     ];
     await refreshFoodList(db, auth(server));
     server.state.offline = true;

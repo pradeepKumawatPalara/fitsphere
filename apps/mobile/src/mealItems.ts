@@ -1,13 +1,20 @@
 import {
+  isOwnQuantity,
   MEAL_ITEM_GRAMS_MAX,
   MEAL_ITEM_MEASURES_MAX,
   MEAL_ITEM_PORTIONS_MAX,
+  MEAL_ITEM_SERVINGS_MAX,
+  myFoodValueMax,
+  OWN_UNIT_COUNT_MAX,
+  OWN_UNIT_COUNT_MIN,
   type BarcodeProduct,
   type Dish,
   type Food,
   type MealItem,
+  type MyFoodSetData,
+  type MyFoodUnit,
 } from '@fitsphere/shared';
-import { formatMeasures } from './meals';
+import { formatMeasures, formatOwnUnits, formatServings } from './meals';
 import { parseOneDecimal, parseWholeNumber } from './format';
 
 // Turning a food and an amount into a meal item (REQ-LOG-007; MVP defaults, D-26). Values are per
@@ -133,9 +140,30 @@ export function withUnits(item: MealItem, count: number): MealItem {
   return rescaled(item, { ...item.amount, value: count, grams }, item.amount.grams, grams);
 }
 
-/** The grams one unit of an item holds. */
-export function gramsPerUnitOf(amount: Extract<MealItem['amount'], { unit: 'measure' }>): number {
+/** The grams one unit, or one serving, of an item holds. */
+export function gramsPerUnitOf(amount: Extract<MealItem['amount'], { unit: 'measure' | 'serving' }>): number {
   return amount.grams / amount.value;
+}
+
+/** One serving of a USDA food, as USDA labels it, and its grams (D-39). */
+export type FoodServing = Food['portions'][number];
+
+/** The most servings one item can hold: 10, in halves, and no more than 2,000 g (D-39). */
+export function servingsMax(gramsPerServing: number): number {
+  return Math.min(MEAL_ITEM_SERVINGS_MAX, Math.floor((MEAL_ITEM_GRAMS_MAX / gramsPerServing) * 2) / 2);
+}
+
+/** A USDA food eaten in its servings (D-39): its values are for the grams they come to. */
+export function itemFromServings(food: Food, serving: FoodServing, count: number): MealItem {
+  const grams = gramsOfUnits(serving.grams, count);
+  return { ...itemFromFood(food, 1), amount: { unit: 'serving', label: serving.label, value: count, grams }, ...valuesFor(food, grams) };
+}
+
+/** The same item for another number of servings, from the values and grams it already has. */
+export function withServings(item: MealItem, count: number): MealItem {
+  if (item.amount.unit !== 'serving') return item;
+  const grams = gramsOfUnits(gramsPerUnitOf(item.amount), count);
+  return rescaled(item, { ...item.amount, value: count, grams }, item.amount.grams, grams);
 }
 
 /**
@@ -145,7 +173,9 @@ export function gramsPerUnitOf(amount: Extract<MealItem['amount'], { unit: 'meas
  */
 export function sameFood(a: MealItem, b: MealItem): boolean {
   const sameUnit =
-    a.amount.unit === b.amount.unit && (a.amount.unit !== 'measure' || (b.amount.unit === 'measure' && a.amount.measure === b.amount.measure));
+    a.amount.unit === b.amount.unit &&
+    (a.amount.unit !== 'measure' || (b.amount.unit === 'measure' && a.amount.measure === b.amount.measure)) &&
+    (a.amount.unit !== 'serving' || (b.amount.unit === 'serving' && a.amount.label === b.amount.label));
   return a.source !== 'own' && a.ref !== null && a.source === b.source && a.ref === b.ref && sameUnit;
 }
 
@@ -158,6 +188,8 @@ export function addAmount(existing: MealItem, added: MealItem): MealItem | null 
   const total = existing.amount.value + added.amount.value;
   if (existing.amount.unit === 'g') return total > MEAL_ITEM_GRAMS_MAX ? null : withGrams(existing, total);
   if (existing.amount.unit === 'measure') return total > unitsMax(gramsPerUnitOf(existing.amount)) ? null : withUnits(existing, total);
+  if (existing.amount.unit === 'serving') return total > servingsMax(gramsPerUnitOf(existing.amount)) ? null : withServings(existing, total);
+  if (existing.amount.unit === 'own') return null;
   return total > PORTIONS_MAX ? null : withPortions(existing, total);
 }
 
@@ -165,6 +197,8 @@ export function addAmount(existing: MealItem, added: MealItem): MealItem | null 
 export function amountLimit(item: MealItem): string {
   if (item.amount.unit === 'g') return `${MEAL_ITEM_GRAMS_MAX.toLocaleString('en-US')} g`;
   if (item.amount.unit === 'measure') return formatMeasures(unitsMax(gramsPerUnitOf(item.amount)), item.amount.measure);
+  if (item.amount.unit === 'serving') return formatServings(servingsMax(gramsPerUnitOf(item.amount)), item.amount.label);
+  if (item.amount.unit === 'own') return formatOwnUnits(OWN_UNIT_COUNT_MAX, item.amount.name);
   return `${PORTIONS_MAX} portions`;
 }
 
@@ -191,6 +225,59 @@ export function itemFromLabel(name: string, values: LabelValues, grams: number):
     fibreG: values.fibreG === null ? null : forGrams(values.fibreG, grams),
     estimated: false,
   };
+}
+
+/**
+ * Your own food's quantity (D-39): whole grams or millilitres from 1 to 2,000, or 0.1 to 100 of
+ * another unit with at most one decimal; null when it cannot be used.
+ */
+export function parseOwnQuantity(text: string, unit: MyFoodUnit): number | null {
+  const value = unit === 'g' || unit === 'ml' ? parseWholeNumber(text, 1, MEAL_ITEM_GRAMS_MAX) : parseOneDecimal(text);
+  return value !== null && isOwnQuantity(unit, value) ? value : null;
+}
+
+/** The rule a quantity of `unit` must meet. */
+export function ownQuantityRule(unit: MyFoodUnit): string {
+  if (unit === 'g') return GRAMS_RULE;
+  if (unit === 'ml') return `Enter whole ml from 1 to ${MEAL_ITEM_GRAMS_MAX.toLocaleString('en-US')}.`;
+  return `Enter ${OWN_UNIT_COUNT_MIN} to ${OWN_UNIT_COUNT_MAX}, with at most one decimal.`;
+}
+
+/** A value typed for your own food: per 100 g or ml, or per one unit, with at most one decimal. */
+export function parseOwnValue(text: string, unit: MyFoodUnit, nutrient: 'kcal' | 'grams'): number | null {
+  return parsePer100g(text, myFoodValueMax(unit, nutrient));
+}
+
+/**
+ * Your own food (D-39): `values` per 100 g or 100 ml, or per one of its other unit, and the quantity
+ * eaten in that unit. `ref` is the My food it is saved as, or null.
+ */
+export function itemFromOwn(food: { name: string; unit: MyFoodUnit } & LabelValues, quantity: number, ref: string | null): MealItem {
+  const per100 = food.unit === 'g' || food.unit === 'ml';
+  const value = (per: number) => (per100 ? forGrams(per, quantity) : Math.round(per * quantity * 100) / 100);
+  return {
+    source: 'own',
+    ref,
+    name: food.name.trim(),
+    amount: food.unit === 'g' ? { unit: 'g', value: quantity } : { unit: 'own', name: food.unit, value: quantity },
+    kcal: value(food.kcal),
+    proteinG: value(food.proteinG),
+    carbsG: value(food.carbsG),
+    fatG: value(food.fatG),
+    fibreG: food.fibreG === null ? null : value(food.fibreG),
+    estimated: false,
+  };
+}
+
+/** A My food (D-39), eaten in its unit. */
+export function itemFromMyFood(food: Pick<MyFoodSetData, 'id' | 'name' | 'unit' | 'kcal' | 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'>, quantity: number): MealItem {
+  return itemFromOwn(food, quantity, food.id);
+}
+
+/** The same item of your own food for another quantity, from the values it already has. */
+export function withOwnQuantity(item: MealItem, quantity: number): MealItem {
+  if (item.amount.unit !== 'own') return item;
+  return rescaled(item, { ...item.amount, value: quantity }, item.amount.value, quantity);
 }
 
 /** A packaged product can be added only when Open Food Facts gives its kcal and protein. */

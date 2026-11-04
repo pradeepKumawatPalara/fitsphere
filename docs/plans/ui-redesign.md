@@ -88,9 +88,9 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.3 Nutrition, Saved | Locked and built; a saved meal shows its name (an existing field) over its foods |
 | 3.4 Nutrition, Diet plan | Locked and built |
 | 3.5 Log meal | Locked and built; with it every pushed screen's header title is in condensed capitals |
-| 3.6 Food search and portions | Locked and built; the IFCT food-values credit stays under the results; with it the actions sheet (also used by the meal photo) took its new look. Since D-36, a food with household units offers Grams and its units as choice blocks above the amount (`household-units.md`) |
+| 3.6 Food search and portions | Locked and built; the IFCT food-values credit stays under the results; with it the actions sheet (also used by the meal photo) took its new look. Since D-36, a food with household units offers Grams and its units as choice blocks above the amount (`household-units.md`). Since D-39 (locked 2026-11-04), My foods and USDA foods with their tags, USDA's servings and credit (`more-foods.md`) |
 | 3.7 Barcode scan | Locked and built; with it an action can show an icon before its title |
-| 3.8 Enter your own food | Locked and built |
+| 3.8 Enter your own food | Locked and built; since D-39 (locked 2026-11-04), the unit, values per 100 g or ml or per one unit, the quantity, "Save to My foods", and editing or deleting a My food |
 | 3.9 Meal photo | Locked and built; a logged meal's photo or link sits beside the meal card's icons; the viewer's text has its own colour, `onScrim`, readable on its dark backdrop in both themes |
 | **4 Training** | |
 | 4.1 Training: workout history | Locked and built; with it the button "Start an empty workout" is named "Log workout" (D-37) |

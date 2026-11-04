@@ -62,3 +62,9 @@ export function parseCsv(text: string): string[][] {
   }
   return rows;
 }
+
+/** CSV text for rows: a field with a comma, quote or line break is quoted, quotes doubled; LF lines. */
+export function toCsv(rows: readonly (readonly string[])[]): string {
+  const field = (value: string) => (/[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+  return rows.map((row) => row.map(field).join(',')).join('\n') + '\n';
+}

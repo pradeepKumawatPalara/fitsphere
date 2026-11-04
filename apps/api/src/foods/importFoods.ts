@@ -1,48 +1,71 @@
-// Writes the IFCT food list into app.foods (ADR-0006 rule 1), the approved dishes into app.dishes
-// (D-28) and the approved household units into app.food_measures (D-36). One transaction each:
-// every row is inserted or updated by its code, and rows no longer in the file are removed, so
-// running it again gives the same table.
+// Writes the food list into app.foods (ADR-0006 rule 1): IFCT 2017's foods, and USDA's FNDDS foods
+// with their servings in app.food_portions (D-39); the approved dishes into app.dishes (D-28); and
+// the approved household units into app.food_measures (D-36). One transaction each: every row is
+// inserted or updated by its code, and rows no longer in the file are removed, so running it again
+// gives the same table.
 import type pg from 'pg';
 import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
 import type { ImportedMeasure } from './measures.ts';
+import type { ImportedPortion } from './usda.ts';
 
 export type ImportResult = { total: number; hidden: number; estimated: number };
 
-export async function importFoods(client: pg.ClientBase, foods: ImportedFood[]): Promise<ImportResult> {
+/**
+ * Rows a statement writes. One statement a row took over half an hour for USDA's 20,000 rows on
+ * fitsphere-dev, each a round trip to the database (2026-11-04); a thousand at a time takes seconds.
+ */
+const ROWS_PER_STATEMENT = 1_000;
+
+function batches<T>(rows: readonly T[]): T[][] {
+  const result: T[][] = [];
+  for (let start = 0; start < rows.length; start += ROWS_PER_STATEMENT) result.push(rows.slice(start, start + ROWS_PER_STATEMENT));
+  return result;
+}
+
+/** The foods of one source; its foods no longer in the file are removed. */
+export async function importFoods(client: pg.ClientBase, foods: ImportedFood[], source: string = IFCT_SOURCE): Promise<ImportResult> {
   await client.query('begin');
   try {
-    for (const food of foods) {
+    for (const batch of batches(foods)) {
       await client.query(
         `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal,
            kcal_source, estimated, needs_review, hidden, note, aliases)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+         select $1, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated,
+           needs_review, hidden, note, aliases
+         from jsonb_to_recordset($2::jsonb) as row (code text, name text, food_group text, protein_g numeric,
+           fibre_g numeric, fat_g numeric, carbs_g numeric, kcal numeric, kcal_source text, estimated boolean,
+           needs_review boolean, hidden boolean, note text, aliases text[])
          on conflict (source, code) do update set
            name = excluded.name, food_group = excluded.food_group, protein_g = excluded.protein_g,
            fibre_g = excluded.fibre_g, fat_g = excluded.fat_g, carbs_g = excluded.carbs_g, kcal = excluded.kcal,
            kcal_source = excluded.kcal_source, estimated = excluded.estimated, needs_review = excluded.needs_review,
            hidden = excluded.hidden, note = excluded.note, aliases = excluded.aliases, updated_at = now()`,
         [
-          IFCT_SOURCE,
-          food.code,
-          food.name,
-          food.foodGroup,
-          food.proteinG,
-          food.fibreG,
-          food.fatG,
-          food.carbsG,
-          food.kcal,
-          food.kcalSource,
-          food.estimated,
-          food.needsReview,
-          food.hidden,
-          food.note,
-          food.aliases,
+          source,
+          JSON.stringify(
+            batch.map((food) => ({
+              code: food.code,
+              name: food.name,
+              food_group: food.foodGroup,
+              protein_g: food.proteinG,
+              fibre_g: food.fibreG,
+              fat_g: food.fatG,
+              carbs_g: food.carbsG,
+              kcal: food.kcal,
+              kcal_source: food.kcalSource,
+              estimated: food.estimated,
+              needs_review: food.needsReview,
+              hidden: food.hidden,
+              note: food.note,
+              aliases: food.aliases,
+            })),
+          ),
         ],
       );
     }
     await client.query('delete from app.foods where source = $1 and not (code = any($2::text[]))', [
-      IFCT_SOURCE,
+      source,
       foods.map((food) => food.code),
     ]);
     await client.query('commit');
@@ -82,6 +105,26 @@ export async function importDishes(client: pg.ClientBase, dishes: ImportedDish[]
     throw error;
   }
   return dishes.length;
+}
+
+/** Makes app.food_portions hold exactly a source's servings. Run after importFoods for that source. */
+export async function importPortions(client: pg.ClientBase, source: string, portions: ImportedPortion[]): Promise<number> {
+  await client.query('begin');
+  try {
+    await client.query('delete from app.food_portions where source = $1', [source]);
+    for (const batch of batches(portions)) {
+      await client.query(
+        `insert into app.food_portions (source, code, seq, label, grams)
+         select $1, code, seq, label, grams from jsonb_to_recordset($2::jsonb) as row (code text, seq integer, label text, grams numeric)`,
+        [source, JSON.stringify(batch)],
+      );
+    }
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  }
+  return portions.length;
 }
 
 /**

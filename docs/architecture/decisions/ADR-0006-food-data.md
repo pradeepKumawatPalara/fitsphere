@@ -125,7 +125,7 @@ problem appears.
 | Q-039 data sources | Answered by this ADR |
 | Q-063 where nutrition values come from | Answered with ADR-0005: food list first, else the AI's estimate, marked |
 | Q-015 steps and sleep input | MVP default (D-18): typed in; health-platform sync is post-MVP |
-| IFCT / USDA licence | IFCT: decided by the owner under D-25 (2026-10-29): used without NIN permission, accepted risk R-007; not a release blocker. See [`food-list-sources.md`](../../data/food-list-sources.md). USDA: not used |
+| IFCT / USDA licence | IFCT: decided by the owner under D-25 (2026-10-29): used without NIN permission, accepted risk R-007; not a release blocker. See [`food-list-sources.md`](../../data/food-list-sources.md). USDA: FNDDS 2021–2023 used since 2026-11-04 (D-39), public domain (CC0), credited in the app; this ADR's rule 1 allows it, recording the source per item |
 | Q-049 ODbL share-alike | Legal to confirm before release |
 
 ## References (checked 2026-10-27)

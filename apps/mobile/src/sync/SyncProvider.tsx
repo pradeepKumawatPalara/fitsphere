@@ -31,7 +31,7 @@ const expoNetwork: NetworkWatcher = {
 export type EntryInput = {
   [K in EntryKind]: K extends 'target' | 'setting' | 'profile'
     ? Omit<ChangeData[K], 'setAt'>
-    : K extends 'savedMeal'
+    : K extends 'savedMeal' | 'myFood'
       ? Omit<ChangeData[K], 'savedAt'>
       : K extends 'workout'
         ? ChangeData[K]
@@ -44,7 +44,7 @@ type SyncContextValue = {
   status: SyncOutcome | 'idle' | 'syncing';
   /** `newPhoto`: the files of a photo just taken for this meal or the profile, saved with it (REQ-LOG-006). */
   save<K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }): Promise<void>;
-  /** Deletes a meal, saved meal (REQ-NUT-004) or workout (REQ-TRN-003). */
+  /** Deletes a meal, saved meal (REQ-NUT-004), workout (REQ-TRN-003) or My food (D-39). */
   remove(kind: DeletableKind, id: string): Promise<void>;
   /** A new ID for a meal or saved meal, made on the phone. */
   newId(): string;
@@ -123,7 +123,8 @@ export function SyncProvider({
     async <K extends EntryKind>(kind: K, input: EntryInput[K], newPhoto?: { id: string; files: PhotoFiles }) => {
       if (!db) throw new Error('The phone database is not open');
       const savedAt = now().toISOString();
-      const stamp = kind === 'target' || kind === 'setting' || kind === 'profile' ? 'setAt' : kind === 'savedMeal' ? 'savedAt' : 'recordedAt';
+      const stamp =
+        kind === 'target' || kind === 'setting' || kind === 'profile' ? 'setAt' : kind === 'savedMeal' || kind === 'myFood' ? 'savedAt' : 'recordedAt';
       // A workout keeps the start time `startWorkout` gave it.
       const data = (kind === 'workout' ? input : { ...input, [stamp]: savedAt }) as unknown as ChangeData[K];
       // The photo belongs to the meal, or to the profile.
