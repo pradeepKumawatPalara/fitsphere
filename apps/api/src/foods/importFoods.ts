@@ -1,6 +1,7 @@
-// Writes the food list into app.foods (ADR-0006 rule 1): IFCT 2017's foods, and USDA's FNDDS foods
-// with their servings in app.food_portions (D-39); the approved dishes into app.dishes (D-28); and
-// the approved household units into app.food_measures (D-36). One transaction each: every row is
+// Writes the food list into app.foods (ADR-0006 rule 1): IFCT 2017's foods, and INDB's recipes with
+// their servings in app.food_portions (D-46); the approved dishes into app.dishes (D-28); and the
+// approved household units into app.food_measures (D-36). USDA's FNDDS foods (D-39) go to their
+// archive, app.usda_foods and app.usda_food_portions, not to the food list (D-47). One transaction each: every row is
 // inserted or updated by its code, and rows no longer in the file are removed, so running it again
 // gives the same table.
 import type pg from 'pg';
@@ -105,6 +106,51 @@ export async function importDishes(client: pg.ClientBase, dishes: ImportedDish[]
     throw error;
   }
   return dishes.length;
+}
+
+/**
+ * Makes USDA's archive hold exactly the files' foods and servings (D-47): kept, not served, so a
+ * meal logged with a USDA serving before D-47 still checks.
+ */
+export async function importUsdaArchive(client: pg.ClientBase, foods: ImportedFood[], portions: ImportedPortion[]): Promise<number> {
+  await client.query('begin');
+  try {
+    await client.query('delete from app.usda_foods');
+    for (const batch of batches(foods)) {
+      await client.query(
+        `insert into app.usda_foods (code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal)
+         select code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal
+         from jsonb_to_recordset($1::jsonb) as row (code text, name text, food_group text, protein_g numeric,
+           fibre_g numeric, fat_g numeric, carbs_g numeric, kcal numeric)`,
+        [
+          JSON.stringify(
+            batch.map((food) => ({
+              code: food.code,
+              name: food.name,
+              food_group: food.foodGroup,
+              protein_g: food.proteinG,
+              fibre_g: food.fibreG,
+              fat_g: food.fatG,
+              carbs_g: food.carbsG,
+              kcal: food.kcal,
+            })),
+          ),
+        ],
+      );
+    }
+    for (const batch of batches(portions)) {
+      await client.query(
+        `insert into app.usda_food_portions (code, seq, label, grams)
+         select code, seq, label, grams from jsonb_to_recordset($1::jsonb) as row (code text, seq integer, label text, grams numeric)`,
+        [JSON.stringify(batch)],
+      );
+    }
+    await client.query('commit');
+  } catch (error) {
+    await client.query('rollback').catch(() => undefined);
+    throw error;
+  }
+  return foods.length;
 }
 
 /** Makes app.food_portions hold exactly a source's servings. Run after importFoods for that source. */

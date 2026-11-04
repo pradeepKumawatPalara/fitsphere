@@ -1282,6 +1282,27 @@ checksum), and the configuration template was left as it is.*
   `constraints-and-assumptions.md` (R-009, the More foods row); the data model; REQ-LOG-007.
   Migration `0012_indb_foods.sql`; no phone schema change.
 
+## D-47 Indian food data only: USDA's foods archived
+- Status: **Accepted** (owner, in chat, 2026-11-04: "I want you to delete USDA data and move it to
+  some other separate table for now, I am not going to use that. I just want to use the Indian
+  data, approved from my side"; then, asked about the household weights, "Drop them, Indian only").
+- Answer:
+  - USDA's 5,431 FNDDS foods and their servings (D-39) **leave the food list**. Migration
+    `0013_usda_archive.sql` moves them to two archive tables, `app.usda_foods` and
+    `app.usda_food_portions`, kept, not served, so they can come back later; `foods:import`
+    refills the archive from `data/foods/usda-fndds-*.csv`, which stay in the repository.
+  - Search foods lists FitSphere's dishes, INDB's recipes (D-46), IFCT's foods (D-25) and My
+    foods. The "Food sources" sheet credits IFCT and INDB.
+  - A meal or saved meal already holding a USDA food keeps it, as each holds its own values; a
+    USDA serving in one is checked against the archive.
+  - The household weights prepared from USDA's SR Legacy for the 62 starter units were dropped
+    before they were proposed in the repository: the units stay `pending`, for the owner to weigh
+    (D-36 unchanged).
+- Changes: D-39's USDA part (My foods and your own food's units stay). D-46 is unchanged.
+- Doc changes: `food-list-sources.md`; the more-foods plan; ADR-0006's licence row; the Legal brief
+  (E-10); `constraints-and-assumptions.md`; the data model; REQ-LOG-007 and REQ-LOG-011;
+  `CLAUDE.md`.
+
 ---
 
 ## Proposed replacement wording for the two invariants

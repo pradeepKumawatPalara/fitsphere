@@ -358,6 +358,8 @@ describe('ADR-0002 second safety layer', () => {
       'sleep_logs',
       'step_counts',
       'targets',
+      'usda_food_portions',
+      'usda_foods',
       'user_roles',
       'users',
       'weigh_ins',

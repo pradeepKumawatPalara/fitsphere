@@ -385,7 +385,12 @@ The IFCT 2017 book says its egg values are not all for raw food:
       example, asking NIN (the copyright page gives ifct2017@gmail.com and nin@ap.nic.in), or
       accepting the sampling text as enough.
 
-## USDA FoodData Central: FNDDS 2021–2023 (D-39)
+## USDA FoodData Central: FNDDS 2021–2023 (D-39; archived, D-47)
+- **Archived since D-47 (2026-11-04):** the owner chose Indian food data only. USDA's foods are no
+  longer in the food list or Search foods; `foods:import` keeps them in `app.usda_foods` and
+  `app.usda_food_portions`, not served, and the app no longer shows USDA's credit. Meals logged
+  with a USDA food keep it. The rest of this section describes the files, which stay in the
+  repository.
 - **What:** USDA's "as eaten" foods (FNDDS, the Food and Nutrient Database for Dietary Studies,
   2021–2023, released 10/2024), with the serving weights recorded in the US diet survey. Values per
   100 g.

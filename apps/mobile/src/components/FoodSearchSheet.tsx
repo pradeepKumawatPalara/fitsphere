@@ -1,4 +1,4 @@
-import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
+import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, type Food, type MealItem } from '@fitsphere/shared';
 import { ChevronLeft, ChevronRight, Info, Search } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
@@ -18,9 +18,9 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). Dishes (D-28) come first, then INDB's Indian recipes (D-46), IFCT's Indian
-// foods, the user's My foods and USDA's (D-39), each marked. IFCT's acknowledgement is one tap away,
-// behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT too; INDB's and
-// USDA's credits are shown with it.
+// foods and the user's My foods (D-39), each marked; USDA's foods are no longer listed (D-47). IFCT's
+// acknowledgement is one tap away, behind the i at the top (D-25, changed by D-44): the dishes'
+// values come from IFCT too; INDB's credit is shown with it.
 //
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
@@ -59,7 +59,6 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           ...listed('indb'),
           ...listed('ifct2017'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
-          ...listed('usda_fndds'),
         ]);
         setListCached(listVersion !== null);
       },
@@ -178,7 +177,6 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         <Sheet title="Food sources" onClose={() => setSources(false)} actions={<TextButton title="Close" wide onPress={() => setSources(false)} />}>
           <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked INDB: {INDB_ACKNOWLEDGEMENT}</Text>
-          <Text style={styles.source}>Foods marked USDA: {USDA_ACKNOWLEDGEMENT}</Text>
         </Sheet>
       ) : null}
       {chosen ? (

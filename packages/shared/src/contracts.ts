@@ -836,10 +836,6 @@ function roundHundredths(value: number): number {
 export const IFCT_ACKNOWLEDGEMENT =
   'Longvah, T., Ananthan, R., Bhaskarachary, K. and Venkaiah, K. (2017). Indian Food Composition Tables 2017, National Institute of Nutrition, Indian Council of Medical Research, Hyderabad, Telangana, India.';
 
-/** The credit USDA asks for, shown under search results with USDA foods (more-foods plan; CC0). */
-export const USDA_ACKNOWLEDGEMENT =
-  'U.S. Department of Agriculture, Agricultural Research Service. FoodData Central, FNDDS 2021–2023. fdc.nal.usda.gov.';
-
 /**
  * The credit for the Indian Nutrient Databank's recipes (D-46): the article that publishes INDB, and
  * where its data is. Shown with IFCT's and USDA's, behind Search foods' i.
@@ -847,7 +843,11 @@ export const USDA_ACKNOWLEDGEMENT =
 export const INDB_ACKNOWLEDGEMENT =
   'Vijayakumar, A., Dubasi, H. B., Awasthi, A. and Jaacks, L. M. (2024). Development of an Indian Food Composition Database. Current Developments in Nutrition, 8(7), 103790. Indian Nutrient Databank (INDB): github.com/lindsayjaacks/Indian-Nutrient-Databank-INDB-.';
 
-export const FOOD_SOURCES = ['ifct2017', 'usda_fndds', 'indb'] as const;
+/**
+ * The food list's sources: Indian data only (D-47). USDA's FNDDS foods are archived on the server, not
+ * served; a meal logged with one keeps it (MEAL_ITEM_SOURCES).
+ */
+export const FOOD_SOURCES = ['ifct2017', 'indb'] as const;
 export type FoodSource = (typeof FOOD_SOURCES)[number];
 
 /** One food of the list, per 100 g edible portion. */

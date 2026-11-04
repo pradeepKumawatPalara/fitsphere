@@ -14,11 +14,17 @@ off `main`. Data-loss and sync bugs first.
 
 **More foods — built on branch `feat/more-foods` (D-39, 2026-11-04).** Plan: `docs/plans/more-foods.md`
 (Accepted), REQ-LOG-011. USDA FoodData Central's FNDDS foods (CC0, 5,431, with their servings as USDA
-weighs them) join IFCT's in the food list, after the Indian foods; your own food takes a unit and
+weighs them) joined IFCT's in the food list; since D-47 they are archived (`app.usda_foods`, migration
+0013), not served: Indian food data only. Your own food takes a unit and
 quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync changes `myFood.set` and
 `myFood.delete`, phone schema version 10. `npm run usda:convert` makes `data/foods/usda-fndds-*.csv`
 from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
 updated API, then `foods:import`; only when the owner says so.**
+
+**Indian food data only — built on branch `feat/indian-only` (D-47, 2026-11-04).** USDA's foods leave
+the food list for an archive (migration `0013_usda_archive.sql`); search shows dishes, INDB, IFCT and
+My foods. **On `fitsphere-dev`: migrations 0012 and 0013 before the updated API, then `foods:import`;
+only when the owner says so.**
 
 **Indian recipes — built on branch `feat/indb-foods` (D-46, 2026-11-04).** The Indian Nutrient
 Databank's 1,014 recipes join the food list, tagged "INDB", values estimated, each opening on its
