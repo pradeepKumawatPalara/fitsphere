@@ -1346,6 +1346,12 @@ checksum), and the configuration template was left as it is.*
   - The app's credit says the values are the brands' own, with the page each was read from kept.
 - Risk: brands' websites are "all rights reserved"; copying the nutrition facts printed on a label
   is taken to be reuse of facts, which Legal is asked to confirm (R-010, L-16).
+- **Approved (owner, in chat, 2026-11-04: "approve all"):** the first 23 rows, read on 2026-11-04 —
+  9 Amul (5 from Dudhsagar Dairy's site, the Mehsana union that makes Amul products, whose values
+  are "approximate"), Maggi 2-Minute Masala Noodles, 3 Haldiram's from its international site
+  (worked out per 100 g from US-style per-serving labels), 9 Britannia and Aashirvaad Shudh Chakki
+  Atta. Brands whose sites give no values (Parle, Mother Dairy, Nescafé, Horlicks and others) wait
+  for the owner's pack labels.
 - Doc changes: `food-list-sources.md`; the Legal brief (L-16, E-10); `constraints-and-assumptions.md`
   (R-010, the More foods row); the data model; REQ-LOG-007; `CLAUDE.md`. Migration
   `0015_brand_labels.sql`; phone schema version 12 (the cached food list is made again so a fibre

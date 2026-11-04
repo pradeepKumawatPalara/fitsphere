@@ -279,9 +279,14 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
   const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes';
   const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,';
 
-  it('imports the approved rows of the committed sheet, which has none approved yet', async () => {
+  it('imports the approved rows of the committed sheet whole, with their servings', async () => {
     const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
-    expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(0);
+    try {
+      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(23);
+      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(16);
+    } finally {
+      await importFoods(client, [], BRAND_LABEL_SOURCE);
+    }
   });
 
   it('serves an approved label with its brand, its serving, and its fibre unknown when the label gives none', async () => {

@@ -26,8 +26,11 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-49 the committed brand-labels sheet', () => {
-  it('passes every check; nothing is imported until the owner approves a row', () => {
-    expect(readBrandLabelsSheet(COMMITTED).foods).toEqual([]);
+  it('passes every check; the owner approved its 23 rows on 2026-11-04 ("approve all")', () => {
+    const sheet = readBrandLabelsSheet(COMMITTED);
+    expect(sheet.foods).toHaveLength(23);
+    expect(sheet.proposed).toBe(0);
+    expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
   });
 });
 
