@@ -25,7 +25,8 @@ seek permission from the National Institute of Nutrition (NIN). The owner accept
 carries as **R-007** in
 [`constraints-and-assumptions.md`](../architecture/constraints-and-assumptions.md#risks). The list
 may be used in development and in release builds. The app shows the acknowledgement text below
-wherever IFCT values are shown.
+wherever IFCT values are shown; since D-44 (2026-11-04) it is one tap away, behind the i on the
+search screen.
 
 The condition the decision was taken against, word for word from page 17 of the source PDF, the
 "Source and permissions" paragraph below the appendix. The PDF's printed page numbers match its
@@ -81,8 +82,8 @@ What the PDF says about its values (page 1, first paragraph):
 
 ### Acknowledgement text
 
-**Shown in the app (D-25):** wherever IFCT values are shown, the app shows the citation the IFCT
-2017 book asks for. The book's copyright page (unnumbered, page 3 of the PDF) introduces it with
+**Shown in the app (D-25; D-44):** wherever IFCT values are shown, the app shows the citation the
+IFCT 2017 book asks for: in Search foods, behind the i ("Food sources"), one tap away (D-44). The book's copyright page (unnumbered, page 3 of the PDF) introduces it with
 "Citation of this book should be given as-":
 
 > Longvah, T., Ananthan, R., Bhaskarachary, K. and Venkaiah, K. (2017). Indian Food Composition
@@ -242,7 +243,7 @@ top of them:
   - M007, M010, M013 → … omelette;
   - M014, M015 → … quail ….
 - **The acknowledgement** above is the shared constant `IFCT_ACKNOWLEDGEMENT`. The app shows it
-  wherever IFCT values are shown (D-25).
+  wherever IFCT values are shown (D-25): in Search foods' "Food sources" sheet, behind the i (D-44).
 
 ## Notes on the data (values not changed)
 
@@ -389,7 +390,8 @@ The IFCT 2017 book says its egg values are not all for raw food:
   100 g.
 - **Licence:** "USDA FoodData Central data are in the public domain and they are not copyrighted.
   They are published under CC0 1.0 Universal" (fdc.nal.usda.gov/api-guide, read 2026-11-04). USDA
-  asks to be credited; the app shows `USDA_ACKNOWLEDGEMENT` under the search results.
+  asks to be credited; the app shows `USDA_ACKNOWLEDGEMENT` with IFCT's, in Search foods' "Food
+  sources" sheet behind the i (D-44).
 - **File read:** `FoodData_Central_survey_food_json_2024-10-31.zip`, 3,835,292 bytes, SHA-256
   `dfb06ae7ddc397ccd570b91c14b75438ab2ba39f64f22d321f61d4a52a77f3eb`, from
   fdc.nal.usda.gov/download-datasets, kept in `D:\fitsphere-data\usda-fndds-2024-10-31\`, outside

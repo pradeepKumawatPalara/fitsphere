@@ -1,7 +1,8 @@
 import { IFCT_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Dish, type Food, type FoodMeasure, type MealItem } from '@fitsphere/shared';
-import { ChevronRight, Search, SquarePen } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { ChevronLeft, ChevronRight, Info, Search, SquarePen } from 'lucide-react-native';
+import { useContext, useEffect, useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Modal, Pressable, View } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, searchDishes, searchFoods, searchMyFoods, type LocalMyFood } from '../local/store';
@@ -26,17 +27,20 @@ import { GramsBox } from './GramsBox';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { PortionStepper } from './PortionStepper';
 import { Sheet } from './Sheet';
-import { Message, Problem, Text, TextButton, TextInput, useChoiceStyles } from './ui';
+import { IconButton, Message, Problem, Text, TextButton, TextInput, useChoiceStyles } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). A listed food is added in grams eaten, from its values per 100 g, or in one of
 // the household units the owner has measured for it (D-36), counted in halves; a dish (D-28) in
-// portions, from its values for one portion, which are estimated. IFCT's acknowledgement is shown
-// under the results (D-25): the dishes' values come from IFCT too.
+// portions, from its values for one portion, which are estimated. IFCT's acknowledgement is one tap
+// away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT too.
 //
 // More foods (D-39): USDA's foods follow the Indian ones, marked "USDA", with their servings as USDA
-// labels them, counted in halves; USDA's credit is shown under IFCT's. The user's My foods come
+// labels them, counted in halves; USDA's credit is shown with IFCT's. The user's My foods come
 // between them, marked "My food", logged in their own unit; one can be edited or deleted from here.
+//
+// The search fills the screen, so the most results show above the keyboard (D-44); a food's amount
+// opens in a sheet over the results, and "Back to search" returns to them.
 
 type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food } | { kind: 'mine'; food: LocalMyFood };
 
@@ -63,6 +67,12 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
   const [unit, setUnit] = useState<Unit>('g');
   const [units, setUnits] = useState(1);
   const [editing, setEditing] = useState<LocalMyFood | null>(null);
+  // The food sources' sheet, behind the i (D-44).
+  const [sources, setSources] = useState(false);
+  // The screen is drawn edge to edge, as the sheets are: it clears the status and navigation bars.
+  const insets = useContext(SafeAreaInsetsContext);
+  const top = insets?.top ?? 0;
+  const bottom = insets?.bottom ?? 0;
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -117,7 +127,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
     );
   }
 
-  return chosen ? (
+  const amount = chosen ? (
     <Sheet
       title={chosen.kind === 'dish' ? chosen.dish.name : chosen.food.name}
       onClose={onClose}
@@ -230,110 +240,139 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       )}
       {chosen.kind === 'mine' ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => setEditing(chosen.food)} /> : null}
     </Sheet>
-  ) : (
-    // The results scroll themselves, so the sheet's body doesn't.
-    <Sheet title="Search foods" scroll={false} onClose={onClose} actions={<TextButton title="Close" wide onPress={onClose} />}>
-      <View style={styles.searchBox}>
-        <Search size={20} color={colors.inkMuted} />
-        <TextInput
-          accessibilityLabel="Search foods"
-          value={query}
-          onChangeText={setQuery}
-          placeholder="e.g. atta, dal, paneer"
-          autoFocus
-          style={styles.searchInput}
-        />
-      </View>
-      {!listCached ? (
-        <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
-      ) : query.trim() !== '' && results.length === 0 ? (
-        <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
+  ) : null;
+
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={-bottom} style={styles.screen}>
+        <View style={[styles.frame, { paddingTop: top, paddingBottom: bottom }]}>
+          <View style={styles.header}>
+            <IconButton label="Close search" onPress={onClose}>
+              <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
+            </IconButton>
+            <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
+              Search foods
+            </Text>
+            <IconButton label="Food sources" onPress={() => setSources(true)}>
+              <Info size={22} color={colors.accent} />
+            </IconButton>
+          </View>
+          <View style={styles.searchArea}>
+            <View style={styles.searchBox}>
+              <Search size={20} color={colors.inkMuted} />
+              <TextInput
+                accessibilityLabel="Search foods"
+                value={query}
+                onChangeText={setQuery}
+                placeholder="e.g. atta, dal, paneer"
+                autoFocus
+                style={styles.searchInput}
+              />
+            </View>
+            {!listCached ? (
+              <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
+            ) : query.trim() !== '' && results.length === 0 ? (
+              <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
+            ) : null}
+          </View>
+          <FlatList
+            data={results}
+            keyExtractor={(result) =>
+              result.kind === 'dish' ? `dish:${result.dish.code}` : result.kind === 'mine' ? `mine:${result.food.id}` : `${result.food.source}:${result.food.code}`
+            }
+            style={[styles.list, results.length > 0 && styles.listCard]}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item: result }) =>
+              result.kind === 'dish' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${result.dish.name}, dish, ${formatKcal(result.dish.kcal)} per ${PORTION_UNIT_LABELS[result.dish.portionUnit]}, estimated`}
+                  onPress={() => {
+                    setChosen(result);
+                    setPortions(1);
+                  }}
+                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                >
+                  <View style={styles.rowText}>
+                    <Text style={styles.name}>{result.dish.name}</Text>
+                    <Text style={styles.detail}>
+                      Dish · {formatKcal(result.dish.kcal)} per {PORTION_UNIT_LABELS[result.dish.portionUnit]} · estimated
+                    </Text>
+                  </View>
+                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+                </Pressable>
+              ) : result.kind === 'mine' ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${result.food.name}, my food, ${formatKcal(result.food.kcal)} per ${perOne(result.food)}`}
+                  onPress={() => {
+                    setChosen(result);
+                    setGramsText(result.food.unit === 'g' || result.food.unit === 'ml' ? '100' : '1');
+                  }}
+                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                >
+                  <View style={styles.rowText}>
+                    <Text style={styles.name}>{result.food.name}</Text>
+                    <View style={styles.detailLine}>
+                      <Text style={[styles.mark, styles.markMine]}>My food</Text>
+                      <Text style={styles.detail}>
+                        {formatKcal(result.food.kcal)} per {perOne(result.food)}
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${result.food.name}, ${result.food.source === 'usda_fndds' ? 'USDA, ' : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
+                  onPress={() => {
+                    setChosen(result);
+                    setGramsText('100');
+                    setUnit('g');
+                    setUnits(1);
+                  }}
+                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                >
+                  <View style={styles.rowText}>
+                    <Text style={styles.name}>{result.food.name}</Text>
+                    <View style={styles.detailLine}>
+                      {result.food.source === 'usda_fndds' ? <Text style={styles.mark}>USDA</Text> : null}
+                      <Text style={styles.detail}>
+                        {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+                </Pressable>
+              )
+            }
+          />
+        </View>
+      </KeyboardAvoidingView>
+      {sources ? (
+        <Sheet title="Food sources" onClose={() => setSources(false)} actions={<TextButton title="Close" wide onPress={() => setSources(false)} />}>
+          <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
+          <Text style={styles.source}>Foods marked USDA: {USDA_ACKNOWLEDGEMENT}</Text>
+        </Sheet>
       ) : null}
-      <FlatList
-        data={results}
-        keyExtractor={(result) =>
-          result.kind === 'dish' ? `dish:${result.dish.code}` : result.kind === 'mine' ? `mine:${result.food.id}` : `${result.food.source}:${result.food.code}`
-        }
-        style={[styles.list, results.length > 0 && styles.listCard]}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item: result }) =>
-          result.kind === 'dish' ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${result.dish.name}, dish, ${formatKcal(result.dish.kcal)} per ${PORTION_UNIT_LABELS[result.dish.portionUnit]}, estimated`}
-              onPress={() => {
-                setChosen(result);
-                setPortions(1);
-              }}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.name}>{result.dish.name}</Text>
-                <Text style={styles.detail}>
-                  Dish · {formatKcal(result.dish.kcal)} per {PORTION_UNIT_LABELS[result.dish.portionUnit]} · estimated
-                </Text>
-              </View>
-              <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
-            </Pressable>
-          ) : result.kind === 'mine' ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${result.food.name}, my food, ${formatKcal(result.food.kcal)} per ${perOne(result.food)}`}
-              onPress={() => {
-                setChosen(result);
-                setGramsText(result.food.unit === 'g' || result.food.unit === 'ml' ? '100' : '1');
-              }}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.name}>{result.food.name}</Text>
-                <View style={styles.detailLine}>
-                  <Text style={[styles.mark, styles.markMine]}>My food</Text>
-                  <Text style={styles.detail}>
-                    {formatKcal(result.food.kcal)} per {perOne(result.food)}
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
-            </Pressable>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${result.food.name}, ${result.food.source === 'usda_fndds' ? 'USDA, ' : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
-              onPress={() => {
-                setChosen(result);
-                setGramsText('100');
-                setUnit('g');
-                setUnits(1);
-              }}
-              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-            >
-              <View style={styles.rowText}>
-                <Text style={styles.name}>{result.food.name}</Text>
-                <View style={styles.detailLine}>
-                  {result.food.source === 'usda_fndds' ? <Text style={styles.mark}>USDA</Text> : null}
-                  <Text style={styles.detail}>
-                    {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
-            </Pressable>
-          )
-        }
-      />
-      <Text style={styles.acknowledgement}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
-      <Text style={styles.acknowledgement}>Foods marked USDA: {USDA_ACKNOWLEDGEMENT}</Text>
-    </Sheet>
+      {amount}
+    </Modal>
   );
 }
 
-// The redesign's 3.6 (locked by the owner, 2026-11-03): the search in a sunken box with its icon; the
-// results ruled on a raised card, each opening with a chevron; grams large in a box with their unit,
-// red with the rule under them when they can't be added; what an addition comes to in condensed
-// figures. A food with household units (D-36) offers Grams and its units as choice blocks, as the
+// The redesign's 3.6 (locked by the owner, 2026-11-03; the full screen locked 2026-11-04, D-44): the
+// search fills the screen under a header with the back arrow, its title and the i; the search in a
+// sunken box with its icon; the results ruled on a raised card down to the keyboard, each opening
+// with a chevron; the food sources in a sheet; grams large in a box with their unit, red with the
+// rule under them when they can't be added; what an addition comes to in condensed figures. A food with household units (D-36) offers Grams and its units as choice blocks, as the
 // meal choice's, which wrap at their own widths; a unit is counted with the portions' − and +.
 const useStyles = themedStyles((c) => ({
+  screen: { flex: 1, backgroundColor: c.bg },
+  frame: { flex: 1 },
+  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 6, paddingRight: 8 },
+  title: { ...TYPE.screenHeader, flex: 1 },
+  searchArea: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 12, gap: 12 },
   units: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   unit: { paddingHorizontal: 12 },
   unitText: { fontSize: 15, letterSpacing: 0.5 },
@@ -354,7 +393,8 @@ const useStyles = themedStyles((c) => ({
   body: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
   preview: { ...TYPE.metric },
   empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center' },
-  list: { maxHeight: 360 },
+  // As tall as its results, and no taller than the room above the keyboard.
+  list: { flexGrow: 0, marginHorizontal: 16 },
   listCard: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   row: {
     minHeight: 64,
@@ -385,5 +425,5 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceSunken,
   },
   markMine: { color: c.accent, backgroundColor: c.accentTint },
-  acknowledgement: { color: c.inkMuted, fontSize: 12, lineHeight: 16 },
+  source: { fontSize: 15, lineHeight: 22 },
 }));

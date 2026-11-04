@@ -105,14 +105,20 @@ describe('REQ-LOG-001 and REQ-LOG-002 the date', () => {
 });
 
 describe('REQ-LOG-007 adding foods without AI', () => {
-  it('REQ-ACC-005 searches the cached list offline, shows the IFCT acknowledgement, and adds the grams eaten', async () => {
+  it('REQ-ACC-005 searches the cached list offline, shows the IFCT acknowledgement behind the i, and adds the grams eaten', async () => {
     const { server } = await render();
     server.state.offline = true;
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');
-    expect(await screen.findByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Wheat flour, atta, 320 kcal per 100 g' }));
+    await screen.findByRole('button', { name: 'Wheat flour, atta, 320 kcal per 100 g' });
+    expect(screen.queryByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByRole('header', { name: 'Food sources' })).toBeOnTheScreen();
+    expect(screen.getByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Wheat flour, atta, 320 kcal per 100 g' }));
     await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '60');
     expect(screen.getByLabelText('Adds 192 kcal and 6.3 g protein')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
@@ -213,6 +219,34 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     expect(screen.getAllByRole('button', { name: 'Dal rice (Dal rice)' })).toHaveLength(2);
     expect(errors.mock.calls.some((call) => String(call[0]).includes('same key'))).toBe(false);
     errors.mockRestore();
+  });
+});
+
+describe('D-44 Search foods fills the screen (the owner’s phone test, 2026-11-04)', () => {
+  it('opens full screen with its title, the i and a back arrow, and no Close at the foot; the back arrow closes it', async () => {
+    await render();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
+
+    expect(screen.getByRole('header', { name: 'Search foods' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Food sources' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Close search' }));
+    expect(screen.queryByRole('header', { name: 'Search foods' })).toBeNull();
+  });
+
+  it('a food’s amount opens over the results, and Back to search returns to the same results', async () => {
+    await render();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Wheat flour, atta, 320 kcal per 100 g' }));
+    expect(screen.getByRole('header', { name: 'Wheat flour, atta' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to search' }));
+
+    expect(screen.queryByRole('header', { name: 'Wheat flour, atta' })).toBeNull();
+    expect(screen.getByLabelText('Search foods')).toHaveProp('value', 'atta');
+    expect(screen.getByRole('button', { name: 'Wheat flour, atta, 320 kcal per 100 g' })).toBeOnTheScreen();
   });
 });
 
