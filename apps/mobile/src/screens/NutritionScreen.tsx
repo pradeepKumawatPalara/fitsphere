@@ -6,7 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
 import { LogMealButton } from '../components/LogMealButton';
 import { MealCard } from '../components/MealCard';
-import { ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
+import { ActionsSheet, ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay } from '../format';
@@ -19,6 +19,7 @@ import {
   type LocalMeal,
   type LocalSavedMeal,
 } from '../local/store';
+import { sameFoods } from '../mealItems';
 import { describeItems, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
@@ -35,6 +36,8 @@ const TABS: { tab: Tab; label: string }[] = [
 type Sheet =
   | { kind: 'deleteMeal'; meal: LocalMeal }
   | { kind: 'saveMeal'; meal: LocalMeal }
+  // A meal whose foods are already a saved meal: its bookmark is filled, and it is not saved twice.
+  | { kind: 'alreadySaved'; saved: LocalSavedMeal }
   | { kind: 'deleteSaved'; saved: LocalSavedMeal }
   | { kind: 'relog'; saved: LocalSavedMeal };
 
@@ -202,21 +205,25 @@ export function NutritionScreen() {
                     </Text>
                   ) : null}
                   {isOpen
-                    ? slotMeals.map((meal) => (
-                        <MealCard
-                          key={meal.id}
-                          title={`${label}: ${describeItems(meal.items)}`}
-                          items={meal.items}
-                          tags={meal.tags}
-                          totals={meal}
-                          syncState={meal.syncState}
-                          photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
-                          savedAt={meal.recordedAt}
-                          onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
-                          onSave={() => setSheet({ kind: 'saveMeal', meal })}
-                          onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
-                        />
-                      ))
+                    ? slotMeals.map((meal) => {
+                        const savedAs = saved.find((entry) => sameFoods(entry.items, meal.items)) ?? null;
+                        return (
+                          <MealCard
+                            key={meal.id}
+                            title={`${label}: ${describeItems(meal.items)}`}
+                            items={meal.items}
+                            tags={meal.tags}
+                            totals={meal}
+                            syncState={meal.syncState}
+                            photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
+                            savedAt={meal.recordedAt}
+                            onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
+                            onSave={() => setSheet(savedAs ? { kind: 'alreadySaved', saved: savedAs } : { kind: 'saveMeal', meal })}
+                            savedAs={savedAs?.name ?? null}
+                            onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
+                          />
+                        );
+                      })
                     : null}
                 </View>
               );
@@ -272,17 +279,28 @@ export function NutritionScreen() {
       {sheet?.kind === 'saveMeal' ? (
         <SaveMealSheet
           initialName={suggestedSavedName(sheet.meal.items)}
-          onSave={(name) =>
+          onSave={(name) => {
+            // Never twice: the same foods may have been saved since the sheet opened.
+            if (saved.some((entry) => sameFoods(entry.items, sheet.meal.items))) return;
             void sync.save('savedMeal', {
               id: sync.newId(),
               name,
               mealType: sheet.meal.mealType,
               tags: sheet.meal.tags,
               items: sheet.meal.items,
-            })
-          }
+            });
+          }}
           onClose={() => setSheet(null)}
         />
+      ) : null}
+      {sheet?.kind === 'alreadySaved' ? (
+        <ActionsSheet
+          title="Already in my meals"
+          actions={[{ label: 'Go to Saved', onPress: () => setTab('saved') }]}
+          onClose={() => setSheet(null)}
+        >
+          <Text style={styles.sheetText}>This meal is saved as {sheet.saved.name}.</Text>
+        </ActionsSheet>
       ) : null}
       {sheet?.kind === 'deleteSaved' ? (
         <ConfirmSheet
@@ -319,6 +337,7 @@ export function NutritionScreen() {
 // The redesign's 3.1 and 3.3 (locked by the owner, 2026-11-03): cards 12 apart in the 16 gutter,
 // radius 4; each meal slot a card with its name in condensed capitals, its chevron and a square "+".
 const useStyles = themedStyles((c) => ({
+  sheetText: { fontSize: 16, lineHeight: 24 },
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
   banner: {

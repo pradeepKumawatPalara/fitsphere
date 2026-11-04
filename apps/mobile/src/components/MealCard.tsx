@@ -28,6 +28,8 @@ type Props = {
   onEdit?(): void;
   /** A logged meal: "Save to my meals". */
   onSave?(): void;
+  /** The saved meal's name when this logged meal is already saved: its bookmark is filled. */
+  savedAs?: string | null;
   /** Asks first ("Delete this meal?"), then deletes. */
   onDelete(): void;
   onPress?(): void;
@@ -51,6 +53,7 @@ export function MealCard({
   savedAt,
   onEdit,
   onSave,
+  savedAs = null,
   onDelete,
   onPress,
 }: Props) {
@@ -99,7 +102,15 @@ export function MealCard({
             </View>
           ) : null}
           {onEdit ? <IconAction icon={SquarePen} label={`Edit ${title}`} color={colors.accent} onPress={onEdit} /> : null}
-          {onSave ? <IconAction icon={Bookmark} label={`Save ${title} to my meals`} color={colors.accent} onPress={onSave} /> : null}
+          {onSave ? (
+            <IconAction
+              icon={Bookmark}
+              label={savedAs ? `${title}: saved to my meals as ${savedAs}` : `Save ${title} to my meals`}
+              color={colors.accent}
+              filled={savedAs !== null}
+              onPress={onSave}
+            />
+          ) : null}
           {remove}
         </View>
       )}
@@ -111,11 +122,14 @@ function IconAction({
   icon: Icon,
   label,
   color,
+  filled = false,
   onPress,
 }: {
   icon: LucideIcon;
   label: string;
   color: string;
+  /** Filled in its colour: done already (a meal saved). */
+  filled?: boolean;
   onPress(): void;
 }) {
   const styles = useStyles();
@@ -123,10 +137,11 @@ function IconAction({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={filled ? { selected: true } : {}}
       onPress={onPress}
       style={({ pressed }) => [styles.action, pressed && styles.pressed]}
     >
-      <Icon testID="icon" size={20} color={color} />
+      <Icon testID="icon" size={20} color={color} fill={filled ? color : 'none'} />
     </Pressable>
   );
 }
