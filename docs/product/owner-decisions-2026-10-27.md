@@ -1168,6 +1168,33 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-007 and REQ-TRN-003; `mvp-scope.md`; `constraints-and-assumptions.md`
   (Q-025 and the Training defaults); the data model's `workouts`; the redesign plan's 2.3.
 
+
+## D-42 Another workout on the same day
+- Status: **Accepted** (owner, in chat, 2026-11-04, after the phone test: "User should be able to add
+  Workout and inside workout there can be multiple exercises… we need this functionality").
+- Problem: a day could hold several workouts, each with its own exercises (D-29), but tapping a day
+  with one workout, on Home's tracker or Training's date card, opened that workout (D-34), so the
+  user could only add exercises to it; another workout on that day was hidden.
+- Answer: tapping a day up to today, on Home, or a date's card on Training, always opens that day's
+  sheet: its workouts to open ("Workout 1 · …"), and **"Log another workout"**, which saves a new,
+  empty workout on that day and opens it. A day with none still offers "Start a workout on this day".
+  Training's "Log workout" button is unchanged. A weekly target of up to 14 workouts (REQ-ROLE-007)
+  can therefore be met with two a day.
+- Replaces: D-34's "a day with one workout opens it", on Home and on Training.
+- **Then, the same day (owner, after testing it: "I need the similar option in Training tab as well…
+  remove DONE… Delete Workout/Exercise on the same card as a small icon near edit icon"; the
+  redesign's 4.1 and 4.2 changed and locked, "good to go"):**
+  - Training's date card lists its workouts, each on its own row ("Workout 1", "Workout 2", in the
+    order started) with a pencil to open it and a red bin to delete it, and "Log another workout"
+    under them. Deleting asks first ("Delete Workout 2 on Tue 3 Nov? It leaves your history and your
+    weekly count."). Older workouts read from the server stay view-only, with no icons.
+  - A workout is titled with its place, "Workout 2 · Tue 3 Nov". Each exercise has a pencil and a red
+    bin; removing asks first ("Remove Squat from this workout?").
+  - **No Done:** each exercise is saved when "Save exercise" is pressed, so the workout has no Done
+    button; the header's back arrow leaves.
+- Doc changes: REQ-HOME-007, REQ-TRN-003 and REQ-TRN-004; `constraints-and-assumptions.md`; the
+  redesign plan's 2.6, 4.1 and 4.2; the canvas boards 2.6, 4.1 and 4.2.
+
 ---
 
 ## Proposed replacement wording for the two invariants

@@ -132,7 +132,10 @@ export function HomeScreen() {
       // The selected date's week's workouts on the phone. Only those with an exercise count toward the
       // week and show on their day (REQ-HOME-007; D-41, replacing Q-025's default); a day's square
       // still opens its empty ones too.
-      setWeekWorkouts(workouts.map(({ id, day, exercises }) => ({ id, day, exercises })));
+      // In the order they were started, so "Workout 1" is the day's first (D-42).
+      setWeekWorkouts(
+        workouts.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).map(({ id, day, exercises }) => ({ id, day, exercises })),
+      );
     });
     return () => {
       active = false;
@@ -144,11 +147,9 @@ export function HomeScreen() {
   const workoutCounts: Record<IstDay, number> = {};
   for (const workout of counted) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
 
-  /** A tracker day: its one workout opens; with several, or none, the day's sheet (D-34). */
+  /** A tracker day opens the day's sheet: its workouts, and another to log (D-34, D-42). */
   function openWorkoutDay(day: IstDay) {
-    const onDay = weekWorkouts.filter((workout) => workout.day === day);
-    if (onDay.length === 1) router.push(`/workout/${onDay[0]!.id}`);
-    else setWorkoutDay(day);
+    setWorkoutDay(day);
   }
 
   /** A new workout on that day, saved at once and opened, as Training's "Log workout". */

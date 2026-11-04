@@ -81,7 +81,7 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 2.3 Home: date strip, calories and protein card, weight, steps and sleep tiles, measurements card, workout tracker, Log meal button, the notice for a change that wasn't saved | Locked and built; with it the date strip (also on Nutrition), the measurements card (also on Progress), the unsaved-change notice (also on Training) and + LOG took their new look. The tracker keeps the app's full summary ("1 of 4 · 3 left"). Since D-41 (2026-11-04) the tracker reads "N workouts · target achieved" once met, and each day shows its count as a number |
 | 2.4 Entry sheet for weight, steps and sleep | Locked and built; Your targets uses the same sheet |
 | 2.5 Measurements sheet | Locked and built; with it every choice in the app (meal slots, Settings, Nutrition's tabs, the chart's ranges) became square blocks |
-| 2.6 A day's workouts sheet | Locked and built |
+| 2.6 A day's workouts sheet | Locked and built. Since D-42 (2026-11-04) it opens for any day, with "Log another workout" |
 | **3 Nutrition and Log meal** | |
 | 3.1 Nutrition, Consumed: eaten summary, meal slots, meal cards | Locked and built. For contrast, each nutrient's colour is a square beside its name, the name in the muted ink (the light theme's carbs colour is about 3:1) |
 | 3.2 Meal actions and confirmations | Locked and built; with it a sheet can open with a tile over its title (SheetHeading), used by 2.6 too |
@@ -93,8 +93,8 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.8 Enter your own food | Locked and built; since D-39 (locked 2026-11-04), the unit, values per 100 g or ml or per one unit, the quantity, "Save to My foods", and editing or deleting a My food |
 | 3.9 Meal photo | Locked and built; a logged meal's photo or link sits beside the meal card's icons; the viewer's text has its own colour, `onScrim`, readable on its dark backdrop in both themes |
 | **4 Training** | |
-| 4.1 Training: workout history | Locked and built; with it the button "Start an empty workout" is named "Log workout" (D-37) |
-| 4.2 A workout | Locked and built; Done is fixed at the foot, as Log meal's Save meal, and Delete workout ends the list |
+| 4.1 Training: workout history | Locked and built; with it the button "Start an empty workout" is named "Log workout" (D-37). Since D-42 (2026-11-04, locked) each workout has its own row with a pencil and a bin, and each date "Log another workout" |
+| 4.2 A workout | Locked and built; Done is fixed at the foot, as Log meal's Save meal, and Delete workout ends the list. Since D-42 (2026-11-04, locked) no Done, the title numbers the workout, and each exercise has a pencil and a bin |
 | 4.3 Exercise sheet | Locked and built |
 | **5 Progress** | |
 | 5.1 Progress: weight and its chart, nutrition, the week, measurements | Locked and built; the chart is drawn with react-native-svg (in the app since D-35, so no new package or build), with the area under the line tinted |

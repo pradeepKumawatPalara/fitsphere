@@ -323,7 +323,7 @@ B-22).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
-- Each day up to today can be tapped (D-34): a day with one workout opens it; a day with more shows how many on its dot and asks which to open; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
+- Each day up to today can be tapped (D-34; D-42): a day with workouts lists them to open, with "Log another workout" to start a new one on that day; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
 - The tracker shows the Mon–Sun week of the date picked on Home (Q-026) and names it (D-34): "Workouts this week" for the current week, "Workouts that week" for an earlier one, with the week's dates under the title (e.g. "Mon 19 Oct – Sun 25 Oct"). A workout can be started on any day up to today of the week shown.
 - D-41 (replacing Q-025's MVP default): only a workout with at least one exercise counts toward the weekly target; the card reads "N of T · K left", and once the target is met "N workouts · target achieved", with each day's count as a number. The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
@@ -561,7 +561,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
 - MVP default (D-29): newest first; the last 90 days from the phone, and older workouts read from the server online with "Load older", view-only (ADR-0007 rules 1 and 6).
-- One card per date (D-34): a date with several workouts shows them together, every exercise in one summary and "2 workouts" beside the date; tapping it asks which to open ("Workout 1 · …"). Each workout is still stored, edited and deleted on its own.
+- One card per date (D-34): a date with several workouts shows them together, every exercise in one summary and "2 workouts" beside the date; each workout on its own row ("Workout 1", "Workout 2", in the order started) with a pencil to open it and a bin to delete it (asking first), and "Log another workout" on that date (D-42). Each workout is still stored, edited and deleted on its own.
 
 ### REQ-TRN-005 — Lifting unit
 - Requirement: Lifting weights are entered and shown in the lifting-weight unit setting (REQ-ACC-002); changing the setting converts display of existing history.

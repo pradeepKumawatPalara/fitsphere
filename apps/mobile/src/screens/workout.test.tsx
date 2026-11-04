@@ -45,7 +45,7 @@ async function startWorkout(pickDay?: string) {
   );
   if (pickDay) await fireEvent.press(await screen.findByRole('button', { name: `Pick ${pickDay}` }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
-  await screen.findByText(/^Workout · /);
+  await screen.findByText(/^Workout \d+ · /);
   return { ...app, id: mockParams.id };
 }
 
@@ -69,9 +69,9 @@ describe('REQ-TRN-003 starting a workout', () => {
     const { db, server, id } = await startWorkout();
 
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${id}`);
-    expect(screen.getByText('Workout · Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.getByText('No exercises yet.')).toBeOnTheScreen();
-    expect(await screen.findByRole('button', { name: 'Wed 28 Oct: No exercises' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Wed 28 Oct, Workout 1: No exercises' })).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ deleted: false, day: '2026-10-28', exercises: [] }));
     expect(await getEntry(db, 'workout', id)).toMatchObject({ syncState: 'synced' });
   });
@@ -79,7 +79,7 @@ describe('REQ-TRN-003 starting a workout', () => {
   it('Q-011 a workout started with a past date selected belongs to that day', async () => {
     const { server, id } = await startWorkout('2026-10-20');
 
-    expect(screen.getByText('Workout · Tue 20 Oct')).toBeOnTheScreen();
+    expect(screen.getByText('Workout 1 · Tue 20 Oct')).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ day: '2026-10-20' }));
   });
 });
@@ -94,7 +94,7 @@ describe('REQ-TRN-003 exercises as sets × reps × weight with an optional note 
 
     expect(await screen.findByRole('button', { name: 'Push-up: 2 × 20' })).toBeOnTheScreen();
     expect(screen.getByText('Slow on the way down')).toBeOnTheScreen();
-    expect(await screen.findByRole('button', { name: 'Wed 28 Oct: 2 exercises · Squat, Push-up' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Wed 28 Oct, Workout 1: 2 exercises · Squat, Push-up' })).toBeOnTheScreen();
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         SQUAT,
@@ -163,7 +163,33 @@ describe('REQ-TRN-003 exercises as sets × reps × weight with an optional note 
     await waitFor(() => expect(server.entries('workouts').get(id)?.exercises).toEqual([{ ...SQUAT, reps: 12 }]));
   });
 
-  it('REQ-TRN-003 removing an exercise needs no confirmation', async () => {
+  it('D-42 an exercise’s bin asks first; Keep keeps it, Remove removes it; no Done', async () => {
+    const { db, id } = await startWorkout();
+    await addExercise({ name: 'Squat', sets: '3', reps: '10' });
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove Squat' }));
+    expect(screen.getByText('Remove Squat from this workout?')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep' }));
+    expect((await getEntry(db, 'workout', id))?.exercises).toHaveLength(1);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove Squat' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(await screen.findByText('No exercises yet.')).toBeOnTheScreen();
+    expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
+  });
+
+  it('D-42 an exercise’s pencil opens it to edit', async () => {
+    await startWorkout();
+    await addExercise({ name: 'Squat', sets: '3', reps: '10' });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Edit Squat' }));
+
+    expect(screen.getByRole('header', { name: 'Edit exercise' })).toBeOnTheScreen();
+  });
+
+  it('REQ-TRN-003 removing an exercise from its sheet needs no confirmation', async () => {
     const { db, id } = await startWorkout();
     await addExercise({ name: 'Squat', sets: '3', reps: '10' });
 
@@ -232,6 +258,6 @@ async function renderOfflineThenStart() {
   );
   app.server.state.offline = true;
   await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
-  await screen.findByText(/^Workout · /);
+  await screen.findByText(/^Workout \d+ · /);
   return { ...app, id: mockParams.id };
 }

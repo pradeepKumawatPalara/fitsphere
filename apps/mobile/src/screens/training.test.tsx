@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import * as client from '../api/client';
+import { getEntry } from '../local/store';
 import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
 import { TrainingScreen } from './TrainingScreen';
@@ -38,28 +39,66 @@ describe('REQ-TRN-004 workouts you have logged', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
 
-    const rows = await screen.findAllByRole('button', { name: /^(Wed 28 Oct|Mon 26 Oct): / });
+    const rows = await screen.findAllByRole('button', { name: /^(Wed 28 Oct|Mon 26 Oct), Workout \d: / });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Wed 28 Oct: No exercises',
-      'Mon 26 Oct: 2 exercises · Squat, Push-up',
+      'Wed 28 Oct, Workout 1: No exercises',
+      'Mon 26 Oct, Workout 1: 2 exercises · Squat, Push-up',
     ]);
     await fireEvent.press(rows[1]!);
     expect(mockRouter.push).toHaveBeenLastCalledWith(`/workout/${id}`);
+    await fireEvent.press(screen.getByRole('button', { name: 'Edit Workout 1 on Mon 26 Oct' }));
+    expect(mockRouter.push).toHaveBeenLastCalledWith(`/workout/${id}`);
   });
 
-  it('D-34 workouts on the same date share one card, with all their exercises; tapping asks which to open', async () => {
+  it('D-42 a date’s card offers another workout on that date, which opens new and empty', async () => {
+    const app = await renderInApp(<TrainingScreen />);
+    app.server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-26', [SQUAT]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
+    mockRouter.push.mockClear();
+
+    await screen.findByRole('button', { name: 'Mon 26 Oct, Workout 1: 1 exercise · Squat' });
+    // Each date's card has its own; the second is Mon 26 Oct's (the first, today's, from "Log workout").
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Log another workout' })[1]!);
+
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\//)));
+    const newId = (mockRouter.push.mock.calls[0]![0] as string).slice('/workout/'.length);
+    expect(newId).not.toBe('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b');
+    expect(await getEntry(app.db, 'workout', newId)).toMatchObject({ day: '2026-10-26', exercises: [] });
+  });
+
+  it('D-42 workouts on the same date share one card, each on its own row in the order started', async () => {
     const app = await renderInApp(<TrainingScreen />);
     app.server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-26', [SQUAT]);
     app.server.storeWorkoutFromElsewhere('1c8f2e3d-4b5a-4f6e-9d8c-7b6a5f4e3d2c', '2026-10-26', [PUSH_UP]);
     await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
 
-    const card = await screen.findByRole('button', { name: /^Mon 26 Oct: 2 workouts · 2 exercises · (Squat, Push-up|Push-up, Squat)$/ });
-    expect(screen.queryAllByRole('button', { name: /^Mon 26 Oct: / })).toHaveLength(1);
-    await fireEvent.press(card);
-
-    expect(screen.getByRole('header', { name: 'Workouts on Mon 26 Oct' })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: /^Workout [12] · 1 exercise · Push-up$/ }));
+    expect(await screen.findByLabelText('Mon 26 Oct: 2 workouts')).toBeOnTheScreen();
+    // Both were started at the same time here, so either may be Workout 1.
+    const rows = screen.getAllByRole('button', { name: /^Mon 26 Oct, Workout \d: / });
+    const labels = rows.map((row) => String(row.props.accessibilityLabel));
+    expect(labels.map((label) => label.slice(0, 'Mon 26 Oct, Workout 1'.length))).toEqual(['Mon 26 Oct, Workout 1', 'Mon 26 Oct, Workout 2']);
+    expect(labels.map((label) => label.split(' · ')[1]).sort()).toEqual(['Push-up', 'Squat']);
+    await fireEvent.press(screen.getByRole('button', { name: /^Mon 26 Oct, Workout \d: 1 exercise · Push-up$/ }));
     expect(mockRouter.push).toHaveBeenLastCalledWith('/workout/1c8f2e3d-4b5a-4f6e-9d8c-7b6a5f4e3d2c');
+  });
+
+  it('D-42 a workout’s bin asks first; Keep keeps it, Delete removes it from the phone and the server', async () => {
+    const app = await renderInApp(<TrainingScreen />);
+    const id = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
+    app.server.storeWorkoutFromElsewhere(id, '2026-10-26', [SQUAT]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Delete Workout 1 on Mon 26 Oct' }));
+    expect(screen.getByText('Delete Workout 1 on Mon 26 Oct? It leaves your history and your weekly count.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep' }));
+    expect(await getEntry(app.db, 'workout', id)).not.toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete Workout 1 on Mon 26 Oct' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(async () => expect(await getEntry(app.db, 'workout', id)).toBeNull());
+    await waitFor(() => expect(app.server.entries('workouts').get(id)).toMatchObject({ deleted: true }));
+    expect(screen.queryByLabelText('Mon 26 Oct: 1 workout')).toBeNull();
   });
 
   it('REQ-TRN-004 "Load older" reads the 90 days before the phone’s from the server and lists them, view-only', async () => {
@@ -70,8 +109,9 @@ describe('REQ-TRN-004 workouts you have logged', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
 
-    expect(await screen.findByLabelText('Wed 1 Jul: 1 exercise · Squat')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Wed 1 Jul: 1 exercise · Squat' })).toBeNull();
+    expect(await screen.findByLabelText('Wed 1 Jul, Workout 1: 1 exercise · Squat')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Wed 1 Jul, Workout 1: 1 exercise · Squat' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /on Wed 1 Jul$/ })).toBeNull();
     const call = server.calls.find((entry) => entry.path.endsWith('/workouts'));
     expect(call?.path).toBe(`/users/${ME.user.id}/workouts`);
   });
