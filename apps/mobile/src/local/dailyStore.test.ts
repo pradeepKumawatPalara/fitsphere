@@ -98,6 +98,11 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     data: { id: MEAL_ID, name: 'Two rotis', mealType: 'dinner', tags: [], items: [ATTA], savedAt: AT },
     stored: { name: 'Two rotis', items: [ATTA], kcal: 192 },
   },
+  myFood: {
+    key: MEAL_ID,
+    data: { id: MEAL_ID, name: 'Peanut butter bread', unit: 'slice', kcal: 180, proteinG: 6, carbsG: 20, fatG: 9, fibreG: null, savedAt: AT },
+    stored: { name: 'Peanut butter bread', unit: 'slice', kcal: 180, fibreG: null },
+  },
   profile: {
     key: 'profile',
     data: {

@@ -3,31 +3,37 @@ import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
 import { Text, TextInput } from './ui';
 
-// The grams eaten of a listed food or a barcode product (the redesign's 3.6 and 3.7): large, in a box
-// with their unit, red when they can't be added.
+// The grams eaten of a listed food or a barcode product (the redesign's 3.6 and 3.7), or the quantity
+// of a My food in its unit (D-39): large, in a box with their unit, red when they can't be added.
 export function GramsBox({
   value,
   onChangeText,
   refused,
   autoFocus = false,
+  label = 'Grams eaten',
+  unit = 'g',
+  decimal = false,
 }: {
   value: string;
   onChangeText(text: string): void;
   refused: boolean;
   autoFocus?: boolean;
+  label?: string;
+  unit?: string;
+  decimal?: boolean;
 }) {
   const styles = useStyles();
   return (
     <View style={[styles.box, refused && styles.refused]}>
       <TextInput
-        accessibilityLabel="Grams eaten"
+        accessibilityLabel={label}
         value={value}
         onChangeText={onChangeText}
-        keyboardType="number-pad"
+        keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
         autoFocus={autoFocus}
         style={styles.amount}
       />
-      <Text style={styles.unit}>g</Text>
+      <Text style={styles.unit}>{unit}</Text>
     </View>
   );
 }

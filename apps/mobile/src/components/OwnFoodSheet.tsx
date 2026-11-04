@@ -1,107 +1,213 @@
-import type { MealItem } from '@fitsphere/shared';
+import { MY_FOOD_NAME_MAX, MY_FOOD_UNITS, myFoodValueMax, type MealItem, type MyFoodUnit } from '@fitsphere/shared';
+import { Trash } from 'lucide-react-native';
 import { useState } from 'react';
-import { View, type KeyboardTypeOptions } from 'react-native';
-import { GRAMS_RULE, itemFromLabel, parseGrams, parsePer100g } from '../mealItems';
+import { Pressable, View, type KeyboardTypeOptions } from 'react-native';
+import type { LocalMyFood } from '../local/store';
+import { itemFromOwn, ownQuantityRule, parseOwnQuantity, parseOwnValue, type LabelValues } from '../mealItems';
+import { formatGrams, formatKcal, OWN_UNIT_NAMES, ownQuantityLabel } from '../meals';
+import { useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
-import { Field, Problem, Text, TextButton, TextInput, useFieldLabelStyle } from './ui';
+import { CheckBox, Field, Problem, Text, TextButton, TextInput, useChoiceStyles, useFieldLabelStyle } from './ui';
 
-// "Enter your own food" (REQ-LOG-007): the values from the label, per 100 g, and the grams eaten.
-// Works offline and with AI off; saved with this meal only (MVP default). kcal, protein, carbs and
-// fat are required, fibre optional (MVP default, D-26).
+// "Enter your own food" (REQ-LOG-007; D-39, the owner's addition, 2026-11-04): the food's unit, its
+// values from the label per 100 g or 100 ml, or for one of its other unit (a slice, a bowl…), and the
+// quantity eaten. Works offline and with AI off. kcal, protein, carbs and fat are required, fibre
+// optional (MVP default, D-26). "Save to My foods", ticked at first (MVP default), keeps it to log
+// again (REQ-LOG-011). Opened with a My food (`editing`), it changes or deletes that My food.
+
 const FIELDS = [
-  { key: 'kcal', label: 'kcal per 100 g', max: 900, required: true },
-  { key: 'proteinG', label: 'Protein per 100 g (g)', max: 100, required: true },
-  { key: 'carbsG', label: 'Carbs per 100 g (g)', max: 100, required: true },
-  { key: 'fatG', label: 'Fat per 100 g (g)', max: 100, required: true },
-  { key: 'fibreG', label: 'Fibre per 100 g (g, optional)', max: 100, required: false },
+  { key: 'kcal', name: 'kcal', nutrient: 'kcal', required: true },
+  { key: 'proteinG', name: 'Protein', nutrient: 'grams', required: true },
+  { key: 'carbsG', name: 'Carbs', nutrient: 'grams', required: true },
+  { key: 'fatG', name: 'Fat', nutrient: 'grams', required: true },
+  { key: 'fibreG', name: 'Fibre', nutrient: 'grams', required: false },
 ] as const;
 
 type Key = (typeof FIELDS)[number]['key'];
 
+/** "per 100 g", "per 100 ml" or "per slice". */
+function perText(unit: MyFoodUnit): string {
+  return unit === 'g' ? 'per 100 g' : unit === 'ml' ? 'per 100 ml' : `per ${OWN_UNIT_NAMES[unit].one}`;
+}
+
+/** The value's label, e.g. "kcal per slice", "Protein per 100 g (g)", "Fibre per slice (g, optional)". */
+function fieldLabel(field: (typeof FIELDS)[number], unit: MyFoodUnit): string {
+  if (field.key === 'kcal') return `kcal ${perText(unit)}`;
+  return `${field.name} ${perText(unit)} (g${field.required ? '' : ', optional'})`;
+}
+
+function textOf(value: number | null): string {
+  return value === null ? '' : String(value);
+}
+
 export function OwnFoodSheet({
   initialName = '',
+  editing = null,
   onAdd,
   onClose,
 }: {
   initialName?: string;
-  onAdd(item: MealItem): void;
+  /** A My food to change or delete, instead of a food to add. */
+  editing?: LocalMyFood | null;
+  onAdd?(item: MealItem): void;
   onClose(): void;
 }) {
   const styles = useStyles();
-  const [name, setName] = useState(initialName);
-  const [texts, setTexts] = useState<Record<Key, string>>({ kcal: '', proteinG: '', carbsG: '', fatG: '', fibreG: '' });
-  const [gramsText, setGramsText] = useState('');
+  const choice = useChoiceStyles();
+  const labelStyle = useFieldLabelStyle();
+  const sync = useSync();
+  const [name, setName] = useState(editing?.name ?? initialName);
+  const [unit, setUnit] = useState<MyFoodUnit>(editing?.unit ?? 'g');
+  const [texts, setTexts] = useState<Record<Key, string>>({
+    kcal: textOf(editing?.kcal ?? null),
+    proteinG: textOf(editing?.proteinG ?? null),
+    carbsG: textOf(editing?.carbsG ?? null),
+    fatG: textOf(editing?.fatG ?? null),
+    fibreG: textOf(editing?.fibreG ?? null),
+  });
+  const [quantityText, setQuantityText] = useState('');
+  const [keep, setKeep] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const values = Object.fromEntries(
-    FIELDS.map(({ key, max }) => [key, texts[key].trim() === '' ? 'empty' : (parsePer100g(texts[key], max) ?? 'invalid')]),
+    FIELDS.map(({ key, nutrient }) => [
+      key,
+      texts[key].trim() === '' ? 'empty' : (parseOwnValue(texts[key], unit, nutrient) ?? 'invalid'),
+    ]),
   ) as Record<Key, number | 'empty' | 'invalid'>;
-  const grams = parseGrams(gramsText);
-  const valid =
-    name.trim().length > 0 &&
-    name.trim().length <= 120 &&
-    grams !== null &&
-    FIELDS.every(({ key, required }) => typeof values[key] === 'number' || (!required && values[key] === 'empty'));
+  const quantity = parseOwnQuantity(quantityText, unit);
+  const valuesValid = FIELDS.every(({ key, required }) => typeof values[key] === 'number' || (!required && values[key] === 'empty'));
+  const nameValid = name.trim().length > 0 && name.trim().length <= MY_FOOD_NAME_MAX;
+  const valid = nameValid && valuesValid && (editing !== null || quantity !== null);
 
-  // Why Add waits, when no field says so already.
-  const missing =
-    name.trim() === ''
-      ? "Enter the food's name."
-      : FIELDS.some(({ key, required }) => required && values[key] === 'empty')
-        ? 'Enter kcal, protein, carbs and fat to add.'
-        : gramsText.trim() === ''
-          ? GRAMS_RULE
-          : null;
+  // Why the main button waits, when no field says so already.
+  const missing = !nameValid
+    ? "Enter the food's name."
+    : FIELDS.some(({ key, required }) => required && values[key] === 'empty')
+      ? `Enter kcal, protein, carbs and fat to ${editing ? 'save' : 'add'}.`
+      : editing === null && quantityText.trim() === ''
+        ? ownQuantityRule(unit)
+        : null;
 
-  function add() {
-    if (!valid || grams === null) return;
-    const number = (key: Key) => (typeof values[key] === 'number' ? (values[key] as number) : null);
-    onAdd(
-      itemFromLabel(
-        name,
-        { kcal: number('kcal')!, proteinG: number('proteinG')!, carbsG: number('carbsG')!, fatG: number('fatG')!, fibreG: number('fibreG') },
-        grams,
-      ),
-    );
+  function food(): { name: string; unit: MyFoodUnit } & LabelValues {
+    const number = (key: Key) => (typeof values[key] === 'number' ? values[key] : null);
+    return { name: name.trim(), unit, kcal: number('kcal')!, proteinG: number('proteinG')!, carbsG: number('carbsG')!, fatG: number('fatG')!, fibreG: number('fibreG') };
+  }
+
+  async function add() {
+    if (!valid || quantity === null) return;
+    const id = keep ? sync.newId() : null;
+    if (id) await sync.save('myFood', { id, ...food() });
+    onAdd?.(itemFromOwn(food(), quantity, id));
     onClose();
   }
 
+  async function save() {
+    if (!valid || !editing) return;
+    await sync.save('myFood', { id: editing.id, ...food() });
+    onClose();
+  }
+
+  async function remove() {
+    if (!editing) return;
+    await sync.remove('myFood', editing.id);
+    onClose();
+  }
+
+  if (editing && deleting) {
+    return (
+      <Sheet title="Delete My food" onClose={onClose}>
+        <Text style={styles.body}>Delete {editing.name} from My foods? Meals you've already logged keep it.</Text>
+        <View style={styles.actions}>
+          <View style={styles.half}>
+            <TextButton title="Keep it" outlined wide onPress={() => setDeleting(false)} />
+          </View>
+          <View style={styles.half}>
+            <TextButton title="Delete" outlined wide destructive onPress={() => void remove()} />
+          </View>
+        </View>
+      </Sheet>
+    );
+  }
+
+  const preview = editing === null && valid && quantity !== null ? itemFromOwn(food(), quantity, null) : null;
   return (
     <Sheet
-      title="Enter your own food"
+      title={editing ? 'Edit My food' : 'Enter your own food'}
       onClose={onClose}
       actions={
         <>
-          <TextButton title="Add" filled disabled={!valid} onPress={add} />
+          <TextButton title={editing ? 'Save' : 'Add'} filled disabled={!valid} onPress={() => void (editing ? save() : add())} />
           {missing ? <Text style={styles.hint}>{missing}</Text> : null}
+          {editing ? <TextButton title="Delete from My foods" icon={Trash} destructive wide onPress={() => setDeleting(true)} /> : null}
           <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
     >
-      <Text style={styles.intro}>Type the values from the label, per 100 g.</Text>
-      <Field label="Food name" value={name} onChangeText={setName} maxLength={120} autoCapitalize="sentences" />
+      <Field label="Food name" value={name} onChangeText={setName} maxLength={MY_FOOD_NAME_MAX} autoCapitalize="sentences" />
+      <View style={styles.group}>
+        <Text style={labelStyle}>Unit</Text>
+        <View accessibilityRole="radiogroup" accessibilityLabel="Unit" style={styles.units}>
+          {MY_FOOD_UNITS.map((key) => {
+            const checked = key === unit;
+            return (
+              <Pressable
+                key={key}
+                accessibilityRole="radio"
+                accessibilityLabel={`Unit: ${OWN_UNIT_NAMES[key].label}`}
+                accessibilityState={{ checked }}
+                onPress={() => setUnit(key)}
+                style={({ pressed }) => [choice.choice, styles.unitChoice, checked && choice.chosen, pressed && choice.pressed]}
+              >
+                <Text style={[choice.choiceText, styles.unitChoiceText, checked && choice.chosenText]}>{OWN_UNIT_NAMES[key].label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+      <Text style={styles.intro}>
+        {unit === 'g' || unit === 'ml' ? `Type the values from the label, ${perText(unit)}.` : `Type the values for one ${OWN_UNIT_NAMES[unit].one}.`}
+      </Text>
       <View style={styles.panel}>
-        {FIELDS.map(({ key, label, max }, index) => (
+        {FIELDS.map((field, index) => (
           <ValueRow
-            key={key}
-            label={label}
-            value={texts[key]}
-            onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
+            key={field.key}
+            label={fieldLabel(field, unit)}
+            value={texts[field.key]}
+            onChangeText={(text) => setTexts((current) => ({ ...current, [field.key]: text }))}
             keyboardType="decimal-pad"
-            problem={values[key] === 'invalid' ? `Enter 0 to ${max}, with at most one decimal.` : null}
+            problem={
+              values[field.key] === 'invalid'
+                ? `Enter 0 to ${myFoodValueMax(unit, field.nutrient).toLocaleString('en-US')}, with at most one decimal.`
+                : null
+            }
             ruled={index > 0}
           />
         ))}
       </View>
-      <ValueRow
-        label="Grams eaten"
-        value={gramsText}
-        onChangeText={setGramsText}
-        keyboardType="number-pad"
-        problem={gramsText.trim() !== '' && grams === null ? GRAMS_RULE : null}
-        unit="g"
-      />
+      {editing === null ? (
+        <>
+          <ValueRow
+            label={ownQuantityLabel(unit)}
+            value={quantityText}
+            onChangeText={setQuantityText}
+            keyboardType={unit === 'g' || unit === 'ml' ? 'number-pad' : 'decimal-pad'}
+            problem={quantityText.trim() !== '' && quantity === null ? ownQuantityRule(unit) : null}
+            unit={unit === 'g' || unit === 'ml' ? unit : OWN_UNIT_NAMES[unit].many}
+          />
+          {preview ? (
+            <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`} style={styles.preview}>
+              = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
+            </Text>
+          ) : null}
+          <View style={styles.keep}>
+            <CheckBox label="Save to My foods" checked={keep} onChange={setKeep} />
+            <Text style={styles.keepHint}>Next time, find it in Search foods.</Text>
+          </View>
+        </>
+      ) : null}
     </Sheet>
   );
 }
@@ -109,7 +215,7 @@ export function OwnFoodSheet({
 /**
  * One value: its label at the left, the number in a box at the right in condensed figures, focused in
  * caramel and red with its problem under it when it can't be used. With a `unit`, the box is larger
- * and shows it (the grams eaten).
+ * and shows it (the quantity eaten).
  */
 function ValueRow({
   label,
@@ -153,11 +259,18 @@ function ValueRow({
   );
 }
 
-// The redesign's 3.8 (locked by the owner, 2026-11-03): the values per 100 g as ruled rows on a raised
-// card, each label at the left and its number at the right; the grams eaten below in a larger box.
+// The redesign's 3.8 (locked by the owner, 2026-11-03; the unit, quantity and My foods locked
+// 2026-11-04): the unit as choice blocks that wrap; the values as ruled rows on a raised card, each
+// label at the left and its number at the right; the quantity below in a larger box with its unit;
+// then "Save to My foods". Deleting a My food asks first, keeping it on the left.
 const useStyles = themedStyles((c) => ({
   intro: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
+  body: { fontSize: 16, lineHeight: 24 },
   hint: { fontSize: 14, lineHeight: 20, color: c.inkMuted, textAlign: 'center' },
+  group: { gap: 8 },
+  units: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  unitChoice: { paddingHorizontal: 12 },
+  unitChoiceText: { fontSize: 15, letterSpacing: 0.5 },
   panel: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   row: { gap: 6 },
   rowInPanel: { paddingVertical: 8, paddingLeft: 14, paddingRight: 8 },
@@ -177,10 +290,15 @@ const useStyles = themedStyles((c) => ({
     borderColor: c.inkSubtle,
     backgroundColor: c.surfaceSunken,
   },
-  boxLarge: { width: 150, minHeight: 60, paddingHorizontal: 14 },
+  boxLarge: { width: 170, minHeight: 60, paddingHorizontal: 14 },
   focused: { borderColor: c.accent },
   refused: { borderColor: c.danger },
   value: { ...TYPE.metric, flex: 1, paddingVertical: 8, textAlign: 'right' },
   valueLarge: { fontSize: 30, lineHeight: 34 },
   unit: { ...TYPE.label, fontSize: 16, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
+  preview: { ...TYPE.metric },
+  keep: { gap: 2 },
+  keepHint: { ...TYPE.small, color: c.inkMuted, marginLeft: 34 },
+  actions: { flexDirection: 'row', gap: 10 },
+  half: { flex: 1 },
 }));

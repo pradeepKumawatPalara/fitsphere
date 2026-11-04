@@ -37,6 +37,8 @@ const KINDS = {
   'meal.delete': { list: 'meals', key: 'id' },
   'savedMeal.set': { list: 'savedMeals', key: 'id' },
   'savedMeal.delete': { list: 'savedMeals', key: 'id' },
+  'myFood.set': { list: 'myFoods', key: 'id' },
+  'myFood.delete': { list: 'myFoods', key: 'id' },
   // One profile: its data names no key, so it always takes the same slot.
   'profile.set': { list: 'profiles', key: null },
 } as const;
@@ -90,15 +92,18 @@ export function fakeServer(now: Date) {
       item = { ...rest, setByUserId: ME.user.id, setAt, updatedAt };
     } else if (type === 'setting.set' || type === 'profile.set') {
       item = { ...rest, setAt, updatedAt };
+    } else if (type === 'myFood.set') {
+      item = { deleted: false, ...data, updatedAt };
     } else if (type === 'meal.set' || type === 'savedMeal.set') {
       // The server computes the totals from the items.
       item = { deleted: false, ...(type === 'meal.set' ? { photo: null } : {}), ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
     } else if (type === 'workout.set') {
       item = { deleted: false, ...rest, recordedAt, updatedAt };
-    } else if (type === 'meal.delete' || type === 'savedMeal.delete' || type === 'workout.delete') {
+    } else if (type === 'meal.delete' || type === 'savedMeal.delete' || type === 'workout.delete' || type === 'myFood.delete') {
       const previous = stored.get(slot)?.item;
       if (!previous) return; // deleting something the server never had changes nothing
-      item = { deleted: true, id: data.id, ...(type === 'savedMeal.delete' ? {} : { day: previous.day }), updatedAt };
+      const dayless = type === 'savedMeal.delete' || type === 'myFood.delete';
+      item = { deleted: true, id: data.id, ...(dayless ? {} : { day: previous.day }), updatedAt };
     } else {
       item = { ...rest, recordedAt, updatedAt };
     }
@@ -201,6 +206,7 @@ export function fakeServer(now: Date) {
         profiles: [],
         meals: [],
         savedMeals: [],
+        myFoods: [],
         removals: [],
       };
       const changed = [...stored.entries()].filter(([, entry]) => entry.seq > after).sort((a, b) => a[1].seq - b[1].seq);

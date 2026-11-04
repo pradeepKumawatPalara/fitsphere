@@ -21,6 +21,7 @@ import {
   saveEntry,
   searchDishes,
   searchFoods,
+  searchMyFoods,
   setMeta,
 } from './store';
 
@@ -218,6 +219,7 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     kcal: 10,
     kcalEstimated: false,
     measures: [],
+    portions: [],
   });
   const LIST = [
     food('A015', 'Rice, raw, milled'),
@@ -309,7 +311,7 @@ describe('Local schema version 8', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
       expect((await searchFoods(old, 'milk')).map((found) => found.measures)).toEqual([[]]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
     } finally {
@@ -334,7 +336,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
       expect((await searchFoods(old, 'atta')).map((found) => found.code)).toEqual(['A019']);
       expect(await searchDishes(old, 'atta')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -359,10 +361,38 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 9 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
+describe('Local schema version 10', () => {
+  it('D-39 the update from version 9 adds the foods’ servings and My foods, and asks for the food list and the sync again', async () => {
+    const old = memoryDb();
+    try {
+      // Version 9 as phones have it: build it with the current migrations, then drop what 10 adds.
+      await migrateLocal(old);
+      await old.execAsync('DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; PRAGMA user_version = 9;');
+      await old.runAsync(
+        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures)
+         VALUES ('ifct2017', 'A019', 'Wheat flour, atta', 'Synthetic group', '[]', 10, 11, 1.5, 64, 320, 0, '[]')`,
+        [],
+      );
+      await setMeta(old, 'food_list_version', 'v1');
+      await setMeta(old, 'cursor', '99');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 10 });
+      expect((await searchFoods(old, 'atta')).map((found) => found.portions)).toEqual([[]]);
+      expect(await searchMyFoods(old, 'bread')).toEqual([]);
+      expect(await getMeta(old, 'food_list_version')).toBeNull();
+      expect(await getMeta(old, 'cursor')).toBeNull();
     } finally {
       await old.closeAsync();
     }

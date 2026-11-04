@@ -16,8 +16,8 @@ jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchPar
 
 const TODAY = '2026-10-28';
 const FOODS: Food[] = [
-  { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [] },
-  { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true, measures: [] },
+  { source: 'ifct2017', code: 'A019', name: 'Wheat flour, atta', foodGroup: 'Cereals and Millets', aliases: [], proteinG: 10.57, fibreG: 11.36, fatG: 1.53, carbsG: 64.17, kcal: 320, kcalEstimated: false, measures: [], portions: [] },
+  { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true, measures: [], portions: [] },
 ];
 
 type FakeServer = Parameters<NonNullable<Parameters<typeof renderInApp>[2]>>[1];
@@ -489,6 +489,7 @@ const MILK: Food = {
   kcal: 73,
   kcalEstimated: false,
   measures: [{ measure: 'glass', grams: 258 }],
+  portions: [],
 };
 
 async function withMilk(db: SqlDb, server: FakeServer) {

@@ -6,6 +6,8 @@ import {
   MEAL_SET,
   mealTotals,
   MEASUREMENTS_SET,
+  MY_FOOD_DELETE,
+  MY_FOOD_SET,
   PROFILE_SET,
   SAVED_MEAL_DELETE,
   SAVED_MEAL_SET,
@@ -25,6 +27,7 @@ import {
   type MealSetData,
   type MealTotals,
   type MeasurementsSetData,
+  type MyFoodSetData,
   type ProfileSetData,
   type SavedMealSetData,
   type SettingName,
@@ -65,6 +68,7 @@ export type EntryKind =
   | 'setting'
   | 'meal'
   | 'savedMeal'
+  | 'myFood'
   | 'profile';
 
 /** The profile's one key (REQ-ACC-011); also the owner of its photo in the photos table. */
@@ -81,6 +85,7 @@ export type ChangeData = {
   setting: SettingSetData;
   meal: MealSetData;
   savedMeal: SavedMealSetData;
+  myFood: MyFoodSetData;
   profile: ProfileSetData;
 };
 
@@ -95,6 +100,7 @@ export type LocalEntries = {
   setting: { name: SettingName; value: string; setAt: string; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
   savedMeal: SavedMealSetData & MealTotals & { syncState: SyncState };
+  myFood: MyFoodSetData & { syncState: SyncState };
   profile: ProfileSetData & { syncState: SyncState };
 };
 export type LocalWeighIn = LocalEntries['weighIn'];
@@ -107,9 +113,10 @@ export type LocalSetting = LocalEntries['setting'];
 export type LocalMeal = LocalEntries['meal'];
 export type LocalSavedMeal = LocalEntries['savedMeal'];
 export type LocalProfile = LocalEntries['profile'];
+export type LocalMyFood = LocalEntries['myFood'];
 
-/** The kinds a user can delete; each has its own delete change (meals, saved meals, workouts). */
-export type DeletableKind = 'meal' | 'savedMeal' | 'workout';
+/** The kinds a user can delete; each has its own delete change (meals, saved meals, workouts, My foods). */
+export type DeletableKind = 'meal' | 'savedMeal' | 'workout' | 'myFood';
 
 type KindSpec = {
   changeType: string;
@@ -269,6 +276,27 @@ const KINDS: Record<EntryKind, KindSpec> = {
     ],
     pullColumns: [],
     derive: deriveTotals,
+    dayData: false,
+  },
+  // My foods (D-39): foods the user entered and saved, by the ID made on the phone, kept like saved
+  // meals and never pruned. Values per 100 g or ml, or per one of the unit.
+  myFood: {
+    changeType: MY_FOOD_SET,
+    deleteType: MY_FOOD_DELETE,
+    table: 'my_foods',
+    key: 'id',
+    columns: [
+      ['id', 'id'],
+      ['name', 'name'],
+      ['unit', 'unit'],
+      ['kcal', 'kcal'],
+      ['protein_g', 'proteinG'],
+      ['carbs_g', 'carbsG'],
+      ['fat_g', 'fatG'],
+      ['fibre_g', 'fibreG'],
+      ['saved_at', 'savedAt'],
+    ],
+    pullColumns: [],
     dayData: false,
   },
   // The user's profile (REQ-ACC-011): one, kept like the settings. The address is JSON; the height
@@ -481,6 +509,23 @@ const MIGRATIONS = [
      ${SYNC_STATE}
    );
    DELETE FROM sync_meta WHERE key = 'cursor';`,
+  // More foods (D-39): each food's USDA servings as JSON, and My foods. The food list's version is
+  // cleared, so the next download brings the USDA foods, and the cursor, so the next sync pulls My
+  // foods.
+  `ALTER TABLE foods ADD COLUMN portions TEXT NOT NULL DEFAULT '[]';
+   CREATE TABLE my_foods (
+     id TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     unit TEXT NOT NULL,
+     kcal REAL NOT NULL,
+     protein_g REAL NOT NULL,
+     carbs_g REAL NOT NULL,
+     fat_g REAL NOT NULL,
+     fibre_g REAL,
+     saved_at TEXT NOT NULL,
+     ${SYNC_STATE}
+   );
+   DELETE FROM sync_meta WHERE key IN ('food_list_version', 'cursor');`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -918,6 +963,18 @@ export async function dailyNutrition(
   return Object.fromEntries(rows.map((row) => [row.day, { kcal: round(row.kcal), proteinG: round(row.protein_g) }]));
 }
 
+/** My foods whose name has every word of the search, ignoring case; names starting with the first word first (D-39). */
+export async function searchMyFoods(db: SqlDb, query: string, limit = 10): Promise<LocalMyFood[]> {
+  const words = searchWords(query);
+  if (words.length === 0) return [];
+  const rows = await db.getAllAsync<Record<string, BindValue>>(
+    `SELECT * FROM my_foods WHERE ${words.map(() => `lower(name) LIKE ? ESCAPE '\\'`).join(' AND ')}
+     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
+    [...words.map(like), startsWith(words[0]!), limit],
+  );
+  return rows.map((row) => toEntry(KINDS.myFood, row) as LocalMyFood);
+}
+
 /** Saved meals, by name (REQ-SAVED-001). */
 export async function listSavedMeals(db: SqlDb): Promise<LocalSavedMeal[]> {
   const rows = await db.getAllAsync<Record<string, BindValue>>('SELECT * FROM saved_meals ORDER BY name COLLATE NOCASE', []);
@@ -938,11 +995,13 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
       );
     }
     await db.runAsync('DELETE FROM foods', []);
-    for (const food of foods) {
+    // Many rows a statement: about 6,000 foods since USDA's (D-39), one statement each was slow.
+    for (let start = 0; start < foods.length; start += FOOD_ROWS_PER_INSERT) {
+      const batch = foods.slice(start, start + FOOD_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
+        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures, portions)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        batch.flatMap((food) => [
           food.source,
           food.code,
           food.name,
@@ -955,16 +1014,21 @@ export async function replaceFoods(db: SqlDb, version: string, foods: Food[], di
           food.kcal,
           food.kcalEstimated ? 1 : 0,
           JSON.stringify(food.measures),
-        ],
+          JSON.stringify(food.portions),
+        ]),
       );
     }
     await setMeta(db, 'food_list_version', version);
   });
 }
 
+/** Foods a statement writes when the list is replaced: 13 values each, within SQLite's 999. */
+const FOOD_ROWS_PER_INSERT = 50;
+
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in
- * the name or an alias, ignoring case; names starting with the first word come first.
+ * the name or an alias, ignoring case. IFCT's Indian foods come before USDA's (D-39); within each,
+ * names starting with the first word come first.
  */
 export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise<Food[]> {
   const words = searchWords(query);
@@ -983,9 +1047,10 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     kcal: number;
     kcal_estimated: number;
     measures: string;
+    portions: string;
   }>(
     `SELECT * FROM foods WHERE ${conditions.join(' AND ')}
-     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
+     ORDER BY source = 'usda_fndds', lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
     [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), limit],
   );
   return rows.map((row) => ({
@@ -1001,6 +1066,7 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     kcal: row.kcal,
     kcalEstimated: row.kcal_estimated === 1,
     measures: JSON.parse(row.measures) as Food['measures'],
+    portions: JSON.parse(row.portions) as Food['portions'],
   }));
 }
 

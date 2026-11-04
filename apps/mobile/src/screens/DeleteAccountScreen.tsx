@@ -16,7 +16,7 @@ const DELETED: { icon: LucideIcon; text: string }[] = [
   { icon: KeyRound, text: 'your sign-in account: your email address and password;' },
   {
     icon: ClipboardList,
-    text: 'everything you logged: weights, steps, sleep, measurements, meals and their photos, saved meals, workouts and targets;',
+    text: 'everything you logged: weights, steps, sleep, measurements, meals and their photos, saved meals, My foods, workouts and targets;',
   },
   { icon: SlidersHorizontal, text: 'your profile and its photo, your settings and your AI meal reading choices.' },
 ];

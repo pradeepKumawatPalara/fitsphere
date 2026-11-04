@@ -39,8 +39,37 @@ import { Text, TextButton, TextInput } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
-import { addAmount, amountLimit, GRAMS_RULE, gramsPerUnitOf, parseGrams, sameFood, unitsMax, withGrams, withPortions, withUnits } from '../mealItems';
-import { describeItems, formatAmount, formatGrams, formatKcal, formatMeasures, formatPortions, MEAL_TAG_LABELS, MEASURE_NAMES } from '../meals';
+import {
+  addAmount,
+  amountLimit,
+  GRAMS_RULE,
+  gramsPerUnitOf,
+  ownQuantityRule,
+  parseGrams,
+  parseOwnQuantity,
+  sameFood,
+  servingsMax,
+  unitsMax,
+  withGrams,
+  withOwnQuantity,
+  withPortions,
+  withServings,
+  withUnits,
+} from '../mealItems';
+import {
+  describeItems,
+  formatAmount,
+  formatGrams,
+  formatKcal,
+  formatMeasures,
+  formatOwnUnits,
+  formatPortions,
+  formatServings,
+  MEAL_TAG_LABELS,
+  MEASURE_NAMES,
+  OWN_UNIT_NAMES,
+  ownQuantityLabel,
+} from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -173,6 +202,8 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const totals = mealTotals(items);
   const changing = typeof sheet === 'object' && sheet !== null ? items[sheet.change] : undefined;
   const newGrams = parseGrams(gramsText);
+  // Your own food in its unit (D-39): its quantity is typed, as grams are.
+  const newQuantity = changing?.amount.unit === 'own' ? parseOwnQuantity(gramsText, changing.amount.name) : null;
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -270,7 +301,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                   accessibilityRole="button"
                   accessibilityLabel={`Change ${item.name}`}
                   onPress={() => {
-                    setGramsText(item.amount.unit === 'g' ? String(item.amount.value) : '');
+                    setGramsText(item.amount.unit === 'g' || item.amount.unit === 'own' ? String(item.amount.value) : '');
                     setPortions(item.amount.unit === 'g' ? 1 : item.amount.value);
                     setSheet({ change: index });
                   }}
@@ -372,6 +403,28 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                   },
                 ]
               : []),
+            ...(changing.amount.unit === 'serving' && portions !== changing.amount.value
+              ? [
+                  {
+                    label: `Change to ${formatServings(portions, changing.amount.label)}`,
+                    onPress: () =>
+                      setItems((current) =>
+                        current.map((item, index) => (index === (sheet as { change: number }).change ? withServings(item, portions) : item)),
+                      ),
+                  },
+                ]
+              : []),
+            ...(changing.amount.unit === 'own' && newQuantity !== null && newQuantity !== changing.amount.value
+              ? [
+                  {
+                    label: `Change to ${formatOwnUnits(newQuantity, changing.amount.name)}`,
+                    onPress: () =>
+                      setItems((current) =>
+                        current.map((item, index) => (index === (sheet as { change: number }).change ? withOwnQuantity(item, newQuantity) : item)),
+                      ),
+                  },
+                ]
+              : []),
             ...(changing.amount.unit === 'measure' && portions !== changing.amount.value
               ? [
                   {
@@ -412,6 +465,35 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                 </View>
               ) : null}
             </View>
+          ) : changing.amount.unit === 'own' ? (
+            <View style={styles.change}>
+              <View style={[styles.gramsBox, newQuantity === null && styles.gramsRefused]}>
+                <TextInput
+                  accessibilityLabel={`New ${ownQuantityLabel(changing.amount.name).toLowerCase()}`}
+                  value={gramsText}
+                  onChangeText={setGramsText}
+                  keyboardType={changing.amount.name === 'ml' ? 'number-pad' : 'decimal-pad'}
+                  style={styles.input}
+                />
+                <Text style={styles.unit}>{changing.amount.name === 'ml' ? 'ml' : OWN_UNIT_NAMES[changing.amount.name].many}</Text>
+              </View>
+              {newQuantity === null ? (
+                <View style={styles.problem}>
+                  <CircleAlert size={16} color={colors.danger} />
+                  <Text accessibilityRole="alert" style={styles.problemText}>
+                    {ownQuantityRule(changing.amount.name)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : changing.amount.unit === 'serving' ? (
+            <PortionStepper
+              value={portions}
+              onChange={setPortions}
+              max={servingsMax(gramsPerUnitOf(changing.amount))}
+              unit={{ one: changing.amount.label.toLowerCase(), many: changing.amount.label.toLowerCase() }}
+              stacked
+            />
           ) : changing.amount.unit === 'measure' ? (
             <PortionStepper
               value={portions}

@@ -1,15 +1,29 @@
-import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type FoodMeasure, type MealItem } from '@fitsphere/shared';
-import { ChevronRight, Search } from 'lucide-react-native';
+import { IFCT_ACKNOWLEDGEMENT, USDA_ACKNOWLEDGEMENT, type Dish, type Food, type FoodMeasure, type MealItem } from '@fitsphere/shared';
+import { ChevronRight, Search, SquarePen } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getMeta, searchDishes, searchFoods } from '../local/store';
-import { GRAMS_RULE, itemFromDish, itemFromFood, itemFromFoodUnits, parseGrams, unitsMax } from '../mealItems';
-import { formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, PORTION_UNIT_LABELS } from '../meals';
+import { getMeta, searchDishes, searchFoods, searchMyFoods, type LocalMyFood } from '../local/store';
+import {
+  GRAMS_RULE,
+  itemFromDish,
+  itemFromFood,
+  itemFromFoodUnits,
+  itemFromMyFood,
+  itemFromServings,
+  ownQuantityRule,
+  parseGrams,
+  parseOwnQuantity,
+  servingsMax,
+  unitsMax,
+} from '../mealItems';
+import { formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, OWN_UNIT_NAMES, ownQuantityLabel, PORTION_UNIT_LABELS } from '../meals';
+import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { GramsBox } from './GramsBox';
+import { OwnFoodSheet } from './OwnFoodSheet';
 import { PortionStepper } from './PortionStepper';
 import { Sheet } from './Sheet';
 import { Message, Problem, Text, TextButton, TextInput, useChoiceStyles } from './ui';
@@ -19,49 +33,89 @@ import { Message, Problem, Text, TextButton, TextInput, useChoiceStyles } from '
 // the household units the owner has measured for it (D-36), counted in halves; a dish (D-28) in
 // portions, from its values for one portion, which are estimated. IFCT's acknowledgement is shown
 // under the results (D-25): the dishes' values come from IFCT too.
+//
+// More foods (D-39): USDA's foods follow the Indian ones, marked "USDA", with their servings as USDA
+// labels them, counted in halves; USDA's credit is shown under IFCT's. The user's My foods come
+// between them, marked "My food", logged in their own unit; one can be edited or deleted from here.
 
-type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food };
+type Result = { kind: 'dish'; dish: Dish } | { kind: 'food'; food: Food } | { kind: 'mine'; food: LocalMyFood };
+
+/** A My food's values are per 100 g or ml, or per one of its unit: "100 g", "slice". */
+function perOne(food: LocalMyFood): string {
+  return food.unit === 'g' || food.unit === 'ml' ? `100 ${food.unit}` : OWN_UNIT_NAMES[food.unit].one;
+}
+
+/** Grams, a household unit (D-36), or the index of a USDA serving (D-39). */
+type Unit = 'g' | FoodMeasure | { serving: number };
 
 export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
   const styles = useStyles();
   const choice = useChoiceStyles();
   const { colors } = useTheme();
   const local = useLocalDatabase();
+  const { version } = useSync();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [listCached, setListCached] = useState(true);
   const [chosen, setChosen] = useState<Result | null>(null);
   const [gramsText, setGramsText] = useState('100');
   const [portions, setPortions] = useState(1);
-  const [unit, setUnit] = useState<FoodMeasure | 'g'>('g');
+  const [unit, setUnit] = useState<Unit>('g');
   const [units, setUnits] = useState(1);
+  const [editing, setEditing] = useState<LocalMyFood | null>(null);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([searchDishes(db, query), searchFoods(db, query), getMeta(db, 'food_list_version')]).then(
-      ([dishes, foods, version]) => {
+    void Promise.all([searchDishes(db, query), searchFoods(db, query), searchMyFoods(db, query), getMeta(db, 'food_list_version')]).then(
+      ([dishes, foods, mine, listVersion]) => {
         if (!active) return;
-        setResults([...dishes.map((dish): Result => ({ kind: 'dish', dish })), ...foods.map((food): Result => ({ kind: 'food', food }))]);
-        setListCached(version !== null);
+        const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
+        setResults([
+          ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+          ...listed('ifct2017'),
+          ...mine.map((food): Result => ({ kind: 'mine', food })),
+          ...listed('usda_fndds'),
+        ]);
+        setListCached(listVersion !== null);
       },
     );
     return () => {
       active = false;
     };
-  }, [local.state, query]);
+  }, [local.state, query, version]);
 
   const grams = parseGrams(gramsText);
-  const chosenUnit = chosen?.kind === 'food' ? (chosen.food.measures.find((entry) => entry.measure === unit) ?? null) : null;
+  const chosenUnit = chosen?.kind === 'food' && typeof unit === 'string' ? (chosen.food.measures.find((entry) => entry.measure === unit) ?? null) : null;
+  const chosenServing = chosen?.kind === 'food' && typeof unit === 'object' ? (chosen.food.portions[unit.serving] ?? null) : null;
+  const quantity = chosen?.kind === 'mine' ? parseOwnQuantity(gramsText, chosen.food.unit) : null;
   const preview =
     chosen?.kind === 'dish'
       ? itemFromDish(chosen.dish, portions)
-      : chosen && chosenUnit
-        ? itemFromFoodUnits(chosen.food, chosenUnit, units)
-        : chosen && grams !== null
-          ? itemFromFood(chosen.food, grams)
-          : null;
+      : chosen?.kind === 'mine'
+        ? quantity === null
+          ? null
+          : itemFromMyFood(chosen.food, quantity)
+        : chosen && chosenServing
+          ? itemFromServings(chosen.food, chosenServing, units)
+          : chosen && chosenUnit
+            ? itemFromFoodUnits(chosen.food, chosenUnit, units)
+            : chosen && grams !== null
+              ? itemFromFood(chosen.food, grams)
+              : null;
+
+  if (editing) {
+    return (
+      <OwnFoodSheet
+        editing={editing}
+        onClose={() => {
+          setEditing(null);
+          setChosen(null);
+        }}
+      />
+    );
+  }
 
   return chosen ? (
     <Sheet
@@ -91,17 +145,36 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           </Text>
           <PortionStepper value={portions} onChange={setPortions} />
         </>
+      ) : chosen.kind === 'mine' ? (
+        <>
+          <Text style={styles.body}>
+            My food · {chosen.food.unit === 'g' || chosen.food.unit === 'ml' ? `per ${perOne(chosen.food)}` : `one ${perOne(chosen.food)}`}:{' '}
+            {formatKcal(chosen.food.kcal)} · {formatGrams(chosen.food.proteinG)} protein
+          </Text>
+          <GramsBox
+            value={gramsText}
+            onChangeText={setGramsText}
+            refused={!preview}
+            autoFocus
+            label={ownQuantityLabel(chosen.food.unit)}
+            unit={chosen.food.unit === 'g' || chosen.food.unit === 'ml' ? chosen.food.unit : OWN_UNIT_NAMES[chosen.food.unit].many}
+            decimal={chosen.food.unit !== 'g' && chosen.food.unit !== 'ml'}
+          />
+        </>
       ) : (
         <>
           <Text style={styles.body}>
-            Per 100 g: {formatKcal(chosen.food.kcal)}
+            {chosen.food.source === 'usda_fndds' ? 'USDA · per 100 g' : 'Per 100 g'}: {formatKcal(chosen.food.kcal)}
             {chosen.food.kcalEstimated ? ' (estimated)' : ''} · {formatGrams(chosen.food.proteinG)} protein
           </Text>
-          {chosen.food.measures.length > 0 ? (
+          {chosen.food.measures.length + chosen.food.portions.length > 0 ? (
             <View accessibilityRole="radiogroup" accessibilityLabel="Unit" style={styles.units}>
-              {(['g', ...chosen.food.measures.map((entry) => entry.measure)] as const).map((key) => {
-                const label = key === 'g' ? 'Grams' : MEASURE_NAMES[key].one;
-                const checked = key === unit;
+              {[
+                { key: 'g', label: 'Grams', value: 'g' as Unit },
+                ...chosen.food.measures.map((entry) => ({ key: entry.measure, label: MEASURE_NAMES[entry.measure].one, value: entry.measure as Unit })),
+                ...chosen.food.portions.map((entry, index) => ({ key: `serving ${index}`, label: entry.label, value: { serving: index } as Unit })),
+              ].map(({ key, label, value }) => {
+                const checked = typeof value === 'object' ? typeof unit === 'object' && unit.serving === value.serving : value === unit;
                 return (
                   <Pressable
                     key={key}
@@ -109,7 +182,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                     accessibilityLabel={label}
                     accessibilityState={{ checked }}
                     onPress={() => {
-                      setUnit(key);
+                      setUnit(value);
                       setUnits(1);
                     }}
                     style={({ pressed }) => [choice.choice, styles.unit, checked && choice.chosen, pressed && choice.pressed]}
@@ -120,7 +193,20 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               })}
             </View>
           ) : null}
-          {chosenUnit ? (
+          {chosenServing ? (
+            <>
+              <PortionStepper
+                value={units}
+                onChange={setUnits}
+                max={servingsMax(chosenServing.grams)}
+                unit={{ one: chosenServing.label.toLowerCase(), many: chosenServing.label.toLowerCase() }}
+                stacked
+              />
+              <Text style={styles.body}>
+                One {chosenServing.label.toLowerCase()} is {formatUnitGrams(chosenServing.grams)}
+              </Text>
+            </>
+          ) : chosenUnit ? (
             <>
               <PortionStepper value={units} onChange={setUnits} max={unitsMax(chosenUnit.grams)} unit={MEASURE_NAMES[chosenUnit.measure]} />
               <Text style={styles.body}>
@@ -136,12 +222,13 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       )}
       {preview ? (
         <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`} style={styles.preview}>
-          = {preview.amount.unit === 'measure' ? `${formatUnitGrams(preview.amount.grams)} · ` : ''}
+          = {preview.amount.unit === 'measure' || preview.amount.unit === 'serving' ? `${formatUnitGrams(preview.amount.grams)} · ` : ''}
           {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
         </Text>
       ) : (
-        <Problem text={GRAMS_RULE} />
+        <Problem text={chosen.kind === 'mine' ? ownQuantityRule(chosen.food.unit) : GRAMS_RULE} />
       )}
+      {chosen.kind === 'mine' ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => setEditing(chosen.food)} /> : null}
     </Sheet>
   ) : (
     // The results scroll themselves, so the sheet's body doesn't.
@@ -164,7 +251,9 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       ) : null}
       <FlatList
         data={results}
-        keyExtractor={(result) => (result.kind === 'dish' ? `dish:${result.dish.code}` : `${result.food.source}:${result.food.code}`)}
+        keyExtractor={(result) =>
+          result.kind === 'dish' ? `dish:${result.dish.code}` : result.kind === 'mine' ? `mine:${result.food.id}` : `${result.food.source}:${result.food.code}`
+        }
         style={[styles.list, results.length > 0 && styles.listCard]}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item: result }) =>
@@ -186,10 +275,31 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               </View>
               <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
             </Pressable>
+          ) : result.kind === 'mine' ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${result.food.name}, my food, ${formatKcal(result.food.kcal)} per ${perOne(result.food)}`}
+              onPress={() => {
+                setChosen(result);
+                setGramsText(result.food.unit === 'g' || result.food.unit === 'ml' ? '100' : '1');
+              }}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+            >
+              <View style={styles.rowText}>
+                <Text style={styles.name}>{result.food.name}</Text>
+                <View style={styles.detailLine}>
+                  <Text style={[styles.mark, styles.markMine]}>My food</Text>
+                  <Text style={styles.detail}>
+                    {formatKcal(result.food.kcal)} per {perOne(result.food)}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+            </Pressable>
           ) : (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${result.food.name}, ${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
+              accessibilityLabel={`${result.food.name}, ${result.food.source === 'usda_fndds' ? 'USDA, ' : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
               onPress={() => {
                 setChosen(result);
                 setGramsText('100');
@@ -200,9 +310,12 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
             >
               <View style={styles.rowText}>
                 <Text style={styles.name}>{result.food.name}</Text>
-                <Text style={styles.detail}>
-                  {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
-                </Text>
+                <View style={styles.detailLine}>
+                  {result.food.source === 'usda_fndds' ? <Text style={styles.mark}>USDA</Text> : null}
+                  <Text style={styles.detail}>
+                    {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
+                  </Text>
+                </View>
               </View>
               <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
             </Pressable>
@@ -210,6 +323,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         }
       />
       <Text style={styles.acknowledgement}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
+      <Text style={styles.acknowledgement}>Foods marked USDA: {USDA_ACKNOWLEDGEMENT}</Text>
     </Sheet>
   );
 }
@@ -256,6 +370,20 @@ const useStyles = themedStyles((c) => ({
   rowText: { flex: 1, gap: 2 },
   pressed: { opacity: 0.6 },
   name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
-  detail: { color: c.inkMuted, fontSize: 14, lineHeight: 20 },
+  detail: { flexShrink: 1, color: c.inkMuted, fontSize: 14, lineHeight: 20 },
+  detailLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // A food's source, as a small tag: USDA in the muted ink on the sunken colour; My food in caramel.
+  mark: {
+    ...TYPE.label,
+    fontSize: 12,
+    letterSpacing: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
+    color: c.inkMuted,
+    backgroundColor: c.surfaceSunken,
+  },
+  markMine: { color: c.accent, backgroundColor: c.accentTint },
   acknowledgement: { color: c.inkMuted, fontSize: 12, lineHeight: 16 },
 }));
