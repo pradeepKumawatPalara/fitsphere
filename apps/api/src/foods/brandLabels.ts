@@ -3,10 +3,14 @@
 // read from. A row is `proposed` until the owner approves it; only approved rows reach the food list,
 // as source `brand_label`, with their serving. The whole sheet is checked first; any problem refuses
 // all of it, naming the line.
+//
+// Since D-52 a row may also come from a shop's listing of the product or from the owner's files made
+// with another AI tool, never from a model's memory; its `flag` column is empty or `scrap`, a mark
+// kept on the server only (app.foods.flag), never sent to the phone, that nothing reads yet.
 import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import { parseCsv } from './csv.ts';
 import { isCalendarDate } from './dishes.ts';
-import { FoodListError, type ImportedFood } from './ifct.ts';
+import { FOOD_FLAGS, FoodListError, type FoodFlag, type ImportedFood } from './ifct.ts';
 import { portionLabel, type ImportedPortion } from './usda.ts';
 
 export const BRAND_LABEL_SOURCE = 'brand_label';
@@ -27,6 +31,7 @@ export const BRAND_LABELS_HEADER: readonly string[] = [
   'source_url',
   'read_on',
   'notes',
+  'flag',
 ];
 
 /** `proposed`: read from the brand's page, waiting for the owner's OK, not imported. `approved`: imported. */
@@ -104,6 +109,8 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
     if (label.length > SERVING_LABEL_MAX) fail(`serving must be at most ${SERVING_LABEL_MAX} characters`);
     if (!/^https:\/\/\S+$/.test(cell.source_url!)) fail('source_url must be the https address of the brand’s page');
     if (!isCalendarDate(cell.read_on!)) fail('read_on must be a real date, as YYYY-MM-DD');
+    const flag = cell.flag!;
+    if (flag !== '' && !(FOOD_FLAGS as readonly string[]).includes(flag)) fail(`flag must be empty or ${FOOD_FLAGS.join(' or ')}`);
 
     if (cell.status === 'proposed') {
       sheet.proposed += 1;
@@ -124,6 +131,7 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
       hidden: false,
       note: null,
       aliases: [brand],
+      ...(flag === '' ? {} : { flag: flag as FoodFlag }),
     });
     if (label) sheet.portions.push({ code, seq: 1, label, grams: Number(servingGrams) });
   });

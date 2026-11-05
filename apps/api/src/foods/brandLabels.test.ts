@@ -9,7 +9,7 @@ import { FoodListError } from './ifct.ts';
 const COMMITTED = readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8');
 const HEADER = BRAND_LABELS_HEADER.join(',');
 // 4 × 0.5 + 4 × 0.5 + 9 × 80 = 724: agrees with 720 kcal.
-const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,"Per 100 g: energy 720 kcal"';
+const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,"Per 100 g: energy 720 kcal",';
 
 function sheet(...rows: string[]) {
   return readBrandLabelsSheet([HEADER, ...rows].join('\n'));
@@ -26,11 +26,17 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-49 the committed brand-labels sheet', () => {
-  it('passes every check; the owner approved its 23 rows on 2026-11-04 ("approve all")', () => {
+  it('passes every check; the owner approved its first 23 rows on 2026-11-04 and 187 more on 2026-11-06 (D-52)', () => {
     const sheet = readBrandLabelsSheet(COMMITTED);
-    expect(sheet.foods).toHaveLength(23);
+    expect(sheet.foods).toHaveLength(210);
     expect(sheet.proposed).toBe(0);
     expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
+  });
+
+  it('flags the 187 rows collected from the web as scrap, and none of the first 23 (D-52)', () => {
+    const { foods } = readBrandLabelsSheet(COMMITTED);
+    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(187);
+    expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
   });
 });
 
@@ -58,6 +64,12 @@ describe('D-49 the sheet’s rules', () => {
       portions: [{ code: 'test-dairy-butter', seq: 1, label: 'Serving', grams: 10 }],
       proposed: 1,
     });
+  });
+
+  it('carries a scrap flag to the food, and refuses any other flag (D-52)', () => {
+    expect(sheet(`${BUTTER}scrap`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'scrap' });
+    expect(sheet(BUTTER).foods[0]).not.toHaveProperty('flag');
+    expect(refused(`${BUTTER}scraped`)).toBe('Brand-labels sheet line 2: flag must be empty or scrap');
   });
 
   it('names a product once when it already starts with its brand', () => {
