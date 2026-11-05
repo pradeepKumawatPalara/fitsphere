@@ -1415,6 +1415,42 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-52 More brand labels: shops' listings and the owner's other AI tool allowed; a flag on the server
+- Status: **Accepted** (owner, in chat, 2026-11-05 and 2026-11-06).
+- Asked: "i am allowing you to get the data from the flipkart, amazon or any e commerce app. but do
+  not get the data from the model own memory" (2026-11-05); then files the owner made with another
+  AI tool; then (2026-11-06) "I approve that you must dump these rows to backend search table so
+  that when I search for it food I can find it in my search food. Leave the rest of category for
+  now. While storing the data to backend table make flag column where value will be scrap. this is
+  backend value only no need to show on the frontend. and no logic should be calculated for now".
+- Answer:
+  - **Sources of the brand-labels sheet (amends D-49):** the brand's or manufacturer's own website
+    first; when it shows no values, a shop's listing of the product (Blinkit, Flipkart, Amazon,
+    BigBasket, Swiggy Instamart, Spencer's and the like), preferably the photo of the pack's label;
+    and files the owner makes with another AI tool. **Never a model's memory.** Each row keeps the
+    page it was read from, the date and the printed text.
+  - **Approved (owner, 2026-11-06):** 187 more rows, collected on 2026-11-05 for packaged foods
+    eaten in North India: dairy (82) and flours, grains and rice (54), collected here, 69 from
+    brands' own sites and 67 from shops' photos of the pack's label; and, from the owner's other AI
+    tool, biscuits (5), masalas and spices (12), oils and fats (18), breakfast and health (12) and
+    instant noodles and pasta (4), mostly from shops' listings. Kept at the owner's word ("I need in
+    my search result"): Catch Chat Masala, whose values come from Open Food Facts, and Rajdhani
+    Besan, whose pack prints minimum and maximum limits rather than typical values. Pulses,
+    ready-to-eat foods, bread, namkeen, sweets, pickles and drinks wait, and so do the other tool's
+    further rows (kept outside the repository, in `D:\fitsphere-data\brand-labels-2026-11-05\`).
+  - **A flag kept on the server only:** a `flag` column on the sheet and on `app.foods`: `scrap` on
+    these 187 rows, empty on every other food, the first 23 brand labels included ("Leave the
+    already dumped data"). It is never sent to the phone or shown, and nothing reads it: the owner
+    decides its use later.
+  - The app's credit for "Brand label" now says the values are as printed on each product's label,
+    read from the brand's website, a shop's listing of the product or Open Food Facts.
+- Risk: R-010 and L-16 now cover shops' listings and, for one row, Open Food Facts (ODbL, L-13).
+- Doc changes: `food-list-sources.md`; the Legal brief (L-16); `constraints-and-assumptions.md`
+  (R-010); the data model; REQ-LOG-007; `CLAUDE.md`. Migration `0018_food_flag.sql`; no phone
+  schema change.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

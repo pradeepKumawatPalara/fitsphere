@@ -276,14 +276,23 @@ describe('D-47 USDA foods: kept in their archive by foods:import, not in the foo
 
 // Synthetic brand labels: made-up values, not real products'.
 describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
-  const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes';
-  const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,';
+  const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes,flag';
+  const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,,';
 
-  it('imports the approved rows of the committed sheet whole, with their servings', async () => {
+  const flags = async () =>
+    (await client.query<{ flag: string | null; n: number }>(
+      `select flag, count(*)::int as n from app.foods where source = 'brand_label' group by flag order by flag nulls first`,
+    )).rows;
+
+  it('imports the approved rows of the committed sheet whole, with their servings and their flags (D-52)', async () => {
     const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
     try {
-      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(23);
-      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(16);
+      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(210);
+      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(114);
+      expect(await flags()).toEqual([
+        { flag: null, n: 23 },
+        { flag: 'scrap', n: 187 },
+      ]);
     } finally {
       await importFoods(client, [], BRAND_LABEL_SOURCE);
     }
@@ -315,6 +324,32 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
     } finally {
       await importFoods(client, [], BRAND_LABEL_SOURCE);
     }
+  });
+
+  it('keeps a flag on the server: stored with the food, never sent to the phone (D-52)', async () => {
+    const user = await api.signUpWithAccount();
+    const labels = readBrandLabelsSheet([SHEET_HEADER, `${BUTTER}scrap`].join('\n'));
+    await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
+    try {
+      expect(await flags()).toEqual([{ flag: 'scrap', n: 1 }]);
+      const body: FoodsResponse = (await getFoods(user.token)).json();
+      const butter = body.items?.find((food) => food.code === 'test-dairy-butter');
+
+      expect(butter).toBeDefined();
+      expect(butter).not.toHaveProperty('flag');
+      expect(JSON.stringify(body)).not.toContain('scrap');
+    } finally {
+      await importFoods(client, [], BRAND_LABEL_SOURCE);
+    }
+  });
+
+  it('takes no flag but scrap (D-52)', async () => {
+    await expect(
+      client.query(
+        `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated, needs_review, hidden, flag)
+         values ('brand_label', 'test-flag', 'Test', 'Test', 1, null, 1, 1, 21, 'published', false, false, false, 'other')`,
+      ),
+    ).rejects.toThrow(/foods_flag_check/);
   });
 
   it('keeps fibre required for every other source', async () => {

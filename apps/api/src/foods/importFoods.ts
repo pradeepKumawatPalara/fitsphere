@@ -32,17 +32,18 @@ export async function importFoods(client: pg.ClientBase, foods: ImportedFood[], 
     for (const batch of batches(foods)) {
       await client.query(
         `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal,
-           kcal_source, estimated, needs_review, hidden, note, aliases)
+           kcal_source, estimated, needs_review, hidden, note, aliases, flag)
          select $1, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated,
-           needs_review, hidden, note, aliases
+           needs_review, hidden, note, aliases, flag
          from jsonb_to_recordset($2::jsonb) as row (code text, name text, food_group text, protein_g numeric,
            fibre_g numeric, fat_g numeric, carbs_g numeric, kcal numeric, kcal_source text, estimated boolean,
-           needs_review boolean, hidden boolean, note text, aliases text[])
+           needs_review boolean, hidden boolean, note text, aliases text[], flag text)
          on conflict (source, code) do update set
            name = excluded.name, food_group = excluded.food_group, protein_g = excluded.protein_g,
            fibre_g = excluded.fibre_g, fat_g = excluded.fat_g, carbs_g = excluded.carbs_g, kcal = excluded.kcal,
            kcal_source = excluded.kcal_source, estimated = excluded.estimated, needs_review = excluded.needs_review,
-           hidden = excluded.hidden, note = excluded.note, aliases = excluded.aliases, updated_at = now()`,
+           hidden = excluded.hidden, note = excluded.note, aliases = excluded.aliases, flag = excluded.flag,
+           updated_at = now()`,
         [
           source,
           JSON.stringify(
@@ -61,6 +62,7 @@ export async function importFoods(client: pg.ClientBase, foods: ImportedFood[], 
               hidden: food.hidden,
               note: food.note,
               aliases: food.aliases,
+              flag: food.flag ?? null,
             })),
           ),
         ],

@@ -52,6 +52,13 @@ export const ALIASES: Readonly<Record<string, readonly string[]>> = {
 
 export type KcalSource = 'published' | 'estimated_fat_factor';
 
+/**
+ * A mark kept on the server only (D-52): `scrap` on the brand labels collected from the web and
+ * approved by the owner on 2026-11-06. Never sent to the phone; nothing reads it yet.
+ */
+export const FOOD_FLAGS = ['scrap'] as const;
+export type FoodFlag = (typeof FOOD_FLAGS)[number];
+
 export type ImportedFood = {
   code: string;
   name: string;
@@ -70,6 +77,8 @@ export type ImportedFood = {
   hidden: boolean;
   note: string | null;
   aliases: string[];
+  /** Server only (D-52); absent for every food but a flagged brand label. */
+  flag?: FoodFlag;
 };
 
 const CODE = /^[A-T]\d{3}$/;

@@ -35,11 +35,19 @@ quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync cha
 from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
 updated API, then `foods:import`; only when the owner says so.**
 
+**More brand labels — built on branch `feat/more-brand-labels` (D-52, 2026-11-06).** 187 more rows
+approved by the owner (dairy, grains, biscuits, masalas, oils, breakfast, noodles), from brands' sites,
+shops' listings and the owner's files from another AI tool; each has `flag` `scrap`, a column kept on
+the server only (`app.foods.flag`, migration `0018_food_flag.sql`), never sent to the phone, read by
+nothing yet. No phone schema change. **On `fitsphere-dev`: migration 0018 before the updated API,
+then `foods:import`; only when the owner says so.**
+
 **Brand labels — built on branch `feat/brand-labels` (D-49, 2026-11-04).** Brands' own published
-labels in `docs/data/brand-labels-sheet.csv`, read only from the brand's or manufacturer's own
-website, each row `proposed` until the owner approves it; approved rows join the food list as source
-`brand_label`. Never approve a row without the owner's word; never fill a row from retailers, other
-apps or memory. Migration `0015_brand_labels.sql`, phone schema version 12. Risk R-010, Legal L-16.
+labels in `docs/data/brand-labels-sheet.csv`, read from the brand's or manufacturer's own website
+first, then (D-52) a shop's listing of the product or the owner's files from another AI tool, each
+row `proposed` until the owner approves it; approved rows join the food list as source
+`brand_label`. Never approve a row without the owner's word; never fill a row from a model's
+memory. Migration `0015_brand_labels.sql`, phone schema version 12. Risk R-010, Legal L-16.
 **On `fitsphere-dev`: migrations 0012 to 0015 before the updated API, then `foods:import`; only when
 the owner says so.**
 

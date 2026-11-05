@@ -278,7 +278,8 @@ describe('D-49 brands’ own labels', () => {
       'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
     ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
-    expect(screen.getByText(/^Foods marked Brand label: values as each brand publishes them/)).toBeOnTheScreen();
+    // D-52: the values may also come from a shop's listing or Open Food Facts.
+    expect(screen.getByText(/^Foods marked Brand label: values as printed on each product’s label, read from the brand’s website, a shop’s listing/)).toBeOnTheScreen();
   });
 
   it('a label with no fibre shows it as unknown, and is added by its serving', async () => {
