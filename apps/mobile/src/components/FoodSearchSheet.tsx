@@ -23,11 +23,40 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // is one tap away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT
 // too; INDB's and Open Food Facts' credits are shown with it.
 //
+// A food whose name is exactly what was typed comes first, wherever its source would list it; the
+// rest keep their order (D-51).
+//
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
 // can be edited or deleted from its page.
 
 type Result = FoodResult;
+
+/** A name or a search as compared for an exact match: lowercase, its letters and digits only, one space between words. */
+function matchKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/** The names a result answers to: a packaged food also by its brand and name together. */
+function namesOf(result: Result): string[] {
+  if (result.kind === 'dish') return [result.dish.name];
+  if (result.kind === 'packaged') return [result.food.name, `${result.food.brand ?? ''} ${result.food.name}`];
+  return [result.food.name];
+}
+
+/**
+ * The results with those named exactly as the search first ("bread" finds "Bread" above "Bread,
+ * white" and "Brown bread"), ignoring case, spaces and punctuation; the rest keep their order (D-51).
+ */
+export function exactFirst(query: string, results: readonly Result[]): Result[] {
+  const key = matchKey(query);
+  if (!key) return [...results];
+  const exact = (result: Result) => namesOf(result).some((name) => matchKey(name) === key);
+  return [...results.filter(exact), ...results.filter((result) => !exact(result))];
+}
 
 /** A My food's values are per 100 g or ml, or per one of its unit: "100 g", "slice". */
 function perOne(food: LocalMyFood): string {
@@ -61,14 +90,16 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       ([dishes, foods, mine, packaged, listVersion]) => {
         if (!active) return;
         const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
-        setResults([
-          ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
-          ...listed('indb'),
-          ...listed('ifct2017'),
-          ...mine.map((food): Result => ({ kind: 'mine', food })),
-          ...listed('brand_label'),
-          ...packaged.map((food): Result => ({ kind: 'packaged', food })),
-        ]);
+        setResults(
+          exactFirst(query, [
+            ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+            ...listed('indb'),
+            ...listed('ifct2017'),
+            ...mine.map((food): Result => ({ kind: 'mine', food })),
+            ...listed('brand_label'),
+            ...packaged.map((food): Result => ({ kind: 'packaged', food })),
+          ]),
+        );
         setListCached(listVersion !== null);
       },
     );

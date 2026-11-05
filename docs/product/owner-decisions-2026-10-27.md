@@ -1403,6 +1403,18 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-51 Search foods: an exact match first
+- Status: **Accepted** (owner, in chat, 2026-11-05, after the phone test: "When I search for any food
+  that time I want that exact matching food item at the top result. Rest of the food can be shown
+  as it is showing. Like I search for bread, the Bread shows in the middle of the result").
+- Answer: a food whose name is exactly what was typed comes first, from whichever source it is;
+  case, spaces and punctuation are ignored ("bread" finds "Bread"), and a packaged food also
+  matches by its brand and name together ("amul butter"). The other results keep their order:
+  dishes, INDB, IFCT, My foods, brand labels, then packaged foods (D-46 to D-49).
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row).
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
