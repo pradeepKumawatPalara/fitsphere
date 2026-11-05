@@ -14,12 +14,14 @@ import {
   saveEntry,
   saveWeighIn,
   searchDishes,
+  searchExercises,
   searchFoods,
   searchPackaged,
   setMeta,
   unsyncedCount,
 } from '../local/store';
-import { refreshFoodList, syncNow } from './syncClient';
+import { refreshExerciseList, refreshFoodList, syncNow } from './syncClient';
+import { sameSets, TEST_EXERCISE_LIST } from '../testing/exercises';
 
 // Wednesday 28 October 2026, 09:00 IST.
 const NOW = new Date('2026-10-28T03:30:00Z');
@@ -191,7 +193,7 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
     const at = NOW.toISOString();
     const kept = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
     const gone = '7c2a9e40-1d3b-4f5a-9e6d-2b1c0a9f8e7d';
-    const squat = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
+    const squat = sameSets('Squat', 3, 10, 40_000);
     await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b1', data: { id: kept, day: '2026-10-28', exercises: [], recordedAt: at } });
     await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b2', data: { id: kept, day: '2026-10-28', exercises: [squat], recordedAt: at } });
     await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b3', data: { id: gone, day: '2026-10-28', exercises: [], recordedAt: at } });
@@ -332,5 +334,25 @@ describe('Meal logging: the sync client', () => {
     expect(await refreshFoodList(db, auth(server))).toBe('offline');
 
     expect((await searchFoods(db, 'ghee')).map((food) => food.kcal)).toEqual([900]);
+  });
+
+  it('D-50 downloads the exercise list once, then only when its version changes, and keeps it offline', async () => {
+    const server = fakeServer(NOW);
+    server.state.exercises = TEST_EXERCISE_LIST;
+
+    expect(await refreshExerciseList(db, auth(server))).toBe('updated');
+    expect(await refreshExerciseList(db, auth(server))).toBe('current');
+    expect(server.calls.filter((call) => call.path === '/exercises')).toHaveLength(2);
+    expect((await searchExercises(db, 'plank')).map((exercise) => exercise.code)).toEqual(['plank']);
+
+    server.state.offline = true;
+    expect(await refreshExerciseList(db, auth(server))).toBe('offline');
+    expect((await searchExercises(db, 'plank')).map((exercise) => exercise.code)).toEqual(['plank']);
+
+    server.state.offline = false;
+    server.state.exercisesVersion = 'exercises-v2';
+    server.state.exercises = [];
+    expect(await refreshExerciseList(db, auth(server))).toBe('updated');
+    expect(await searchExercises(db, 'plank')).toEqual([]);
   });
 });

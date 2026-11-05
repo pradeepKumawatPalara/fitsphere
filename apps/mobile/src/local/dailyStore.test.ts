@@ -21,6 +21,7 @@ import {
   type ChangeData,
   type EntryKind,
 } from './store';
+import { sameSets } from '../testing/exercises';
 
 // Steps, sleep, measurements, targets, settings, meals and saved meals on the phone (Home and daily
 // tracking slice, step 3; Meal logging slice, step 3; Settings slice, step 3; ADR-0007 rules 1, 2
@@ -81,10 +82,10 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     data: {
       id: '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b',
       day: DAY,
-      exercises: [{ name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null }],
+      exercises: [sameSets('Squat', 3, 10, 40_000)],
       recordedAt: AT,
     },
-    stored: { day: DAY, exercises: [{ name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null }] },
+    stored: { day: DAY, exercises: [sameSets('Squat', 3, 10, 40_000)] },
   },
   target: { key: 'calories', data: { kind: 'calories', value: 2_000, setAt: AT }, stored: { value: 2_000, setByUserId: null } },
   setting: { key: 'body_weight_unit', data: { name: 'body_weight_unit', value: 'lb', setAt: AT }, stored: { value: 'lb' } },

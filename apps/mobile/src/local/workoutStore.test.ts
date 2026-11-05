@@ -18,6 +18,7 @@ import {
   saveEntry,
   setMeta,
 } from './store';
+import { sameSets } from '../testing/exercises';
 
 // Workouts on the phone (Training slice, step 2; ADR-0007 rules 1, 2 and 7; REQ-NFR-004). The
 // outbox life cycle shared with the other kinds is in dailyStore.test.ts.
@@ -25,8 +26,8 @@ import {
 const DAY = '2026-10-27';
 const AT = `${DAY}T03:00:00.000Z`;
 const LATER = `${DAY}T04:00:00.000Z`;
-const SQUAT = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
-const PUSH_UP = { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: 'Slow on the way down' };
+const SQUAT = sameSets('Squat', 3, 10, 40_000);
+const PUSH_UP = sameSets('Push-up', 2, 20, null, 'Slow on the way down');
 const ID_A = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
 const ID_B = '7c2a9e40-1d3b-4f5a-9e6d-2b1c0a9f8e7d';
 
@@ -178,7 +179,7 @@ describe('Local schema version 6', () => {
       // Version 5 as phones have it: build it with the current migrations, then drop what 6 and 7 add.
       await migrateLocal(old);
       await old.execAsync(
-        'DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; DROP TABLE workouts; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 5;',
+        'DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; DROP TABLE workouts; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 5;',
       );
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(`INSERT INTO steps VALUES ('2026-10-20', 4000, ?, 'pending')`, [AT]);
@@ -190,7 +191,7 @@ describe('Local schema version 6', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();

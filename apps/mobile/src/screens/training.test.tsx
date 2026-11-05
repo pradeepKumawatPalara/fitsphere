@@ -5,6 +5,7 @@ import { getEntry } from '../local/store';
 import { ME } from '../testing/fakes';
 import { renderInApp } from '../testing/appHarness';
 import { TrainingScreen } from './TrainingScreen';
+import { sameSets } from '../testing/exercises';
 
 // The Training tab (REQ-TRN-002, REQ-TRN-004; D-20): the empty state, "Log workout",
 // the workouts the user has logged, older ones read online (ADR-0007 rules 1 and 6), and rejected
@@ -17,8 +18,8 @@ beforeEach(() => {
   mockRouter.push.mockClear();
 });
 
-const SQUAT = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
-const PUSH_UP = { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: null };
+const SQUAT = sameSets('Squat', 3, 10, 40_000);
+const PUSH_UP = sameSets('Push-up', 2, 20, null);
 const OLD_ID = '7c2a9e40-1d3b-4f5a-9e6d-2b1c0a9f8e7d';
 
 describe('REQ-TRN-002 the Training tab', () => {

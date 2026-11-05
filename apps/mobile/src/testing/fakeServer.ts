@@ -4,6 +4,7 @@ import {
   type BarcodeProduct,
   type Dish,
   type Food,
+  type ListedExercise,
   type MealItem,
   type PackagedFood,
   type SyncResult,
@@ -16,8 +17,8 @@ import { ME } from './fakes';
 // A fake FitSphere API for app tests, with the sync rules of api-conventions: each change once,
 // the last change received wins, a future IST day is rejected, and the pull returns what changed
 // after the cursor, for every kind; a deleted meal or workout stays as `deleted: true`. It also
-// serves the food list (GET /v1/foods), barcode lookups, meal photo links with a fake storage
-// behind them, and older workouts (GET /v1/users/{id}/workouts).
+// serves the food list (GET /v1/foods), the exercise list (GET /v1/exercises), barcode lookups,
+// meal photo links with a fake storage behind them, and older workouts (GET /v1/users/{id}/workouts).
 
 type Stored = { item: Record<string, unknown>; seq: number };
 
@@ -67,6 +68,9 @@ export function fakeServer(now: Date) {
     /** The packaged foods it serves with them (D-48). */
     packaged: [] as PackagedFood[],
     foodsVersion: 'foods-v1',
+    /** The exercise list GET /v1/exercises serves (D-50), and its version. */
+    exercises: [] as ListedExercise[],
+    exercisesVersion: 'exercises-v1',
     /** Products GET /v1/barcodes/{barcode} knows; any other barcode is not found. */
     barcodes: {} as Record<string, BarcodeProduct>,
     /** Answer barcode lookups with 503, as when Open Food Facts cannot answer. */
@@ -157,6 +161,10 @@ export function fakeServer(now: Date) {
         dishes: current ? null : state.dishes,
         packaged: current ? null : state.packaged,
       });
+    }
+    if (method === 'GET' && path === '/exercises') {
+      const current = url.searchParams.get('version') === state.exercisesVersion;
+      return json(200, { version: state.exercisesVersion, items: current ? null : state.exercises });
     }
     const barcode = /^\/barcodes\/(\d+)$/.exec(path)?.[1];
     if (method === 'GET' && barcode) {

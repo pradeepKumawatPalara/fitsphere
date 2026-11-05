@@ -368,7 +368,7 @@ describe('Local schema version 8', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'milk')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -394,7 +394,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchDishes(old, 'atta')).toEqual([]);
@@ -420,7 +420,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
@@ -436,11 +436,11 @@ describe('Local schema version 12', () => {
     try {
       await migrateLocal(old);
       await setMeta(old, 'food_list_version', 'v1');
-      await old.execAsync('PRAGMA user_version = 11;');
+      await old.execAsync('DROP TABLE exercises; PRAGMA user_version = 11;');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // A brand label that gives no fibre (synthetic values).
       const label: Food = {
@@ -471,13 +471,13 @@ describe('Local schema version 11', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE packaged_foods; PRAGMA user_version = 10;');
+      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; PRAGMA user_version = 10;');
       await setMeta(old, 'food_list_version', 'v1');
       await setMeta(old, 'cursor', '99');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       expect(await searchPackaged(old, 'butter')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       expect(await getMeta(old, 'cursor')).toBe('99');
@@ -493,7 +493,7 @@ describe('Local schema version 10', () => {
     try {
       // Version 9 as phones have it: build it with the current migrations, then drop what 10 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; PRAGMA user_version = 9;');
+      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; PRAGMA user_version = 9;');
       await old.runAsync(
         `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures)
          VALUES ('ifct2017', 'A019', 'Wheat flour, atta', 'Synthetic group', '[]', 10, 11, 1.5, 64, 320, 0, '[]')`,
@@ -504,7 +504,7 @@ describe('Local schema version 10', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchMyFoods(old, 'bread')).toEqual([]);
