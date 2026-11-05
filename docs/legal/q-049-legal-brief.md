@@ -256,7 +256,8 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
     cited.
   - The journal article that publishes it (Journal of Sport and Health Science, 2024) is under CC
     BY-NC-ND 4.0, which does not allow commercial use.
-  - FitSphere copies 104 activity codes and their METs, not the Compendium's descriptions. The owner
+  - FitSphere copies 145 activity codes and their METs (104 for the list, 41 more for running's,
+    walking's and cycling's speeds), not the Compendium's descriptions. The owner
     accepted the risk for now (R-011) without asking the authors.
 - Questions: does the website's statement allow FitSphere's use, given the article's licence? Is the
   credit enough, and in the right place? Should the authors be asked (the site gives

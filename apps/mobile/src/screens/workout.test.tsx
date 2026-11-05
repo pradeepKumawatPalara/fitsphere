@@ -1,7 +1,7 @@
 import type { WorkoutSetData } from '@fitsphere/shared';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Button, Keyboard, type EmitterSubscription } from 'react-native';
-import { getEntry, saveEntry } from '../local/store';
+import { getEntry, saveEntry, saveWeighIn } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { renderInApp } from '../testing/appHarness';
 import { sameSets, withExerciseList } from '../testing/exercises';
@@ -39,7 +39,8 @@ function PickDay({ day }: { day: string }) {
   return <Button title={`Pick ${day}`} onPress={() => select(day)} />;
 }
 
-async function startWorkout(pickDay?: string) {
+/** Training and the workout screen, the test exercise list on the phone, and a weigh-in the day before when given. */
+async function startWorkout(pickDay?: string, weightGrams?: number) {
   const app = await renderInApp(
     <>
       {pickDay ? <PickDay day={pickDay} /> : null}
@@ -47,7 +48,12 @@ async function startWorkout(pickDay?: string) {
       <WorkoutScreen />
     </>,
     undefined,
-    withExerciseList,
+    async (db, server) => {
+      await withExerciseList(db, server);
+      if (weightGrams !== undefined) {
+        await saveWeighIn(db, { changeId: '00000000-0000-4000-8000-0000000000c1', day: '2026-10-27', weightGrams, recordedAt: '2026-10-27T02:00:00.000Z' });
+      }
+    },
   );
   if (pickDay) await fireEvent.press(await screen.findByRole('button', { name: `Pick ${pickDay}` }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
@@ -574,3 +580,130 @@ async function renderOfflineThenStart() {
   await screen.findByText(/^Workout \d+ · /);
   return { ...app, id: mockParams.id };
 }
+
+describe('D-50 calories burned and heart rate', () => {
+  async function run(km: string) {
+    await openSheet();
+    await pick('run', 'Running');
+    await fireEvent.changeText(screen.getByLabelText('Time, minutes'), '30');
+    await fireEvent.changeText(screen.getByLabelText('Distance in km (optional)'), km);
+  }
+
+  it('estimates a run with the Compendium value for its speed and the latest weigh-in, marked estimated', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await run('5');
+
+    expect(
+      await screen.findByText('Estimated: 9.3 MET for 10.0 km/h × 70.0 kg × 30 min. Type the number from your machine or watch to replace it.'),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('326');
+    expect(screen.getByText('estimated')).toBeOnTheScreen();
+    await save();
+
+    expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 326 kcal · estimated' })).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getAllByLabelText('326 kcal burned, estimated')).toHaveLength(2));
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ calories: { kcal: 326, estimated: true } }] }));
+  });
+
+  it('a faster run burns more', async () => {
+    await startWorkout(undefined, 70_000);
+    await run('6');
+
+    expect(await screen.findByText(/^Estimated: 11\.0 MET for 12\.0 km\/h × 70\.0 kg × 30 min/)).toBeOnTheScreen();
+    expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('385');
+  });
+
+  it('calories typed from a machine or watch replace the estimate', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await run('5');
+    await screen.findByText(/^Estimated: /);
+
+    await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '360');
+    expect(screen.getByText('As you typed it, from your machine or watch.')).toBeOnTheScreen();
+    expect(screen.queryByText('estimated')).toBeNull();
+    await save();
+
+    expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 360 kcal' })).toBeOnTheScreen();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ calories: { kcal: 360, estimated: false } }] }));
+  });
+
+  it('refuses calories out of range', async () => {
+    const { db, id } = await startWorkout(undefined, 70_000);
+    await run('5');
+    await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '5001');
+    await save();
+
+    expect(await screen.findByText(RULES.kcal)).toBeOnTheScreen();
+    expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
+  });
+
+  it('without a weigh-in, or for a name of the user’s own, there is no estimate', async () => {
+    const { server, id } = await startWorkout();
+    await run('5');
+
+    expect(await screen.findByText('Log your weight to see an estimate.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('');
+    await save();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ calories: null }] }));
+
+    await openSheet();
+    await typeName('Hill sprints');
+    expect(screen.getByText('Your own exercises have no estimate: type the number from your machine or watch.')).toBeOnTheScreen();
+  });
+
+  it('sets are estimated from the time spent, and a timed exercise from its sets’ times', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await openSheet();
+    await pick('db bench', 'Dumbbell bench press');
+    await fillSets([{ reps: '10', weight: '20' }]);
+    expect(await screen.findByText('Add the time spent to see an estimate.')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Time spent in min (optional)'), '12');
+    expect(await screen.findByText('Estimated: 3.5 MET × 70.0 kg × 12 min. Type the number from your machine or watch to replace it.')).toBeOnTheScreen();
+    await save();
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ durationSeconds: 720, calories: { kcal: 49, estimated: true } }] }),
+    );
+
+    await openSheet();
+    await pick('plank', 'Plank');
+    await fillSets([{ seconds: '60' }, { seconds: '45' }]);
+    expect(await screen.findByText('Estimated: 2.8 MET × 70.0 kg × 1:45. Type the number from your machine or watch to replace it.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('6');
+  });
+
+  it('keeps a heart rate, and refuses one out of range or a highest below the average', async () => {
+    const { server, id } = await startWorkout();
+    await openSheet();
+    await pick('yoga', 'Yoga');
+    await fireEvent.changeText(screen.getByLabelText('Time, minutes'), '45');
+    await fireEvent.changeText(screen.getByLabelText('Average heart rate'), '150');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '140');
+    await save();
+    expect(await screen.findByText(RULES.heartRateOrder)).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '251');
+    await save();
+    expect(await screen.findByText(RULES.heartRate)).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '172');
+    await save();
+    expect(await screen.findByRole('button', { name: 'Yoga: 45:00, heart rate 150 average, 172 highest' })).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ averageHeartRateBpm: 150, highestHeartRateBpm: 172 }] }),
+    );
+  });
+
+  it('the i explains the estimate with this exercise’s numbers, and credits the Compendium', async () => {
+    await startWorkout(undefined, 70_000);
+    await run('5');
+    await screen.findByText(/^Estimated: /);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'How calories are estimated' }));
+
+    expect(screen.getByText('9.3 MET × 70.0 kg × 0.5 h = 326 kcal')).toBeOnTheScreen();
+    expect(screen.getByText(/^Activity values: Herrmann SD/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByText(/^Activity values/)).toBeNull();
+  });
+});

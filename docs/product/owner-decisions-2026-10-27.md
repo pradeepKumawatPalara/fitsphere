@@ -1385,16 +1385,20 @@ checksum), and the configuration template was left as it is.*
     card do not change ("Ignore for now to merge to the Home dashboard. Let track the calories burn
     on the Training tab only").
   - Distance in km and speed in km/h only for now (MVP default).
-  - One MET each exercise, copied unchanged from the Compendium (MVP default; choosing the MET by the
-    speed typed was offered and left for later).
+  - **The faster, the more** (owner, 2026-11-05: "a person who works faster will burn calories
+    more. But this field will be editable for now so user can update"): running, jogging, walking and
+    cycling take the Compendium's activity for their speed (the typed speed, or the distance over the
+    time), from 87 speed bands; the band starting at the highest speed at or below theirs, so an
+    estimate never runs high. Other exercises have one MET each. The calories stay editable.
 - Risk: the Compendium's website allows commercial use, its journal article's licence does not
   (R-011, Legal L-17); the owner accepted it for now ("Compendium agree for now").
 - Built in two steps: the list, the types and the sets (migration `0016_exercises.sql`,
   `npm run exercises:import`, `GET /v1/exercises`, phone schema version 13); then calories burned
-  and heart rate. Takes the exercise-list half of backlog E-17, and per-set rows and duration from
+  and heart rate (migration `0017_exercise_speed_mets.sql`, `data/exercises/speed-mets.csv`, phone
+  schema version 14). Takes the exercise-list half of backlog E-17, and per-set rows and duration from
   E-14, into the MVP.
 - Doc changes: REQ-TRN-003; the data model; `constraints-and-assumptions.md` (the exercise rows,
-  R-011); the backlog (E-14, E-17, E-24 to E-26); `docs/data/exercise-list-sources.md`;
+  R-011, the calories row); the backlog (E-14, E-17, E-24 to E-26, E-26 closed); `docs/data/exercise-list-sources.md`;
   `docs/sources/README.md`; the Legal brief (L-17); the redesign plan's 4.1 to 4.3; `CLAUDE.md`.
 
 ---

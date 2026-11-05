@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { EXERCISE_LIST_HEADER, ExerciseListError, readExerciseList } from './exerciseList.ts';
+import { EXERCISE_LIST_HEADER, ExerciseListError, readExerciseList, readSpeedMets, SPEED_METS_HEADER } from './exerciseList.ts';
 
 // The exercise list (D-50): FitSphere's own names and types, with the 2024 Adult Compendium's MET.
 
 const LIST = readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8');
+const SPEEDS = readFileSync(new URL('../../../../data/exercises/speed-mets.csv', import.meta.url), 'utf8');
 const HEADER = EXERCISE_LIST_HEADER.join(',');
 const RUNNING = 'running,Running,cardio,distance_time,12145,10.5,run;outdoor run';
 
@@ -30,6 +31,7 @@ describe('D-50 the exercise list', () => {
       aliases: ['run', 'outdoor run'],
       compendiumCode: '12145',
       met: 10.5,
+      speedMets: [],
     });
     expect(list.find((exercise) => exercise.code === 'kabaddi')).toMatchObject({ compendiumCode: null, met: null, aliases: [] });
     expect(list.find((exercise) => exercise.code === 'dumbbell-bench-press')).toMatchObject({ group: 'dumbbell', logType: 'weight_reps' });
@@ -64,5 +66,38 @@ describe('D-50 the exercise list', () => {
     expect(refusal(RUNNING.replace('run;outdoor run', 'run;running'))).toBe('Line 2: the other name "running" is the name again');
     expect(refusal(RUNNING.replace('Running,', `${'x'.repeat(81)},`))).toMatch(/^Line 2: the name must be 1 to 80 characters/);
     expect(refusal(RUNNING.replace('run;outdoor run', 'run; outdoor run'))).toMatch(/^Line 2: the other name " outdoor run" must be/);
+  });
+});
+
+describe('D-50 speed bands: the faster, the more burned', () => {
+  it('gives running, walking and cycling the Compendium\u2019s activities by speed, slowest first', () => {
+    const list = readSpeedMets(SPEEDS, readExerciseList(LIST));
+    expect(list.filter((exercise) => exercise.speedMets.length > 0).map((exercise) => exercise.code).sort()).toEqual([
+      'brisk-walking',
+      'cycling',
+      'jogging',
+      'running',
+      'treadmill-running',
+      'treadmill-walking',
+      'walking',
+    ]);
+    const running = list.find((exercise) => exercise.code === 'running')!;
+    expect(running.speedMets).toHaveLength(18);
+    expect(running.speedMets[0]).toEqual({ fromKmh: 4.2, compendiumCode: '12026', met: 3.3 });
+    expect(running.speedMets.find((band) => band.compendiumCode === '12050')).toEqual({ fromKmh: 9.7, compendiumCode: '12050', met: 9.3 });
+    expect(list.find((exercise) => exercise.code === 'plank')?.speedMets).toEqual([]);
+  });
+
+  it('refuses a band for an exercise not listed or not logged with a speed, speeds that do not rise, and a bad value', () => {
+    const list = readExerciseList(LIST);
+    const header = SPEED_METS_HEADER.join(',');
+    const read = (...rows: string[]) => () => readSpeedMets([header, ...rows].join('\n'), list);
+    expect(read('moonwalking,5.0,12050,9.3')).toThrow('Speed bands, line 2: moonwalking is not in the exercise list');
+    expect(read('plank,5.0,12050,9.3')).toThrow('plank is not logged with a distance or a speed');
+    expect(read('running,6.4,12028,6.5', 'running,6.4,12029,7.8')).toThrow("running's bands must start at rising speeds");
+    expect(read('running,6,12028,6.5')).toThrow('the speed "6" must be');
+    expect(read('running,6.4,1202,6.5')).toThrow('must be 5 digits');
+    expect(read('running,6.4,12028,6.55')).toThrow('the MET "6.55"');
+    expect(() => readSpeedMets('code,speed\nrunning,6.4', list)).toThrow(ExerciseListError);
   });
 });

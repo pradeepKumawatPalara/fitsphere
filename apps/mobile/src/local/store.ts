@@ -583,6 +583,10 @@ const MIGRATIONS = [
      name_keys TEXT NOT NULL
    );
    DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
+  // Speed bands (D-50): running's, walking's and cycling's Compendium activities by speed, as JSON. The
+  // exercise list's version is cleared, so the next download brings them.
+  `ALTER TABLE exercises ADD COLUMN speed_mets TEXT NOT NULL DEFAULT '[]';
+   DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1268,6 +1272,7 @@ type ExerciseRow = {
   aliases: string;
   compendium_code: string | null;
   met: number | null;
+  speed_mets: string;
 };
 
 function toListedExercise(row: ExerciseRow): ListedExercise {
@@ -1279,11 +1284,12 @@ function toListedExercise(row: ExerciseRow): ListedExercise {
     aliases: JSON.parse(row.aliases) as string[],
     compendiumCode: row.compendium_code,
     met: row.met,
+    speedMets: JSON.parse(row.speed_mets) as ListedExercise['speedMets'],
   };
 }
 
-/** Exercises a statement writes when the list is replaced: 9 values each, within SQLite's 999. */
-const EXERCISE_ROWS_PER_INSERT = 100;
+/** Exercises a statement writes when the list is replaced: 10 values each, within SQLite's 999. */
+const EXERCISE_ROWS_PER_INSERT = 90;
 
 /** Replaces the cached exercise list (D-50) and records its version, in one transaction. */
 export async function replaceExercises(db: SqlDb, version: string, exercises: readonly ListedExercise[]): Promise<void> {
@@ -1292,8 +1298,8 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
     for (let start = 0; start < exercises.length; start += EXERCISE_ROWS_PER_INSERT) {
       const batch = exercises.slice(start, start + EXERCISE_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, search_text, name_keys)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, search_text, name_keys)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((exercise) => [
           exercise.code,
           exercise.name,
@@ -1302,6 +1308,7 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
           JSON.stringify(exercise.aliases),
           exercise.compendiumCode,
           exercise.met,
+          JSON.stringify(exercise.speedMets),
           exerciseSearchText(exercise),
           // " name other names ", so a whole key is found with LIKE '% key %' and the name's comes first.
           ` ${[exercise.name, ...exercise.aliases].map(exerciseNameKey).join(' ')} `,
@@ -1326,6 +1333,15 @@ export async function searchExercises(db: SqlDb, query: string, limit = 8): Prom
     [...words.map(like), ` ${startsWith(words[0]!)}`, limit],
   );
   return rows.map(toListedExercise);
+}
+
+/** The weight to estimate calories burned with (D-50): the latest weigh-in on or before `day`, or null. */
+export async function weighInOnOrBefore(db: SqlDb, day: IstDay): Promise<number | null> {
+  const row = await db.getFirstAsync<{ weight_grams: number }>(
+    `SELECT weight_grams FROM weigh_ins WHERE day <= ? AND sync_state != 'rejected' ORDER BY day DESC LIMIT 1`,
+    [day],
+  );
+  return row?.weight_grams ?? null;
 }
 
 /** The exercise whose name or other name is `name`, ignoring case, hyphens and doubled letters, or null. */

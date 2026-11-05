@@ -191,7 +191,7 @@ describe('Local schema version 6', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();

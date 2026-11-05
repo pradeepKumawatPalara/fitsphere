@@ -1060,10 +1060,15 @@ export type ExerciseGroup = (typeof EXERCISE_GROUPS)[number];
 export const EXERCISE_LOG_TYPES = ['weight_reps', 'reps', 'time', 'weight_time', 'distance_time', 'treadmill', 'cardio_machine', 'time_only'] as const;
 export type ExerciseLogType = (typeof EXERCISE_LOG_TYPES)[number];
 
+/** One of an exercise's speed bands: the Compendium activity done from `fromKmh` up to the next band. */
+export const speedMetSchema = z.object({ fromKmh: z.number(), compendiumCode: z.string(), met: z.number() });
+export type SpeedMet = z.infer<typeof speedMetSchema>;
+
 /**
  * One exercise of FitSphere's list. `met` is the 2024 Adult Compendium of Physical Activities' value
  * for its activity `compendiumCode`, unchanged; both are null when the Compendium lists no such
- * activity, and then no calories are estimated.
+ * activity, and then no calories are estimated. Running, walking and cycling also have `speedMets`,
+ * the Compendium's activities by speed, slowest first: the faster, the more burned (D-50).
  */
 export const listedExerciseSchema = z.object({
   code: z.string(),
@@ -1074,8 +1079,27 @@ export const listedExerciseSchema = z.object({
   aliases: z.array(z.string()),
   compendiumCode: z.string().nullable(),
   met: z.number().nullable(),
+  speedMets: z.array(speedMetSchema).default([]),
 });
 export type ListedExercise = z.infer<typeof listedExerciseSchema>;
+
+/**
+ * The Compendium activity and MET an exercise is estimated with at `speedKmh` (D-50): the speed band
+ * starting at the highest speed at or below it (the slowest band below them all), or the exercise's
+ * own when its speed is not known or it has no bands; null when it has no MET.
+ */
+export function exerciseMet(
+  exercise: Pick<ListedExercise, 'compendiumCode' | 'met' | 'speedMets'>,
+  speedKmh: number | null,
+): { compendiumCode: string; met: number; speedKmh: number | null } | null {
+  const [slowest] = exercise.speedMets;
+  if (speedKmh !== null && slowest) {
+    const band = exercise.speedMets.filter((each) => each.fromKmh <= speedKmh).at(-1) ?? slowest;
+    return { compendiumCode: band.compendiumCode, met: band.met, speedKmh };
+  }
+  if (exercise.compendiumCode === null || exercise.met === null) return null;
+  return { compendiumCode: exercise.compendiumCode, met: exercise.met, speedKmh: null };
+}
 
 /** `version`: the list the phone already holds; the items are left out when it is current. */
 export const exercisesQuerySchema = foodsQuerySchema;

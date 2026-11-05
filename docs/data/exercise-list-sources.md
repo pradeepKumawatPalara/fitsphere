@@ -4,8 +4,9 @@
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-05 (D-50)
 - Data: [`data/exercises/exercise-list.csv`](../../data/exercises/exercise-list.csv), 334 exercises
-- Loaded by: `npm run exercises:import -w @fitsphere/api` into `app.exercises` (migration 0016); served
-  by `GET /v1/exercises`
+- Loaded by: `npm run exercises:import -w @fitsphere/api` into `app.exercises` (migration 0016), with
+  [`data/exercises/speed-mets.csv`](../../data/exercises/speed-mets.csv) into `app.exercise_speed_mets`
+  (migration 0017); served by `GET /v1/exercises`
 
 ## The list
 FitSphere's own list, written for FitSphere on 2026-11-05 at the owner's request (D-50) from the
@@ -73,13 +74,92 @@ How an exercise's activity was chosen:
 - Cardio, classes, yoga, dance and sports: the activity of the same name; running at a
   self-selected pace (12145); walking at a self-selected speed (17255); treadmill walking at 5.6 to
   6.3 km/h (17358).
-- One MET each exercise, whatever the speed typed (MVP default, D-50; backlog E-26).
+- Running, jogging, walking and cycling: by speed, below (the owner, 2026-11-05: "a person who works
+  faster will burn calories more"). Every other exercise has one MET.
 - Kabaddi and kho-kho: the Compendium lists neither, so they have no MET, and calories are only
   typed.
 
 How it was checked (2026-11-05): the PDF's table was read row by row (1,100 activities; the last
 running row, 12620, ran into the next heading's rows when read and is not used); every code and MET
 in the list was compared with it and matched; the import's own checks passed.
+
+## Speed bands: the faster, the more
+`data/exercises/speed-mets.csv` gives running, jogging, treadmill running, walking, brisk walking,
+treadmill walking and outdoor cycling the Compendium's activities by speed, 87 rows: `exercise_code`,
+`from_kmh`, `compendium_code`, `met`. The Compendium gives speeds in mph; `from_kmh` is the lowest
+speed an activity covers, × 1.609344, to one decimal ("less than" rows start at 0). The speed is the
+one typed on a treadmill, or the distance over the time.
+
+An exercise at a speed takes the band starting at the highest speed at or below it, so between two
+of the Compendium's speeds it takes the slower one's MET and an estimate never runs high; below every
+band, the slowest. With no speed (no distance or speed typed), the exercise's own MET above is used.
+Running bands use the Compendium's running rows (12026 jogging to 12135), walking its level, firm
+surface walking rows, treadmill walking its 0 % grade treadmill rows, cycling its leisure and racing
+rows by mph. Incline is not used. Values not interpolated, METs unchanged. Checked against the PDF's
+table like the list.
+
+For `running`, `jogging`, `treadmill-running`:
+
+| From km/h | Code | MET | Page |
+|---|---|---|---|
+| 4.2 | 12026 | 3.3 | 15 |
+| 6.4 | 12028 | 6.5 | 15 |
+| 6.9 | 12029 | 7.8 | 15 |
+| 8.0 | 12030 | 8.5 | 15 |
+| 8.9 | 12045 | 9.0 | 15 |
+| 9.7 | 12050 | 9.3 | 15 |
+| 10.8 | 12060 | 10.5 | 15 |
+| 11.3 | 12070 | 11.0 | 15 |
+| 12.1 | 12080 | 11.8 | 15 |
+| 12.9 | 12090 | 12.0 | 15 |
+| 13.8 | 12100 | 12.5 | 15 |
+| 14.5 | 12110 | 13.0 | 15 |
+| 15.0 | 12115 | 14.8 | 15 |
+| 16.1 | 12120 | 14.8 | 15 |
+| 17.7 | 12130 | 16.8 | 15 |
+| 19.3 | 12132 | 18.5 | 15 |
+| 20.9 | 12134 | 19.8 | 15 |
+| 22.5 | 12135 | 23.0 | 15 |
+
+For `walking`, `brisk-walking`:
+
+| From km/h | Code | MET | Page |
+|---|---|---|---|
+| 0.0 | 17151 | 2.3 | 22 |
+| 3.2 | 17152 | 2.8 | 22 |
+| 4.0 | 17170 | 3.0 | 22 |
+| 4.5 | 17190 | 3.8 | 22 |
+| 5.6 | 17200 | 4.8 | 22 |
+| 6.4 | 17220 | 5.5 | 22 |
+| 7.2 | 17230 | 7.0 | 22 |
+| 8.0 | 17231 | 8.5 | 22 |
+
+For `treadmill-walking`:
+
+| From km/h | Code | MET | Page |
+|---|---|---|---|
+| 0.0 | 17340 | 2.1 | 23 |
+| 1.6 | 17343 | 2.3 | 23 |
+| 1.9 | 17346 | 2.8 | 23 |
+| 3.2 | 17349 | 3.0 | 23 |
+| 4.0 | 17352 | 3.5 | 23 |
+| 4.8 | 17355 | 3.8 | 23 |
+| 5.6 | 17358 | 4.8 | 23 |
+| 6.4 | 17361 | 5.8 | 23 |
+| 7.2 | 17364 | 6.8 | 23 |
+| 8.0 | 17367 | 8.3 | 23 |
+
+For `cycling`:
+
+| From km/h | Code | MET | Page |
+|---|---|---|---|
+| 0.0 | 01018 | 3.5 | 1 |
+| 15.1 | 01019 | 5.8 | 1 |
+| 16.1 | 01020 | 6.8 | 1 |
+| 19.3 | 01030 | 8.0 | 1 |
+| 22.5 | 01040 | 10.0 | 1 |
+| 25.7 | 01050 | 12.0 | 1 |
+| 32.2 | 01060 | 16.8 | 1 |
 
 ## The codes the list uses
 | Code | MET | Page | Exercises |

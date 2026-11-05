@@ -8,7 +8,7 @@ import {
   type WorkoutsPage,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { Calendar, ChevronDown, ClipboardList, ClockArrowDown, Plus, SquarePen, Trash, WifiOff } from 'lucide-react-native';
+import { Calendar, ChevronDown, ClipboardList, ClockArrowDown, Flame, Plus, SquarePen, Trash, WifiOff } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { callApi } from '../api/client';
@@ -18,14 +18,14 @@ import { CalendarSheet } from '../components/CalendarSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { Banner, IconButton, Text, TextButton } from '../components/ui';
-import { formatDay } from '../format';
+import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { workoutSummary } from '../workouts';
+import { caloriesBurned, workoutSummary } from '../workouts';
 
 const CHUNK_DAYS = 90;
 
@@ -175,6 +175,8 @@ export function TrainingScreen() {
           // Older workouts are read from the server and only viewed (MVP default, D-29).
           const viewOnly = workouts.every((workout) => workout.syncState === null);
           const [weekday, date, month] = formatDay(day).split(' ');
+          // The day's calories burned, typed or estimated (D-50; Training only, not Home).
+          const burned = caloriesBurned(workouts.flatMap((workout) => workout.exercises));
           return (
             <View
               accessibilityLabel={`${formatDay(day)}: ${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}`}
@@ -232,6 +234,19 @@ export function TrainingScreen() {
                     </View>
                   );
                 })}
+                {burned ? (
+                  <View
+                    accessible
+                    accessibilityLabel={`${formatInteger(burned.kcal)} kcal burned${burned.estimated ? ', estimated' : ''}`}
+                    style={[styles.noteLine, styles.burnedLine]}
+                  >
+                    <Flame size={16} color={colors.accent} />
+                    <Text style={styles.burned}>
+                      <Text style={styles.burnedValue}>{formatInteger(burned.kcal)}</Text> kcal burned
+                      {burned.estimated ? <Text style={styles.summary}> · estimated</Text> : null}
+                    </Text>
+                  </View>
+                ) : null}
                 {viewOnly ? null : (
                   <TextButton title="Log another workout" icon={Plus} disabled={starting} onPress={() => void start(day)} />
                 )}
@@ -321,6 +336,9 @@ const useStyles = themedStyles((c) => ({
   rowText: { flex: 1, minWidth: 0, gap: 2 },
   name: { ...TYPE.metric, fontSize: 17, lineHeight: 20, letterSpacing: 0.5, textTransform: 'uppercase' },
   summary: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  burnedLine: { paddingTop: 6, paddingBottom: 2, borderTopWidth: 1, borderTopColor: c.border },
+  burned: { fontSize: 14, lineHeight: 20 },
+  burnedValue: { ...TYPE.metric, fontSize: 17, lineHeight: 20 },
   noteLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.inkMuted },
   dotProblem: { backgroundColor: c.danger },

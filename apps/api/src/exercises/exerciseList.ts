@@ -1,8 +1,9 @@
 // FitSphere's exercise list (D-50; docs/data/exercise-list-sources.md): data/exercises/exercise-list.csv,
 // each exercise with its code, name, the group shown beside it, how it is logged, the 2024 Adult
 // Compendium of Physical Activities' activity code and MET when the Compendium lists the activity, and
-// other names to search by. The whole file is checked first; any problem refuses all of it, naming the
-// line. The import replaces app.exercises whole, in one transaction.
+// other names to search by; and data/exercises/speed-mets.csv, the Compendium's activities by speed for
+// running, walking and cycling. Each file is checked whole first; any problem refuses all of it, naming
+// the line. The import replaces app.exercises and app.exercise_speed_mets whole, in one transaction.
 import {
   EXERCISE_GROUPS,
   EXERCISE_LOG_TYPES,
@@ -16,11 +17,14 @@ import type pg from 'pg';
 import { parseCsv } from '../foods/csv.ts';
 
 export const EXERCISE_LIST_HEADER: readonly string[] = ['code', 'name', 'group', 'log_type', 'compendium_code', 'met', 'aliases'];
+export const SPEED_METS_HEADER: readonly string[] = ['exercise_code', 'from_kmh', 'compendium_code', 'met'];
 
 const CODE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const COMPENDIUM_CODE = /^\d{5}$/;
 /** A MET as the Compendium prints it, with one decimal. */
 const MET = /^\d{1,2}\.\d$/;
+/** A speed in km/h, with one decimal. */
+const KMH = /^\d{1,2}\.\d$/;
 
 export class ExerciseListError extends Error {
   constructor(message: string) {
@@ -77,12 +81,43 @@ export function readExerciseList(text: string): ListedExercise[] {
       aliases,
       compendiumCode: compendiumCode === '' ? null : compendiumCode,
       met: met === '' ? null : Number(met),
+      speedMets: [],
     });
   });
   return exercises;
 }
 
-/** Replaces app.exercises with the list, in one transaction; returns how many were imported. */
+/**
+ * Reads the speed bands and gives `exercises` with theirs: each band names a listed exercise logged with
+ * a distance or a treadmill's speed, and an exercise's bands start at rising speeds, the first at 0 or
+ * more. Any problem refuses the whole file.
+ */
+export function readSpeedMets(text: string, exercises: readonly ListedExercise[]): ListedExercise[] {
+  const [header, ...rows] = parseCsv(text);
+  if (header?.join(',') !== SPEED_METS_HEADER.join(',')) {
+    throw new ExerciseListError(`The speed bands' header must be: ${SPEED_METS_HEADER.join(',')}`);
+  }
+  const bands = new Map<string, ListedExercise['speedMets']>();
+  rows.forEach((fields, index) => {
+    const refuse = (problem: string): never => {
+      throw new ExerciseListError(`Speed bands, line ${index + 2}: ${problem}`);
+    };
+    if (fields.length !== SPEED_METS_HEADER.length) refuse(`${fields.length} fields, not ${SPEED_METS_HEADER.length}`);
+    const [code, fromKmh, compendiumCode, met] = fields as [string, string, string, string];
+    const exercise = exercises.find((each) => each.code === code);
+    if (!exercise) refuse(`${code} is not in the exercise list`);
+    if (exercise?.logType !== 'distance_time' && exercise?.logType !== 'treadmill') refuse(`${code} is not logged with a distance or a speed`);
+    if (!KMH.test(fromKmh)) refuse(`the speed "${fromKmh}" must be a number of km/h with one decimal`);
+    if (!COMPENDIUM_CODE.test(compendiumCode)) refuse(`the Compendium code "${compendiumCode}" must be 5 digits`);
+    if (!MET.test(met) || Number(met) <= 0) refuse(`the MET "${met}" must be a number above 0 with one decimal`);
+    const list = bands.get(code) ?? [];
+    if (list.length > 0 && Number(fromKmh) <= list.at(-1)!.fromKmh) refuse(`${code}'s bands must start at rising speeds`);
+    bands.set(code, [...list, { fromKmh: Number(fromKmh), compendiumCode, met: Number(met) }]);
+  });
+  return exercises.map((exercise) => ({ ...exercise, speedMets: bands.get(exercise.code) ?? [] }));
+}
+
+/** Replaces app.exercises with the list and app.exercise_speed_mets with its bands, in one transaction; returns how many exercises were imported. */
 export async function importExercises(client: pg.ClientBase, exercises: readonly ListedExercise[]): Promise<number> {
   await client.query('begin');
   try {
@@ -103,6 +138,23 @@ export async function importExercises(client: pg.ClientBase, exercises: readonly
             compendium_code: exercise.compendiumCode,
             met: exercise.met,
           })),
+        ),
+      ],
+    );
+    await client.query(
+      `insert into app.exercise_speed_mets (exercise_code, from_kmh, compendium_code, met)
+       select exercise_code, from_kmh, compendium_code, met
+       from jsonb_to_recordset($1::jsonb) as row (exercise_code text, from_kmh numeric, compendium_code text, met numeric)`,
+      [
+        JSON.stringify(
+          exercises.flatMap((exercise) =>
+            exercise.speedMets.map((band) => ({
+              exercise_code: exercise.code,
+              from_kmh: band.fromKmh,
+              compendium_code: band.compendiumCode,
+              met: band.met,
+            })),
+          ),
         ),
       ],
     );

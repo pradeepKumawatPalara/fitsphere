@@ -1,15 +1,18 @@
-import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { Plus, Search, Trash } from 'lucide-react-native';
+import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
+import { Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, View, type TextInputProps } from 'react-native';
 import { parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { findListedExercise, searchExercises } from '../local/store';
+import { findListedExercise, searchExercises, weighInOnOrBefore } from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import {
+  caloriesHelp,
+  effortOf,
   EMPTY_EXERCISE,
+  estimateCalories,
   exerciseLayout,
   GROUP_LABELS,
   LOG_AS,
@@ -30,6 +33,8 @@ import { IconButton, Problem, Text, TextButton, TextInput, useChoiceStyles, useF
 
 type Props = {
   title: string;
+  /** The workout's day: its calories are estimated with the latest weigh-in on or before it. */
+  day: IstDay;
   /** The exercise being edited, or null for a new one. */
   editing: WorkoutExercise | null;
   onSave(exercise: WorkoutExercise): Promise<void>;
@@ -45,6 +50,15 @@ const CARDIO_FIELDS: Record<CardioField, { label: string; unit: string; keyboard
   level: { label: 'Level (optional)', unit: '', keyboard: 'number-pad' },
 };
 
+/** The Compendium's citation, as its website asks (D-50; R-011). */
+const COMPENDIUM_CREDIT =
+  'Activity values: Herrmann SD, Willis EA, Ainsworth BE, et al. 2024 Adult Compendium of Physical Activities: a third update of the energy costs of human activities. Journal of Sport and Health Science, 2024;13(1):6–12. pacompendium.com';
+
+/** e.g. 0.5, 0.75: hours as the estimate's formula reads them. */
+function hours(seconds: number): string {
+  return String(Number((seconds / 3600).toFixed(2)));
+}
+
 /** A set's column as its header and its fields' names read it. */
 function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit): string {
   const label = column === 'reps' ? 'Reps' : column === 'weight' ? `Weight in ${unit}` : 'Time in sec';
@@ -59,7 +73,7 @@ function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit)
 // weight and time; Add set copies the last. Weights are in the lifting-weight unit setting
 // (REQ-TRN-005, REQ-ACC-002). Nothing is saved until every field is valid; Cancel closes without
 // saving (as Q-029).
-export function ExerciseSheet({ title, editing, onSave, onRemove, onClose }: Props) {
+export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const choice = useChoiceStyles();
@@ -75,6 +89,20 @@ export function ExerciseSheet({ title, editing, onSave, onRemove, onClose }: Pro
   const [picked, setPicked] = useState(false);
   const [problems, setProblems] = useState<ExerciseProblems>({ refused: [] });
   const [busy, setBusy] = useState(false);
+  // The weight calories are estimated with, and the i's explanation open (D-50).
+  const [weightGrams, setWeightGrams] = useState<number | null>(null);
+  const [explaining, setExplaining] = useState(false);
+
+  useEffect(() => {
+    if (local.state.status !== 'ready') return;
+    let active = true;
+    void weighInOnOrBefore(local.state.db, day).then((grams) => {
+      if (active) setWeightGrams(grams);
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state, day]);
 
   // Closing the keyboard ends the search, so the fields show for a name of the user's own: Android's
   // back button closes it without leaving the name field.
@@ -105,6 +133,8 @@ export function ExerciseSheet({ title, editing, onSave, onRemove, onClose }: Pro
   const layout = exerciseLayout(match, text.logAs, editing);
   const named = text.name.trim() !== '';
   const choosing = typingName && matches.length > 0;
+  const estimated = estimateCalories(match, effortOf(text, layout), weightGrams);
+  const estimate = 'estimate' in estimated ? estimated.estimate : null;
 
   function change(fields: Partial<ExerciseText>) {
     setText((current) => ({ ...current, ...fields }));
@@ -130,7 +160,7 @@ export function ExerciseSheet({ title, editing, onSave, onRemove, onClose }: Pro
   }
 
   function save() {
-    const parsed = parseExercise(text, layout, unit, editing);
+    const parsed = parseExercise(text, layout, unit, estimated, editing);
     if ('problems' in parsed) {
       setProblems(parsed.problems);
       return;
@@ -306,6 +336,56 @@ export function ExerciseSheet({ title, editing, onSave, onRemove, onClose }: Pro
               ))}
             </>
           )}
+
+          <View style={styles.rule} />
+          {layout.kind === 'sets' ? (
+            <View style={styles.field}>
+              <Text style={labelStyle}>Time spent in min (optional)</Text>
+              <Box
+                accessibilityLabel="Time spent in min (optional)"
+                value={text.spentMinutes}
+                onChangeText={(spentMinutes) => change({ spentMinutes })}
+                keyboardType="number-pad"
+                unit="min"
+                refused={problems.spent !== undefined}
+              />
+              {problems.spent ? <Problem text={problems.spent} /> : <Text style={styles.help}>Used only to estimate the calories burned.</Text>}
+            </View>
+          ) : null}
+          <View style={styles.field}>
+            <View style={styles.labelRow}>
+              <Text style={labelStyle}>Calories burned (optional)</Text>
+              <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
+                <Info size={22} color={colors.accent} />
+              </IconButton>
+            </View>
+            <Box
+              accessibilityLabel="Calories burned (optional)"
+              value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
+              onChangeText={(kcal) => change({ kcal })}
+              keyboardType="number-pad"
+              unit="kcal"
+              {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
+              refused={problems.kcal !== undefined}
+            />
+            {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.help}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
+          </View>
+          <View style={styles.pair}>
+            {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
+              <View key={key} style={[styles.field, styles.half]}>
+                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate' : 'Highest heart rate'}</Text>
+                <Box
+                  accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate' : 'Highest heart rate'}
+                  value={text[key]}
+                  onChangeText={(value) => change({ [key]: value })}
+                  keyboardType="number-pad"
+                  unit="bpm"
+                  refused={problems[key] !== undefined}
+                />
+              </View>
+            ))}
+          </View>
+          {problems.averageHeartRate || problems.highestHeartRate ? <Problem text={(problems.averageHeartRate ?? problems.highestHeartRate)!} /> : null}
         </>
       ) : null}
 
@@ -315,6 +395,27 @@ export function ExerciseSheet({ title, editing, onSave, onRemove, onClose }: Pro
         {problems.note ? <Problem text={problems.note} /> : null}
       </View>
       {onRemove ? <TextButton title="Remove exercise" destructive icon={Trash} disabled={busy} onPress={() => void run(onRemove)} /> : null}
+      {explaining ? (
+        <Sheet title="Calories burned" onClose={() => setExplaining(false)} actions={<TextButton title="Close" wide onPress={() => setExplaining(false)} />}>
+          <Text style={styles.body}>
+            FitSphere estimates the calories an exercise burns as its activity value (MET) × your weight in kg × the time in hours.
+          </Text>
+          {estimate ? (
+            <View style={styles.example}>
+              <Text style={styles.help}>{text.name.trim()}</Text>
+              <Text style={styles.formula}>
+                {`${estimate.met.toFixed(1)} MET × ${(estimate.weightGrams / 1000).toFixed(1)} kg × ${hours(estimate.seconds)} h = ${estimate.kcal} kcal`}
+              </Text>
+            </View>
+          ) : null}
+          <Text style={styles.body}>
+            Running, walking and cycling use the activity value for their speed: the faster, the more. Your weight is your latest weigh-in on
+            or before the workout&apos;s day. A MET is the average for an activity, not for you, so the estimate is a guide: the number from
+            your machine or watch replaces it. Exercises without an activity value, such as your own, have no estimate.
+          </Text>
+          <Text style={styles.help}>{COMPENDIUM_CREDIT}</Text>
+        </Sheet>
+      ) : null}
     </Sheet>
   );
 }
@@ -379,16 +480,20 @@ function AverageSpeed({ text }: { text: ExerciseText }) {
   return <Text style={styles.help}>Average speed {speedAndPace(Math.round(km * 1000), total)}</Text>;
 }
 
-/** A sunken box for one value, its unit after it; the outline caramel while typing and red when refused. */
+/**
+ * A sunken box for one value, its unit after it, and a `mark` such as "estimated" before the unit; the
+ * outline caramel while typing and red when refused.
+ */
 function Box({
   unit,
+  mark,
   refused,
   compact = false,
   note = false,
   onFocus,
   onBlur,
   ...input
-}: { unit?: string; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
+}: { unit?: string; mark?: string; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
   const styles = useStyles();
   const [focused, setFocused] = useState(false);
   return (
@@ -405,6 +510,7 @@ function Box({
         style={[styles.value, !note && styles.number, note && styles.note]}
         {...input}
       />
+      {mark ? <Text style={styles.help}>{mark}</Text> : null}
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
     </View>
   );
@@ -464,4 +570,10 @@ const useStyles = themedStyles((c) => ({
   binSpace: { width: 40 },
   addSet: { alignItems: 'flex-start' },
   pair: { flexDirection: 'row', gap: 12 },
+  half: { flex: 1 },
+  rule: { height: 1, backgroundColor: c.border },
+  labelRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: -10 },
+  body: { fontSize: 15, lineHeight: 22 },
+  example: { gap: 2, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.surfaceSunken },
+  formula: { ...TYPE.metric, fontVariant: ['tabular-nums'] },
 }));

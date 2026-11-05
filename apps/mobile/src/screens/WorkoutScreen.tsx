@@ -1,20 +1,20 @@
 import { MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Dumbbell, Plus, SquarePen, Trash } from 'lucide-react-native';
+import { Dumbbell, Flame, Plus, SquarePen, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { IconButton, Text, TextButton } from '../components/ui';
-import { formatDay } from '../format';
+import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listEntries, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { exerciseLines } from '../workouts';
+import { caloriesBurned, exerciseLines } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
 type Sheet = { index: number | null };
@@ -75,6 +75,7 @@ export function WorkoutScreen() {
   const { syncState, ...saved } = workout;
   const saveExercises = (exercises: WorkoutExercise[]) => sync.save('workout', { ...saved, exercises });
   const editing = sheet?.index === null || sheet?.index === undefined ? null : workout.exercises[sheet.index];
+  const burned = caloriesBurned(workout.exercises);
 
   async function deleteWorkout() {
     await sync.remove('workout', id);
@@ -92,6 +93,15 @@ export function WorkoutScreen() {
             <View style={styles.noteLine}>
               <View style={styles.dot} />
               <Text style={styles.syncNote}>Waiting to sync</Text>
+            </View>
+          ) : null}
+          {burned ? (
+            <View accessible accessibilityLabel={`${formatInteger(burned.kcal)} kcal burned${burned.estimated ? ', estimated' : ''}`} style={styles.noteLine}>
+              <Flame size={18} color={colors.accent} />
+              <Text style={styles.burned}>
+                <Text style={styles.burnedValue}>{formatInteger(burned.kcal)}</Text> kcal burned
+                {burned.estimated ? <Text style={styles.muted}> · estimated</Text> : null}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -165,6 +175,7 @@ export function WorkoutScreen() {
       {sheet ? (
         <ExerciseSheet
           title={editing ? 'Edit exercise' : 'Add exercise'}
+          day={workout.day}
           editing={editing ?? null}
           onSave={(exercise) =>
             saveExercises(
@@ -204,6 +215,9 @@ const useStyles = themedStyles((c) => ({
   noteLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.inkMuted },
   syncNote: { ...TYPE.label, letterSpacing: 1, color: c.inkMuted },
+  burned: { fontSize: 15, lineHeight: 22 },
+  burnedValue: { ...TYPE.metric, fontSize: 20 },
+  muted: { color: c.inkMuted },
   empty: {
     paddingVertical: 20,
     paddingHorizontal: 16,
