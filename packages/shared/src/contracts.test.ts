@@ -5,6 +5,8 @@ import {
   aiConsentRequestSchema,
   DEFAULT_SETTINGS,
   errorBodySchema,
+  exerciseNameKey,
+  exercisesResponseSchema,
   foodsResponseSchema,
   isAcceptedDateOfBirth,
   isOwnQuantity,
@@ -168,44 +170,126 @@ describe('REQ-MEAS-004…006 measurements.set data', () => {
 
 describe('REQ-TRN-003 workout.set and workout.delete data', () => {
   const WORKOUT_ID = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
-  const exercise = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
-  const workout = { id: WORKOUT_ID, day: '2026-10-27', exercises: [exercise], recordedAt: RECORDED_AT };
+  const none = { calories: null, averageHeartRateBpm: null, highestHeartRateBpm: null, note: null };
+  const set = { reps: 10, weightGrams: 40_000, seconds: null };
+  const squat = { kind: 'sets', name: 'Squat', sets: [set, { ...set, reps: 8, weightGrams: 45_000 }], durationSeconds: null, ...none };
+  const run = {
+    kind: 'cardio',
+    name: 'Running',
+    durationSeconds: 1_800,
+    distanceMetres: 5_000,
+    speedMetresPerHour: null,
+    inclinePermille: null,
+    level: null,
+    ...none,
+  };
+  const workout = { id: WORKOUT_ID, day: '2026-10-27', exercises: [squat], recordedAt: RECORDED_AT };
 
-  it('Q-025 accepts an empty workout, and Q-042 exercises with or without a weight and a note', () => {
+  it('Q-025 accepts an empty workout; D-50 sets with their own reps, weight and time, and cardio', () => {
     expect(workoutSetDataSchema.parse({ ...workout, exercises: [] })).toEqual({ ...workout, exercises: [] });
-    const exercises = [exercise, { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: 'Slow on the way down' }];
+    const exercises = [
+      squat,
+      { ...squat, name: 'Plank', sets: [{ reps: null, weightGrams: null, seconds: 60 }], durationSeconds: 300 },
+      run,
+      { ...run, name: 'Treadmill walking', distanceMetres: null, speedMetresPerHour: 6_000, inclinePermille: 85 },
+      { ...run, name: 'Exercise bike', level: 8, calories: { kcal: 160, estimated: false } },
+      { ...run, calories: { kcal: 368, estimated: true }, averageHeartRateBpm: 148, highestHeartRateBpm: 172, note: 'Easy pace' },
+    ];
     expect(workoutSetDataSchema.parse({ ...workout, exercises })).toEqual({ ...workout, exercises });
   });
 
-  it('D-29 accepts each limit and refuses one step outside it', () => {
-    const at = (fields: Record<string, unknown>) => ({ ...workout, exercises: [{ ...exercise, ...fields }] });
-    for (const fields of [{ sets: 1 }, { sets: 20 }, { reps: 1 }, { reps: 200 }, { weightGrams: 100 }, { weightGrams: 500_000 }]) {
-      expect(workoutSetDataSchema.safeParse(at(fields)).success).toBe(true);
+  it('D-50 reads an exercise saved before as that many identical sets, from a change or the server', () => {
+    const earlier = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
+    const pushUps = { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: 'Slow on the way down' };
+    const bodyweight = { reps: 20, weightGrams: null, seconds: null };
+    const read = [
+      { kind: 'sets', name: 'Squat', sets: [set, set, set], durationSeconds: null, ...none },
+      { kind: 'sets', name: 'Push-up', sets: [bodyweight, bodyweight], durationSeconds: null, ...none, note: 'Slow on the way down' },
+    ];
+    expect(workoutSetDataSchema.parse({ ...workout, exercises: [earlier, pushUps] }).exercises).toEqual(read);
+    const pulled = pulledWorkoutSchema.parse({ deleted: false, ...workout, exercises: [earlier, pushUps], updatedAt: RECORDED_AT });
+    expect(pulled.deleted ? null : pulled.exercises).toEqual(read);
+    for (const fields of [{ sets: 0 }, { sets: 21 }, { reps: 0 }, { reps: 201 }, { weightGrams: 99 }]) {
+      expect(workoutSetDataSchema.safeParse({ ...workout, exercises: [{ ...earlier, ...fields }] }).success).toBe(false);
     }
-    for (const [fields, field] of [
-      [{ sets: 0 }, 'sets'],
-      [{ sets: 21 }, 'sets'],
-      [{ reps: 0 }, 'reps'],
-      [{ reps: 201 }, 'reps'],
-      [{ weightGrams: 99 }, 'weightGrams'],
-      [{ weightGrams: 500_001 }, 'weightGrams'],
-      [{ name: 'x'.repeat(81) }, 'name'],
-      [{ note: 'x'.repeat(501) }, 'note'],
-      [{ note: '' }, 'note'],
+  });
+
+  it('D-50 accepts each limit and refuses one step outside it', () => {
+    const atSet = (fields: Record<string, unknown>) => ({ ...workout, exercises: [{ ...squat, sets: [{ ...set, ...fields }] }] });
+    const atRun = (fields: Record<string, unknown>) => ({ ...workout, exercises: [{ ...run, ...fields }] });
+    for (const accepted of [
+      atSet({ reps: 1 }),
+      atSet({ reps: 200 }),
+      atSet({ weightGrams: 100 }),
+      atSet({ weightGrams: 500_000 }),
+      atSet({ seconds: 1 }),
+      atSet({ seconds: 86_400 }),
+      atRun({ durationSeconds: 1 }),
+      atRun({ durationSeconds: 86_400 }),
+      atRun({ distanceMetres: 10 }),
+      atRun({ distanceMetres: 500_000 }),
+      atRun({ speedMetresPerHour: 100 }),
+      atRun({ speedMetresPerHour: 40_000 }),
+      atRun({ inclinePermille: 0 }),
+      atRun({ inclinePermille: 400 }),
+      atRun({ level: 1 }),
+      atRun({ level: 40 }),
+      atRun({ calories: { kcal: 1, estimated: false } }),
+      atRun({ calories: { kcal: 5_000, estimated: true } }),
+      atRun({ averageHeartRateBpm: 30, highestHeartRateBpm: 250 }),
+    ]) {
+      expect(workoutSetDataSchema.safeParse(accepted).success).toBe(true);
+    }
+    for (const [refused, field] of [
+      [atSet({ reps: 0 }), 'sets[0].reps'],
+      [atSet({ reps: 201 }), 'sets[0].reps'],
+      [atSet({ weightGrams: 99 }), 'sets[0].weightGrams'],
+      [atSet({ weightGrams: 500_001 }), 'sets[0].weightGrams'],
+      [atSet({ seconds: 0 }), 'sets[0].seconds'],
+      [atSet({ seconds: 86_401 }), 'sets[0].seconds'],
+      [atRun({ durationSeconds: 0 }), 'durationSeconds'],
+      [atRun({ distanceMetres: 9 }), 'distanceMetres'],
+      [atRun({ distanceMetres: 500_001 }), 'distanceMetres'],
+      [atRun({ speedMetresPerHour: 99 }), 'speedMetresPerHour'],
+      [atRun({ speedMetresPerHour: 40_001 }), 'speedMetresPerHour'],
+      [atRun({ inclinePermille: -1 }), 'inclinePermille'],
+      [atRun({ inclinePermille: 401 }), 'inclinePermille'],
+      [atRun({ level: 0 }), 'level'],
+      [atRun({ level: 41 }), 'level'],
+      [atRun({ calories: { kcal: 0, estimated: false } }), 'calories.kcal'],
+      [atRun({ calories: { kcal: 5_001, estimated: true } }), 'calories.kcal'],
+      [atRun({ averageHeartRateBpm: 29 }), 'averageHeartRateBpm'],
+      [atRun({ highestHeartRateBpm: 251 }), 'highestHeartRateBpm'],
+      [atRun({ name: 'x'.repeat(81) }), 'name'],
+      [atRun({ note: 'x'.repeat(501) }), 'note'],
+      [atRun({ note: '' }), 'note'],
     ] as const) {
-      expect(detailsFor(workoutSetDataSchema, at(fields))).toEqual([{ field: `exercises[0].${field}`, issue: 'out_of_range' }]);
+      expect(detailsFor(workoutSetDataSchema, refused)).toEqual([{ field: `exercises[0].${field}`, issue: 'out_of_range' }]);
     }
+  });
+
+  it('D-50 a set has reps or a time, an exercise 1 to 20 sets, and the highest heart rate is not below the average', () => {
+    const withSets = (sets: unknown[]) => ({ ...workout, exercises: [{ ...squat, sets }] });
+    expect(detailsFor(workoutSetDataSchema, withSets([{ reps: null, weightGrams: 20_000, seconds: null }]))).toEqual([
+      { field: 'exercises[0].sets[0]', issue: 'invalid_format' },
+    ]);
+    expect(detailsFor(workoutSetDataSchema, withSets([]))).toEqual([{ field: 'exercises[0].sets', issue: 'out_of_range' }]);
+    expect(detailsFor(workoutSetDataSchema, withSets(Array.from({ length: 21 }, () => set)))).toEqual([
+      { field: 'exercises[0].sets', issue: 'too_many' },
+    ]);
+    expect(
+      detailsFor(workoutSetDataSchema, { ...workout, exercises: [{ ...run, averageHeartRateBpm: 150, highestHeartRateBpm: 140 }] }),
+    ).toEqual([{ field: 'exercises[0].highestHeartRateBpm', issue: 'invalid_format' }]);
+    expect(workoutSetDataSchema.safeParse({ ...workout, exercises: [{ ...run, durationSeconds: null }] }).success).toBe(false);
   });
 
   it('D-29 refuses a name of spaces only, and keeps a trimmed name', () => {
-    expect(workoutSetDataSchema.safeParse({ ...workout, exercises: [{ ...exercise, name: '   ' }] }).success).toBe(false);
-    expect(workoutSetDataSchema.parse({ ...workout, exercises: [{ ...exercise, name: ' Squat ' }] }).exercises[0]?.name).toBe(
-      'Squat',
-    );
+    expect(workoutSetDataSchema.safeParse({ ...workout, exercises: [{ ...squat, name: '   ' }] }).success).toBe(false);
+    expect(workoutSetDataSchema.parse({ ...workout, exercises: [{ ...squat, name: ' Squat ' }] }).exercises[0]?.name).toBe('Squat');
   });
 
   it('D-29 refuses more than 30 exercises', () => {
-    const exercises = Array.from({ length: 31 }, () => exercise);
+    const exercises = Array.from({ length: 31 }, () => squat);
     expect(detailsFor(workoutSetDataSchema, { ...workout, exercises })).toEqual([{ field: 'exercises', issue: 'too_many' }]);
   });
 
@@ -213,8 +297,11 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
     expect(detailsFor(workoutSetDataSchema, { ...workout, userId: CHANGE_ID })).toEqual([
       { field: 'userId', issue: 'unknown_field' },
     ]);
-    expect(detailsFor(workoutSetDataSchema, { ...workout, exercises: [{ ...exercise, rpe: 8 }] })).toEqual([
+    expect(detailsFor(workoutSetDataSchema, { ...workout, exercises: [{ ...squat, rpe: 8 }] })).toEqual([
       { field: 'exercises[0].rpe', issue: 'unknown_field' },
+    ]);
+    expect(detailsFor(workoutSetDataSchema, { ...workout, exercises: [{ ...squat, sets: [{ ...set, rest: 60 }] }] })).toEqual([
+      { field: 'exercises[0].sets[0].rest', issue: 'unknown_field' },
     ]);
     expect(detailsFor(workoutDeleteDataSchema, { id: 'abc', deletedAt: RECORDED_AT })).toEqual([
       { field: 'id', issue: 'invalid_format' },
@@ -222,10 +309,27 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
   });
 
   it('D-29 a pulled workout is either the whole workout or a deleted one with no content', () => {
-    const live = { deleted: false, ...workout, updatedAt: RECORDED_AT };
+    const live = { deleted: false, ...workout, exercises: [squat, run], updatedAt: RECORDED_AT };
     const deleted = { deleted: true, id: WORKOUT_ID, day: '2026-10-27', updatedAt: RECORDED_AT };
     expect(pulledWorkoutSchema.parse(live)).toEqual(live);
-    expect(pulledWorkoutSchema.parse({ ...deleted, exercises: [exercise] })).toEqual(deleted);
+    expect(pulledWorkoutSchema.parse({ ...deleted, exercises: [squat] })).toEqual(deleted);
+  });
+});
+
+describe('D-50 the exercise list', () => {
+  it('matches a name whatever its case, hyphens, spaces and doubled letters', () => {
+    expect(exerciseNameKey('Dumbell curl')).toBe(exerciseNameKey('DUMBBELL-CURL'));
+    expect(exerciseNameKey('Push up')).toBe(exerciseNameKey('push-up'));
+    expect(exerciseNameKey("Farmer's walk")).toBe('farmerswalk');
+    expect(exerciseNameKey('Pull-up')).not.toBe(exerciseNameKey('Push-up'));
+  });
+
+  it('lists each exercise with its group, how it is logged, and its Compendium MET or none', () => {
+    const running = { code: 'running', name: 'Running', group: 'cardio', logType: 'distance_time', aliases: ['run'], compendiumCode: '12145', met: 10.5 };
+    const kabaddi = { ...running, code: 'kabaddi', name: 'Kabaddi', group: 'sport', logType: 'time_only', aliases: [], compendiumCode: null, met: null };
+    expect(exercisesResponseSchema.parse({ version: 'v1', items: [running, kabaddi] }).items).toEqual([running, kabaddi]);
+    expect(exercisesResponseSchema.parse({ version: 'v1', items: null }).items).toBeNull();
+    expect(exercisesResponseSchema.safeParse({ version: 'v1', items: [{ ...running, logType: 'laps' }] }).success).toBe(false);
   });
 });
 

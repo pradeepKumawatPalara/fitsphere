@@ -194,28 +194,118 @@ export type MeasurementsSetData = z.infer<typeof measurementsSetDataSchema>;
 
 // Workouts (REQ-TRN-003, REQ-TRN-004): workouts the user logs themselves (D-20). A workout's ID is
 // made on the phone, so it can be started, edited and deleted offline; IDs are per user, so a
-// change never reaches another user's workout (invariant #1). A day may hold several workouts, and
-// each counts toward the weekly target, even with no exercises (Q-025, REQ-HOME-007).
+// change never reaches another user's workout (invariant #1). A day may hold several workouts; one
+// counts toward the weekly target once it has an exercise (D-41, REQ-HOME-007).
 
 export const WORKOUT_SET = 'workout.set';
 export const WORKOUT_DELETE = 'workout.delete';
-/** Limits per workout and per exercise (MVP defaults, D-29). */
+/** Limits per workout and per exercise (MVP defaults, D-29; D-50). */
 export const MAX_WORKOUT_EXERCISES = 30;
 export const EXERCISE_NAME_MAX = 80;
 export const EXERCISE_SETS_MAX = 20;
 export const EXERCISE_REPS_MAX = 200;
 export const EXERCISE_NOTE_MAX = 500;
+/** A set's time, or an exercise's: up to 24 hours, in seconds. */
+export const EXERCISE_SECONDS_MAX = 24 * 60 * 60;
+/** 0.01–500 km, in metres. */
+export const EXERCISE_DISTANCE_METRES_MIN = 10;
+export const EXERCISE_DISTANCE_METRES_MAX = 500_000;
+/** 0.1–40 km/h, in metres per hour. */
+export const EXERCISE_SPEED_METRES_PER_HOUR_MIN = 100;
+export const EXERCISE_SPEED_METRES_PER_HOUR_MAX = 40_000;
+/** 0–40 %, in tenths of a percent. */
+export const EXERCISE_INCLINE_PERMILLE_MAX = 400;
+export const EXERCISE_LEVEL_MAX = 40;
+export const EXERCISE_KCAL_MAX = 5_000;
+export const HEART_RATE_BPM_MIN = 30;
+export const HEART_RATE_BPM_MAX = 250;
 
-/** One exercise: sets × reps × weight, with an optional note (Q-042). The same reps and weight
- * for every set; `weightGrams` is null when no weight is lifted. */
-export const workoutExerciseSchema = z.strictObject({
+/** One set (D-50): its reps, its time, or both, with the weight lifted or carried, null for none. */
+export const exerciseSetSchema = z
+  .strictObject({
+    reps: z.int().min(1).max(EXERCISE_REPS_MAX).nullable(),
+    weightGrams: z.int().min(LIFT_WEIGHT_GRAMS_MIN).max(LIFT_WEIGHT_GRAMS_MAX).nullable(),
+    seconds: z.int().min(1).max(EXERCISE_SECONDS_MAX).nullable(),
+  })
+  .refine((set) => set.reps !== null || set.seconds !== null);
+export type ExerciseSet = z.infer<typeof exerciseSetSchema>;
+
+const heartRateSchema = z.int().min(HEART_RATE_BPM_MIN).max(HEART_RATE_BPM_MAX).nullable();
+
+/** What every exercise has, whatever its kind. */
+const exerciseFields = {
   name: z.string().trim().min(1).max(EXERCISE_NAME_MAX),
-  sets: z.int().min(1).max(EXERCISE_SETS_MAX),
-  reps: z.int().min(1).max(EXERCISE_REPS_MAX),
-  weightGrams: z.int().min(LIFT_WEIGHT_GRAMS_MIN).max(LIFT_WEIGHT_GRAMS_MAX).nullable(),
+  /** Calories burned: typed from a machine or a watch, or estimated on the phone from the list's MET (D-50). */
+  calories: z.strictObject({ kcal: z.int().min(1).max(EXERCISE_KCAL_MAX), estimated: z.boolean() }).nullable(),
+  averageHeartRateBpm: heartRateSchema,
+  highestHeartRateBpm: heartRateSchema,
   note: z.string().min(1).max(EXERCISE_NOTE_MAX).nullable(),
-});
+};
+
+/** The highest heart rate is not below the average. */
+function heartRatesInOrder(exercise: { averageHeartRateBpm: number | null; highestHeartRateBpm: number | null }): boolean {
+  const { averageHeartRateBpm: average, highestHeartRateBpm: highest } = exercise;
+  return average === null || highest === null || highest >= average;
+}
+
+/** An exercise done in sets (D-50), each with its own reps, weight and time, with an optional note (Q-042). */
+export const setsExerciseSchema = z
+  .strictObject({
+    kind: z.literal('sets'),
+    ...exerciseFields,
+    sets: z.array(exerciseSetSchema).min(1).max(EXERCISE_SETS_MAX),
+    /** Time spent on it, used only to estimate the calories burned. */
+    durationSeconds: z.int().min(1).max(EXERCISE_SECONDS_MAX).nullable(),
+  })
+  .refine(heartRatesInOrder, { path: ['highestHeartRateBpm'] });
+export type SetsExercise = z.infer<typeof setsExerciseSchema>;
+
+/** Cardio (D-50): a time, with what was covered: a distance, a treadmill's speed and incline, a machine's level. */
+export const cardioExerciseSchema = z
+  .strictObject({
+    kind: z.literal('cardio'),
+    ...exerciseFields,
+    durationSeconds: z.int().min(1).max(EXERCISE_SECONDS_MAX),
+    distanceMetres: z.int().min(EXERCISE_DISTANCE_METRES_MIN).max(EXERCISE_DISTANCE_METRES_MAX).nullable(),
+    /** The speed typed on a treadmill; outdoors the speed comes from the distance and the time. */
+    speedMetresPerHour: z.int().min(EXERCISE_SPEED_METRES_PER_HOUR_MIN).max(EXERCISE_SPEED_METRES_PER_HOUR_MAX).nullable(),
+    /** Tenths of a percent: 8.5 % is 85. */
+    inclinePermille: z.int().min(0).max(EXERCISE_INCLINE_PERMILLE_MAX).nullable(),
+    level: z.int().min(1).max(EXERCISE_LEVEL_MAX).nullable(),
+  })
+  .refine(heartRatesInOrder, { path: ['highestHeartRateBpm'] });
+export type CardioExercise = z.infer<typeof cardioExerciseSchema>;
+
+/**
+ * An exercise saved before D-50, `{ name, sets, reps, weightGrams, note }` with the same reps and
+ * weight for every set, as that many identical sets; anything else as it is. Changes queued on an
+ * older app, and workouts stored before, keep working.
+ */
+export function fromEarlierExercise(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || 'kind' in value) return value;
+  const earlier = value as Record<string, unknown>;
+  const count = earlier.sets;
+  if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > EXERCISE_SETS_MAX) return value;
+  return {
+    kind: 'sets',
+    name: earlier.name,
+    sets: Array.from({ length: count }, () => ({ reps: earlier.reps, weightGrams: earlier.weightGrams ?? null, seconds: null })),
+    durationSeconds: null,
+    calories: null,
+    averageHeartRateBpm: null,
+    highestHeartRateBpm: null,
+    note: earlier.note ?? null,
+  };
+}
+
+/** One exercise of a workout: done in sets, or cardio (D-50). */
+export const workoutExerciseSchema = z.preprocess(fromEarlierExercise, z.discriminatedUnion('kind', [setsExerciseSchema, cardioExerciseSchema]));
 export type WorkoutExercise = z.infer<typeof workoutExerciseSchema>;
+
+/** A workout's exercises as stored, served or kept on the phone: one saved before D-50 as identical sets. */
+export function currentExercises(stored: readonly unknown[]): WorkoutExercise[] {
+  return stored.map(fromEarlierExercise) as WorkoutExercise[];
+}
 
 /** Creates a workout, or replaces the whole workout with this ID. `recordedAt` is when it was
  * started; editing the exercises keeps it. */
@@ -648,19 +738,41 @@ export const measurementSchema = z.object({
 });
 export type Measurement = z.infer<typeof measurementSchema>;
 
+const servedExerciseFields = {
+  name: z.string(),
+  calories: z.object({ kcal: z.int(), estimated: z.boolean() }).nullable(),
+  averageHeartRateBpm: z.int().nullable(),
+  highestHeartRateBpm: z.int().nullable(),
+  note: z.string().nullable(),
+};
+
+/** An exercise the server holds: one saved before D-50 reads as that many identical sets. */
+export const servedExerciseSchema = z.preprocess(
+  fromEarlierExercise,
+  z.discriminatedUnion('kind', [
+    z.object({
+      kind: z.literal('sets'),
+      ...servedExerciseFields,
+      sets: z.array(z.object({ reps: z.int().nullable(), weightGrams: z.int().nullable(), seconds: z.int().nullable() })),
+      durationSeconds: z.int().nullable(),
+    }),
+    z.object({
+      kind: z.literal('cardio'),
+      ...servedExerciseFields,
+      durationSeconds: z.int(),
+      distanceMetres: z.int().nullable(),
+      speedMetresPerHour: z.int().nullable(),
+      inclinePermille: z.int().nullable(),
+      level: z.int().nullable(),
+    }),
+  ]),
+);
+
 /** A workout the server holds, in the pull and in the history. */
 export const workoutSchema = z.object({
   id: idSchema,
   day: istDaySchema,
-  exercises: z.array(
-    z.object({
-      name: z.string(),
-      sets: z.int(),
-      reps: z.int(),
-      weightGrams: z.int().nullable(),
-      note: z.string().nullable(),
-    }),
-  ),
+  exercises: z.array(servedExerciseSchema),
   recordedAt: instantSchema,
   updatedAt: instantSchema,
 });
@@ -934,6 +1046,57 @@ export const foodsResponseSchema = z.object({
   packaged: z.array(packagedFoodSchema).nullable(),
 });
 export type FoodsResponse = z.infer<typeof foodsResponseSchema>;
+
+// --- The exercise list: GET /v1/exercises (D-50) ---
+
+/** The group shown beside an exercise's name. */
+export const EXERCISE_GROUPS = ['barbell', 'dumbbell', 'kettlebell', 'machine', 'cable', 'bodyweight', 'band', 'cardio', 'sport', 'yoga', 'other'] as const;
+export type ExerciseGroup = (typeof EXERCISE_GROUPS)[number];
+
+/**
+ * How an exercise is logged: in sets of reps and weight, of reps, of time, or of weight and time; or
+ * as one time, with a distance, with a treadmill's speed and incline, with a machine's level, or alone.
+ */
+export const EXERCISE_LOG_TYPES = ['weight_reps', 'reps', 'time', 'weight_time', 'distance_time', 'treadmill', 'cardio_machine', 'time_only'] as const;
+export type ExerciseLogType = (typeof EXERCISE_LOG_TYPES)[number];
+
+/**
+ * One exercise of FitSphere's list. `met` is the 2024 Adult Compendium of Physical Activities' value
+ * for its activity `compendiumCode`, unchanged; both are null when the Compendium lists no such
+ * activity, and then no calories are estimated.
+ */
+export const listedExerciseSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  group: z.enum(EXERCISE_GROUPS),
+  logType: z.enum(EXERCISE_LOG_TYPES),
+  /** Other names to search by. */
+  aliases: z.array(z.string()),
+  compendiumCode: z.string().nullable(),
+  met: z.number().nullable(),
+});
+export type ListedExercise = z.infer<typeof listedExerciseSchema>;
+
+/** `version`: the list the phone already holds; the items are left out when it is current. */
+export const exercisesQuerySchema = foodsQuerySchema;
+
+export const exercisesResponseSchema = z.object({
+  version: z.string(),
+  /** Null when the phone's `version` is already current. */
+  items: z.array(listedExerciseSchema).nullable(),
+});
+export type ExercisesResponse = z.infer<typeof exercisesResponseSchema>;
+
+/**
+ * The key an exercise's name is matched by: lower case, letters and digits only, and a doubled
+ * letter once, so "Dumbell", "dumbbell" and "DUMB-BELL" are one key, as are "Push up" and "push-up".
+ */
+export function exerciseNameKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/([a-z])\1+/g, '$1');
+}
 
 // --- Barcode lookup: GET /v1/barcodes/{barcode} (ADR-0006 rule 2) ---
 

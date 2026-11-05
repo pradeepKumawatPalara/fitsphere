@@ -18,6 +18,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'GET /v1/users/:userId/workouts': 'test/integration/workouts.test.ts',
   'GET /v1/users/:userId/weigh-ins': 'test/integration/weigh-ins.test.ts',
   'GET /v1/foods': 'test/integration/foods.test.ts',
+  'GET /v1/exercises': 'test/integration/exercises.test.ts',
   'GET /v1/barcodes/:barcode': 'test/integration/barcodes.test.ts',
   'POST /v1/users/:userId/media/:mediaId/upload': 'test/integration/media.test.ts',
   'GET /v1/users/:userId/media/:mediaId': 'test/integration/media.test.ts',
