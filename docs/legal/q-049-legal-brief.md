@@ -177,9 +177,14 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   protein, carbohydrate, fat, fibre and serving are copied, never descriptions or images; each
   row keeps the page and date; the owner approves each row. The websites are "all rights
   reserved".
+- Since D-52 (2026-11-06) 187 more rows: about half read from shops' listings (Blinkit, Flipkart,
+  Amazon, BigBasket, Swiggy Instamart, Spencer's), mostly from the shop's photo of the pack's label,
+  some from the shop's typed text; 51 from files the owner made with another AI tool; one (Catch Chat
+  Masala) from Open Food Facts (ODbL, see L-13). They carry the server-only flag `scrap`.
 - Questions: may FitSphere copy these nutrition facts from the brands' websites into its food list?
   Does it matter that the same facts are printed on the packs, as FSSAI requires? Should FitSphere
-  ask brands, or prefer reading packs?
+  ask brands, or prefer reading packs? May it copy the values from a shop's listing, or from the
+  shop's photo of the pack?
 
 **L-15 The Indian Nutrient Databank's recipes (MVP).**
 - Facts: since D-46 (2026-11-04) the food list holds INDB's 1,014 recipes with their values and
