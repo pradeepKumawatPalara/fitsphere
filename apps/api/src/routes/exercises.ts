@@ -28,9 +28,20 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
       compendium_code: string | null;
       met: string | null;
     }>('select code, name, exercise_group, log_type, aliases, compendium_code, met from app.exercises order by code');
-    const version = createHash('sha256').update(JSON.stringify(rows)).digest('base64url').slice(0, 22);
+    const speeds = await deps.db.query<{ exercise_code: string; from_kmh: string; compendium_code: string; met: string }>(
+      'select exercise_code, from_kmh, compendium_code, met from app.exercise_speed_mets order by exercise_code, from_kmh',
+    );
+    const version = createHash('sha256')
+      .update(JSON.stringify({ exercises: rows, speeds: speeds.rows }))
+      .digest('base64url')
+      .slice(0, 22);
     if (parsed.data.version === version) return { version, items: null } satisfies ExercisesResponse;
 
+    const speedMetsOf = new Map<string, { fromKmh: number; compendiumCode: string; met: number }[]>();
+    for (const row of speeds.rows) {
+      const band = { fromKmh: Number(row.from_kmh), compendiumCode: row.compendium_code, met: Number(row.met) };
+      speedMetsOf.set(row.exercise_code, [...(speedMetsOf.get(row.exercise_code) ?? []), band]);
+    }
     const body: ExercisesResponse = {
       version,
       items: rows.map((row) => ({
@@ -41,6 +52,7 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
         aliases: row.aliases,
         compendiumCode: row.compendium_code,
         met: row.met === null ? null : Number(row.met),
+        speedMets: speedMetsOf.get(row.code) ?? [],
       })),
     };
     return body;

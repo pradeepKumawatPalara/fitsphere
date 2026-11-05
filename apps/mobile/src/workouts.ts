@@ -2,6 +2,7 @@ import {
   EXERCISE_DISTANCE_METRES_MAX,
   EXERCISE_DISTANCE_METRES_MIN,
   EXERCISE_INCLINE_PERMILLE_MAX,
+  EXERCISE_KCAL_MAX,
   EXERCISE_LEVEL_MAX,
   EXERCISE_NAME_MAX,
   EXERCISE_NOTE_MAX,
@@ -9,8 +10,11 @@ import {
   EXERCISE_SECONDS_MAX,
   EXERCISE_SPEED_METRES_PER_HOUR_MAX,
   EXERCISE_SPEED_METRES_PER_HOUR_MIN,
+  exerciseMet,
   formatWeight,
   fromGrams,
+  HEART_RATE_BPM_MAX,
+  HEART_RATE_BPM_MIN,
   isLiftWeightGramsInRange,
   LIFT_WEIGHT_GRAMS_MAX,
   LIFT_WEIGHT_GRAMS_MIN,
@@ -153,6 +157,10 @@ export function exerciseRules(unit: BodyWeightUnit) {
     speed: 'Enter a speed from 0.1 to 40.0 km/h, with at most one decimal, or leave it empty.',
     incline: 'Enter an incline from 0.0 to 40.0 %, with at most one decimal, or leave it empty.',
     level: `Enter a level from 1 to ${EXERCISE_LEVEL_MAX}, or leave it empty.`,
+    spent: `Enter the time spent in minutes, from 1 to ${formatInteger(EXERCISE_SECONDS_MAX / 60)}, or leave it empty.`,
+    kcal: `Enter calories from 1 to ${formatInteger(EXERCISE_KCAL_MAX)} kcal, or leave it empty.`,
+    heartRate: `Enter a heart rate from ${HEART_RATE_BPM_MIN} to ${HEART_RATE_BPM_MAX} beats a minute, or leave it empty.`,
+    heartRateOrder: "The highest heart rate can't be below the average.",
     note: `Notes can be up to ${EXERCISE_NOTE_MAX} characters.`,
   } as const;
 }
@@ -160,7 +168,11 @@ export function exerciseRules(unit: BodyWeightUnit) {
 /** One set's fields as typed. */
 export type SetText = Record<SetColumn, string>;
 
-/** The exercise sheet's fields as typed; `timeMinutes` and `timeSeconds` are cardio's time. */
+/**
+ * The exercise sheet's fields as typed; `timeMinutes` and `timeSeconds` are cardio's time,
+ * `spentMinutes` the time spent on sets, and `kcal` the calories typed in place of the estimate, null
+ * while the estimate is used (D-50).
+ */
 export type ExerciseText = {
   name: string;
   logAs: LogAs;
@@ -171,6 +183,10 @@ export type ExerciseText = {
   speed: string;
   incline: string;
   level: string;
+  spentMinutes: string;
+  kcal: string | null;
+  averageHeartRate: string;
+  highestHeartRate: string;
   note: string;
 };
 
@@ -186,6 +202,10 @@ export const EMPTY_EXERCISE: ExerciseText = {
   speed: '',
   incline: '',
   level: '',
+  spentMinutes: '',
+  kcal: null,
+  averageHeartRate: '',
+  highestHeartRate: '',
   note: '',
 };
 
@@ -193,10 +213,19 @@ const typed = (value: number | null, show: (value: number) => string) => (value 
 
 /** An exercise as the sheet shows it for editing, its weights in `unit`. */
 export function toExerciseText(exercise: WorkoutExercise, unit: BodyWeightUnit): ExerciseText {
-  const text: ExerciseText = { ...EMPTY_EXERCISE, name: exercise.name, logAs: logAsOf(exercise), note: exercise.note ?? '' };
+  const text: ExerciseText = {
+    ...EMPTY_EXERCISE,
+    name: exercise.name,
+    logAs: logAsOf(exercise),
+    kcal: exercise.calories && !exercise.calories.estimated ? String(exercise.calories.kcal) : null,
+    averageHeartRate: typed(exercise.averageHeartRateBpm, String),
+    highestHeartRate: typed(exercise.highestHeartRateBpm, String),
+    note: exercise.note ?? '',
+  };
   if (exercise.kind === 'sets') {
     return {
       ...text,
+      spentMinutes: typed(exercise.durationSeconds, (seconds) => String(Math.round(seconds / 60))),
       sets: exercise.sets.map((set) => ({
         reps: typed(set.reps, String),
         weight: typed(set.weightGrams, (grams) => fromGrams(grams, unit).toFixed(1)),
@@ -242,18 +271,68 @@ export type ExerciseProblems = {
   speed?: string;
   incline?: string;
   level?: string;
+  spent?: string;
+  kcal?: string;
+  averageHeartRate?: string;
+  highestHeartRate?: string;
   note?: string;
 };
 
+/** What a calorie estimate needs from the sheet (D-50): the time, and the speed when it is known. */
+export function effortOf(text: ExerciseText, layout: Layout): { seconds: number | null; speedKmh: number | null } {
+  if (layout.kind === 'cardio') {
+    const minutes = parseWholeNumber(text.timeMinutes.trim() || '0', 0, EXERCISE_SECONDS_MAX / 60);
+    const rest = parseWholeNumber(text.timeSeconds.trim() || '0', 0, 59);
+    const total = minutes === null || rest === null ? 0 : minutes * 60 + rest;
+    const seconds = total >= 1 && total <= EXERCISE_SECONDS_MAX ? total : null;
+    const speed = layout.fields.includes('speed') ? parseOneDecimal(text.speed) : null;
+    const km = layout.fields.includes('distance') ? parseTwoDecimals(text.distance) : null;
+    if (speed !== null && speed > 0) return { seconds, speedKmh: speed };
+    return { seconds, speedKmh: km !== null && km > 0 && seconds !== null ? km / (seconds / 3600) : null };
+  }
+  const spent = text.spentMinutes.trim() === '' ? null : parseWholeNumber(text.spentMinutes, 1, EXERCISE_SECONDS_MAX / 60);
+  if (spent !== null) return { seconds: spent * 60, speedKmh: null };
+  if (!layout.columns.some(({ column }) => column === 'seconds')) return { seconds: null, speedKmh: null };
+  const times = text.sets.map((set) => parseWholeNumber(set.seconds, 1, EXERCISE_SECONDS_MAX));
+  const total = times.reduce<number | null>((sum, time) => (sum === null || time === null ? null : sum + time), 0);
+  return { seconds: total !== null && total <= EXERCISE_SECONDS_MAX ? total : null, speedKmh: null };
+}
+
+/** A calorie estimate (D-50): the Compendium activity it used, the weight and the time, and the result. */
+export type CaloriesEstimate = { kcal: number; met: number; compendiumCode: string; speedKmh: number | null; weightGrams: number; seconds: number };
+
+/** Why an exercise has no estimate: a name of the user's own, no MET, no time, or no weigh-in. */
+export type NoEstimate = 'own' | 'no_met' | 'no_time' | 'no_weight';
+
+/**
+ * Calories burned, estimated (D-50): the Compendium's MET for the exercise at its speed × the weight in
+ * kg × the time in hours, rounded to a whole kcal, from 1 to 5,000.
+ */
+export function estimateCalories(
+  listed: ListedExercise | null,
+  effort: { seconds: number | null; speedKmh: number | null },
+  weightGrams: number | null,
+): { estimate: CaloriesEstimate } | { missing: NoEstimate } {
+  if (listed === null) return { missing: 'own' };
+  const activity = exerciseMet(listed, effort.speedKmh);
+  if (activity === null) return { missing: 'no_met' };
+  if (effort.seconds === null) return { missing: 'no_time' };
+  if (weightGrams === null) return { missing: 'no_weight' };
+  const kcal = Math.min(EXERCISE_KCAL_MAX, Math.max(1, Math.round((activity.met * (weightGrams / 1000) * effort.seconds) / 3600)));
+  return { estimate: { kcal, ...activity, weightGrams, seconds: effort.seconds } };
+}
+
 /**
  * Reads the sheet's fields for `layout`, weights typed in `unit`: the exercise, or every field's
- * problem. Fields the layout does not show are not saved. The calories burned and heart rate of the
- * exercise being edited are kept as they are.
+ * problem. Fields the layout does not show are not saved. Calories typed replace the estimate; with
+ * none typed the estimate is saved, or, with no weigh-in on the phone, the estimate the exercise being
+ * edited already has.
  */
 export function parseExercise(
   text: ExerciseText,
   layout: Layout,
   unit: BodyWeightUnit,
+  estimated: { estimate: CaloriesEstimate } | { missing: NoEstimate },
   kept: WorkoutExercise | null,
 ): { exercise: WorkoutExercise } | { problems: ExerciseProblems } {
   const rules = exerciseRules(unit);
@@ -262,13 +341,27 @@ export function parseExercise(
   if (name.length === 0 || name.length > EXERCISE_NAME_MAX) problems.name = rules.name;
   const note = text.note.trim();
   if (note.length > EXERCISE_NOTE_MAX) problems.note = rules.note;
-  const common = {
-    name,
-    calories: kept?.calories ?? null,
-    averageHeartRateBpm: kept?.averageHeartRateBpm ?? null,
-    highestHeartRateBpm: kept?.highestHeartRateBpm ?? null,
-    note: note === '' ? null : note,
+  let calories: WorkoutExercise['calories'] = null;
+  if (text.kcal === null) {
+    if ('estimate' in estimated) calories = { kcal: estimated.estimate.kcal, estimated: true };
+    else if (estimated.missing === 'no_weight' && kept?.calories?.estimated) calories = kept.calories;
+  } else if (text.kcal.trim() !== '') {
+    const kcal = parseWholeNumber(text.kcal, 1, EXERCISE_KCAL_MAX);
+    if (kcal === null) problems.kcal = rules.kcal;
+    else calories = { kcal, estimated: false };
+  }
+  const heartRate = (key: 'averageHeartRate' | 'highestHeartRate'): number | null => {
+    if (text[key].trim() === '') return null;
+    const value = parseWholeNumber(text[key], HEART_RATE_BPM_MIN, HEART_RATE_BPM_MAX);
+    if (value === null) problems[key] = rules.heartRate;
+    return value;
   };
+  const averageHeartRateBpm = heartRate('averageHeartRate');
+  const highestHeartRateBpm = heartRate('highestHeartRate');
+  if (averageHeartRateBpm !== null && highestHeartRateBpm !== null && highestHeartRateBpm < averageHeartRateBpm) {
+    problems.highestHeartRate = rules.heartRateOrder;
+  }
+  const common = { name, calories, averageHeartRateBpm, highestHeartRateBpm, note: note === '' ? null : note };
 
   if (layout.kind === 'sets') {
     const sets = text.sets.map((set, index): ExerciseSet => {
@@ -292,8 +385,10 @@ export function parseExercise(
       }
       return { reps: values.reps, weightGrams: values.weight, seconds: values.seconds };
     });
+    const spent = text.spentMinutes.trim() === '' ? null : parseWholeNumber(text.spentMinutes, 1, EXERCISE_SECONDS_MAX / 60);
+    if (spent === null && text.spentMinutes.trim() !== '') problems.spent = rules.spent;
     if (hasProblems(problems)) return { problems };
-    return { exercise: { kind: 'sets', ...common, sets, durationSeconds: kept?.kind === 'sets' ? kept.durationSeconds : null } };
+    return { exercise: { kind: 'sets', ...common, sets, durationSeconds: spent === null ? null : spent * 60 } };
   }
 
   const minutes = parseWholeNumber(text.timeMinutes.trim() || '0', 0, EXERCISE_SECONDS_MAX / 60);
@@ -370,24 +465,81 @@ export function formatSets(sets: readonly ExerciseSet[], unit: BodyWeightUnit): 
   return weighted ? `${list} ${unit}` : repsOnly ? `${list} reps` : list;
 }
 
+/** e.g. "368 kcal · estimated", as Log meal marks an estimated value, or "360 kcal" as typed (D-50). */
+export function formatCalories(calories: { kcal: number; estimated: boolean }): string {
+  return `${formatInteger(calories.kcal)} kcal${calories.estimated ? ' · estimated' : ''}`;
+}
+
+/** e.g. "heart rate 148 average, 172 highest", or "" with neither. */
+export function formatHeartRate(average: number | null, highest: number | null): string {
+  const parts = [...(average === null ? [] : [`${average} average`]), ...(highest === null ? [] : [`${highest} highest`])];
+  return parts.length === 0 ? '' : `heart rate ${parts.join(', ')}`;
+}
+
 /**
  * An exercise's lines on the workout screen (D-50): its sets, or its time with the distance or the
- * speed; and under it a cardio exercise's speed and pace, incline and level.
+ * speed; and under it a cardio exercise's speed and pace, incline and level, then its calories burned
+ * and heart rate.
  */
 export function exerciseLines(exercise: WorkoutExercise, unit: BodyWeightUnit): { main: string; detail: string } {
-  if (exercise.kind === 'sets') return { main: formatSets(exercise.sets, unit), detail: '' };
-  const { durationSeconds, distanceMetres, speedMetresPerHour, inclinePermille, level } = exercise;
-  const main = [formatDuration(durationSeconds)];
+  const main: string[] = [];
   const detail: string[] = [];
-  if (distanceMetres !== null) {
-    main.push(formatDistance(distanceMetres));
-    detail.push(speedMetresPerHour === null ? speedAndPace(distanceMetres, durationSeconds) : formatSpeed(speedMetresPerHour));
-  } else if (speedMetresPerHour !== null) {
-    main.push(formatSpeed(speedMetresPerHour));
+  if (exercise.kind === 'sets') {
+    main.push(formatSets(exercise.sets, unit));
+  } else {
+    const { durationSeconds, distanceMetres, speedMetresPerHour, inclinePermille, level } = exercise;
+    main.push(formatDuration(durationSeconds));
+    if (distanceMetres !== null) {
+      main.push(formatDistance(distanceMetres));
+      detail.push(speedMetresPerHour === null ? speedAndPace(distanceMetres, durationSeconds) : formatSpeed(speedMetresPerHour));
+    } else if (speedMetresPerHour !== null) {
+      main.push(formatSpeed(speedMetresPerHour));
+    }
+    if (inclinePermille !== null) detail.push(`${(inclinePermille / 10).toFixed(1)} % incline`);
+    if (level !== null) detail.push(`Level ${level}`);
   }
-  if (inclinePermille !== null) detail.push(`${(inclinePermille / 10).toFixed(1)} % incline`);
-  if (level !== null) detail.push(`Level ${level}`);
+  if (exercise.calories) detail.push(formatCalories(exercise.calories));
+  const heartRate = formatHeartRate(exercise.averageHeartRateBpm, exercise.highestHeartRateBpm);
+  if (heartRate) detail.push(heartRate);
   return { main: main.join(' · '), detail: detail.join(' · ') };
+}
+
+/**
+ * The calories burned in some exercises (a workout's, or a day's), and whether any of it is estimated;
+ * null when none has calories (D-50).
+ */
+export function caloriesBurned(exercises: readonly Pick<WorkoutExercise, 'calories'>[]): { kcal: number; estimated: boolean } | null {
+  const counted = exercises.flatMap((exercise) => (exercise.calories ? [exercise.calories] : []));
+  if (counted.length === 0) return null;
+  return { kcal: counted.reduce((sum, calories) => sum + calories.kcal, 0), estimated: counted.some((calories) => calories.estimated) };
+}
+
+/** An estimate's time as its help reads it: "30 min", or "2:15". */
+export function estimateTime(seconds: number): string {
+  return seconds % 60 === 0 ? `${seconds / 60} min` : formatDuration(seconds);
+}
+
+/**
+ * What the calories field says under it (D-50): how the estimate was made, or why there is none, or
+ * that the number was typed.
+ */
+export function caloriesHelp(
+  kcal: string | null,
+  estimated: { estimate: CaloriesEstimate } | { missing: NoEstimate },
+  kind: WorkoutExercise['kind'],
+): string {
+  if (kcal !== null) return kcal.trim() === '' ? 'Type the number from your machine or watch, or leave it empty.' : 'As you typed it, from your machine or watch.';
+  if ('estimate' in estimated) {
+    const { met, speedKmh, weightGrams, seconds } = estimated.estimate;
+    const speed = speedKmh === null ? '' : ` for ${speedKmh.toFixed(1)} km/h`;
+    return `Estimated: ${met.toFixed(1)} MET${speed} × ${(weightGrams / 1000).toFixed(1)} kg × ${estimateTime(seconds)}. Type the number from your machine or watch to replace it.`;
+  }
+  return {
+    own: 'Your own exercises have no estimate: type the number from your machine or watch.',
+    no_met: 'This exercise has no estimate: type the number from your machine or watch.',
+    no_time: kind === 'sets' ? 'Add the time spent to see an estimate.' : 'Add the time to see an estimate.',
+    no_weight: 'Log your weight to see an estimate.',
+  }[estimated.missing];
 }
 
 /** e.g. "3 exercises" and "Squat, Bench press, Row", or "No exercises" and no names. */

@@ -5,6 +5,7 @@ import {
   aiConsentRequestSchema,
   DEFAULT_SETTINGS,
   errorBodySchema,
+  exerciseMet,
   exerciseNameKey,
   exercisesResponseSchema,
   foodsResponseSchema,
@@ -327,9 +328,31 @@ describe('D-50 the exercise list', () => {
   it('lists each exercise with its group, how it is logged, and its Compendium MET or none', () => {
     const running = { code: 'running', name: 'Running', group: 'cardio', logType: 'distance_time', aliases: ['run'], compendiumCode: '12145', met: 10.5 };
     const kabaddi = { ...running, code: 'kabaddi', name: 'Kabaddi', group: 'sport', logType: 'time_only', aliases: [], compendiumCode: null, met: null };
-    expect(exercisesResponseSchema.parse({ version: 'v1', items: [running, kabaddi] }).items).toEqual([running, kabaddi]);
+    expect(exercisesResponseSchema.parse({ version: 'v1', items: [running, kabaddi] }).items).toEqual([
+      { ...running, speedMets: [] },
+      { ...kabaddi, speedMets: [] },
+    ]);
     expect(exercisesResponseSchema.parse({ version: 'v1', items: null }).items).toBeNull();
     expect(exercisesResponseSchema.safeParse({ version: 'v1', items: [{ ...running, logType: 'laps' }] }).success).toBe(false);
+  });
+
+  it('estimates with the speed band starting at the highest speed at or below the speed, or the exercise\u2019s own MET', () => {
+    const running = {
+      compendiumCode: '12145',
+      met: 10.5,
+      speedMets: [
+        { fromKmh: 4.2, compendiumCode: '12026', met: 3.3 },
+        { fromKmh: 6.4, compendiumCode: '12028', met: 6.5 },
+        { fromKmh: 9.7, compendiumCode: '12050', met: 9.3 },
+      ],
+    };
+    expect(exerciseMet(running, 10)).toEqual({ compendiumCode: '12050', met: 9.3, speedKmh: 10 });
+    expect(exerciseMet(running, 9.7)?.met).toBe(9.3);
+    expect(exerciseMet(running, 9.6)?.met).toBe(6.5);
+    expect(exerciseMet(running, 3)?.met).toBe(3.3);
+    expect(exerciseMet(running, null)).toEqual({ compendiumCode: '12145', met: 10.5, speedKmh: null });
+    expect(exerciseMet({ compendiumCode: '02022', met: 3.8, speedMets: [] }, 12)).toEqual({ compendiumCode: '02022', met: 3.8, speedKmh: null });
+    expect(exerciseMet({ compendiumCode: null, met: null, speedMets: [] }, null)).toBeNull();
   });
 });
 

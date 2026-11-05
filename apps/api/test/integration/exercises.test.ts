@@ -2,14 +2,17 @@ import { readFileSync } from 'node:fs';
 import type { ExercisesResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { importExercises, readExerciseList } from '../../src/exercises/exerciseList.ts';
+import { importExercises, readExerciseList, readSpeedMets } from '../../src/exercises/exerciseList.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 import { connect } from './database.ts';
 
 // The exercise-list import into PostgreSQL and GET /v1/exercises (D-50).
 
-const LIST = readExerciseList(readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8'));
+const LIST = readSpeedMets(
+  readFileSync(new URL('../../../../data/exercises/speed-mets.csv', import.meta.url), 'utf8'),
+  readExerciseList(readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8')),
+);
 
 let client: pg.Client;
 let api: Awaited<ReturnType<typeof startTestApi>>;
@@ -41,14 +44,17 @@ describe('D-50 exercises:import', () => {
     expect(rows[0]).toEqual({ total: 334, without: 2 });
     const running = await client.query(`select log_type, compendium_code, met::text, aliases from app.exercises where code = 'running'`);
     expect(running.rows).toEqual([{ log_type: 'distance_time', compendium_code: '12145', met: '10.5', aliases: ['run', 'outdoor run'] }]);
+    const bands = await client.query(`select count(*)::int as n from app.exercise_speed_mets`);
+    expect(bands.rows).toEqual([{ n: 87 }]);
   });
 
   it('gives the same table when run again, removes an exercise no longer listed, and leaves the table as it was on a failure', async () => {
-    await importExercises(client, LIST.filter((exercise) => exercise.code !== 'kabaddi'));
+    await importExercises(client, LIST.filter((exercise) => exercise.code !== 'kabaddi' && exercise.code !== 'cycling'));
     expect((await client.query(`select 1 from app.exercises where code = 'kabaddi'`)).rowCount).toBe(0);
+    expect((await client.query(`select 1 from app.exercise_speed_mets where exercise_code = 'cycling'`)).rowCount).toBe(0);
 
     await expect(importExercises(client, [...LIST.slice(0, 5), { ...LIST[5]!, met: -1 }])).rejects.toThrow();
-    expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(333);
+    expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(332);
 
     await importExercises(client, LIST);
     expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(334);
@@ -93,7 +99,12 @@ describe('authorization: GET /v1/exercises', () => {
       aliases: ['pushups', 'press-up'],
       compendiumCode: '02022',
       met: 3.8,
+      speedMets: [],
     });
+    expect(body.items?.find((exercise) => exercise.code === 'running')?.speedMets.slice(0, 2)).toEqual([
+      { fromKmh: 4.2, compendiumCode: '12026', met: 3.3 },
+      { fromKmh: 6.4, compendiumCode: '12028', met: 6.5 },
+    ]);
     expect(body.items?.find((exercise) => exercise.code === 'kho-kho')).toMatchObject({ compendiumCode: null, met: null });
 
     const again = await getExercises(user.token, `?version=${encodeURIComponent(body.version)}`);
