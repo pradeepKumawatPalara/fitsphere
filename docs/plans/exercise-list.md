@@ -68,7 +68,9 @@ asks for. A field marked * must be filled in; the others may be left empty.
   - The MET comes from the **2024 Adult Compendium of Physical Activities**: each exercise in the
     list names one Compendium activity code and its MET, copied unchanged from the Compendium's PDF
     (kept outside the repository, like the other sources), never from memory. The owner checks them
-    with the list.
+    with the list. Running, jogging, walking and cycling take the Compendium's activity for their
+    speed instead (the owner, 2026-11-05: "a person who works faster will burn calories more"):
+    `data/exercises/speed-mets.csv`, the band starting at the highest speed at or below theirs.
   - The weight is the latest weigh-in on or before the exercise's day. With none, the sheet says
     "Log your weight to see an estimate".
   - The time is the cardio time, the sets' times added up, or for weight-and-reps and reps
@@ -150,6 +152,11 @@ Legal's item below.
   rows. A name typed in full that matches a list exercise is saved as typed; picking a match saves the
   list's name. Calories burned and heart rate (step 3) follow in their own pull request.
 
+- 2026-11-05: step 3 built on `feat/calories-burned`: calories burned (the estimate by speed for
+  running, walking and cycling, migration 0017 and `speed-mets.csv`, phone schema version 14; typed in
+  its place), heart rate and time spent in the sheet, the i sheet with the Compendium's credit, the
+  workout's and the day's totals. Speed bands were the owner's addition the same day.
+
 ## Not in scope
 - Rest time and RPE (the rest of E-14), intervals and laps.
 - Reading heart rate, calories or workouts from a watch or phone health app.
@@ -196,5 +203,6 @@ Legal's item below.
 ## Owner's steps
 - After step 1 merges, on `fitsphere-dev`: `npm run migrate -w @fitsphere/api` (0012 to 0016, if
   0012 to 0015 have not run yet), then `npm run foods:import -w @fitsphere/api` and
-  `npm run exercises:import -w @fitsphere/api`, then reload the app. Steps 2 and 3 need no database
-  command. No new phone build is needed.
+  `npm run exercises:import -w @fitsphere/api`, then reload the app. Step 3: `npm run migrate -w
+  @fitsphere/api` (0017) and `npm run exercises:import -w @fitsphere/api` again. No new phone build is
+  needed.

@@ -498,6 +498,21 @@ an unchanged list is not sent again.
 | `compendium_code`, `met` | `text`, `numeric(4,1)` | Together: the 2024 Adult Compendium's activity code (5 digits) and its MET, unchanged; both null when the Compendium lists no such activity |
 | `updated_at` | `timestamptz` | Not null |
 
+### `exercise_speed_mets` — reference data
+Speed bands (D-50): for running, walking and cycling, the 2024 Adult Compendium's activities by speed,
+loaded from `data/exercises/speed-mets.csv` by `exercises:import` with the list, replaced whole.
+Migration 0017. Not personal data; row level security on, no policies. Sent with each exercise by
+`GET /v1/exercises` (`speedMets`).
+
+| Column | Type | Rules |
+|---|---|---|
+| `exercise_code` | `text` | References `exercises` (deleted with it); the exercise is logged with a distance or a treadmill's speed |
+| `from_kmh` | `numeric(4,1)` | 0 or more: the lowest speed the band covers. Primary key with `exercise_code`; rising within an exercise |
+| `compendium_code`, `met` | `text`, `numeric(4,1)` | The Compendium's activity (5 digits) and its MET, unchanged |
+
+The phone estimates with the band starting at the highest speed at or below the exercise's speed
+(the slowest when below them all), and with the exercise's own MET when its speed is not known.
+
 ### `usda_foods`, `usda_food_portions` — archive
 USDA's FNDDS foods and their servings (D-39), archived, not served (D-47): the same columns as
 `foods` (code, name, food group, the five values per 100 g) and `food_portions` (code, seq, label,
@@ -589,7 +604,7 @@ rule 5 and D-14 require.
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
 | `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
 | `my_foods` | `id` (key), `name`, `unit`, the values, `saved_at`, `sync_state` | **Health.** My foods (REQ-LOG-011), never pruned. Schema version 10 (D-39) |
-| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, written on the phone. Not personal data. Schema version 13 |
+| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `speed_mets` (JSON), `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, written on the phone. Not personal data. Schema version 13 |
 | `profile` | `id` (key, always `profile`), `name`, `date_of_birth`, `sex`, `height_mm`, `phone`, `address` (JSON), `photo_media_id`, `set_at`, `sync_state` | **Health and contact.** The user's profile (REQ-ACC-011), at most one row. Never pruned. Its photo is a row of `photos` whose `meal_id` is `profile`. Schema version 9 (D-38) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version`, `exercise_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
@@ -633,6 +648,8 @@ rule 5 and D-14 require.
 - **Version 13** (the exercise list, D-50) adds `exercises` and clears `exercise_list_version`, so
   the next download fills it. Workouts keep their exercises as JSON; one saved before D-50 is read as
   identical sets.
+- **Version 14** (speed bands, D-50) adds `exercises.speed_mets` (JSON) and clears
+  `exercise_list_version`, so the next download brings them.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

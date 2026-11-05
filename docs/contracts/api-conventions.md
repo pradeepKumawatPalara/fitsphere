@@ -398,7 +398,9 @@ Query: `version` (optional), the version of the list the phone already holds.
   "version": "Xk3pQ0v…",
   "items": [
     { "code": "running", "name": "Running", "group": "cardio", "logType": "distance_time",
-      "aliases": ["run", "outdoor run"], "compendiumCode": "12145", "met": 10.5 }
+      "aliases": ["run", "outdoor run"], "compendiumCode": "12145", "met": 10.5,
+      "speedMets": [{ "fromKmh": 4.2, "compendiumCode": "12026", "met": 3.3 },
+                    { "fromKmh": 6.4, "compendiumCode": "12028", "met": 6.5 }] }
   ]
 }
 ```
@@ -407,6 +409,9 @@ Query: `version` (optional), the version of the list the phone already holds.
   `treadmill`, `cardio_machine`, `time_only` as cardio.
 - `compendiumCode`, `met`: the 2024 Adult Compendium of Physical Activities' activity and its MET,
   unchanged, for estimating calories burned; both null when the Compendium lists no such activity.
+- `speedMets`: for running, walking and cycling, the Compendium's activities by speed, slowest
+  first (example shortened); empty for the others. The phone uses the band starting at the highest
+  speed at or below the exercise's, and `met` when the speed is not known.
 - `version` changes whenever any value changes; when the query's `version` is already current,
   `items` is `null`.
 - Reference data, not personal, the same for every signed-in user. A workout keeps each exercise's

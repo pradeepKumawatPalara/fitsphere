@@ -151,4 +151,4 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-23 | A weight stored at the very top of its range (300.0 kg, 500.0 kg lifted) is shown in lb one step above the lb limit, so it cannot be saved again unchanged in lb | REQ-ACC-002, REQ-ACC-003 | The user types a value within the limit shown (D-31) |
 | E-24 | Miles, min/mile and mph: a distance unit setting | REQ-TRN-003, REQ-ACC-002 | Distances in km, speeds in km/h and paces per km (D-50) |
 | E-25 | Calories burned on Home: raising the day's food allowance ("eat back"), or on any Home card | REQ-HOME-003, D-50 | Calories burned show on the Training tab only; Home's calorie target and card do not change (D-50) |
-| E-26 | A cardio exercise's MET chosen by the speed typed (the Compendium lists running, walking, treadmill walking and cycling by speed) | REQ-TRN-003, D-50 | One MET each exercise, whatever its speed (D-50) |
+| E-26 | *Closed by D-50 (2026-11-05): running, jogging, walking and cycling take the Compendium's activity for their speed.* A cardio exercise's MET chosen by the speed typed | REQ-TRN-003, D-50 | — |
