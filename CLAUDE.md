@@ -12,6 +12,18 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Exercise list — built on branch `feat/exercise-list` (D-50, 2026-11-05).** Plan:
+`docs/plans/exercise-list.md` (Accepted), REQ-TRN-003; screens 4.1 to 4.3 locked. The exercise sheet
+searches FitSphere's own list of 334 exercises (`data/exercises/exercise-list.csv`, `app.exercises`,
+migration `0016_exercises.sql`, `npm run exercises:import`, `GET /v1/exercises`, phone schema version
+13), each with one of eight types (weights needed on every set; no weight for bodyweight; timed sets;
+cardio with distance, a treadmill's speed and incline, a machine's level); each set on its own row; a
+name of the user's own asks "Log as". Exercises saved before read as identical sets. Next step:
+calories burned (the 2024 Adult Compendium's METs, `docs/data/exercise-list-sources.md`, accepted risk
+R-011, Legal L-17; Training tab only, not Home) and heart rate. **On `fitsphere-dev`: migrations 0012
+to 0016 before the updated API, then `foods:import` and `exercises:import`; only when the owner says
+so.**
+
 **More foods — built on branch `feat/more-foods` (D-39, 2026-11-04).** Plan: `docs/plans/more-foods.md`
 (Accepted), REQ-LOG-011. USDA FoodData Central's FNDDS foods (CC0, 5,431, with their servings as USDA
 weighs them) joined IFCT's in the food list; since D-47 they are archived (`app.usda_foods`, migration

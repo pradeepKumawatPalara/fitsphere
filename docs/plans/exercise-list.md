@@ -141,6 +141,15 @@ stay), and new items for a distance unit and for burned calories on Home; a new
 `docs/data/exercise-list-sources.md` and `docs/sources/README.md` for the Compendium; the risk and
 Legal's item below.
 
+## Progress
+- 2026-11-05: plan accepted; the screens (4.1 to 4.3) designed on the canvas and locked ("lock it").
+- 2026-11-05: steps 1 and 2 built together on `feat/exercise-list`, since the locked sheet already has
+  each set on its own row (building the old Sets and Reps fields first would have been thrown
+  away). Migration 0016, `exercises:import`, `GET /v1/exercises`, the exercise's new shape (calories
+  and heart rate fields included, unused until step 3), phone schema version 13, the sheet and the
+  rows. A name typed in full that matches a list exercise is saved as typed; picking a match saves the
+  list's name. Calories burned and heart rate (step 3) follow in their own pull request.
+
 ## Not in scope
 - Rest time and RPE (the rest of E-14), intervals and laps.
 - Reading heart rate, calories or workouts from a watch or phone health app.

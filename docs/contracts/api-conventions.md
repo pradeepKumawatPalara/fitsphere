@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -105,6 +105,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 | `GET /v1/users/{userId}/workouts` | Read workouts online: the user's own history older than the phone holds | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-TRN-004, REQ-NFR-001 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
+| `GET /v1/exercises` | FitSphere's exercise list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-TRN-003, D-50 |
 | `GET /v1/barcodes/{barcode}` | A packaged product's values per 100 g, from Open Food Facts | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, ADR-0006 |
 | `POST /v1/users/{userId}/media/{mediaId}/upload` | Links to upload one meal photo's viewing copy and thumbnail straight to storage | The user, for their own photo | REQ-LOG-006, ADR-0002 |
 | `GET /v1/users/{userId}/media/{mediaId}` | Links to view one meal photo, valid for at most 5 minutes | The user. Post-MVP (D-20): also their coach with an active link | REQ-LOG-006, REQ-NFR-006, ADR-0002 |
@@ -387,6 +388,29 @@ Query: `version` (optional), the version of the list the phone already holds.
   the list only when it changed.
 - The list is reference data, not personal, and is the same for every signed-in user. Where its
   values are shown, the app shows the IFCT acknowledgement (D-25).
+
+### `GET /v1/exercises`
+Query: `version` (optional), the version of the list the phone already holds.
+
+`200`:
+```json
+{
+  "version": "Xk3pQ0v…",
+  "items": [
+    { "code": "running", "name": "Running", "group": "cardio", "logType": "distance_time",
+      "aliases": ["run", "outdoor run"], "compendiumCode": "12145", "met": 10.5 }
+  ]
+}
+```
+- `group`: shown beside the name. `logType`: how it is logged, which decides the fields the phone
+  asks for (D-50): `weight_reps`, `reps`, `time`, `weight_time` in sets; `distance_time`,
+  `treadmill`, `cardio_machine`, `time_only` as cardio.
+- `compendiumCode`, `met`: the 2024 Adult Compendium of Physical Activities' activity and its MET,
+  unchanged, for estimating calories burned; both null when the Compendium lists no such activity.
+- `version` changes whenever any value changes; when the query's `version` is already current,
+  `items` is `null`.
+- Reference data, not personal, the same for every signed-in user. A workout keeps each exercise's
+  name, not its code, so a change to the list never changes or refuses a saved workout.
 
 ### `GET /v1/barcodes/{barcode}`
 `barcode`: 8 to 14 digits (EAN-8, UPC-A, EAN-13, GTIN-14); anything else is `400

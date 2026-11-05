@@ -4,7 +4,7 @@
   is open and blocks real users ([`mvp-scope.md`](../product/mvp-scope.md) slice 8; ADR-0002 to
   ADR-0005).
 - Owner: Project owner (D-01). Answers: Legal.
-- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30
+- Last updated: 2026-11-05 (D-50: L-17, the Compendium of Physical Activities; E-20). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30
 - Record: [Q-049](../architecture/constraints-and-assumptions.md#account-security-and-quality)
 
 This brief collects, in one place, what FitSphere needs Legal to answer before real users, and
@@ -243,7 +243,26 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   - What must FitSphere publish or offer, and is the attribution text enough, and shown in the
     right places?
 
-### E. Anything else before real users
+### E. The Compendium of Physical Activities' values (D-50, accepted risk R-011)
+
+**L-17 Calories burned estimated with the Compendium's METs (MVP).**
+- Facts: since D-50 (2026-11-05) FitSphere's exercise list names, for most exercises, an activity of
+  the *2024 Adult Compendium of Physical Activities* and copies its MET value unchanged
+  ([`exercise-list-sources.md`](../data/exercise-list-sources.md)). The app estimates calories
+  burned as MET × the user's weight × the time, marks the result "estimated", and credits the
+  Compendium where it is shown; a number typed from a machine or watch replaces it.
+  - The Compendium's website says: "The Adult, Older Adult, and Wheelchair Compendia are free to use
+    for commercial purposes", and asks that MET values are not changed and that the Compendium is
+    cited.
+  - The journal article that publishes it (Journal of Sport and Health Science, 2024) is under CC
+    BY-NC-ND 4.0, which does not allow commercial use.
+  - FitSphere copies 104 activity codes and their METs, not the Compendium's descriptions. The owner
+    accepted the risk for now (R-011) without asking the authors.
+- Questions: does the website's statement allow FitSphere's use, given the article's licence? Is the
+  credit enough, and in the right place? Should the authors be asked (the site gives
+  compendiumpa@gmail.com)?
+
+### F. Anything else before real users
 
 **L-14 What else is needed (MVP).**
 - Question: what else must be in place before the release? For example: the privacy notice
@@ -277,6 +296,7 @@ or "Not written yet" are not available yet.
 | E-17 | Each provider's data-processing terms: Supabase, Google Cloud (Cloud Run, Gemini), Resend, Expo, Open Food Facts | — | L-01, L-03, L-14 | To obtain |
 | E-18 | The privacy notice, terms of use, deletion-request page, complaints contact | Deletion page draft: [`account-deletion-page.md`](account-deletion-page.md) | L-02, L-04, L-14 | Deletion page drafted 2026-10-30 (D-31), with its open points marked; the others not written yet |
 | E-19 | The AI consent text | `AI_CONSENT_TEXT` in `packages/shared/src/contracts.ts` | L-03 | Written 2026-10-30, version `2026-10-30` (D-31); not yet reviewed |
+| E-20 | The Compendium's PDF, its terms as quoted, and the codes and METs the exercise list uses | [`exercise-list-sources.md`](../data/exercise-list-sources.md), [`data/exercises/exercise-list.csv`](../../data/exercises/exercise-list.csv); the PDF on the owner's PC, identified by its hash there | L-17 | In the repository (Draft) |
 
 ## 4. How answers are recorded
 

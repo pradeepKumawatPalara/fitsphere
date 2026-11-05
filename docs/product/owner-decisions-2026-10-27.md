@@ -1357,6 +1357,46 @@ checksum), and the configuration template was left as it is.*
   `0015_brand_labels.sql`; phone schema version 12 (the cached food list is made again so a fibre
   may be unknown).
 
+## D-50 An exercise list, every kind of exercise, each set on its own, calories burned and heart rate
+- Status: **Accepted** (owner, in chat, 2026-11-04 and 2026-11-05; plan `docs/plans/exercise-list.md`
+  approved 2026-11-05: "I approve the plan"; its screens, 4.1 to 4.3, locked the same day: "lock it").
+- Asked: "user should be able to see Picker for exercise names, should auto populate the names, KGs
+  should be visible for weight trainings... If user select Pushups then weights are not mandatory.
+  Create the list of all exercises and weight trainings and store it in our DB"; then "each type of
+  exercise that a person can perform. cardio as well" (running's distance and speed, treadmills);
+  then "please add Calories burned, A separate weight and reps for each set, Heart rate".
+- Answer:
+  - **FitSphere's own exercise list**, written by us (exercise names are everyday words), stored in
+    the database and kept on the phone for searching offline: 334 exercises in
+    `data/exercises/exercise-list.csv`, each with its group, how it is logged and other names to
+    search by. The owner checks it in the pull request.
+  - **Eight types**, each with its own fields: weight and reps; reps (no weight field: bodyweight);
+    time; weight and time; distance and time (the average speed and pace shown); treadmill (speed,
+    incline, distance); cardio machine (distance, level); time only. A list exercise with a weight
+    asks for it on every set.
+  - A name that is not in the list can still be saved; it asks "Log as": sets and reps (weight
+    optional), time, or cardio.
+  - **Each set on its own row**, with its own reps, weight and time; "Add set" copies the last.
+    Exercises saved before read as that many identical sets.
+  - **Calories burned and heart rate** on each exercise: calories estimated from the 2024 Adult
+    Compendium of Physical Activities (MET × the latest weight × the time), or typed from a machine
+    or watch in their place; shown "· estimated" as Log meal's values are, the Compendium credited
+    behind an i. Calories burned show on the Training tab only, for now: Home's calorie target and
+    card do not change ("Ignore for now to merge to the Home dashboard. Let track the calories burn
+    on the Training tab only").
+  - Distance in km and speed in km/h only for now (MVP default).
+  - One MET each exercise, copied unchanged from the Compendium (MVP default; choosing the MET by the
+    speed typed was offered and left for later).
+- Risk: the Compendium's website allows commercial use, its journal article's licence does not
+  (R-011, Legal L-17); the owner accepted it for now ("Compendium agree for now").
+- Built in two steps: the list, the types and the sets (migration `0016_exercises.sql`,
+  `npm run exercises:import`, `GET /v1/exercises`, phone schema version 13); then calories burned
+  and heart rate. Takes the exercise-list half of backlog E-17, and per-set rows and duration from
+  E-14, into the MVP.
+- Doc changes: REQ-TRN-003; the data model; `constraints-and-assumptions.md` (the exercise rows,
+  R-011); the backlog (E-14, E-17, E-24 to E-26); `docs/data/exercise-list-sources.md`;
+  `docs/sources/README.md`; the Legal brief (L-17); the redesign plan's 4.1 to 4.3; `CLAUDE.md`.
+
 ---
 
 ## Proposed replacement wording for the two invariants
