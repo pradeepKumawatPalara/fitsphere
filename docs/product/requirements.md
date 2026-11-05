@@ -502,7 +502,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   name or brand, marked "Packaged" with the brand, in grams or by their label's serving. Since
   D-49, brands' own labels, read from their websites and approved by the owner, are listed before
   them, marked "Brand label", in grams or by their serving; a fibre the label does not give is
-  shown as unknown. Your own food can be in any of several units and saved to My foods
+  shown as unknown. Since D-51, a food named exactly as the search (ignoring case and punctuation)
+  is listed first; the rest keep their order. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods

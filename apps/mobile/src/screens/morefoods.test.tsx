@@ -247,6 +247,26 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
   });
 });
 
+describe('D-51 an exact match first (the owner’s phone test, 2026-11-05)', () => {
+  it('a packaged food named just "Bread" comes first; the rest keep their order', async () => {
+    const plain: PackagedFood = { ...PACKAGED_BREAD, barcode: '96385074', name: 'Bread', brand: 'Other Bakers' };
+    await render(async (db, server) => {
+      server.state.foods = [...FOODS, LABEL_BREAD];
+      server.state.packaged = [PACKAGED_BREAD, plain];
+      await replaceFoods(db, server.state.foodsVersion, [...FOODS, LABEL_BREAD], [], [PACKAGED_BREAD, plain]);
+    });
+    await search('bread');
+
+    const rows = await screen.findAllByRole('button', { name: /bread/i });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Bread, Other Bakers, packaged, 250 kcal per 100 g',
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+    ]);
+  });
+});
+
 describe('D-49 brands’ own labels', () => {
   it('are listed after the Indian foods and before Open Food Facts’ products, marked "Brand label", and credited', async () => {
     await render(withLabels);
