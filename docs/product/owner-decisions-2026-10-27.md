@@ -1401,7 +1401,6 @@ checksum), and the configuration template was left as it is.*
   R-011, the calories row); the backlog (E-14, E-17, E-24 to E-26, E-26 closed); `docs/data/exercise-list-sources.md`;
   `docs/sources/README.md`; the Legal brief (L-17); the redesign plan's 4.1 to 4.3; `CLAUDE.md`.
 
-
 ---
 
 ## D-51 Search foods: an exact match first
@@ -1413,6 +1412,7 @@ checksum), and the configuration template was left as it is.*
   matches by its brand and name together ("amul butter"). The other results keep their order:
   dishes, INDB, IFCT, My foods, brand labels, then packaged foods (D-46 to D-49).
 - Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row).
+
 ---
 
 ## Proposed replacement wording for the two invariants
