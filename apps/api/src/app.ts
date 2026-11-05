@@ -8,6 +8,7 @@ import { errorBody, handleError } from './errors.ts';
 import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
 import { registerAiConsentRoutes } from './routes/aiConsent.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
+import { registerExercisesRoute } from './routes/exercises.ts';
 import { registerFoodsRoute } from './routes/foods.ts';
 import { registerMediaRoutes } from './routes/media.ts';
 import { registerMeRoutes } from './routes/me.ts';
@@ -93,6 +94,7 @@ export function buildApp(deps: AppDeps) {
   registerWorkoutsRoute(app, deps);
   registerWeighInsRoute(app, deps);
   registerFoodsRoute(app, deps);
+  registerExercisesRoute(app, deps);
   registerBarcodesRoute(app, {
     db: deps.db,
     barcodes: deps.barcodes ?? createOpenFoodFacts({ contact: undefined }),

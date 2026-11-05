@@ -2,6 +2,8 @@
 // The server is the permanent record; pending and rejected entries are never deleted
 // automatically (D-14).
 import {
+  currentExercises,
+  exerciseNameKey,
   MEAL_DELETE,
   MEAL_SET,
   mealTotals,
@@ -21,7 +23,9 @@ import {
   WORKOUT_SET,
   type ChangeErrorCode,
   type Dish,
+  type ExerciseGroup,
   type Food,
+  type ListedExercise,
   type IstDay,
   type MealItem,
   type MealSetData,
@@ -132,6 +136,8 @@ type KindSpec = {
   columns: [column: string, field: string, json?: 'json'][];
   /** Fields worked out from the others when the row is written (a meal's totals). */
   derive?: (fields: Record<string, unknown>) => Record<string, BindValue>;
+  /** The fields as the app uses them, from those a row holds (a workout's exercises saved before D-50). */
+  read?: (fields: Record<string, unknown>) => Record<string, unknown>;
   /** Fields only the server's pull carries. */
   pullColumns: [column: string, field: string][];
   /** Day data keeps the last 90 IST days (ADR-0007 rule 1); targets and settings are always kept. */
@@ -212,6 +218,7 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['exercises', 'exercises', 'json'],
       ['recorded_at', 'recordedAt'],
     ],
+    read: (fields) => ({ ...fields, exercises: currentExercises(fields.exercises as unknown[]) }),
     pullColumns: [],
     dayData: true,
   },
@@ -561,6 +568,21 @@ const MIGRATIONS = [
      PRIMARY KEY (source, code)
    );
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // The exercise list (D-50): each exercise with how it is logged and its Compendium MET, the words it
+  // is searched by and the keys its name and other names are matched by. Its version is cleared, so
+  // the next download fills it. Workouts keep their exercises as JSON, read in today's shape.
+  `CREATE TABLE exercises (
+     code TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     exercise_group TEXT NOT NULL,
+     log_type TEXT NOT NULL,
+     aliases TEXT NOT NULL,
+     compendium_code TEXT,
+     met REAL,
+     search_text TEXT NOT NULL,
+     name_keys TEXT NOT NULL
+   );
+   DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -587,6 +609,7 @@ export type MetaKey =
   | 'last_synced_at'
   | 'measurement_unit'
   | 'food_list_version'
+  | 'exercise_list_version'
   | 'account_created_day'
   | 'ai_consent';
 
@@ -876,12 +899,11 @@ async function upsert(
 }
 
 function toEntry(spec: KindSpec, row: Record<string, BindValue>): Record<string, unknown> {
-  const entry: Record<string, unknown> = {};
+  const fields: Record<string, unknown> = {};
   for (const [column, field, json] of [...spec.columns, ...spec.pullColumns]) {
-    entry[field] = json ? (JSON.parse(String(row[column])) as unknown) : row[column];
+    fields[field] = json ? (JSON.parse(String(row[column])) as unknown) : row[column];
   }
-  entry.syncState = row.sync_state;
-  return entry;
+  return { ...(spec.read ? spec.read(fields) : fields), syncState: row.sync_state };
 }
 
 function toOutboxEntry(row: OutboxRow): OutboxEntry {
@@ -1204,6 +1226,119 @@ export async function searchDishes(db: SqlDb, query: string, limit = 10): Promis
 }
 
 /** At most five lowercase words of a search. */
+// --- The exercise list (D-50) ---
+
+/** Short forms and other words an exercise's group is found by: "db bench" finds "Dumbbell bench press". */
+const GROUP_SEARCH_WORDS: Record<ExerciseGroup, readonly string[]> = {
+  barbell: ['barbell', 'bb'],
+  dumbbell: ['dumbbell', 'db'],
+  kettlebell: ['kettlebell', 'kb'],
+  machine: ['machine'],
+  cable: ['cable'],
+  bodyweight: ['bodyweight', 'calisthenics'],
+  band: ['band', 'resistance band'],
+  cardio: ['cardio'],
+  sport: ['sport'],
+  yoga: ['yoga', 'mobility'],
+  other: [],
+};
+
+/** An exercise's words as searched: its name's, its other names' and its group's, and each whole name, as keys. */
+function exerciseSearchText(exercise: ListedExercise): string {
+  const names = [exercise.name, ...exercise.aliases];
+  const words = [...names, ...GROUP_SEARCH_WORDS[exercise.group]].flatMap((text) => text.split(/\s+/));
+  return [...words, ...names].map(exerciseNameKey).filter((key) => key !== '').join(' ');
+}
+
+/** A search's words as keys; a plural's final s is dropped, so "dips" finds "Dip". */
+function exerciseQueryWords(query: string): string[] {
+  return query
+    .split(/[\s,]+/)
+    .map(exerciseNameKey)
+    .filter((word) => word !== '')
+    .map((word) => (word.length > 3 && word.endsWith('s') ? word.slice(0, -1) : word))
+    .slice(0, 5);
+}
+
+type ExerciseRow = {
+  code: string;
+  name: string;
+  exercise_group: ListedExercise['group'];
+  log_type: ListedExercise['logType'];
+  aliases: string;
+  compendium_code: string | null;
+  met: number | null;
+};
+
+function toListedExercise(row: ExerciseRow): ListedExercise {
+  return {
+    code: row.code,
+    name: row.name,
+    group: row.exercise_group,
+    logType: row.log_type,
+    aliases: JSON.parse(row.aliases) as string[],
+    compendiumCode: row.compendium_code,
+    met: row.met,
+  };
+}
+
+/** Exercises a statement writes when the list is replaced: 9 values each, within SQLite's 999. */
+const EXERCISE_ROWS_PER_INSERT = 100;
+
+/** Replaces the cached exercise list (D-50) and records its version, in one transaction. */
+export async function replaceExercises(db: SqlDb, version: string, exercises: readonly ListedExercise[]): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM exercises', []);
+    for (let start = 0; start < exercises.length; start += EXERCISE_ROWS_PER_INSERT) {
+      const batch = exercises.slice(start, start + EXERCISE_ROWS_PER_INSERT);
+      await db.runAsync(
+        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, search_text, name_keys)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        batch.flatMap((exercise) => [
+          exercise.code,
+          exercise.name,
+          exercise.group,
+          exercise.logType,
+          JSON.stringify(exercise.aliases),
+          exercise.compendiumCode,
+          exercise.met,
+          exerciseSearchText(exercise),
+          // " name other names ", so a whole key is found with LIKE '% key %' and the name's comes first.
+          ` ${[exercise.name, ...exercise.aliases].map(exerciseNameKey).join(' ')} `,
+        ]),
+      );
+    }
+    await setMeta(db, 'exercise_list_version', version);
+  });
+}
+
+/**
+ * Searches the cached exercise list, offline (D-50): every word must appear in the name, another name
+ * or the group's words, ignoring case, hyphens and doubled letters ("dumbell" finds "Dumbbell"); names
+ * starting with the first word come first.
+ */
+export async function searchExercises(db: SqlDb, query: string, limit = 8): Promise<ListedExercise[]> {
+  const words = exerciseQueryWords(query);
+  if (words.length === 0) return [];
+  const rows = await db.getAllAsync<ExerciseRow>(
+    `SELECT * FROM exercises WHERE ${words.map(() => `search_text LIKE ? ESCAPE '\\'`).join(' AND ')}
+     ORDER BY name_keys LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
+    [...words.map(like), ` ${startsWith(words[0]!)}`, limit],
+  );
+  return rows.map(toListedExercise);
+}
+
+/** The exercise whose name or other name is `name`, ignoring case, hyphens and doubled letters, or null. */
+export async function findListedExercise(db: SqlDb, name: string): Promise<ListedExercise | null> {
+  const key = exerciseNameKey(name);
+  if (key === '') return null;
+  const row = await db.getFirstAsync<ExerciseRow>(
+    `SELECT * FROM exercises WHERE name_keys LIKE ? ESCAPE '\\' ORDER BY name_keys LIKE ? DESC LIMIT 1`,
+    [`% ${escapeLike(key)} %`, ` ${escapeLike(key)} %`],
+  );
+  return row ? toListedExercise(row) : null;
+}
+
 function searchWords(query: string): string[] {
   return query
     .toLowerCase()

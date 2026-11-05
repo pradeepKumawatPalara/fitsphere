@@ -70,7 +70,7 @@ describe('Local schema version 7', () => {
     try {
       // Version 6 as phones have it: build it with the current migrations, then drop what 7 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 6;');
+      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 6;');
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(
         `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c1', 'weighIn.set', ?, ?, 'pending')`,
@@ -81,7 +81,7 @@ describe('Local schema version 7', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
@@ -99,7 +99,7 @@ describe('Local schema version 9', () => {
     try {
       // Version 8 as phones have it: build it with the current migrations, then drop what 9 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; PRAGMA user_version = 8;');
+      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; PRAGMA user_version = 8;');
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(
         `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c1', 'setting.set', ?, ?, 'pending')`,
@@ -109,7 +109,7 @@ describe('Local schema version 9', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 12 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 13 });
       expect(await getEntry(old, 'profile', 'profile')).toBeNull();
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);

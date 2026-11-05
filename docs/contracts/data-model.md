@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
+- Last updated: 2026-11-05 (the exercise list and the exercise's new shape, D-50: migration 0016,
+  `exercises`, phone schema version 13). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
   migration 0008, and the phone's `settings` table, version 7; D-31). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
   same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
   Earlier the same day (Home and daily tracking slice, step 2: steps, sleep, measurements and
@@ -215,10 +216,21 @@ may hold several workouts, and each with at least one exercise counts toward the
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
 
-- Each exercise is `{ name, sets, reps, weightGrams, note }`: sets × reps × weight with an
-  optional note (Q-042). Name 1 to 80 characters; sets 1 to 20; reps 1 to 200, the same for every
-  set; `weightGrams` 100 to 500,000 (0.1–500 kg), or null when no weight is lifted; `note` 1 to
-  500 characters, or null (MVP defaults, D-29). The API checks these; the table checks the array.
+- Each exercise (D-50) has `name` (1 to 80 characters), `note` (1 to 500 characters, or null),
+  `calories` (`{ kcal, estimated }`, 1 to 5,000 kcal, typed or estimated from the exercise list's
+  MET, or null) and `averageHeartRateBpm` and `highestHeartRateBpm` (30 to 250, or null; the highest
+  not below the average), and is one of two kinds:
+  - `kind: 'sets'`: `sets`, 1 to 20 sets, each `{ reps, weightGrams, seconds }` with reps 1 to 200,
+    `weightGrams` 100 to 500,000 (0.1–500 kg) and `seconds` 1 to 86,400, each or null, but reps or
+    seconds in every set; and `durationSeconds`, the time spent (1 to 86,400, or null), used only to
+    estimate calories.
+  - `kind: 'cardio'`: `durationSeconds` (1 to 86,400), `distanceMetres` (10 to 500,000),
+    `speedMetresPerHour` (100 to 40,000), `inclinePermille` (tenths of a percent, 0 to 400) and
+    `level` (1 to 40), each but the time or null.
+  The API checks these; the table checks the array. An exercise saved before D-50,
+  `{ name, sets, reps, weightGrams, note }` with the same reps and weight for every set, is read and
+  served as that many identical sets; a change from an older app in that shape is stored in today's.
+  Workouts keep each exercise's name, not a link to the exercise list.
 - A new change for the workout replaces the whole workout, and the change the server receives
   last wins, also over an earlier deletion (ADR-0007 rule 2).
 - **Deleting** empties `exercises` and sets `deleted_at`, keeping the row and its day, so the
@@ -470,6 +482,22 @@ policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 | `fibre_g` | `numeric(6,2)` | Null, or 0 to 100, per 100 g |
 | `serving_grams` | `numeric(7,2)` | Null, or more than 0 and at most 2,000: one serving, when the label gives it in grams |
 
+### `exercises` — reference data
+FitSphere's exercise list (D-50; `docs/data/exercise-list-sources.md`): loaded from
+`data/exercises/exercise-list.csv` by `exercises:import`, replaced whole. Migration 0016. Not personal
+data; row level security on, no policies. Sent to the phone by `GET /v1/exercises`, with a version so
+an unchanged list is not sent again.
+
+| Column | Type | Rules |
+|---|---|---|
+| `code` | `text` | Primary key; lower-case letters and digits joined by hyphens |
+| `name` | `text` | 1 to 80 characters; no two names or other names the same, ignoring case, hyphens, spaces and doubled letters (checked by the import) |
+| `exercise_group` | `text` | `barbell`, `dumbbell`, `kettlebell`, `machine`, `cable`, `bodyweight`, `band`, `cardio`, `sport`, `yoga` or `other` |
+| `log_type` | `text` | `weight_reps`, `reps`, `time`, `weight_time`, `distance_time`, `treadmill`, `cardio_machine` or `time_only` |
+| `aliases` | `text[]` | Not null. Other names to search by |
+| `compendium_code`, `met` | `text`, `numeric(4,1)` | Together: the 2024 Adult Compendium's activity code (5 digits) and its MET, unchanged; both null when the Compendium lists no such activity |
+| `updated_at` | `timestamptz` | Not null |
+
 ### `usda_foods`, `usda_food_portions` — archive
 USDA's FNDDS foods and their servings (D-39), archived, not served (D-47): the same columns as
 `foods` (code, name, food group, the five values per 100 g) and `food_portions` (code, seq, label,
@@ -561,9 +589,10 @@ rule 5 and D-14 require.
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
 | `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
 | `my_foods` | `id` (key), `name`, `unit`, the values, `saved_at`, `sync_state` | **Health.** My foods (REQ-LOG-011), never pruned. Schema version 10 (D-39) |
+| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, written on the phone. Not personal data. Schema version 13 |
 | `profile` | `id` (key, always `profile`), `name`, `date_of_birth`, `sex`, `height_mm`, `phone`, `address` (JSON), `photo_media_id`, `set_at`, `sync_state` | **Health and contact.** The user's profile (REQ-ACC-011), at most one row. Never pruned. Its photo is a row of `photos` whose `meal_id` is `profile`. Schema version 9 (D-38) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
-| `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
+| `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version`, `exercise_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
 - **What is kept:** the user's own weigh-ins, steps, sleep, measurements and workouts for the last
   90 IST days, and their current targets and settings (ADR-0007 rule 1). Synced day entries older
@@ -601,6 +630,9 @@ rule 5 and D-14 require.
   download brings them.
 - **Version 12** (brand labels, D-49) makes `foods` again with `fibre_g` allowed to be null (a brand
   label that gives no fibre), and clears `food_list_version`, so the next download fills it.
+- **Version 13** (the exercise list, D-50) adds `exercises` and clears `exercise_list_version`, so
+  the next download fills it. Workouts keep their exercises as JSON; one saved before D-50 is read as
+  identical sets.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

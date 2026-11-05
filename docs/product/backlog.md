@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
+- Last updated: 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
   to S5-07 and S6-01 to S6-09; the slice 5 and 6 IDs made final). 2026-10-30 (Settings slice,
   steps 2 and 5, D-31: RB-04 and E-21 to E-23). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
@@ -139,13 +139,16 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-11 | Target history: a target that applies from the day it was set, so past days keep the target they had (Q-014) | REQ-ROLE-007, REQ-PRG-005 | One current value per target, applying to every day shown (D-23) |
 | E-12 | Changing the measurements sheet's date after typing values | REQ-MEAS-002 | The fields show the new day's entry, or empty fields, so values typed for the old day are cleared (D-23) |
 | E-13 | A dish removed from the list (no longer approved) while a phone still has a meal or saved meal naming it waiting to sync, or one is re-logged later | REQ-LOG-007, D-28 | The change is refused (`VALIDATION_FAILED`) and shown as rejected; meals already on the server keep their snapshot. Keep a withdrawn dish on the list, hidden from search, if this happens in practice |
-| E-14 | Per-set reps and weights, and the other workout fields Q-042 listed (duration, RPE, rest) | REQ-TRN-003, Q-042 | One line per exercise: sets × reps × weight with an optional note; the same reps and weight for every set (D-29) |
+| E-14 | The other workout fields Q-042 listed: RPE and rest (per-set reps and weights, and times, came with D-50) | REQ-TRN-003, Q-042 | Each set has its own reps, weight and time; cardio its time; no RPE or rest (D-50) |
 | E-15 | Changing a workout's date after it was started | REQ-TRN-003, REQ-LOG-002 | The date is fixed when the workout starts; to log another day, the user picks that date first, or deletes the workout and starts again (D-29) |
 | E-16 | Editing or deleting workouts older than the 90 days the phone holds, online | REQ-TRN-004, ADR-0007 rule 1 | Older workouts are read with "Load older" and only viewed (D-29) |
-| E-17 | Exercise names suggested from past workouts, or an exercise list | REQ-TRN-003 | Names are typed freely each time (D-29) |
+| E-17 | Exercise names suggested from the user's past workouts (the exercise list came with D-50) | REQ-TRN-003 | Names are searched in FitSphere's exercise list, or typed (D-50) |
 | E-18 | Progress's week table and measurements for weeks older than the 90 days the phone holds, online | REQ-PRG-005, REQ-PRG-006, ADR-0007 rule 1 | The table shows this week and the 11 before it, and the measurements of the last 90 days; older weights are in the chart (26W, All) and "All weigh-ins" (D-30). Needs read routes for meals, steps and measurements |
 | E-19 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-30) |
 | E-20 | The target body weight as a line on the weight chart | REQ-PRG-004, REQ-PRG-005 | The target body weight is in the week table's Target row (D-30) |
 | E-21 | A photo upload link issued less than 10 minutes before the account is deleted can still put one file in storage afterwards | REQ-ACC-009, ADR-0002 rule 5 | The deletion removes every file the database knows of; post-MVP, the user's folder is swept again 10 minutes later (D-31) |
 | E-22 | Supabase Auth fails to delete the sign-in account after the data is gone, and the user restarts the app before trying again: account setup creates a new, empty account, and unsynced entries on the phone go to it | REQ-ACC-009 | "Delete account" again deletes that account too; the message asks the user to try again (D-31) |
 | E-23 | A weight stored at the very top of its range (300.0 kg, 500.0 kg lifted) is shown in lb one step above the lb limit, so it cannot be saved again unchanged in lb | REQ-ACC-002, REQ-ACC-003 | The user types a value within the limit shown (D-31) |
+| E-24 | Miles, min/mile and mph: a distance unit setting | REQ-TRN-003, REQ-ACC-002 | Distances in km, speeds in km/h and paces per km (D-50) |
+| E-25 | Calories burned on Home: raising the day's food allowance ("eat back"), or on any Home card | REQ-HOME-003, D-50 | Calories burned show on the Training tab only; Home's calorie target and card do not change (D-50) |
+| E-26 | A cardio exercise's MET chosen by the speed typed (the Compendium lists running, walking, treadmill walking and cycling by speed) | REQ-TRN-003, D-50 | One MET each exercise, whatever its speed (D-50) |

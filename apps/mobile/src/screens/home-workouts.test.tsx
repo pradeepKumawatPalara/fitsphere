@@ -11,6 +11,7 @@ import { deps, fakeAuthClient, fakeSession } from '../testing/fakes';
 import { fakeServer } from '../testing/fakeServer';
 import { memoryDb } from '../testing/memoryDb';
 import { HomeScreen } from './HomeScreen';
+import { sameSets } from '../testing/exercises';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
@@ -22,7 +23,7 @@ jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 const NOW = new Date('2026-10-28T03:30:00Z');
 const clock = () => NOW;
 const noNetworkEvents = { watch: () => ({ remove: () => undefined }) };
-const SQUAT: WorkoutExercise = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
+const SQUAT: WorkoutExercise = sameSets('Squat', 3, 10, 40_000);
 
 let ids = 0;
 function newId() {

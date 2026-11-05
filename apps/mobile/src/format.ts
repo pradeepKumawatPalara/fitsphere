@@ -62,6 +62,12 @@ export function parseOneDecimal(text: string): number | null {
   return match ? Number(`${match[1]}.${match[2] ?? '0'}`) : null;
 }
 
+/** Reads a number with at most two decimals, a point or a comma before them (a distance in km, D-50). */
+export function parseTwoDecimals(text: string): number | null {
+  const match = /^(\d{1,4})(?:[.,](\d{1,2}))?$/.exec(text.trim());
+  return match ? Number(`${match[1]}.${match[2] ?? '0'}`) : null;
+}
+
 /** Reads a whole number from `min` to `max`; spaces and thousands commas are ignored. */
 export function parseWholeNumber(text: string, min: number, max: number): number | null {
   const digits = text.replace(/[\s,]/g, '');

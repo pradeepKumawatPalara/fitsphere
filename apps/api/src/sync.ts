@@ -2,6 +2,7 @@
 // REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, REQ-ACC-011;
 // My foods and USDA servings, D-39).
 import {
+  currentExercises,
   isAcceptedDateOfBirth,
   isFutureIstDay,
   istToday,
@@ -809,7 +810,8 @@ function toPulledWorkout(workout: StoredWorkout): PulledWorkout {
     deleted: false,
     id: workout.id,
     day: workout.day,
-    exercises: workout.exercises,
+    // Exercises saved before D-50 are served in today's shape.
+    exercises: currentExercises(workout.exercises),
     recordedAt: utc(workout.recordedAt),
     updatedAt: utc(workout.updatedAt),
   };

@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30
+- Last updated: 2026-11-05 (the Compendium of Physical Activities, D-50). 2026-10-30
 - Why they are kept: so that Legal (Q-049) can see exactly what was read before the owner decided
   how dishes are defined (D-26 answer 3, amended 2026-10-30)
 
@@ -11,6 +11,12 @@ The documents from the National Institute of Nutrition (NIN) that were read for 
 outside it, on the owner's PC in `D:\fitsphere-data\sources\` (owner's decision, 2026-10-30), and
 git ignores `docs/sources/*.pdf`. The SHA-256 hashes below identify each file. Each was downloaded
 from NIN's own website, not from a third-party copy, and is kept exactly as NIN serves it.
+
+For the exercise list (D-50), the *2024 Adult Compendium of Physical Activities* was also read:
+`2024-adult-compendium.pdf`, downloaded on 2026-11-05 from the Compendium's own site, 563,091 bytes, 28
+pages, SHA-256 `ac30234b8f8f813837e282773cfcb3e0fe062334777c2f7b3213429c4fbc251c`, kept in
+`D:\fitsphere-data\compendium-2024-11-05\`. The METs FitSphere copies from it, its terms and how it was read are in
+[`exercise-list-sources.md`](../data/exercise-list-sources.md) (accepted risk R-011, Legal L-17).
 
 FitSphere uses none of their contents as data. The IFCT 2017 food values come from a compilation of
 the first book, `IFCT2017_Nutrient_Knowledge_Base (1).pdf`, kept the same way in `D:\fitsphere-data\`

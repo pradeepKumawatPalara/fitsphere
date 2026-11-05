@@ -136,10 +136,13 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
 
   async function addExercise(weight: string) {
     await fireEvent.press(screen.getByRole('button', { name: 'Add exercise' }));
-    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'Squat');
-    await fireEvent.changeText(screen.getByLabelText('Sets'), '3');
-    await fireEvent.changeText(screen.getByLabelText('Reps'), '10');
-    await fireEvent.changeText(screen.getByLabelText('Weight in lb (optional)'), weight);
+    const name = screen.getByLabelText('Exercise name');
+    await fireEvent.changeText(name, 'Squat');
+    await fireEvent(name, 'blur');
+    await fireEvent.changeText(await screen.findByLabelText('Set 1, Reps'), '10');
+    await fireEvent.changeText(screen.getByLabelText('Set 1, Weight in lb (optional)'), weight);
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Save exercise' }));
   }
 
@@ -149,7 +152,8 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
 
     expect(await screen.findByRole('button', { name: 'Squat: 3 × 10 × 88.2 lb' })).toBeOnTheScreen();
     expect(screen.getByText('70.0 kg')).toBeOnTheScreen();
-    expect((await getEntry(db, 'workout', mockParams.id))?.exercises[0]?.weightGrams).toBe(toGrams(88.2, 'lb'));
+    const squat = (await getEntry(db, 'workout', mockParams.id))?.exercises[0];
+    expect(squat?.kind === 'sets' ? squat.sets.map((set) => set.weightGrams) : null).toEqual(Array(3).fill(toGrams(88.2, 'lb')));
 
     await fireEvent.press(screen.getByRole('button', { name: 'lifting_weight_unit → kg' }));
 
@@ -161,8 +165,8 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
     await startWorkout();
     await addExercise(text);
 
-    expect(await screen.findByText(exerciseRules('lb').weight)).toBeOnTheScreen();
-    expect(screen.getByText('Enter a weight from 0.3 to 1102.3 lb, with at most one decimal, or leave it empty.')).toBeOnTheScreen();
+    expect(await screen.findByText(`Set 1: ${exerciseRules('lb').optionalWeight}`)).toBeOnTheScreen();
+    expect(screen.getByText('Set 1: enter a weight from 0.3 to 1102.3 lb, with at most one decimal, or leave it empty.')).toBeOnTheScreen();
   });
 });
 

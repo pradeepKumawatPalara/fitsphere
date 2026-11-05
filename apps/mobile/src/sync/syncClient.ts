@@ -2,6 +2,7 @@
 // settles each result, applies the pull for every kind, and keeps everything that was not
 // accepted.
 import {
+  exercisesResponseSchema,
   foodsResponseSchema,
   istToday,
   MAX_SYNC_CHANGES,
@@ -20,6 +21,7 @@ import {
   pendingChanges,
   pruneSynced,
   recordAttempt,
+  replaceExercises,
   replaceFoods,
   setMeta,
 } from '../local/store';
@@ -91,6 +93,28 @@ export async function refreshFoodList(db: SqlDb, auth: AuthDeps): Promise<FoodLi
   if (!parsed.success) return 'failed';
   if (parsed.data.items === null) return 'current';
   await replaceFoods(db, parsed.data.version, parsed.data.items, parsed.data.dishes ?? [], parsed.data.packaged ?? []);
+  return 'updated';
+}
+
+/**
+ * Keeps the phone's copy of the exercise list current (D-50), as the food list is: it sends the
+ * version it holds and stores the list only when the server's differs, so search keeps working
+ * offline. A failure keeps the copy already on the phone.
+ */
+export async function refreshExerciseList(db: SqlDb, auth: AuthDeps): Promise<FoodListOutcome> {
+  const session = (await auth.client.getSession()).data.session;
+  if (!session) return 'failed';
+  const version = await getMeta(db, 'exercise_list_version');
+  const response = await callApi<unknown>(auth.apiUrl, `/exercises${version ? `?version=${encodeURIComponent(version)}` : ''}`, {
+    token: session.access_token,
+    ...(auth.fetchImpl ? { fetchImpl: auth.fetchImpl } : {}),
+  });
+  if (response.kind === 'offline') return 'offline';
+  if (response.kind === 'error') return 'failed';
+  const parsed = exercisesResponseSchema.safeParse(response.body);
+  if (!parsed.success) return 'failed';
+  if (parsed.data.items === null) return 'current';
+  await replaceExercises(db, parsed.data.version, parsed.data.items);
   return 'updated';
 }
 

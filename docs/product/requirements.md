@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -565,6 +565,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout is saved but counts toward the weekly target only once it has an exercise (D-41).
 - MVP defaults (D-29): "Log workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
 - D-43: a date chip above "Log workout", as Log meal's, opens the calendar "Log this workout to"; the day picked becomes the app's selected date, which "Log workout" logs to.
+- D-50 (replacing D-29's "typed freely" and "the same for every set"): the name searches FitSphere's exercise list (334 exercises, kept on the phone, offline) or is typed. Each list exercise has one of eight types that decides its fields: weight and reps (a weight on every set), reps (no weight: bodyweight), time, weight and time, distance and time (the average speed and pace shown), treadmill (speed, incline), cardio machine (level), time only. A name of the user's own asks "Log as": sets and reps, time, or cardio. Each set has its own reps, weight and time, 1 to 20 sets. Exercises saved before read as identical sets. Calories burned (a Compendium MET estimate, or typed) and heart rate on each exercise come in the plan's second step and show on the Training tab only.
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.

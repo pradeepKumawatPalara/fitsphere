@@ -1,5 +1,6 @@
 import {
   API_BASE_PATH,
+  currentExercises,
   DEFAULT_LIST_LIMIT,
   validationDetails,
   workoutsQuerySchema,
@@ -47,7 +48,8 @@ export function registerWorkoutsRoute(app: FastifyInstance, deps: { db: pg.Pool 
       items: page.map((row) => ({
         id: row.id,
         day: row.day,
-        exercises: row.exercises,
+        // Exercises saved before D-50 are served in today's shape.
+        exercises: currentExercises(row.exercises),
         recordedAt: row.recorded_at.toISOString(),
         updatedAt: row.updated_at.toISOString(),
       })),

@@ -7,7 +7,7 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { insertNewPhoto, type PhotoFiles } from '../local/photos';
 import { deleteEntry, discardRejected, PROFILE_KEY, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
 import { uploadPhotos } from './photoSync';
-import { refreshFoodList, syncNow, type SyncOutcome } from './syncClient';
+import { refreshExerciseList, refreshFoodList, syncNow, type SyncOutcome } from './syncClient';
 
 /** Calls `onReconnect` when the phone's connection comes back. */
 export type NetworkWatcher = { watch(onReconnect: () => void): { remove(): void } };
@@ -91,10 +91,11 @@ export function SyncProvider({
       do {
         again.current = false;
         const outcome = await syncNow(db, deps, now).catch((): SyncOutcome => 'failed');
-        // The food list and photo uploads follow a sync that reached the server (ADR-0006 rule 1;
-        // REQ-LOG-006).
+        // The food list, the exercise list and photo uploads follow a sync that reached the server
+        // (ADR-0006 rule 1; D-50; REQ-LOG-006).
         if (outcome === 'synced') {
           await refreshFoodList(db, deps).catch(() => 'failed');
+          await refreshExerciseList(db, deps).catch(() => 'failed');
           await uploadPhotos(db, deps).catch(() => 'offline');
         }
         setStatus(outcome);

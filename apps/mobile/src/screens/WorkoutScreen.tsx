@@ -14,12 +14,13 @@ import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { EMPTY_EXERCISE, formatSets, toExerciseText } from '../workouts';
+import { exerciseLines } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
 type Sheet = { index: number | null };
 
-// One workout (REQ-TRN-003): its exercises as sets × reps × weight with an optional note (Q-042).
+// One workout (REQ-TRN-003): its exercises, each as its sets or its cardio (D-50), with an optional
+// note (Q-042).
 // Every change is saved on the phone at once and synced (ADR-0007); there is no draft and no
 // "Finish" step (MVP default, D-29), and no Done: Save in the exercise sheet saves, and the header's
 // back arrow leaves (D-42). Each exercise has edit and remove; removing asks first. Named by its
@@ -96,31 +97,35 @@ export function WorkoutScreen() {
         </View>
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
-        {workout.exercises.map((exercise, index) => (
-          <View key={index} style={styles.exercise}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${exercise.name}: ${formatSets(exercise, unit)}`}
-              onPress={() => setSheet({ index })}
-              style={({ pressed }) => [styles.exerciseMain, pressed && styles.pressed]}
-            >
-              <View style={styles.number}>
-                <Text style={styles.numberText}>{String(index + 1).padStart(2, '0')}</Text>
-              </View>
-              <View style={styles.exerciseText}>
-                <Text style={styles.name}>{exercise.name}</Text>
-                <Text style={styles.sets}>{formatSets(exercise, unit)}</Text>
-                {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
-              </View>
-            </Pressable>
-            <IconButton label={`Edit ${exercise.name}`} onPress={() => setSheet({ index })}>
-              <SquarePen size={20} color={colors.accent} />
-            </IconButton>
-            <IconButton label={`Remove ${exercise.name}`} onPress={() => setRemoving(index)}>
-              <Trash size={20} color={colors.danger} />
-            </IconButton>
-          </View>
-        ))}
+        {workout.exercises.map((exercise, index) => {
+          const { main, detail } = exerciseLines(exercise, unit);
+          return (
+            <View key={index} style={styles.exercise}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${exercise.name}: ${main}${detail ? `, ${detail}` : ''}`}
+                onPress={() => setSheet({ index })}
+                style={({ pressed }) => [styles.exerciseMain, pressed && styles.pressed]}
+              >
+                <View style={styles.number}>
+                  <Text style={styles.numberText}>{String(index + 1).padStart(2, '0')}</Text>
+                </View>
+                <View style={styles.exerciseText}>
+                  <Text style={styles.name}>{exercise.name}</Text>
+                  <Text style={styles.sets}>{main}</Text>
+                  {detail ? <Text style={styles.note}>{detail}</Text> : null}
+                  {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
+                </View>
+              </Pressable>
+              <IconButton label={`Edit ${exercise.name}`} onPress={() => setSheet({ index })}>
+                <SquarePen size={20} color={colors.accent} />
+              </IconButton>
+              <IconButton label={`Remove ${exercise.name}`} onPress={() => setRemoving(index)}>
+                <Trash size={20} color={colors.danger} />
+              </IconButton>
+            </View>
+          );
+        })}
         {workout.exercises.length < MAX_WORKOUT_EXERCISES ? (
           <TextButton title="Add exercise" outlined wide icon={Plus} onPress={() => setSheet({ index: null })} />
         ) : (
@@ -160,7 +165,7 @@ export function WorkoutScreen() {
       {sheet ? (
         <ExerciseSheet
           title={editing ? 'Edit exercise' : 'Add exercise'}
-          initial={editing ? toExerciseText(editing, unit) : EMPTY_EXERCISE}
+          editing={editing ?? null}
           onSave={(exercise) =>
             saveExercises(
               sheet.index === null

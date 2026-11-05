@@ -16,8 +16,36 @@ const TODAY = istToday(NOW);
 const RECORDED_AT = `${TODAY}T02:00:00.000Z`;
 const DELETED_AT = `${TODAY}T03:00:00.000Z`;
 
-const SQUAT = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
-const PUSH_UP = { name: 'Push-up', sets: 2, reps: 20, weightGrams: null, note: 'Slow on the way down' };
+const NONE = { calories: null, averageHeartRateBpm: null, highestHeartRateBpm: null, note: null };
+const SQUAT_SET = { reps: 10, weightGrams: 40_000, seconds: null };
+const SQUAT = { kind: 'sets', name: 'Squat', sets: [SQUAT_SET, SQUAT_SET, SQUAT_SET], durationSeconds: null, ...NONE };
+const PUSH_UP = {
+  kind: 'sets',
+  name: 'Push-up',
+  sets: [
+    { reps: 20, weightGrams: null, seconds: null },
+    { reps: 15, weightGrams: null, seconds: null },
+  ],
+  durationSeconds: null,
+  ...NONE,
+  note: 'Slow on the way down',
+};
+const PLANK = { kind: 'sets', name: 'Plank', sets: [{ reps: null, weightGrams: null, seconds: 60 }], durationSeconds: null, ...NONE };
+const RUN = {
+  kind: 'cardio',
+  name: 'Running',
+  durationSeconds: 1_800,
+  distanceMetres: 5_000,
+  speedMetresPerHour: null,
+  inclinePermille: null,
+  level: null,
+  ...NONE,
+  calories: { kcal: 368, estimated: true },
+  averageHeartRateBpm: 148,
+  highestHeartRateBpm: 172,
+};
+/** The squat as an app before D-50 saved it: the same reps and weight for every set. */
+const EARLIER_SQUAT = { name: 'Squat', sets: 3, reps: 10, weightGrams: 40_000, note: null };
 
 let api: Awaited<ReturnType<typeof startTestApi>>;
 
@@ -84,6 +112,41 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
     ]);
   });
 
+  it('D-50 sets with their own reps, weight and time, and cardio with its distance, calories and heart rate', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+
+    const reply = await syncOk(user, [workout(id, TODAY, [PUSH_UP, PLANK, RUN])]);
+
+    expect(reply.results.map((result) => result.status)).toEqual(['accepted']);
+    expect(reply.pull.workouts.map((entry) => (entry.deleted ? null : entry.exercises))).toEqual([[PUSH_UP, PLANK, RUN]]);
+    expect((await storedWorkouts(user.id)).map((row) => row.exercises)).toEqual([[PUSH_UP, PLANK, RUN]]);
+  });
+
+  it('D-50 a change from an app before D-50 is stored and served as that many identical sets', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+
+    const reply = await syncOk(user, [workout(id, TODAY, [EARLIER_SQUAT])]);
+
+    expect(reply.results.map((result) => result.status)).toEqual(['accepted']);
+    expect(reply.pull.workouts.map((entry) => (entry.deleted ? null : entry.exercises))).toEqual([[SQUAT]]);
+    expect((await storedWorkouts(user.id)).map((row) => row.exercises)).toEqual([[SQUAT]]);
+  });
+
+  it('D-50 a workout stored before D-50 comes back in the pull and the history as identical sets', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+    await syncOk(user, [workout(id, TODAY, [SQUAT])]);
+    await api.db.query('update app.workouts set exercises = $2::jsonb where user_id = $1', [user.id, JSON.stringify([EARLIER_SQUAT])]);
+
+    const pulled = await syncOk(user, []);
+    const history = await read(user.id, user.token);
+
+    expect(pulled.pull.workouts.map((entry) => (entry.deleted ? null : entry.exercises))).toEqual([[SQUAT]]);
+    expect(history.json().items.map((item: { exercises: unknown }) => item.exercises)).toEqual([[SQUAT]]);
+  });
+
   it('Q-025 accepts an empty workout, and a day may hold several workouts', async () => {
     const user = await api.signUpWithAccount();
 
@@ -98,9 +161,9 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
     const id = randomUUID();
     await syncOk(user, [workout(id, TODAY, [SQUAT, PUSH_UP])]);
 
-    await syncOk(user, [workout(id, TODAY, [{ ...SQUAT, sets: 5 }])]);
+    await syncOk(user, [workout(id, TODAY, [{ ...SQUAT, sets: [SQUAT_SET] }])]);
 
-    expect(await storedWorkouts(user.id)).toEqual([{ id, day: TODAY, exercises: [{ ...SQUAT, sets: 5 }], deleted_at: null }]);
+    expect(await storedWorkouts(user.id)).toEqual([{ id, day: TODAY, exercises: [{ ...SQUAT, sets: [SQUAT_SET] }], deleted_at: null }]);
   });
 
   it('REQ-DATE-001 a day later than today in IST is rejected with DAY_IN_FUTURE', async () => {
@@ -115,7 +178,7 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
   it('D-29 an unknown field, a value out of range or 31 exercises is rejected, without the values', async () => {
     const user = await api.signUpWithAccount();
     const unknownField = workout(randomUUID(), TODAY, [{ ...SQUAT, rpe: 8 }]);
-    const tooHeavy = workout(randomUUID(), TODAY, [{ ...SQUAT, weightGrams: 500_001 }]);
+    const tooHeavy = workout(randomUUID(), TODAY, [{ ...SQUAT, sets: [{ ...SQUAT_SET, weightGrams: 500_001 }] }]);
     const tooMany = workout(randomUUID(), TODAY, Array.from({ length: 31 }, () => SQUAT));
     const named = workout(randomUUID(), TODAY);
     (named.data as Record<string, unknown>).userId = randomUUID();
@@ -438,7 +501,12 @@ describe('invariant #7 workout logs', () => {
           cursor: null,
           changes: [
             workout(randomUUID(), '2026-10-02', [
-              { name: 'synthetic-exercise-9e2b', sets: 3, reps: 10, weightGrams: 123_456, note: 'synthetic-note-4a7c' },
+              {
+                ...SQUAT,
+                name: 'synthetic-exercise-9e2b',
+                sets: [{ reps: 10, weightGrams: 123_456, seconds: null }],
+                note: 'synthetic-note-4a7c',
+              },
             ]),
           ],
         },
