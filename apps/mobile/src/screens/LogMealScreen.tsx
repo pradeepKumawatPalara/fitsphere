@@ -198,7 +198,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   }
 
   const totals = mealTotals(items);
-  // The steps (D-58): the meal, then its foods, then review and save; the one to do now is framed.
+  // The steps (D-58): the meal, then its foods, then review and save; the one to do now says what to tap.
   const steps: Record<'meal' | 'food' | 'review', StepState> = {
     meal: mealType ? 'done' : 'now',
     food: items.length > 0 ? 'done' : mealType ? 'now' : 'later',
@@ -263,9 +263,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           </Text>
         </Step>
 
-        <View style={styles.photo}>
-          <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />
-        </View>
+        <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />
 
         <Step number={3} title="Review and save" state={steps.review} cue={STEP_CUES.review}>
           <View style={styles.review}>
@@ -537,9 +535,9 @@ export const STEP_CUES = {
 } as const;
 
 /**
- * A step of logging a meal (D-58): numbered; the one to do now framed in caramel, with a line saying
- * what to tap (above its content, or below it with cueBelow); a done one with a green tick. Every
- * step can still be used whatever its state.
+ * A step of logging a meal (D-58): numbered, the number on caramel for the one to do now, with a line
+ * saying what to tap (above its content, or below it with cueBelow); a done one with a green tick.
+ * No frame (the owner, 2026-11-06). Every step can still be used whatever its state.
  */
 function Step({
   number,
@@ -567,7 +565,7 @@ function Step({
     </View>
   ) : null;
   return (
-    <View testID={`step-${number}`} style={[styles.step, now && styles.stepNow]}>
+    <View testID={`step-${number}`} style={styles.step}>
       <View style={styles.stepHead}>
         <View
           accessible
@@ -626,12 +624,13 @@ function MethodTile({
 
 // Spacing as on Home: 24 between groups, 12 within one.
 // The redesign's 3.5 (locked by the owner, 2026-11-03), in steps since D-58 ("3.5 Log meal in steps",
-// locked 2026-11-06): the date a raised chip; three numbered steps, 16 apart, the one to do now framed
-// in caramel with what to tap; the meals and the ways to add food four tiles each in one row; the AI
-// box between them; the foods ruled on a card; the total in condensed figures over Save meal.
+// locked 2026-11-06, its frame removed the same day): the date a raised chip; three numbered steps,
+// 22 apart, the one to do now saying what to tap; the meals and the ways to add food four tiles each
+// in one row; the AI box between them; the foods ruled on a card; the total in condensed figures over
+// Save meal.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 22 },
   missing: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
   date: TYPE.metric,
   chip: {
@@ -647,9 +646,7 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceRaised,
   },
   chipText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1 },
-  // A step: its edge stays (transparent) when it is not the one to do now, so nothing moves.
-  step: { gap: 10, padding: 12, borderRadius: 4, borderWidth: 1.5, borderColor: 'transparent' },
-  stepNow: { borderColor: c.accent, backgroundColor: c.accentTint },
+  step: { gap: 10 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: { width: 24, height: 24, borderRadius: 4, borderWidth: 1.5, borderColor: c.inkSubtle, alignItems: 'center', justifyContent: 'center' },
   badgeNow: { borderColor: c.primary, backgroundColor: c.primary },
@@ -660,8 +657,6 @@ const useStyles = themedStyles((c) => ({
   stepTitleNow: { color: c.ink },
   cue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cueText: { ...TYPE.link, flexShrink: 1, letterSpacing: 0.5, color: c.accent },
-  // The photo lines up with the steps' content.
-  photo: { paddingHorizontal: 13.5 },
   ai: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.accentTint },
   aiWords: { flex: 1, gap: 2 },
   aiTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },

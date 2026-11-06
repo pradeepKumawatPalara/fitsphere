@@ -53,24 +53,26 @@ beforeEach(() => {
 describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 2026-11-06)', () => {
   const cue = (text: string) => screen.queryByText(text);
 
-  it('frames the step to do now and says what to tap: the meal, then a way to add food, then Save', async () => {
+  it('says what to tap at the step to do now: the meal, then a way to add food, then Save; no frame', async () => {
     await render();
     expect(await screen.findByText('Start here: tap your meal')).toBeOnTheScreen();
-    expect(screen.getByTestId('step-1')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
-    expect(screen.getByTestId('step-2')).toHaveStyle({ borderColor: 'transparent' });
-    expect(screen.getByLabelText('Step 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Step 1')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
+    expect(screen.getByLabelText('Step 2')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
+    // The owner removed the step's caramel frame (2026-11-06).
+    expect(screen.getByTestId('step-1')).not.toHaveStyle({ borderWidth: 1.5 });
+    expect(screen.getByTestId('step-1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.accentTint });
 
     await fireEvent.press(screen.getByRole('radio', { name: 'Breakfast' }));
     expect(screen.getByLabelText('Step 1, done')).toBeOnTheScreen();
     expect(cue('Start here: tap your meal')).toBeNull();
     expect(cue('Next: tap how to add your food')).toBeOnTheScreen();
-    expect(screen.getByTestId('step-2')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+    expect(screen.getByLabelText('Step 2')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
 
     await addFood('atta', /^Wheat flour, atta/, '60');
     expect(screen.getByLabelText('Step 2, done')).toBeOnTheScreen();
     expect(cue('Next: tap how to add your food')).toBeNull();
     expect(cue('Last: check your foods, then Save meal')).toBeOnTheScreen();
-    expect(screen.getByTestId('step-3')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+    expect(screen.getByLabelText('Step 3')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
   });
 
   it('foods added before the meal: the meal step asks for the meal to save', async () => {
@@ -78,7 +80,7 @@ describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 
     await addFood('atta', /^Wheat flour, atta/, '60');
     expect(screen.getByLabelText('Step 2, done')).toBeOnTheScreen();
     expect(cue('Choose the meal to save')).toBeOnTheScreen();
-    expect(screen.getByTestId('step-1')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+    expect(screen.getByLabelText('Step 1')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
   });
 
   it('opened for a meal (from its + on Home), starts at adding food', async () => {

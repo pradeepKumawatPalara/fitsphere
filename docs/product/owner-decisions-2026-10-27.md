@@ -1598,9 +1598,11 @@ checksum), and the configuration template was left as it is.*
   box "in between both"; then "lock it" on the canvas's "3.5 Log meal in steps").
 - Answer (the redesign's 3.5, changed):
   - Log meal shows three numbered steps: 1 Meal, 2 Add food, 3 Review and save. The step to do now
-    is framed in caramel with a line saying what to tap ("Start here: tap your meal"; "Next: tap
-    how to add your food"; "Last: check your foods, then Save meal"; with foods but no meal yet,
-    "Choose the meal to save"). A done step shows a green tick. Every step can still be used in any
+    has its number on caramel and a line saying what to tap ("Start here: tap your meal"; "Next:
+    tap how to add your food"; "Last: check your foods, then Save meal"; with foods but no meal yet,
+    "Choose the meal to save"). A done step shows a green tick. The caramel frame round the step to
+    do now, in the locked design, was removed at the owner's word the same day ("the highlighted
+    current step is not looking good. Please remove it"). Every step can still be used in any
     order, as before; Save meal still needs a meal and a food.
   - The four meals are always in one row, each a tile with its icon (sunrise, sun, cookie, moon);
     the chosen one is filled in caramel with a tick. A name too long for its quarter, with the
