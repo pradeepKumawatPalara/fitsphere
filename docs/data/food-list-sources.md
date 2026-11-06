@@ -484,8 +484,9 @@ product or a file the owner made with another AI tool, and approved by the owner
   `llm`, has no page and keeps the tool's note. 351 such rows were approved on 2026-11-06 (56 bread
   and biscuits, then 221 across the other categories, then 12 ready meals and frozen foods, then 25
   masalas, oils and drinks, then 37 namkeen, sweets, pickles and chutneys), and 6 were later
-  replaced by the brands' own values at the owner's word, leaving 345; they show in the app like the other brand
-  labels (R-012). Products already in the database, as brand labels or Open Food Facts' packaged
+  replaced by the brands' own values at the owner's word, leaving 345; then 63 more (sauces, spreads,
+  drinks, namkeen, sweets, chocolate, breakfast foods and others), 408 in all. They show in the app
+  like the other brand labels (R-012). Products already in the database, as brand labels or Open Food Facts' packaged
   products, were left out.
 - `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming
   the line; only approved rows reach `app.foods` (source `brand_label`) and their servings

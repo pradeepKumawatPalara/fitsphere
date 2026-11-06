@@ -1503,6 +1503,14 @@ checksum), and the configuration template was left as it is.*
     row. The sheet now holds 567 brand labels: 23 unflagged, 199 `scrap`, 345 `llm`. Rule kept: a row
     with the brand's own value replaces an `llm` estimate of the same product only on the owner's
     word.
+  - **Approved (owner, 2026-11-06, "Please dump"):** from the owner's seventh file of 154 (sauces
+    and spreads, honey, jaggery, drinks and drink mixes, namkeen, sweets, chocolate, muesli and oats,
+    dry fruits, ready meals, pasta, vermicelli and cake rusks), 63 `llm` estimates. The other 91 were
+    left out, checked by hand: 4 already in the sheet (MDH, Catch and Everest jaljeera, Sunfeast
+    Pasta Treat Masala) and 87 among Open Food Facts' packaged products. The new rows have search
+    words like the others (D-55); with them, the three jaljeeras lose cumin powder's search words
+    and Sunfeast Pasta Treat Masala those of cream biscuits, given by mistake. The sheet now holds
+    630 brand labels: 23 unflagged, 199 `scrap`, 408 `llm`.
   - **Shown like the other brand labels** (the owner's choice, offered against marking them
     "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
     them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates

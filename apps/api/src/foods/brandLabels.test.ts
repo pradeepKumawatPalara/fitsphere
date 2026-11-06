@@ -29,17 +29,17 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-49 the committed brand-labels sheet', () => {
-  it('passes every check; the owner approved its first 23 rows on 2026-11-04, then 187, 56, 222, 12, 25, 3, 38 and 1 more on 2026-11-06 (D-52, D-53)', () => {
+  it('passes every check; the owner approved its first 23 rows on 2026-11-04, then 187, 56, 222, 12, 25, 3, 38, 1 and 63 more on 2026-11-06 (D-52, D-53)', () => {
     const sheet = readBrandLabelsSheet(COMMITTED);
-    expect(sheet.foods).toHaveLength(567);
+    expect(sheet.foods).toHaveLength(630);
     expect(sheet.proposed).toBe(0);
     expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
   });
 
-  it('flags the 199 rows read from the web as scrap, the 345 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
+  it('flags the 199 rows read from the web as scrap, the 408 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
     const { foods } = readBrandLabelsSheet(COMMITTED);
     expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(199);
-    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(345);
+    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(408);
     expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
   });
 
@@ -57,6 +57,14 @@ describe('D-49 the committed brand-labels sheet', () => {
     expect(aliases('fortune-toor-dal')).toEqual(expect.arrayContaining(['arhar dal', 'pulses']));
     expect(aliases('mdh-turmeric-powder')).toEqual(expect.arrayContaining(['haldi', 'spices']));
     expect(aliases('amul-butter')).toEqual(expect.arrayContaining(['makhan', 'dairy']));
+    expect(aliases('bisk-farm-rusk-cake')).toEqual(['Bisk Farm', 'bakery']);
+  });
+
+  it('does not give a jaljeera the words of cumin powder, nor a pasta those of cream biscuits', () => {
+    const { foods } = readBrandLabelsSheet(COMMITTED);
+    const aliases = (code: string) => foods.find((food) => food.code === code)?.aliases ?? [];
+    expect(aliases('mdh-jaljeera')).toEqual(['MDH', 'spices']);
+    expect(aliases('sunfeast-pasta-treat-masala')).toEqual(['Sunfeast', 'instant pasta', 'instant food']);
   });
 });
 
