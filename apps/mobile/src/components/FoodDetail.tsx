@@ -1,9 +1,9 @@
-import type { Dish, Food, MealItem, PackagedFood } from '@fitsphere/shared';
+import type { MealItem } from '@fitsphere/shared';
 import { ChevronDown, ChevronLeft, SquarePen } from 'lucide-react-native';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { formatInteger } from '../format';
-import type { LocalMyFood } from '../local/store';
+import type { ListedFood, LocalMyFood } from '../local/store';
 import {
   GRAMS_RULE,
   itemFromDish,
@@ -20,7 +20,7 @@ import {
   servingsMax,
   unitsMax,
 } from '../mealItems';
-import { formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, OWN_UNIT_NAMES, ownQuantityLabel, PORTION_UNIT_LABELS } from '../meals';
+import { formatAmount, formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, OWN_UNIT_NAMES, ownQuantityLabel, PORTION_UNIT_LABELS } from '../meals';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { NUTRIENTS } from './EatenSummary';
@@ -35,13 +35,11 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 // side by side, then the macronutrients breakdown of that amount, with Add at the foot. Grams and a My
 // food's quantity are typed; household units (D-36), USDA's servings (D-39) and a dish's portions
 // (D-28) are counted in halves, chosen with the measure in a two-column picker.
+//
+// A recent food (D-60) opens on the amount it was last logged in, said under the boxes; when foods
+// are ticked in Search foods, Add says how many foods go into the meal with this one.
 
-export type FoodResult =
-  | { kind: 'dish'; dish: Dish }
-  | { kind: 'food'; food: Food }
-  | { kind: 'mine'; food: LocalMyFood }
-  // A packaged food sold in India, from Open Food Facts (D-48).
-  | { kind: 'packaged'; food: PackagedFood };
+export type FoodResult = ListedFood;
 
 /** One way to measure the food: typed, or counted in halves up to `max`. */
 type Measure = { key: string; label: string; counted: boolean; max: number };
@@ -117,13 +115,48 @@ function itemOf(result: FoodResult, measure: Measure, count: number, typed: stri
   return unit ? itemFromFoodUnits(result.food, unit, count) : null;
 }
 
+/**
+ * The measure, count and typed quantity of an amount last logged (D-60), when the food still has that
+ * measure and the count fits it; otherwise null, and the page opens as usual.
+ */
+function startOf(result: FoodResult, measures: Measure[], from: MealItem['amount']): { measureIndex: number; count: number; typed: string } | null {
+  const at = (key: string) => measures.findIndex((measure) => measure.key === key);
+  const typed = (index: number, value: number) => (index < 0 ? null : { measureIndex: index, count: 1, typed: String(value) });
+  const counted = (index: number, value: number) => (index < 0 || value > measures[index]!.max ? null : { measureIndex: index, count: value, typed: '100' });
+  switch (from.unit) {
+    case 'g':
+      return typed(at(result.kind === 'mine' ? 'own' : 'g'), from.value);
+    case 'own':
+      return typed(at('own'), from.value);
+    case 'portion':
+      return counted(at('portion'), from.value);
+    case 'measure':
+      return counted(at(from.measure), from.value);
+    case 'serving':
+      if (result.kind === 'packaged') return counted(at('serving'), from.value);
+      if (result.kind !== 'food') return null;
+      return counted(
+        measures.findIndex((measure) => measure.key.startsWith('serving ') && result.food.portions[Number(measure.key.slice('serving '.length))]?.label === from.label),
+        from.value,
+      );
+  }
+}
+
 export function FoodDetail({
   result,
+  from,
+  addTitle = 'Add',
+  addNote,
   onBack,
   onAdd,
   onEdit,
 }: {
   result: FoodResult;
+  /** The amount a recent food was last logged in (D-60). */
+  from?: MealItem['amount'];
+  addTitle?: string;
+  /** Said above Add: the ticked foods that go in with this one (D-60). */
+  addNote?: string;
   onBack(): void;
   onAdd(item: MealItem): void;
   onEdit(food: LocalMyFood): void;
@@ -131,13 +164,15 @@ export function FoodDetail({
   const styles = useStyles();
   const { colors } = useTheme();
   const measures = measuresOf(result);
+  const [start] = useState(() => (from ? startOf(result, measures, from) : null));
   // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
   // so its serving, not grams of the cooked dish, gives INDB's own figures. A home-style food opens on
-  // its serving too, as it is eaten: a slice, two slices, a plate (D-59).
+  // its serving too, as it is eaten: a slice, two slices, a plate (D-59). A recent food opens on the
+  // amount it was last logged in, when it still has it (D-60).
   const servingFirst = result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home') && result.food.portions.length > 0;
-  const [measureIndex, setMeasureIndex] = useState(servingFirst ? 1 : 0);
-  const [count, setCount] = useState(1);
-  const [typed, setTyped] = useState(result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100');
+  const [measureIndex, setMeasureIndex] = useState(start?.measureIndex ?? (servingFirst ? 1 : 0));
+  const [count, setCount] = useState(start?.count ?? 1);
+  const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
   const [picking, setPicking] = useState(false);
   const measure = measures[measureIndex] ?? measures[0]!;
   const item = itemOf(result, measure, count, typed);
@@ -167,7 +202,15 @@ export function FoodDetail({
           : null;
 
   return (
-    <FullScreen onClose={onBack} footer={<TextButton title="Add" filled disabled={!item} onPress={() => item && onAdd(item)} />}>
+    <FullScreen
+      onClose={onBack}
+      footer={
+        <View style={styles.footer}>
+          {addNote ? <Text style={styles.addNote}>{addNote}</Text> : null}
+          <TextButton title={addTitle} filled disabled={!item} onPress={() => item && onAdd(item)} />
+        </View>
+      }
+    >
       <View style={styles.header}>
         <IconButton label="Back to search" onPress={onBack}>
           <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
@@ -235,6 +278,7 @@ export function FoodDetail({
             </View>
           </View>
           {item ? null : <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} />}
+          {from ? <Text style={styles.per}>Last time: {formatAmount(from)}</Text> : null}
           {result.kind === 'mine' ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => onEdit(result.food)} /> : null}
         </View>
 
@@ -406,6 +450,8 @@ function Wheel({ label, options, index, onChange }: { label: string; options: st
 // picker's wheels show five rows, the chosen ones on a caramel band.
 const useStyles = themedStyles((c) => ({
   header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingLeft: 6 },
+  footer: { gap: 8 },
+  addNote: { fontSize: 14, lineHeight: 20, color: c.inkMuted, textAlign: 'center' },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 14 },
   card: { overflow: 'hidden', padding: 16, gap: 14, borderRadius: 4, backgroundColor: c.surface },
   titleBlock: { gap: 6 },

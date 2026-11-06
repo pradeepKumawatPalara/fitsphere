@@ -1616,8 +1616,6 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: `docs/design/design-system.md` (the two tints); `docs/plans/ui-redesign.md` (3.5).
   Phone app only: no server change, no migration, no new build.
 
----
-
 ## D-59 Home-style foods: everyday forms of daily foods, from the owner's AI files
 - Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the food like Bread it only
   shows the Bread but in the real it should show options like Bread, Bread slice, Bread toast, Bread
@@ -1647,6 +1645,85 @@ checksum), and the configuration template was left as it is.*
   (R-013); the Legal brief (L-18); `CLAUDE.md`. Migration `0020_home_foods.sql`; no phone schema
   change, no new build. On `fitsphere-dev`: migration 0020 before the updated API, then
   `foods:import`, only when the owner says so.
+
+## D-60 Recent foods in Search foods: the last five days' foods, ticked or opened on their last amount
+- Status: **Accepted** (owner, in chat, 2026-11-06: "In the fitsphere Log Meal -> Search food the
+  screen shows the empty. I want that it should suggest last 5 days added food item below the search
+  foods so instead of searching User can directly pick from it ... Item should be from recent to
+  last of last 5 days. So recently added item should show at the top. User can pick multiple as
+  well. When he select it should clearly be visible that user has selected this and user can deselect
+  as well. First show me the UI on the canvas then start building it"; on the canvas: "No need to
+  show the today yesterday tag just show the item. No duplicate should be present, and the clickable
+  icon should be in the right side. No need to show tag like INDB, Packaged"; then "if first user
+  select the check box and further selection of food will count as adding to current log meal, or in
+  the first click user directly click on the measuring tab ... user can increase and decrease the
+  quantity. And the uniqueness will be measured by the food item name ... In such case show the
+  latest one measurements. Note this in my decision"; then "Lock it, start building" on the canvas's
+  "3.6 Search foods with recent foods", version 36). Numbered D-60 because D-59 is home-style foods,
+  built at the same time.
+- Answer (the redesign's 3.6, added to):
+  - Before anything is typed, Search foods shows **Recent foods · Last 5 days**: every food logged on
+    today and the four days before (Asia/Kolkata days, invariant 5), the latest first: by the meal's
+    day, then when the meal was saved, then a meal's last food first.
+  - **Each food once, told apart by its name** (ignoring case and spaces): a food eaten twice in
+    different amounts shows once, with the **latest** amount and its values. No day labels and no
+    source tags (INDB, Packaged, Brand label) in this list.
+  - Each row: the name and, under it, the amount last logged and its kcal; a **tick box on the
+    right**. Ticking picks the food as it was last logged; a ticked row is tinted, its name heavier,
+    its box filled in caramel with a check; tapping again unticks it. While foods are ticked, a bar
+    at the foot says "N selected · kcal", offers "Deselect all", and "Add N foods" puts them all into
+    the meal being logged and returns to Log meal.
+  - **Tapping a food's name opens its page** (3.6b) on the amount last logged, with "Last time: …"
+    under the boxes, to change the quantity or measure there.
+  - **Once foods are ticked, a food added from its page goes in with them**, a recent one or one
+    found by the search: the page's button says "Add N foods" and the line above it "Your N ticked
+    foods go in with it." A ticked food opened on its own page goes in once, with the page's amount.
+    The ticks stay while searching.
+  - The keyboard opens by itself only when there are no recent foods (then: "Foods you log show here
+    for 5 days, so you can add them again with a tap."); otherwise on a tap in the search box.
+- MVP defaults:
+  - A ticked food is added with the values it was logged with (as a saved meal is); its page uses the
+    food list's values now.
+  - A recent food with no page (your own food not kept in My foods, a My food deleted, a food that
+    has left the list, a barcode product scanned rather than listed) is ticked when its name is
+    tapped.
+  - Meals the server refused are left out; foods added with "Already in this meal" still ask, as
+    before (D-34).
+- Brings part of backlog B-03 ("Eaten before") into the MVP. Doc changes: REQ-LOG-007;
+  `docs/product/backlog.md` (B-03); `docs/plans/ui-redesign.md` (3.6). Phone app only: no server
+  change, no migration, no phone schema change, no new build.
+
+## D-61 Search results without source tags: a brand under the name, one row per name for several brands
+- Status: **Accepted** (owner, in chat, 2026-11-06: "I want that when we search the food Bread ... the
+  label Package, Brand label to be removed. But if I remove there will be multiple multiple Bread of
+  the same because they are from the different brand. So come up with me the better design ... each
+  type of tagged so I can visualize which one look good after removing the tagged Packaged and
+  similar"; on the canvas's "3.6 Search results without tags", of Now, A, B, C and D: "c").
+- Answer (the redesign's 3.6, changed; supersedes the tags of D-39, D-46, D-48 and D-49 in the results):
+  - No result in Search foods carries a source tag: no "Packaged", "Brand label", "INDB", "My food" or
+    "Dish".
+  - A branded food (a brand label, or a packaged food with a brand) shows its name without the brand,
+    and under it its **brand**, a little heavier, then its energy: "Sandwich Bread" / "Alpha Bakers ·
+    250 kcal per 100 g".
+  - The branded foods of **one name** (the brand left out, ignoring case and punctuation) are **one
+    row**, where the first of them was: "Bread" / "3 brands · 220–274 kcal per 100 g", with a chevron.
+    Tapping it opens the brands under it, set in on the sunken colour, a brand each with its energy;
+    each opens its page; tapping the name again closes them. A name only one brand has stays a row of
+    its own.
+  - A My food says "Your food" in caramel where its tag was. INDB's recipes, IFCT's foods and dishes
+    show their name and energy; a recipe's or dish's still says "estimated".
+  - The order is as before (D-51, D-54); a name's row takes the place of its first brand.
+- MVP defaults:
+  - Each food's own page (3.6b) keeps its source tag and brand, so where a value comes from stays one
+    tap away; the credits behind the i are unchanged ("Foods marked INDB …" refers to that tag).
+  - "N brands" counts different brands; a name only one brand has, even from two sources (a brand
+    label and a packaged food of the same brand and name), stays a row for each, its brand under it.
+- For Legal (Q-049): the attribution of Open Food Facts (L-13), INDB (L-15) and the brand labels
+  (L-16, R-010, R-012) no longer shows on each result, only on the food's page and behind the i.
+- Doc changes: REQ-LOG-007; `docs/architecture/constraints-and-assumptions.md` (More foods);
+  `docs/plans/ui-redesign.md` (3.6). Phone app only: no server change, no migration, no new build.
+
+---
 
 ---
 

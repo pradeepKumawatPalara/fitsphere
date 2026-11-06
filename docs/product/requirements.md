@@ -489,6 +489,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-LOG-007 — Alternative methods
 - Requirement: Search database, Scan barcode and Saved (your meals) are available and work without AI (REQ-ACC-005). When a barcode is not found, the user can type the values from the label (MVP default; ADR-0006).
 - **Post-MVP:** Eaten before (past meals) — Saved covers re-logging in the MVP (D-18, backlog B-03).
+- Recent foods (D-60): before anything is typed, Search foods lists the foods logged on the last five days (today included, Asia/Kolkata), the latest first, each once by its name with the amount it was last logged in. A tick box on the right picks a food as it was last logged ("N selected · kcal", "Deselect all", "Add N foods"); its name opens its page on that amount, to change it. Once foods are ticked, a food added from its page goes into the meal with them. Works offline, from the meals on the phone.
 - A food's page (D-45): choosing a food in Search foods opens its page: Quantity and Measure side by side (grams typed; units, servings and portions counted in halves in a two-wheel picker), then the energy and the protein, carbs, fat and fibre for that amount, updated as it changes, and Add.
 - Household units (D-36): a listed food can be added in grams or, once the owner has measured it, in a household unit (teaspoon, tablespoon, katori, glass or piece), counted in halves from 0.5 to 10 and at most 2,000 g. The grams one unit holds come only from the owner's household-measures sheet. Barcode products and your own food stay in grams; dishes in portions.
 - The same food added again (D-34): while a meal is built or edited, adding a listed food it already has (the same food-list item, dish or barcode) asks "Already in this meal": "Add to existing" puts the amounts together in one item; "Keep separate" adds it as its own item. A food in a household unit joins only the same food in the same unit. When together they would pass 2,000 g, 10 portions or the most units of that food, only "Keep separate" is offered. A food the user entered is never merged. Separately logged meals are not merged.
@@ -512,7 +513,10 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   bread slice, butter toast, bread omelette), typical values for a home recipe, come right after an
   exact match, untagged, found by their item too, logged in grams or by their serving. The results
   follow each letter typed or erased;
-  since D-57 a cross at the end of the search box clears the search. Your own food can be in any of several units and saved to My foods
+  since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
+  source tag (the marks above stay on each food's page): a branded food shows its brand under its
+  name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·
+  220–274 kcal per 100 g") that opens to list them, a brand each. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods
