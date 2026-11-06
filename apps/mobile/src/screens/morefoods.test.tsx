@@ -292,6 +292,24 @@ describe('D-54 the order of the results (the owner, 2026-11-06)', () => {
   });
 });
 
+describe('D-55 search words on brand labels', () => {
+  // A synthetic chakki atta whose name says nothing of "whole wheat": made-up values.
+  const CHAKKI: Food = { ...LABEL_BREAD, code: 'test-mills-chakki-atta', name: 'Test Mills Chakki Atta', foodGroup: 'Test Mills', aliases: ['Test Mills', 'whole wheat atta', 'gehu atta'], portions: [] };
+
+  it('finds a product by its hidden search words, never showing them', async () => {
+    await render(async (db, server) => {
+      server.state.foods = [...FOODS, CHAKKI];
+      await replaceFoods(db, server.state.foodsVersion, [...FOODS, CHAKKI]);
+    });
+    await search('whole wheat atta');
+
+    expect(await screen.findByRole('button', { name: 'Test Mills Chakki Atta, Brand label, 250 kcal per 100 g' })).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'gehu');
+    expect(await screen.findByRole('button', { name: 'Test Mills Chakki Atta, Brand label, 250 kcal per 100 g' })).toBeOnTheScreen();
+    expect(screen.queryByText(/gehu atta/)).toBeNull();
+  });
+});
+
 describe('D-49 brands’ own labels', () => {
   it('are listed before Open Food Facts’ products (D-54), marked "Brand label", and credited', async () => {
     await render(withLabels);
