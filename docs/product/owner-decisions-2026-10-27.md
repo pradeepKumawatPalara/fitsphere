@@ -1539,6 +1539,12 @@ checksum), and the configuration template was left as it is.*
   name already holds are left out. The first set was written for all 567 brand labels from the food
   item each belongs to (MVP default: English and common Hindi names); the owner can change any row in
   the sheet's new `search_words` column.
+- **Group words too (owner, 2026-11-06: "pulses"; then "I want option 1 for the Pulses. If similar
+  things can be done for the rest of the items please proceed"):** each food also carries its group,
+  so a general search shows the whole group: pulses and lentils (dals, rajma, chana, soya chunks),
+  dairy, flour, grains, ready meal, frozen food, bakery, biscuits, snacks, sweets, spices, cooking
+  oil, drinks, breakfast, dry fruits and nuts, pickles, sauces, instant food, spreads and
+  sweetener. A word the name or another search word already covers is left out.
 - Doc changes: `food-list-sources.md`; the data model; REQ-LOG-007. Server import only: the phone
   already searches aliases, so no phone change, no migration, no new build; `foods:import` again.
 
