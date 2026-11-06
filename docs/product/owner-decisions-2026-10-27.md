@@ -1513,6 +1513,22 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-54 Search foods: My foods, brand labels and packaged foods before INDB and IFCT
+- Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the food then exact food
+  matched item should be at the top of the result; which is fixed now. After that I want the food
+  of user own saved, Brand label, then packaged, then INDB and other items shows. This should be
+  the order").
+- Answer: a food named exactly as the search still comes first (D-51). The other results now come
+  in this order: the user's My foods, brand labels (D-49), packaged foods from Open Food Facts
+  (D-48), INDB's recipes (D-46), then the rest: FitSphere's dishes (D-28) and IFCT's foods, in that
+  order (MVP default: they keep the order they had between them). This replaces the order in D-51
+  (dishes, INDB, IFCT, My foods, brand labels, packaged foods). Each source still shows up to 30
+  matches, and every result keeps its tag.
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row). Phone app only:
+  no server change, no migration, no new build.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
