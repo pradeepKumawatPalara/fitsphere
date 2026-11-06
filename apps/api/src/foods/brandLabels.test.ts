@@ -47,7 +47,16 @@ describe('D-49 the committed brand-labels sheet', () => {
     const { foods } = readBrandLabelsSheet(COMMITTED);
     const fortune = foods.find((food) => food.code === 'fortune-chakki-fresh-atta');
     expect(fortune?.aliases).toEqual(['Fortune', 'whole wheat atta', 'wheat flour', 'gehu atta']);
-    expect(foods.filter((food) => food.aliases.length > 1).length).toBeGreaterThan(400);
+    expect(foods.filter((food) => food.aliases.length > 1).length).toBeGreaterThan(500);
+  });
+
+  it('gives each food its group as a search word too: "pulses" finds rajma and toor dal (D-55)', () => {
+    const { foods } = readBrandLabelsSheet(COMMITTED);
+    const aliases = (code: string) => foods.find((food) => food.code === code)?.aliases ?? [];
+    expect(aliases('tata-sampann-rajma')).toEqual(expect.arrayContaining(['pulses', 'lentils']));
+    expect(aliases('fortune-toor-dal')).toEqual(expect.arrayContaining(['arhar dal', 'pulses']));
+    expect(aliases('mdh-turmeric-powder')).toEqual(expect.arrayContaining(['haldi', 'spices']));
+    expect(aliases('amul-butter')).toEqual(expect.arrayContaining(['makhan', 'dairy']));
   });
 });
 
