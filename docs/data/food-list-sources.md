@@ -476,13 +476,14 @@ product or a file the owner made with another AI tool, and approved by the owner
   owner makes with another AI tool. Never a model's memory, nutrition apps or blogs. One row, Catch
   Chat Masala, takes its values from Open Food Facts, at the owner's word. A product with no
   readable values is not added.
-- The rows read from the web and approved on 2026-11-06 (D-52, 192 by the end of that day) carry
+- The rows read from the web and approved on 2026-11-06 (D-52, 199 by the end of that day) carry
   the flag `scrap`; the first 23 have none.
 - AI estimates (D-53, amending D-52): a row may hold an AI tool's estimate of the product's values
   from its general knowledge, not read from any label, once the owner approves it; it is flagged
   `llm`, has no page and keeps the tool's note. 351 such rows were approved on 2026-11-06 (56 bread
   and biscuits, then 221 across the other categories, then 12 ready meals and frozen foods, then 25
-  masalas, oils and drinks, then 37 namkeen, sweets, pickles and chutneys); they show in the app like the other brand
+  masalas, oils and drinks, then 37 namkeen, sweets, pickles and chutneys), and 6 were later
+  replaced by the brands' own values at the owner's word, leaving 345; they show in the app like the other brand
   labels (R-012). Products already in the database, as brand labels or Open Food Facts' packaged
   products, were left out.
 - `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming

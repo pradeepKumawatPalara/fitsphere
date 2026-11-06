@@ -1494,8 +1494,15 @@ checksum), and the configuration template was left as it is.*
     read from Nilon's site, as `scrap`. The other 64 were left out: 62 already in the database (in
     the sheet, or among Open Food Facts' packaged products; a general name such as "Haldiram's
     Gajak" counts as the "Til Gajak" already there), and 2 Nilon's Standard pickles (mango, lemon)
-    with values from Nilon's site, held with the 5 above for the owner's word. The sheet now holds 566
-    brand labels: 23 unflagged, 192 `scrap`, 351 `llm`.
+    with values from Nilon's site, held with the 5 above for the owner's word.
+  - **Estimates replaced by official values (owner, 2026-11-06, "replace"):** six `llm` rows now hold
+    the values on the brand's own site and are flagged `scrap`, keeping their codes: Bikano Mini
+    Samosa, Gulab Jamun and Rasogolla (Rasgulla); Nilon's Mixed and Lemon Pickle (Classic Pickle
+    range) and Mango Pickle (Standard Pickles). Nilon's two ranges print different values (Classic
+    93 kcal, Standard about 200 kcal), so Nilon's Lemon Pickle (Standard Pickles) is added as its own
+    row. The sheet now holds 567 brand labels: 23 unflagged, 199 `scrap`, 345 `llm`. Rule kept: a row
+    with the brand's own value replaces an `llm` estimate of the same product only on the owner's
+    word.
   - **Shown like the other brand labels** (the owner's choice, offered against marking them
     "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
     them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates
