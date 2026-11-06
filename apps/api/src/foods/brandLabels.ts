@@ -8,6 +8,10 @@
 // with another AI tool; its `flag` column is empty or `scrap`, a mark kept on the server only
 // (app.foods.flag), never sent to the phone, that nothing reads yet. Since D-53 a row may hold an AI
 // tool's estimate from its general knowledge, approved by the owner: flagged `llm`, with no page.
+//
+// Since D-55 a row may give search words, separated by semicolons ("whole wheat atta; gehu atta"):
+// the everyday names of what the product is, kept as the food's aliases after its brand, so a search
+// for the item finds every brand whatever its pack calls it. They are never shown.
 import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import { parseCsv } from './csv.ts';
 import { isCalendarDate } from './dishes.ts';
@@ -33,7 +37,12 @@ export const BRAND_LABELS_HEADER: readonly string[] = [
   'read_on',
   'notes',
   'flag',
+  'search_words',
 ];
+
+/** Search words (D-55): letters, digits, spaces and ' & -, at most 60 characters each, at most 12 a row. */
+const SEARCH_WORD = /^[\p{L}\p{N}][\p{L}\p{N} '&-]{0,59}$/u;
+const SEARCH_WORDS_MAX = 12;
 
 /** `proposed`: read from the brand's page, waiting for the owner's OK, not imported. `approved`: imported. */
 export const BRAND_LABEL_STATUSES = ['proposed', 'approved'] as const;
@@ -114,6 +123,11 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
     const noPage = flag === 'llm' && cell.source_url === '';
     if (!noPage && !/^https:\/\/\S+$/.test(cell.source_url!)) fail('source_url must be the https address of the brand’s page');
     if (!isCalendarDate(cell.read_on!)) fail('read_on must be a real date, as YYYY-MM-DD');
+    const searchWords = cell.search_words === '' ? [] : cell.search_words!.split(';').map((word) => word.trim());
+    if (searchWords.length > SEARCH_WORDS_MAX || !searchWords.every((word) => SEARCH_WORD.test(word))) {
+      fail(`search_words must be at most ${SEARCH_WORDS_MAX} words or names, separated by semicolons, each at most 60 letters, digits, spaces or ' & -`);
+    }
+    if (new Set(searchWords.map((word) => word.toLowerCase())).size !== searchWords.length) fail('search_words gives a word twice');
 
     if (cell.status === 'proposed') {
       sheet.proposed += 1;
@@ -133,7 +147,7 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
       needsReview: false,
       hidden: false,
       note: null,
-      aliases: [brand],
+      aliases: [brand, ...searchWords],
       ...(flag === '' ? {} : { flag: flag as FoodFlag }),
     });
     if (label) sheet.portions.push({ code, seq: 1, label, grams: Number(servingGrams) });

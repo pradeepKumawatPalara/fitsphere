@@ -470,6 +470,7 @@ product or a file the owner made with another AI tool, and approved by the owner
 | `source_url`, `read_on` | The https address of the page the values were read from (empty for an `llm` row only), and the date |
 | `notes` | The printed text the values were read from, and any working: a per-100 g value worked out from a per-serving one, or a page that is the brand's international site |
 | `flag` | Empty, `scrap` (D-52) or `llm` (D-53): kept on the server in `app.foods.flag`, never sent to the phone; nothing reads it yet |
+| `search_words` | Empty, or up to 12 names separated by semicolons (D-55): the everyday names of what the product is ("whole wheat atta; gehu atta"), kept as the food's aliases after its brand, so a search for the item, or its group ("pulses", "dairy", "spices"), finds it; never shown |
 
 - Sources (D-52, amending D-49): the brand's or manufacturer's own website first; when it shows no
   values, a shop's listing of the product, preferably the photo of the pack's label; and files the

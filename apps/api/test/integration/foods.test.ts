@@ -276,8 +276,10 @@ describe('D-47 USDA foods: kept in their archive by foods:import, not in the foo
 
 // Synthetic brand labels: made-up values, not real products'.
 describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
-  const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes,flag';
-  const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,,';
+  const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes,flag,search_words';
+  const BUTTER_TO_NOTES = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,';
+  const butterRow = (flag = '', searchWords = '') => `${BUTTER_TO_NOTES},${flag},${searchWords}`;
+  const BUTTER = butterRow();
 
   const flags = async () =>
     (await client.query<{ flag: string | null; n: number }>(
@@ -329,7 +331,7 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
 
   it('keeps a flag on the server: stored with the food, never sent to the phone (D-52)', async () => {
     const user = await api.signUpWithAccount();
-    const labels = readBrandLabelsSheet([SHEET_HEADER, `${BUTTER}scrap`].join('\n'));
+    const labels = readBrandLabelsSheet([SHEET_HEADER, butterRow('scrap')].join('\n'));
     await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
     try {
       expect(await flags()).toEqual([{ flag: 'scrap', n: 1 }]);
@@ -344,9 +346,21 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
     }
   });
 
+  it('sends a label’s search words to the phone as its aliases, after the brand (D-55)', async () => {
+    const user = await api.signUpWithAccount();
+    const labels = readBrandLabelsSheet([SHEET_HEADER, butterRow('', 'makhan; table butter')].join('\n'));
+    await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
+    try {
+      const body: FoodsResponse = (await getFoods(user.token)).json();
+      expect(body.items?.find((food) => food.code === 'test-dairy-butter')?.aliases).toEqual(['Test Dairy', 'makhan', 'table butter']);
+    } finally {
+      await importFoods(client, [], BRAND_LABEL_SOURCE);
+    }
+  });
+
   it('keeps an llm flag on the server too, never sent to the phone (D-53)', async () => {
     const user = await api.signUpWithAccount();
-    const labels = readBrandLabelsSheet([SHEET_HEADER, `${BUTTER.replace('https://example.com/butter', '')}llm`].join('\n'));
+    const labels = readBrandLabelsSheet([SHEET_HEADER, butterRow('llm').replace('https://example.com/butter', '')].join('\n'));
     await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
     try {
       expect(await flags()).toEqual([{ flag: 'llm', n: 1 }]);

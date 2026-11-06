@@ -173,14 +173,14 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
     expect(screen.queryByText(/USDA/)).toBeNull();
   });
 
-  it('puts My foods after the Indian foods, marked "My food"', async () => {
+  it('puts My foods before the Indian foods (D-54), marked "My food"', async () => {
     await render(withMyBread);
     await search('bread');
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
       'Peanut butter bread, my food, 180 kcal per slice',
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
     ]);
   });
 
@@ -260,15 +260,58 @@ describe('D-51 an exact match first (the owner’s phone test, 2026-11-05)', () 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
       'Bread, Other Bakers, packaged, 250 kcal per 100 g',
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
       'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
       'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
     ]);
   });
 });
 
+describe('D-54 the order of the results (the owner, 2026-11-06)', () => {
+  // A synthetic IFCT food named like the others, so one search finds every source.
+  const IFCT_BREAD: Food = { ...FOODS[0]!, code: 'A099', name: 'Bread, white (test)' };
+
+  it('lists My foods, then brand labels, packaged foods, INDB, and IFCT last (an exact match would still come first, D-51)', async () => {
+    await render(async (db, server) => {
+      const foods = [...FOODS, IFCT_BREAD, LABEL_BREAD];
+      server.state.foods = foods;
+      server.state.packaged = [PACKAGED_BREAD];
+      await replaceFoods(db, server.state.foodsVersion, foods, [], [PACKAGED_BREAD]);
+      await saveEntry(db, 'myFood', { changeId: 'c-my-bread', data: { ...MY_BREAD, savedAt: NOW.toISOString() } });
+    });
+    await search('bread');
+
+    const rows = await screen.findAllByRole('button', { name: /bread/i });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Peanut butter bread, my food, 180 kcal per slice',
+      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Bread, white (test), 320 kcal per 100 g',
+    ]);
+  });
+});
+
+describe('D-55 search words on brand labels', () => {
+  // A synthetic chakki atta whose name says nothing of "whole wheat": made-up values.
+  const CHAKKI: Food = { ...LABEL_BREAD, code: 'test-mills-chakki-atta', name: 'Test Mills Chakki Atta', foodGroup: 'Test Mills', aliases: ['Test Mills', 'whole wheat atta', 'gehu atta'], portions: [] };
+
+  it('finds a product by its hidden search words, never showing them', async () => {
+    await render(async (db, server) => {
+      server.state.foods = [...FOODS, CHAKKI];
+      await replaceFoods(db, server.state.foodsVersion, [...FOODS, CHAKKI]);
+    });
+    await search('whole wheat atta');
+
+    expect(await screen.findByRole('button', { name: 'Test Mills Chakki Atta, Brand label, 250 kcal per 100 g' })).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'gehu');
+    expect(await screen.findByRole('button', { name: 'Test Mills Chakki Atta, Brand label, 250 kcal per 100 g' })).toBeOnTheScreen();
+    expect(screen.queryByText(/gehu atta/)).toBeNull();
+  });
+});
+
 describe('D-49 brands’ own labels', () => {
-  it('are listed after the Indian foods and before Open Food Facts’ products, marked "Brand label", and credited', async () => {
+  it('are listed before Open Food Facts’ products (D-54), marked "Brand label", and credited', async () => {
     await render(withLabels);
     await search('test bakers');
 
@@ -296,14 +339,14 @@ describe('D-49 brands’ own labels', () => {
 });
 
 describe('D-48 packaged foods sold in India', () => {
-  it('are found by brand, after the Indian foods, marked "Packaged" with their brand, and credited to Open Food Facts', async () => {
+  it('are found by brand, before the Indian foods (D-54), marked "Packaged" with their brand, and credited to Open Food Facts', async () => {
     await render(withPackaged);
     await search('bread');
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
       'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
     ]);
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'test bakers');
     expect(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g' })).toBeOnTheScreen();

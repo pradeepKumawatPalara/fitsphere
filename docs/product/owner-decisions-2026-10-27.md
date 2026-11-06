@@ -1513,6 +1513,59 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-54 Search foods: My foods, brand labels and packaged foods before INDB and IFCT
+- Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the food then exact food
+  matched item should be at the top of the result; which is fixed now. After that I want the food
+  of user own saved, Brand label, then packaged, then INDB and other items shows. This should be
+  the order").
+- Answer: a food named exactly as the search still comes first (D-51). The other results now come
+  in this order: the user's My foods, brand labels (D-49), packaged foods from Open Food Facts
+  (D-48), INDB's recipes (D-46), then the rest: FitSphere's dishes (D-28) and IFCT's foods, in that
+  order (MVP default: they keep the order they had between them). This replaces the order in D-51
+  (dishes, INDB, IFCT, My foods, brand labels, packaged foods). Each source still shows up to 30
+  matches, and every result keeps its tag.
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row). Phone app only:
+  no server change, no migration, no new build.
+
+---
+
+## D-55 Hidden search words on brand labels
+- Status: **Accepted** (owner, in chat, 2026-11-06: "add search words", after a search for "whole
+  wheat atta" did not find the brands whose packs say "Chakki Atta").
+- Answer: each brand label may carry search words, the everyday names of what the product is
+  (for a chakki atta: "whole wheat atta", "wheat flour", "gehu atta"; for dahi: "curd", "yogurt";
+  for a lime pickle: "nimbu achar"). They are kept with the food as aliases after its brand, so a
+  search for the item finds every brand whatever its pack calls it. They are never shown. Words the
+  name already holds are left out. The first set was written for all 567 brand labels from the food
+  item each belongs to (MVP default: English and common Hindi names); the owner can change any row in
+  the sheet's new `search_words` column.
+- **Group words too (owner, 2026-11-06: "pulses"; then "I want option 1 for the Pulses. If similar
+  things can be done for the rest of the items please proceed"):** each food also carries its group,
+  so a general search shows the whole group: pulses and lentils (dals, rajma, chana, soya chunks),
+  dairy, flour, grains, ready meal, frozen food, bakery, biscuits, snacks, sweets, spices, cooking
+  oil, drinks, breakfast, dry fruits and nuts, pickles, sauces, instant food, spreads and
+  sweetener. A word the name or another search word already covers is left out.
+- Doc changes: `food-list-sources.md`; the data model; REQ-LOG-007. Server import only: the phone
+  already searches aliases, so no phone change, no migration, no new build; `foods:import` again.
+
+---
+
+## D-56 Search foods: a packaged product listed under several barcodes shows once
+- Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the Paneer there are a lot of
+  items of label Packaged Milky Mist. Why is that so duplicate item"; then "remove duplicates").
+- Answer: Open Food Facts keeps one product per barcode, so a food sold in several pack sizes, or
+  added twice, is in the packaged foods several times with the same values (269 of the 9,764, such as
+  Milky Mist Paneer 4 times and Horlicks Classic Malt 11 times). Search foods now shows such copies
+  once: the same brand, the same name (a name that repeats the brand counts as the same) and the
+  same values. The first copy stays, taking a copy's serving when it has none. Products whose name
+  or values differ stay apart. Every barcode stays on the phone and on the server, so any pack still
+  scans. Search reads up to four times more matches before keeping 30, so copies do not crowd out
+  other products.
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row). Phone app only:
+  no server change, no migration, no new build.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

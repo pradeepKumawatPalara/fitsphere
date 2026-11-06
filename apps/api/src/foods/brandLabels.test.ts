@@ -8,8 +8,11 @@ import { FoodListError } from './ifct.ts';
 
 const COMMITTED = readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8');
 const HEADER = BRAND_LABELS_HEADER.join(',');
-// 4 × 0.5 + 4 × 0.5 + 9 × 80 = 724: agrees with 720 kcal.
-const BUTTER = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,"Per 100 g: energy 720 kcal",';
+// 4 × 0.5 + 4 × 0.5 + 9 × 80 = 724: agrees with 720 kcal. The row up to its flag and search words.
+const BUTTER_TO_NOTES = 'test-dairy-butter,Test Dairy,Salted Butter,approved,100 g,720,0.5,0.5,80,,1 serving,10,https://example.com/butter,2026-11-04,"Per 100 g: energy 720 kcal"';
+/** The butter row with a flag (D-52, D-53) and search words (D-55). */
+const butter = (flag = '', searchWords = '') => `${BUTTER_TO_NOTES},${flag},${searchWords}`;
+const BUTTER = butter();
 
 function sheet(...rows: string[]) {
   return readBrandLabelsSheet([HEADER, ...rows].join('\n'));
@@ -38,6 +41,22 @@ describe('D-49 the committed brand-labels sheet', () => {
     expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(199);
     expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(345);
     expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
+  });
+
+  it('gives a chakki atta the search words of whole wheat atta, so "whole wheat atta" finds every brand (D-55)', () => {
+    const { foods } = readBrandLabelsSheet(COMMITTED);
+    const fortune = foods.find((food) => food.code === 'fortune-chakki-fresh-atta');
+    expect(fortune?.aliases).toEqual(['Fortune', 'whole wheat atta', 'wheat flour', 'gehu atta']);
+    expect(foods.filter((food) => food.aliases.length > 1).length).toBeGreaterThan(500);
+  });
+
+  it('gives each food its group as a search word too: "pulses" finds rajma and toor dal (D-55)', () => {
+    const { foods } = readBrandLabelsSheet(COMMITTED);
+    const aliases = (code: string) => foods.find((food) => food.code === code)?.aliases ?? [];
+    expect(aliases('tata-sampann-rajma')).toEqual(expect.arrayContaining(['pulses', 'lentils']));
+    expect(aliases('fortune-toor-dal')).toEqual(expect.arrayContaining(['arhar dal', 'pulses']));
+    expect(aliases('mdh-turmeric-powder')).toEqual(expect.arrayContaining(['haldi', 'spices']));
+    expect(aliases('amul-butter')).toEqual(expect.arrayContaining(['makhan', 'dairy']));
   });
 });
 
@@ -68,17 +87,25 @@ describe('D-49 the sheet’s rules', () => {
   });
 
   it('carries a scrap or llm flag to the food, and refuses any other flag (D-52, D-53)', () => {
-    expect(sheet(`${BUTTER}scrap`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'scrap' });
-    expect(sheet(`${BUTTER}llm`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'llm' });
+    expect(sheet(butter('scrap')).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'scrap' });
+    expect(sheet(butter('llm')).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'llm' });
     expect(sheet(BUTTER).foods[0]).not.toHaveProperty('flag');
-    expect(refused(`${BUTTER}scraped`)).toBe('Brand-labels sheet line 2: flag must be empty or scrap or llm');
+    expect(refused(butter('scraped'))).toBe('Brand-labels sheet line 2: flag must be empty or scrap or llm');
   });
 
   it('takes an llm row without a page, and still needs the page on every other row (D-53)', () => {
-    const noPage = BUTTER.replace('https://example.com/butter', '');
-    expect(sheet(`${noPage}llm`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'llm' });
-    expect(refused(`${noPage}scrap`)).toBe('Brand-labels sheet line 2: source_url must be the https address of the brand’s page');
-    expect(refused(noPage)).toBe('Brand-labels sheet line 2: source_url must be the https address of the brand’s page');
+    const noPage = (flag = '') => butter(flag).replace('https://example.com/butter', '');
+    expect(sheet(noPage('llm')).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'llm' });
+    expect(refused(noPage('scrap'))).toBe('Brand-labels sheet line 2: source_url must be the https address of the brand’s page');
+    expect(refused(noPage())).toBe('Brand-labels sheet line 2: source_url must be the https address of the brand’s page');
+  });
+
+  it('keeps search words as aliases after the brand, so a search for the item finds the product (D-55)', () => {
+    expect(sheet(butter('', 'makhan; table butter')).foods[0]!.aliases).toEqual(['Test Dairy', 'makhan', 'table butter']);
+    expect(sheet(BUTTER).foods[0]!.aliases).toEqual(['Test Dairy']);
+    expect(refused(butter('', 'makhan; Makhan'))).toBe('Brand-labels sheet line 2: search_words gives a word twice');
+    expect(refused(butter('', 'makhan;; butter'))).toMatch(/^Brand-labels sheet line 2: search_words must be/);
+    expect(refused(butter('', 'butter!'))).toMatch(/^Brand-labels sheet line 2: search_words must be/);
   });
 
   it('names a product once when it already starts with its brand', () => {

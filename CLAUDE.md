@@ -44,6 +44,14 @@ like the other brand labels (the owner's choice; risk R-012). Migration `0019_fo
 **On `fitsphere-dev`: migrations 0018 and 0019 before the updated API, then `foods:import`; only
 when the owner says so.**
 
+**Search order — built on branch `fix/search-order` (D-54, 2026-11-06), on top of
+`feat/llm-brand-labels`.** Search foods: an exact match first (D-51), then My foods, brand labels,
+packaged foods, INDB, then dishes and IFCT. Phone app only; no new build. Also on this branch (D-55):
+hidden search words on brand labels (the sheet's `search_words` column, kept as aliases), so
+"whole wheat atta" finds a "Chakki Atta", and group words ("pulses", "dairy", "spices") find the
+whole group; needs `foods:import` again, no migration. Also (D-56): a packaged product listed under
+several barcodes with the same brand, name and values shows once in search (phone only).
+
 **More brand labels — merged (pull request #69, D-52, 2026-11-06).** 187 more rows
 approved by the owner (dairy, grains, biscuits, masalas, oils, breakfast, noodles), from brands' sites,
 shops' listings and the owner's files from another AI tool; each has `flag` `scrap`, a column kept on
