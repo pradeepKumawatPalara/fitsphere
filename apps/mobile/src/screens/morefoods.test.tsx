@@ -166,7 +166,7 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
     await search('dal');
 
     const rows = await screen.findAllByRole('button', { name: /per 100 g/ });
-    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual(['Test dal fry, INDB, 100 kcal per 100 g, estimated', 'Red gram, dal, 335 kcal per 100 g']);
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual(['Test dal fry, 100 kcal per 100 g, estimated', 'Red gram, dal, 335 kcal per 100 g']);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     expect(screen.getByText(`Food values: ${IFCT_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
     expect(screen.getByText(`Foods marked INDB: ${INDB_ACKNOWLEDGEMENT}`)).toBeOnTheScreen();
@@ -179,15 +179,15 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Peanut butter bread, my food, 180 kcal per slice',
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Peanut butter bread, your food, 180 kcal per slice',
+      'Test bread toast, 267 kcal per 100 g, estimated',
     ]);
   });
 
   it('adds a recipe by its slice, counted in halves, with the grams the slices come to', async () => {
     await render();
     await search('toast');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Test bread toast, INDB, 267 kcal per 100 g, estimated' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test bread toast, 267 kcal per 100 g, estimated' }));
     expect(screen.getByText('Per 100 g: 267 kcal (estimated)')).toBeOnTheScreen();
 
     await pickAmount({ quantity: '2' });
@@ -204,7 +204,7 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
   it('adds a My food in its own unit, and its quantity’s rule shows under the box', async () => {
     await render(withMyBread);
     await search('peanut');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, my food, 180 kcal per slice' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, your food, 180 kcal per slice' }));
     expect(screen.getByText('One slice: 180 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('Measure: Slices')).toBeOnTheScreen();
 
@@ -219,7 +219,7 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
   it('edits a My food from its sheet: the change is saved and synced; meals keep their own values', async () => {
     const { db, server } = await render(withMyBread);
     await search('peanut');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, my food, 180 kcal per slice' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, your food, 180 kcal per slice' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Edit My food' }));
     expect(await screen.findByRole('header', { name: 'Edit My food' })).toBeOnTheScreen();
@@ -233,7 +233,7 @@ describe('D-47 Search foods with Indian foods and My foods', () => {
   it('deletes a My food only once confirmed', async () => {
     const { db } = await render(withMyBread);
     await search('peanut');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, my food, 180 kcal per slice' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, your food, 180 kcal per slice' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Edit My food' }));
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete from My foods' }));
 
@@ -259,10 +259,10 @@ describe('D-51 an exact match first (the owner’s phone test, 2026-11-05)', () 
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Bread, Other Bakers, packaged, 250 kcal per 100 g',
-      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
-      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Bread, Other Bakers, 250 kcal per 100 g',
+      'White Bread, Test Bakers, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
+      'Test bread toast, 267 kcal per 100 g, estimated',
     ]);
   });
 });
@@ -283,10 +283,10 @@ describe('D-54 the order of the results (the owner, 2026-11-06)', () => {
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Peanut butter bread, my food, 180 kcal per slice',
-      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
-      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Peanut butter bread, your food, 180 kcal per slice',
+      'White Bread, Test Bakers, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
+      'Test bread toast, 267 kcal per 100 g, estimated',
       'Bread, white (test), 320 kcal per 100 g',
     ]);
   });
@@ -303,7 +303,7 @@ describe('D-57 erasing and clearing the search (the owner, 2026-11-06)', () => {
     });
     expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
     await search('bread toast');
-    expect(await rowNames()).toEqual(['Test bread toast, INDB, 267 kcal per 100 g, estimated']);
+    expect(await rowNames()).toEqual(['Test bread toast, 267 kcal per 100 g, estimated']);
 
     // Erased a letter at a time: "bread toas", "bread toa", ... "bread".
     for (let end = 'bread toast'.length - 1; end >= 'bread'.length; end -= 1) {
@@ -311,9 +311,9 @@ describe('D-57 erasing and clearing the search (the owner, 2026-11-06)', () => {
     }
     await waitFor(async () =>
       expect(await rowNames()).toEqual([
-        'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
-        'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
-        'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+        'White Bread, Test Bakers, 250 kcal per 100 g',
+        'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
+        'Test bread toast, 267 kcal per 100 g, estimated',
       ]),
     );
 
@@ -336,9 +336,9 @@ describe('D-55 search words on brand labels', () => {
     });
     await search('whole wheat atta');
 
-    expect(await screen.findByRole('button', { name: 'Test Mills Chakki Atta, Brand label, 250 kcal per 100 g' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Chakki Atta, Test Mills, 250 kcal per 100 g' })).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'gehu');
-    expect(await screen.findByRole('button', { name: 'Test Mills Chakki Atta, Brand label, 250 kcal per 100 g' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Chakki Atta, Test Mills, 250 kcal per 100 g' })).toBeOnTheScreen();
     expect(screen.queryByText(/gehu atta/)).toBeNull();
   });
 });
@@ -350,8 +350,8 @@ describe('D-49 brands’ own labels', () => {
 
     const rows = await screen.findAllByRole('button', { name: /Test Bakers/ });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
-      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+      'White Bread, Test Bakers, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
     ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     // D-52: the values may also come from a shop's listing or Open Food Facts.
@@ -361,7 +361,7 @@ describe('D-49 brands’ own labels', () => {
   it('a label with no fibre shows it as unknown, and is added by its serving', async () => {
     await render(withLabels);
     await search('white bread');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Test Bakers White Bread, Brand label, 250 kcal per 100 g' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'White Bread, Test Bakers, 250 kcal per 100 g' }));
 
     expect(screen.getByLabelText('Fibre: –')).toBeOnTheScreen();
     await pickAmount({ measure: 'Slice (25 g)', quantity: '2' });
@@ -378,11 +378,11 @@ describe('D-48 packaged foods sold in India', () => {
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
+      'Test bread toast, 267 kcal per 100 g, estimated',
     ]);
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'test bakers');
-    expect(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, 250 kcal per 100 g' })).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     expect(screen.getByText(`Foods marked Packaged: ${OFF_ATTRIBUTION}.`)).toBeOnTheScreen();
   });
@@ -390,7 +390,7 @@ describe('D-48 packaged foods sold in India', () => {
   it('are added in grams or by their label’s serving, logged as the barcode product they are', async () => {
     const { db } = await render(withPackaged);
     await search('test bakers');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, 250 kcal per 100 g' }));
 
     expect(screen.getByText('Test Bakers · Per 100 g: 250 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('Measure: Grams')).toBeOnTheScreen();
@@ -474,7 +474,7 @@ describe('D-46 INDB’s Indian recipes', () => {
   it('a recipe opens on its serving, counted in halves, its values estimated', async () => {
     await render();
     await search('dal fry');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Test dal fry, INDB, 100 kcal per 100 g, estimated' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test dal fry, 100 kcal per 100 g, estimated' }));
     expect(screen.getByText('Per 100 g: 100 kcal (estimated)')).toBeOnTheScreen();
     expect(screen.getByLabelText('Measure: Bowl (180 g)')).toBeOnTheScreen();
     expect(screen.getByLabelText('Quantity: 1')).toBeOnTheScreen();
@@ -561,7 +561,7 @@ describe('D-39 Enter your own food in any unit', () => {
   it('changes an item’s slices in the meal', async () => {
     await render(withMyBread);
     await search('peanut');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, my food, 180 kcal per slice' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, your food, 180 kcal per slice' }));
     await fireEvent.changeText(screen.getByLabelText('Slices eaten'), '2');
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 

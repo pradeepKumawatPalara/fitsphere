@@ -1,8 +1,9 @@
 import { addDays, IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type IstDay, type MealItem } from '@fitsphere/shared';
-import { Check, ChevronLeft, ChevronRight, Info, Search, X } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Search, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
+import { formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
   getMeta,
@@ -20,7 +21,7 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { FoodDetail, type FoodResult } from './FoodDetail';
-import { BRAND_LABEL_CREDIT, HOME_FOODS_CREDIT, SOURCE_MARKS } from './foodSources';
+import { BRAND_LABEL_CREDIT, HOME_FOODS_CREDIT } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { Sheet } from './Sheet';
@@ -29,9 +30,11 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
 // (ADR-0006 rule 1). Since D-54 the user's My foods (D-39) come first, then brands' own labels
 // (D-49), then packaged foods sold in India from Open Food Facts, by name or brand (D-48), then INDB's
-// Indian recipes (D-46), then the rest: dishes (D-28) and IFCT's Indian foods; each source is marked.
-// USDA's foods are no longer listed (D-47). IFCT's acknowledgement is one tap away, behind the i at
-// the top (D-25, changed by D-44): the dishes' values come from IFCT too; INDB's and Open Food Facts'
+// Indian recipes (D-46), then the rest: dishes (D-28) and IFCT's Indian foods. Since D-61 no result
+// carries a source tag (each food's page still does): a branded food shows its brand under its name,
+// a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands"), which
+// opens to list them, a brand each. USDA's foods are no longer listed (D-47). IFCT's acknowledgement
+// is one tap away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT too; INDB's and Open Food Facts'
 // credits are shown with it.
 //
 // A food whose name is exactly what was typed comes first, wherever its source would list it; the
@@ -93,6 +96,94 @@ function perOne(food: LocalMyFood): string {
   return food.unit === 'g' || food.unit === 'ml' ? `100 ${food.unit}` : OWN_UNIT_NAMES[food.unit].one;
 }
 
+/**
+ * A branded food's brand and its name without the brand (D-61): a packaged food's brand, or a brand
+ * label's, which is its food group; null for every other food, and for a packaged food with no brand.
+ */
+export function brandOf(result: Result): { brand: string; product: string } | null {
+  const product = (brand: string, name: string) => (name.toLowerCase().startsWith(`${brand.toLowerCase()} `) ? name.slice(brand.length + 1) : name);
+  if (result.kind === 'packaged') return result.food.brand ? { brand: result.food.brand, product: product(result.food.brand, result.food.name) } : null;
+  if (result.kind === 'food' && result.food.source === 'brand_label') return { brand: result.food.foodGroup, product: product(result.food.foodGroup, result.food.name) };
+  return null;
+}
+
+/** A row of the results: one food, or the branded foods of one name, listed under it (D-61). */
+export type ResultRow = { kind: 'one'; result: Result } | { kind: 'brands'; key: string; name: string; members: Result[] };
+
+/**
+ * The results as rows (D-61): branded foods (brand labels and packaged foods) with the same name,
+ * their brands left out and ignoring case and punctuation, are one row where the first of them was;
+ * a name only one brand has stays a row of its own. Every other food, and the order, are unchanged.
+ */
+export function groupBrands(results: readonly Result[]): ResultRow[] {
+  const rows: ResultRow[] = [];
+  const groups = new Map<string, Extract<ResultRow, { kind: 'brands' }>>();
+  for (const result of results) {
+    const branded = brandOf(result);
+    if (!branded) {
+      rows.push({ kind: 'one', result });
+      continue;
+    }
+    const key = matchKey(branded.product);
+    const group = groups.get(key);
+    if (group) {
+      group.members.push(result);
+      continue;
+    }
+    const created = { kind: 'brands' as const, key, name: branded.product, members: [result] };
+    groups.set(key, created);
+    rows.push(created);
+  }
+  // A name only one brand has, even under two sources, stays a row for each.
+  return rows.flatMap((row): ResultRow[] => (row.kind === 'brands' && brandCount(row.members) < 2 ? row.members.map((result) => ({ kind: 'one', result })) : [row]));
+}
+
+/** How many different brands a name's foods have, ignoring case. */
+export function brandCount(members: readonly Result[]): number {
+  return new Set(members.map((member) => brandOf(member)?.brand.toLowerCase())).size;
+}
+
+function keyOf(result: Result): string {
+  return result.kind === 'dish'
+    ? `dish:${result.dish.code}`
+    : result.kind === 'mine'
+      ? `mine:${result.food.id}`
+      : result.kind === 'packaged'
+        ? `packaged:${result.food.barcode}`
+        : `${result.food.source}:${result.food.code}`;
+}
+
+/**
+ * What a result's row says (D-61), with no source tag: its name; under it, a branded food's brand or
+ * "Your food" for a My food, then its energy; and all of it as read out.
+ */
+function describe(result: Result): { name: string; lead: string | null; mine: boolean; detail: string; said: string } {
+  const say = (parts: (string | null)[]) => parts.filter((part) => part !== null).join(', ');
+  if (result.kind === 'dish') {
+    const detail = `${formatKcal(result.dish.kcal)} per ${PORTION_UNIT_LABELS[result.dish.portionUnit]}`;
+    return { name: result.dish.name, lead: null, mine: false, detail: `${detail} · estimated`, said: say([result.dish.name, detail, 'estimated']) };
+  }
+  if (result.kind === 'mine') {
+    const detail = `${formatKcal(result.food.kcal)} per ${perOne(result.food)}`;
+    return { name: result.food.name, lead: 'Your food', mine: true, detail, said: say([result.food.name, 'your food', detail]) };
+  }
+  const detail = `${formatKcal(result.food.kcal)} per 100 g`;
+  const branded = brandOf(result);
+  if (branded) return { name: branded.product, lead: branded.brand, mine: false, detail, said: say([branded.product, branded.brand, detail]) };
+  const estimated = result.kind === 'food' && result.food.kcalEstimated;
+  return { name: result.food.name, lead: null, mine: false, detail: `${detail}${estimated ? ' · estimated' : ''}`, said: say([result.food.name, detail, estimated ? 'estimated' : null]) };
+}
+
+/** The energy of a name's brands: "250 kcal" or "220–274 kcal", and as read out. */
+function kcalRange(members: readonly Result[]): { shown: string; said: string } {
+  const kcals = members.map((member) => Math.round(member.kind === 'dish' ? member.dish.kcal : member.food.kcal));
+  const [low, high] = [Math.min(...kcals), Math.max(...kcals)];
+  return low === high ? { shown: formatKcal(low), said: formatKcal(low) } : { shown: `${formatInteger(low)}–${formatKcal(high)}`, said: `${formatInteger(low)} to ${formatKcal(high)}` };
+}
+
+/** One line of the results list: a food, a name's brands, or one of those brands while they are open. */
+type Line = { kind: 'one'; result: Result } | { kind: 'brands'; row: Extract<ResultRow, { kind: 'brands' }>; open: boolean } | { kind: 'member'; result: Result; group: string };
+
 export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAdd(items: MealItem[]): void; onClose(): void }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -109,6 +200,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
   // Recent foods (D-60): null until read; the ticked ones by their keys, in the order ticked.
   const [recent, setRecent] = useState<MealItem[] | null>(null);
   const [ticked, setTicked] = useState<string[]>([]);
+  // The names whose brands are open (D-61).
+  const [openNames, setOpenNames] = useState<string[]>([]);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -189,6 +282,16 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
         }}
       />
     );
+  }
+
+  const lines = groupBrands(results).flatMap((row): Line[] => {
+    if (row.kind === 'one') return [row];
+    const open = openNames.includes(row.key);
+    return [{ kind: 'brands', row, open }, ...(open ? row.members.map((result): Line => ({ kind: 'member', result, group: row.name })) : [])];
+  });
+
+  function toggleName(key: string) {
+    setOpenNames((current) => (current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]));
   }
 
   const tickedKcal = tickedItems.reduce((sum, item) => sum + item.kcal, 0);
@@ -292,91 +395,72 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
             />
           ) : (
           <FlatList
-            data={results}
-            keyExtractor={(result) =>
-              result.kind === 'dish'
-                ? `dish:${result.dish.code}`
-                : result.kind === 'mine'
-                  ? `mine:${result.food.id}`
-                  : result.kind === 'packaged'
-                    ? `packaged:${result.food.barcode}`
-                    : `${result.food.source}:${result.food.code}`
-            }
-            style={[styles.list, results.length > 0 && styles.listCard]}
+            data={lines}
+            keyExtractor={(line) => (line.kind === 'brands' ? `brands:${line.row.key}` : line.kind === 'member' ? `member:${keyOf(line.result)}` : keyOf(line.result))}
+            style={[styles.list, lines.length > 0 && styles.listCard]}
             keyboardShouldPersistTaps="handled"
-            renderItem={({ item: result }) =>
-              result.kind === 'dish' ? (
+            renderItem={({ item: line }) => {
+              if (line.kind === 'brands') {
+                const range = kcalRange(line.row.members);
+                const Chevron = line.open ? ChevronUp : ChevronDown;
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${line.row.name}, ${brandCount(line.row.members)} brands, ${range.said} per 100 g`}
+                    accessibilityState={{ expanded: line.open }}
+                    onPress={() => toggleName(line.row.key)}
+                    style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                  >
+                    <View style={styles.rowText}>
+                      <Text style={styles.name}>{line.row.name}</Text>
+                      <Text numberOfLines={1} style={styles.detail}>
+                        <Text style={styles.lead}>{brandCount(line.row.members)} brands</Text> · {range.shown} per 100 g
+                      </Text>
+                    </View>
+                    <Chevron size={20} strokeWidth={2.25} color={colors.accent} />
+                  </Pressable>
+                );
+              }
+              const said = describe(line.result);
+              if (line.kind === 'member') {
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${line.group}, ${said.lead ?? said.name}, ${said.detail}`}
+                    onPress={() => setChosen({ result: line.result })}
+                    style={({ pressed }) => [styles.row, styles.member, pressed && styles.pressed]}
+                  >
+                    <View style={styles.rowText}>
+                      <Text style={styles.memberName}>{said.lead ?? said.name}</Text>
+                      <Text style={styles.detail}>{said.detail}</Text>
+                    </View>
+                    <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+                  </Pressable>
+                );
+              }
+              return (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`${result.dish.name}, dish, ${formatKcal(result.dish.kcal)} per ${PORTION_UNIT_LABELS[result.dish.portionUnit]}, estimated`}
-                  onPress={() => setChosen({ result })}
+                  accessibilityLabel={said.said}
+                  onPress={() => setChosen({ result: line.result })}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>
-                    <Text style={styles.name}>{result.dish.name}</Text>
-                    <Text style={styles.detail}>
-                      Dish · {formatKcal(result.dish.kcal)} per {PORTION_UNIT_LABELS[result.dish.portionUnit]} · estimated
+                    <Text style={styles.name}>{said.name}</Text>
+                    <Text numberOfLines={1} style={styles.detail}>
+                      {said.lead ? (
+                        <>
+                          <Text style={[styles.lead, said.mine && styles.leadMine]}>{said.lead}</Text>
+                          {' · '}
+                        </>
+                      ) : null}
+                      {said.detail}
                     </Text>
                   </View>
                   <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
                 </Pressable>
-              ) : result.kind === 'mine' ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${result.food.name}, my food, ${formatKcal(result.food.kcal)} per ${perOne(result.food)}`}
-                  onPress={() => setChosen({ result })}
-                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                >
-                  <View style={styles.rowText}>
-                    <Text style={styles.name}>{result.food.name}</Text>
-                    <View style={styles.detailLine}>
-                      <Text style={[styles.mark, styles.markMine]}>My food</Text>
-                      <Text style={styles.detail}>
-                        {formatKcal(result.food.kcal)} per {perOne(result.food)}
-                      </Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
-                </Pressable>
-              ) : result.kind === 'packaged' ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${result.food.name}, ${result.food.brand ? `${result.food.brand}, ` : ''}packaged, ${formatKcal(result.food.kcal)} per 100 g`}
-                  onPress={() => setChosen({ result })}
-                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                >
-                  <View style={styles.rowText}>
-                    <Text style={styles.name}>{result.food.name}</Text>
-                    <View style={styles.detailLine}>
-                      <Text style={styles.mark}>Packaged</Text>
-                      <Text numberOfLines={1} style={styles.detail}>
-                        {result.food.brand ? `${result.food.brand} · ` : ''}
-                        {formatKcal(result.food.kcal)} per 100 g
-                      </Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
-                </Pressable>
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${result.food.name}, ${SOURCE_MARKS[result.food.source] ? `${SOURCE_MARKS[result.food.source]}, ` : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
-                  onPress={() => setChosen({ result })}
-                  style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                >
-                  <View style={styles.rowText}>
-                    <Text style={styles.name}>{result.food.name}</Text>
-                    <View style={styles.detailLine}>
-                      {SOURCE_MARKS[result.food.source] ? <Text style={styles.mark}>{SOURCE_MARKS[result.food.source]}</Text> : null}
-                      <Text style={styles.detail}>
-                        {formatKcal(result.food.kcal)} per 100 g{result.food.kcalEstimated ? ' · estimated' : ''}
-                      </Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
-                </Pressable>
-              )
-            }
+              );
+            }}
           />
           )}
       {sources ? (
@@ -446,20 +530,12 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   detail: { flexShrink: 1, color: c.inkMuted, fontSize: 14, lineHeight: 20 },
-  detailLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  // A food's source, as a small tag: USDA in the muted ink on the sunken colour; My food in caramel.
-  mark: {
-    ...TYPE.label,
-    fontSize: 12,
-    letterSpacing: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-    overflow: 'hidden',
-    color: c.inkMuted,
-    backgroundColor: c.surfaceSunken,
-  },
-  markMine: { color: c.accent, backgroundColor: c.accentTint },
+  // D-61, in place of the source tags: the brand (or "N brands") in the ink, a little heavier; "Your
+  // food" in caramel. A name's brands, while open, sit on the sunken colour, set in under it.
+  lead: { fontWeight: '600', color: c.ink },
+  leadMine: { color: c.accent },
+  member: { minHeight: 52, paddingLeft: 30, backgroundColor: c.surfaceSunken },
+  memberName: { fontSize: 15, lineHeight: 22, fontWeight: '500' },
   source: { fontSize: 15, lineHeight: 22 },
   // Recent foods (D-60): the title in condensed capitals with "Last 5 days" across from it; each food
   // ruled on the raised card, its name opening its page, its tick box on the right; a ticked food's

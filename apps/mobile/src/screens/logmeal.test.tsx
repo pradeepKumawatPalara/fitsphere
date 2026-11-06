@@ -549,8 +549,8 @@ describe('D-28 dishes, logged in portions', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
 
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'test');
-    expect(await screen.findByRole('button', { name: 'Test flatbread, dish, 120 kcal per piece, estimated' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Test dal, dish, 150 kcal per katori (200 ml), estimated' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Test flatbread, 120 kcal per piece, estimated' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Test dal, 150 kcal per katori (200 ml), estimated' })).toBeOnTheScreen();
 
     // A dish the server does not list (not approved, or blocked) is never on the phone.
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'chicken curry');
@@ -560,7 +560,7 @@ describe('D-28 dishes, logged in portions', () => {
   it('a dish is added in portions, in halves from 0.5 to 10, with its values for that many', async () => {
     await render({ day: TODAY }, withDishes);
     await screen.findByRole('button', { name: 'Search foods' });
-    await chooseDish('flatbread', /^Test flatbread, dish/);
+    await chooseDish('flatbread', /^Test flatbread, /);
 
     expect(screen.getByText('One piece: 120 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('Quantity: 1')).toBeOnTheScreen();
@@ -591,7 +591,7 @@ describe('D-28 dishes, logged in portions', () => {
   it('the review can change a dish’s portions, and a food’s grams as before', async () => {
     await render({ day: TODAY }, withDishes);
     await screen.findByRole('button', { name: 'Search foods' });
-    await chooseDish('dal', /^Test dal, dish/);
+    await chooseDish('dal', /^Test dal, /);
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
     await addFood('atta', /^Wheat flour, atta/, '60');
     expect(screen.getByLabelText('Total: 342 kcal, 14.3 g protein')).toBeOnTheScreen();
@@ -609,7 +609,7 @@ describe('D-28 dishes, logged in portions', () => {
   it('saving keeps the dish as logged: its code, the portions and their values, estimated', async () => {
     const { db, server } = await render({ day: TODAY }, withDishes);
     await screen.findByRole('button', { name: 'Search foods' });
-    await chooseDish('dal', /^Test dal, dish/);
+    await chooseDish('dal', /^Test dal, /);
     await pickAmount({ quantity: '1.5' });
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
     await fireEvent.press(screen.getByRole('radio', { name: 'Dinner' }));
