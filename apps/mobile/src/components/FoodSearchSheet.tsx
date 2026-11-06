@@ -17,14 +17,15 @@ import { Sheet } from './Sheet';
 import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
 // Search the food list (REQ-LOG-007, REQ-ACC-005): offline, on the copy cached on the phone
-// (ADR-0006 rule 1). Dishes (D-28) come first, then INDB's Indian recipes (D-46), IFCT's Indian
-// foods and the user's My foods (D-39), then brands' own labels approved by the owner (D-49), then
-// packaged foods sold in India from Open Food Facts, by name or brand (D-48), each marked; USDA's foods are no longer listed (D-47). IFCT's acknowledgement
-// is one tap away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT
-// too; INDB's and Open Food Facts' credits are shown with it.
+// (ADR-0006 rule 1). Since D-54 the user's My foods (D-39) come first, then brands' own labels
+// (D-49), then packaged foods sold in India from Open Food Facts, by name or brand (D-48), then INDB's
+// Indian recipes (D-46), then the rest: dishes (D-28) and IFCT's Indian foods; each source is marked.
+// USDA's foods are no longer listed (D-47). IFCT's acknowledgement is one tap away, behind the i at
+// the top (D-25, changed by D-44): the dishes' values come from IFCT too; INDB's and Open Food Facts'
+// credits are shown with it.
 //
 // A food whose name is exactly what was typed comes first, wherever its source would list it; the
-// rest keep their order (D-51).
+// rest keep that order (D-51).
 //
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
@@ -91,13 +92,14 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         if (!active) return;
         const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
         setResults(
+          // D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT.
           exactFirst(query, [
-            ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
-            ...listed('indb'),
-            ...listed('ifct2017'),
             ...mine.map((food): Result => ({ kind: 'mine', food })),
             ...listed('brand_label'),
             ...packaged.map((food): Result => ({ kind: 'packaged', food })),
+            ...listed('indb'),
+            ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+            ...listed('ifct2017'),
           ]),
         );
         setListCached(listVersion !== null);
