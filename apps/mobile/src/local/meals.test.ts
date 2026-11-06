@@ -326,6 +326,20 @@ describe('D-48 the cached packaged foods', () => {
     await replaceFoods(db, 'v2', [], [], [BISCUIT]);
     expect(await searchPackaged(db, 'butter')).toEqual([BISCUIT]);
   });
+
+  it('shows a product listed under several barcodes with the same values once, taking a copy’s serving (D-56)', async () => {
+    // Synthetic: one paneer in three pack sizes (two name it with the brand), and a different one.
+    const PANEER = { barcode: '8901234500001', name: 'Paneer', brand: 'Test Dairy', kcal: 283, proteinG: 16.1, carbsG: 5.1, fatG: 22, fibreG: null, servingGrams: null };
+    const PANEER_1KG = { ...PANEER, barcode: '8901234500002', name: 'Test Dairy Paneer', servingGrams: 50 };
+    const PANEER_COPY = { ...PANEER, barcode: '8901234500003', name: 'paneer', brand: 'TEST DAIRY' };
+    const HIGH_PROTEIN = { ...PANEER, barcode: '8901234500004', kcal: 189.8, proteinG: 25, carbsG: 6.7, fatG: 7 };
+    await replaceFoods(db, 'v1', [], [], [PANEER, PANEER_1KG, PANEER_COPY, HIGH_PROTEIN]);
+
+    const found = await searchPackaged(db, 'paneer');
+    expect(found.map((food) => food.barcode).sort()).toEqual(['8901234500001', '8901234500004']);
+    expect(found.find((food) => food.barcode === PANEER.barcode)?.servingGrams).toBe(50);
+    expect(await searchPackaged(db, 'paneer', 1)).toHaveLength(1);
+  });
 });
 
 describe('D-28 the cached dishes', () => {

@@ -1103,9 +1103,48 @@ const FOOD_ROWS_PER_INSERT = 50;
 /** Packaged foods a statement writes: 9 values each, within SQLite's 999. */
 const PACKAGED_ROWS_PER_INSERT = 100;
 
+/** A packaged food's brand or name compared for sameness: lowercase, letters and digits, one space between words. */
+function sameKey(text: string | null): string {
+  return (text ?? '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * What makes two packaged foods the same product for search (D-56): the brand, the name (without the
+ * brand in front) and every value. Open Food Facts keeps one product a barcode, so a food sold in
+ * several pack sizes, or added twice, is there several times with the same values.
+ */
+function sameProduct(food: PackagedFood): string {
+  const brand = sameKey(food.brand);
+  const name = sameKey(food.name);
+  const bare = brand && name.startsWith(`${brand} `) ? name.slice(brand.length + 1) : name;
+  return JSON.stringify([brand, bare, food.kcal, food.proteinG, food.carbsG, food.fatG, food.fibreG]);
+}
+
+/**
+ * The packaged foods with each product once (D-56): the first in their order stays, taking the
+ * serving of a copy when it has none. Every barcode stays on the phone, so any pack still scans.
+ */
+export function onePerProduct(foods: readonly PackagedFood[]): PackagedFood[] {
+  const kept = new Map<string, PackagedFood>();
+  for (const food of foods) {
+    const key = sameProduct(food);
+    const first = kept.get(key);
+    if (!first) kept.set(key, food);
+    else if (first.servingGrams === null && food.servingGrams !== null) kept.set(key, { ...first, servingGrams: food.servingGrams });
+  }
+  return [...kept.values()];
+}
+
+/** How many more matches are read than shown, so products listed several times do not crowd out others (D-56). */
+const PACKAGED_READ_FACTOR = 4;
+
 /**
  * Searches the packaged foods, offline (D-48): every word must appear in the name or the brand,
- * ignoring case; names or brands starting with the first word come first.
+ * ignoring case; names or brands starting with the first word come first. A product listed under
+ * several barcodes with the same values shows once (D-56).
  */
 export async function searchPackaged(db: SqlDb, query: string, limit = 30): Promise<PackagedFood[]> {
   const words = searchWords(query);
@@ -1124,9 +1163,9 @@ export async function searchPackaged(db: SqlDb, query: string, limit = 30): Prom
   }>(
     `SELECT * FROM packaged_foods WHERE ${conditions.join(' AND ')}
      ORDER BY (lower(name) LIKE ? OR lower(coalesce(brand, '')) LIKE ?) DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), startsWith(words[0]!), limit],
+    [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), startsWith(words[0]!), limit * PACKAGED_READ_FACTOR],
   );
-  return rows.map((row) => ({
+  const foods = rows.map((row) => ({
     barcode: row.barcode,
     name: row.name,
     brand: row.brand,
@@ -1137,6 +1176,7 @@ export async function searchPackaged(db: SqlDb, query: string, limit = 30): Prom
     fibreG: row.fibre_g,
     servingGrams: row.serving_grams,
   }));
+  return onePerProduct(foods).slice(0, limit);
 }
 
 /** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, then brand labels (D-46, D-47, D-49). */
