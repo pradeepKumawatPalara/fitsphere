@@ -427,7 +427,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | `needs_review`, `note` | `boolean`, `text` | The source PDF's review flag and its reason |
 | `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
 | `aliases` | `text[]` | Other spellings to search by |
-| `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06. Server only: never in `GET /v1/foods`; nothing reads it yet |
+| `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06; since migration 0019 (D-53) also `llm` on those holding an AI tool's estimates. Server only: never in `GET /v1/foods`; nothing reads it yet |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 
 ### `dishes` — reference data

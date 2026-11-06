@@ -501,7 +501,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   Since D-48, packaged foods sold in India, from Open Food Facts' data (ADR-0009), are found by
   name or brand, marked "Packaged" with the brand, in grams or by their label's serving. Since
   D-49, brands' own labels, read from their websites (since D-52 also from shops' listings of the
-  products) and approved by the owner, are listed before
+  products; since D-53 a few are an AI tool's estimates) and approved by the owner, are listed before
   them, marked "Brand label", in grams or by their serving; a fibre the label does not give is
   shown as unknown. Since D-51, a food named exactly as the search (ignoring case and punctuation)
   is listed first; the rest keep their order. Your own food can be in any of several units and saved to My foods

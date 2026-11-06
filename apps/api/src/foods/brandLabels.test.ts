@@ -26,16 +26,17 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-49 the committed brand-labels sheet', () => {
-  it('passes every check; the owner approved its first 23 rows on 2026-11-04 and 187 more on 2026-11-06 (D-52)', () => {
+  it('passes every check; the owner approved its first 23 rows on 2026-11-04, then 187, 56, 222, 12, 25, 3, 38 and 1 more on 2026-11-06 (D-52, D-53)', () => {
     const sheet = readBrandLabelsSheet(COMMITTED);
-    expect(sheet.foods).toHaveLength(210);
+    expect(sheet.foods).toHaveLength(567);
     expect(sheet.proposed).toBe(0);
     expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
   });
 
-  it('flags the 187 rows collected from the web as scrap, and none of the first 23 (D-52)', () => {
+  it('flags the 199 rows read from the web as scrap, the 345 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
     const { foods } = readBrandLabelsSheet(COMMITTED);
-    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(187);
+    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(199);
+    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(345);
     expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
   });
 });
@@ -66,10 +67,18 @@ describe('D-49 the sheet’s rules', () => {
     });
   });
 
-  it('carries a scrap flag to the food, and refuses any other flag (D-52)', () => {
+  it('carries a scrap or llm flag to the food, and refuses any other flag (D-52, D-53)', () => {
     expect(sheet(`${BUTTER}scrap`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'scrap' });
+    expect(sheet(`${BUTTER}llm`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'llm' });
     expect(sheet(BUTTER).foods[0]).not.toHaveProperty('flag');
-    expect(refused(`${BUTTER}scraped`)).toBe('Brand-labels sheet line 2: flag must be empty or scrap');
+    expect(refused(`${BUTTER}scraped`)).toBe('Brand-labels sheet line 2: flag must be empty or scrap or llm');
+  });
+
+  it('takes an llm row without a page, and still needs the page on every other row (D-53)', () => {
+    const noPage = BUTTER.replace('https://example.com/butter', '');
+    expect(sheet(`${noPage}llm`).foods[0]).toMatchObject({ code: 'test-dairy-butter', flag: 'llm' });
+    expect(refused(`${noPage}scrap`)).toBe('Brand-labels sheet line 2: source_url must be the https address of the brand’s page');
+    expect(refused(noPage)).toBe('Brand-labels sheet line 2: source_url must be the https address of the brand’s page');
   });
 
   it('names a product once when it already starts with its brand', () => {

@@ -467,16 +467,25 @@ product or a file the owner made with another AI tool, and approved by the owner
 | `kcal`, `protein_g`, `carbs_g`, `fat_g` | Per 100 g or ml, at most two decimals; nutrients 0 to 100, kcal at most 1,000; the energy must agree with them (4, 4 and 9 kcal a gram, within a quarter or 20 kcal) |
 | `fibre_g` | As above, or empty when the label gives none (shown as unknown) |
 | `serving`, `serving_grams` | Together or both empty: the serving as printed ("1 slice") and its grams or ml, at most 2,000 |
-| `source_url`, `read_on` | The https address of the page the values were read from, and the date |
+| `source_url`, `read_on` | The https address of the page the values were read from (empty for an `llm` row only), and the date |
 | `notes` | The printed text the values were read from, and any working: a per-100 g value worked out from a per-serving one, or a page that is the brand's international site |
-| `flag` | Empty, or `scrap` (D-52): kept on the server in `app.foods.flag`, never sent to the phone; nothing reads it yet |
+| `flag` | Empty, `scrap` (D-52) or `llm` (D-53): kept on the server in `app.foods.flag`, never sent to the phone; nothing reads it yet |
 
 - Sources (D-52, amending D-49): the brand's or manufacturer's own website first; when it shows no
   values, a shop's listing of the product, preferably the photo of the pack's label; and files the
   owner makes with another AI tool. Never a model's memory, nutrition apps or blogs. One row, Catch
   Chat Masala, takes its values from Open Food Facts, at the owner's word. A product with no
   readable values is not added.
-- The 187 rows approved on 2026-11-06 (D-52) carry the flag `scrap`; the first 23 have none.
+- The rows read from the web and approved on 2026-11-06 (D-52, 199 by the end of that day) carry
+  the flag `scrap`; the first 23 have none.
+- AI estimates (D-53, amending D-52): a row may hold an AI tool's estimate of the product's values
+  from its general knowledge, not read from any label, once the owner approves it; it is flagged
+  `llm`, has no page and keeps the tool's note. 351 such rows were approved on 2026-11-06 (56 bread
+  and biscuits, then 221 across the other categories, then 12 ready meals and frozen foods, then 25
+  masalas, oils and drinks, then 37 namkeen, sweets, pickles and chutneys), and 6 were later
+  replaced by the brands' own values at the owner's word, leaving 345; they show in the app like the other brand
+  labels (R-012). Products already in the database, as brand labels or Open Food Facts' packaged
+  products, were left out.
 - `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming
   the line; only approved rows reach `app.foods` (source `brand_label`) and their servings
   `app.food_portions`. Never approve a row without the owner's word.

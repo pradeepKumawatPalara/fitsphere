@@ -1451,6 +1451,68 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-53 AI estimates in the brand-labels sheet, flagged llm
+- Status: **Accepted** (owner, in chat, 2026-11-06).
+- Asked: the owner asked for a prompt that lets an AI tool give a product's values from its own
+  trained knowledge where it cannot read them, then supplied such a file for bread and biscuits:
+  "Please upload this table to our food search db, in the new column save value as LLM. If in this
+  CSV we have value that is already saved in our database then ignore it".
+- Answer (amends D-52, which said never a model's memory):
+  - A row of the brand-labels sheet may hold an AI tool's estimate of a product's values from its
+    general knowledge, not read from any label, once the owner approves it. Such a row is flagged
+    `llm` (the server-only `flag` column of D-52), keeps the tool's note ("ESTIMATE: ... Not read
+    from any label"), and has no page: `source_url` may be empty for an `llm` row only.
+  - **Approved (owner, 2026-11-06):** 56 rows from the owner's file of 98 (bread and bakery 16,
+    biscuits 40). The other 42 were left out because the product is already in the database,
+    checked by hand: all 42 are among Open Food Facts' packaged products (D-48), with label values
+    (Parle-G, Monaco, the Oreos, Jim Jam, most Britannia breads and rusks and others). Rows whose
+    values repeat another's exactly (16 rows, e.g. four Patanjali Creamfeast flavours) are kept:
+    they are different products.
+  - **Approved (owner, 2026-11-06, "dumped it"):** 222 more rows from the owner's second file of
+    369 (dairy, flours, pulses, ready-to-eat and frozen foods, bread, biscuits, namkeen, sweets,
+    pickles and sauces, masalas, oils, drinks, breakfast foods, noodles, honey, jam, sugar, chocolate,
+    juices, soft drinks, yogurt, soup and frozen peas): 221 estimates flagged `llm`, and Total Frozen
+    Green Peas, read from a shop's typed text, flagged `scrap` (D-52). The other 147 were left out,
+    checked by hand: 8 already among the brand labels and 139 among Open Food Facts' packaged
+    products.
+  - **Approved (owner, 2026-11-06, "now dumped this"):** 12 more `llm` rows from the owner's third
+    file of 84 (ready-to-eat, frozen and bakery): Mother's Recipe and Kohinoor ready meals, Gits Shahi
+    Paneer, Sumeru Punjabi Samosa and Godrej Yummiez Aloo Tikki. The other 72 were left out: 54 already
+    in the sheet from the second file, 18 already among Open Food Facts' packaged products.
+  - **Approved (owner, 2026-11-06, "now dumped this"):** 25 more `llm` rows from the owner's fourth
+    file of 74 (masalas, oils, tea, coffee, sharbats, drink mixes and malt drinks). The other 49 were
+    left out: 35 already in the sheet (7 of them under another code, such as MDH Kitchen King Masala
+    for MDH Kitchen King), 14 already among Open Food Facts' packaged products.
+  - **Approved (owner, 2026-11-06, "Dumped it now"):** from the owner's fifth file of 19, read from
+    the brands' own websites (not AI estimates), 3 new rows flagged `scrap` as D-52's web-read rows:
+    Bikano Gol Matthi and Chatak Masala Chips, Haldiram's Soan Papdi Premium. The other 16 were left
+    out: 11 already among Open Food Facts' packaged products, and 5 already in the sheet as `llm`
+    estimates (Bikano Mini Samosa, Gulab Jamun and Rasgulla; Nilon's Mixed and Lime Pickle), whose
+    official values wait for the owner's word.
+  - **Approved (owner, 2026-11-06, "Dumped this"):** from the owner's sixth file of 102 (namkeen,
+    sweets, pickles, chutneys and papad), 37 `llm` estimates and Nilon's Dhaniya Pudina Chutney,
+    read from Nilon's site, as `scrap`. The other 64 were left out: 62 already in the database (in
+    the sheet, or among Open Food Facts' packaged products; a general name such as "Haldiram's
+    Gajak" counts as the "Til Gajak" already there), and 2 Nilon's Standard pickles (mango, lemon)
+    with values from Nilon's site, held with the 5 above for the owner's word.
+  - **Estimates replaced by official values (owner, 2026-11-06, "replace"):** six `llm` rows now hold
+    the values on the brand's own site and are flagged `scrap`, keeping their codes: Bikano Mini
+    Samosa, Gulab Jamun and Rasogolla (Rasgulla); Nilon's Mixed and Lemon Pickle (Classic Pickle
+    range) and Mango Pickle (Standard Pickles). Nilon's two ranges print different values (Classic
+    93 kcal, Standard about 200 kcal), so Nilon's Lemon Pickle (Standard Pickles) is added as its own
+    row. The sheet now holds 567 brand labels: 23 unflagged, 199 `scrap`, 345 `llm`. Rule kept: a row
+    with the brand's own value replaces an `llm` estimate of the same product only on the owner's
+    word.
+  - **Shown like the other brand labels** (the owner's choice, offered against marking them
+    "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
+    them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates
+    (accepted risk R-012).
+- Doc changes: `food-list-sources.md`; the Legal brief (L-16); `constraints-and-assumptions.md`
+  (R-012); the data model; REQ-LOG-007; `CLAUDE.md`. Migration `0019_food_flag_llm.sql`; no phone
+  schema change, no app change.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
