@@ -418,15 +418,15 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `uuid` | Primary key |
-| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated; or `brand_label` (D-49), code FitSphere's own, e.g. `maggi-2-minute-masala-noodles`, an approved row of the brand-labels sheet. (`usda_fndds`, D-39, until migration 0013 moved those rows to `usda_foods`, D-47) |
+| `source`, `code` | `text` | Unique together. `source` is `ifct2017`, code e.g. `A019`; or `indb` (D-46), code INDB's, e.g. `BFP148`, every value estimated; or `brand_label` (D-49), code FitSphere's own, e.g. `maggi-2-minute-masala-noodles`, an approved row of the brand-labels sheet; or `home` (D-59, migration 0020), code e.g. `home-bread-butter-toast`, an approved row of the home-foods sheet. (`usda_fndds`, D-39, until migration 0013 moved those rows to `usda_foods`, D-47) |
 | `name`, `food_group` | `text` | Not null; as printed |
-| `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed. Since migration 0015 `fibre_g` may be null for a `brand_label` whose label gives none (D-49) |
+| `protein_g`, `fibre_g`, `fat_g`, `carbs_g` | `numeric(6,2)` | Not null, 0 or more. Grams per 100 g edible portion, as printed. Since migration 0015 `fibre_g` may be null for a `brand_label` whose label gives none (D-49), and since 0020 for a `home` food that gives none (D-59) |
 | `kcal` | `numeric(6,2)` | Not null. kcal per 100 g |
 | `kcal_source` | `text` | `published` (as printed) or `estimated_fat_factor` (oils and fats: 9 kcal per g of fat, D-26) |
 | `estimated` | `boolean` | True when `kcal` is estimated |
 | `needs_review`, `note` | `boolean`, `text` | The source PDF's review flag and its reason |
 | `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
-| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55) |
+| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59) |
 | `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06; since migration 0019 (D-53) also `llm` on those holding an AI tool's estimates. Server only: never in `GET /v1/foods`; nothing reads it yet |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 

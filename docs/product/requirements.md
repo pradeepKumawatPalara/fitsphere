@@ -508,7 +508,10 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   is listed first; since D-55 a brand label is also found by hidden search words, the everyday
   names of what it is ("whole wheat atta" finds a pack called "Chakki Atta"). Since D-54 the rest
   come in this order: My foods, brand labels, packaged foods,
-  INDB's recipes, then dishes and IFCT's foods. The results follow each letter typed or erased;
+  INDB's recipes, then dishes and IFCT's foods. Since D-59, home-style forms of daily foods (a
+  bread slice, butter toast, bread omelette), typical values for a home recipe, come right after an
+  exact match, untagged, found by their item too, logged in grams or by their serving. The results
+  follow each letter typed or erased;
   since D-57 a cross at the end of the search box clears the search. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
