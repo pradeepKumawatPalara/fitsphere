@@ -1616,6 +1616,53 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: `docs/design/design-system.md` (the two tints); `docs/plans/ui-redesign.md` (3.5).
   Phone app only: no server change, no migration, no new build.
 
+## D-60 Recent foods in Search foods: the last five days' foods, ticked or opened on their last amount
+- Status: **Accepted** (owner, in chat, 2026-11-06: "In the fitsphere Log Meal -> Search food the
+  screen shows the empty. I want that it should suggest last 5 days added food item below the search
+  foods so instead of searching User can directly pick from it ... Item should be from recent to
+  last of last 5 days. So recently added item should show at the top. User can pick multiple as
+  well. When he select it should clearly be visible that user has selected this and user can deselect
+  as well. First show me the UI on the canvas then start building it"; on the canvas: "No need to
+  show the today yesterday tag just show the item. No duplicate should be present, and the clickable
+  icon should be in the right side. No need to show tag like INDB, Packaged"; then "if first user
+  select the check box and further selection of food will count as adding to current log meal, or in
+  the first click user directly click on the measuring tab ... user can increase and decrease the
+  quantity. And the uniqueness will be measured by the food item name ... In such case show the
+  latest one measurements. Note this in my decision"; then "Lock it, start building" on the canvas's
+  "3.6 Search foods with recent foods", version 36). Numbered D-60 because D-59 is home-style foods,
+  built at the same time.
+- Answer (the redesign's 3.6, added to):
+  - Before anything is typed, Search foods shows **Recent foods · Last 5 days**: every food logged on
+    today and the four days before (Asia/Kolkata days, invariant 5), the latest first: by the meal's
+    day, then when the meal was saved, then a meal's last food first.
+  - **Each food once, told apart by its name** (ignoring case and spaces): a food eaten twice in
+    different amounts shows once, with the **latest** amount and its values. No day labels and no
+    source tags (INDB, Packaged, Brand label) in this list.
+  - Each row: the name and, under it, the amount last logged and its kcal; a **tick box on the
+    right**. Ticking picks the food as it was last logged; a ticked row is tinted, its name heavier,
+    its box filled in caramel with a check; tapping again unticks it. While foods are ticked, a bar
+    at the foot says "N selected · kcal", offers "Deselect all", and "Add N foods" puts them all into
+    the meal being logged and returns to Log meal.
+  - **Tapping a food's name opens its page** (3.6b) on the amount last logged, with "Last time: …"
+    under the boxes, to change the quantity or measure there.
+  - **Once foods are ticked, a food added from its page goes in with them**, a recent one or one
+    found by the search: the page's button says "Add N foods" and the line above it "Your N ticked
+    foods go in with it." A ticked food opened on its own page goes in once, with the page's amount.
+    The ticks stay while searching.
+  - The keyboard opens by itself only when there are no recent foods (then: "Foods you log show here
+    for 5 days, so you can add them again with a tap."); otherwise on a tap in the search box.
+- MVP defaults:
+  - A ticked food is added with the values it was logged with (as a saved meal is); its page uses the
+    food list's values now.
+  - A recent food with no page (your own food not kept in My foods, a My food deleted, a food that
+    has left the list, a barcode product scanned rather than listed) is ticked when its name is
+    tapped.
+  - Meals the server refused are left out; foods added with "Already in this meal" still ask, as
+    before (D-34).
+- Brings part of backlog B-03 ("Eaten before") into the MVP. Doc changes: REQ-LOG-007;
+  `docs/product/backlog.md` (B-03); `docs/plans/ui-redesign.md` (3.6). Phone app only: no server
+  change, no migration, no phone schema change, no new build.
+
 ---
 
 ## D-59 Home-style foods: everyday forms of daily foods, from the owner's AI files

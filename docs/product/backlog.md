@@ -93,7 +93,7 @@ From `mvp-scope.md` section 3, plus items the D-18, D-20 and D-26 answers moved 
 |---|---|---|---|
 | B-01 | iOS release | A-001, ADR-0001, C-008 | Waits for an iPhone (D-10, R-001); Apple fee due at release |
 | B-02 | "Pre" baseline row and week-details screen in Progress | REQ-PRG-005 | Q-045, Q-046 |
-| B-03 | "Eaten before" list in Log meal | REQ-LOG-007 | Saved covers re-logging in the MVP |
+| B-03 | "Eaten before" list in Log meal | REQ-LOG-007 | Saved covers re-logging in the MVP; since D-60 (2026-11-06) Search foods lists the foods of the last five days (Recent foods), so what remains is past meals as a whole |
 | B-04 | Examples section in Log meal (Best, Vague, Say) | REQ-LOG-008 | The tips stay in the MVP |
 | B-05 | Audio storage | REQ-LOG-005, ADR-0008, Q-090 | The MVP stores no audio |
 | B-06 | Video uploads (other than YouTube links) | REQ-NFR-006, ADR-0008, Q-090, Q-091 | |
