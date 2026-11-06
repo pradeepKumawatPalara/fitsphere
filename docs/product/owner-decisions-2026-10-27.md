@@ -1663,6 +1663,36 @@ checksum), and the configuration template was left as it is.*
   `docs/product/backlog.md` (B-03); `docs/plans/ui-redesign.md` (3.6). Phone app only: no server
   change, no migration, no phone schema change, no new build.
 
+## D-61 Search results without source tags: a brand under the name, one row per name for several brands
+- Status: **Accepted** (owner, in chat, 2026-11-06: "I want that when we search the food Bread ... the
+  label Package, Brand label to be removed. But if I remove there will be multiple multiple Bread of
+  the same because they are from the different brand. So come up with me the better design ... each
+  type of tagged so I can visualize which one look good after removing the tagged Packaged and
+  similar"; on the canvas's "3.6 Search results without tags", of Now, A, B, C and D: "c").
+- Answer (the redesign's 3.6, changed; supersedes the tags of D-39, D-46, D-48 and D-49 in the results):
+  - No result in Search foods carries a source tag: no "Packaged", "Brand label", "INDB", "My food" or
+    "Dish".
+  - A branded food (a brand label, or a packaged food with a brand) shows its name without the brand,
+    and under it its **brand**, a little heavier, then its energy: "Sandwich Bread" / "Alpha Bakers ·
+    250 kcal per 100 g".
+  - The branded foods of **one name** (the brand left out, ignoring case and punctuation) are **one
+    row**, where the first of them was: "Bread" / "3 brands · 220–274 kcal per 100 g", with a chevron.
+    Tapping it opens the brands under it, set in on the sunken colour, a brand each with its energy;
+    each opens its page; tapping the name again closes them. A name only one brand has stays a row of
+    its own.
+  - A My food says "Your food" in caramel where its tag was. INDB's recipes, IFCT's foods and dishes
+    show their name and energy; a recipe's or dish's still says "estimated".
+  - The order is as before (D-51, D-54); a name's row takes the place of its first brand.
+- MVP defaults:
+  - Each food's own page (3.6b) keeps its source tag and brand, so where a value comes from stays one
+    tap away; the credits behind the i are unchanged ("Foods marked INDB …" refers to that tag).
+  - "N brands" counts different brands; a name only one brand has, even from two sources (a brand
+    label and a packaged food of the same brand and name), stays a row for each, its brand under it.
+- For Legal (Q-049): the attribution of Open Food Facts (L-13), INDB (L-15) and the brand labels
+  (L-16, R-010, R-012) no longer shows on each result, only on the food's page and behind the i.
+- Doc changes: REQ-LOG-007; `docs/architecture/constraints-and-assumptions.md` (More foods);
+  `docs/plans/ui-redesign.md` (3.6). Phone app only: no server change, no migration, no new build.
+
 ---
 
 ## D-59 Home-style foods: everyday forms of daily foods, from the owner's AI files

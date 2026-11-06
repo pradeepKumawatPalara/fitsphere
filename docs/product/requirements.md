@@ -513,7 +513,10 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   bread slice, butter toast, bread omelette), typical values for a home recipe, come right after an
   exact match, untagged, found by their item too, logged in grams or by their serving. The results
   follow each letter typed or erased;
-  since D-57 a cross at the end of the search box clears the search. Your own food can be in any of several units and saved to My foods
+  since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
+  source tag (the marks above stay on each food's page): a branded food shows its brand under its
+  name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·
+  220–274 kcal per 100 g") that opens to list them, a brand each. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods
