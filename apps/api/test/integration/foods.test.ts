@@ -287,12 +287,12 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
   it('imports the approved rows of the committed sheet whole, with their servings and their flags (D-52, D-53)', async () => {
     const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
     try {
-      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(525);
-      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(114);
+      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(528);
+      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(115);
       expect(await flags()).toEqual([
         { flag: null, n: 23 },
         { flag: 'llm', n: 314 },
-        { flag: 'scrap', n: 188 },
+        { flag: 'scrap', n: 191 },
       ]);
     } finally {
       await importFoods(client, [], BRAND_LABEL_SOURCE);

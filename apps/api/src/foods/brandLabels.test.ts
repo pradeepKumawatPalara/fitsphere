@@ -26,16 +26,16 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-49 the committed brand-labels sheet', () => {
-  it('passes every check; the owner approved its first 23 rows on 2026-11-04, then 187, 56, 222, 12 and 25 more on 2026-11-06 (D-52, D-53)', () => {
+  it('passes every check; the owner approved its first 23 rows on 2026-11-04, then 187, 56, 222, 12, 25 and 3 more on 2026-11-06 (D-52, D-53)', () => {
     const sheet = readBrandLabelsSheet(COMMITTED);
-    expect(sheet.foods).toHaveLength(525);
+    expect(sheet.foods).toHaveLength(528);
     expect(sheet.proposed).toBe(0);
     expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
   });
 
-  it('flags the 188 rows read from the web as scrap, the 314 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
+  it('flags the 191 rows read from the web as scrap, the 314 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
     const { foods } = readBrandLabelsSheet(COMMITTED);
-    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(188);
+    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(191);
     expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(314);
     expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
   });
