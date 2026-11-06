@@ -1529,6 +1529,21 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-55 Hidden search words on brand labels
+- Status: **Accepted** (owner, in chat, 2026-11-06: "add search words", after a search for "whole
+  wheat atta" did not find the brands whose packs say "Chakki Atta").
+- Answer: each brand label may carry search words, the everyday names of what the product is
+  (for a chakki atta: "whole wheat atta", "wheat flour", "gehu atta"; for dahi: "curd", "yogurt";
+  for a lime pickle: "nimbu achar"). They are kept with the food as aliases after its brand, so a
+  search for the item finds every brand whatever its pack calls it. They are never shown. Words the
+  name already holds are left out. The first set was written for all 567 brand labels from the food
+  item each belongs to (MVP default: English and common Hindi names); the owner can change any row in
+  the sheet's new `search_words` column.
+- Doc changes: `food-list-sources.md`; the data model; REQ-LOG-007. Server import only: the phone
+  already searches aliases, so no phone change, no migration, no new build; `foods:import` again.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

@@ -504,7 +504,9 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   products; since D-53 a few are an AI tool's estimates) and approved by the owner, are listed before
   them, marked "Brand label", in grams or by their serving; a fibre the label does not give is
   shown as unknown. Since D-51, a food named exactly as the search (ignoring case and punctuation)
-  is listed first. Since D-54 the rest come in this order: My foods, brand labels, packaged foods,
+  is listed first; since D-55 a brand label is also found by hidden search words, the everyday
+  names of what it is ("whole wheat atta" finds a pack called "Chakki Atta"). Since D-54 the rest
+  come in this order: My foods, brand labels, packaged foods,
   INDB's recipes, then dishes and IFCT's foods. Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
