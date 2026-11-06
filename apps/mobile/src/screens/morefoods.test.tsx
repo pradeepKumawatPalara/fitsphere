@@ -445,12 +445,12 @@ describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
 
     const rows = await screen.findAllByRole('button', { name: /kcal per/ });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
-      'Bread, Other Bakers, packaged, 250 kcal per 100 g',
+      'Bread, Other Bakers, 250 kcal per 100 g',
       'Test butter toast, 365 kcal per 100 g',
-      'Peanut butter bread, my food, 180 kcal per slice',
-      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
-      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
-      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Peanut butter bread, your food, 180 kcal per slice',
+      'White Bread, Test Bakers, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
+      'Test bread toast, 267 kcal per 100 g, estimated',
       'Bread, white (test), 320 kcal per 100 g',
     ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
