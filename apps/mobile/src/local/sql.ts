@@ -18,19 +18,34 @@ export type SqlDb = {
  * both changes are lost or half-saved (seen when choosing settings quickly). Here each transaction
  * waits for the one before it to finish, failed or not. A transaction's task must not start another
  * transaction: it would wait for itself.
+ *
+ * Once the app closes the database (signing out, another user, or the app reloading while it is
+ * developed), a call still running on it, or made after, is dropped quietly: it neither resolves nor
+ * rejects. Without this, a screen's read that was under way failed with expo-sqlite's "Access to
+ * closed resource", shown as an uncaught error (the owner's phone test, 2026-11-06). The screen that
+ * asked is gone by then; the next database is a new one. Errors before closing reject as before.
  */
 export function oneTransactionAtATime(db: SqlDb): SqlDb {
   let previous: Promise<unknown> = Promise.resolve();
+  let closed = false;
+  const dropped = <T>() => new Promise<T>(() => undefined);
+  function quiet<T>(start: () => Promise<T>): Promise<T> {
+    if (closed) return dropped<T>();
+    return start().catch((error: unknown) => (closed ? dropped<T>() : Promise.reject(error)));
+  }
   return {
-    execAsync: (source) => db.execAsync(source),
-    runAsync: (source, params) => db.runAsync(source, params),
-    getFirstAsync: (source, params) => db.getFirstAsync(source, params),
-    getAllAsync: (source, params) => db.getAllAsync(source, params),
+    execAsync: (source) => quiet(() => db.execAsync(source)),
+    runAsync: (source, params) => quiet(() => db.runAsync(source, params)),
+    getFirstAsync: <T>(source: string, params: BindValue[]) => quiet(() => db.getFirstAsync<T>(source, params)),
+    getAllAsync: <T>(source: string, params: BindValue[]) => quiet(() => db.getAllAsync<T>(source, params)),
     withTransactionAsync(task) {
-      const run = previous.then(() => db.withTransactionAsync(task));
+      const run = previous.then(() => quiet(() => db.withTransactionAsync(task)));
       previous = run.catch(() => undefined);
       return run;
     },
-    closeAsync: () => db.closeAsync(),
+    closeAsync: () => {
+      closed = true;
+      return db.closeAsync();
+    },
   };
 }
