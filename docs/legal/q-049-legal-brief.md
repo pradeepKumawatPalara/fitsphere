@@ -181,10 +181,15 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   Amazon, BigBasket, Swiggy Instamart, Spencer's), mostly from the shop's photo of the pack's label,
   some from the shop's typed text; 51 from files the owner made with another AI tool; one (Catch Chat
   Masala) from Open Food Facts (ODbL, see L-13). They carry the server-only flag `scrap`.
+- Since D-53 (2026-11-06) 56 more rows (bread and biscuits) hold an AI tool's estimates from its
+  general knowledge, not read from any label, flagged `llm` on the server; the app shows them like
+  the other brand labels, and its credit says the values are as printed on each product's label
+  (R-012).
 - Questions: may FitSphere copy these nutrition facts from the brands' websites into its food list?
   Does it matter that the same facts are printed on the packs, as FSSAI requires? Should FitSphere
   ask brands, or prefer reading packs? May it copy the values from a shop's listing, or from the
-  shop's photo of the pack?
+  shop's photo of the pack? May it show an AI's estimate under a brand's name without saying it is
+  an estimate?
 
 **L-15 The Indian Nutrient Databank's recipes (MVP).**
 - Facts: since D-46 (2026-11-04) the food list holds INDB's 1,014 recipes with their values and

@@ -1451,6 +1451,33 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-53 AI estimates in the brand-labels sheet, flagged llm
+- Status: **Accepted** (owner, in chat, 2026-11-06).
+- Asked: the owner asked for a prompt that lets an AI tool give a product's values from its own
+  trained knowledge where it cannot read them, then supplied such a file for bread and biscuits:
+  "Please upload this table to our food search db, in the new column save value as LLM. If in this
+  CSV we have value that is already saved in our database then ignore it".
+- Answer (amends D-52, which said never a model's memory):
+  - A row of the brand-labels sheet may hold an AI tool's estimate of a product's values from its
+    general knowledge, not read from any label, once the owner approves it. Such a row is flagged
+    `llm` (the server-only `flag` column of D-52), keeps the tool's note ("ESTIMATE: ... Not read
+    from any label"), and has no page: `source_url` may be empty for an `llm` row only.
+  - **Approved (owner, 2026-11-06):** 56 rows from the owner's file of 98 (bread and bakery 16,
+    biscuits 40). The other 42 were left out because the product is already in the database,
+    checked by hand: all 42 are among Open Food Facts' packaged products (D-48), with label values
+    (Parle-G, Monaco, the Oreos, Jim Jam, most Britannia breads and rusks and others). Rows whose
+    values repeat another's exactly (16 rows, e.g. four Patanjali Creamfeast flavours) are kept:
+    they are different products.
+  - **Shown like the other brand labels** (the owner's choice, offered against marking them
+    "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
+    them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates
+    (accepted risk R-012).
+- Doc changes: `food-list-sources.md`; the Legal brief (L-16); `constraints-and-assumptions.md`
+  (R-012); the data model; REQ-LOG-007; `CLAUDE.md`. Migration `0019_food_flag_llm.sql`; no phone
+  schema change, no app change.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
