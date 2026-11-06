@@ -1036,6 +1036,66 @@ export async function searchMyFoods(db: SqlDb, query: string, limit = 10): Promi
   return rows.map((row) => toEntry(KINDS.myFood, row) as LocalMyFood);
 }
 
+/** How a food is told apart in Recent foods (D-60): by its name, ignoring case and spaces. */
+export function recentFoodKey(item: Pick<MealItem, 'name'>): string {
+  return item.name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+/**
+ * The foods logged between two IST days, for Search foods' Recent foods (D-60, REQ-LOG-007): the
+ * latest first (by the meal's day, then when it was saved, then a meal's last food first), each food
+ * once by its name, with the amount and values it was last logged with. A meal the server refused
+ * is left out.
+ */
+export async function recentFoods(db: SqlDb, fromDay: IstDay, toDay: IstDay): Promise<MealItem[]> {
+  const rows = await db.getAllAsync<{ items: string }>(
+    `SELECT items FROM meals WHERE day BETWEEN ? AND ? AND sync_state != 'rejected' ORDER BY day DESC, recorded_at DESC`,
+    [fromDay, toDay],
+  );
+  const seen = new Set<string>();
+  const foods: MealItem[] = [];
+  for (const row of rows) {
+    for (const item of (JSON.parse(row.items) as MealItem[]).reverse()) {
+      const key = recentFoodKey(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      foods.push(item);
+    }
+  }
+  return foods;
+}
+
+/** A food as Search foods lists it and its page opens it (D-45). */
+export type ListedFood =
+  | { kind: 'dish'; dish: Dish }
+  | { kind: 'food'; food: Food }
+  | { kind: 'mine'; food: LocalMyFood }
+  // A packaged food sold in India, from Open Food Facts (D-48).
+  | { kind: 'packaged'; food: PackagedFood };
+
+/**
+ * The food a meal's item was logged from, as the phone lists it now, so a recent food's page can open
+ * (D-60); null when it is no longer listed: your own food not kept in My foods, a My food deleted, a
+ * food that left the list, or a barcode product scanned rather than listed.
+ */
+export async function listedFoodOf(db: SqlDb, item: MealItem): Promise<ListedFood | null> {
+  if (item.ref === null) return null;
+  if (item.source === 'own') {
+    const food = await getEntry(db, 'myFood', item.ref);
+    return food ? { kind: 'mine', food } : null;
+  }
+  if (item.source === 'dish') {
+    const row = await db.getFirstAsync<DishRow>('SELECT * FROM dishes WHERE code = ?', [item.ref]);
+    return row ? { kind: 'dish', dish: toDish(row) } : null;
+  }
+  if (item.source === 'barcode') {
+    const row = await db.getFirstAsync<PackagedRow>('SELECT * FROM packaged_foods WHERE barcode = ?', [item.ref]);
+    return row ? { kind: 'packaged', food: toPackaged(row) } : null;
+  }
+  const row = await db.getFirstAsync<FoodRow>('SELECT * FROM foods WHERE source = ? AND code = ?', [item.source, item.ref]);
+  return row ? { kind: 'food', food: toFood(row) } : null;
+}
+
 /** Saved meals, by name (REQ-SAVED-001). */
 export async function listSavedMeals(db: SqlDb): Promise<LocalSavedMeal[]> {
   const rows = await db.getAllAsync<Record<string, BindValue>>('SELECT * FROM saved_meals ORDER BY name COLLATE NOCASE', []);
@@ -1150,22 +1210,28 @@ export async function searchPackaged(db: SqlDb, query: string, limit = 30): Prom
   const words = searchWords(query);
   if (words.length === 0) return [];
   const conditions = words.map(() => `(lower(name) LIKE ? ESCAPE '\\' OR lower(coalesce(brand, '')) LIKE ? ESCAPE '\\')`);
-  const rows = await db.getAllAsync<{
-    barcode: string;
-    name: string;
-    brand: string | null;
-    kcal: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fibre_g: number | null;
-    serving_grams: number | null;
-  }>(
+  const rows = await db.getAllAsync<PackagedRow>(
     `SELECT * FROM packaged_foods WHERE ${conditions.join(' AND ')}
      ORDER BY (lower(name) LIKE ? OR lower(coalesce(brand, '')) LIKE ?) DESC, name COLLATE NOCASE LIMIT ?`,
     [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), startsWith(words[0]!), limit * PACKAGED_READ_FACTOR],
   );
-  const foods = rows.map((row) => ({
+  return onePerProduct(rows.map(toPackaged)).slice(0, limit);
+}
+
+type PackagedRow = {
+  barcode: string;
+  name: string;
+  brand: string | null;
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fibre_g: number | null;
+  serving_grams: number | null;
+};
+
+function toPackaged(row: PackagedRow): PackagedFood {
+  return {
     barcode: row.barcode,
     name: row.name,
     brand: row.brand,
@@ -1175,8 +1241,7 @@ export async function searchPackaged(db: SqlDb, query: string, limit = 30): Prom
     fatG: row.fat_g,
     fibreG: row.fibre_g,
     servingGrams: row.serving_grams,
-  }));
-  return onePerProduct(foods).slice(0, limit);
+  };
 }
 
 /** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, brand labels, then home-style foods (D-46, D-47, D-49, D-59). */
@@ -1196,7 +1261,28 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
   for (const source of SEARCH_ORDER) {
     rows.push(...(await searchSource(db, source, words, conditions, limit)));
   }
-  return rows.map((row) => ({
+  return rows.map(toFood);
+}
+
+/** A row of the cached food list. */
+type FoodRow = {
+  source: Food['source'];
+  code: string;
+  name: string;
+  food_group: string;
+  aliases: string;
+  protein_g: number;
+  fibre_g: number | null;
+  fat_g: number;
+  carbs_g: number;
+  kcal: number;
+  kcal_estimated: number;
+  measures: string;
+  portions: string;
+};
+
+function toFood(row: FoodRow): Food {
+  return {
     source: row.source,
     code: row.code,
     name: row.name,
@@ -1210,26 +1296,12 @@ export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise
     kcalEstimated: row.kcal_estimated === 1,
     measures: JSON.parse(row.measures) as Food['measures'],
     portions: JSON.parse(row.portions) as Food['portions'],
-  }));
+  };
 }
 
 /** One source's matches for `searchFoods`. */
 function searchSource(db: SqlDb, source: Food['source'], words: string[], conditions: string[], limit: number) {
-  return db.getAllAsync<{
-    source: Food['source'];
-    code: string;
-    name: string;
-    food_group: string;
-    aliases: string;
-    protein_g: number;
-    fibre_g: number | null;
-    fat_g: number;
-    carbs_g: number;
-    kcal: number;
-    kcal_estimated: number;
-    measures: string;
-    portions: string;
-  }>(
+  return db.getAllAsync<FoodRow>(
     `SELECT * FROM foods WHERE source = ? AND ${conditions.join(' AND ')}
      ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
     [source, ...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), limit],
@@ -1243,21 +1315,27 @@ function searchSource(db: SqlDb, source: Food['source'], words: string[], condit
 export async function searchDishes(db: SqlDb, query: string, limit = 10): Promise<Dish[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const rows = await db.getAllAsync<{
-    code: string;
-    name: string;
-    portion_unit: Dish['portionUnit'];
-    kcal: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
-    fibre_g: number;
-  }>(
+  const rows = await db.getAllAsync<DishRow>(
     `SELECT * FROM dishes WHERE ${words.map(() => `lower(name) LIKE ? ESCAPE '\\'`).join(' AND ')}
      ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
     [...words.map(like), startsWith(words[0]!), limit],
   );
-  return rows.map((row) => ({
+  return rows.map(toDish);
+}
+
+type DishRow = {
+  code: string;
+  name: string;
+  portion_unit: Dish['portionUnit'];
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fibre_g: number;
+};
+
+function toDish(row: DishRow): Dish {
+  return {
     code: row.code,
     name: row.name,
     portionUnit: row.portion_unit,
@@ -1266,7 +1344,7 @@ export async function searchDishes(db: SqlDb, query: string, limit = 10): Promis
     carbsG: row.carbs_g,
     fatG: row.fat_g,
     fibreG: row.fibre_g,
-  }));
+  };
 }
 
 /** At most five lowercase words of a search. */

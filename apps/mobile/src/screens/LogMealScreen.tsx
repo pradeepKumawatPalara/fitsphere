@@ -337,7 +337,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           }}
         />
       ) : null}
-      {sheet === 'search' ? <FoodSearchSheet onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
+      {sheet === 'search' ? <FoodSearchSheet today={today} onAdd={addItems} onClose={() => setSheet(null)} /> : null}
       {sheet === 'barcode' ? (
         <BarcodeSheet
           onAdd={(item) => addItems([item])}

@@ -1,11 +1,21 @@
-import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type MealItem } from '@fitsphere/shared';
-import { ChevronLeft, ChevronRight, Info, Search, X } from 'lucide-react-native';
+import { addDays, IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type IstDay, type MealItem } from '@fitsphere/shared';
+import { Check, ChevronLeft, ChevronRight, Info, Search, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getMeta, searchDishes, searchFoods, searchMyFoods, searchPackaged, type LocalMyFood } from '../local/store';
-import { formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
+import {
+  getMeta,
+  listedFoodOf,
+  recentFoodKey,
+  recentFoods,
+  searchDishes,
+  searchFoods,
+  searchMyFoods,
+  searchPackaged,
+  type LocalMyFood,
+} from '../local/store';
+import { formatAmount, formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -34,8 +44,23 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 //
 // The results follow the search as it is typed or erased, a letter at a time; the cross at the end of
 // the box clears it, and its results, and is shown only while something is typed (D-57).
+//
+// Before anything is typed, Recent foods lists what was logged on the last five days, today's first,
+// each food once by its name with the amount it was last logged in (D-60, the redesign's 3.6 with
+// recent foods, locked by the owner on 2026-11-06). The tick box on the right picks a food as it was
+// last time, and the bar at the foot adds every ticked food; the name opens the food's page on that
+// amount, to change it. Once foods are ticked, a food added from its page, a recent one or one found
+// by the search, goes into the meal with them. The keyboard opens by itself only when there are no
+// recent foods, so it does not hide them.
 
 type Result = FoodResult;
+
+/** How many days Recent foods looks back, today included (D-60). */
+export const RECENT_FOOD_DAYS = 5;
+
+function nameOf(result: Result): string {
+  return result.kind === 'dish' ? result.dish.name : result.food.name;
+}
 
 /** A name or a search as compared for an exact match: lowercase, its letters and digits only, one space between words. */
 function matchKey(text: string): string {
@@ -68,7 +93,7 @@ function perOne(food: LocalMyFood): string {
   return food.unit === 'g' || food.unit === 'ml' ? `100 ${food.unit}` : OWN_UNIT_NAMES[food.unit].one;
 }
 
-export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): void; onClose(): void }) {
+export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAdd(items: MealItem[]): void; onClose(): void }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const local = useLocalDatabase();
@@ -76,10 +101,49 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Result[]>([]);
   const [listCached, setListCached] = useState(true);
-  const [chosen, setChosen] = useState<Result | null>(null);
+  // The food whose page is open, and the amount it was last logged in when opened from Recent foods.
+  const [chosen, setChosen] = useState<{ result: Result; from?: MealItem['amount'] } | null>(null);
   const [editing, setEditing] = useState<LocalMyFood | null>(null);
   // The food sources' sheet, behind the i (D-44).
   const [sources, setSources] = useState(false);
+  // Recent foods (D-60): null until read; the ticked ones by their keys, in the order ticked.
+  const [recent, setRecent] = useState<MealItem[] | null>(null);
+  const [ticked, setTicked] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (local.state.status !== 'ready') return;
+    let active = true;
+    void recentFoods(local.state.db, addDays(today, -(RECENT_FOOD_DAYS - 1)), today).then((foods) => {
+      if (active) setRecent(foods);
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state, today, version]);
+
+  const byKey = new Map((recent ?? []).map((item) => [recentFoodKey(item), item]));
+  const tickedItems = ticked.flatMap((key) => byKey.get(key) ?? []);
+  // From a food's page the ticked foods go in with it, but not its own tick: the page's amount counts.
+  const withPage = chosen ? tickedItems.filter((item) => recentFoodKey(item) !== recentFoodKey({ name: nameOf(chosen.result) })) : [];
+  const showRecent = query.trim() === '' && recent !== null && recent.length > 0;
+
+  function toggle(item: MealItem) {
+    const key = recentFoodKey(item);
+    setTicked((current) => (current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]));
+  }
+
+  /** A recent food's page, on its last amount; a food no longer listed has no page, and its name ticks it (MVP default, D-60). */
+  async function open(item: MealItem) {
+    if (local.state.status !== 'ready') return;
+    const result = await listedFoodOf(local.state.db, item);
+    if (result) setChosen({ result, from: item.amount });
+    else toggle(item);
+  }
+
+  function addAll(items: MealItem[]) {
+    onAdd(items);
+    onClose();
+  }
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -127,8 +191,22 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
     );
   }
 
+  const tickedKcal = tickedItems.reduce((sum, item) => sum + item.kcal, 0);
+  const bar =
+    tickedItems.length > 0 ? (
+      <View style={styles.bar}>
+        <View style={styles.barLine}>
+          <Text accessibilityLiveRegion="polite" style={styles.barText}>
+            {tickedItems.length} selected · {formatKcal(tickedKcal)}
+          </Text>
+          <TextButton title="Deselect all" onPress={() => setTicked([])} />
+        </View>
+        <TextButton title={`Add ${tickedItems.length} ${tickedItems.length === 1 ? 'food' : 'foods'}`} filled onPress={() => addAll(tickedItems)} />
+      </View>
+    ) : undefined;
+
   return (
-    <FullScreen onClose={onClose}>
+    <FullScreen onClose={onClose} footer={bar}>
           <View style={styles.header}>
             <IconButton label="Close search" onPress={onClose}>
               <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
@@ -144,11 +222,13 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
             <View style={[styles.searchBox, query !== '' && styles.searchBoxClearable]}>
               <Search size={20} color={colors.inkMuted} />
               <TextInput
+                // Made again once Recent foods is read, so the keyboard opens by itself only when there are none (D-60).
+                key={recent === null ? 'reading' : 'read'}
                 accessibilityLabel="Search foods"
                 value={query}
                 onChangeText={setQuery}
                 placeholder="e.g. atta, dal, paneer"
-                autoFocus
+                autoFocus={recent !== null && recent.length === 0}
                 style={styles.searchInput}
               />
               {query !== '' ? (
@@ -161,8 +241,56 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
             ) : query.trim() !== '' && results.length === 0 ? (
               <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
+            ) : query.trim() === '' && recent !== null && recent.length === 0 ? (
+              <Text style={styles.empty}>Foods you log show here for {RECENT_FOOD_DAYS} days, so you can add them again with a tap.</Text>
+            ) : showRecent ? (
+              <View style={styles.recentHead}>
+                <View style={styles.recentTitleLine}>
+                  <Text accessibilityRole="header" style={styles.recentTitle}>
+                    Recent foods
+                  </Text>
+                  <Text style={styles.detail}>Last {RECENT_FOOD_DAYS} days</Text>
+                </View>
+                <Text style={styles.detail}>Tick a food to add it as last time. Tap a food to change its amount.</Text>
+              </View>
             ) : null}
           </View>
+          {showRecent ? (
+            <FlatList
+              data={recent}
+              keyExtractor={recentFoodKey}
+              style={[styles.list, styles.listCard]}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => {
+                const on = ticked.includes(recentFoodKey(item));
+                const said = `${item.name}, ${formatAmount(item.amount)}, ${formatKcal(item.kcal)}`;
+                return (
+                  <View style={[styles.recentRow, on && styles.recentRowOn]}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`${said}, change the amount`}
+                      onPress={() => void open(item)}
+                      style={({ pressed }) => [styles.recentText, pressed && styles.pressed]}
+                    >
+                      <Text style={[styles.name, on && styles.nameOn]}>{item.name}</Text>
+                      <Text style={styles.detail}>
+                        {formatAmount(item.amount)} · {formatKcal(item.kcal)}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityLabel={said}
+                      accessibilityState={{ checked: on }}
+                      onPress={() => toggle(item)}
+                      style={styles.tickArea}
+                    >
+                      <View style={[styles.tick, on && styles.tickOn]}>{on ? <Check size={18} strokeWidth={3} color={colors.onPrimary} /> : null}</View>
+                    </Pressable>
+                  </View>
+                );
+              }}
+            />
+          ) : (
           <FlatList
             data={results}
             keyExtractor={(result) =>
@@ -181,7 +309,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${result.dish.name}, dish, ${formatKcal(result.dish.kcal)} per ${PORTION_UNIT_LABELS[result.dish.portionUnit]}, estimated`}
-                  onPress={() => setChosen(result)}
+                  onPress={() => setChosen({ result })}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>
@@ -196,7 +324,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${result.food.name}, my food, ${formatKcal(result.food.kcal)} per ${perOne(result.food)}`}
-                  onPress={() => setChosen(result)}
+                  onPress={() => setChosen({ result })}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>
@@ -214,7 +342,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${result.food.name}, ${result.food.brand ? `${result.food.brand}, ` : ''}packaged, ${formatKcal(result.food.kcal)} per 100 g`}
-                  onPress={() => setChosen(result)}
+                  onPress={() => setChosen({ result })}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>
@@ -233,7 +361,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`${result.food.name}, ${SOURCE_MARKS[result.food.source] ? `${SOURCE_MARKS[result.food.source]}, ` : ''}${formatKcal(result.food.kcal)} per 100 g${result.food.kcalEstimated ? ', estimated' : ''}`}
-                  onPress={() => setChosen(result)}
+                  onPress={() => setChosen({ result })}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>
@@ -250,6 +378,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
               )
             }
           />
+          )}
       {sources ? (
         <Sheet title="Food sources" onClose={() => setSources(false)} actions={<TextButton title="Close" wide onPress={() => setSources(false)} />}>
           <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
@@ -261,12 +390,12 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
       ) : null}
       {chosen ? (
         <FoodDetail
-          result={chosen}
+          result={chosen.result}
+          from={chosen.from}
+          addTitle={withPage.length > 0 ? `Add ${withPage.length + 1} foods` : 'Add'}
+          addNote={withPage.length > 0 ? `Your ${withPage.length === 1 ? '1 ticked food goes' : `${withPage.length} ticked foods go`} in with it.` : undefined}
           onBack={() => setChosen(null)}
-          onAdd={(item: MealItem) => {
-            onAdd(item);
-            onClose();
-          }}
+          onAdd={(item: MealItem) => addAll([...withPage, item])}
           onEdit={setEditing}
         />
       ) : null}
@@ -332,4 +461,21 @@ const useStyles = themedStyles((c) => ({
   },
   markMine: { color: c.accent, backgroundColor: c.accentTint },
   source: { fontSize: 15, lineHeight: 22 },
+  // Recent foods (D-60): the title in condensed capitals with "Last 5 days" across from it; each food
+  // ruled on the raised card, its name opening its page, its tick box on the right; a ticked food's
+  // row tinted, its name heavier, its box filled with the check.
+  recentHead: { gap: 4 },
+  recentTitleLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 },
+  recentTitle: { ...TYPE.screenHeader, fontSize: 20, lineHeight: 24 },
+  recentRow: { minHeight: 64, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: c.border },
+  recentRowOn: { backgroundColor: c.accentTint },
+  recentText: { flex: 1, justifyContent: 'center', gap: 2, paddingVertical: 10, paddingLeft: 14, paddingRight: 4 },
+  nameOn: { fontWeight: '600' },
+  tickArea: { width: 56, alignItems: 'center', justifyContent: 'center' },
+  tick: { width: 26, height: 26, alignItems: 'center', justifyContent: 'center', borderRadius: 4, borderWidth: 2, borderColor: c.inkSubtle },
+  tickOn: { borderColor: c.primary, backgroundColor: c.primary },
+  // The bar at the foot while foods are ticked.
+  bar: { gap: 8 },
+  barLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  barText: { fontSize: 15, lineHeight: 22, fontWeight: '600' },
 }));
