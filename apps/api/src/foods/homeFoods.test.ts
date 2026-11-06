@@ -26,17 +26,20 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-59 the committed home-foods sheet', () => {
-  it('passes every check: the owner approved 31 bread foods on 2026-11-06, each an AI estimate with its serving', () => {
+  it('passes every check: the owner approved 31 bread, 30 roti and 31 naan, kulcha and paratha foods on 2026-11-06, each an AI estimate with its serving', () => {
     const { foods, portions, proposed } = readHomeFoodsSheet(COMMITTED);
-    expect(foods).toHaveLength(31);
+    expect(foods).toHaveLength(92);
     expect(proposed).toBe(0);
-    expect(portions).toHaveLength(31);
+    expect(portions).toHaveLength(92);
+    const items = new Map<string, number>();
+    for (const food of foods) items.set(food.aliases[0]!, (items.get(food.aliases[0]!) ?? 0) + 1);
+    expect(Object.fromEntries(items)).toEqual({ bread: 31, roti: 30, naan: 14, kulcha: 6, paratha: 11 });
     expect(foods.every((food) => food.flag === 'llm' && food.code.startsWith('home-'))).toBe(true);
   });
 
-  it('finds every bread form by "bread", even those whose name does not say it', () => {
+  it('finds every form by its item, even those whose name does not say it ("bread" finds Butter toast, "naan" Sheermal)', () => {
     const { foods } = readHomeFoodsSheet(COMMITTED);
-    expect(foods.every((food) => food.aliases[0] === 'bread')).toBe(true);
+    expect(foods.find((food) => food.code === 'home-sheermal')?.aliases[0]).toBe('naan');
     const toast = foods.find((food) => food.code === 'home-bread-butter-toast');
     expect(toast?.name).toBe('Butter toast (Makhan toast)');
     expect(toast?.aliases).toEqual(['bread', 'makhan toast', 'buttered toast', 'butter toast', 'toast butter']);

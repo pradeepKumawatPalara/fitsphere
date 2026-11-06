@@ -1631,6 +1631,12 @@ checksum), and the configuration template was left as it is.*
     `docs/data/home-foods-sheet.csv`, flagged `llm` on the server only (D-53).
   - **Approved (owner, 2026-11-06, "review and dump it"):** 31 bread forms from the owner's file of
     32; Shahi tukda was left out, already in the list as INDB's Shahi tukre.
+  - **Approved (owner, 2026-11-06, "now please dump these"):** 30 roti forms (phulka, ghee and
+    butter roti, tandoori, missi, rumali, bajra, jowar, ragi and fasting rotis, baati and others) and
+    31 naan, kulcha and paratha forms (butter, garlic and stuffed naans, kulchas, lachha, egg, sattu
+    and other parathas, sheermal, bakarkhani, taftan); none was in the list already. The file gave
+    the item as "naan, kulcha and paratha"; each row's item is set to naan, kulcha or paratha (the
+    Mughlai breads to naan), as an item is a search word. 92 home-style foods in all.
   - In Search foods they come right after a food named exactly as the search (D-51), before My foods;
     the rest keep D-54's order. Each is found by its item too ("bread" finds Butter toast).
   - They carry no tag and no "estimated" (MVP default from the owner's answer: the tags are to go).

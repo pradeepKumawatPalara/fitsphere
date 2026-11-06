@@ -48,7 +48,7 @@ this branch, `foods:import` again; only when the owner says so.**
 **Home-style foods — built on branch `feat/home-foods` (D-59, 2026-11-06).** The everyday forms of
 daily foods (a bread slice, butter toast, bread omelette) as source `home`, from the owner's files of
 an AI tool's estimates, one food item at a time, in `docs/data/home-foods-sheet.csv` (flag `llm`);
-31 bread forms so far. Listed in Search foods right after an exact match, untagged; logged in grams
+92 so far (bread, roti, naan, kulcha and paratha). Listed in Search foods right after an exact match, untagged; logged in grams
 or by their serving. Migration `0020_home_foods.sql`, risk R-013, Legal L-18. **On `fitsphere-dev`:
 migration 0020 before the updated API, then `foods:import`; only when the owner says so.**
 

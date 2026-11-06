@@ -276,8 +276,8 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
 ### F. Home-style foods from an AI tool's estimates (D-59, accepted risk R-013)
 
 **L-18 Typical values estimated by an AI tool (MVP).**
-- Facts: since D-59 (2026-11-06) FitSphere lists home-style forms of daily foods (31 bread forms so
-  far: a slice, butter toast, bread omelette), with values another AI tool estimated from its
+- Facts: since D-59 (2026-11-06) FitSphere lists home-style forms of daily foods (92 so far: bread,
+  roti, naan, kulcha and paratha forms, such as a slice, butter toast, a phulka, butter naan), with values another AI tool estimated from its
   general knowledge for a typical home recipe, approved by the owner. They show untagged, before the
   user's own foods, without "estimated"; the sources sheet behind Search foods' i says they are
   typical values for a home recipe. They name no brand.

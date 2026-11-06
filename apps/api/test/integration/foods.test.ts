@@ -284,9 +284,9 @@ describe('D-59 home-style foods: foods:import and GET /v1/foods', () => {
   it('imports the approved rows of the committed sheet whole, each with its serving, flagged llm', async () => {
     const home = readHomeFoodsSheet(readFileSync(new URL('../../../../docs/data/home-foods-sheet.csv', import.meta.url), 'utf8'));
     try {
-      expect((await importFoods(client, home.foods, HOME_FOOD_SOURCE)).total).toBe(31);
-      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toBe(31);
-      expect(await homeFlags()).toEqual([{ flag: 'llm', n: 31 }]);
+      expect((await importFoods(client, home.foods, HOME_FOOD_SOURCE)).total).toBe(92);
+      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toBe(92);
+      expect(await homeFlags()).toEqual([{ flag: 'llm', n: 92 }]);
     } finally {
       await importFoods(client, [], HOME_FOOD_SOURCE);
     }

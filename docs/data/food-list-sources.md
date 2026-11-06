@@ -503,8 +503,9 @@ product or a file the owner made with another AI tool, and approved by the owner
   time: each row is the tool's estimate from its general knowledge, with the recipe it assumed in the
   note (e.g. "2 slices white bread 50 g toasted, butter 10 g"). Not measured, not read from any
   label. Rows are flagged `llm` on the server only (D-53) and approved by the owner.
-- **The sheet:** `docs/data/home-foods-sheet.csv`. 31 bread forms approved on 2026-11-06; a form
-  already in the list (Shahi tukda, INDB's Shahi tukre) is left out.
+- **The sheet:** `docs/data/home-foods-sheet.csv`. Approved on 2026-11-06: 31 bread forms, 30
+  roti forms and 31 naan, kulcha and paratha forms, 92 in all; a form already in the list (Shahi
+  tukda, INDB's Shahi tukre) is left out.
 - **In the app:** listed right after an exact match, untagged; the sources sheet behind Search
   foods' i says they are typical values for a home recipe. Accepted risk R-013.
 - `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming
