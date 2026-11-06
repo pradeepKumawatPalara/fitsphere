@@ -60,3 +60,61 @@ describe('ADR-0007 one transaction at a time', () => {
     }
   });
 });
+
+describe('a closed database (the owner’s phone test, 2026-11-06: "Access to closed resource")', () => {
+  /** Whether the promise settles within a few ticks: 'resolved', 'rejected' or 'pending'. */
+  async function settled(promise: Promise<unknown>): Promise<string> {
+    const outcome = promise.then(
+      () => 'resolved',
+      () => 'rejected',
+    );
+    return Promise.race([outcome, new Promise<string>((resolve) => setTimeout(() => resolve('pending'), 20))]);
+  }
+
+  /** A raw database whose reads wait until released, then fail as expo-sqlite's do once it is closed. */
+  function slowDb() {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let isClosed = false;
+    const fail = async (): Promise<never> => {
+      await gate;
+      throw new Error(isClosed ? 'Access to closed resource' : 'synthetic failure');
+    };
+    const raw: SqlDb = {
+      execAsync: fail,
+      runAsync: fail,
+      getFirstAsync: fail,
+      getAllAsync: fail,
+      withTransactionAsync: fail,
+      closeAsync: async () => {
+        isClosed = true;
+      },
+    };
+    return { db: oneTransactionAtATime(raw), release };
+  }
+
+  it('drops a read still running when the database closes, instead of an uncaught error', async () => {
+    const { db, release } = slowDb();
+    const reading = db.getAllAsync('SELECT 1', []);
+    await db.closeAsync();
+    release();
+
+    expect(await settled(reading)).toBe('pending');
+  });
+
+  it('drops a read asked for after closing', async () => {
+    const db = oneTransactionAtATime(rawMemoryDb());
+    await db.closeAsync();
+
+    expect(await settled(db.getFirstAsync('SELECT 1', []))).toBe('pending');
+    expect(await settled(db.withTransactionAsync(async () => undefined))).toBe('pending');
+  });
+
+  it('still fails a read that fails while the database is open', async () => {
+    const { db, release } = slowDb();
+    const reading = db.getAllAsync('SELECT 1', []);
+    release();
+
+    await expect(reading).rejects.toThrow('synthetic failure');
+  });
+});
