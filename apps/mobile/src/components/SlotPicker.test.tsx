@@ -8,8 +8,9 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   default: () => ({ width: 390, height: 844, scale: 3, fontScale: mockFontScale }),
 }));
 
-// The meal choice (REQ-LOG-003; the redesign's 3.5 and 3.2): four across when "BREAKFAST" fits a
-// quarter of the row, otherwise two by two, each line a row of its own so none runs off the screen.
+// The meal choice (REQ-LOG-003): in Log meal always four across, as tiles with icons, a name too long
+// for its quarter shrinking to fit (D-58, the owner's "3.5 Log meal in steps"); re-logging a saved
+// meal (3.2) two by two.
 function lines() {
   return [0, 1]
     .map((index) => screen.queryByTestId(`slot-line-${index}`))
@@ -38,15 +39,23 @@ describe('REQ-LOG-003 the meal choice', () => {
     expect(screen.getByRole('radio', { name: 'Lunch' })).toBeChecked();
   });
 
-  it('two by two, in two rows, with larger text or on a narrow screen', async () => {
+  it('still four across with larger text or on a narrow screen, each name shrinking to fit (D-58)', async () => {
     mockFontScale = 1.3;
     await render(<SlotPicker value={null} onChange={jest.fn()} />);
-    await layOut(358);
-    expect(lines()).toEqual(TWO_BY_TWO);
-
-    mockFontScale = 1;
     await layOut(248);
-    expect(lines()).toEqual(TWO_BY_TWO);
+    expect(lines()).toEqual([['Breakfast', 'Lunch', 'Snack', 'Dinner']]);
+    expect(screen.getByText('Breakfast').props).toMatchObject({ numberOfLines: 1, adjustsFontSizeToFit: true });
+    expect(screen.getAllByRole('radio').every((radio) => !radio.props.accessibilityState.checked)).toBe(true);
+  });
+
+  it('the chosen meal is filled in caramel, and choosing another tells which (D-58)', async () => {
+    const onChange = jest.fn();
+    await render(<SlotPicker value="breakfast" onChange={onChange} />);
+    expect(screen.getByRole('radio', { name: 'Breakfast' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Breakfast' })).toHaveStyle({ backgroundColor: '#B58863' });
+    expect(screen.getByRole('radio', { name: 'Dinner' })).not.toHaveStyle({ backgroundColor: '#B58863' });
+    await fireEvent.press(screen.getByRole('radio', { name: 'Dinner' }));
+    expect(onChange).toHaveBeenCalledWith('dinner');
   });
 
   it('re-logging a saved meal is always two by two', async () => {

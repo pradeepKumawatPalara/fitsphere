@@ -12,9 +12,12 @@ import {
 } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  ArrowDown,
   Bookmark,
   Calendar,
+  Check,
   ChevronDown,
+  ChevronUp,
   CircleAlert,
   PenLine,
   ScanBarcode,
@@ -23,7 +26,7 @@ import {
   SquarePen,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
@@ -195,6 +198,12 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   }
 
   const totals = mealTotals(items);
+  // The steps (D-58): the meal, then its foods, then review and save; the one to do now says what to tap.
+  const steps: Record<'meal' | 'food' | 'review', StepState> = {
+    meal: mealType ? 'done' : 'now',
+    food: items.length > 0 ? 'done' : mealType ? 'now' : 'later',
+    review: mealType && items.length > 0 ? 'now' : 'later',
+  };
   const changing = typeof sheet === 'object' && sheet !== null ? items[sheet.change] : undefined;
   const newGrams = parseGrams(gramsText);
   // Your own food in its unit (D-39): its quantity is typed, as grams are.
@@ -219,12 +228,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           </Pressable>
         )}
 
-        <View style={styles.group}>
-          <Text accessibilityRole="header" style={styles.heading}>
-            Meal
-          </Text>
+        <Step number={1} title="Meal" state={steps.meal} cue={items.length > 0 ? STEP_CUES.mealToSave : STEP_CUES.meal} cueBelow>
           <SlotPicker value={mealType} onChange={setMealType} />
-        </View>
+        </Step>
 
         {/* Typed, spoken and photo reading come with AI meal reading (slice 7; D-26). */}
         <View style={styles.ai}>
@@ -235,34 +241,31 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           </View>
         </View>
 
-        <View style={styles.group}>
-          <Text accessibilityRole="header" style={styles.heading}>
-            Add food
-          </Text>
-          <View style={styles.methods}>
-            <MethodTile icon={Search} title="Search foods" onPress={() => setSheet('search')} />
-            <MethodTile icon={ScanBarcode} title="Scan barcode" onPress={() => setSheet('barcode')} />
+        <Step number={2} title="Add food" state={steps.food} cue={STEP_CUES.food}>
+          <View testID="add-food-ways" style={styles.methods}>
+            <MethodTile icon={Search} name="Search foods" label={'Search\nfoods'} tint={colors.accentTint} ink={colors.accent} onPress={() => setSheet('search')} />
+            <MethodTile icon={ScanBarcode} name="Scan barcode" label={'Scan\nbarcode'} tint={colors.fatTint} ink={colors.fat} onPress={() => setSheet('barcode')} />
             <MethodTile
               icon={PenLine}
-              title="Enter your own food"
+              name="Enter your own food"
+              label={'Own\nfood'}
+              tint={colors.successTint}
+              ink={colors.success}
               onPress={() => {
                 setOwnName('');
                 setSheet('own');
               }}
             />
-            <MethodTile icon={Bookmark} title="Saved meals" onPress={() => setSheet('saved')} />
+            <MethodTile icon={Bookmark} name="Saved meals" label={'Saved\nmeals'} tint={colors.warningTint} ink={colors.warning} onPress={() => setSheet('saved')} />
           </View>
           <Text style={styles.tips}>
             Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.
           </Text>
-        </View>
+        </Step>
 
         <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />
 
-        <View style={styles.group}>
-          <Text accessibilityRole="header" style={styles.heading}>
-            Review
-          </Text>
+        <Step number={3} title="Review and save" state={steps.review} cue={STEP_CUES.review}>
           <View style={styles.review}>
             {items.length === 0 ? <Text style={styles.empty}>No foods yet.</Text> : null}
             {items.map((item, index) => (
@@ -292,7 +295,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
               </View>
             ))}
           </View>
-        </View>
+        </Step>
       </ScrollView>
 
       {/* Fixed below the list, so the total and Save stay in reach however many foods are added. Every
@@ -521,26 +524,114 @@ function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[])
   return { message: `${matches.length} foods are already in this meal: ${names}. Add the amounts to them?${passing}`, canAdd: true };
 }
 
-function MethodTile({ icon: Icon, title, onPress }: { icon: LucideIcon; title: string; onPress(): void }) {
+type StepState = 'now' | 'done' | 'later';
+
+/** What to tap, with the step to do now (D-58). */
+export const STEP_CUES = {
+  meal: 'Start here: tap your meal',
+  mealToSave: 'Choose the meal to save',
+  food: 'Next: tap how to add your food',
+  review: 'Last: check your foods, then Save meal',
+} as const;
+
+/**
+ * A step of logging a meal (D-58): numbered, the number on caramel for the one to do now, with a line
+ * saying what to tap (above its content, or below it with cueBelow); a done one with a green tick.
+ * No frame (the owner, 2026-11-06). Every step can still be used whatever its state.
+ */
+function Step({
+  number,
+  title,
+  state,
+  cue,
+  cueBelow = false,
+  children,
+}: {
+  number: number;
+  title: string;
+  state: StepState;
+  cue: string;
+  cueBelow?: boolean;
+  children: ReactNode;
+}) {
   const styles = useStyles();
   const { colors } = useTheme();
+  const now = state === 'now';
+  const done = state === 'done';
+  const cueLine = now ? (
+    <View accessibilityLiveRegion="polite" style={styles.cue}>
+      {cueBelow ? <ChevronUp size={18} strokeWidth={2.25} color={colors.accent} /> : <ArrowDown size={18} strokeWidth={2.25} color={colors.accent} />}
+      <Text style={styles.cueText}>{cue}</Text>
+    </View>
+  ) : null;
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.method, pressed && styles.pressed]}>
-      <Icon size={22} color={colors.accent} />
-      <Text style={styles.methodText}>{title}</Text>
+    <View testID={`step-${number}`} style={styles.step}>
+      <View style={styles.stepHead}>
+        <View
+          accessible
+          accessibilityLabel={done ? `Step ${number}, done` : `Step ${number}`}
+          style={[styles.badge, now && styles.badgeNow, done && styles.badgeDone]}
+        >
+          {done ? <Check size={14} strokeWidth={3} color={colors.onPrimary} /> : <Text style={[styles.badgeText, now && styles.badgeTextNow]}>{number}</Text>}
+        </View>
+        <Text accessibilityRole="header" style={[styles.stepTitle, now && styles.stepTitleNow]}>
+          {title}
+        </Text>
+      </View>
+      {cueBelow ? null : cueLine}
+      {children}
+      {cueBelow ? cueLine : null}
+    </View>
+  );
+}
+
+/** A way to add food (D-58): its icon on its own tint, its name in two short lines. */
+function MethodTile({
+  icon: Icon,
+  name,
+  label,
+  tint,
+  ink,
+  onPress,
+}: {
+  icon: LucideIcon;
+  name: string;
+  label: string;
+  tint: string;
+  ink: string;
+  onPress(): void;
+}) {
+  const styles = useStyles();
+  // Named by its two lines ("Search foods"), or in full when they are shorter than its name ("Own
+  // food" is read as "Enter your own food"). Not labelled otherwise: Search foods' box has its name.
+  const shown = label.replace(/\s+/g, ' ');
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={shown === name ? undefined : name}
+      onPress={onPress}
+      style={({ pressed }) => [styles.method, pressed && styles.pressed]}
+    >
+      <View style={[styles.methodIcon, { backgroundColor: tint }]}>
+        <Icon size={24} color={ink} />
+      </View>
+      <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7} style={styles.methodText}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 // Spacing as on Home: 24 between groups, 12 within one.
-// The redesign's 3.5 (locked by the owner, 2026-11-03): sections under condensed labels, 22 apart; the
-// date a raised chip; the ways to add food four tiles with their icons; the foods ruled on a card;
-// the total in condensed figures over Save meal.
+// The redesign's 3.5 (locked by the owner, 2026-11-03), in steps since D-58 ("3.5 Log meal in steps",
+// locked 2026-11-06, its frame removed the same day): the date a raised chip; three numbered steps,
+// 22 apart, the one to do now saying what to tap; the meals and the ways to add food four tiles each
+// in one row; the AI box between them; the foods ruled on a card; the total in condensed figures over
+// Save meal.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 22 },
   missing: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
-  group: { gap: 10 },
   date: TYPE.metric,
   chip: {
     alignSelf: 'flex-start',
@@ -555,26 +646,36 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceRaised,
   },
   chipText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1 },
-  heading: { ...TYPE.label, color: c.inkMuted },
+  step: { gap: 10 },
+  stepHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge: { width: 24, height: 24, borderRadius: 4, borderWidth: 1.5, borderColor: c.inkSubtle, alignItems: 'center', justifyContent: 'center' },
+  badgeNow: { borderColor: c.primary, backgroundColor: c.primary },
+  badgeDone: { borderColor: c.success, backgroundColor: c.success },
+  badgeText: { ...TYPE.buttonSecondary, fontSize: 15, lineHeight: 18, letterSpacing: 0, color: c.inkMuted },
+  badgeTextNow: { color: c.onPrimary },
+  stepTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, color: c.inkMuted },
+  stepTitleNow: { color: c.ink },
+  cue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cueText: { ...TYPE.link, flexShrink: 1, letterSpacing: 0.5, color: c.accent },
   ai: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.accentTint },
   aiWords: { flex: 1, gap: 2 },
   aiTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },
   aiText: TYPE.small,
-  methods: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  methods: { flexDirection: 'row', gap: 6 },
   method: {
-    flexGrow: 1,
-    flexBasis: '40%',
-    minHeight: 76,
-    justifyContent: 'center',
+    flex: 1,
+    minHeight: 100,
+    alignItems: 'center',
     gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: c.border,
     backgroundColor: c.surface,
   },
-  methodText: { ...TYPE.buttonSecondary, fontSize: 16, lineHeight: 18, letterSpacing: 0.5 },
+  methodIcon: { width: 44, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  methodText: { ...TYPE.buttonSecondary, fontSize: 14, lineHeight: 16, letterSpacing: 0.3, textAlign: 'center' },
   pressed: { opacity: 0.6 },
   tips: { ...TYPE.small, color: c.inkMuted },
   hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },

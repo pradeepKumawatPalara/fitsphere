@@ -40,12 +40,16 @@ export type ThemeColors = {
   protein: string;
   carbs: string;
   fat: string;
+  /** A quiet fill of `fat`'s blue-grey: an icon tile (Log meal's Scan barcode, D-58). */
+  fatTint: string;
   fiber: string;
   /** Done, a target met, a logged day. */
   success: string;
   successTint: string;
   /** Over a target (Q-022): gold, never red. */
   warning: string;
+  /** A quiet fill of `warning`'s gold: an icon tile (Log meal's Saved meals, D-58). */
+  warningTint: string;
   /** Errors and actions that delete. */
   danger: string;
   dangerTint: string;
@@ -78,10 +82,12 @@ export const LIGHT_COLORS: ThemeColors = {
   protein: '#7D5434',
   carbs: '#A88B74',
   fat: '#3D4D55',
+  fatTint: 'rgba(61,77,85,0.10)',
   fiber: '#6F8D9B',
   success: '#3F7A5C',
   successTint: 'rgba(63,122,92,0.10)',
   warning: '#96650F',
+  warningTint: 'rgba(150,101,15,0.10)',
   danger: '#B0463A',
   dangerTint: 'rgba(176,70,58,0.08)',
   focus: '#11212D',
@@ -109,10 +115,12 @@ export const DARK_COLORS: ThemeColors = {
   protein: '#C99A73',
   carbs: '#E3D5CC',
   fat: '#8FA9B5',
+  fatTint: 'rgba(143,169,181,0.14)',
   fiber: '#6D8592',
   success: '#7FB89A',
   successTint: 'rgba(127,184,154,0.14)',
   warning: '#E8C37C',
+  warningTint: 'rgba(232,195,124,0.14)',
   danger: '#E5806F',
   dangerTint: 'rgba(229,128,111,0.12)',
   focus: '#E3D5CC',

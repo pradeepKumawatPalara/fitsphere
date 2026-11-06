@@ -40,10 +40,12 @@ Theme follows the phone setting (System) by default; Dark is the hero theme for 
 | `protein` | = accent | = accent | Protein |
 | `carbs` | `#E3D5CC` | `#A88B74` | Carbs |
 | `fat` | `#8FA9B5` | `#3D4D55` | Fat |
+| `fatTint` | `rgba(143,169,181,.14)` | `rgba(61,77,85,.10)` | Icon tile (Log meal's Scan barcode, D-58) |
 | `fiber` | `#6D8592` | `#6F8D9B` | Fiber |
 | `success` | `#7FB89A` | `#3F7A5C` | Done states, password rules met |
 | `successTint` | `rgba(127,184,154,.14)` | `rgba(63,122,92,.10)` | Success banners |
 | `warning` | `#E8C37C` | `#96650F` | Over target |
+| `warningTint` | `rgba(232,195,124,.14)` | `rgba(150,101,15,.10)` | Icon tile (Log meal's Saved meals, D-58) |
 | `danger` | `#E5806F` | `#B0463A` | Errors, destructive |
 | `dangerTint` | `rgba(229,128,111,.12)` | `rgba(176,70,58,.08)` | Error banners |
 | `focus` | `#E3D5CC` | `#11212D` | 2 px focus ring |
