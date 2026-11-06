@@ -1581,10 +1581,12 @@ checksum), and the configuration template was left as it is.*
 - Answer: while something is typed, a cross at the end of the search box clears the search and its
   results. The results follow the search as each letter is typed or erased; the app already did
   this, and a test now covers it.
-- The microphone asked for in the same message waits for the owner's answer: FitSphere's own
-  microphone may use only the phone's on-device speech recognition (ADR-0005, D-18), which needs a
-  new module and a new development build.
-- Doc changes: REQ-LOG-007. Phone app only: no server change, no migration, no new build.
+- The microphone asked for in the same message is **on hold** (owner, 2026-11-06: "For now keep on
+  hold the mic I will let you later to implement"); backlog E-28. FitSphere's own microphone may use
+  only the phone's on-device speech recognition (ADR-0005, D-18), which needs a new module and a new
+  development build.
+- Doc changes: REQ-LOG-007; backlog E-28. Phone app only: no server change, no migration, no new
+  build.
 
 ---
 
