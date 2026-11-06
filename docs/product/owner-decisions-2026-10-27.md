@@ -1482,8 +1482,14 @@ checksum), and the configuration template was left as it is.*
   - **Approved (owner, 2026-11-06, "now dumped this"):** 25 more `llm` rows from the owner's fourth
     file of 74 (masalas, oils, tea, coffee, sharbats, drink mixes and malt drinks). The other 49 were
     left out: 35 already in the sheet (7 of them under another code, such as MDH Kitchen King Masala
-    for MDH Kitchen King), 14 already among Open Food Facts' packaged products. The sheet now holds
-    525 brand labels: 23 unflagged, 188 `scrap`, 314 `llm`.
+    for MDH Kitchen King), 14 already among Open Food Facts' packaged products.
+  - **Approved (owner, 2026-11-06, "Dumped it now"):** from the owner's fifth file of 19, read from
+    the brands' own websites (not AI estimates), 3 new rows flagged `scrap` as D-52's web-read rows:
+    Bikano Gol Matthi and Chatak Masala Chips, Haldiram's Soan Papdi Premium. The other 16 were left
+    out: 11 already among Open Food Facts' packaged products, and 5 already in the sheet as `llm`
+    estimates (Bikano Mini Samosa, Gulab Jamun and Rasgulla; Nilon's Mixed and Lime Pickle), whose
+    official values wait for the owner's word. The sheet now holds 528 brand labels: 23 unflagged,
+    191 `scrap`, 314 `llm`.
   - **Shown like the other brand labels** (the owner's choice, offered against marking them
     "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
     them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates

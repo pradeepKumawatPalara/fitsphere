@@ -476,7 +476,8 @@ product or a file the owner made with another AI tool, and approved by the owner
   owner makes with another AI tool. Never a model's memory, nutrition apps or blogs. One row, Catch
   Chat Masala, takes its values from Open Food Facts, at the owner's word. A product with no
   readable values is not added.
-- The 187 rows approved on 2026-11-06 (D-52) carry the flag `scrap`; the first 23 have none.
+- The rows read from the web and approved on 2026-11-06 (D-52, 191 by the end of that day) carry
+  the flag `scrap`; the first 23 have none.
 - AI estimates (D-53, amending D-52): a row may hold an AI tool's estimate of the product's values
   from its general knowledge, not read from any label, once the owner approves it; it is flagged
   `llm`, has no page and keeps the tool's note. 314 such rows were approved on 2026-11-06 (56 bread
