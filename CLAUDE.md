@@ -35,9 +35,10 @@ quantity and can be saved to My foods. Migration `0011_more_foods.sql`, sync cha
 from USDA's download (kept outside the repository). **On `fitsphere-dev`: migration 0011 before the
 updated API, then `foods:import`; only when the owner says so.**
 
-**AI-estimated brand labels — built on branch `feat/llm-brand-labels` (D-53, 2026-11-06).** 56 bread
-and biscuit rows from the owner's file of an AI tool's estimates (not read from any label), approved
-by the owner; flag `llm`, no page; the file's 42 products already in the database left out. Shown
+**AI-estimated brand labels — built on branch `feat/llm-brand-labels` (D-53, 2026-11-06).** 277 rows
+from the owner's two files of an AI tool's estimates (not read from any label), approved by the owner;
+flag `llm`, no page; plus one shop-listing row flagged `scrap`; the files' 189 products already in
+the database left out. The sheet holds 488 brand labels. Shown
 like the other brand labels (the owner's choice; risk R-012). Migration `0019_food_flag_llm.sql`.
 **On `fitsphere-dev`: migrations 0018 and 0019 before the updated API, then `foods:import`; only
 when the owner says so.**
