@@ -411,6 +411,65 @@ describe('D-48 packaged foods sold in India', () => {
   });
 });
 
+describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
+  // A synthetic home-style food, made-up values: its name does not say "bread"; its item does.
+  const HOME_TOAST: Food = {
+    source: 'home',
+    code: 'home-test-butter-toast',
+    name: 'Test butter toast',
+    foodGroup: 'Bread',
+    aliases: ['bread', 'test makhan toast'],
+    proteinG: 8,
+    fibreG: 2,
+    fatG: 17,
+    carbsG: 45,
+    kcal: 365,
+    kcalEstimated: false,
+    measures: [],
+    portions: [{ label: '2 slices', grams: 56 }],
+  };
+  const IFCT_BREAD: Food = { ...FOODS[0]!, code: 'A099', name: 'Bread, white (test)' };
+  const PLAIN_BREAD: PackagedFood = { ...PACKAGED_BREAD, barcode: '96385074', name: 'Bread', brand: 'Other Bakers' };
+
+  async function withHomeToast(db: SqlDb, server: FakeServer) {
+    const foods = [...FOODS, IFCT_BREAD, LABEL_BREAD, HOME_TOAST];
+    server.state.foods = foods;
+    server.state.packaged = [PACKAGED_BREAD, PLAIN_BREAD];
+    await replaceFoods(db, server.state.foodsVersion, foods, [], [PACKAGED_BREAD, PLAIN_BREAD]);
+    await saveEntry(db, 'myFood', { changeId: 'c-my-bread', data: { ...MY_BREAD, savedAt: NOW.toISOString() } });
+  }
+
+  it('lists them right after an exact match, before My foods, untagged, found by their item', async () => {
+    await render(withHomeToast);
+    await search('bread');
+
+    const rows = await screen.findAllByRole('button', { name: /kcal per/ });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Bread, Other Bakers, packaged, 250 kcal per 100 g',
+      'Test butter toast, 365 kcal per 100 g',
+      'Peanut butter bread, my food, 180 kcal per slice',
+      'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+      'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      'Bread, white (test), 320 kcal per 100 g',
+    ]);
+    await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByText(/^Home-style foods \(a bread slice, butter toast and the like\): typical values for a home recipe/)).toBeOnTheScreen();
+  });
+
+  it('opens on its serving, and is added by it', async () => {
+    await render(withHomeToast);
+    await search('makhan toast');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test butter toast, 365 kcal per 100 g' }));
+    expect(screen.getByLabelText('Measure: 2 slices (56 g)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Quantity: 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 204 kcal')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByLabelText('Test butter toast: 1 × 2 slices (56 g), 204 kcal, 4.5 g protein')).toBeOnTheScreen();
+  });
+});
+
 describe('D-46 INDB’s Indian recipes', () => {
   it('a recipe opens on its serving, counted in halves, its values estimated', async () => {
     await render();

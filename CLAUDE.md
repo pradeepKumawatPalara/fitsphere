@@ -45,6 +45,13 @@ like the other brand labels (the owner's choice; risk R-012). Migration `0019_fo
 **On `fitsphere-dev`: migrations 0018 and 0019 applied and `foods:import` run (2026-11-06); after
 this branch, `foods:import` again; only when the owner says so.**
 
+**Home-style foods — built on branch `feat/home-foods` (D-59, 2026-11-06).** The everyday forms of
+daily foods (a bread slice, butter toast, bread omelette) as source `home`, from the owner's files of
+an AI tool's estimates, one food item at a time, in `docs/data/home-foods-sheet.csv` (flag `llm`);
+92 so far (bread, roti, naan, kulcha and paratha). Listed in Search foods right after an exact match, untagged; logged in grams
+or by their serving. Migration `0020_home_foods.sql`, risk R-013, Legal L-18. **On `fitsphere-dev`:
+migration 0020 before the updated API, then `foods:import`; only when the owner says so.**
+
 **Search order — built on branch `fix/search-order` (D-54, 2026-11-06), on top of
 `feat/llm-brand-labels`.** Search foods: an exact match first (D-51), then My foods, brand labels,
 packaged foods, INDB, then dishes and IFCT. Phone app only; no new build. Also on this branch (D-55):

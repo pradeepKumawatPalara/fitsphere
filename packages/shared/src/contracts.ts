@@ -464,7 +464,7 @@ export const MEAL_ITEM_MEASURES_MAX = 10;
 /** The most one item can hold, whatever its amount. */
 export const MEAL_ITEM_KCAL_MAX = 20_000;
 export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
-export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'brand_label', 'dish', 'barcode', 'own'] as const;
+export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'brand_label', 'home', 'dish', 'barcode', 'own'] as const;
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
 /** The servings of a USDA or INDB food, in halves, as household units (more-foods plan; D-46). */
 export const MEAL_ITEM_SERVINGS_MAX = 10;
@@ -547,6 +547,8 @@ const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
   indb: ['g', 'serving'],
   // A brand label in grams or its label's serving (D-49).
   brand_label: ['g', 'serving'],
+  // A home-style food in grams or its serving (D-59).
+  home: ['g', 'serving'],
   dish: ['portion'],
   // A packaged food by its barcode, also in the serving its label gives in grams (D-48).
   barcode: ['g', 'serving'],
@@ -959,11 +961,11 @@ export const INDB_ACKNOWLEDGEMENT =
   'Vijayakumar, A., Dubasi, H. B., Awasthi, A. and Jaacks, L. M. (2024). Development of an Indian Food Composition Database. Current Developments in Nutrition, 8(7), 103790. Indian Nutrient Databank (INDB): github.com/lindsayjaacks/Indian-Nutrient-Databank-INDB-.';
 
 /**
- * The food list's sources: Indian data only (D-47), and since D-49 brands' own labels approved by the
- * owner. USDA's FNDDS foods are archived on the server, not served; a meal logged with one keeps it
- * (MEAL_ITEM_SOURCES).
+ * The food list's sources: Indian data only (D-47), since D-49 brands' own labels approved by the
+ * owner, and since D-59 home-style forms of daily foods (a bread slice, butter toast). USDA's FNDDS
+ * foods are archived on the server, not served; a meal logged with one keeps it (MEAL_ITEM_SOURCES).
  */
-export const FOOD_SOURCES = ['ifct2017', 'indb', 'brand_label'] as const;
+export const FOOD_SOURCES = ['ifct2017', 'indb', 'brand_label', 'home'] as const;
 export type FoodSource = (typeof FOOD_SOURCES)[number];
 
 /** One food of the list, per 100 g edible portion. */
@@ -975,7 +977,7 @@ export const foodSchema = z.object({
   /** Other spellings to search by. */
   aliases: z.array(z.string()),
   proteinG: z.number(),
-  /** Null when the label gives none (a brand label, D-49). */
+  /** Null when the label gives none (a brand label, D-49), or a home-style food gives none (D-59). */
   fibreG: z.number().nullable(),
   fatG: z.number(),
   carbsG: z.number(),

@@ -1179,8 +1179,8 @@ export async function searchPackaged(db: SqlDb, query: string, limit = 30): Prom
   return onePerProduct(foods).slice(0, limit);
 }
 
-/** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, then brand labels (D-46, D-47, D-49). */
-const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_label'];
+/** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, brand labels, then home-style foods (D-46, D-47, D-49, D-59). */
+const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_label', 'home'];
 
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in

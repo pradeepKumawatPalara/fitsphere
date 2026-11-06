@@ -4,6 +4,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../../src/foods/brandLabels.ts';
+import { HOME_FOOD_SOURCE, readHomeFoodsSheet } from '../../src/foods/homeFoods.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
 import { INDB_GROUP, INDB_SOURCE, readIndbCsv } from '../../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
@@ -271,6 +272,63 @@ describe('D-47 USDA foods: kept in their archive by foods:import, not in the foo
     } finally {
       await importUsdaArchive(client, [], []);
     }
+  });
+});
+
+describe('D-59 home-style foods: foods:import and GET /v1/foods', () => {
+  const homeFlags = async () =>
+    (await client.query<{ flag: string | null; n: number }>(
+      `select flag, count(*)::int as n from app.foods where source = 'home' group by flag order by flag nulls first`,
+    )).rows;
+
+  it('imports the approved rows of the committed sheet whole, each with its serving, flagged llm', async () => {
+    const home = readHomeFoodsSheet(readFileSync(new URL('../../../../docs/data/home-foods-sheet.csv', import.meta.url), 'utf8'));
+    try {
+      expect((await importFoods(client, home.foods, HOME_FOOD_SOURCE)).total).toBe(92);
+      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toBe(92);
+      expect(await homeFlags()).toEqual([{ flag: 'llm', n: 92 }]);
+    } finally {
+      await importFoods(client, [], HOME_FOOD_SOURCE);
+    }
+  });
+
+  it('serves a home-style food with its item and search words as aliases and its serving, never its flag', async () => {
+    const user = await api.signUpWithAccount();
+    const home = readHomeFoodsSheet(readFileSync(new URL('../../../../docs/data/home-foods-sheet.csv', import.meta.url), 'utf8'));
+    await importFoods(client, home.foods, HOME_FOOD_SOURCE);
+    await importPortions(client, HOME_FOOD_SOURCE, home.portions);
+    try {
+      const response = await getFoods(user.token);
+      const body: FoodsResponse = response.json();
+
+      expect(body.items?.find((food) => food.code === 'home-bread-butter-toast')).toEqual({
+        source: 'home',
+        code: 'home-bread-butter-toast',
+        name: 'Butter toast (Makhan toast)',
+        foodGroup: 'Bread',
+        aliases: ['bread', 'makhan toast', 'buttered toast', 'butter toast', 'toast butter'],
+        proteinG: 7.8,
+        fibreG: 2.1,
+        fatG: 17.3,
+        carbsG: 44.6,
+        kcal: 365.2,
+        kcalEstimated: false,
+        measures: [],
+        portions: [{ label: '2 slices', grams: 56 }],
+      });
+      expect(response.body).not.toContain('llm');
+    } finally {
+      await importFoods(client, [], HOME_FOOD_SOURCE);
+    }
+  });
+
+  it('refuses any other source in the food list', async () => {
+    await expect(
+      client.query(
+        `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated, needs_review, hidden, aliases)
+         values ('other', 'x', 'x', 'x', 1, 1, 1, 1, 17, 'published', false, false, false, '{}')`,
+      ),
+    ).rejects.toThrow(/foods_source_check/);
   });
 });
 

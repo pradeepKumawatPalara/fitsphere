@@ -494,6 +494,24 @@ product or a file the owner made with another AI tool, and approved by the owner
 - Licence: the pages are the brands' own or shops', "all rights reserved"; the values are facts
   printed on the packs. Accepted risk R-010; Legal is asked (Q-049, L-16).
 
+## Home-style foods: FitSphere's home-foods sheet (D-59)
+- **What:** the everyday forms of daily foods as eaten at home, not any brand's product: a white
+  bread slice, butter toast, bread jam, bread omelette. Each row gives typical values per 100 g
+  (per 100 ml for a drink) and one serving with its grams (a slice, two slices, a plate), the food's
+  item ("bread") and its other names as search words.
+- **Where the values come from:** the owner's files made with another AI tool, one food item at a
+  time: each row is the tool's estimate from its general knowledge, with the recipe it assumed in the
+  note (e.g. "2 slices white bread 50 g toasted, butter 10 g"). Not measured, not read from any
+  label. Rows are flagged `llm` on the server only (D-53) and approved by the owner.
+- **The sheet:** `docs/data/home-foods-sheet.csv`. Approved on 2026-11-06: 31 bread forms, 30
+  roti forms and 31 naan, kulcha and paratha forms, 92 in all; a form already in the list (Shahi
+  tukda, INDB's Shahi tukre) is left out.
+- **In the app:** listed right after an exact match, untagged; the sources sheet behind Search
+  foods' i says they are typical values for a home recipe. Accepted risk R-013.
+- `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming
+  the line; only approved rows reach `app.foods` (source `home`) and their servings
+  `app.food_portions`. Never approve a row without the owner's word.
+
 ## Open Food Facts: packaged foods sold in India (D-48)
 - **What:** Open Food Facts' products whose countries include India, with the values their labels
   give per 100 g (per 100 ml for a drink, taken as 100 g) and, where given in grams, one serving.

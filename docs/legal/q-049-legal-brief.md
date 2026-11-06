@@ -273,7 +273,18 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   credit enough, and in the right place? Should the authors be asked (the site gives
   compendiumpa@gmail.com)?
 
-### F. Anything else before real users
+### F. Home-style foods from an AI tool's estimates (D-59, accepted risk R-013)
+
+**L-18 Typical values estimated by an AI tool (MVP).**
+- Facts: since D-59 (2026-11-06) FitSphere lists home-style forms of daily foods (92 so far: bread,
+  roti, naan, kulcha and paratha forms, such as a slice, butter toast, a phulka, butter naan), with values another AI tool estimated from its
+  general knowledge for a typical home recipe, approved by the owner. They show untagged, before the
+  user's own foods, without "estimated"; the sources sheet behind Search foods' i says they are
+  typical values for a home recipe. They name no brand.
+- Questions: is that enough for users to know these values are estimates? Does a calorie app need
+  to say more where values are not measured or published?
+
+### G. Anything else before real users
 
 **L-14 What else is needed (MVP).**
 - Question: what else must be in place before the release? For example: the privacy notice

@@ -1618,6 +1618,38 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-59 Home-style foods: everyday forms of daily foods, from the owner's AI files
+- Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the food like Bread it only
+  shows the Bread but in the real it should show options like Bread, Bread slice, Bread toast, Bread
+  jam, Bread omelette"; then, sending the first file, "review and dump it"; on how they show, "later I
+  will remove the tag of Brand label, packaged, INDB"; on their place, "just after the exact match").
+- Answer:
+  - FitSphere's food list gets a new source, home-style foods (`home`): the everyday forms of daily
+    foods as eaten at home, not any brand's product (a white bread slice, butter toast, bread jam,
+    bread omelette). They come from the owner's files made with another AI tool, one food item at a
+    time, each row an estimate from the tool's general knowledge with its recipe in the note, kept in
+    `docs/data/home-foods-sheet.csv`, flagged `llm` on the server only (D-53).
+  - **Approved (owner, 2026-11-06, "review and dump it"):** 31 bread forms from the owner's file of
+    32; Shahi tukda was left out, already in the list as INDB's Shahi tukre.
+  - **Approved (owner, 2026-11-06, "now please dump these"):** 30 roti forms (phulka, ghee and
+    butter roti, tandoori, missi, rumali, bajra, jowar, ragi and fasting rotis, baati and others) and
+    31 naan, kulcha and paratha forms (butter, garlic and stuffed naans, kulchas, lachha, egg, sattu
+    and other parathas, sheermal, bakarkhani, taftan); none was in the list already. The file gave
+    the item as "naan, kulcha and paratha"; each row's item is set to naan, kulcha or paratha (the
+    Mughlai breads to naan), as an item is a search word. 92 home-style foods in all.
+  - In Search foods they come right after a food named exactly as the search (D-51), before My foods;
+    the rest keep D-54's order. Each is found by its item too ("bread" finds Butter toast).
+  - They carry no tag and no "estimated" (MVP default from the owner's answer: the tags are to go).
+    The sources sheet behind the i says they are typical values for a home recipe.
+  - A home-style food is logged in grams or by its serving (a slice, two slices, a plate), and opens
+    on its serving.
+- Doc changes: REQ-LOG-007; `food-list-sources.md`; the data model; `constraints-and-assumptions.md`
+  (R-013); the Legal brief (L-18); `CLAUDE.md`. Migration `0020_home_foods.sql`; no phone schema
+  change, no new build. On `fitsphere-dev`: migration 0020 before the updated API, then
+  `foods:import`, only when the owner says so.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
