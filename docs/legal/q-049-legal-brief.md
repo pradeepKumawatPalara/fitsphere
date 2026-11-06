@@ -181,7 +181,7 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   Amazon, BigBasket, Swiggy Instamart, Spencer's), mostly from the shop's photo of the pack's label,
   some from the shop's typed text; 51 from files the owner made with another AI tool; one (Catch Chat
   Masala) from Open Food Facts (ODbL, see L-13). They carry the server-only flag `scrap`.
-- Since D-53 (2026-11-06) 314 more rows (bread, biscuits and most other categories) hold an AI tool's estimates from its
+- Since D-53 (2026-11-06) 351 more rows (bread, biscuits and most other categories) hold an AI tool's estimates from its
   general knowledge, not read from any label, flagged `llm` on the server; the app shows them like
   the other brand labels, and its credit says the values are as printed on each product's label
   (R-012).

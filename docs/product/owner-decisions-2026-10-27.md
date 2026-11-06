@@ -1488,8 +1488,14 @@ checksum), and the configuration template was left as it is.*
     Bikano Gol Matthi and Chatak Masala Chips, Haldiram's Soan Papdi Premium. The other 16 were left
     out: 11 already among Open Food Facts' packaged products, and 5 already in the sheet as `llm`
     estimates (Bikano Mini Samosa, Gulab Jamun and Rasgulla; Nilon's Mixed and Lime Pickle), whose
-    official values wait for the owner's word. The sheet now holds 528 brand labels: 23 unflagged,
-    191 `scrap`, 314 `llm`.
+    official values wait for the owner's word.
+  - **Approved (owner, 2026-11-06, "Dumped this"):** from the owner's sixth file of 102 (namkeen,
+    sweets, pickles, chutneys and papad), 37 `llm` estimates and Nilon's Dhaniya Pudina Chutney,
+    read from Nilon's site, as `scrap`. The other 64 were left out: 62 already in the database (in
+    the sheet, or among Open Food Facts' packaged products; a general name such as "Haldiram's
+    Gajak" counts as the "Til Gajak" already there), and 2 Nilon's Standard pickles (mango, lemon)
+    with values from Nilon's site, held with the 5 above for the owner's word. The sheet now holds 566
+    brand labels: 23 unflagged, 192 `scrap`, 351 `llm`.
   - **Shown like the other brand labels** (the owner's choice, offered against marking them
     "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
     them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates
