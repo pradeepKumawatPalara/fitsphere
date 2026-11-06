@@ -1550,6 +1550,22 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-56 Search foods: a packaged product listed under several barcodes shows once
+- Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the Paneer there are a lot of
+  items of label Packaged Milky Mist. Why is that so duplicate item"; then "remove duplicates").
+- Answer: Open Food Facts keeps one product per barcode, so a food sold in several pack sizes, or
+  added twice, is in the packaged foods several times with the same values (269 of the 9,764, such as
+  Milky Mist Paneer 4 times and Horlicks Classic Malt 11 times). Search foods now shows such copies
+  once: the same brand, the same name (a name that repeats the brand counts as the same) and the
+  same values. The first copy stays, taking a copy's serving when it has none. Products whose name
+  or values differ stay apart. Every barcode stays on the phone and on the server, so any pack still
+  scans. Search reads up to four times more matches before keeping 30, so copies do not crowd out
+  other products.
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row). Phone app only:
+  no server change, no migration, no new build.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
