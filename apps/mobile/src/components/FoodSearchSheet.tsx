@@ -10,7 +10,7 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { FoodDetail, type FoodResult } from './FoodDetail';
-import { BRAND_LABEL_CREDIT, SOURCE_MARKS } from './foodSources';
+import { BRAND_LABEL_CREDIT, HOME_FOODS_CREDIT, SOURCE_MARKS } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { Sheet } from './Sheet';
@@ -25,7 +25,8 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // credits are shown with it.
 //
 // A food whose name is exactly what was typed comes first, wherever its source would list it; the
-// rest keep that order (D-51).
+// rest keep that order (D-51). Since D-59 the home-style forms of daily foods (a bread slice, butter
+// toast, bread omelette) come next, before My foods, untagged.
 //
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
@@ -95,8 +96,9 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
         if (!active) return;
         const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
         setResults(
-          // D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT.
+          // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT.
           exactFirst(query, [
+            ...listed('home'),
             ...mine.map((food): Result => ({ kind: 'mine', food })),
             ...listed('brand_label'),
             ...packaged.map((food): Result => ({ kind: 'packaged', food })),
@@ -253,6 +255,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
           <Text style={styles.source}>Food values: {IFCT_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked INDB: {INDB_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked Brand label: {BRAND_LABEL_CREDIT}</Text>
+          <Text style={styles.source}>Home-style foods (a bread slice, butter toast and the like): {HOME_FOODS_CREDIT}</Text>
           <Text style={styles.source}>Foods marked Packaged: {OFF_ATTRIBUTION}.</Text>
         </Sheet>
       ) : null}

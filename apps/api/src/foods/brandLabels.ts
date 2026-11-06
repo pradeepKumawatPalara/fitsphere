@@ -41,8 +41,8 @@ export const BRAND_LABELS_HEADER: readonly string[] = [
 ];
 
 /** Search words (D-55): letters, digits, spaces and ' & -, at most 60 characters each, at most 12 a row. */
-const SEARCH_WORD = /^[\p{L}\p{N}][\p{L}\p{N} '&-]{0,59}$/u;
-const SEARCH_WORDS_MAX = 12;
+export const SEARCH_WORD = /^[\p{L}\p{N}][\p{L}\p{N} '&-]{0,59}$/u;
+export const SEARCH_WORDS_MAX = 12;
 
 /** `proposed`: read from the brand's page, waiting for the owner's OK, not imported. `approved`: imported. */
 export const BRAND_LABEL_STATUSES = ['proposed', 'approved'] as const;
@@ -50,8 +50,8 @@ export const BRAND_LABEL_STATUSES = ['proposed', 'approved'] as const;
 /** Per 100 g, or per 100 ml for a drink, taken as 100 g. */
 export const BRAND_LABEL_BASES = ['100 g', '100 ml'] as const;
 
-const CODE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-const VALUE = /^\d{1,4}(\.\d{1,2})?$/;
+export const CODE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const VALUE = /^\d{1,4}(\.\d{1,2})?$/;
 
 export type BrandLabelsSheet = {
   /** The approved rows, as food-list items. */

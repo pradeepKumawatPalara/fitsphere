@@ -132,8 +132,10 @@ export function FoodDetail({
   const { colors } = useTheme();
   const measures = measuresOf(result);
   // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
-  // so its serving, not grams of the cooked dish, gives INDB's own figures.
-  const [measureIndex, setMeasureIndex] = useState(result.kind === 'food' && result.food.source === 'indb' && result.food.portions.length > 0 ? 1 : 0);
+  // so its serving, not grams of the cooked dish, gives INDB's own figures. A home-style food opens on
+  // its serving too, as it is eaten: a slice, two slices, a plate (D-59).
+  const servingFirst = result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home') && result.food.portions.length > 0;
+  const [measureIndex, setMeasureIndex] = useState(servingFirst ? 1 : 0);
   const [count, setCount] = useState(1);
   const [typed, setTyped] = useState(result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100');
   const [picking, setPicking] = useState(false);
