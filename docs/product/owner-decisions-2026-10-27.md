@@ -1474,7 +1474,12 @@ checksum), and the configuration template was left as it is.*
     juices, soft drinks, yogurt, soup and frozen peas): 221 estimates flagged `llm`, and Total Frozen
     Green Peas, read from a shop's typed text, flagged `scrap` (D-52). The other 147 were left out,
     checked by hand: 8 already among the brand labels and 139 among Open Food Facts' packaged
-    products. The sheet now holds 488 brand labels: 23 unflagged, 188 `scrap`, 277 `llm`.
+    products.
+  - **Approved (owner, 2026-11-06, "now dumped this"):** 12 more `llm` rows from the owner's third
+    file of 84 (ready-to-eat, frozen and bakery): Mother's Recipe and Kohinoor ready meals, Gits Shahi
+    Paneer, Sumeru Punjabi Samosa and Godrej Yummiez Aloo Tikki. The other 72 were left out: 54 already
+    in the sheet from the second file, 18 already among Open Food Facts' packaged products. The sheet
+    now holds 500 brand labels: 23 unflagged, 188 `scrap`, 289 `llm`.
   - **Shown like the other brand labels** (the owner's choice, offered against marking them
     "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
     them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates
