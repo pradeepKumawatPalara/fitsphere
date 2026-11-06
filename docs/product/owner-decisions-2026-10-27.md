@@ -1590,6 +1590,32 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-58 Log meal in steps: the meals and the ways to add food in one row each
+- Status: **Accepted** (owner, in chat, 2026-11-06: "on the Log Meal all 4 Meal KPI should be in one
+  line. When I select one it should clearly differentiable; same for the Add Food all 4 KPI should
+  be in one line, I should clearly differentiate each one; and when I select from the top Meal, as a
+  user I should understand myself where to click. First let me know the UI on the canvas"; the AI
+  box "in between both"; then "lock it" on the canvas's "3.5 Log meal in steps").
+- Answer (the redesign's 3.5, changed):
+  - Log meal shows three numbered steps: 1 Meal, 2 Add food, 3 Review and save. The step to do now
+    is framed in caramel with a line saying what to tap ("Start here: tap your meal"; "Next: tap
+    how to add your food"; "Last: check your foods, then Save meal"; with foods but no meal yet,
+    "Choose the meal to save"). A done step shows a green tick. Every step can still be used in any
+    order, as before; Save meal still needs a meal and a food.
+  - The four meals are always in one row, each a tile with its icon (sunrise, sun, cookie, moon);
+    the chosen one is filled in caramel with a tick. A name too long for its quarter, with the
+    phone's text made larger, shrinks to fit. Re-logging a saved meal keeps its two by two.
+  - The four ways to add food are in one row, each with its own icon on its own tint (caramel,
+    blue-grey, green, gold) and its name in two short lines ("Own food" is read out as "Enter your
+    own food").
+  - "AI meal reading is coming soon" stays between the meals and the ways to add food.
+- MVP default: the tints are the app's own colours (accent, fat, success, warning), as quiet
+  fills; two tokens are added for them, `fatTint` and `warningTint`.
+- Doc changes: `docs/design/design-system.md` (the two tints); `docs/plans/ui-redesign.md` (3.5).
+  Phone app only: no server change, no migration, no new build.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

@@ -1,9 +1,9 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
-import { Bookmark, Plus, Trash } from 'lucide-react-native';
+import { Bookmark, Check, Cookie, Moon, Plus, Sun, Sunrise, Trash, type LucideIcon } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
-import { Pressable, useWindowDimensions, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet, SheetHeading } from './Sheet';
 import { Field, Text, TextButton, useChoiceStyles } from './ui';
@@ -145,8 +145,8 @@ export function SaveMealSheet({
   );
 }
 
-/** "BREAKFAST", the longest meal, in the pills' condensed capitals: 4.29 em, measured from the font. */
-const LONGEST_SLOT_EM = 4.29;
+/** Each meal's icon on its tile in Log meal (D-58). */
+const MEAL_ICONS: Record<MealType, LucideIcon> = { breakfast: Sunrise, lunch: Sun, snack: Cookie, dinner: Moon };
 
 /**
  * "Already in this meal" (D-34): a food added again to the meal being built. "Add to existing" puts
@@ -195,21 +195,45 @@ export function SlotPicker({
 }) {
   const styles = useStyles();
   const pill = useChoiceStyles();
-  const { fontScale } = useWindowDimensions();
-  // The row's width, to lay the four out evenly: in one row when "BREAKFAST" fits a quarter of it
-  // (with the block's padding and edge), otherwise two by two. Each line is a row of its own: a
-  // wrapping row with percentage widths did not wrap on a narrow screen and ran off its side.
-  const [rowWidth, setRowWidth] = useState(0);
-  const oneRow = !twoByTwo && (rowWidth - 3 * 6) / 4 >= (15 * LONGEST_SLOT_EM + 9 * 0.5) * fontScale + 2 * 4 + 3;
-  const lines = oneRow ? [MEAL_TYPE_ORDER] : [MEAL_TYPE_ORDER.slice(0, 2), MEAL_TYPE_ORDER.slice(2)];
+  const { colors } = useTheme();
+  if (!twoByTwo) {
+    // Log meal (D-58): the four always in one row, each a tile with its icon, the chosen one filled in
+    // caramel with a tick. A name too long for its quarter, with large text, shrinks to fit.
+    return (
+      <View testID="slot-picker" style={styles.slotLines}>
+        <View testID="slot-line-0" style={styles.slotLine}>
+          {MEAL_TYPE_ORDER.map((slot) => {
+            const chosen = value === slot;
+            const Icon = MEAL_ICONS[slot];
+            return (
+              <Pressable
+                key={slot}
+                accessibilityRole="radio"
+                accessibilityLabel={MEAL_TYPE_LABELS[slot]}
+                accessibilityState={{ checked: chosen }}
+                onPress={() => onChange(slot)}
+                style={({ pressed }) => [styles.mealTile, chosen && styles.mealTileChosen, pressed && pill.pressed]}
+              >
+                <Icon size={22} strokeWidth={2} color={chosen ? colors.onPrimary : colors.accent} />
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.mealTileText, chosen && styles.mealTileTextChosen]}>
+                  {MEAL_TYPE_LABELS[slot]}
+                </Text>
+                {chosen ? (
+                  <View style={styles.tick}>
+                    <Check size={11} strokeWidth={3.5} color={colors.primary} />
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
   return (
-    <View
-      testID="slot-picker"
-      onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
-      style={twoByTwo ? styles.slotLinesTall : styles.slotLines}
-    >
-      {lines.map((line, index) => (
-        <View key={line.join()} testID={`slot-line-${index}`} style={twoByTwo ? styles.slotLineTall : styles.slotLine}>
+    <View testID="slot-picker" style={styles.slotLinesTall}>
+      {[MEAL_TYPE_ORDER.slice(0, 2), MEAL_TYPE_ORDER.slice(2)].map((line, index) => (
+        <View key={line.join()} testID={`slot-line-${index}`} style={styles.slotLineTall}>
           {line.map((slot) => (
             <Pressable
               key={slot}
@@ -217,9 +241,9 @@ export function SlotPicker({
               accessibilityLabel={MEAL_TYPE_LABELS[slot]}
               accessibilityState={{ checked: value === slot }}
               onPress={() => onChange(slot)}
-              style={({ pressed }) => [pill.choice, twoByTwo ? styles.slotTall : styles.slot, value === slot && pill.chosen, pressed && pill.pressed]}
+              style={({ pressed }) => [pill.choice, styles.slotTall, value === slot && pill.chosen, pressed && pill.pressed]}
             >
-              <Text numberOfLines={1} style={[pill.choiceText, !twoByTwo && styles.slotText, value === slot && pill.chosenText]}>
+              <Text numberOfLines={1} style={[pill.choiceText, value === slot && pill.chosenText]}>
                 {MEAL_TYPE_LABELS[slot]}
               </Text>
             </Pressable>
@@ -282,13 +306,37 @@ const useStyles = themedStyles((c) => ({
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   body: { fontSize: 16, lineHeight: 24 },
-  // The meals are choice blocks of one width, the chosen one filled. In Log meal (3.5) four across, 6
-  // apart, at 15 with little spacing so "BREAKFAST" fits a 390 phone; re-logging (3.2), two by two
-  // and taller.
+  // The meals in Log meal (D-58): four tiles of one width in one row, 6 apart, each with its icon over
+  // its name; the chosen one filled in caramel, a tick in its corner. Re-logging (3.2): choice
+  // blocks, two by two and taller.
   slotLines: { gap: 6 },
   slotLine: { flexDirection: 'row', gap: 6 },
-  slot: { flex: 1, paddingHorizontal: 4 },
-  slotText: { fontSize: 15, letterSpacing: 0.5 },
+  mealTile: {
+    flex: 1,
+    minHeight: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 2,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: c.border,
+    backgroundColor: c.surface,
+  },
+  mealTileChosen: { borderColor: c.primary, backgroundColor: c.primary },
+  mealTileText: { ...TYPE.buttonSecondary, fontSize: 14, lineHeight: 16, letterSpacing: 0.3, color: c.ink },
+  mealTileTextChosen: { color: c.onPrimary },
+  tick: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.onPrimary,
+  },
   slotLinesTall: { gap: 8 },
   slotLineTall: { flexDirection: 'row', gap: 8 },
   slotTall: { flex: 1, minHeight: 48, paddingHorizontal: 8 },

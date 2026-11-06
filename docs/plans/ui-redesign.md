@@ -87,7 +87,7 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 3.2 Meal actions and confirmations | Locked and built; with it a sheet can open with a tile over its title (SheetHeading), used by 2.6 too |
 | 3.3 Nutrition, Saved | Locked and built; a saved meal shows its name (an existing field) over its foods |
 | 3.4 Nutrition, Diet plan | Locked and built |
-| 3.5 Log meal | Locked and built; with it every pushed screen's header title is in condensed capitals. The meal tags are hidden (D-40, 2026-11-04) |
+| 3.5 Log meal | Locked and built; with it every pushed screen's header title is in condensed capitals. The meal tags are hidden (D-40, 2026-11-04). In steps since D-58 (2026-11-06, "3.5 Log meal in steps" locked on the canvas): numbered steps, the one to do now framed with what to tap; the meals and the ways to add food four tiles each in one row |
 | 3.6 Food search and portions | Locked and built; the IFCT food-values credit stays under the results; with it the actions sheet (also used by the meal photo) took its new look. Since D-36, a food with household units offers Grams and its units as choice blocks above the amount (`household-units.md`). Since D-39 (locked 2026-11-04), My foods and USDA foods with their tags, USDA's servings and credit (`more-foods.md`). Since D-44 (2026-11-04, locked) the search fills the screen, with the credits behind an i. Since D-45 (2026-11-04) a food opens its own page, 3.6b |
 | 3.6b A food's page | Locked and built (D-45, 2026-11-04, after the owner's HealthifyMe example): Quantity and Measure side by side, a two-wheel picker, the macronutrients breakdown, Add at the foot; no photo for now |
 | 3.7 Barcode scan | Locked and built; with it an action can show an icon before its title |

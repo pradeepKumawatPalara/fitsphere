@@ -50,6 +50,55 @@ beforeEach(() => {
   mockRouter.push.mockClear();
 });
 
+describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 2026-11-06)', () => {
+  const cue = (text: string) => screen.queryByText(text);
+
+  it('frames the step to do now and says what to tap: the meal, then a way to add food, then Save', async () => {
+    await render();
+    expect(await screen.findByText('Start here: tap your meal')).toBeOnTheScreen();
+    expect(screen.getByTestId('step-1')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+    expect(screen.getByTestId('step-2')).toHaveStyle({ borderColor: 'transparent' });
+    expect(screen.getByLabelText('Step 1')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Breakfast' }));
+    expect(screen.getByLabelText('Step 1, done')).toBeOnTheScreen();
+    expect(cue('Start here: tap your meal')).toBeNull();
+    expect(cue('Next: tap how to add your food')).toBeOnTheScreen();
+    expect(screen.getByTestId('step-2')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    expect(screen.getByLabelText('Step 2, done')).toBeOnTheScreen();
+    expect(cue('Next: tap how to add your food')).toBeNull();
+    expect(cue('Last: check your foods, then Save meal')).toBeOnTheScreen();
+    expect(screen.getByTestId('step-3')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+  });
+
+  it('foods added before the meal: the meal step asks for the meal to save', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    expect(screen.getByLabelText('Step 2, done')).toBeOnTheScreen();
+    expect(cue('Choose the meal to save')).toBeOnTheScreen();
+    expect(screen.getByTestId('step-1')).toHaveStyle({ borderColor: LIGHT_COLORS.accent });
+  });
+
+  it('opened for a meal (from its + on Home), starts at adding food', async () => {
+    await render({ day: TODAY, slot: 'lunch' });
+    expect(await screen.findByText('Next: tap how to add your food')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Step 1, done')).toBeOnTheScreen();
+  });
+
+  it('the four ways to add food are in one row, each with its own tint, named in full', async () => {
+    await render();
+    const row = await screen.findByTestId('add-food-ways');
+    expect(row).toHaveStyle({ flexDirection: 'row' });
+    expect(row).not.toHaveStyle({ flexWrap: 'wrap' });
+    for (const name of ['Search foods', 'Scan barcode', 'Enter your own food', 'Saved meals']) {
+      expect(within(row).getByRole('button', { name })).toBeOnTheScreen();
+    }
+    expect(within(row).getByText(/^Own\s+food$/)).toBeOnTheScreen();
+  });
+});
+
 describe('REQ-LOG-001 and REQ-LOG-002 the date', () => {
   it('Q-011 opens on the date it was given, and the slot it was given (REQ-NUT-003)', async () => {
     await render({ day: '2026-10-26', slot: 'dinner' });
