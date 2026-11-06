@@ -53,10 +53,11 @@ export const ALIASES: Readonly<Record<string, readonly string[]>> = {
 export type KcalSource = 'published' | 'estimated_fat_factor';
 
 /**
- * A mark kept on the server only (D-52): `scrap` on the brand labels collected from the web and
- * approved by the owner on 2026-11-06. Never sent to the phone; nothing reads it yet.
+ * A mark kept on the server only: `scrap` on the brand labels collected from the web and approved by
+ * the owner on 2026-11-06 (D-52); `llm` on those whose values an AI tool estimated from its general
+ * knowledge, not read from any label (D-53). Never sent to the phone; nothing reads it yet.
  */
-export const FOOD_FLAGS = ['scrap'] as const;
+export const FOOD_FLAGS = ['scrap', 'llm'] as const;
 export type FoodFlag = (typeof FOOD_FLAGS)[number];
 
 export type ImportedFood = {

@@ -284,13 +284,14 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
       `select flag, count(*)::int as n from app.foods where source = 'brand_label' group by flag order by flag nulls first`,
     )).rows;
 
-  it('imports the approved rows of the committed sheet whole, with their servings and their flags (D-52)', async () => {
+  it('imports the approved rows of the committed sheet whole, with their servings and their flags (D-52, D-53)', async () => {
     const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
     try {
-      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(210);
+      expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(266);
       expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(114);
       expect(await flags()).toEqual([
         { flag: null, n: 23 },
+        { flag: 'llm', n: 56 },
         { flag: 'scrap', n: 187 },
       ]);
     } finally {
@@ -343,7 +344,22 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
     }
   });
 
-  it('takes no flag but scrap (D-52)', async () => {
+  it('keeps an llm flag on the server too, never sent to the phone (D-53)', async () => {
+    const user = await api.signUpWithAccount();
+    const labels = readBrandLabelsSheet([SHEET_HEADER, `${BUTTER.replace('https://example.com/butter', '')}llm`].join('\n'));
+    await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
+    try {
+      expect(await flags()).toEqual([{ flag: 'llm', n: 1 }]);
+      const body: FoodsResponse = (await getFoods(user.token)).json();
+
+      expect(body.items?.find((food) => food.code === 'test-dairy-butter')).not.toHaveProperty('flag');
+      expect(JSON.stringify(body)).not.toContain('llm');
+    } finally {
+      await importFoods(client, [], BRAND_LABEL_SOURCE);
+    }
+  });
+
+  it('takes no flag but scrap or llm (D-52, D-53)', async () => {
     await expect(
       client.query(
         `insert into app.foods (source, code, name, food_group, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_source, estimated, needs_review, hidden, flag)
