@@ -479,8 +479,9 @@ product or a file the owner made with another AI tool, and approved by the owner
 - The 187 rows approved on 2026-11-06 (D-52) carry the flag `scrap`; the first 23 have none.
 - AI estimates (D-53, amending D-52): a row may hold an AI tool's estimate of the product's values
   from its general knowledge, not read from any label, once the owner approves it; it is flagged
-  `llm`, has no page and keeps the tool's note. 289 such rows were approved on 2026-11-06 (56 bread
-  and biscuits, then 221 across the other categories, then 12 ready meals and frozen foods); they show in the app like the other brand
+  `llm`, has no page and keeps the tool's note. 314 such rows were approved on 2026-11-06 (56 bread
+  and biscuits, then 221 across the other categories, then 12 ready meals and frozen foods, then 25
+  masalas, oils and drinks); they show in the app like the other brand
   labels (R-012). Products already in the database, as brand labels or Open Food Facts' packaged
   products, were left out.
 - `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming

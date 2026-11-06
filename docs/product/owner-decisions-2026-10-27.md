@@ -1478,8 +1478,12 @@ checksum), and the configuration template was left as it is.*
   - **Approved (owner, 2026-11-06, "now dumped this"):** 12 more `llm` rows from the owner's third
     file of 84 (ready-to-eat, frozen and bakery): Mother's Recipe and Kohinoor ready meals, Gits Shahi
     Paneer, Sumeru Punjabi Samosa and Godrej Yummiez Aloo Tikki. The other 72 were left out: 54 already
-    in the sheet from the second file, 18 already among Open Food Facts' packaged products. The sheet
-    now holds 500 brand labels: 23 unflagged, 188 `scrap`, 289 `llm`.
+    in the sheet from the second file, 18 already among Open Food Facts' packaged products.
+  - **Approved (owner, 2026-11-06, "now dumped this"):** 25 more `llm` rows from the owner's fourth
+    file of 74 (masalas, oils, tea, coffee, sharbats, drink mixes and malt drinks). The other 49 were
+    left out: 35 already in the sheet (7 of them under another code, such as MDH Kitchen King Masala
+    for MDH Kitchen King), 14 already among Open Food Facts' packaged products. The sheet now holds
+    525 brand labels: 23 unflagged, 188 `scrap`, 314 `llm`.
   - **Shown like the other brand labels** (the owner's choice, offered against marking them
     "estimated"): tagged "Brand label", no visible difference; only the server-side flag tells
     them apart. The credit behind Search foods' i is unchanged, so it does not mention estimates
