@@ -292,6 +292,39 @@ describe('D-54 the order of the results (the owner, 2026-11-06)', () => {
   });
 });
 
+describe('D-57 erasing and clearing the search (the owner, 2026-11-06)', () => {
+  const rowNames = async () => (await screen.findAllByRole('button', { name: /bread/i })).map((row) => row.props.accessibilityLabel);
+
+  it('follows each letter erased, then the cross clears the search and its results', async () => {
+    await render(async (db, server) => {
+      server.state.foods = [...FOODS, LABEL_BREAD];
+      server.state.packaged = [PACKAGED_BREAD];
+      await replaceFoods(db, server.state.foodsVersion, [...FOODS, LABEL_BREAD], [], [PACKAGED_BREAD]);
+    });
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+    await search('bread toast');
+    expect(await rowNames()).toEqual(['Test bread toast, INDB, 267 kcal per 100 g, estimated']);
+
+    // Erased a letter at a time: "bread toas", "bread toa", ... "bread".
+    for (let end = 'bread toast'.length - 1; end >= 'bread'.length; end -= 1) {
+      await fireEvent.changeText(screen.getByLabelText('Search foods'), 'bread toast'.slice(0, end));
+    }
+    await waitFor(async () =>
+      expect(await rowNames()).toEqual([
+        'Test Bakers White Bread, Brand label, 250 kcal per 100 g',
+        'Test sandwich bread, Test Bakers, packaged, 250 kcal per 100 g',
+        'Test bread toast, INDB, 267 kcal per 100 g, estimated',
+      ]),
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Clear search' }));
+    expect(screen.getByLabelText('Search foods').props.value).toBe('');
+    await waitFor(() => expect(screen.queryAllByRole('button', { name: /bread/i })).toEqual([]));
+    expect(screen.queryByRole('button', { name: 'Clear search' })).toBeNull();
+    expect(screen.queryByText(/No foods found/)).toBeNull();
+  });
+});
+
 describe('D-55 search words on brand labels', () => {
   // A synthetic chakki atta whose name says nothing of "whole wheat": made-up values.
   const CHAKKI: Food = { ...LABEL_BREAD, code: 'test-mills-chakki-atta', name: 'Test Mills Chakki Atta', foodGroup: 'Test Mills', aliases: ['Test Mills', 'whole wheat atta', 'gehu atta'], portions: [] };

@@ -1,5 +1,5 @@
 import { IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type MealItem } from '@fitsphere/shared';
-import { ChevronLeft, ChevronRight, Info, Search } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Info, Search, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
@@ -30,6 +30,9 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // The search fills the screen, so the most results show above the keyboard (D-44). A result opens the
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
 // can be edited or deleted from its page.
+//
+// The results follow the search as it is typed or erased, a letter at a time; the cross at the end of
+// the box clears it, and its results, and is shown only while something is typed (D-57).
 
 type Result = FoodResult;
 
@@ -136,7 +139,7 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
             </IconButton>
           </View>
           <View style={styles.searchArea}>
-            <View style={styles.searchBox}>
+            <View style={[styles.searchBox, query !== '' && styles.searchBoxClearable]}>
               <Search size={20} color={colors.inkMuted} />
               <TextInput
                 accessibilityLabel="Search foods"
@@ -146,6 +149,11 @@ export function FoodSearchSheet({ onAdd, onClose }: { onAdd(item: MealItem): voi
                 autoFocus
                 style={styles.searchInput}
               />
+              {query !== '' ? (
+                <IconButton label="Clear search" onPress={() => setQuery('')}>
+                  <X size={20} strokeWidth={2.25} color={colors.inkMuted} />
+                </IconButton>
+              ) : null}
             </View>
             {!listCached ? (
               <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
@@ -282,6 +290,8 @@ const useStyles = themedStyles((c) => ({
     borderColor: c.accent,
     backgroundColor: c.surfaceSunken,
   },
+  // With the cross (D-57), whose own space fills the rest of the edge.
+  searchBoxClearable: { paddingRight: 4 },
   // flex: 1 only in the box's row: in the sheet's column a field with flex: 1 has no height for its
   // text (Yoga's flex basis is 0), which hid the search text.
   searchInput: { ...TYPE.input, flex: 1, paddingVertical: 12 },

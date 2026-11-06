@@ -1574,6 +1574,22 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-57 Search foods: a cross clears the search
+- Status: **Accepted** (owner, in chat, 2026-11-06: "In the Search foods input need a cross icon
+  from where I can clear out the result ... I want that when I typed into input field on each
+  character erase my search result should refresh based on the new input").
+- Answer: while something is typed, a cross at the end of the search box clears the search and its
+  results. The results follow the search as each letter is typed or erased; the app already did
+  this, and a test now covers it.
+- The microphone asked for in the same message is **on hold** (owner, 2026-11-06: "For now keep on
+  hold the mic I will let you later to implement"); backlog E-28. FitSphere's own microphone may use
+  only the phone's on-device speech recognition (ADR-0005, D-18), which needs a new module and a new
+  development build.
+- Doc changes: REQ-LOG-007; backlog E-28. Phone app only: no server change, no migration, no new
+  build.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

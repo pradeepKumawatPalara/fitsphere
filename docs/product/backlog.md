@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
+- Last updated: 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
   to S5-07 and S6-01 to S6-09; the slice 5 and 6 IDs made final). 2026-10-30 (Settings slice,
   steps 2 and 5, D-31: RB-04 and E-21 to E-23). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
@@ -153,3 +153,4 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-25 | Calories burned on Home: raising the day's food allowance ("eat back"), or on any Home card | REQ-HOME-003, D-50 | Calories burned show on the Training tab only; Home's calorie target and card do not change (D-50) |
 | E-26 | *Closed by D-50 (2026-11-05): running, jogging, walking and cycling take the Compendium's activity for their speed.* A cardio exercise's MET chosen by the speed typed | REQ-TRN-003, D-50 | — |
 | E-27 | *On hold (the owner, 2026-11-05).* Calories for rep exercises (bench press, push-ups) as sets are added: a time on each set, or about 2 minutes a set when Time spent is empty. Open: whether the Compendium's weight-training MET (3.5, 02054) covers whole sessions with their rests; neither its website nor its 2024 paper says | REQ-TRN-003, D-50 | Estimated only from Time spent, the whole time on the exercise; adding a set does not change the estimate; with no Time spent there is none (D-50) |
+| E-28 | *On hold (the owner, 2026-11-06: "For now keep on hold the mic").* A microphone at the end of the Search foods box: what the user says is typed into the search. Only the phone's on-device speech recognition (ADR-0005, D-18), hidden on phones without it; needs a speech module, the microphone permission and a new development build | REQ-LOG-007, ADR-0005 | The user types, or uses the keyboard's own voice typing, which is outside FitSphere (ADR-0005) (D-57) |
