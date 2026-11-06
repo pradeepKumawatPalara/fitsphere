@@ -499,3 +499,28 @@ kohinoor-veg-pulao,Kohinoor,Veg Pulao,approved,100 g,152,3,26.5,3.8,,,,,2026-11-
 kohinoor-veg-biryani,Kohinoor,Veg Biryani,approved,100 g,158,3.2,27,4.2,,,,,2026-11-06,"Trained knowledge, confidence low: ESTIMATE from typical values for ready-to-eat veg biryani (retort pouch, as sold), not read from this brand's label; check the pack. Confirm product exists.",llm
 sumeru-punjabi-samosa,Sumeru,Punjabi Samosa,approved,100 g,250,4.5,32,11.5,,,,,2026-11-06,"Trained knowledge, confidence low: ESTIMATE from typical values for frozen samosa (as sold, before cooking), not read from this brand's label; check the pack. Confirm product exists.",llm
 godrej-yummiez-aloo-tikki,Godrej Yummiez,Aloo Tikki,approved,100 g,180,2.5,26,7.3,,,,,2026-11-06,"Trained knowledge, confidence low: ESTIMATE from typical values for frozen aloo tikki (as sold, before cooking), not read from this brand's label; check the pack. Confirm product exists.",llm
+mdh-garam-masala,MDH,Garam Masala,approved,100 g,318,14.6,37,12.4,,,,,2026-11-06,"ESTIMATE - values from a non-authorised EU reseller listing (1331 kJ/318 kcal, P 14.6, C 37, F 12.4); not verified against Indian pack.",llm
+aashirvaad-shahi-garam-masala,Aashirvaad,Shahi Garam Masala,approved,100 g,399,12,56,14.5,,,,,2026-11-06,ESTIMATE - kcal 399 seen on a non-authorised site; protein/carbs/fat are generic estimates fitted to it.,llm
+catch-rajma-masala,Catch,Rajma Masala,approved,100 g,329,12,50,9,,,,,2026-11-06,ESTIMATE - not from label. Generic typical value for rajma masala; verify against pack.,llm
+aashirvaad-rajma-masala,Aashirvaad,Rajma Masala,approved,100 g,329,12,50,9,,,,,2026-11-06,ESTIMATE - not from label. Generic typical value for rajma masala; verify against pack.,llm
+organic-tattva-rajma-masala,Organic Tattva,Rajma Masala,approved,100 g,329,12,50,9,,,,,2026-11-06,ESTIMATE - not from label. Generic typical value for rajma masala; verify against pack.,llm
+catch-kitchen-king-masala,Catch,Kitchen King Masala,approved,100 g,380,12,56,12,,,,,2026-11-06,ESTIMATE - not from label. Generic typical value for kitchen king masala; verify against pack.,llm
+catch-shahi-paneer-masala,Catch,Shahi Paneer Masala,approved,100 g,367,12,55,11,,,,,2026-11-06,ESTIMATE - kcal ~368 and protein 12 seen on a non-authorised reseller; carbs/fat are generic estimates. Verify.,llm
+tata-sampann-paneer-masala,Tata Sampann,Paneer Masala,approved,100 g,334,11,50,10,,,,,2026-11-06,ESTIMATE - not from label. Generic typical value for paneer/shahi paneer masala; verify against pack.,llm
+nutrela-refined-soyabean-oil,Nutrela,Refined Soyabean Oil,approved,100 g,900,0,0,100,,,,,2026-11-06,ESTIMATE - BigBasket listing shows 900 kcal / 100 g fat / 0 P / 0 C but no basis; per 100 g assumed.,llm
+nature-fresh-acti-lite-refined-soyabean-oil,Nature Fresh,Acti-Lite Refined Soyabean Oil,approved,100 g,900,0,0,100,,,,,2026-11-06,"ESTIMATE - retailer listings conflict (BigBasket 884 kcal, Zepto 900 kcal); 900 used. Verify.",llm
+sunpure-rice-bran-oil,Sunpure,Rice Bran Oil,approved,100 g,884,0,0,100,,,,,2026-11-06,ESTIMATE - Swiggy listing shows 884 kcal / 100 g fat; protein and carbs 0 assumed for refined oil.,llm
+dalda-vanaspati,Dalda,Vanaspati,approved,100 g,900,0,0,100,,,,,2026-11-06,"ESTIMATE - not from label. Typical Indian vanaspati label value (900 kcal, 100 g fat); verify against pack.",llm
+ruchi-gold-vanaspati,Ruchi Gold,Vanaspati,approved,100 g,900,0,0,100,,,,,2026-11-06,ESTIMATE - not from label. Typical Indian vanaspati label value; verify against pack.,llm
+gold-winner-vanaspati,Gold Winner,Vanaspati,approved,100 g,884,0,0,100,,,,,2026-11-06,"ESTIMATE - Swiggy listing shows 884 kcal, 100 g fat, 0 P, 0 C but no basis; per 100 g assumed.",llm
+tata-tea-gold,Tata Tea,Gold,approved,100 ml,1,0,0.3,0,,,,,2026-11-06,"ESTIMATE - brewed black tea without milk or sugar (USDA-type value), not the dry leaf.",llm
+continental-xtra,Continental,Xtra,approved,100 g,344,9,76,0.4,,,,,2026-11-06,ESTIMATE - generic value for coffee-chicory instant powder (dry); verify against pack.,llm
+davidoff-rich-aroma,Davidoff,Rich Aroma,approved,100 g,353,12.2,75.4,0.5,,,,,2026-11-06,ESTIMATE - generic USDA-type value for pure instant coffee powder (dry).,llm
+guruji-thandai-syrup,Guruji,Thandai Syrup,approved,100 ml,301,1,72,1,,,,,2026-11-06,ESTIMATE - generic value for undiluted thandai syrup concentrate; verify against pack.,llm
+haldirams-rose-sharbat,Haldiram's,Rose Sharbat,approved,100 ml,290,0,72.5,0,,,,,2026-11-06,ESTIMATE - generic value for undiluted rose sharbat concentrate; verify against pack.,llm
+catch-jaljeera-masala,Catch,Jaljeera Masala,approved,100 g,147,4.2,25,3.4,,,,,2026-11-06,"ESTIMATE - values from a non-authorised calorie-app listing (147 kcal, P 4.2, C 25, F 3.4); not verified against pack.",llm
+mapro-aam-panna,Mapro,Aam Panna,approved,100 ml,201,0.2,50,0,,,,,2026-11-06,ESTIMATE - generic value for undiluted aam panna concentrate; verify against pack.,llm
+haldirams-aam-panna,Haldiram's,Aam Panna,approved,100 ml,201,0.2,50,0,,,,,2026-11-06,ESTIMATE - generic value for undiluted aam panna concentrate; verify against pack.,llm
+rasna-nimbu-pani,Rasna,Nimbu Pani,approved,100 g,380,0,95,0,,,,,2026-11-06,ESTIMATE - generic value for sugar-based nimbu pani powder (dry); confirm product format and pack values.,llm
+catch-shikanji-masala,Catch,Shikanji Masala,approved,100 g,121,3,25,1,,,,,2026-11-06,ESTIMATE - not from label. Generic value for salt-based shikanji masala (dry); verify against pack.,llm
+complan-original,Complan,Original,approved,100 g,418,18,63,10.5,,,,,2026-11-06,"ESTIMATE - approximate value for milk-based nutrition powder (dry), from general knowledge; verify against pack.",llm
