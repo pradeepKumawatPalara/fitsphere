@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-10 (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -323,7 +323,7 @@ B-22).
 
 ### REQ-HOME-007 — Workout tracker
 - Requirement: Shows workouts completed this week vs weekly target (e.g. "1 of 5 · 4 left") with Mon–Sun dots marking workout days.
-- Each day up to today can be tapped (D-34; D-42): a day with workouts lists them to open, with "Log another workout" to start a new one on that day; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
+- Each day up to today can be tapped (D-34; D-42): a day with workouts lists them to open (since D-65 only those with an exercise, numbered as on Training), with "Log another workout" to start a new one on that day; a day with none offers "Start a workout on this day". Later days are greyed and cannot be tapped. Each day is named for screen readers (e.g. "Tuesday 27 Oct: 2 workouts") and is 44 dp to tap.
 - The tracker shows the Mon–Sun week of the date picked on Home (Q-026) and names it (D-34): "Workouts this week" for the current week, "Workouts that week" for an earlier one, with the week's dates under the title (e.g. "Mon 19 Oct – Sun 25 Oct"). A workout can be started on any day up to today of the week shown.
 - D-41 (replacing Q-025's MVP default): only a workout with at least one exercise counts toward the weekly target; the card reads "N of T · K left", and once the target is met "N workouts · target achieved", with each day's count as a number. The target is set by the coach, or by a Head Coach the trainee allows (REQ-ROLE-006). In the MVP the user sets it (REQ-ROLE-007, D-20).
 - The tracker is built in the Home and daily tracking slice; its count and dots come with workouts in the Training slice (D-23).
@@ -586,12 +586,14 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-TRN-002 — Empty state
 - Requirement: Until a coach sends a plan, Training shows "No training plan yet".
 - MVP (D-20): no one can send a training plan in the MVP, so Training always shows "No training plan yet", with "Log workout" (REQ-TRN-003; named "Start an empty workout" until D-37) and the workout history (REQ-TRN-004).
+- D-65: the "No training plan yet" card is not shown for now; Training opens on the date strip, "Log workout for <date>" and the workouts (REQ-TRN-003, REQ-TRN-004). The card comes back with training plans (REQ-TRN-001, post-MVP).
 
 ### REQ-TRN-003 — Empty workout
 - Requirement: "Log workout" lets the user log a self-directed session. The BRD calls it "Start an empty workout"; the owner renamed the button (D-37).
 - MVP default (D-18): per exercise, sets × reps × weight, with an optional note (Q-042). An empty workout is saved but counts toward the weekly target only once it has an exercise (D-41).
 - MVP defaults (D-29): "Log workout" saves a workout with no exercises at once, on the selected date, and opens it; each change is saved on the phone at once and synced, with no draft or "Finish" step. Per exercise: a name typed freely (1–80 characters), sets 1–20, reps 1–200 (the same for every set), an optional weight and an optional note of up to 500 characters; up to 30 exercises. A workout's date is fixed once started; it can be edited and deleted (after a confirmation), and a day may hold several workouts. Works offline (ADR-0007 rule 6).
 - D-43: a date chip above "Log workout", as Log meal's, opens the calendar "Log this workout to"; the day picked becomes the app's selected date, which "Log workout" logs to.
+- D-65 (replacing D-43's chip): the date strip at the top of Training picks the date, as Home's and Nutrition's; the button names it, "Log workout for today" or "Log workout for Sat 31 Oct", and logs to it.
 - D-50 (replacing D-29's "typed freely" and "the same for every set"): the name searches FitSphere's exercise list (334 exercises, kept on the phone, offline) or is typed. Each list exercise has one of eight types that decides its fields: weight and reps (a weight on every set), reps (no weight: bodyweight), time, weight and time, distance and time (the average speed and pace shown), treadmill (speed, incline), cardio machine (level), time only. A name of the user's own asks "Log as": sets and reps, time, or cardio. Each set has its own reps, weight and time, 1 to 20 sets. Exercises saved before read as identical sets. Each exercise may have calories burned (a Compendium MET estimate, by speed for running, walking and cycling, or typed in its place) and an average and highest heart rate; calories show on the Training tab only, never on Home.
 
 ### REQ-TRN-004 — Workout history
@@ -599,6 +601,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - MVP default (D-29): newest first; the last 90 days from the phone, and older workouts read from the server online with "Load older", view-only (ADR-0007 rules 1 and 6).
 - One card per date (D-34): a date with several workouts shows them together, every exercise in one summary and "2 workouts" beside the date; each workout on its own row ("Workout 1", "Workout 2", in the order started) with a pencil to open it and a bin to delete it (asking first), and "Log another workout" on that date (D-42). Each workout is still stored, edited and deleted on its own.
 - D-50: each date card shows the day's calories burned, typed or estimated, "· estimated" when any part is an estimate.
+- D-65: two ways to see the workouts, under the date strip (a green mark on each day with a workout). "By day", the first, shows only the selected date's workouts ("No workouts on Sun 8 Nov." when none), each with its pencil and bin, and the day's calories burned. "All workouts" shows the history above, grouped by month, newest first: the newest month open, the others folded to one line, "October 2026 · 9 workouts on 8 days", opened or folded by a tap; "Load older" at the bottom opens the newest month it brings. A date picked on the strip or in the header's calendar shows By day. A workout with no exercise is not listed, marked or counted in either view, and the others are numbered without it ("Workout 1", "Workout 2"), on their own screen too; it is still stored.
 
 ### REQ-TRN-005 — Lifting unit
 - Requirement: Lifting weights are entered and shown in the lifting-weight unit setting (REQ-ACC-002); changing the setting converts display of existing history.

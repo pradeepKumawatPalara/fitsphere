@@ -158,7 +158,7 @@ describe('D-34 each day of the tracker can be tapped', () => {
     expect(await getEntry(db, 'workout', id)).toMatchObject({ day: '2026-10-26', exercises: [] });
   });
 
-  it('a day with two shows 2 on its square, and asks which to open, listing an empty one too (D-41)', async () => {
+  it('a day with two shows 2 on its square, and asks which to open, not listing an empty one (D-41, D-65)', async () => {
     await renderHome(['2026-10-27', '2026-10-27'], undefined, ['2026-10-27']);
 
     const day = await screen.findByRole('button', { name: 'Tuesday 27 Oct: 2 workouts' });
@@ -166,9 +166,9 @@ describe('D-34 each day of the tracker can be tapped', () => {
     await fireEvent.press(day);
 
     expect(screen.getByRole('header', { name: 'Workouts on Tue 27 Oct' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: /^Workout [123] · No exercises$/ })).toBeOnTheScreen();
-    expect(screen.getAllByRole('button', { name: /^Workout [123] · 1 exercise · Squat$/ })).toHaveLength(2);
-    await fireEvent.press(screen.getAllByRole('button', { name: /^Workout [123] · 1 exercise · Squat$/ })[0]!);
+    expect(screen.queryByRole('button', { name: /^Workout \d · No exercises$/ })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /^Workout [12] · 1 exercise · Squat$/ })).toHaveLength(2);
+    await fireEvent.press(screen.getAllByRole('button', { name: /^Workout [12] · 1 exercise · Squat$/ })[0]!);
     expect(mockRouter.push).toHaveBeenCalledWith(expect.stringMatching(/^\/workout\//));
   });
 

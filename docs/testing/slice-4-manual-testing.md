@@ -15,7 +15,12 @@
   tick **Fail** and write what you saw (a screenshot helps).
 - **Synthetic data only.** The exercises, weights and notes below are test values.
 - **Android shows button labels in capitals.** **Log workout** appears on the phone as
-  LOG WORKOUT. (It was named "Log workout" until D-37, 2026-11-03.)
+  LOG WORKOUT FOR TODAY, or LOG WORKOUT FOR FRI 23 OCT on a past date (D-65). (It was named
+  "Start an empty workout" until D-37, 2026-11-03.)
+- **Since D-65 Training has two views** under the date strip: **By day** (the first) shows only the
+  selected date's workouts; **All workouts** shows the history, grouped by month. Where a step looks
+  for a row in the history, find it under **All workouts**, or under **By day** with its date selected.
+  A workout with **no exercise is not listed** anywhere (D-65): add an exercise before leaving it.
 - "Today" and "7 days ago" are IST days. Examples use Fri 30 Oct 2026 and Fri 23 Oct 2026; your
   dates will differ. **Run the whole guide within one IST day**, away from midnight.
 - The header at the top of each tab shows the **selected date** ("Today · Fri 30 Oct", or just
@@ -28,7 +33,7 @@
 
 | Area | Status | Tests |
 |---|---|---|
-| Training tab: "No training plan yet.", **Log workout**, "Workouts you have logged" | Implemented | S4-01 |
+| Training tab: the date strip, **By day** and **All workouts**, **Log workout for today** (D-65; no "No training plan yet." card for now) | Implemented | S4-01, S4-20 |
 | Starting a workout (on the selected date; counts at once, even empty) | Implemented | S4-03, S4-11, S4-13 |
 | Exercises: name, sets, reps, weight in kg (optional), note (optional) | Implemented | S4-04 to S4-06 |
 | Exercise limits and messages; Cancel saves nothing | Implemented | S4-07, S4-08, S4-10 |
@@ -101,9 +106,9 @@ exercises per workout.
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
 | 1 | Bottom bar: **Training** | — | The header with "Today · <date>" |
-| 2 | Look at the top of the screen | — | A grey box "No training plan yet."; under it the button **Log workout** |
-| 3 | Look below the button | — | The heading "Workouts you have logged" and "No workouts logged yet." |
-| 4 | Look at the bottom | — | A **Load older** button |
+| 2 | Look at the top of the screen | — | The date strip, today selected; under it **By day** (chosen) and **All workouts**; no "No training plan yet." box (D-65) |
+| 3 | Look below them | — | The button **Log workout for today**, the label "Today, Fri 30 Oct" and "No workouts on Fri 30 Oct." |
+| 4 | Tap **All workouts**; look at the bottom | — | "No workouts logged yet." and a **Load older** button |
 | 5 | Look for anything else | — | No workout list or templates, no exercise library, no plan to follow (not in the MVP) |
 
 **Final expected result:** the Training tab shows the empty state with its exact texts.
@@ -128,17 +133,17 @@ exercises per workout.
 - [ ] Fail
 - Actual result / notes:
 
-### S4-03 · Log workout; it counts at once
-**Screen:** Training › Log workout → Workout · **Covers:** REQ-TRN-003, Q-025, REQ-HOME-007, plan phone check 2 · **Start:** Home, today selected · **Data:** none
+### S4-03 · Log workout; an empty one is not listed
+**Screen:** Training › Log workout → Workout · **Covers:** REQ-TRN-003, Q-025, REQ-HOME-007, D-41, D-65, plan phone check 2 · **Start:** Home, today selected · **Data:** none
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Bottom bar: **Training**; tap **Log workout** | — | A screen with the title bar "Workout" and a back arrow. Inside: "Workout · Fri 30 Oct" (today), possibly "Waiting to sync" for a moment, "No exercises yet.", and buttons **Add exercise**, **Done** and a red **Delete workout** |
-| 2 | Tap **Done** | — | Training. "No workouts logged yet." is gone; one row: "Fri 30 Oct" and "No exercises" (and "waiting to sync" only until it syncs) |
-| 3 | Bottom bar: **Home** | — | "Workouts this week": "1 of 4 · 3 left"; today's circle filled blue |
+| 1 | Bottom bar: **Training**; tap **Log workout for today** | — | A screen with the title bar "Workout" and a back arrow. Inside: "Workout 1 · Fri 30 Oct" (today), possibly "Waiting to sync" for a moment, "No exercises yet.", **Add exercise** and a red **Delete workout** |
+| 2 | Tap the back arrow | — | Training still says "No workouts on Fri 30 Oct.": a workout with no exercise is not listed (D-65) |
+| 3 | Bottom bar: **Home** | — | "Workouts this week": "0 of 4 · 4 left": it counts once it has an exercise (D-41) |
 
-**Final expected result:** a workout is created on today the moment it starts, with no exercises,
-and counts toward the week at once.
+**Final expected result:** a workout is created on today the moment it starts, but is listed and
+counted only once it has an exercise.
 
 **Result**
 - [ ] Pass
@@ -154,7 +159,7 @@ and counts toward the week at once.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | **Training**; tap the row "Fri 30 Oct · No exercises" | — | The workout screen from S4-03 |
+| 1 | **Training**; tap **Log workout for today** | — | A new workout screen, "Workout 1 · Fri 30 Oct" (the empty one from S4-03 is not counted) |
 | 2 | Tap **Add exercise** | — | A sheet "Add exercise" with "Exercise name" (keyboard open), then "Sets", "Reps" and "Weight in kg (optional)" side by side, then "Note (optional)"; buttons **Save exercise** and **Cancel** (no Remove button for a new exercise) |
 | 3 | Exercise name | `Bench press` | — |
 | 4 | Sets, Reps, Weight in kg | `3`, `10`, `40` | — |
@@ -298,8 +303,8 @@ nothing.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Tap **Log workout** | — | A new workout: "Workout · Fri 30 Oct", "No exercises yet." |
-| 2 | **Done** | — | Training lists two rows for today, newest first: "Fri 30 Oct · No exercises", then "Fri 30 Oct · 2 exercises · Bench press, Squat" |
+| 1 | Tap **Log workout for today** | — | A new workout: "Workout 2 · Fri 30 Oct", "No exercises yet." |
+| 2 | **Add exercise**: Push-up, Sets, Reps; **Save exercise**; the back arrow | `Push-up`, `2`, `20` | Training, "Today, Fri 30 Oct · 2 workouts": "Workout 1", "2 exercises · Bench press, Squat", then "Workout 2", "1 exercise · Push-up" |
 | 3 | **Home** | — | "2 of 4 · 2 left"; only today's circle filled |
 
 **Final expected result:** a second workout on the same day is allowed and counts; the day still
@@ -311,14 +316,14 @@ has one circle.
 - Actual result / notes:
 
 ### S4-12 · Delete a workout (Keep first)
-**Screen:** Workout › Delete workout · **Covers:** REQ-TRN-003, plan phone check 5 · **Start:** Training · **Data:** the empty workout from S4-11
+**Screen:** Workout › Delete workout · **Covers:** REQ-TRN-003, plan phone check 5 · **Start:** Training · **Data:** Workout 2 from S4-11
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Tap the row "Fri 30 Oct · No exercises" | — | Its workout screen |
-| 2 | Tap **Delete workout** | — | A red-bordered box: "Delete Workout N on Fri 30 Oct?" (N is its number that day) and "You can't undo this." (it has no exercises), with **Keep** and a red **Delete** (D-63) |
+| 1 | Tap the row "Workout 2", "1 exercise · Push-up" | — | Its workout screen |
+| 2 | Tap **Delete workout** | — | A box: "Delete Workout 2 on Fri 30 Oct?" and "Its 1 exercise will be deleted too. It will no longer count in this week's workouts. You can't undo this.", with **Keep** and a red **Delete** (D-63) |
 | 3 | Tap **Keep** | — | The box closes; the workout is still open; **Delete workout** is back |
-| 4 | **Delete workout** › **Delete** | — | Back on Training; only "Fri 30 Oct · 2 exercises · Bench press, Squat" is left |
+| 4 | **Delete workout** › **Delete** | — | Back on Training; only "Workout 1", "2 exercises · Bench press, Squat" is left |
 | 5 | **Home** | — | "1 of 4 · 3 left" |
 
 **Final expected result:** a workout is deleted only after confirming, and it leaves the history
@@ -335,7 +340,7 @@ and the weekly count.
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
 | 1 | Header **📅**; tap the date 7 days before today (use ‹ if it is in last month) | e.g. 23 | The header shows "Fri 23 Oct" (no "Today ·"); Home shows "Showing Fri 23 Oct" and **Back to today** |
-| 2 | **Training**; **Log workout** | — | "Workout · Fri 23 Oct" |
+| 2 | **Training**; **Log workout for Fri 23 Oct** | — | "Workout · Fri 23 Oct" |
 | 3 | **Add exercise**: Exercise name, Sets, Reps, Weight | `Deadlift`, `3`, `5`, `80` | **Save exercise**: "Deadlift", "3 × 5 × 80.0 kg" |
 | 4 | **Done** | — | Training: today's row first, then "Fri 23 Oct · 1 exercise · Deadlift" |
 | 5 | **Home** (Fri 23 Oct still selected) | — | "Workouts this week": "1 of 4 · 3 left", with that weekday's circle filled (the week of 23 Oct) |
@@ -382,13 +387,13 @@ once, and syncs by itself when the connection returns.
 - Actual result / notes:
 
 ### S4-15 · Weekly target reached, then back
-**Screen:** Training; Home tracker · **Covers:** REQ-HOME-007 (D-23 "target reached") · **Start:** Training, today selected, online · **Data:** two empty workouts
+**Screen:** Training; Home tracker · **Covers:** REQ-HOME-007 (D-23 "target reached") · **Start:** Training, today selected, online · **Data:** two workouts of one Push-up each
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | **Log workout** › **Done**; again **Log workout** › **Done** | — | Two new rows "Fri 30 Oct · No exercises" at the top |
+| 1 | **Log workout for today**, **Add exercise** Push-up 2 × 20, the back arrow; then the same again | `Push-up`, `2`, `20` | Two more rows for today, each "1 exercise · Push-up" |
 | 2 | **Home** | — | "4 of 4 · target reached"; only today's circle filled |
-| 3 | **Training**; open each "No exercises" row; **Delete workout** › **Delete** | — | Both are gone |
+| 3 | **Training**; open each new Push-up row; **Delete workout** › **Delete** | — | Both are gone |
 | 4 | **Home** | — | "2 of 4 · 2 left" |
 
 **Final expected result:** at the target the tracker says "target reached", and deleting workouts
@@ -404,7 +409,7 @@ lowers the count again.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Turn **aeroplane mode on** (Wi-Fi and data off). On Training, scroll to the bottom; tap **Load older** | — | "Loading older workouts needs an internet connection." above the button |
+| 1 | Turn **aeroplane mode on** (Wi-Fi and data off). On Training, tap **All workouts**, scroll to the bottom; tap **Load older** | — | "Loading older workouts needs an internet connection." above the button |
 | 2 | Turn **aeroplane mode off**; wait about 10 seconds; tap **Load older** | — | The message changes to "No workouts from <day 179 days ago> to <day 90 days ago>." For today = Fri 30 Oct 2026: "No workouts from Mon 4 May to Sat 1 Aug." |
 | 3 | Tap **Load older** again | — | The next 90 days back: for today = 30 Oct, "No workouts from Tue 3 Feb to Sun 3 May." |
 | 4 | *Only if older workouts exist on the account:* look at the rows added under the list | — | They show date and summary, never "waiting to sync", and tapping them opens nothing (view-only) |
@@ -478,6 +483,29 @@ the app has no way to delete them. Skip this test if that matters.
 
 ---
 
+### S4-20 · By day and All workouts (D-65)
+**Screen:** Training · **Covers:** REQ-TRN-003, REQ-TRN-004, REQ-DATE-001, REQ-DATE-002, D-65 · **Start:** Training, today selected · **Data:** the workouts of the tests above (today's, and the Deadlift workout 7 days ago from S4-13)
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | Look at the date strip | — | A green mark under today and under each other day with a workout |
+| 2 | Tap a day this week without a workout | — | The day fills; the header shows that date; "Showing <date>" with **Back to today**; **Log workout for <date>**; "No workouts on <date>." |
+| 3 | Tap **‹** on the strip; tap the day of the Deadlift workout (7 days ago) | — | "Fri 23 Oct · 1 workout" and one card: "Workout 1", "1 exercise · Deadlift", with a pencil and a red bin; no other day's workouts |
+| 4 | Tap **Back to today** | — | Today's workouts again, under **Log workout for today** |
+| 5 | Tap **All workouts** | — | This month's line open ("October 2026 · N workouts on N days" with ⌃), its dates' cards under it, newest first; any earlier month folded to one line (⌄) |
+| 6 | Tap an open month's line; tap it again | — | Its cards fold away, then show again |
+| 7 | Header **📅**; pick the Deadlift day | — | **By day** is chosen again, showing that day |
+
+**Final expected result:** By day shows only the selected date's workouts, the button names the date
+it logs to, and All workouts lists every workout by month.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
 ## Cleanup
 
 | # | What | How | Confirm |
@@ -494,7 +522,7 @@ the app has no way to delete them. Skip this test if that matters.
 | "Load older" says "Something went wrong. Try again later." | The API couldn't be reached or refused the request. Check "API: ok" on Account › Development and `.dev-phone/api.log` |
 | App stuck on "Reloading…" | Force-stop the app (Android Settings › Apps › FitSphere › Force stop) and open it again |
 | A row says "not saved" in red, and Training or Home shows "This workout wasn't saved: … Edit or discard it." | The server refused the change. Note the reason text and the steps; don't discard it before reporting |
-| A workout was created on the wrong day | Check the header's date before tapping **Log workout**: a workout uses the selected date, which stays where you left it until you tap **Back to today** or restart the app |
+| A workout was created on the wrong day | Read the button before tapping it: **Log workout for <date>** logs to the date it names, the one selected on the strip, which stays where you left it until you tap **Back to today** or restart the app |
 
 ## Results summary
 | Test | Title | Result | Notes |
@@ -518,3 +546,4 @@ the app has no way to delete them. Skip this test if that matters.
 | S4-17 | Data back after log out and sign in | | |
 | S4-18 | Weight, steps, sleep (regression) | | |
 | S4-19 | 30 exercises (optional) | | |
+| S4-20 | By day and All workouts (D-65) | | |

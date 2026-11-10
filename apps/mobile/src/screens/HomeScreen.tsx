@@ -52,6 +52,7 @@ import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
+import { listedWorkouts } from '../workouts';
 import { LogOut } from './LogOut';
 
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
@@ -130,8 +131,8 @@ export function HomeScreen() {
       setEaten(nutrition);
       setMealDays(new Set(Object.keys(counts)));
       // The selected date's week's workouts on the phone. Only those with an exercise count toward the
-      // week and show on their day (REQ-HOME-007; D-41, replacing Q-025's default); a day's square
-      // still opens its empty ones too.
+      // week and show on their day (REQ-HOME-007; D-41, replacing Q-025's default); since D-65 a day's
+      // square no longer lists its empty ones, as Training doesn't.
       // In the order they were started, so "Workout 1" is the day's first (D-42).
       setWeekWorkouts(
         workouts.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).map(({ id, day, exercises }) => ({ id, day, exercises })),
@@ -205,7 +206,7 @@ export function HomeScreen() {
           firstDay={firstDay}
           selected={selected}
           start={stripStart}
-          mealDays={mealDays}
+          loggedDays={mealDays}
           onSelect={select}
           onShow={showDays}
         />
@@ -284,7 +285,7 @@ export function HomeScreen() {
         {workoutDay ? (
           <WorkoutDaySheet
             day={workoutDay}
-            workouts={weekWorkouts.filter((workout) => workout.day === workoutDay)}
+            workouts={listedWorkouts(weekWorkouts.filter((workout) => workout.day === workoutDay))}
             onOpen={(id) => router.push(`/workout/${id}`)}
             onStart={() => void startWorkout(workoutDay)}
             onClose={() => setWorkoutDay(null)}
