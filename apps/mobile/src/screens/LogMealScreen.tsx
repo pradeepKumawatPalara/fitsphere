@@ -31,6 +31,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
 import { CalendarSheet } from '../components/CalendarSheet';
+import { FoodDetail, type FoodResult } from '../components/FoodDetail';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, DuplicateFoodSheet, SlotPicker } from '../components/MealSheets';
@@ -39,7 +40,7 @@ import { PortionStepper } from '../components/PortionStepper';
 import { Text, TextButton, TextInput } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
+import { getEntry, listedFoodOf, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
 import {
   addAmount,
   amountLimit,
@@ -83,6 +84,9 @@ type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number }
 // (D-40): a meal edited here keeps the tags it has.
 // Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
 // with a meal, whose date then stays the same (MVP default, D-26).
+// A food in the review opens its own page on its amount, where any of its measures can be chosen
+// (D-64); a food with no page (one typed once, or a barcode product not in the list) opens a sheet
+// for its amount, its buttons centred.
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -115,6 +119,8 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [ownName, setOwnName] = useState('');
   const [gramsText, setGramsText] = useState('');
   const [portions, setPortions] = useState(1);
+  // A food of the review open on its own page (D-64): its place in the meal, and the food.
+  const [page, setPage] = useState<{ index: number; result: FoodResult } | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Edit: the meal as it is on the phone.
@@ -175,6 +181,20 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
       }
       return [...next, ...rest].slice(0, MAX_MEAL_ITEMS);
     });
+  }
+
+  /** A food of the review: its own page when the phone lists it (D-64), else the sheet for its amount. */
+  async function change(index: number) {
+    const item = items[index];
+    if (!item) return;
+    const result = local.state.status === 'ready' ? await listedFoodOf(local.state.db, item) : null;
+    if (result) {
+      setPage({ index, result });
+      return;
+    }
+    setGramsText(item.amount.unit === 'g' || item.amount.unit === 'own' ? String(item.amount.value) : '');
+    setPortions(item.amount.unit === 'g' ? 1 : item.amount.value);
+    setSheet({ change: index });
   }
 
 
@@ -283,11 +303,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Change ${item.name}`}
-                  onPress={() => {
-                    setGramsText(item.amount.unit === 'g' || item.amount.unit === 'own' ? String(item.amount.value) : '');
-                    setPortions(item.amount.unit === 'g' ? 1 : item.amount.value);
-                    setSheet({ change: index });
-                  }}
+                  onPress={() => void change(index)}
                   style={({ pressed }) => [styles.itemAction, pressed && styles.pressed]}
                 >
                   <SquarePen size={20} color={colors.accent} />
@@ -362,8 +378,27 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           onClose={() => setSheet(null)}
         />
       ) : null}
+      {page && items[page.index] ? (
+        <FoodDetail
+          result={page.result}
+          from={items[page.index]!.amount}
+          fromLabel="In this meal now"
+          backLabel="Back to the meal"
+          addTitle="Save change"
+          onBack={() => setPage(null)}
+          onAdd={(changed) => {
+            setItems((current) => current.map((item, index) => (index === page.index ? changed : item)));
+            setPage(null);
+          }}
+          onRemove={() => {
+            setItems((current) => current.filter((_, index) => index !== page.index));
+            setPage(null);
+          }}
+        />
+      ) : null}
       {changing ? (
         <ActionsSheet
+          centred
           title={changing.name}
           actions={[
             ...(changing.amount.unit === 'g' && newGrams !== null && newGrams !== changing.amount.value

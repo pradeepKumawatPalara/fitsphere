@@ -352,17 +352,33 @@ describe('REQ-LOG-003 and the review before saving', () => {
     await addFood('ghee', /^Ghee/, '5');
     expect(screen.getByLabelText('Total: 237 kcal, 6.3 g protein')).toBeOnTheScreen();
 
+    // D-64: a food opens its own page on its amount in the meal.
     await fireEvent.press(screen.getByRole('button', { name: 'Change Wheat flour, atta' }));
-    await fireEvent.changeText(screen.getByLabelText('New grams'), '90');
-    await fireEvent.press(screen.getByRole('button', { name: 'Change to 90 g' }));
+    expect(await screen.findByText('In this meal now: 60 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Grams eaten')).toHaveDisplayValue('60');
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '90');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save change' }));
     expect(screen.getByLabelText('Wheat flour, atta: 90 g, 288 kcal, 9.5 g protein')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Ghee' }));
-    // Remove stands out in red.
-    expect(screen.getByText('Remove')).toHaveStyle({ color: LIGHT_COLORS.danger });
-    await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
+    // Remove from meal stands out in red, centred under Save change.
+    expect(await screen.findByText('Remove from meal')).toHaveStyle({ color: LIGHT_COLORS.danger });
+    expect(screen.getByRole('button', { name: 'Remove from meal' })).toHaveStyle({ alignSelf: 'stretch', justifyContent: 'center' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove from meal' }));
     expect(screen.queryByText('Ghee')).toBeNull();
     expect(screen.getByLabelText('Total: 288 kcal, 9.5 g protein')).toBeOnTheScreen();
+  });
+
+  it('D-64 a food’s page from the review leaves the meal as it was on Back', async () => {
+    await render();
+    await addFood('atta', /^Wheat flour, atta/, '60');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Wheat flour, atta' }));
+    await fireEvent.changeText(await screen.findByLabelText('Grams eaten'), '90');
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the meal' }));
+
+    expect(screen.queryByText('In this meal now: 60 g')).toBeNull();
+    expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
   });
 
   it('REQ-LOG-003 saving keeps the date and meal type, syncs the meal, and goes back', async () => {
@@ -597,9 +613,9 @@ describe('D-28 dishes, logged in portions', () => {
     expect(screen.getByLabelText('Total: 342 kcal, 14.3 g protein')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Test dal' }));
-    expect(screen.getByLabelText('Portions: 1')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Half a portion more' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Change to 1.5 portions' }));
+    expect(await screen.findByLabelText('Quantity: 1')).toBeOnTheScreen();
+    await pickAmount({ quantity: '1.5' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Save change' }));
 
     expect(screen.getByLabelText('Test dal: 1.5 portions, 225 kcal, 12.0 g protein')).toBeOnTheScreen();
     expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
@@ -711,14 +727,31 @@ describe('D-36 household units', () => {
     expect(screen.getByLabelText('Grams eaten')).toBeOnTheScreen();
   });
 
+  it('D-64 the review changes a food’s measure: 100 g of milk becomes 1 glass', async () => {
+    await render({ day: TODAY }, withMilk);
+    await chooseMilk();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByLabelText(/^Milk, whole, Cow: 100 g, /)).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Milk, whole, Cow' }));
+    expect(await screen.findByText('In this meal now: 100 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: Grams')).toBeOnTheScreen();
+    await pickAmount({ measure: 'Glass (258 g)', quantity: '1' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Save change' }));
+
+    expect(screen.getByLabelText('Milk, whole, Cow: 1 glass (258 g), 188 kcal, 8.4 g protein')).toBeOnTheScreen();
+    expect(screen.queryByLabelText(/^Milk, whole, Cow: 100 g, /)).toBeNull();
+  });
+
   it('the review changes a unit item’s count; the same food in the same unit joins it, and in grams stays apart (D-34)', async () => {
     await render({ day: TODAY }, withMilk);
     await addGlasses();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Milk, whole, Cow' }));
-    expect(screen.getByLabelText('Glasses: 1')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Half a glass more' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Change to 1.5 glasses' }));
+    expect(await screen.findByLabelText('Quantity: 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: Glass (258 g)')).toBeOnTheScreen();
+    await pickAmount({ quantity: '1.5' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Save change' }));
     expect(screen.getByLabelText('Milk, whole, Cow: 1.5 glasses (387 g), 283 kcal, 12.6 g protein')).toBeOnTheScreen();
 
     await addGlasses();

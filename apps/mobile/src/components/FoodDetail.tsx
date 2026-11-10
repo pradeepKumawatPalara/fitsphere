@@ -1,5 +1,5 @@
 import type { MealItem } from '@fitsphere/shared';
-import { ChevronDown, ChevronLeft, SquarePen } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, SquarePen, Trash } from 'lucide-react-native';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { formatInteger } from '../format';
@@ -38,6 +38,10 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 //
 // A recent food (D-60) opens on the amount it was last logged in, said under the boxes; when foods
 // are ticked in Search foods, Add says how many foods go into the meal with this one.
+//
+// A food already in the meal (D-64) opens from Log meal's review on its amount there, "In this meal
+// now: 100 g", with Save change, and Remove from meal centred under it; any of its measures can be
+// chosen, so 100 g can become 1 paratha.
 
 export type FoodResult = ListedFood;
 
@@ -145,21 +149,30 @@ function startOf(result: FoodResult, measures: Measure[], from: MealItem['amount
 export function FoodDetail({
   result,
   from,
+  fromLabel = 'Last time',
+  backLabel = 'Back to search',
   addTitle = 'Add',
   addNote,
   onBack,
   onAdd,
   onEdit,
+  onRemove,
 }: {
   result: FoodResult;
-  /** The amount a recent food was last logged in (D-60). */
+  /** The amount a recent food was last logged in (D-60), or a food in the meal has now (D-64). */
   from?: MealItem['amount'];
+  /** What `from` is called under the boxes: "Last time", or "In this meal now" (D-64). */
+  fromLabel?: string;
+  backLabel?: string;
   addTitle?: string;
   /** Said above Add: the ticked foods that go in with this one (D-60). */
   addNote?: string;
   onBack(): void;
   onAdd(item: MealItem): void;
-  onEdit(food: LocalMyFood): void;
+  /** Opens a My food to edit; without it, the page offers no Edit My food. */
+  onEdit?(food: LocalMyFood): void;
+  /** Takes the food out of the meal it is in (D-64): "Remove from meal", centred under Add. */
+  onRemove?(): void;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -210,11 +223,12 @@ export function FoodDetail({
         <View style={styles.footer}>
           {addNote ? <Text style={styles.addNote}>{addNote}</Text> : null}
           <TextButton title={addTitle} filled disabled={!item} onPress={() => item && onAdd(item)} />
+          {onRemove ? <TextButton title="Remove from meal" destructive wide icon={Trash} onPress={onRemove} /> : null}
         </View>
       }
     >
       <View style={styles.header}>
-        <IconButton label="Back to search" onPress={onBack}>
+        <IconButton label={backLabel} onPress={onBack}>
           <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
         </IconButton>
       </View>
@@ -280,8 +294,8 @@ export function FoodDetail({
             </View>
           </View>
           {item ? null : <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} />}
-          {from ? <Text style={styles.per}>Last time: {formatAmount(from)}</Text> : null}
-          {result.kind === 'mine' ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => onEdit(result.food)} /> : null}
+          {from ? <Text style={styles.per}>{`${fromLabel}: ${formatAmount(from)}`}</Text> : null}
+          {result.kind === 'mine' && onEdit ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => onEdit(result.food)} /> : null}
         </View>
 
         <Text accessibilityRole="header" style={styles.heading}>
