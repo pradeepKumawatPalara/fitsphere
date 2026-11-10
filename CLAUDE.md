@@ -52,6 +52,16 @@ an AI tool's estimates, one food item at a time, in `docs/data/home-foods-sheet.
 or by their serving. Migration `0020_home_foods.sql`, risk R-013, Legal L-18. **On `fitsphere-dev`:
 migration 0020 before the updated API, then `foods:import`; only when the owner says so.**
 
+**Estimated dishes — built on branch `feat/estimated-dishes` (D-62, 2026-11-10).** 5,025 Indian
+dishes from the owner's dish database (`Indian_Food_Database_MASTER.xlsx`, kept outside the
+repository) as source `dish_estimate`, each with its type of dish's typical values and serving, in
+`docs/data/dish-estimates-sheet.csv` (flag `llm`); 1,778 rows held back with their problem (1,259
+weak matches, 519 whose type does not fit the dish). Listed after the dishes, before IFCT, marked
+"estimated", found by their base food. Also 11 packaged products (`data/foods/off-india-extra.csv`),
+and Search foods ignores spaces and marks ("haldirams" finds Haldiram's). Migration
+`0021_dish_estimates.sql`, risk R-014, Legal L-19. **On `fitsphere-dev`: migration 0021 before the
+updated API, then `foods:import` (the owner's word, 2026-11-10).**
+
 **Search order — built on branch `fix/search-order` (D-54, 2026-11-06), on top of
 `feat/llm-brand-labels`.** Search foods: an exact match first (D-51), then My foods, brand labels,
 packaged foods, INDB, then dishes and IFCT. Phone app only; no new build. Also on this branch (D-55):

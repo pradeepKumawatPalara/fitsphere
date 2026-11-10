@@ -1723,6 +1723,61 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-LOG-007; `docs/architecture/constraints-and-assumptions.md` (More foods);
   `docs/plans/ui-redesign.md` (3.6). Phone app only: no server change, no migration, no new build.
 
+## D-62 Estimated dishes from the owner's dish database; Search foods ignores spaces and marks
+- Status: **Accepted** (owner, in chat, 2026-11-10: "I have provided a one file in the
+  D:fitssphere-data. named: Indian_Food_Database_MASTER. ... Once I approve your changes than you need
+  to dumped into the fitssphere"; on the proposal (the rated-C dishes as "estimated dishes" after
+  INDB's recipes and the dishes, before IFCT's foods; the rated-D dishes left out; the file's new
+  packaged products that pass FitSphere's checks; and the search fix for "haldirams"): "Fix the
+  Issue: haldirams that you mentioend I approve your purpose. And wheever you finds any issue reading
+  Classic South Indian Rava Idli simialr product. For now do not dumped. only dumped the right data.
+  After Dumped do let me know the data which you find issue").
+- Answer:
+  - FitSphere's food list gets a new source, **estimated dishes** (`dish_estimate`): Indian dishes the
+    list did not have, from the owner's dish database (`Indian_Food_Database_MASTER.xlsx`, built on
+    6 November 2026, kept outside the repository). Each dish has the typical values per 100 g of its
+    **type of dish** (one of the file's "archetypes", such as a dry sabzi, a dal tadka or a pulao),
+    not values measured for that dish, and that type's serving (a katori, a plate, a piece). Their
+    names are Archana's Kitchen's recipe names (names only) or made by the file's own grammar (a base
+    food and a way of cooking it). They are kept in `docs/data/dish-estimates-sheet.csv`, flagged
+    `llm` on the server only (D-53).
+  - **Loaded: 5,025** of the file's dishes rated C ("estimated") that FitSphere lacked.
+  - **Held back, not loaded: 1,778**, each with its problem in the sheet's `issue` column:
+    - 1,259 rated D ("weak match": no keyword matched, so the base food's default values);
+    - 519 rated C whose values do not fit the dish: another type's values (Classic South Indian Rava
+      Idli has a sweet lassi's), not a dish at all (a spice powder, a batter, a premix), a spoonful's
+      values for a serving dish, a meat, fish or egg dish with a vegetable's protein, a vegetable
+      juice given a fruit juice's values, and the like.
+  - Not in the sheet: the file's dishes FitSphere already has, by name or another spelling (962,
+    every one of INDB's among them), and the file's second rows for a dish.
+  - In Search foods they come after INDB's recipes and the dishes, before IFCT's foods (D-54's order
+    otherwise), up to 30 matches. Each is also found by its base food ("okra" finds Bhindi Masala).
+    The results say "estimated", as for INDB's recipes; the food's page is marked "Estimated dish";
+    the sources sheet behind the i says they are typical values for each type of dish. Each is
+    logged in grams or by its serving, and opens on its serving.
+  - **11 packaged products** from the file's packaged sheet (Open Food Facts India, export of
+    27 October 2026) that FitSphere's packaged foods lacked and that pass every check D-48 applies
+    join them, in `data/foods/off-india-extra.csv` (Haldiram's Bhujia sev among them). The other 324
+    of the file's 335 new barcodes failed: the energy did not agree with the nutrients (142), the
+    barcode was wrong or a shop's own in-store code (137), a value was out of range (24), or the name
+    was not usable (21).
+  - **Search ignores spaces and marks** (the owner: "Fix the Issue: haldirams"): in names, brands and
+    search words, and in what is typed, spaces and the marks ' ’ . - & , / ( ) are ignored, so
+    "haldirams" finds Haldiram's, "healthfactory" finds The Health Factory and "dalmakhani" finds Dal
+    Makhani. This holds for every kind of food in Search foods: the food list, packaged foods, dishes
+    and My foods. A word made only of such marks is matched as typed.
+- MVP defaults:
+  - The rules that held rows back are FitSphere's own, applied when the sheet was made. The owner can
+    approve a held row later, with its values corrected.
+  - One row per dish name: the file's first row that passes the checks, rated C before D. The values
+    are the file's, unchanged; names cut off in the file ("Ghee Rice (") are tidied.
+- Not done: the file says 255 of INDB's values look implausible (for example Curd rice, 196 kcal per
+  100 g). That is a separate question; INDB's values are unchanged.
+- Doc changes: REQ-LOG-007; `food-list-sources.md`; the data model;
+  `constraints-and-assumptions.md` (R-014); the Legal brief (L-19); `CLAUDE.md`. Migration
+  `0021_dish_estimates.sql`; no phone schema change, no new build. On `fitsphere-dev`: migration 0021
+  before the updated API, then `foods:import` (the owner's word: "only dumped the right data").
+
 ---
 
 ---

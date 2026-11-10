@@ -512,6 +512,33 @@ product or a file the owner made with another AI tool, and approved by the owner
   the line; only approved rows reach `app.foods` (source `home`) and their servings
   `app.food_portions`. Never approve a row without the owner's word.
 
+## Estimated dishes: FitSphere's estimated-dishes sheet (D-62)
+- **What:** Indian dishes FitSphere's list lacked (Bhindi Masala, a kootu, Vankaya Pulusu), each with
+  the typical values per 100 g of its type of dish and that type's serving (1 katori, 150 g), and its
+  base food's names as search words ("okra; bhindi").
+- **Where they come from:** the owner's dish database, `Indian_Food_Database_MASTER.xlsx` (built on
+  6 November 2026; kept outside the repository, in `D:\fitsphere-data`). Its sheet Dishes gives each
+  dish a base food, a type of dish ("archetype": 155 types, each one set of values per 100 g and a
+  default serving) and a confidence: A measured (INDB 2024), B corrected, C estimated, D estimated
+  from a weak match. The names are Archana's Kitchen's recipe names (names only, the file says) or
+  made by the file's grammar (a base food and a way of cooking it). The file names INDB 2024 and
+  IFCT 2017 among its sources; it does not say how each type's values were set.
+- **The sheet:** `docs/data/dish-estimates-sheet.csv`, 6,803 rows: the file's dishes FitSphere lacked,
+  one row per name (the first that passes, C before D). **5,025 approved; 1,778 held**, each with
+  its `issue`: 1,259 rated D, and 519 rated C whose type does not fit the dish (another type's
+  values, such as a sweet lassi's for a rava idli; a spice powder, batter or premix, not a dish; a
+  spoonful's values for a serving dish; a meat, fish or egg dish with a vegetable's protein; a
+  vegetable juice; a heavy type for a vegetable dish). Each row keeps its type (`archetype`), the
+  file's `data_source` and confidence, and flag `llm`. The file's dishes FitSphere already had
+  (962, by name or another spelling) and its A and B rows (all INDB's) are not in it.
+- **In the app:** after INDB's recipes and the dishes, before IFCT's foods; "estimated" in the
+  results and "Estimated dish" on the food's page; credited behind Search foods' i as typical values
+  for each type of dish. Accepted risk R-014.
+- `npm run foods:import` checks the whole sheet (codes, values, the energy check, servings, search
+  words) and refuses all of it if any row is wrong, naming the line; only approved rows reach
+  `app.foods` (source `dish_estimate`) and their servings `app.food_portions`. Never approve a held
+  row without the owner's word.
+
 ## Open Food Facts: packaged foods sold in India (D-48)
 - **What:** Open Food Facts' products whose countries include India, with the values their labels
   give per 100 g (per 100 ml for a drink, taken as 100 g) and, where given in grams, one serving.
@@ -541,6 +568,12 @@ product or a file the owner made with another AI tool, and approved by the owner
   integration tests.
 - **Coverage noted (2026-11-04):** about 2,850 brands; among them Amul 322 products (name or brand),
   Britannia 322, Haldiram's 206, Maggi 148, Parle 147, Mother Dairy 46.
+- **More products (D-62):** `data/foods/off-india-extra.csv`, 11 products from the packaged sheet of
+  the owner's dish database (Open Food Facts India, export of 27 October 2026, through the
+  mvark/indiafoodstats mirror, the file says) that FitSphere's own export lacked and that pass the
+  same checks; the other 324 of its 335 new barcodes failed them (energy 142, barcode 137, values
+  out of range 24, name 21). `foods:import` adds them to the packaged foods and refuses a barcode in
+  both files.
 
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,
