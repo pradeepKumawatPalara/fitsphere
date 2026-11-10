@@ -2113,6 +2113,57 @@ checksum), and the configuration template was left as it is.*
   `constraints-and-assumptions.md`; J-03; the data model and `api-conventions.md`; the redesign plan
   (3.3, 3.3b); CLAUDE.md.
 
+## D-70 Insight for each meal and the day; daily carbs, fat and fibre targets
+- Status: **Accepted** (owner, in chat, 2026-11-10: "In the Butritions tab I need one more action
+  called Insight for the Each Meal like Lunch, Breakfast and so on", with three points: the calories
+  eaten in each meal, the target being for the whole day only; protein, fat, carbs and fibre eaten
+  against their targets, with carbs, fat and fibre targets added to Your targets; and the top foods
+  for each nutrient, per meal and for the whole day separately. On the canvas: "I want the Insight as
+  the Icon Before the edit icon on the each meal of the day. when i click on this icon rest of the
+  flow is ok. and Insight tab is fine for now. 6.2 Desing screen is locked"; then "1 Fine for now",
+  "2 remove it" (the Eaten card's Insight link); and the ranges below: "approve").
+- Answer:
+  - **Insight icon** (a pie chart) on each logged meal's card in Nutrition › Consumed, **before
+    Edit**. It opens the new **Insight** page on that meal's type and date; two breakfasts both open
+    Breakfast. Saved meals have none, and the Eaten card has no Insight link.
+  - **The Insight page** (a pushed screen, "Insight"): the date, then five tiles, Day, Breakfast,
+    Lunch, Snack, Dinner (Log meal's tiles, a green tick on each meal with food), to switch without
+    going back. Then:
+    1. **Calories:** the meal's (or the day's) kcal and its share of the daily calorie target; a bar
+       of the day split by meal (the chosen meal in caramel); each meal's kcal and "Left today" or
+       "Over today". **No budget per meal**: the targets stay daily.
+    2. **Against your daily targets:** protein, carbs, fat and fibre, each "X g of Y g" with a bar and
+       the percentage; for a meal, its part solid and the rest of today faded; "N g left today", or
+       "N g over today" in gold (Q-022's colour). With no target: "No daily target" and **Set a
+       target**. A food with no value for a nutrient is named ("… has no fibre value.").
+    3. **Top foods:** Calories, Protein, Carbs, Fat or Fibre; the five foods that gave the most,
+       largest first, with the amount, the value and the share, then "Show all N foods". On the whole
+       day, the same food eaten in several meals is one row, its amounts added and its meals named.
+  - **Your targets** (6.2, locked again): three more, **Daily carbs**, **Daily fat** and **Daily
+    fibre**, in whole grams, as tiles like the others; the tiles in two groups, **Food** (calories
+    across the row, protein, carbs, fat, fibre) and **Activity and body** (steps, weekly workouts,
+    body weight across the row).
+  - **Allowed values** (proposed, then approved): carbs 10 to 1,000 g, fat 5 to 500 g, fibre 5 to
+    100 g.
+- MVP defaults:
+  - Insight reads only what is on the phone (the date's meals and the targets), so it works offline;
+    it shows numbers only, no advice.
+  - A food that gave none of the nutrient chosen is not in Top foods; one with no value for it is
+    left out and named. The same food is one listed food (its source and code; a food the user
+    entered, by its name); amounts in the same unit are added, others listed with "+".
+  - A meal with nothing logged shows "Nothing logged for Snack on …" and **Add to Snack** (Log meal
+    for that meal and date).
+  - Grams on Insight show one decimal at most ("25 g", "6.3 g").
+- Server: `target.set` takes `carbs`, `fat` and `fibre`. Migration `0024_nutrient_targets.sql`
+  replaces `app.targets`' two checks (the kinds and each kind's range). **On `fitsphere-dev`:
+  migration 0024 before the updated API; only when the owner says so.** Until then, a carbs, fat or
+  fibre target syncs as "Not saved".
+- Phone: no schema change (the phone's targets table does not check the kind); no new build. An older
+  copy of the app cannot read the new kinds from the sync; only test phones exist.
+- Doc changes: new REQ-NUT-005 and REQ-NUT-006, REQ-ROLE-007; the data model and
+  `api-conventions.md`; the plan `docs/plans/meal-insight.md`; the redesign plan (3.1, 3.10, 6.2);
+  CLAUDE.md.
+
 ---
 
 ---

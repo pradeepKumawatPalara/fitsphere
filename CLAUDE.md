@@ -12,6 +12,15 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Meal insight — built on branch `feat/meal-insight` (D-70, 2026-11-10).** Plan:
+`docs/plans/meal-insight.md` (Accepted), REQ-NUT-005, REQ-NUT-006, REQ-ROLE-007. Each logged meal's
+card in Nutrition › Consumed has an Insight icon before Edit; the Insight page (`InsightScreen.tsx`,
+route `insight`, the numbers in `src/insight.ts`) shows the day or a meal: its kcal against the daily
+target (no budget per meal), protein, carbs, fat and fibre against their daily targets, and the top
+foods. Your targets adds daily carbs (10–1,000 g), fat (5–500 g) and fibre (5–100 g), grouped under
+Food and Activity and body. Migration `0024_nutrient_targets.sql`; no phone schema change, no new
+build. **On `fitsphere-dev`: migration 0024 before the updated API; only when the owner says so.**
+
 **Log meal holds the date's meals — built on branch `fix/log-meal-save-stay` (D-68, 2026-11-10).**
 No "AI meal reading is coming soon" box; a meal tapped shows its foods on the date, to add to or
 remove from; Save saves every meal changed and stays (the back arrow leaves); a green tick on each meal

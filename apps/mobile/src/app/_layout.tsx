@@ -55,6 +55,8 @@ function AppStack() {
         name="saved-meal"
         options={({ route }) => ({ title: (route.params as { savedId?: string } | undefined)?.savedId ? 'Edit saved meal' : 'New saved meal' })}
       />
+      {/* A meal's or the day's Insight (D-70), from a logged meal's Insight icon. */}
+      <Stack.Screen name="insight" options={{ title: 'Insight' }} />
       <Stack.Screen name="workout/[id]" options={{ title: 'Workout' }} />
       <Stack.Screen name="weight-history" options={{ title: 'Weight history' }} />
     </Stack>

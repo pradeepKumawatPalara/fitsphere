@@ -250,8 +250,8 @@ D-23). They include a target body weight, so the values are treated as **Health*
 |---|---|---|
 | `id` | `uuid` | Primary key |
 | `user_id` | `uuid` | References `users`, deleted with the user. Whose target it is |
-| `kind` | `text` | `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight` |
-| `value` | `integer` | Not null. kcal 500–10,000; protein in grams 10–500; steps 1–100,000; workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028) |
+| `kind` | `text` | `calories`, `protein`, `carbs`, `fat`, `fibre` (D-70), `steps`, `weekly_workouts` or `body_weight` (check `targets_kind`, migration 0024) |
+| `value` | `integer` | Not null. kcal 500–10,000; protein in grams 10–500; steps 1–100,000; workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028); carbs in grams 10–1,000, fat 5–500, fibre 5–100 (D-70) (check `targets_value`) |
 | `set_by_user_id` | `uuid` | References `users`, `on delete set null`. Who set it: always the caller, from the sign-in token, never from the request. Null only once that person's account is deleted (backlog E-02) |
 | `set_at` | `timestamptz` | Not null. When it was set, on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |

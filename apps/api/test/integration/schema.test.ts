@@ -244,13 +244,17 @@ describe('Home and daily tracking tables (migration 0002)', () => {
       ['steps', 1, 100_000],
       ['weekly_workouts', 1, 14],
       ['body_weight', 20_000, 300_000],
+      // D-70.
+      ['carbs', 10, 1_000],
+      ['fat', 5, 500],
+      ['fibre', 5, 100],
     ] as const) {
       await expect(insert(kind, low - 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
       await expect(insert(kind, high + 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
       await insert(kind, high);
       await expect(insert(kind, low)).rejects.toSatisfy((error) => sqlState(error) === UNIQUE_VIOLATION);
     }
-    await expect(insert('carbs', 100)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await expect(insert('sugar', 100)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
   });
 
   it('REQ-ACC-009 deleting a user deletes their daily data and targets', async () => {

@@ -325,15 +325,20 @@ export type WorkoutDeleteData = z.infer<typeof workoutDeleteDataSchema>;
 
 // Targets (REQ-ROLE-007): the user's own, one current value per kind (Q-014 MVP default, D-23).
 // Who set a target comes from the sign-in token, never from the change, so it is not a field here.
+// Daily carbs, fat and fibre joined them for the Insight page (D-70).
 
 export const TARGET_SET = 'target.set';
-export const TARGET_KINDS = ['calories', 'protein', 'steps', 'weekly_workouts', 'body_weight'] as const;
+export const TARGET_KINDS = ['calories', 'protein', 'carbs', 'fat', 'fibre', 'steps', 'weekly_workouts', 'body_weight'] as const;
 export type TargetKind = (typeof TARGET_KINDS)[number];
 
-/** Whole kcal, whole grams of protein, steps, workouts a week, and body weight in grams (D-23). */
+/** Whole kcal, whole grams of protein, carbs, fat and fibre, steps, workouts a week, and body
+ * weight in grams (D-23, D-70). */
 export const TARGET_RANGES: Record<TargetKind, { min: number; max: number }> = {
   calories: { min: 500, max: 10_000 },
   protein: { min: 10, max: 500 },
+  carbs: { min: 10, max: 1_000 },
+  fat: { min: 5, max: 500 },
+  fibre: { min: 5, max: 100 },
   steps: { min: 1, max: STEPS_MAX },
   weekly_workouts: { min: 1, max: 14 },
   body_weight: { min: WEIGHT_GRAMS_MIN, max: WEIGHT_GRAMS_MAX },
@@ -350,6 +355,9 @@ function targetSchemaFor<K extends TargetKind>(kind: K) {
 export const targetSetDataSchema = z.discriminatedUnion('kind', [
   targetSchemaFor('calories'),
   targetSchemaFor('protein'),
+  targetSchemaFor('carbs'),
+  targetSchemaFor('fat'),
+  targetSchemaFor('fibre'),
   targetSchemaFor('steps'),
   targetSchemaFor('weekly_workouts'),
   targetSchemaFor('body_weight'),

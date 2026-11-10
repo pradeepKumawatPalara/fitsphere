@@ -197,7 +197,8 @@ export function AlreadySavedSheet({ savedAs, intro, onGoToSaved, onClose }: { sa
 }
 
 /** Each meal's icon on its tile in Log meal (D-58). */
-const MEAL_ICONS: Record<MealType, LucideIcon> = { breakfast: Sunrise, lunch: Sun, snack: Cookie, dinner: Moon };
+/** Each meal's icon on its tile (Log meal, D-58; Insight, D-70). */
+export const MEAL_ICONS: Record<MealType, LucideIcon> = { breakfast: Sunrise, lunch: Sun, snack: Cookie, dinner: Moon };
 
 /**
  * "Already in this meal" (D-34): a food added again to the meal being built. "Add to existing" puts

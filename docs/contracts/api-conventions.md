@@ -214,7 +214,7 @@ Request:
   | `meal.delete` | `id`, `deletedAt` | Deletes the meal and its photo. A meal the server never had is accepted and changes nothing |
   | `savedMeal.set` | `id`, `name`, `tags`, `items`, `savedAt` | Foods kept under the user's own name, with no day and no meal (D-69); creates the saved meal or replaces it whole. Name 1 to 60 characters. Its items follow the dish rule of `meal.set`. A `mealType` sent by a phone from before D-69 is accepted and not kept |
   | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
-  | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
+  | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `carbs`, `fat`, `fibre` (D-70), `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
   | `setting.set` | `name`, `value`, `setAt` | `name` is `theme` (`system`, `light` or `dark`), `body_weight_unit` or `lifting_weight_unit` (`kg` or `lb`); a value another name allows is refused (data model, `settings`) |
   | `myFood.set` | `id`, `name`, `unit`, `kcal`, `proteinG`, `carbsG`, `fatG`, `fibreG`, `savedAt` | A My food (REQ-LOG-011, D-39): creates it or replaces it whole. `unit` and the values' limits are in the data model (`my_foods`); `fibreG` may be `null` |
   | `myFood.delete` | `id`, `deletedAt` | Deletes the user's My food with that ID; meals logged from it keep their values |

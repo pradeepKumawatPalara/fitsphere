@@ -169,6 +169,10 @@ describe('REQ-ROLE-007 own targets', () => {
       target('steps', 10_000),
       target('weekly_workouts', 4),
       target('body_weight', 68_500),
+      // D-70.
+      target('carbs', 250),
+      target('fat', 60),
+      target('fibre', 30),
     ]);
 
     expect(reply.results.every((result) => result.status === 'accepted')).toBe(true);
@@ -178,6 +182,9 @@ describe('REQ-ROLE-007 own targets', () => {
       { kind: 'steps', value: 10_000, setByUserId: user.id },
       { kind: 'weekly_workouts', value: 4, setByUserId: user.id },
       { kind: 'body_weight', value: 68_500, setByUserId: user.id },
+      { kind: 'carbs', value: 250, setByUserId: user.id },
+      { kind: 'fat', value: 60, setByUserId: user.id },
+      { kind: 'fibre', value: 30, setByUserId: user.id },
     ]);
     expect(reply.pull.targets[0]).toEqual(
       expect.objectContaining({ setAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) }),
@@ -196,9 +203,17 @@ describe('REQ-ROLE-007 own targets', () => {
   it('D-23 a value outside its kind’s range, or an unknown kind, is rejected', async () => {
     const user = await api.signUpWithAccount();
 
-    const reply = await syncOk(user, [target('weekly_workouts', 15), target('calories', 499), target('carbs', 200)]);
+    const reply = await syncOk(user, [
+      target('weekly_workouts', 15),
+      target('calories', 499),
+      target('sugar', 200),
+      target('fibre', 101),
+      target('fat', 4),
+    ]);
 
     expect(reply.results.map((result) => result.error?.code)).toEqual([
+      'VALIDATION_FAILED',
+      'VALIDATION_FAILED',
       'VALIDATION_FAILED',
       'VALIDATION_FAILED',
       'VALIDATION_FAILED',

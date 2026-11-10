@@ -220,6 +220,7 @@ export function NutritionScreen() {
                             syncState={meal.syncState}
                             photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
                             savedAt={meal.recordedAt}
+                            onInsight={() => router.push({ pathname: '/insight', params: { day: selected, scope: slot } })}
                             onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
                             onSave={() => setSheet(savedAs ? { kind: 'alreadySaved', saved: savedAs } : { kind: 'saveMeal', meal })}
                             savedAs={savedAs?.name ?? null}

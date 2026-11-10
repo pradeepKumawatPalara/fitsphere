@@ -222,6 +222,34 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/log-meal', params: { mealId } });
   });
 
+  it('D-70 a logged meal’s Insight icon sits before Edit and opens Insight on its meal type and date; a saved meal has none', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db);
+      await saveEntry(db, 'savedMeal', {
+        changeId: id(),
+        data: { id: id(), name: 'Synthetic dinner', tags: [], items: [ATTA, GHEE], savedAt: AT },
+      });
+    });
+
+    await open('Lunch');
+    const insight = await screen.findByRole('button', { name: 'Insight: Lunch: Wheat flour, atta' });
+    expect(insight).toHaveStyle({ width: 44, height: 44 });
+    expect(within(insight).getByTestId('icon', { includeHiddenElements: true })).toHaveProp('stroke', LIGHT_COLORS.accent);
+    const actions = screen.getAllByRole('button', { name: /Lunch: Wheat flour, atta/ }).map((button) => button.props.accessibilityLabel as string);
+    expect(actions).toEqual([
+      'Insight: Lunch: Wheat flour, atta',
+      'Edit Lunch: Wheat flour, atta',
+      'Save Lunch: Wheat flour, atta to my meals',
+      'Delete Lunch: Wheat flour, atta',
+    ]);
+    await fireEvent.press(insight);
+    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/insight', params: { day: TODAY, scope: 'lunch' } });
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Saved' }));
+    expect(await screen.findByText('Synthetic dinner')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Insight/ })).toBeNull();
+  });
+
   it('REQ-NUT-004 "Save to my meals" keeps a copy, named from its foods, in Saved', async () => {
     const { db } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
       await meal(seed, { mealType: 'dinner', tags: ['before_training'], items: [ATTA, GHEE] });

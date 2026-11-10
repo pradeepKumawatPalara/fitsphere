@@ -27,12 +27,23 @@ async function setTarget(label: string, text: string) {
 }
 
 describe('REQ-ROLE-007 Your targets', () => {
-  it('REQ-ROLE-007 lists the five targets, none set at first', async () => {
+  it('REQ-ROLE-007 lists the eight targets in two groups, none set at first (D-70)', async () => {
     await renderInApp(<TargetsScreen />);
 
-    for (const label of ['Daily calories', 'Daily protein', 'Daily steps', 'Weekly workouts', 'Target body weight']) {
+    expect(await screen.findByRole('header', { name: 'Food' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Activity and body' })).toBeOnTheScreen();
+    const labels = ['Daily calories', 'Daily protein', 'Daily carbs', 'Daily fat', 'Daily fibre', 'Daily steps', 'Weekly workouts', 'Target body weight'];
+    for (const label of labels) {
       expect(await screen.findByRole('button', { name: `${label}: Not set` })).toBeOnTheScreen();
     }
+    // In that order: the food targets first.
+    expect(screen.getAllByRole('button', { name: /: Not set$/ }).map((tile) => tile.props.accessibilityLabel)).toEqual(
+      labels.map((label) => `${label}: Not set`),
+    );
+    // The calories and the body weight take their rows.
+    expect(screen.getByRole('button', { name: 'Daily calories: Not set' })).toHaveStyle({ flexBasis: '100%' });
+    expect(screen.getByRole('button', { name: 'Target body weight: Not set' })).toHaveStyle({ flexBasis: '100%' });
+    expect(screen.getByRole('button', { name: 'Daily carbs: Not set' })).toHaveStyle({ flexBasis: '40%' });
   });
 
   it('each target shows a caramel pencil at its top right, and the tile says it opens the target to edit', async () => {
@@ -47,7 +58,7 @@ describe('REQ-ROLE-007 Your targets', () => {
     expect(pencil.parent!.children).toHaveLength(2);
     expect(within(pencil.parent!).queryByText('Daily calories')).toBeNull();
     expect(within(tile).getByText('Daily calories')).toBeOnTheScreen();
-    for (const kind of ['protein', 'steps', 'weekly_workouts', 'body_weight']) {
+    for (const kind of ['protein', 'carbs', 'fat', 'fibre', 'steps', 'weekly_workouts', 'body_weight']) {
       expect(screen.getByTestId(`edit-${kind}`, { includeHiddenElements: true })).toBeOnTheScreen();
     }
   });
@@ -57,6 +68,9 @@ describe('REQ-ROLE-007 Your targets', () => {
 
     await setTarget('Daily calories', '2000');
     await setTarget('Daily protein', '120');
+    await setTarget('Daily carbs', '250');
+    await setTarget('Daily fat', '60');
+    await setTarget('Daily fibre', '30');
     await setTarget('Daily steps', '10,000');
     await setTarget('Weekly workouts', '4');
     await setTarget('Target body weight', '68.5');
@@ -64,6 +78,9 @@ describe('REQ-ROLE-007 Your targets', () => {
     for (const name of [
       'Daily calories: 2,000 kcal',
       'Daily protein: 120 g',
+      'Daily carbs: 250 g',
+      'Daily fat: 60 g',
+      'Daily fibre: 30 g',
       'Daily steps: 10,000 steps',
       'Weekly workouts: 4 workouts',
       'Target body weight: 68.5 kg',
@@ -72,6 +89,7 @@ describe('REQ-ROLE-007 Your targets', () => {
       await waitFor(() => expect(within(row).getByText('Set by you')).toBeOnTheScreen());
     }
     await waitFor(() => expect(server.entries('targets').get('body_weight')).toMatchObject({ value: 68_500 }));
+    expect(server.entries('targets').get('fibre')).toMatchObject({ value: 30 });
     expect(await getEntry(db, 'target', 'calories')).toMatchObject({ value: 2_000, syncState: 'synced', setByUserId: expect.any(String) });
   });
 
@@ -89,6 +107,13 @@ describe('REQ-ROLE-007 Your targets', () => {
     ['Daily calories', '499'],
     ['Daily calories', '10001'],
     ['Daily protein', '9'],
+    ['Daily carbs', '9'],
+    ['Daily carbs', '1001'],
+    ['Daily fat', '4'],
+    ['Daily fat', '501'],
+    ['Daily fibre', '4'],
+    ['Daily fibre', '101'],
+    ['Daily fibre', '30.5'],
     ['Daily steps', '0'],
     ['Weekly workouts', '15'],
     ['Weekly workouts', '2.5'],
