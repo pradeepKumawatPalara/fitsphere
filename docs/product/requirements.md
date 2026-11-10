@@ -139,7 +139,7 @@ B-22).
 - Open: do target changes apply from a date or retroactively (Q-014)?
 
 ### REQ-ROLE-007 — Self-directed users
-- Requirement: A Personal Training User without a coach can still log and view all personal data; target-dependent displays show a no-target state. They can set their own daily calorie, protein and steps targets, weekly workout target and target body weight, labelled "Set by you" (D-20, extending the Q-016 MVP default, which covered calorie and protein only). These are new entries by the user; targets set by a former coach are not edited (invariant 2). Once they accept a coach, coach-set targets apply and are read-only (REQ-PLAN-001; post-MVP).
+- Requirement: A Personal Training User without a coach can still log and view all personal data; target-dependent displays show a no-target state. They can set their own daily calorie, protein, carbs, fat, fibre (D-70) and steps targets, weekly workout target and target body weight, labelled "Set by you" (D-20, extending the Q-016 MVP default, which covered calorie and protein only). Your targets groups them under Food and Activity and body (D-70); carbs 10–1,000 g, fat 5–500 g and fibre 5–100 g, in whole grams. These are new entries by the user; targets set by a former coach are not edited (invariant 2). Once they accept a coach, coach-set targets apply and are read-only (REQ-PLAN-001; post-MVP).
 - Acceptance criteria:
   - Given no coach and no targets, then the calories card shows kcal eaten without a percentage or remaining value.
   - Given no coach, when the user sets a calorie target, then the calories card shows the percentage and kcal remaining against it.
@@ -383,6 +383,20 @@ B-22).
 
 ### REQ-NUT-004 — Meal menu: edit, delete, save to my meals
 - Requirement: Each logged meal offers Edit, Delete and "Save to my meals" (MVP default, Q-032), as icons on the meal, each named for screen readers and 44 dp to tap; Delete asks first (D-33, which replaced the first "•••" menu). A saved meal offers Delete the same way. "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
+- D-70: a logged meal's Insight icon comes first, before Edit (REQ-NUT-005).
+
+### REQ-NUT-005 — Insight: a meal's and the day's calories and nutrients
+- Requirement (D-70): each logged meal's Insight icon opens the Insight page on that meal's type (Breakfast, Lunch, Snack or Dinner) and date. Five tiles switch between the whole day and its four meals, without going back; a green tick marks each meal with food. The page shows:
+  - **Calories:** the scope's kcal and its share of the daily calorie target; the day's kcal split by meal on a bar, each meal's kcal, and what is left (or over) today. The targets are daily; there is no budget per meal.
+  - **Against your daily targets:** protein, carbs, fat and fibre eaten, each against its daily target, with the percentage and what is left or over today (over in gold, Q-022). For a meal, the bar shows the meal's part and the rest of today. A nutrient with no target says "No daily target" with "Set a target" (Your targets). A food with no value for a nutrient is named.
+  - A meal with nothing logged says so, with "Add to <meal>" (Log meal for that meal and date).
+- Acceptance criteria:
+  - Given lunch 237 kcal, the day 429 kcal and a 2,000 kcal target, then Lunch shows "Lunch: 12% of your 2,000 kcal daily target" and "Left today 1,571 kcal".
+  - Given a fat target of 5 g and 6.8 g eaten that day, then the whole day's fat bar is full in gold with "1.8 g over today".
+  - Insight reads only the phone's data: it works offline, and shows numbers only, no advice.
+
+### REQ-NUT-006 — Insight: top foods
+- Requirement (D-70): on the Insight page, Top foods ranks the scope's foods by Calories (first), Protein, Carbs, Fat or Fibre: largest first (a tie in the order logged), each with its amount, value and share of the total, five at first, then "Show all N foods". On the whole day, the same food eaten in several meals is one row, its amounts added and its meals named. A food that gave none is not listed; one with no value for the nutrient is left out and named.
 
 ---
 
