@@ -16,6 +16,7 @@ import {
   HEART_RATE_BPM_MAX,
   HEART_RATE_BPM_MIN,
   isLiftWeightGramsInRange,
+  istWeekStart,
   LIFT_WEIGHT_GRAMS_MAX,
   LIFT_WEIGHT_GRAMS_MIN,
   toGrams,
@@ -24,6 +25,7 @@ import {
   type ExerciseGroup,
   type ExerciseLogType,
   type ExerciseSet,
+  type IstDay,
   type ListedExercise,
   type WorkoutExercise,
 } from '@fitsphere/shared';
@@ -440,29 +442,30 @@ export function speedAndPace(metres: number, seconds: number): string {
   return `${formatSpeed(Math.round((metres / seconds) * 3600))} · ${formatDuration(Math.round(seconds / (metres / 1000)))} /km`;
 }
 
-/** A set's reps, time and weight: "10 × 40.0 kg", "0:45 × 24.0 kg", "15"; the weight's unit only if asked. */
-function setText(set: ExerciseSet, unit: BodyWeightUnit, withUnit: boolean): string {
-  const parts = [
+/** One row of an exercise's sets on the workout screen: "Set 2" and "8 × 22.5 kg" (D-63). */
+export type SetRow = { label: string; value: string };
+
+/** A set as its row reads it: "10 × 40.0 kg", "0:45 × 24.0 kg", "1:00", or reps alone as "15 reps". */
+function setRowValue(set: ExerciseSet, unit: BodyWeightUnit): string {
+  const text = [
     ...(set.reps === null ? [] : [String(set.reps)]),
     ...(set.seconds === null ? [] : [formatDuration(set.seconds)]),
-    ...(set.weightGrams === null ? [] : [withUnit ? formatWeight(set.weightGrams, unit) : fromGrams(set.weightGrams, unit).toFixed(1)]),
-  ];
-  return parts.join(' × ');
+    ...(set.weightGrams === null ? [] : [formatWeight(set.weightGrams, unit)]),
+  ].join(' × ');
+  if (set.reps === null || set.weightGrams !== null || set.seconds !== null) return text;
+  return `${text} ${set.reps === 1 ? 'rep' : 'reps'}`;
 }
 
 /**
- * Sets the same each time as "3 × 10 × 40.0 kg", "3 × 15" or "3 × 1:00"; sets that differ one by one,
- * "10 × 20.0 · 8 × 22.5 · 6 × 25.0 kg", or "15 · 12 · 10 reps".
+ * An exercise's sets, a row each (D-63): "Set 1 · 10 × 20.0 kg", "Set 2 · 8 × 22.5 kg"; sets all the
+ * same in one row, "3 sets · 10 × 40.0 kg", and a single set as "1 set · 12 reps".
  */
-export function formatSets(sets: readonly ExerciseSet[], unit: BodyWeightUnit): string {
+export function setRows(sets: readonly ExerciseSet[], unit: BodyWeightUnit): SetRow[] {
   const [first] = sets;
-  if (!first) return '';
+  if (!first) return [];
   const same = sets.every((set) => set.reps === first.reps && set.seconds === first.seconds && set.weightGrams === first.weightGrams);
-  if (same) return `${sets.length} × ${setText(first, unit, true)}`;
-  const weighted = sets.some((set) => set.weightGrams !== null);
-  const repsOnly = !weighted && sets.every((set) => set.seconds === null);
-  const list = sets.map((set) => setText(set, unit, false)).join(' · ');
-  return weighted ? `${list} ${unit}` : repsOnly ? `${list} reps` : list;
+  if (same) return [{ label: sets.length === 1 ? '1 set' : `${sets.length} sets`, value: setRowValue(first, unit) }];
+  return sets.map((set, index) => ({ label: `Set ${index + 1}`, value: setRowValue(set, unit) }));
 }
 
 /** e.g. "368 kcal · estimated", as Log meal marks an estimated value, or "360 kcal" as typed (D-50). */
@@ -477,16 +480,15 @@ export function formatHeartRate(average: number | null, highest: number | null):
 }
 
 /**
- * An exercise's lines on the workout screen (D-50): its sets, or its time with the distance or the
- * speed; and under it a cardio exercise's speed and pace, incline and level, then its calories burned
- * and heart rate.
+ * An exercise's lines on the workout screen (D-50): its sets, a row each (D-63), or its time with the
+ * distance or the speed; and under them a cardio exercise's speed and pace, incline and level, then
+ * its calories burned and heart rate.
  */
-export function exerciseLines(exercise: WorkoutExercise, unit: BodyWeightUnit): { main: string; detail: string } {
+export function exerciseLines(exercise: WorkoutExercise, unit: BodyWeightUnit): { main: string; rows: SetRow[]; detail: string } {
   const main: string[] = [];
   const detail: string[] = [];
-  if (exercise.kind === 'sets') {
-    main.push(formatSets(exercise.sets, unit));
-  } else {
+  const rows = exercise.kind === 'sets' ? setRows(exercise.sets, unit) : [];
+  if (exercise.kind === 'cardio') {
     const { durationSeconds, distanceMetres, speedMetresPerHour, inclinePermille, level } = exercise;
     main.push(formatDuration(durationSeconds));
     if (distanceMetres !== null) {
@@ -501,7 +503,31 @@ export function exerciseLines(exercise: WorkoutExercise, unit: BodyWeightUnit): 
   if (exercise.calories) detail.push(formatCalories(exercise.calories));
   const heartRate = formatHeartRate(exercise.averageHeartRateBpm, exercise.highestHeartRateBpm);
   if (heartRate) detail.push(heartRate);
-  return { main: main.join(' · '), detail: detail.join(' · ') };
+  return { main: main.join(' · '), rows, detail: detail.join(' · ') };
+}
+
+/**
+ * An exercise as a screen reader reads its card: "Squat: Set 1, 10 × 40.0 kg; Set 2, 8 × 45.0 kg",
+ * "Push-up: 3 sets, 15 reps", "Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km".
+ */
+export function exerciseLabel(exercise: WorkoutExercise, unit: BodyWeightUnit): string {
+  const { main, rows, detail } = exerciseLines(exercise, unit);
+  const lines = exercise.kind === 'sets' ? rows.map((row) => `${row.label}, ${row.value}`).join('; ') : main;
+  return `${exercise.name}: ${lines}${detail ? `, ${detail}` : ''}`;
+}
+
+/**
+ * What deleting a workout takes with it (D-63): its exercises ("2 exercises", or "" with none) and,
+ * once it has one, its place in its week's workouts (only a workout with an exercise counts, D-41),
+ * "this week's" or "that week's" as Home's workouts card names the week; and that it can't be undone.
+ */
+export function deleteWorkoutEffects(exerciseCount: number, day: IstDay, today: IstDay): { exercises: string; rest: string } {
+  if (exerciseCount === 0) return { exercises: '', rest: "You can't undo this." };
+  const week = istWeekStart(day) === istWeekStart(today) ? 'this' : 'that';
+  return {
+    exercises: `${exerciseCount} ${exerciseCount === 1 ? 'exercise' : 'exercises'}`,
+    rest: `It will no longer count in ${week} week's workouts. You can't undo this.`,
+  };
 }
 
 /**

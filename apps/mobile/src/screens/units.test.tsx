@@ -150,14 +150,14 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
     const { db } = await startWorkout();
     await addExercise('88.2');
 
-    expect(await screen.findByRole('button', { name: 'Squat: 3 × 10 × 88.2 lb' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Squat: 3 sets, 10 × 88.2 lb' })).toBeOnTheScreen();
     expect(screen.getByText('70.0 kg')).toBeOnTheScreen();
     const squat = (await getEntry(db, 'workout', mockParams.id))?.exercises[0];
     expect(squat?.kind === 'sets' ? squat.sets.map((set) => set.weightGrams) : null).toEqual(Array(3).fill(toGrams(88.2, 'lb')));
 
     await fireEvent.press(screen.getByRole('button', { name: 'lifting_weight_unit → kg' }));
 
-    expect(await screen.findByRole('button', { name: 'Squat: 3 × 10 × 40.0 kg' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Squat: 3 sets, 10 × 40.0 kg' })).toBeOnTheScreen();
     expect(screen.getByText('70.0 kg')).toBeOnTheScreen();
   });
 

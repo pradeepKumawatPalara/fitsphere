@@ -69,7 +69,7 @@ not on this phone."), and another user's workouts never being returned.
 
 | Used in | Exercise | Sets | Reps | Weight (kg) | Note | Shown as |
 |---|---|---|---|---|---|---|
-| S4-04, S4-09 | Bench press | 3 | 10, then 12 | 40, then `42,5` | `Synthetic test note` | "3 × 10 × 40.0 kg", then "3 × 12 × 42.5 kg" |
+| S4-04, S4-09 | Bench press | 3 | 10, then 12 | 40, then `42,5` | `Synthetic test note` | "3 sets  10 × 40.0 kg", then "3 sets  12 × 42.5 kg" (D-63) |
 | S4-05 | Push-ups (removed in S4-10) | 3 | 15 | empty | empty | "3 × 15" |
 | S4-06 | Squat | 4 | 8 | 60.5 | empty | "4 × 8 × 60.5 kg" |
 | S4-08 | Test max (removed) | 20 | 200 | 500, then 0.1 | empty | "20 × 200 × 500.0 kg", then "20 × 200 × 0.1 kg" |
@@ -159,7 +159,7 @@ and counts toward the week at once.
 | 3 | Exercise name | `Bench press` | — |
 | 4 | Sets, Reps, Weight in kg | `3`, `10`, `40` | — |
 | 5 | Note | `Synthetic test note` | — |
-| 6 | Tap **Save exercise** | — | The sheet closes. "No exercises yet." is gone; a card "Bench press", "3 × 10 × 40.0 kg", "Synthetic test note" |
+| 6 | Tap **Save exercise** | — | The sheet closes. "No exercises yet." is gone; a card "Bench press", "3 sets  10 × 40.0 kg", "Synthetic test note" |
 
 **Final expected result:** the exercise is saved at once with its sets, reps, weight in kg (one
 decimal shown) and note.
@@ -316,7 +316,7 @@ has one circle.
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
 | 1 | Tap the row "Fri 30 Oct · No exercises" | — | Its workout screen |
-| 2 | Tap **Delete workout** | — | A red-bordered box: "Delete this workout? It leaves your history and your weekly count." with a red **Delete** and **Keep** |
+| 2 | Tap **Delete workout** | — | A red-bordered box: "Delete Workout N on Fri 30 Oct?" (N is its number that day) and "You can't undo this." (it has no exercises), with **Keep** and a red **Delete** (D-63) |
 | 3 | Tap **Keep** | — | The box closes; the workout is still open; **Delete workout** is back |
 | 4 | **Delete workout** › **Delete** | — | Back on Training; only "Fri 30 Oct · 2 exercises · Bench press, Squat" is left |
 | 5 | **Home** | — | "1 of 4 · 3 left" |

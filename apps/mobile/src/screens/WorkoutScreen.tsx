@@ -1,4 +1,4 @@
-import { MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
+import { istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Dumbbell, Flame, Plus, SquarePen, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -14,19 +14,19 @@ import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { caloriesBurned, exerciseLines } from '../workouts';
+import { caloriesBurned, deleteWorkoutEffects, exerciseLabel, exerciseLines } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
 type Sheet = { index: number | null };
 
-// One workout (REQ-TRN-003): its exercises, each as its sets or its cardio (D-50), with an optional
-// note (Q-042).
+// One workout (REQ-TRN-003): its exercises, each as its sets, a row per set (D-63), or its cardio
+// (D-50), with an optional note (Q-042).
 // Every change is saved on the phone at once and synced (ADR-0007); there is no draft and no
 // "Finish" step (MVP default, D-29), and no Done: Save in the exercise sheet saves, and the header's
 // back arrow leaves (D-42). Each exercise has edit and remove; removing asks first. Named by its
 // place among its day's workouts, "Workout 2 · Tue 3 Nov". The workout counts toward the week once it
-// has an exercise (D-41).
-export function WorkoutScreen() {
+// has an exercise (D-41); deleting it says what goes with it (D-63).
+export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -76,6 +76,7 @@ export function WorkoutScreen() {
   const saveExercises = (exercises: WorkoutExercise[]) => sync.save('workout', { ...saved, exercises });
   const editing = sheet?.index === null || sheet?.index === undefined ? null : workout.exercises[sheet.index];
   const burned = caloriesBurned(workout.exercises);
+  const deleted = deleteWorkoutEffects(workout.exercises.length, workout.day, istToday(now()));
 
   async function deleteWorkout() {
     await sync.remove('workout', id);
@@ -108,12 +109,12 @@ export function WorkoutScreen() {
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
         {workout.exercises.map((exercise, index) => {
-          const { main, detail } = exerciseLines(exercise, unit);
+          const { main, rows, detail } = exerciseLines(exercise, unit);
           return (
             <View key={index} style={styles.exercise}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${exercise.name}: ${main}${detail ? `, ${detail}` : ''}`}
+                accessibilityLabel={exerciseLabel(exercise, unit)}
                 onPress={() => setSheet({ index })}
                 style={({ pressed }) => [styles.exerciseMain, pressed && styles.pressed]}
               >
@@ -122,7 +123,18 @@ export function WorkoutScreen() {
                 </View>
                 <View style={styles.exerciseText}>
                   <Text style={styles.name}>{exercise.name}</Text>
-                  <Text style={styles.sets}>{main}</Text>
+                  {exercise.kind === 'sets' ? (
+                    <View style={styles.setRows}>
+                      {rows.map((row) => (
+                        <View key={row.label} style={styles.setRow}>
+                          <Text style={styles.setLabel}>{row.label}</Text>
+                          <Text style={styles.setValue}>{row.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.sets}>{main}</Text>
+                  )}
                   {detail ? <Text style={styles.note}>{detail}</Text> : null}
                   {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
                 </View>
@@ -146,7 +158,10 @@ export function WorkoutScreen() {
             <View accessibilityRole="alert" style={styles.confirm}>
               <View style={styles.confirmText}>
                 <Trash size={20} color={colors.danger} />
-                <Text style={styles.body}>Delete this workout? It leaves your history and your weekly count.</Text>
+                <View style={styles.confirmWords}>
+                  <Text style={styles.confirmTitle}>{`Delete Workout ${place} on ${formatDay(workout.day)}?`}</Text>
+                  <Text style={styles.body}>{`${deleted.exercises ? `Its ${deleted.exercises} will be deleted too. ` : ''}${deleted.rest}`}</Text>
+                </View>
               </View>
               <View style={styles.actions}>
                 <View style={styles.half}>
@@ -247,7 +262,14 @@ const useStyles = themedStyles((c) => ({
   exerciseText: { flex: 1, gap: 2 },
   name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   sets: { ...TYPE.metric },
+  // D-63: a row per set, its label ("Set 2", "3 sets") muted in a column of its own.
+  setRows: { gap: 2 },
+  setRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  setLabel: { ...TYPE.label, fontSize: 14, lineHeight: 24, letterSpacing: 1, minWidth: 54, color: c.inkMuted },
+  setValue: { ...TYPE.metric, flexShrink: 1, fontSize: 21 },
   body: { flexShrink: 1, fontSize: 15, lineHeight: 22 },
+  confirmWords: { flex: 1, gap: 6 },
+  confirmTitle: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
   note: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
   danger: { paddingTop: 8 },
   confirm: { padding: 16, gap: 14, borderRadius: 4, borderWidth: 1.5, borderColor: c.danger, backgroundColor: c.dangerTint },

@@ -25,7 +25,7 @@ import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { caloriesBurned, workoutSummary } from '../workouts';
+import { caloriesBurned, deleteWorkoutEffects, workoutSummary } from '../workouts';
 
 const CHUNK_DAYS = 90;
 
@@ -42,13 +42,23 @@ export function byDate(rows: readonly Row[]): { day: string; workouts: Row[] }[]
   return [...days].map(([day, workouts]) => ({ day, workouts: [...workouts].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)) }));
 }
 
+/**
+ * What deleting a workout from its row asks (D-63): "Workout 2 on Tue 3 Nov will be deleted, with its
+ * 2 exercises. It will no longer count in this week's workouts. You can't undo this."
+ */
+function deleteWorkoutMessage(workout: { day: string; name: string; exercises: number }, today: string): string {
+  const { exercises, rest } = deleteWorkoutEffects(workout.exercises, workout.day, today);
+  return `${workout.name} on ${formatDay(workout.day)} will be deleted${exercises ? `, with its ${exercises}` : ''}. ${rest}`;
+}
+
 // The Training tab (REQ-TRN-002…004). No one can send a training plan in the MVP, so it always
 // shows "No training plan yet" (D-20), then "Log workout" (D-37) and the workouts the user has
 // logged: the last 90 IST days from the phone, and older ones read from the server online, 90 days
 // at a time, view-only (ADR-0007 rules 1 and 6; MVP default, D-29). Each date's card lists its
 // workouts ("Workout 1", "Workout 2"…), each with edit and delete, and "Log another workout" on that
-// date (D-42). A date chip above Log workout, as Log meal's, picks the day it logs to: it sets the
-// app's selected date, so the header shows the same day (D-43).
+// date (D-42); deleting one says what goes with it (D-63). A date chip above Log workout, as Log
+// meal's, picks the day it logs to: it sets the app's selected date, so the header shows the same day
+// (D-43).
 export function TrainingScreen() {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -63,7 +73,7 @@ export function TrainingScreen() {
   const [oldestLoaded, setOldestLoaded] = useState(firstDay);
   const [message, setMessage] = useState<Message | null>(null);
   // The workout being deleted, once asked (D-42).
-  const [deleting, setDeleting] = useState<{ id: string; day: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState<{ id: string; day: string; name: string; exercises: number } | null>(null);
   // The calendar of the date chip (D-43).
   const [choosingDay, setChoosingDay] = useState(false);
   // Each button fades only while its own action runs.
@@ -226,7 +236,7 @@ export function TrainingScreen() {
                           <IconButton label={`Edit ${name} on ${formatDay(day)}`} onPress={() => open(workout.id)}>
                             <SquarePen size={20} color={colors.accent} />
                           </IconButton>
-                          <IconButton label={`Delete ${name} on ${formatDay(day)}`} onPress={() => setDeleting({ id: workout.id, day, name })}>
+                          <IconButton label={`Delete ${name} on ${formatDay(day)}`} onPress={() => setDeleting({ id: workout.id, day, name, exercises: workout.exercises.length })}>
                             <Trash size={20} color={colors.danger} />
                           </IconButton>
                         </>
@@ -275,7 +285,7 @@ export function TrainingScreen() {
       {deleting ? (
         <ConfirmSheet
           title="Delete workout?"
-          message={`Delete ${deleting.name} on ${formatDay(deleting.day)}? It leaves your history and your weekly count.`}
+          message={deleteWorkoutMessage(deleting, today)}
           cancelLabel="Keep"
           confirmLabel="Delete"
           onConfirm={() => void sync.remove('workout', deleting.id)}
