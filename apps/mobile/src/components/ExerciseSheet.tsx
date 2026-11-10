@@ -1,10 +1,17 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { Info, Plus, Search, Trash } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Keyboard, Pressable, View, type TextInputProps } from 'react-native';
-import { parseTwoDecimals, parseWholeNumber } from '../format';
+import { Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
+import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { findListedExercise, searchExercises, weighInOnOrBefore } from '../local/store';
+import {
+  exercisePlaceCounts,
+  findListedExercise,
+  searchExercises,
+  weighInOnOrBefore,
+  type ExerciseFilter,
+  type ExercisePlaceCounts,
+} from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -28,6 +35,8 @@ import {
   type SetColumn,
   type SetText,
 } from '../workouts';
+import { ExercisePlacePickers, filterLabel } from './ExercisePlacePickers';
+import { FullScreen } from './FullScreen';
 import { Sheet } from './Sheet';
 import { IconButton, Problem, Text, TextButton, TextInput, useChoiceStyles, useFieldLabelStyle } from './ui';
 
@@ -59,20 +68,56 @@ function hours(seconds: number): string {
   return String(Number((seconds / 3600).toFixed(2)));
 }
 
+/** No category or sub-group chosen (D-67). */
+const NO_FILTER: ExerciseFilter = { category: null, subGroup: null };
+/**
+ * Matches shown while typing with no choice made (D-50); the most a category or sub-group reads; and the
+ * most rows drawn, "All exercises" being cut at the first of them (D-67).
+ */
+const MATCHES_LIMIT = 8;
+const FILTERED_LIMIT = 1000;
+const SHOWN_MAX = 300;
+
+/** Whether an exercise is one of a category's or sub-group's (D-67); every one with no choice made. */
+function inFilter(exercise: ListedExercise, filter: ExerciseFilter): boolean {
+  if (filter.category === null && filter.subGroup === null) return true;
+  return exercise.places.some(
+    (place) => (filter.category === null || place.category === filter.category) && (filter.subGroup === null || place.subGroup === filter.subGroup),
+  );
+}
+
+/**
+ * What a match says under its name (D-67): what the choice made doesn't say. With nothing chosen, its
+ * category and sub-group ("Core / Abs · Flexion"); with a category, its sub-group there; with a
+ * sub-group, its category; with both, nothing. An exercise of FitSphere's list in no category keeps
+ * its group (D-50).
+ */
+function matchTag(exercise: ListedExercise, filter: ExerciseFilter): string | null {
+  if (exercise.places.length === 0) return filter.category === null && filter.subGroup === null ? GROUP_LABELS[exercise.group] : null;
+  if (filter.category !== null && filter.subGroup !== null) return null;
+  if (filter.category !== null) return exercise.places.find((place) => place.category === filter.category)?.subGroup ?? null;
+  if (filter.subGroup !== null) return exercise.places.find((place) => place.subGroup === filter.subGroup)?.category ?? null;
+  const [place] = exercise.places;
+  return place!.subGroup === null ? place!.category : `${place!.category} · ${place!.subGroup}`;
+}
+
 /** A set's column as its header and its fields' names read it. */
 function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit): string {
   const label = column === 'reps' ? 'Reps' : column === 'weight' ? `Weight in ${unit}` : 'Time in sec';
   return required ? label : `${label} (optional)`;
 }
 
-// A bottom sheet for one exercise (REQ-TRN-003; D-50). The name searches FitSphere's exercise list on
+// A page for one exercise (REQ-TRN-003; D-50), opened over the workout with a back arrow, as Search foods
+// (the owner, 2026-11-10: the sheet's matches had too little room; D-67). The name searches FitSphere's exercise list on
 // the phone, offline: up to 8 matches under it, each with its group; picking one shows its type's
 // fields. A list exercise done with a weight asks for it on every set; a bodyweight one shows no
 // weight (the owner, 2026-11-04); cardio asks for a time, with a distance, a treadmill's speed and
 // incline or a machine's level. A name of the user's own asks "Log as". Each set has its own reps,
 // weight and time; Add set copies the last. Weights are in the lifting-weight unit setting
 // (REQ-TRN-005, REQ-ACC-002). Nothing is saved until every field is valid; Cancel closes without
-// saving (as Q-029).
+// saving (as Q-029). Above the name, Category and Sub-group narrow the search (D-67): with either
+// chosen, its exercises show before a word is typed, every match of the words typed after, each
+// tagged with what is not chosen yet; the choice is not saved with the exercise.
 export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -92,6 +137,44 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   // The weight calories are estimated with, and the i's explanation open (D-50).
   const [weightGrams, setWeightGrams] = useState<number | null>(null);
   const [explaining, setExplaining] = useState(false);
+  // The category and sub-group the search is narrowed to, the picker open, and the list's counts (D-67).
+  const [filter, setFilter] = useState<ExerciseFilter>(NO_FILTER);
+  const [picking, setPicking] = useState<'category' | 'subGroup' | null>(null);
+  const [counts, setCounts] = useState<ExercisePlaceCounts | null>(null);
+  // The name's chevron, as Category's (D-67): the list closed with it, until typed in or opened again;
+  // and, opened with nothing typed or chosen, every exercise.
+  const [listClosed, setListClosed] = useState(false);
+  const [showingAll, setShowingAll] = useState(false);
+  const filtered = filter.category !== null || filter.subGroup !== null;
+  const unnamed = text.name.trim() === '';
+  const browsingAll = showingAll && !filtered && unnamed;
+  const browsing = (filtered || browsingAll) && unnamed;
+
+  /**
+   * A new category or sub-group (D-67). An exercise of the list already picked that it does not hold
+   * leaves the name (the owner, 2026-11-10), so the choice's exercises show to pick from; a name of the
+   * user's own stays.
+   */
+  function chooseFilter(next: ExerciseFilter) {
+    setFilter(next);
+    setListClosed(false);
+    if (listed !== null && !inFilter(listed, next)) {
+      change({ name: '' });
+      setListed(null);
+      setPicked(false);
+    }
+  }
+
+  useEffect(() => {
+    if (local.state.status !== 'ready') return;
+    let active = true;
+    void exercisePlaceCounts(local.state.db).then((read) => {
+      if (active) setCounts(read);
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state]);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -115,7 +198,11 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([findListedExercise(db, text.name), typingName ? searchExercises(db, text.name) : []]).then(([found, list]) => {
+    const searching = !listClosed && (typingName || browsing);
+    void Promise.all([
+      findListedExercise(db, text.name),
+      searching ? searchExercises(db, text.name, browsingAll ? SHOWN_MAX : filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll) : [],
+    ]).then(([found, list]) => {
       if (!active) return;
       setListed(found);
       setMatches(list);
@@ -123,7 +210,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     return () => {
       active = false;
     };
-  }, [local.state, text.name, typingName]);
+  }, [local.state, text.name, typingName, browsing, browsingAll, listClosed, filtered, filter]);
 
   // An exercise saved as cardio, now listed as done in sets or the other way round, keeps its own
   // fields while it keeps its name, as a name of the user's own.
@@ -132,7 +219,18 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const match = savedOtherwise ? null : listed;
   const layout = exerciseLayout(match, text.logAs, editing);
   const named = text.name.trim() !== '';
-  const choosing = typingName && matches.length > 0;
+  const choosing = !listClosed && (typingName || browsing) && matches.length > 0;
+  // A list fills the page under the fields: a choice's, or the matches.
+  const listing = picking !== null || choosing;
+  // Words typed in a category or sub-group that match none of its exercises (D-67).
+  const noMatch = filtered && named && typingName && !listClosed && matches.length === 0 && listed === null;
+  const listTitle = browsingAll
+    ? `All exercises · ${formatInteger(counts?.total ?? matches.length)}`
+    : !filtered
+    ? 'Matches'
+    : browsing
+      ? `${filterLabel(filter)} · ${matches.length} ${matches.length === 1 ? 'exercise' : 'exercises'}`
+      : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} in ${filterLabel(filter)}`;
   const estimated = estimateCalories(match, effortOf(text, layout), weightGrams);
   const estimate = 'estimate' in estimated ? estimated.estimate : null;
 
@@ -142,6 +240,18 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
 
   function changeSet(index: number, column: SetColumn, value: string) {
     setText((current) => ({ ...current, sets: current.sets.map((set, at) => (at === index ? { ...set, [column]: value } : set)) }));
+  }
+
+  /** The name's chevron (D-67): closes the list open, or opens it: the matches, the choice's exercises, or every exercise. */
+  function toggleList() {
+    if (choosing) {
+      setListClosed(true);
+      Keyboard.dismiss();
+      return;
+    }
+    setListClosed(false);
+    if (unnamed && !filtered) setShowingAll(true);
+    else setTypingName(true);
   }
 
   function pick(exercise: ListedExercise) {
@@ -169,19 +279,31 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   }
 
   return (
-    <Sheet
-      title={title}
-      onClose={onClose}
-      actions={
-        <>
-          <TextButton title="Save exercise" filled disabled={busy} onPress={save} />
-          <TextButton title="Cancel" wide onPress={onClose} />
-        </>
-      }
-    >
+    <FullScreen onClose={onClose} footer={listing ? undefined : <TextButton title="Save exercise" filled disabled={busy} onPress={save} />}>
+      <View style={styles.header}>
+        <IconButton label="Back to the workout" onPress={onClose}>
+          <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
+        </IconButton>
+        <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
+      </View>
+      {/* One scrolling page while the form shows, the fields at its top scrolling with it (the owner,
+          2026-11-10: the time and calories had too little room); while a list shows it fills the page
+          under the fields and scrolls on its own. The fields stay the same views, so typing keeps the
+          keyboard. */}
+      <ScrollView
+        style={styles.fill}
+        contentContainerStyle={listing ? styles.listing : undefined}
+        scrollEnabled={!listing}
+        keyboardShouldPersistTaps="handled"
+      >
+      <View style={[styles.top, picking !== null && styles.fill]}>
+        <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={chooseFilter} />
+        {picking === null ? (
       <View style={styles.field}>
         <Text style={labelStyle}>Exercise name</Text>
-        <View style={[styles.box, typingName && styles.focused, problems.name ? styles.refused : null]}>
+        <View style={[styles.box, styles.nameBox, (typingName || choosing) && styles.focused, problems.name ? styles.refused : null]}>
           <Search size={20} color={colors.inkMuted} />
           <TextInput
             accessibilityLabel="Exercise name"
@@ -189,38 +311,87 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             onChangeText={(name) => {
               change({ name });
               setTypingName(true);
+              setListClosed(false);
             }}
-            placeholder="Search or type an exercise"
+            placeholder={filtered ? `Search ${filterLabel(filter)}` : 'Search or type an exercise'}
             autoCapitalize="sentences"
             autoFocus={editing === null}
-            onFocus={() => setTypingName(true)}
+            onFocus={() => {
+              setTypingName(true);
+              setListClosed(false);
+            }}
             onBlur={() => setTypingName(false)}
             style={styles.value}
           />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Exercise list"
+            accessibilityState={{ expanded: choosing }}
+            onPress={toggleList}
+            hitSlop={4}
+            style={({ pressed }) => [styles.nameChevron, pressed && styles.pressed]}
+          >
+            {choosing ? (
+              <ChevronUp size={20} strokeWidth={2.25} color={colors.accent} />
+            ) : (
+              <ChevronDown size={20} strokeWidth={2.25} color={colors.accent} />
+            )}
+          </Pressable>
         </View>
         {problems.name ? <Problem text={problems.name} /> : null}
       </View>
+        ) : null}
+      </View>
 
-      {!named ? (
+      {picking !== null ? null : choosing ? (
+        <View style={styles.listArea}>
+          <Text style={labelStyle}>{listTitle}</Text>
+          {/* A plain list, not a FlatList: it sits in the page's scroll view, which may not hold a
+              virtualized list; at most SHOWN_MAX rows are drawn. */}
+          <View style={[styles.matches, styles.fill]}>
+            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+              {matches.slice(0, SHOWN_MAX).map((exercise, index) => {
+                const tag = matchTag(exercise, filter);
+                return (
+                  <Pressable
+                    key={exercise.code}
+                    accessibilityRole="button"
+                    accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
+                    onPress={() => pick(exercise)}
+                    style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
+                  >
+                    <View style={styles.matchText}>
+                      <Text style={styles.matchName}>{exercise.name}</Text>
+                      {tag ? <Text style={styles.matchLine}>{tag}</Text> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+              {matches.length > SHOWN_MAX || (browsingAll && counts !== null && counts.total > matches.length) ? (
+                <Text style={[styles.help, styles.more]}>
+                  The first {SHOWN_MAX} are shown: type a name or pick a category to find the others.
+                </Text>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.form}>
+      {!named && !filtered ? (
         <Text style={styles.help}>
-          Type to search the exercise list, for example dumbbell, push-up or running. Not in the list? Enter your own name.
+          Pick a category to see its exercises, or type to search all of them, for example dumbbell, push-up or running. Not in the list?
+          Enter your own name.
         </Text>
       ) : null}
 
-      {choosing ? (
-        <View style={styles.matches}>
-          {matches.map((exercise, index) => (
-            <Pressable
-              key={exercise.code}
-              accessibilityRole="button"
-              accessibilityLabel={`${exercise.name}, ${GROUP_LABELS[exercise.group]}`}
-              onPress={() => pick(exercise)}
-              style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
-            >
-              <Text style={styles.matchName}>{exercise.name}</Text>
-              <Text style={styles.tag}>{GROUP_LABELS[exercise.group]}</Text>
-            </Pressable>
-          ))}
+      {noMatch ? (
+        <View style={styles.listed}>
+          <Text style={styles.help}>
+            No exercise in {filterLabel(filter)} matches “{text.name.trim()}”. Search them all, or keep your own name.
+          </Text>
+          <View style={styles.addSet}>
+            <TextButton title="Search all categories" icon={Search} onPress={() => chooseFilter(NO_FILTER)} />
+          </View>
         </View>
       ) : null}
 
@@ -228,7 +399,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         <>
           {match ? (
             <View style={styles.typeLine}>
-              <Text style={styles.tag}>{GROUP_LABELS[match.group]}</Text>
+              <Text style={styles.tag}>{matchTag(match, NO_FILTER)}</Text>
               <Text style={styles.help}>{LOG_TYPE_LABELS[match.logType]}</Text>
             </View>
           ) : (
@@ -373,9 +544,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <View style={styles.pair}>
             {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
               <View key={key} style={[styles.field, styles.half]}>
-                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate' : 'Highest heart rate'}</Text>
+                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}</Text>
                 <Box
-                  accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate' : 'Highest heart rate'}
+                  accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}
                   value={text[key]}
                   onChangeText={(value) => change({ [key]: value })}
                   keyboardType="number-pad"
@@ -395,6 +566,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         {problems.note ? <Problem text={problems.note} /> : null}
       </View>
       {onRemove ? <TextButton title="Remove exercise" destructive icon={Trash} disabled={busy} onPress={() => void run(onRemove)} /> : null}
+        </View>
+      )}
+      </ScrollView>
       {explaining ? (
         <Sheet title="Calories burned" onClose={() => setExplaining(false)} actions={<TextButton title="Close" wide onPress={() => setExplaining(false)} />}>
           <Text style={styles.body}>
@@ -416,7 +590,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <Text style={styles.help}>{COMPENDIUM_CREDIT}</Text>
         </Sheet>
       ) : null}
-    </Sheet>
+    </FullScreen>
   );
 }
 
@@ -542,11 +716,27 @@ const useStyles = themedStyles((c) => ({
   note: { minHeight: 80, textAlignVertical: 'top', lineHeight: 24 },
   unit: { ...TYPE.label, fontSize: 15, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
   help: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
-  matches: { marginTop: -6, borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 6, paddingRight: 8 },
+  title: { ...TYPE.screenHeader, flex: 1 },
+  // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
+  top: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
+  fill: { flex: 1 },
+  listing: { flexGrow: 1 },
+  listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
+  form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
+  listed: { gap: 8 },
+  // The name's chevron, as Category's (D-67), at the box's end.
+  nameBox: { paddingRight: 4 },
+  nameChevron: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
+  matches: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  // What a match's choice doesn't say, on a second, muted line under its name (the owner chose A, 2026-11-10).
+  matchText: { flex: 1, minWidth: 0, gap: 2 },
+  matchLine: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  more: { paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: c.border },
   match: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 14, paddingRight: 12 },
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
-  matchName: { flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  matchName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   // A group, as Search foods' source tags: the muted ink on the sunken colour.
   tag: {
     ...TYPE.label,

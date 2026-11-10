@@ -5,6 +5,7 @@ import {
   validationDetails,
   type ExerciseGroup,
   type ExerciseLogType,
+  type ExercisePlace,
   type ExercisesResponse,
 } from '@fitsphere/shared';
 import type { FastifyInstance } from 'fastify';
@@ -12,8 +13,9 @@ import type pg from 'pg';
 import { ApiError } from '../errors.ts';
 
 // GET /v1/exercises (D-50): FitSphere's exercise list, for the phone to cache and search offline, with
-// each exercise's group, how it is logged and its Compendium MET. Reference data, the same for every
-// signed-in user. The version changes whenever any value in the list changes.
+// each exercise's group, how it is logged, its Compendium MET and the library's categories and
+// sub-groups it is listed under (D-67). Reference data, the same for every signed-in user. The version
+// changes whenever any value in the list changes.
 export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg.Pool, 'query'> }) {
   app.get(`${API_BASE_PATH}/exercises`, { config: { access: 'account' } }, async (request) => {
     const parsed = exercisesQuerySchema.safeParse(request.query);
@@ -27,7 +29,8 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
       aliases: string[];
       compendium_code: string | null;
       met: string | null;
-    }>('select code, name, exercise_group, log_type, aliases, compendium_code, met from app.exercises order by code');
+      places: ExercisePlace[];
+    }>('select code, name, exercise_group, log_type, aliases, compendium_code, met, places from app.exercises order by code');
     const speeds = await deps.db.query<{ exercise_code: string; from_kmh: string; compendium_code: string; met: string }>(
       'select exercise_code, from_kmh, compendium_code, met from app.exercise_speed_mets order by exercise_code, from_kmh',
     );
@@ -53,6 +56,7 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
         compendiumCode: row.compendium_code,
         met: row.met === null ? null : Number(row.met),
         speedMets: speedMetsOf.get(row.code) ?? [],
+        places: row.places,
       })),
     };
     return body;

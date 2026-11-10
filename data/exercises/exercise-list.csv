@@ -1,5 +1,4 @@
 code,name,group,log_type,compendium_code,met,aliases
-barbell-back-squat,Barbell back squat,barbell,weight_reps,02052,5.0,back squat;squat;barbell squat
 barbell-front-squat,Barbell front squat,barbell,weight_reps,02052,5.0,front squat
 barbell-box-squat,Barbell box squat,barbell,weight_reps,02052,5.0,box squat
 barbell-overhead-squat,Barbell overhead squat,barbell,weight_reps,02052,5.0,overhead squat
@@ -10,16 +9,12 @@ sumo-deadlift,Sumo deadlift,barbell,weight_reps,02052,5.0,
 romanian-deadlift,Romanian deadlift,barbell,weight_reps,02052,5.0,RDL;barbell RDL
 stiff-leg-deadlift,Stiff-leg deadlift,barbell,weight_reps,02052,5.0,straight-leg deadlift
 rack-pull,Rack pull,barbell,weight_reps,02052,5.0,
-barbell-bench-press,Barbell bench press,barbell,weight_reps,02054,3.5,bench press;flat bench press
 barbell-incline-bench-press,Barbell incline bench press,barbell,weight_reps,02054,3.5,incline bench press
 barbell-decline-bench-press,Barbell decline bench press,barbell,weight_reps,02054,3.5,decline bench press
 close-grip-bench-press,Close-grip bench press,barbell,weight_reps,02054,3.5,CGBP
 barbell-floor-press,Barbell floor press,barbell,weight_reps,02054,3.5,floor press
-overhead-press,Overhead press,barbell,weight_reps,02054,3.5,OHP;military press;barbell shoulder press;standing press
 push-press,Push press,barbell,weight_reps,02054,3.5,
-barbell-bent-over-row,Barbell bent-over row,barbell,weight_reps,02054,3.5,bent over row;barbell row
 pendlay-row,Pendlay row,barbell,weight_reps,02054,3.5,
-t-bar-row,T-bar row,barbell,weight_reps,02054,3.5,landmine row
 barbell-curl,Barbell curl,barbell,weight_reps,02054,3.5,bicep curl;biceps curl
 ez-bar-curl,EZ-bar curl,barbell,weight_reps,02054,3.5,EZ curl
 barbell-reverse-curl,Barbell reverse curl,barbell,weight_reps,02054,3.5,reverse curl
@@ -30,39 +25,28 @@ barbell-shrug,Barbell shrug,barbell,weight_reps,02054,3.5,shrug;shrugs
 barbell-hip-thrust,Barbell hip thrust,barbell,weight_reps,02054,3.5,hip thrust
 barbell-glute-bridge,Barbell glute bridge,barbell,weight_reps,02054,3.5,
 good-morning,Good morning,barbell,weight_reps,02054,3.5,
-barbell-lunge,Barbell lunge,barbell,weight_reps,02054,3.5,
-barbell-calf-raise,Barbell calf raise,barbell,weight_reps,02054,3.5,
-landmine-press,Landmine press,barbell,weight_reps,02054,3.5,
 barbell-thruster,Barbell thruster,barbell,weight_reps,02054,3.5,thruster
 power-clean,Power clean,barbell,weight_reps,02050,6.0,clean
 hang-clean,Hang clean,barbell,weight_reps,02050,6.0,
 clean-and-jerk,Clean and jerk,barbell,weight_reps,02050,6.0,
-snatch,Snatch,barbell,weight_reps,02050,6.0,barbell snatch;power snatch
-dumbbell-bench-press,Dumbbell bench press,dumbbell,weight_reps,02054,3.5,dumbbell press;dumbbell chest press
 dumbbell-incline-bench-press,Dumbbell incline bench press,dumbbell,weight_reps,02054,3.5,incline dumbbell press
 dumbbell-decline-bench-press,Dumbbell decline bench press,dumbbell,weight_reps,02054,3.5,decline dumbbell press
 dumbbell-floor-press,Dumbbell floor press,dumbbell,weight_reps,02054,3.5,
-dumbbell-fly,Dumbbell fly,dumbbell,weight_reps,02054,3.5,dumbbell flye;chest fly
 dumbbell-incline-fly,Dumbbell incline fly,dumbbell,weight_reps,02054,3.5,incline fly
 dumbbell-pullover,Dumbbell pullover,dumbbell,weight_reps,02054,3.5,pullover
-dumbbell-shoulder-press,Dumbbell shoulder press,dumbbell,weight_reps,02054,3.5,seated dumbbell press;dumbbell overhead press
 arnold-press,Arnold press,dumbbell,weight_reps,02054,3.5,
 dumbbell-lateral-raise,Dumbbell lateral raise,dumbbell,weight_reps,02054,3.5,lateral raise;side raise;side lateral raise
 dumbbell-front-raise,Dumbbell front raise,dumbbell,weight_reps,02054,3.5,front raise
-dumbbell-rear-delt-fly,Dumbbell rear delt fly,dumbbell,weight_reps,02054,3.5,reverse fly;rear delt raise;bent-over lateral raise
 dumbbell-upright-row,Dumbbell upright row,dumbbell,weight_reps,02054,3.5,
 dumbbell-shrug,Dumbbell shrug,dumbbell,weight_reps,02054,3.5,
-dumbbell-curl,Dumbbell curl,dumbbell,weight_reps,02054,3.5,dumbbell bicep curl;alternate dumbbell curl
 hammer-curl,Hammer curl,dumbbell,weight_reps,02054,3.5,dumbbell hammer curl
 concentration-curl,Concentration curl,dumbbell,weight_reps,02054,3.5,
 dumbbell-incline-curl,Dumbbell incline curl,dumbbell,weight_reps,02054,3.5,incline curl
 dumbbell-preacher-curl,Dumbbell preacher curl,dumbbell,weight_reps,02054,3.5,
 zottman-curl,Zottman curl,dumbbell,weight_reps,02054,3.5,
-dumbbell-overhead-triceps-extension,Dumbbell overhead triceps extension,dumbbell,weight_reps,02054,3.5,overhead triceps extension;triceps extension
 dumbbell-skull-crusher,Dumbbell skull crusher,dumbbell,weight_reps,02054,3.5,dumbbell lying triceps extension
 dumbbell-triceps-kickback,Dumbbell triceps kickback,dumbbell,weight_reps,02054,3.5,triceps kickback;tricep kickback
 one-arm-dumbbell-row,One-arm dumbbell row,dumbbell,weight_reps,02054,3.5,dumbbell row;single-arm dumbbell row
-chest-supported-dumbbell-row,Chest-supported dumbbell row,dumbbell,weight_reps,02054,3.5,incline dumbbell row
 renegade-row,Renegade row,dumbbell,weight_reps,02054,3.5,
 dumbbell-deadlift,Dumbbell deadlift,dumbbell,weight_reps,02052,5.0,
 dumbbell-romanian-deadlift,Dumbbell Romanian deadlift,dumbbell,weight_reps,02052,5.0,dumbbell RDL
@@ -81,7 +65,6 @@ dumbbell-side-bend,Dumbbell side bend,dumbbell,weight_reps,02054,3.5,side bend
 dumbbell-wrist-curl,Dumbbell wrist curl,dumbbell,weight_reps,02054,3.5,wrist curl;forearm curl
 dumbbell-reverse-wrist-curl,Dumbbell reverse wrist curl,dumbbell,weight_reps,02054,3.5,reverse wrist curl
 dumbbell-thruster,Dumbbell thruster,dumbbell,weight_reps,02054,3.5,
-dumbbell-snatch,Dumbbell snatch,dumbbell,weight_reps,02054,3.5,
 dumbbell-clean-and-press,Dumbbell clean and press,dumbbell,weight_reps,02054,3.5,
 weighted-russian-twist,Weighted Russian twist,dumbbell,weight_reps,02054,3.5,dumbbell Russian twist
 kettlebell-swing,Kettlebell swing,kettlebell,weight_reps,02058,9.8,Russian swing
@@ -98,7 +81,6 @@ kettlebell-halo,Kettlebell halo,kettlebell,weight_reps,02054,3.5,
 kettlebell-windmill,Kettlebell windmill,kettlebell,weight_reps,02054,3.5,
 kettlebell-thruster,Kettlebell thruster,kettlebell,weight_reps,02054,3.5,
 kettlebell-high-pull,Kettlebell high pull,kettlebell,weight_reps,02054,3.5,
-leg-press,Leg press,machine,weight_reps,02054,3.5,leg press machine
 hack-squat,Hack squat,machine,weight_reps,02052,5.0,hack squat machine
 smith-machine-squat,Smith machine squat,machine,weight_reps,02052,5.0,
 smith-machine-bench-press,Smith machine bench press,machine,weight_reps,02054,3.5,
@@ -122,17 +104,10 @@ back-extension-machine,Back extension machine,machine,weight_reps,02054,3.5,lowe
 assisted-pull-up-machine,Assisted pull-up machine,machine,weight_reps,02054,3.5,assisted pull up;assisted chin-up
 machine-preacher-curl,Machine preacher curl,machine,weight_reps,02054,3.5,
 triceps-dip-machine,Triceps dip machine,machine,weight_reps,02054,3.5,dip machine
-lat-pulldown,Lat pulldown,cable,weight_reps,02054,3.5,pulldown
-close-grip-lat-pulldown,Close-grip lat pulldown,cable,weight_reps,02054,3.5,V-bar pulldown
-seated-cable-row,Seated cable row,cable,weight_reps,02054,3.5,cable row;low row
 single-arm-cable-row,Single-arm cable row,cable,weight_reps,02054,3.5,
-cable-crossover,Cable crossover,cable,weight_reps,02054,3.5,cable fly;cable chest fly
 low-to-high-cable-fly,Low-to-high cable fly,cable,weight_reps,02054,3.5,
-cable-chest-press,Cable chest press,cable,weight_reps,02054,3.5,
 triceps-pushdown,Triceps pushdown,cable,weight_reps,02054,3.5,tricep pushdown;cable pushdown;bar pushdown
 rope-triceps-pushdown,Rope triceps pushdown,cable,weight_reps,02054,3.5,rope pushdown
-overhead-cable-triceps-extension,Overhead cable triceps extension,cable,weight_reps,02054,3.5,
-cable-curl,Cable curl,cable,weight_reps,02054,3.5,cable bicep curl
 cable-rope-hammer-curl,Cable rope hammer curl,cable,weight_reps,02054,3.5,rope hammer curl
 face-pull,Face pull,cable,weight_reps,02054,3.5,
 cable-lateral-raise,Cable lateral raise,cable,weight_reps,02054,3.5,
@@ -152,12 +127,10 @@ band-curl,Band curl,band,reps,02054,3.5,resistance band curl
 band-triceps-pushdown,Band triceps pushdown,band,reps,02054,3.5,
 band-shoulder-press,Band shoulder press,band,reps,02054,3.5,
 band-squat,Band squat,band,reps,02054,3.5,
-band-lateral-walk,Band lateral walk,band,reps,02054,3.5,monster walk;crab walk
 band-face-pull,Band face pull,band,reps,02054,3.5,
 band-good-morning,Band good morning,band,reps,02054,3.5,
 band-glute-bridge,Band glute bridge,band,reps,02054,3.5,
 pallof-press,Pallof press,band,reps,02054,3.5,anti-rotation press
-push-up,Push-up,bodyweight,reps,02022,3.8,pushups;press-up
 knee-push-up,Knee push-up,bodyweight,reps,02022,3.8,
 incline-push-up,Incline push-up,bodyweight,reps,02022,3.8,
 decline-push-up,Decline push-up,bodyweight,reps,02022,3.8,
@@ -166,17 +139,11 @@ wide-push-up,Wide push-up,bodyweight,reps,02022,3.8,wide-grip push-up
 pike-push-up,Pike push-up,bodyweight,reps,02022,3.8,
 archer-push-up,Archer push-up,bodyweight,reps,02022,3.8,
 hindu-push-up,Hindu push-up,bodyweight,reps,02022,3.8,dand;dands
-handstand-push-up,Handstand push-up,bodyweight,reps,02022,3.8,HSPU
 wall-push-up,Wall push-up,bodyweight,reps,02056,3.0,
-pull-up,Pull-up,bodyweight,reps,02022,3.8,pullups
-chin-up,Chin-up,bodyweight,reps,02022,3.8,chinups
 wide-grip-pull-up,Wide-grip pull-up,bodyweight,reps,02022,3.8,
 neutral-grip-pull-up,Neutral-grip pull-up,bodyweight,reps,02022,3.8,
-inverted-row,Inverted row,bodyweight,reps,02022,3.8,Australian pull-up;body row
-muscle-up,Muscle-up,bodyweight,reps,02022,3.8,
 parallel-bar-dip,Parallel bar dip,bodyweight,reps,02022,3.8,dips;dip;chest dip
 bench-dip,Bench dip,bodyweight,reps,02022,3.8,chair dip;triceps dip
-bodyweight-squat,Bodyweight squat,bodyweight,reps,02056,3.0,air squat
 hindu-squat,Hindu squat,bodyweight,reps,02056,3.0,baithak;baithaks
 jump-squat,Jump squat,bodyweight,reps,02214,11.0,squat jump
 pistol-squat,Pistol squat,bodyweight,reps,02056,3.0,single-leg squat
@@ -184,9 +151,7 @@ bodyweight-sumo-squat,Bodyweight sumo squat,bodyweight,reps,02056,3.0,
 lunge,Lunge,bodyweight,reps,02022,3.8,lunges;forward lunge
 walking-lunge,Walking lunge,bodyweight,reps,02022,3.8,
 reverse-lunge,Reverse lunge,bodyweight,reps,02022,3.8,
-side-lunge,Side lunge,bodyweight,reps,02022,3.8,lateral lunge
 jumping-lunge,Jumping lunge,bodyweight,reps,02214,11.0,lunge jump;split jump
-bodyweight-step-up,Bodyweight step-up,bodyweight,reps,02056,3.0,
 glute-bridge,Glute bridge,bodyweight,reps,02056,3.0,hip bridge
 single-leg-glute-bridge,Single-leg glute bridge,bodyweight,reps,02056,3.0,
 bodyweight-calf-raise,Bodyweight calf raise,bodyweight,reps,02056,3.0,calf raises
@@ -203,22 +168,18 @@ hanging-knee-raise,Hanging knee raise,bodyweight,reps,02022,3.8,
 toes-to-bar,Toes to bar,bodyweight,reps,02022,3.8,T2B
 flutter-kicks,Flutter kicks,bodyweight,reps,02024,2.8,
 russian-twist,Russian twist,bodyweight,reps,02024,2.8,
-heel-touch,Heel touch,bodyweight,reps,02024,2.8,
 mountain-climber,Mountain climber,bodyweight,reps,02214,11.0,mountain climbers
 burpee,Burpee,bodyweight,reps,02020,7.5,burpees
 jumping-jack,Jumping jack,bodyweight,reps,02020,7.5,jumping jacks;star jump
 high-knees,High knees,bodyweight,reps,02020,7.5,
 tuck-jump,Tuck jump,bodyweight,reps,02214,11.0,
 box-jump,Box jump,bodyweight,reps,02214,11.0,
-broad-jump,Broad jump,bodyweight,reps,02214,11.0,standing long jump
 superman,Superman,bodyweight,reps,02024,2.8,
 bird-dog,Bird dog,bodyweight,reps,02024,2.8,
 dead-bug,Dead bug,bodyweight,reps,02024,2.8,
 back-extension,Back extension,bodyweight,reps,02030,3.5,hyperextension;Roman chair
 inchworm,Inchworm,bodyweight,reps,02022,3.8,
 bear-crawl,Bear crawl,bodyweight,reps,02020,7.5,
-surya-namaskar,Surya Namaskar,yoga,reps,02180,3.5,sun salutation;surya namaskara
-plank,Plank,bodyweight,time,02024,2.8,forearm plank;elbow plank
 high-plank,High plank,bodyweight,time,02024,2.8,straight-arm plank
 side-plank,Side plank,bodyweight,time,02024,2.8,
 hollow-body-hold,Hollow body hold,bodyweight,time,02024,2.8,hollow hold
@@ -247,7 +208,6 @@ trekking,Trekking,cardio,distance_time,17012,7.8,trek;backpacking
 cycling,Cycling,cardio,distance_time,01014,7.0,bicycling;bike ride;cycle
 mountain-biking,Mountain biking,cardio,distance_time,01009,8.5,MTB
 swimming,Swimming,cardio,distance_time,18310,6.0,swim
-freestyle-swimming-laps,Freestyle swimming laps,cardio,distance_time,18240,5.8,freestyle;front crawl
 breaststroke,Breaststroke,cardio,distance_time,18265,5.3,
 backstroke,Backstroke,cardio,distance_time,18255,4.8,
 butterfly-stroke,Butterfly stroke,cardio,distance_time,18270,13.8,butterfly swimming
@@ -260,11 +220,7 @@ treadmill-walking,Treadmill walking,cardio,treadmill,17358,4.8,treadmill walk
 incline-walk,Incline walk,cardio,treadmill,17035,7.0,incline treadmill walk;treadmill incline walk
 exercise-bike,Exercise bike,cardio,cardio_machine,01200,6.8,stationary bike;cycle machine;stationary cycling;gym cycle
 spin-class,Spin class,cardio,cardio_machine,01270,9.0,spinning;indoor cycling
-elliptical-trainer,Elliptical trainer,cardio,cardio_machine,02048,5.0,elliptical;cross trainer
-rowing-machine,Rowing machine,cardio,cardio_machine,02070,7.3,rower;rowing ergometer;erg
-stair-climber,Stair climber,cardio,cardio_machine,02065,9.3,stair master;stepmill
 ski-erg,Ski erg,cardio,cardio_machine,02080,6.8,ski machine
-arm-bike,Arm bike,cardio,cardio_machine,02115,2.8,arm ergometer;upper body ergometer
 air-bike,Air bike,cardio,cardio_machine,01200,6.8,assault bike;fan bike
 skipping,Skipping,cardio,time_only,02068,11.0,jump rope;rope skipping;skipping rope
 spot-jogging,Spot jogging,cardio,time_only,12025,4.8,jogging in place;on the spot jogging
@@ -275,15 +231,12 @@ hatha-yoga,Hatha yoga,yoga,time_only,02150,2.3,
 power-yoga,Power yoga,yoga,time_only,02160,4.0,
 vinyasa-yoga,Vinyasa yoga,yoga,time_only,02185,2.7,
 hot-yoga,Hot yoga,yoga,time_only,02155,3.0,Bikram yoga
-nadi-shodhana-pranayama,Nadi shodhana pranayama,yoga,time_only,02170,2.0,pranayama;anulom vilom;alternate nostril breathing
 stretching,Stretching,yoga,time_only,02101,2.3,stretch;stretches
 pilates,Pilates,yoga,time_only,02105,2.8,
 mat-pilates,Mat Pilates,yoga,time_only,02103,1.8,
 tai-chi,Tai chi,yoga,time_only,15670,3.3,qigong
 zumba,Zumba,other,time_only,02310,6.5,
 aerobics,Aerobics,other,time_only,02000,7.3,aerobic exercise
-low-impact-aerobic-dance,Low-impact aerobic dance,other,time_only,02005,4.8,low impact aerobics
-high-impact-aerobic-dance,High-impact aerobic dance,other,time_only,02006,8.0,high impact aerobics
 step-aerobics,Step aerobics,other,time_only,02004,7.8,step class
 hiit,HIIT,other,time_only,02214,11.0,high intensity interval training;Tabata
 circuit-training,Circuit training,other,time_only,02035,5.0,circuit

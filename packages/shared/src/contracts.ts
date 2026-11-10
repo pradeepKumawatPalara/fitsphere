@@ -1068,6 +1068,58 @@ export type ExerciseGroup = (typeof EXERCISE_GROUPS)[number];
 export const EXERCISE_LOG_TYPES = ['weight_reps', 'reps', 'time', 'weight_time', 'distance_time', 'treadmill', 'cardio_machine', 'time_only'] as const;
 export type ExerciseLogType = (typeof EXERCISE_LOG_TYPES)[number];
 
+/**
+ * The exercise library's categories, each with its sub-groups (D-67), in the order the owner's file
+ * gives them. A category with none has an empty list: the phone shows "No sub-groups".
+ */
+export const EXERCISE_SUB_GROUPS = {
+  'Barbell': ['Chest', 'Shoulders', 'Back', 'Legs', 'Glutes', 'Arms', 'Core', 'Full Body'],
+  'Olympic Weightlifting': ['Snatch Family', 'Clean Family', 'Jerk Family', 'Combinations'],
+  'Dumbbell': ['Chest', 'Shoulders', 'Back', 'Legs', 'Glutes', 'Biceps', 'Triceps', 'Forearms', 'Core', 'Full Body'],
+  'Kettlebell': ['Ballistic', 'Grinds', 'Core & Mobility', 'Carries', 'Arms', 'Complexes/Flows'],
+  'Cable': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs & Glutes', 'Core'],
+  'Machine': ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Glutes', 'Core', 'Neck'],
+  'Smith Machine': [],
+  'Specialty Bars (EZ / Trap / SSB etc.)': ['EZ Bar', 'Trap / Hex Bar', 'Safety Squat Bar', 'Swiss / Football Bar', 'Other Bars'],
+  'Landmine': [],
+  'Weight Plate': [],
+  'Bodyweight / Calisthenics': ['Push', 'Pull', 'Legs', 'Skills & Statics', 'Locomotion / Animal Flow'],
+  'Core / Abs': ['Flexion', 'Leg Raises', 'Anti-Extension / Plank', 'Rotation / Anti-Rotation', 'Lower Back / Posterior Chain'],
+  'Plyometrics / Jumps': ['Lower Body', 'Upper Body', 'Full Body'],
+  'CrossFit / Functional Fitness': ['Gymnastics', 'Monostructural', 'Weightlifting & Loaded', 'Benchmark WOD Formats'],
+  'HYROX Stations': [],
+  'Medicine Ball / Slam Ball / Wall Ball': [],
+  'Sandbag / Strongman': ['Sandbag', 'Strongman'],
+  'Sled / Prowler': [],
+  'Battle Rope': [],
+  'Resistance Band': ['Upper', 'Lower', 'Core'],
+  'Suspension Trainer (TRX)': [],
+  'Gymnastic Rings': [],
+  'Stability Ball / BOSU / Balance': ['Stability Ball', 'BOSU / Balance Board'],
+  'Sliders / Core Discs / Ab Wheel': [],
+  'Clubs / Mace / Steel Mace': [],
+  'Grip / Forearm / Neck': [],
+  'Isometrics': [],
+  'Cardio Machines': [],
+  'Aerobic / Floor Cardio': [],
+  'Running / Walking / Outdoor Cardio': [],
+  'Jump Rope': [],
+  'Agility / Speed / SAQ': ['Ladder', 'Cones / Drills'],
+  'Boxing / Combat / Martial Arts': ['Strikes & Drills'],
+  'Mobility / Stretching': ['Dynamic', 'Static', 'Recovery / Soft Tissue'],
+  'Yoga': ['Standing', 'Floor / Seated', 'Sequences & Pranayama'],
+  'Pilates': ['Mat', 'Reformer / Equipment'],
+  'Dance / Group Fitness Classes': [],
+  'Aquatic / Swimming': [],
+  'Rehab / Prehab / Corrective': [],
+} as const satisfies Record<string, readonly string[]>;
+export type ExerciseCategory = keyof typeof EXERCISE_SUB_GROUPS;
+export const EXERCISE_CATEGORIES = Object.keys(EXERCISE_SUB_GROUPS) as ExerciseCategory[];
+
+/** Where the library lists an exercise (D-67): a category, and one of its sub-groups or null when it has none. */
+export const exercisePlaceSchema = z.object({ category: z.string(), subGroup: z.string().nullable() });
+export type ExercisePlace = z.infer<typeof exercisePlaceSchema>;
+
 /** One of an exercise's speed bands: the Compendium activity done from `fromKmh` up to the next band. */
 export const speedMetSchema = z.object({ fromKmh: z.number(), compendiumCode: z.string(), met: z.number() });
 export type SpeedMet = z.infer<typeof speedMetSchema>;
@@ -1088,6 +1140,8 @@ export const listedExerciseSchema = z.object({
   compendiumCode: z.string().nullable(),
   met: z.number().nullable(),
   speedMets: z.array(speedMetSchema).default([]),
+  /** Every category and sub-group the library lists it under (D-67); none for most of FitSphere's own. */
+  places: z.array(exercisePlaceSchema).default([]),
 });
 export type ListedExercise = z.infer<typeof listedExerciseSchema>;
 

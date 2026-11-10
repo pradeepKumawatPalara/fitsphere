@@ -1,10 +1,10 @@
 import type { WorkoutSetData } from '@fitsphere/shared';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { Button, Keyboard, type EmitterSubscription } from 'react-native';
-import { getEntry, saveEntry, saveWeighIn } from '../local/store';
+import { getEntry, replaceExercises, saveEntry, saveWeighIn } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { NOW, renderInApp } from '../testing/appHarness';
-import { sameSets, withExerciseList } from '../testing/exercises';
+import { sameSets, TEST_EXERCISE_LIST, withExerciseList } from '../testing/exercises';
 import { exerciseRules, type SetText } from '../workouts';
 import { TrainingScreen } from './TrainingScreen';
 import { WorkoutScreen } from './WorkoutScreen';
@@ -144,17 +144,20 @@ describe('REQ-TRN-003 starting a workout', () => {
 });
 
 describe('D-50 picking from the exercise list', () => {
-  it('lists the matches of a search with their group, "dumbell" finding the dumbbell exercises', async () => {
+  it('lists the matches of a search with their category and sub-group, or their group, "dumbell" finding the dumbbell exercises', async () => {
     await startWorkout();
     await openSheet();
-    expect(screen.getByText(/^Type to search the exercise list/)).toBeOnTheScreen();
+    expect(screen.getByText(/^Pick a category to see its exercises, or type to search all of them/)).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'dumbell');
 
-    expect(await screen.findByRole('button', { name: 'Dumbbell bench press, Dumbbell' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Dumbbell curl, Dumbbell' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Dumbbell bench press, Dumbbell · Chest' })).toBeOnTheScreen();
+    // A (the owner, 2026-11-10): the category and sub-group on a second line under the name.
+    expect(within(screen.getByRole('button', { name: 'Dumbbell bench press, Dumbbell · Chest' })).getByText('Dumbbell · Chest')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+    // In no category of the library (D-67): its group, as D-50 tags it.
     expect(screen.getByRole('button', { name: "Farmer's walk, Dumbbell" })).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Push-up, Bodyweight' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Push-up, / })).toBeNull();
     expect(screen.queryByText('Sets')).toBeNull();
   });
 
@@ -164,7 +167,7 @@ describe('D-50 picking from the exercise list', () => {
 
     await pick('dumbell', 'Dumbbell bench press');
     expect(screen.getByText('Weight and reps')).toBeOnTheScreen();
-    expect(screen.getByText('Dumbbell')).toBeOnTheScreen();
+    expect(screen.getByText('Dumbbell · Chest')).toBeOnTheScreen();
     await fillSets([
       { reps: '10', weight: '20' },
       { reps: '8', weight: '22.5' },
@@ -386,7 +389,7 @@ describe('D-50 picking from the exercise list', () => {
       await startWorkout();
       await openSheet();
       await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'Curl');
-      expect(await screen.findByRole('button', { name: 'Dumbbell curl, Dumbbell' })).toBeOnTheScreen();
+      expect(await screen.findByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
       expect(screen.queryByLabelText('Set 1, Reps')).toBeNull();
 
       await act(() => hide.forEach((listener) => listener()));
@@ -500,7 +503,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Push-up: 2 sets, 15 × 10.0 kg' }));
     expect((await screen.findByLabelText('Set 2, Weight in kg (optional)')).props.value).toBe('10.0');
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
 
     // Running is listed as cardio, but this one was saved in sets: it keeps them, as a name of the user's own.
     await fireEvent.press(screen.getByRole('button', { name: 'Running: 1 set, 1 rep' }));
@@ -551,7 +554,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await openSheet();
     await typeName('Squat');
     await fillSets([{ reps: '10' }]);
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
 
     expect(screen.queryByRole('header', { name: 'Add exercise' })).toBeNull();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
@@ -738,16 +741,16 @@ describe('D-50 calories burned and heart rate', () => {
     await openSheet();
     await pick('yoga', 'Yoga');
     await fireEvent.changeText(screen.getByLabelText('Time, minutes'), '45');
-    await fireEvent.changeText(screen.getByLabelText('Average heart rate'), '150');
-    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '140');
+    await fireEvent.changeText(screen.getByLabelText('Average heart rate (optional)'), '150');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate (optional)'), '140');
     await save();
     expect(await screen.findByText(RULES.heartRateOrder)).toBeOnTheScreen();
 
-    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '251');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate (optional)'), '251');
     await save();
     expect(await screen.findByText(RULES.heartRate)).toBeOnTheScreen();
 
-    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '172');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate (optional)'), '172');
     await save();
     expect(await screen.findByRole('button', { name: 'Yoga: 45:00, heart rate 150 average, 172 highest' })).toBeOnTheScreen();
     await waitFor(() =>
@@ -766,5 +769,215 @@ describe('D-50 calories burned and heart rate', () => {
     expect(screen.getByText(/^Activity values: Herrmann SD/)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByText(/^Activity values/)).toBeNull();
+  });
+});
+
+/** Opens the picker `label` (Category or Sub-group), whatever it shows, and picks `choice` (its name, before the count). */
+async function choosePlace(label: 'Category' | 'Sub-group', choice: string) {
+  await fireEvent.press(screen.getByRole('button', { name: new RegExp(`^${label}: `) }));
+  await fireEvent.press(await screen.findByRole('button', { name: new RegExp(`^${choice.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}, \\d+ exercises?$`) }));
+}
+
+describe('D-67 Category and Sub-group', () => {
+  it('opens on every category; a category lists its exercises before a word is typed, each with its sub-group', async () => {
+    await startWorkout();
+    await openSheet();
+    expect(screen.getByRole('button', { name: 'Category: All categories' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sub-group: All sub-groups' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
+    expect(await screen.findByRole('button', { name: 'All categories, 15 exercises' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Smith Machine, 1 exercise' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
+
+    expect(screen.queryByRole('button', { name: /^Barbell, / })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Category: Dumbbell' })).toBeOnTheScreen();
+    expect(await screen.findByText('Dumbbell · 3 exercises')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell bench press, Chest' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell curl, Biceps' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Biceps' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Farmer's walk/ })).toBeNull();
+    expect(screen.getByPlaceholderText('Search Dumbbell')).toBeOnTheScreen();
+  });
+
+  it('the sub-groups follow the category; typing narrows the choice; no match offers to search them all', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Category', 'Dumbbell');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sub-group: All sub-groups' }));
+    expect(screen.getByRole('button', { name: 'All sub-groups, 3 exercises' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Chest, 1 exercise' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Push, / })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Biceps, 2 exercises' }));
+
+    expect(await screen.findByText('Dumbbell · Biceps · 2 exercises')).toBeOnTheScreen();
+    // With both chosen, a match needs no tag.
+    expect(screen.getByRole('button', { name: 'Hammer curl' })).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'hammer');
+    expect(await screen.findByText('1 match in Dumbbell · Biceps')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Dumbbell curl' })).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'squat');
+    expect(await screen.findByText('No exercise in Dumbbell · Biceps matches \u201csquat\u201d. Search them all, or keep your own name.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Search all categories' }));
+
+    expect(screen.getByRole('button', { name: 'Category: All categories' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Smith Machine Squat, Smith Machine' })).toBeOnTheScreen();
+  });
+
+  it('a sub-group alone finds it in every category; a category without sub-groups reads "No sub-groups" and clears the one chosen', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Sub-group', 'Push');
+
+    expect(await screen.findByText('Push · 2 exercises')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Push-up, Bodyweight / Calisthenics' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Parallel bar dip, Bodyweight / Calisthenics' })).toBeOnTheScreen();
+
+    await choosePlace('Category', 'Smith Machine');
+
+    expect(screen.getByRole('button', { name: 'Sub-group: No sub-groups' })).toBeDisabled();
+    expect(await screen.findByText('Smith Machine · 1 exercise')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Smith Machine Squat' })).toBeOnTheScreen();
+  });
+
+  it('picking an exercise works as before, and one with no Compendium activity has no estimate: calories are typed', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await openSheet();
+    await choosePlace('Category', 'Sandbag / Strongman');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Sled Drag (Harness), Strongman' }));
+
+    expect(screen.getByText('Sandbag / Strongman · Strongman')).toBeOnTheScreen();
+    expect(screen.getByText('Weight and time')).toBeOnTheScreen();
+    expect(screen.getByText('This exercise has no estimate: type the number from your machine or watch.')).toBeOnTheScreen();
+    await fillSets([{ weight: '60', seconds: '30' }]);
+    await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '45');
+    await save();
+
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({
+        exercises: [{ name: 'Sled Drag (Harness)', kind: 'sets', sets: [{ reps: null, weightGrams: 60_000, seconds: 30 }], calories: { kcal: 45, estimated: false } }],
+      }),
+    );
+  });
+});
+
+describe('D-67 the exercise page', () => {
+  it('is a page with a back arrow; while a list shows, Save exercise steps aside, and the name while a choice list is open', async () => {
+    await startWorkout();
+    await openSheet();
+    expect(screen.getByRole('header', { name: 'Add exercise' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
+    expect(screen.queryByLabelText('Exercise name')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save exercise' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
+
+    expect(screen.getByLabelText('Exercise name')).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Hammer curl, Biceps' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Save exercise' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl, Biceps' }));
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
+    expect(screen.queryByRole('header', { name: 'Add exercise' })).toBeNull();
+  });
+});
+
+describe('D-67 the name’s chevron, and a choice the exercise is not in', () => {
+  it('with nothing typed or chosen, the chevron opens every exercise, and closes it again', async () => {
+    await startWorkout();
+    await openSheet();
+    const chevron = screen.getByRole('button', { name: 'Exercise list' });
+    expect(chevron.props.accessibilityState).toMatchObject({ expanded: false });
+
+    await fireEvent.press(chevron);
+    expect(await screen.findByText('All exercises · 15')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Exercise list' }).props.accessibilityState).toMatchObject({ expanded: true });
+    expect(screen.getByRole('button', { name: 'Kabaddi, Sport' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+    expect(screen.queryByText(/^All exercises/)).toBeNull();
+    expect(screen.getByText(/^Pick a category to see its exercises/)).toBeOnTheScreen();
+  });
+
+  it('closes the matches of a name typed, showing its fields, and opens them again', async () => {
+    await startWorkout();
+    await openSheet();
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'curl');
+    expect(await screen.findByRole('button', { name: 'Hammer curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+    expect(screen.queryByRole('button', { name: /^Hammer curl/ })).toBeNull();
+    expect(screen.getByRole('radio', { name: 'Log as: Sets and reps' })).toBeChecked();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+    expect(await screen.findByRole('button', { name: 'Hammer curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+  });
+
+  it('a category or sub-group the picked exercise is not in clears its name; one it is in keeps it', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('hammer', 'Hammer curl');
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Hammer curl');
+
+    await choosePlace('Category', 'Dumbbell');
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Hammer curl');
+    await choosePlace('Sub-group', 'Biceps');
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Hammer curl');
+
+    await choosePlace('Category', 'Barbell');
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('');
+    expect(await screen.findByText('Barbell · 1 exercise')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Barbell bench press, Chest' })).toBeOnTheScreen();
+  });
+
+  it('a name of the user’s own stays whatever the choice', async () => {
+    await startWorkout();
+    await openSheet();
+    await typeName('Tyre flips');
+
+    await choosePlace('Category', 'Barbell');
+
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Tyre flips');
+  });
+});
+
+describe('D-67 a long list on the exercise page', () => {
+  it('draws at most 300 rows, says how to find the others, and nests no virtualized list in the page', async () => {
+    const error = jest.spyOn(console, 'error');
+    const drills = Array.from({ length: 320 }, (_, index) => ({
+      ...TEST_EXERCISE_LIST.find((exercise) => exercise.code === 'push-up')!,
+      code: `drill-${String(index + 1).padStart(3, '0')}`,
+      name: `Drill ${String(index + 1).padStart(3, '0')}`,
+      aliases: [],
+    }));
+    try {
+      await renderInApp(
+        <>
+          <TrainingScreen />
+          <WorkoutScreen now={() => NOW} />
+        </>,
+        undefined,
+        async (db, server) => {
+          server.state.exercises = drills;
+          await replaceExercises(db, server.state.exercisesVersion, drills);
+        },
+      );
+      await fireEvent.press(await screen.findByRole('button', { name: /^Log workout for / }));
+      await openSheet();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+
+      expect(await screen.findByText('All exercises · 320')).toBeOnTheScreen();
+      expect(screen.getAllByRole('button', { name: /^Drill \d{3}/ })).toHaveLength(300);
+      expect(screen.getByText('The first 300 are shown: type a name or pick a category to find the others.')).toBeOnTheScreen();
+      expect(error.mock.calls.some(([message]) => String(message).includes('VirtualizedLists should never be nested'))).toBe(false);
+    } finally {
+      error.mockRestore();
+    }
   });
 });

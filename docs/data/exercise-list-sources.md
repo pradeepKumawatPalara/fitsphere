@@ -2,11 +2,13 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-05 (D-50)
-- Data: [`data/exercises/exercise-list.csv`](../../data/exercises/exercise-list.csv), 334 exercises
-- Loaded by: `npm run exercises:import -w @fitsphere/api` into `app.exercises` (migration 0016), with
-  [`data/exercises/speed-mets.csv`](../../data/exercises/speed-mets.csv) into `app.exercise_speed_mets`
-  (migration 0017); served by `GET /v1/exercises`
+- Last updated: 2026-11-10 (D-67: the exercise library). 2026-11-05 (D-50)
+- Data: [`data/exercises/exercise-list.csv`](../../data/exercises/exercise-list.csv), 287 exercises
+  (334 until D-67, when the library replaced 47 of them), and the exercise library's review sheet
+  [`docs/data/exercise-library-sheet.csv`](exercise-library-sheet.csv), 1,832 more: 2,119 in all
+- Loaded by: `npm run exercises:import -w @fitsphere/api` into `app.exercises` (migrations 0016 and
+  0022), with [`data/exercises/speed-mets.csv`](../../data/exercises/speed-mets.csv) into
+  `app.exercise_speed_mets` (migration 0017); served by `GET /v1/exercises`
 
 ## The list
 FitSphere's own list, written for FitSphere on 2026-11-05 at the owner's request (D-50) from the
@@ -31,16 +33,38 @@ letters are ignored (so "Dumbell" and "Dumbbell" are one), and another name may 
 name; the import refuses the whole file otherwise.
 
 ## How each type is logged
-| Type | Fields | Count |
-|---|---|---|
-| `weight_reps` | Each set: reps and a weight, both needed | 146 |
-| `reps` | Each set: reps; no weight field (bodyweight and bands) | 73 |
-| `time` | Each set: a time | 10 |
-| `weight_time` | Each set: a weight and a time | 7 |
-| `distance_time` | A time and a distance; the average speed and pace shown | 20 |
-| `treadmill` | A time, speed, incline and distance | 3 |
-| `cardio_machine` | A time, distance and level | 8 |
-| `time_only` | A time | 67 |
+| Type | Fields | Our list | The library |
+|---|---|---|---|
+| `weight_reps` | Each set: reps and a weight, both needed | 121 | 710 |
+| `reps` | Each set: reps; no weight field (bodyweight and bands) | 60 | 511 |
+| `time` | Each set: a time | 9 | 408 |
+| `weight_time` | Each set: a weight and a time | 7 | 70 |
+| `distance_time` | A time and a distance; the average speed and pace shown | 19 | 29 |
+| `treadmill` | A time, speed, incline and distance | 3 | 2 |
+| `cardio_machine` | A time, distance and level | 4 | 20 |
+| `time_only` | A time | 64 | 82 |
+
+## The exercise library (D-67)
+- **Source:** the owner's file `Gym_Exercise_Library.xlsx`, made with the owner's AI tool (the owner,
+  2026-11-10: "The file come from My AI tool") and kept outside the repository in
+  `D:\fitsphere-data\`: 152,944 bytes, a summary and the tab "All Exercises" (2,090 rows: number,
+  category, sub-group, exercise), with one tab per category of the same rows. It gives only names,
+  categories and sub-groups, everyday words as our own list's are; it is not read from any app,
+  website or exercise database that we know of.
+- **FitSphere's choices**, written into the review sheet
+  [`docs/data/exercise-library-sheet.csv`](exercise-library-sheet.csv) for the owner to check: how each
+  exercise is logged, from its category and name (a lift: weight and reps; a carry, sled or loaded
+  hold: weight and time; bodyweight: reps, or a time for a hold; cardio by machine, distance or
+  class; the sheet's `why` says which), and its Compendium activity, only one the list already uses,
+  under the rules below (268 have none: their calories are typed).
+- **Kept as one list:** a row whose exercise is already in our list gives ours its category and
+  sub-group; a row the file repeats in another category is another place of the same exercise; 47
+  of ours that the owner chose to replace with the file's ("Keep the only one from the new Excel
+  sheet") left the list, their names kept as the new exercise's other names. Seven names were
+  changed so no two clash (the sheet's `note`).
+- **Categories and sub-groups** are `EXERCISE_SUB_GROUPS` in `packages/shared/src/contracts.ts`, in
+  the file's order: 39 categories, 20 of them without sub-groups. The import refuses any other.
+- Legal's review (Q-049) covers it with the AI tool's other files (D-53).
 
 ## The METs: the 2024 Adult Compendium of Physical Activities
 Calories burned are estimated as MET × the user's latest weight in kg × the time in hours (D-50).
