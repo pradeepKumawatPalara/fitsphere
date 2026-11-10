@@ -1,5 +1,5 @@
 import type { WorkoutSetData } from '@fitsphere/shared';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { Button, Keyboard, type EmitterSubscription } from 'react-native';
 import { getEntry, saveEntry, saveWeighIn } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
@@ -152,6 +152,8 @@ describe('D-50 picking from the exercise list', () => {
     await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'dumbell');
 
     expect(await screen.findByRole('button', { name: 'Dumbbell bench press, Dumbbell · Chest' })).toBeOnTheScreen();
+    // A (the owner, 2026-11-10): the category and sub-group on a second line under the name.
+    expect(within(screen.getByRole('button', { name: 'Dumbbell bench press, Dumbbell · Chest' })).getByText('Dumbbell · Chest')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
     // In no category of the library (D-67): its group, as D-50 tags it.
     expect(screen.getByRole('button', { name: "Farmer's walk, Dumbbell" })).toBeOnTheScreen();

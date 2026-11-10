@@ -2053,7 +2053,8 @@ checksum), and the configuration template was left as it is.*
   the back icon to go back"; on "4.3 Exercise page · PROPOSED": "lock it"; then: "Need a Icon to close and
   open the choice list in the excercise name inout fields same as Category."; "When I have slected
   excecise name If I change the category and subcateogry and the excerce is not belong to the that
-  combinations the Excescse name must be disappear").
+  combinations the Excescse name must be disappear"; on the matches' category and sub-group, of the
+  canvas's A (a second line) and B (also grouped when browsing): "go for the A").
 - Answer (plan [`docs/plans/exercise-library.md`](../plans/exercise-library.md); the redesign's 4.3,
   changed):
   - The owner's file (`D:\fitsphere-data\Gym_Exercise_Library.xlsx`, from the owner's AI tool: 2,090
@@ -2088,8 +2089,9 @@ checksum), and the configuration template was left as it is.*
   - The names stay as the file writes them ("Barbell Flat Bench Press"); seven are renamed so no two
     clash: Pilates' Swimming, Criss-Cross, Hip Circles and Jackknife become "… (Pilates)", and Warrior
     I, II and III become Warrior 1, 2 and 3 (the search counts a doubled letter once).
-  - A match shows what the choice does not: its category and sub-group with nothing chosen, its
-    sub-group with a category chosen, nothing with both; an exercise in no category keeps its group.
+  - A match shows what the choice does not, on a second, muted line under its name (the owner's A):
+    its category and sub-group with nothing chosen ("Core / Abs · Anti-Extension / Plank"), its
+    sub-group with a category chosen, nothing with both; an exercise in no category, its group.
   - The categories and sub-groups come in the file's order; Sub-group with no category chosen lists
     every name A to Z. Each choice shows its count; changing the category clears a sub-group it does
     not have.

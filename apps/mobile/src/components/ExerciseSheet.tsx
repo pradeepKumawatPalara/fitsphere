@@ -83,7 +83,7 @@ function inFilter(exercise: ListedExercise, filter: ExerciseFilter): boolean {
 }
 
 /**
- * What a match is tagged with (D-67): what the choice made doesn't say. With nothing chosen, its
+ * What a match says under its name (D-67): what the choice made doesn't say. With nothing chosen, its
  * category and sub-group ("Core / Abs · Flexion"); with a category, its sub-group there; with a
  * sub-group, its category; with both, nothing. An exercise of FitSphere's list in no category keeps
  * its group (D-50).
@@ -357,8 +357,10 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                     onPress={() => pick(exercise)}
                     style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
                   >
-                    <Text style={styles.matchName}>{exercise.name}</Text>
-                    {tag ? <Text style={[styles.tag, styles.matchTag]}>{tag}</Text> : null}
+                    <View style={styles.matchText}>
+                      <Text style={styles.matchName}>{exercise.name}</Text>
+                      {tag ? <Text style={styles.matchLine}>{tag}</Text> : null}
+                    </View>
                   </Pressable>
                 );
               }}
@@ -719,11 +721,13 @@ const useStyles = themedStyles((c) => ({
   nameBox: { paddingRight: 4 },
   nameChevron: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   matches: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
-  matchTag: { maxWidth: 150, textAlign: 'right' },
+  // What a match's choice doesn't say, on a second, muted line under its name (the owner chose A, 2026-11-10).
+  matchText: { flex: 1, minWidth: 0, gap: 2 },
+  matchLine: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
   match: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 14, paddingRight: 12 },
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
-  matchName: { flex: 1, fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  matchName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   // A group, as Search foods' source tags: the muted ink on the sunken colour.
   tag: {
     ...TYPE.label,
