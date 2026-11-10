@@ -741,16 +741,16 @@ describe('D-50 calories burned and heart rate', () => {
     await openSheet();
     await pick('yoga', 'Yoga');
     await fireEvent.changeText(screen.getByLabelText('Time, minutes'), '45');
-    await fireEvent.changeText(screen.getByLabelText('Average heart rate'), '150');
-    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '140');
+    await fireEvent.changeText(screen.getByLabelText('Average heart rate (optional)'), '150');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate (optional)'), '140');
     await save();
     expect(await screen.findByText(RULES.heartRateOrder)).toBeOnTheScreen();
 
-    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '251');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate (optional)'), '251');
     await save();
     expect(await screen.findByText(RULES.heartRate)).toBeOnTheScreen();
 
-    await fireEvent.changeText(screen.getByLabelText('Highest heart rate'), '172');
+    await fireEvent.changeText(screen.getByLabelText('Highest heart rate (optional)'), '172');
     await save();
     expect(await screen.findByRole('button', { name: 'Yoga: 45:00, heart rate 150 average, 172 highest' })).toBeOnTheScreen();
     await waitFor(() =>

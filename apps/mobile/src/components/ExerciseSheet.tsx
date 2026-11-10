@@ -536,9 +536,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <View style={styles.pair}>
             {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
               <View key={key} style={[styles.field, styles.half]}>
-                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate' : 'Highest heart rate'}</Text>
+                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}</Text>
                 <Box
-                  accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate' : 'Highest heart rate'}
+                  accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}
                   value={text[key]}
                   onChangeText={(value) => change({ [key]: value })}
                   keyboardType="number-pad"

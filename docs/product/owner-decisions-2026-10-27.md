@@ -1946,7 +1946,8 @@ checksum), and the configuration template was left as it is.*
   open the choice list in the excercise name inout fields same as Category."; "When I have slected
   excecise name If I change the category and subcateogry and the excerce is not belong to the that
   combinations the Excescse name must be disappear"; on the matches' category and sub-group, of the
-  canvas's A (a second line) and B (also grouped when browsing): "go for the A").
+  canvas's A (a second line) and B (also grouped when browsing): "go for the A"; "on the Add Excercise
+  tab mark Optional average Heast rate, Highest Heart rate").
 - Answer (plan [`docs/plans/exercise-library.md`](../plans/exercise-library.md); the redesign's 4.3,
   changed):
   - The owner's file (`D:\fitsphere-data\Gym_Exercise_Library.xlsx`, from the owner's AI tool: 2,090
@@ -1989,6 +1990,8 @@ checksum), and the configuration template was left as it is.*
     not have.
   - The choice is not saved with the exercise, and the sheet opens with none.
   - While a Category or Sub-group list is open, the name steps aside so the list has the page.
+  - The heart rate fields say they are optional, as the others do: "Average heart rate (optional)" and
+    "Highest heart rate (optional)".
 - Doc changes: REQ-TRN-003; `docs/data/exercise-list-sources.md`; the data model;
   `docs/architecture/constraints-and-assumptions.md` (the exercise sheet); `docs/plans/ui-redesign.md`
   (4.3); `docs/testing/slice-4-manual-testing.md`; `CLAUDE.md`. Migration `0022_exercise_places.sql`
