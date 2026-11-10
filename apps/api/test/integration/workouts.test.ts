@@ -106,6 +106,7 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
         id,
         day: TODAY,
         exercises: [SQUAT, PUSH_UP],
+        timer: null,
         recordedAt: RECORDED_AT,
         updatedAt: expect.stringMatching(/Z$/),
       },
@@ -238,6 +239,103 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
     const reply = await syncOk(user, [workout(randomUUID(), TODAY), deletion(randomUUID())]);
 
     expect(reply.results.map((result) => result.error?.code)).toEqual(['ROLE_NOT_ENABLED', 'ROLE_NOT_ENABLED']);
+  });
+});
+
+describe('D-71 the workout timer through POST /v1/sync', () => {
+  const STARTED_AT = `${TODAY}T02:05:00.000Z`;
+  const RUNNING = { startedAt: STARTED_AT, countedSeconds: 0, runningSince: STARTED_AT, doneAt: null };
+  const PAUSED = { startedAt: STARTED_AT, countedSeconds: 754, runningSince: null, doneAt: null };
+  const DONE = { startedAt: STARTED_AT, countedSeconds: 3_160, runningSince: null, doneAt: `${TODAY}T03:10:00.000Z` };
+
+  function timed(id: string, timer: unknown, exercises: unknown[] = [SQUAT]) {
+    const change = workout(id, TODAY, exercises);
+    return { ...change, data: { ...change.data, timer } };
+  }
+
+  async function storedTimer(userId: string) {
+    const { rows } = await api.db.query(
+      `select timer_started_at, timer_counted_seconds, timer_running_since, timer_done_at from app.workouts where user_id = $1`,
+      [userId],
+    );
+    return rows;
+  }
+
+  it('D-71 stores a running timer, before any exercise, and returns it in the pull', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+
+    const reply = await syncOk(user, [timed(id, RUNNING, [])]);
+
+    expect(reply.results.map((result) => result.status)).toEqual(['accepted']);
+    expect(reply.pull.workouts).toEqual([expect.objectContaining({ id, deleted: false, exercises: [], timer: RUNNING })]);
+    expect(await storedTimer(user.id)).toEqual([
+      {
+        timer_started_at: new Date(STARTED_AT),
+        timer_counted_seconds: 0,
+        timer_running_since: new Date(STARTED_AT),
+        timer_done_at: null,
+      },
+    ]);
+  });
+
+  it('D-71 a later change pauses it and marks it done; a change with no timer field keeps it; null clears it', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+    await syncOk(user, [timed(id, RUNNING)]);
+
+    const paused = await syncOk(user, [timed(id, PAUSED)]);
+    expect(paused.pull.workouts.map((entry) => (entry.deleted ? null : entry.timer))).toEqual([PAUSED]);
+
+    const done = await syncOk(user, [timed(id, DONE)]);
+    expect(done.pull.workouts.map((entry) => (entry.deleted ? null : entry.timer))).toEqual([DONE]);
+
+    // An app before D-71 sends no `timer`: the exercises change, the timer stays.
+    const older = await syncOk(user, [workout(id, TODAY, [SQUAT, PUSH_UP])]);
+    expect(older.pull.workouts).toEqual([expect.objectContaining({ exercises: [SQUAT, PUSH_UP], timer: DONE })]);
+
+    const cleared = await syncOk(user, [timed(id, null)]);
+    expect(cleared.pull.workouts.map((entry) => (entry.deleted ? null : entry.timer))).toEqual([null]);
+    expect(await storedTimer(user.id)).toEqual([
+      { timer_started_at: null, timer_counted_seconds: null, timer_running_since: null, timer_done_at: null },
+    ]);
+  });
+
+  it('D-71 deleting a workout deletes its timer; saving it again without one leaves none', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+    await syncOk(user, [timed(id, DONE)]);
+
+    await syncOk(user, [deletion(id)]);
+    expect(await storedTimer(user.id)).toEqual([
+      { timer_started_at: null, timer_counted_seconds: null, timer_running_since: null, timer_done_at: null },
+    ]);
+
+    const restored = await syncOk(user, [workout(id, TODAY)]);
+    expect(restored.pull.workouts).toEqual([expect.objectContaining({ id, deleted: false, timer: null })]);
+  });
+
+  it('D-71 refuses a timer running and done at once, or counting over 24 hours, and stores nothing', async () => {
+    const user = await api.signUpWithAccount();
+
+    const reply = await syncOk(user, [
+      timed(randomUUID(), { ...RUNNING, doneAt: STARTED_AT }),
+      timed(randomUUID(), { ...PAUSED, countedSeconds: 86_401 }),
+      timed(randomUUID(), { ...PAUSED, laps: [] }),
+    ]);
+
+    expect(reply.results.map((result) => result.error?.code)).toEqual(['VALIDATION_FAILED', 'VALIDATION_FAILED', 'VALIDATION_FAILED']);
+    expect(await storedWorkouts(user.id)).toEqual([]);
+  });
+
+  it('D-71 the history sends each workout’s timer', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+    await syncOk(user, [timed(id, DONE)]);
+
+    const response = await read(user.id, user.token, `from=${TODAY}&to=${TODAY}`);
+
+    expect(response.json().items).toEqual([expect.objectContaining({ id, timer: DONE })]);
   });
 });
 
@@ -392,9 +490,9 @@ describe('REQ-TRN-004 workout history', () => {
     const response = await read(user.id, user.token, `from=${addDays(TODAY, -99)}&to=${TODAY}`);
 
     expect(response.json().items).toEqual([
-      { id: sameDayA, day: addDays(TODAY, -95), exercises: [], recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
-      { id: sameDayB, day: addDays(TODAY, -95), exercises: [PUSH_UP], recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
-      { id: recent, day: addDays(TODAY, -5), exercises: [SQUAT], recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
+      { id: sameDayA, day: addDays(TODAY, -95), exercises: [], timer: null, recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
+      { id: sameDayB, day: addDays(TODAY, -95), exercises: [PUSH_UP], timer: null, recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
+      { id: recent, day: addDays(TODAY, -5), exercises: [SQUAT], timer: null, recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
     ]);
   });
 
@@ -462,6 +560,31 @@ describe('Workouts table (migration 0007)', () => {
     await insert(user, randomUUID(), '[]');
     await insert(user, randomUUID(), thirty);
     await insert(user, randomUUID(), null, DELETED_AT);
+  });
+
+  it('D-71 a timer is all empty, or started with a count of 0 to 24 hours, never running and done; a deleted workout has none (migrations 0025 and 0026)', async () => {
+    const user = await insertUser(client);
+    const at = '2026-10-05T02:00:00Z';
+    const timed = (timer: [string | null, number | null, string | null, string | null], deletedAt: string | null = null) =>
+      client.query(
+        `insert into app.workouts (user_id, id, day, exercises, recorded_at, deleted_at,
+           timer_started_at, timer_counted_seconds, timer_running_since, timer_done_at)
+         values ($1, $2, '2026-10-05', $3::jsonb, now(), $4, $5, $6, $7, $8)`,
+        [user, randomUUID(), deletedAt === null ? '[]' : null, deletedAt, ...timer],
+      );
+    const refused = (promise: Promise<unknown>) => expect(promise).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
+    await timed([null, null, null, null]);
+    await timed([at, 0, at, null]);
+    await timed([at, 754, null, null]);
+    await timed([at, 86_400, null, at]);
+    await refused(timed([at, null, null, null]));
+    await refused(timed([null, 0, null, null]));
+    await refused(timed([null, null, at, null]));
+    await refused(timed([at, -1, null, null]));
+    await refused(timed([at, 86_401, null, null]));
+    await refused(timed([at, 10, at, at]));
+    await refused(timed([at, 10, null, at], DELETED_AT));
+    await timed([null, null, null, null], DELETED_AT);
   });
 
   it('invariant #1 a workout ID is unique per user only', async () => {
