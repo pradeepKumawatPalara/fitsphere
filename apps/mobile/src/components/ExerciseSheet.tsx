@@ -1,7 +1,7 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
 import { ChevronDown, ChevronLeft, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { FlatList, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
+import { Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -70,9 +70,13 @@ function hours(seconds: number): string {
 
 /** No category or sub-group chosen (D-67). */
 const NO_FILTER: ExerciseFilter = { category: null, subGroup: null };
-/** Matches shown while typing with no choice made (D-50), and the most a category or sub-group shows. */
+/**
+ * Matches shown while typing with no choice made (D-50); the most a category or sub-group reads; and the
+ * most rows drawn, "All exercises" being cut at the first of them (D-67).
+ */
 const MATCHES_LIMIT = 8;
 const FILTERED_LIMIT = 1000;
+const SHOWN_MAX = 300;
 
 /** Whether an exercise is one of a category's or sub-group's (D-67); every one with no choice made. */
 function inFilter(exercise: ListedExercise, filter: ExerciseFilter): boolean {
@@ -197,7 +201,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     const searching = !listClosed && (typingName || browsing);
     void Promise.all([
       findListedExercise(db, text.name),
-      searching ? searchExercises(db, text.name, filtered || browsingAll ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll) : [],
+      searching ? searchExercises(db, text.name, browsingAll ? SHOWN_MAX : filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll) : [],
     ]).then(([found, list]) => {
       if (!active) return;
       setListed(found);
@@ -221,7 +225,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   // Words typed in a category or sub-group that match none of its exercises (D-67).
   const noMatch = filtered && named && typingName && !listClosed && matches.length === 0 && listed === null;
   const listTitle = browsingAll
-    ? `All exercises · ${formatInteger(matches.length)}`
+    ? `All exercises · ${formatInteger(counts?.total ?? matches.length)}`
     : !filtered
     ? 'Matches'
     : browsing
@@ -342,16 +346,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       {picking !== null ? null : choosing ? (
         <View style={styles.listArea}>
           <Text style={labelStyle}>{listTitle}</Text>
+          {/* A plain list, not a FlatList: it sits in the page's scroll view, which may not hold a
+              virtualized list; at most SHOWN_MAX rows are drawn. */}
           <View style={[styles.matches, styles.fill]}>
-            <FlatList
-              data={matches}
-              keyExtractor={(exercise) => exercise.code}
-              keyboardShouldPersistTaps="handled"
-              nestedScrollEnabled
-              renderItem={({ item: exercise, index }) => {
+            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+              {matches.slice(0, SHOWN_MAX).map((exercise, index) => {
                 const tag = matchTag(exercise, filter);
                 return (
                   <Pressable
+                    key={exercise.code}
                     accessibilityRole="button"
                     accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
                     onPress={() => pick(exercise)}
@@ -363,8 +366,13 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                     </View>
                   </Pressable>
                 );
-              }}
-            />
+              })}
+              {matches.length > SHOWN_MAX || (browsingAll && counts !== null && counts.total > matches.length) ? (
+                <Text style={[styles.help, styles.more]}>
+                  The first {SHOWN_MAX} are shown: type a name or pick a category to find the others.
+                </Text>
+              ) : null}
+            </ScrollView>
           </View>
         </View>
       ) : (
@@ -724,6 +732,7 @@ const useStyles = themedStyles((c) => ({
   // What a match's choice doesn't say, on a second, muted line under its name (the owner chose A, 2026-11-10).
   matchText: { flex: 1, minWidth: 0, gap: 2 },
   matchLine: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  more: { paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: c.border },
   match: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 14, paddingRight: 12 },
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },

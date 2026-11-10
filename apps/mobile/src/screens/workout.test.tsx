@@ -1,10 +1,10 @@
 import type { WorkoutSetData } from '@fitsphere/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { Button, Keyboard, type EmitterSubscription } from 'react-native';
-import { getEntry, saveEntry, saveWeighIn } from '../local/store';
+import { getEntry, replaceExercises, saveEntry, saveWeighIn } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { NOW, renderInApp } from '../testing/appHarness';
-import { sameSets, withExerciseList } from '../testing/exercises';
+import { sameSets, TEST_EXERCISE_LIST, withExerciseList } from '../testing/exercises';
 import { exerciseRules, type SetText } from '../workouts';
 import { TrainingScreen } from './TrainingScreen';
 import { WorkoutScreen } from './WorkoutScreen';
@@ -943,5 +943,41 @@ describe('D-67 the name’s chevron, and a choice the exercise is not in', () =>
     await choosePlace('Category', 'Barbell');
 
     expect(screen.getByLabelText('Exercise name').props.value).toBe('Tyre flips');
+  });
+});
+
+describe('D-67 a long list on the exercise page', () => {
+  it('draws at most 300 rows, says how to find the others, and nests no virtualized list in the page', async () => {
+    const error = jest.spyOn(console, 'error');
+    const drills = Array.from({ length: 320 }, (_, index) => ({
+      ...TEST_EXERCISE_LIST.find((exercise) => exercise.code === 'push-up')!,
+      code: `drill-${String(index + 1).padStart(3, '0')}`,
+      name: `Drill ${String(index + 1).padStart(3, '0')}`,
+      aliases: [],
+    }));
+    try {
+      await renderInApp(
+        <>
+          <TrainingScreen />
+          <WorkoutScreen now={() => NOW} />
+        </>,
+        undefined,
+        async (db, server) => {
+          server.state.exercises = drills;
+          await replaceExercises(db, server.state.exercisesVersion, drills);
+        },
+      );
+      await fireEvent.press(await screen.findByRole('button', { name: /^Log workout for / }));
+      await openSheet();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+
+      expect(await screen.findByText('All exercises · 320')).toBeOnTheScreen();
+      expect(screen.getAllByRole('button', { name: /^Drill \d{3}/ })).toHaveLength(300);
+      expect(screen.getByText('The first 300 are shown: type a name or pick a category to find the others.')).toBeOnTheScreen();
+      expect(error.mock.calls.some(([message]) => String(message).includes('VirtualizedLists should never be nested'))).toBe(false);
+    } finally {
+      error.mockRestore();
+    }
   });
 });

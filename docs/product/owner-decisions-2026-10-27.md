@@ -1990,6 +1990,9 @@ checksum), and the configuration template was left as it is.*
     not have.
   - The choice is not saved with the exercise, and the sheet opens with none.
   - While a Category or Sub-group list is open, the name steps aside so the list has the page.
+  - The matches draw at most 300 rows (a plain list, which the scrolling page can hold): "All
+    exercises" shows the first 300 and "The first 300 are shown: type a name or pick a category to find
+    the others."; a category's or sub-group's exercises (169 at most) all show.
   - The heart rate fields say they are optional, as the others do: "Average heart rate (optional)" and
     "Highest heart rate (optional)".
 - Doc changes: REQ-TRN-003; `docs/data/exercise-list-sources.md`; the data model;
