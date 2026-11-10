@@ -89,7 +89,8 @@ export type ChangeData = {
   target: TargetSetData;
   setting: SettingSetData;
   meal: MealSetData;
-  savedMeal: SavedMealSetData;
+  // A saved meal keeps no meal (D-69); the phone never sends one.
+  savedMeal: Omit<SavedMealSetData, 'mealType'>;
   myFood: MyFoodSetData;
   profile: ProfileSetData;
 };
@@ -104,7 +105,7 @@ export type LocalEntries = {
   target: { kind: TargetKind; value: number; setAt: string; setByUserId: string | null; syncState: SyncState };
   setting: { name: SettingName; value: string; setAt: string; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
-  savedMeal: SavedMealSetData & MealTotals & { syncState: SyncState };
+  savedMeal: Omit<SavedMealSetData, 'mealType'> & MealTotals & { syncState: SyncState };
   myFood: MyFoodSetData & { syncState: SyncState };
   profile: ProfileSetData & { syncState: SyncState };
 };
@@ -276,7 +277,6 @@ const KINDS: Record<EntryKind, KindSpec> = {
     columns: [
       ['id', 'id'],
       ['name', 'name'],
-      ['meal_type', 'mealType'],
       ['tags', 'tags', 'json'],
       ['items', 'items', 'json'],
       ['saved_at', 'savedAt'],
@@ -605,6 +605,31 @@ const MIGRATIONS = [
    ALTER TABLE packaged_foods ADD COLUMN search_brand TEXT NOT NULL DEFAULT '';
    UPDATE foods SET search_name = ${searched('name')}, search_aliases = ${searched('aliases')};
    UPDATE packaged_foods SET search_name = ${searched('name')}, search_brand = ${searched("coalesce(brand, '')")};`,
+  // The exercise library (D-67): each exercise's places, the categories and sub-groups the library lists
+  // it under, as JSON and as keys the exercise sheet narrows a search by. The list's version is
+  // cleared, so the next download brings them.
+  `ALTER TABLE exercises ADD COLUMN places TEXT NOT NULL DEFAULT '[]';
+   ALTER TABLE exercises ADD COLUMN place_keys TEXT NOT NULL DEFAULT '';
+   DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
+  // Saved meals keep no meal (D-69): the table is made again without meal_type and every saved meal
+  // copied over as it is, those waiting to sync too, so nothing on the phone is lost.
+  `CREATE TABLE saved_meals_new (
+     id TEXT PRIMARY KEY,
+     name TEXT NOT NULL,
+     tags TEXT NOT NULL,
+     items TEXT NOT NULL,
+     saved_at TEXT NOT NULL,
+     kcal REAL NOT NULL,
+     protein_g REAL NOT NULL,
+     carbs_g REAL,
+     fat_g REAL,
+     fibre_g REAL,
+     ${SYNC_STATE}
+   );
+   INSERT INTO saved_meals_new (id, name, tags, items, saved_at, kcal, protein_g, carbs_g, fat_g, fibre_g, sync_state)
+     SELECT id, name, tags, items, saved_at, kcal, protein_g, carbs_g, fat_g, fibre_g, sync_state FROM saved_meals;
+   DROP TABLE saved_meals;
+   ALTER TABLE saved_meals_new RENAME TO saved_meals;`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */

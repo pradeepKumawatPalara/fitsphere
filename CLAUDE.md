@@ -26,6 +26,15 @@ METs, by speed for running, walking and cycling, `data/exercises/speed-mets.csv`
 and heart rate. **On `fitsphere-dev`: migrations 0012 to 0017 before the updated API, then
 `foods:import` and `exercises:import`; only when the owner says so.**
 
+**Create a saved meal — built on branch `feat/saved-meal-create` (D-69, 2026-11-10).** Nutrition ›
+Saved's "Create a saved meal" asks the name first, then a screen adds foods from Search foods and
+changes them (`SavedMealScreen.tsx`, route `saved-meal`; the foods code shared with Log meal in
+`components/MealFoods.tsx`). A saved meal keeps no meal: logging one asks the meal each time, with
+"Change amounts first" opening Log meal with its foods for that day only. The same foods are never
+saved twice. REQ-SAVED-001…003. Migration `0023_saved_meals_any_meal.sql`, phone schema version 17;
+the exercise library's 0022 and phone version 16 (D-67) are included word for word. Migration 0023
+is applied on `fitsphere-dev` (2026-11-10).
+
 **More foods — built on branch `feat/more-foods` (D-39, 2026-11-04).** Plan: `docs/plans/more-foods.md`
 (Accepted), REQ-LOG-011. USDA FoodData Central's FNDDS foods (CC0, 5,431, with their servings as USDA
 weighs them) joined IFCT's in the food list; since D-47 they are archived (`app.usda_foods`, migration

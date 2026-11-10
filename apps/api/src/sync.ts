@@ -422,15 +422,17 @@ const HANDLERS = new Map<string, Handler>([
       const saved = data.data;
       if (!(await itemsListed(client, saved.items))) return 'VALIDATION_FAILED';
       const totals = mealTotals(saved.items);
+      // No meal is kept (D-69): a meal type sent by an older phone is not stored, and one stored
+      // before is cleared when the saved meal is saved again.
       await client.query(
-        `insert into app.saved_meals (user_id, id, name, meal_type, tags, items, kcal, protein_g, carbs_g, fat_g,
-           fibre_g, saved_at)
-         values ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12)
+        `insert into app.saved_meals (user_id, id, name, tags, items, kcal, protein_g, carbs_g, fat_g, fibre_g,
+           saved_at)
+         values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11)
          on conflict (user_id, id) do update set
-           name = excluded.name, meal_type = excluded.meal_type, tags = excluded.tags, items = excluded.items,
+           name = excluded.name, meal_type = null, tags = excluded.tags, items = excluded.items,
            kcal = excluded.kcal, protein_g = excluded.protein_g, carbs_g = excluded.carbs_g, fat_g = excluded.fat_g,
            fibre_g = excluded.fibre_g, saved_at = excluded.saved_at, deleted_at = null`,
-        [account.id, saved.id, saved.name, saved.mealType, saved.tags, itemsJson(saved.items), ...totalValues(totals), saved.savedAt],
+        [account.id, saved.id, saved.name, saved.tags, itemsJson(saved.items), ...totalValues(totals), saved.savedAt],
       );
       return null;
     },
@@ -602,8 +604,8 @@ type ChangedRow = { change_seq: string } & (
 type StoredTotals = { kcal: number | null; proteinG: number | null; carbsG: number | null; fatG: number | null; fibreG: number | null };
 type StoredMeal = Omit<Extract<PulledMeal, { deleted: false }>, 'totals' | 'mealType'> &
   StoredTotals & { mealType: Extract<PulledMeal, { deleted: false }>['mealType'] | null };
-type StoredSavedMeal = Omit<Extract<PulledSavedMeal, { deleted: false }>, 'totals' | 'mealType' | 'name'> &
-  StoredTotals & { name: string | null; mealType: Extract<PulledSavedMeal, { deleted: false }>['mealType'] | null };
+type StoredSavedMeal = Omit<Extract<PulledSavedMeal, { deleted: false }>, 'totals' | 'name'> &
+  StoredTotals & { name: string | null };
 type StoredMyFood = { id: string; deleted: boolean; name: string | null; unit: Extract<PulledMyFood, { deleted: false }>['unit'] | null } & {
   kcal: number | null;
   proteinG: number | null;
@@ -673,8 +675,8 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
        from app.meals where user_id = $1 and change_seq > $2 and day >= $3
        union all
        select 'savedMeal', change_seq,
-         json_build_object('id', id, 'deleted', deleted_at is not null, 'name', name, 'mealType', meal_type,
-           'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
+         json_build_object('id', id, 'deleted', deleted_at is not null, 'name', name, 'tags', tags,
+           'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
            'fibreG', fibre_g, 'savedAt', saved_at, 'updatedAt', updated_at)
        from app.saved_meals where user_id = $1 and change_seq > $2
        union all
@@ -765,14 +767,13 @@ function toPulledMeal(meal: StoredMeal): PulledMeal {
 }
 
 function toPulledSavedMeal(saved: StoredSavedMeal): PulledSavedMeal {
-  if (saved.deleted || saved.mealType === null || saved.name === null) {
+  if (saved.deleted || saved.name === null) {
     return { deleted: true, id: saved.id, updatedAt: utc(saved.updatedAt) };
   }
   return {
     deleted: false,
     id: saved.id,
     name: saved.name,
-    mealType: saved.mealType,
     tags: saved.tags,
     items: saved.items,
     totals: totalsOf(saved),

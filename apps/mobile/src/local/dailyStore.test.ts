@@ -96,7 +96,7 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
   },
   savedMeal: {
     key: MEAL_ID,
-    data: { id: MEAL_ID, name: 'Two rotis', mealType: 'dinner', tags: [], items: [ATTA], savedAt: AT },
+    data: { id: MEAL_ID, name: 'Two rotis', tags: [], items: [ATTA], savedAt: AT },
     stored: { name: 'Two rotis', items: [ATTA], kcal: 192 },
   },
   myFood: {

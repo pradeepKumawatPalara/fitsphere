@@ -88,7 +88,7 @@ describe('Local schema version 13', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       expect(await searchExercises(old, 'run')).toEqual([]);
     } finally {

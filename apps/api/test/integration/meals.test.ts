@@ -95,7 +95,7 @@ function savedSet(id: string, extra: Record<string, unknown> = {}) {
   return {
     changeId: randomUUID(),
     type: 'savedMeal.set',
-    data: { id, name: 'Two rotis', mealType: 'dinner', tags: [], items: [ATTA], savedAt: AT, ...extra },
+    data: { id, name: 'Two rotis', tags: [], items: [ATTA], savedAt: AT, ...extra },
   };
 }
 function savedDelete(id: string) {
@@ -350,7 +350,6 @@ describe('REQ-SAVED-001 saved meals', () => {
         deleted: false,
         id,
         name: 'Two rotis',
-        mealType: 'dinner',
         tags: [],
         items: [ATTA],
         totals: { kcal: 192, proteinG: 6.34, carbsG: 38.5, fatG: 0.92, fibreG: 6.82 },
@@ -361,6 +360,23 @@ describe('REQ-SAVED-001 saved meals', () => {
 
     const deleted = await syncOk(user, [savedDelete(id)], saved.cursor);
     expect(deleted.pull.savedMeals).toEqual([{ deleted: true, id, updatedAt: expect.stringMatching(/Z$/) }]);
+  });
+
+  it('D-69 a saved meal keeps no meal: one sent by an older phone is accepted and not kept', async () => {
+    const user = await api.signUpWithAccount();
+    const id = randomUUID();
+    await api.db.query(
+      `insert into app.saved_meals (user_id, id, name, meal_type, tags, items, kcal, protein_g, saved_at)
+       values ($1, $2, 'Before D-69', 'lunch', '{}', '[]'::jsonb, 0, 0, now())`,
+      [user.id, id],
+    );
+
+    const reply = await syncOk(user, [savedSet(id, { mealType: 'dinner' }), savedSet(randomUUID())]);
+
+    expect(reply.results.map((result) => result.status)).toEqual(['accepted', 'accepted']);
+    const { rows } = await api.db.query('select meal_type from app.saved_meals where user_id = $1', [user.id]);
+    expect(rows).toEqual([{ meal_type: null }, { meal_type: null }]);
+    expect(reply.pull.savedMeals.every((saved) => !('mealType' in saved))).toBe(true);
   });
 
   it('ADR-0007 rule 1 saved meals are always in the pull, however old', async () => {
@@ -377,6 +393,7 @@ describe('REQ-SAVED-001 saved meals', () => {
     ['an empty name', { name: ' ' }],
     ['a 61-character name', { name: 'x'.repeat(61) }],
     ['a day', { day: TODAY }],
+    ['an unknown meal type', { mealType: 'brunch' }],
   ])('REQ-SAVED-001 a saved meal with %s is rejected', async (_case, extra) => {
     const user = await api.signUpWithAccount();
 

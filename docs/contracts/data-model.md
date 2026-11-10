@@ -393,18 +393,21 @@ Migration 0011.
 - A meal item made from a My food keeps its own values (snapshot) and names the My food as its `ref`.
 
 ### `saved_meals` — Health
-Copies of meals kept for re-logging (REQ-SAVED-001, REQ-NUT-004 "Save to my meals").
+Foods kept under the user's own name for logging again (REQ-SAVED-001, REQ-SAVED-003): saved from a
+logged meal (REQ-NUT-004 "Save to my meals") or made in Saved (D-69).
 
 | Column | Type | Rules |
 |---|---|---|
 | `user_id`, `id` | `uuid` | Primary key together, as in `meals` |
 | `name` | `text` | 1 to 60 characters. Null once deleted |
-| `meal_type`, `tags`, `items`, totals | | As in `meals`: the slot it was saved from (Q-036) and its foods |
+| `tags`, `items`, totals | | As in `meals`: its foods |
+| `meal_type` | `text` | Unused since D-69 (migration 0023): a saved meal keeps no meal. Null for those saved since; cleared when one saved before is saved again or deleted |
 | `saved_at` | `timestamptz` | Not null. When it was saved, on the phone |
 | `deleted_at`, `change_seq`, `created_at`, `updated_at` | | As in `meals` |
 
-- A saved meal is a copy: it has no day and no photo, and changing or deleting the meal it was
-  saved from does not change it. It can be deleted, in the same way as a meal.
+- A saved meal has no day, no photo and no meal; it is logged to the meal the user chooses each time
+  (D-69). One saved from a logged meal is a copy: changing or deleting that meal does not change it.
+  It can be changed whole (`savedMeal.set`) and deleted, in the same way as a meal.
 - Not seen by a coach (permission matrix, D-18).
 
 ### `foods` — reference data
@@ -599,7 +602,7 @@ rule 5 and D-14 require.
 | `measurements` | `day` (key), the six lengths in millimetres, `notes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
 | `meals` | `id` (key), `day`, `meal_type`, `tags`, `items` and `photo` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3; `photo` version 4 |
-| `saved_meals` | `id` (key), `name`, `meal_type`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day. Schema version 3 |
+| `saved_meals` | `id` (key), `name`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day and no meal. Schema version 3; made again without `meal_type` in version 17 (D-69) |
 | `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g, `measures` (JSON) | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3; `measures` version 8 |
 | `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
@@ -659,6 +662,9 @@ rule 5 and D-14 require.
   food. The update fills them from the rows already on the phone and keeps `food_list_version`, so
   search keeps working offline and nothing is downloaded again. The packaged foods are written 90
   rows a statement. My foods and dishes, a few rows each, are read the same way at search time.
+- **Version 17** (saved meals keep no meal, D-69) makes `saved_meals` again without `meal_type` and
+  copies every saved meal into it, those waiting to sync too. Version 16 is the exercise library's
+  (D-67).
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

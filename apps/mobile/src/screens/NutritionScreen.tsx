@@ -6,7 +6,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
 import { LogMealButton } from '../components/LogMealButton';
 import { MealCard } from '../components/MealCard';
-import { ActionsSheet, ConfirmSheet, RelogSheet, SaveMealSheet } from '../components/MealSheets';
+import { ActionsSheet, ConfirmSheet, RelogSheet, SAVED_NAME_HINT, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay } from '../format';
@@ -39,14 +39,17 @@ type Sheet =
   // A meal whose foods are already a saved meal: its bookmark is filled, and it is not saved twice.
   | { kind: 'alreadySaved'; saved: LocalSavedMeal }
   | { kind: 'deleteSaved'; saved: LocalSavedMeal }
-  | { kind: 'relog'; saved: LocalSavedMeal };
+  | { kind: 'relog'; saved: LocalSavedMeal }
+  // "Create a saved meal" (D-69): its name first, then its foods on their own screen.
+  | { kind: 'newSaved' };
 
 function asTab(value: string | undefined): Tab | null {
   return TABS.some((entry) => entry.tab === value) ? (value as Tab) : null;
 }
 
-// Nutrition (REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001/002): the selected day's meals by slot,
-// the Diet plan empty state (D-20) and the saved meals. Shares the selected date with Home.
+// Nutrition (REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001…003): the selected day's meals by slot,
+// the Diet plan empty state (D-20) and the saved meals, made here or from a logged meal, each logged
+// to the meal the user chooses (D-69). Shares the selected date with Home.
 /** Food names shown in a closed slot, before "+ N more". */
 const FOODS_SHOWN = 5;
 
@@ -241,29 +244,33 @@ export function NutritionScreen() {
         ) : null}
 
         {tab === 'saved' ? (
-          saved.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyTile}>
-                <Bookmark size={26} color={colors.accent} />
+          <>
+            <TextButton title="Create a saved meal" outlined wide icon={Plus} onPress={() => setSheet({ kind: 'newSaved' })} />
+            {saved.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <View style={styles.emptyTile}>
+                  <Bookmark size={26} color={colors.accent} />
+                </View>
+                <Text style={styles.emptyText}>No saved meals yet. Tap Create a saved meal to make one, or in Consumed tap the bookmark on a meal.</Text>
               </View>
-              <Text style={styles.emptyText}>No saved meals yet. In Consumed, tap the bookmark on a meal to save it to your meals.</Text>
-            </View>
-          ) : (
-            saved.map((entry) => (
-              <MealCard
-                key={entry.id}
-                title={entry.name}
-                name={entry.name}
-                standalone
-                items={entry.items}
-                tags={entry.tags}
-                totals={entry}
-                syncState={entry.syncState}
-                onPress={() => setSheet({ kind: 'relog', saved: entry })}
-                onDelete={() => setSheet({ kind: 'deleteSaved', saved: entry })}
-              />
-            ))
-          )
+            ) : (
+              saved.map((entry) => (
+                <MealCard
+                  key={entry.id}
+                  title={entry.name}
+                  name={entry.name}
+                  standalone
+                  items={entry.items}
+                  tags={entry.tags}
+                  totals={entry}
+                  syncState={entry.syncState}
+                  onPress={() => setSheet({ kind: 'relog', saved: entry })}
+                  onEdit={() => router.push({ pathname: '/saved-meal', params: { savedId: entry.id } })}
+                  onDelete={() => setSheet({ kind: 'deleteSaved', saved: entry })}
+                />
+              ))
+            )}
+          </>
         ) : null}
       </ScrollView>
       <LogMealButton day={selected} />
@@ -285,7 +292,6 @@ export function NutritionScreen() {
             void sync.save('savedMeal', {
               id: sync.newId(),
               name,
-              mealType: sheet.meal.mealType,
               tags: sheet.meal.tags,
               items: sheet.meal.items,
             });
@@ -314,7 +320,9 @@ export function NutritionScreen() {
         <RelogSheet
           name={sheet.saved.name}
           dayLabel={formatDay(selected)}
-          slot={sheet.saved.mealType}
+          onChangeFirst={(slot) =>
+            router.push({ pathname: '/log-meal', params: { day: selected, savedId: sheet.saved.id, ...(slot ? { slot } : {}) } })
+          }
           onLog={(slot) =>
             void sync.save('meal', {
               id: sync.newId(),
@@ -324,6 +332,16 @@ export function NutritionScreen() {
               items: sheet.saved.items,
             })
           }
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {sheet?.kind === 'newSaved' ? (
+        <SaveMealSheet
+          initialName=""
+          title="New saved meal"
+          actionLabel="Next: add foods"
+          emptyHint={SAVED_NAME_HINT}
+          onSave={(name) => router.push({ pathname: '/saved-meal', params: { name } })}
           onClose={() => setSheet(null)}
         />
       ) : null}

@@ -24,7 +24,7 @@ type Props = {
   photo?: { mealId: string; photo: MealPhoto } | null;
   /** When a logged meal was last saved, shown as "Saved 8:15 am" in India time (D-34). */
   savedAt?: string;
-  /** A logged meal: opens it in Log meal. */
+  /** A logged meal: opens it in Log meal. A saved meal (D-69): opens it to change. */
   onEdit?(): void;
   /** A logged meal: "Save to my meals". */
   onSave?(): void;
@@ -37,8 +37,8 @@ type Props = {
 
 // One logged or saved meal (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001): its foods, kcal and protein,
 // a small label per tag (Q-031), its photo or image link, and its actions as icons: Edit, Save to my
-// meals and Delete along the foot of a logged meal's card; a saved meal's only one, Delete, at the
-// top right, on the line of its foods. Each icon is 44 to tap and named for screen readers; Delete
+// meals and Delete along the foot of a logged meal's card; a saved meal's, Edit (D-69) and Delete, at
+// the top right, beside its name. Each icon is 44 to tap and named for screen readers; Delete
 // is red. The redesign's 3.1 and 3.3 (locked by the owner, 2026-11-03): the kcal in condensed figures,
 // tags as small caramel blocks, a saved meal's name over its foods.
 export function MealCard({
@@ -60,9 +60,10 @@ export function MealCard({
   const styles = useStyles();
   const { colors } = useTheme();
   const note = syncState === 'pending' ? 'Waiting to sync' : syncState === 'rejected' ? 'Not saved' : null;
-  // With Delete alone (a saved meal), it sits on the first line rather than a row of its own.
-  const deleteOnly = !onEdit && !onSave;
+  // A saved meal (no Save to my meals): its actions sit on the first line rather than a row of their own.
+  const deleteOnly = !onSave;
   const remove = <IconAction icon={Trash} label={`Delete ${title}`} color={colors.danger} onPress={onDelete} />;
+  const edit = onEdit ? <IconAction icon={SquarePen} label={`Edit ${title}`} color={colors.accent} onPress={onEdit} /> : null;
   return (
     <View style={[styles.card, standalone && styles.standalone, deleteOnly && styles.cardDeleteOnly]}>
       <View style={[styles.top, deleteOnly && styles.topDeleteOnly]}>
@@ -92,7 +93,12 @@ export function MealCard({
           ) : null}
           {note ? <Text style={[styles.note, syncState === 'rejected' && styles.notSaved]}>{note}</Text> : null}
         </Pressable>
-        {deleteOnly ? <View style={styles.inlineAction}>{remove}</View> : null}
+        {deleteOnly ? (
+          <View style={styles.inlineAction}>
+            {edit}
+            {remove}
+          </View>
+        ) : null}
       </View>
       {deleteOnly ? null : (
         <View style={[styles.actions, photo ? styles.actionsWithPhoto : null]}>
@@ -101,7 +107,7 @@ export function MealCard({
               <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} />
             </View>
           ) : null}
-          {onEdit ? <IconAction icon={SquarePen} label={`Edit ${title}`} color={colors.accent} onPress={onEdit} /> : null}
+          {edit}
           {onSave ? (
             <IconAction
               icon={Bookmark}
@@ -160,10 +166,10 @@ const useStyles = themedStyles((c) => ({
   },
   standalone: { paddingTop: 14, paddingLeft: 16, borderWidth: 0, backgroundColor: c.surface },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingRight: 10 },
-  // A saved meal: Delete at the top right, centred on the foods' line; the card closes 12 below.
+  // A saved meal: Edit and Delete at the top right, beside its name; the card closes 12 below.
   cardDeleteOnly: { paddingBottom: 12 },
   topDeleteOnly: { paddingRight: 0 },
-  inlineAction: { marginTop: -12 },
+  inlineAction: { flexDirection: 'row', marginTop: -12 },
   body: { flex: 1, gap: 6 },
   pressed: { opacity: 0.6 },
   firstLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },

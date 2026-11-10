@@ -658,11 +658,15 @@ export const SAVED_MEAL_SET = 'savedMeal.set';
 export const SAVED_MEAL_DELETE = 'savedMeal.delete';
 export const SAVED_MEAL_NAME_MAX = 60;
 
-/** A copy of a meal kept for re-logging (REQ-SAVED-001). It has no day and no photo. */
+/**
+ * Foods kept under the user's own name for logging again (REQ-SAVED-001, REQ-SAVED-003). It has no
+ * day, no photo and, since D-69, no meal: it is logged to whichever meal the user chooses.
+ */
 export const savedMealSetDataSchema = z.strictObject({
   id: idSchema,
   name: z.string().trim().min(1).max(SAVED_MEAL_NAME_MAX),
-  mealType: z.enum(MEAL_TYPES),
+  /** Sent by phones from before D-69, still waiting in their outbox; accepted and not kept. */
+  mealType: z.enum(MEAL_TYPES).optional(),
   tags: mealTagsSchema,
   items: z.array(mealItemSchema).min(1).max(MAX_MEAL_ITEMS),
   savedAt: instantSchema,
@@ -875,7 +879,6 @@ export const pulledSavedMealSchema = z.discriminatedUnion('deleted', [
     deleted: z.literal(false),
     id: idSchema,
     name: z.string(),
-    mealType: z.enum(MEAL_TYPES),
     tags: z.array(z.enum(MEAL_TAGS)),
     items: z.array(pulledItemSchema),
     totals: mealTotalsSchema,

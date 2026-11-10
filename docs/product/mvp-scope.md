@@ -78,7 +78,7 @@ These answer open questions for the MVP. Any can be changed later.
 | Q-033 "Got it" | Remembered per user |
 | Q-034 Option totals | Post-MVP with diet plans (D-20). When built: each option shows its own kcal and protein |
 | Q-035 Option button | Post-MVP with diet plans (D-20). When built: "Log this option" logs it to that meal slot on the selected date |
-| Q-036 Re-log saved meal | Goes to the meal slot it was saved from; user can change it |
+| Q-036 Re-log saved meal | *Replaced by D-69:* a saved meal keeps no meal; the user chooses the meal each time it is logged, and can change its amounts first for that day |
 | Q-037 Day status labels | "Nothing logged" or "N meals logged", read out with each day of Log meal's calendar, which shows a dot on days with a meal (D-33) |
 | Q-042 Workout fields | Per exercise: sets × reps × weight; optional note |
 | Q-043 Progress formulas | 4-week change = latest weigh-in minus the weigh-in nearest 28 days earlier; weekly rate = change ÷ the weeks between the two weigh-ins (÷ 4 when they are 28 days apart); weekly table = averages over days that have entries; chart needs 2+ weigh-ins. *Weekly rate refined by D-30 (2026-10-30); was "change ÷ 4"* |

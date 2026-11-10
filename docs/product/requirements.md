@@ -444,11 +444,14 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ## SAVED — Nutrition: Saved (BRD §7)
 
 ### REQ-SAVED-001 — Saved meals list
-- Requirement: Lists the user's saved meals; one tap re-logs a meal to the selected date, in the meal slot it was saved from; the user can change the slot (MVP default, Q-036).
-- MVP default (D-18; the owner's phone test, 2026-11-04): a meal is saved once. A logged meal whose foods and amounts, in any order, are already a saved meal shows a filled bookmark; tapping it says which saved meal it is and offers "Go to Saved", and no second copy is made.
+- Requirement: Lists the user's saved meals; tapping one logs it to the selected date, in the meal the user chooses each time, since a saved meal keeps no meal of its own (D-69, replacing Q-036's MVP default): "Log meal" logs it as it is; "Change amounts first" opens Log meal with its foods, for that day only.
+- MVP default (D-18; the owner's phone test, 2026-11-04): a meal is saved once. A logged meal whose foods and amounts, in any order, are already a saved meal shows a filled bookmark; tapping it says which saved meal it is and offers "Go to Saved", and no second copy is made. The same holds for a saved meal made or changed in Saved (D-69).
 
 ### REQ-SAVED-002 — Empty state
-- Requirement: With no saved meals, an empty state explains how to save one from the Consumed tab.
+- Requirement: With no saved meals, an empty state explains the two ways to save one: Create a saved meal, or the bookmark on a meal in the Consumed tab (D-69).
+
+### REQ-SAVED-003 — Create and change a saved meal
+- Requirement (D-69): "Create a saved meal" in Saved asks the meal's name first (required, 1 to 60 characters), then opens the meal to add as many foods as needed, each as in Search foods, and to change or remove each; it is saved under that name. Each saved meal can be opened again to change its name, foods and amounts. A saved meal has no meal (Breakfast, Lunch, Snack or Dinner) of its own. Works offline.
 
 ---
 

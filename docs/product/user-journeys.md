@@ -32,9 +32,9 @@ Actor: Personal Training User · REQ-LOG-007, ACC-005
 3. Totals update. Works with AI off.
 
 ## J-03 Trainee re-logs a saved meal
-REQ-NUT-004, SAVED-001/002
-1. In Consumed, opens a logged meal's "•••" → "Save to my meals".
-2. Another day, Nutrition › Saved → taps the meal → logged to the selected date, in the slot it was saved from (MVP default, Q-036).
+REQ-NUT-004, SAVED-001…003
+1. In Consumed, taps a logged meal's bookmark → "Save to my meals"; or, in Saved, "Create a saved meal" → its name → its foods, from Search foods → Save meal (D-69).
+2. Another day, Nutrition › Saved → taps the meal → chooses the meal (Breakfast, Lunch, Snack or Dinner) → Log meal, logged to the selected date; or "Change amounts first" → Log meal with its foods, changed for that day only (D-69).
 
 ## J-04 Trainee logs weight and weekly measurements
 REQ-HOME-006, HOME-008, MEAS-001..006, PRG-006
