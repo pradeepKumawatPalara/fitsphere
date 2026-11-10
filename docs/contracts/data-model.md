@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-05 (the exercise list and the exercise's new shape, D-50: migration 0016,
+- Last updated: 2026-11-10 (Search foods' ready-made search text, D-66: phone schema version 15).
+  2026-11-05 (the exercise list and the exercise's new shape, D-50: migration 0016,
   `exercises`, phone schema version 13). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
   migration 0008, and the phone's `settings` table, version 7; D-31). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
   same day (Meal logging slice, D-26: the food list, barcode products, meals and saved meals).
@@ -651,6 +652,13 @@ rule 5 and D-14 require.
   identical sets.
 - **Version 14** (speed bands, D-50) adds `exercises.speed_mets` (JSON) and clears
   `exercise_list_version`, so the next download brings them.
+- **Version 15** (ready-made search text, D-66) adds `foods.search_name`, `foods.search_aliases`,
+  `packaged_foods.search_name` and `packaged_foods.search_brand`: the name, the aliases and the brand
+  as Search foods reads them (lowercase, ' ’ . dropped, - & , / ( ) " read as spaces, after a space),
+  written with each row when the list is stored, so a search does not work them out again for every
+  food. The update fills them from the rows already on the phone and keeps `food_list_version`, so
+  search keeps working offline and nothing is downloaded again. The packaged foods are written 90
+  rows a statement. My foods and dishes, a few rows each, are read the same way at search time.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

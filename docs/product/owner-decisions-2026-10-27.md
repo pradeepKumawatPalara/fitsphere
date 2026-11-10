@@ -1762,10 +1762,16 @@ checksum), and the configuration template was left as it is.*
     barcode was wrong or a shop's own in-store code (137), a value was out of range (24), or the name
     was not usable (21).
   - **Search ignores spaces and marks** (the owner: "Fix the Issue: haldirams"): in names, brands and
-    search words, and in what is typed, spaces and the marks ' ’ . - & , / ( ) are ignored, so
-    "haldirams" finds Haldiram's, "healthfactory" finds The Health Factory and "dalmakhani" finds Dal
+    search words, and in what is typed, the marks ' ’ . are dropped and - & , / ( ) read as spaces, so
+    "haldirams" finds Haldiram's; and a word typed as two words run together finds them written apart,
+    the first starting a word, so "healthfactory" finds The Health Factory and "dalmakhani" finds Dal
     Makhani. This holds for every kind of food in Search foods: the food list, packaged foods, dishes
     and My foods. A word made only of such marks is matched as typed.
+    - **Changed on 2026-11-10** after the owner's phone test ("I Search Dal it shows the Aloo Naan is it
+      a type of dal"): the first version dropped every space, so a word could match one word's end and
+      the next one's start ("stuffed aloo" read "stuffedaloo", which has "dal"; 13 foods, such as Aloo
+      naan, Soaked Almonds and Chettinad Aloo). Words run together now match only whole words written
+      apart.
 - MVP defaults:
   - The rules that held rows back are FitSphere's own, applied when the sheet was made. The owner can
     approve a held row later, with its values corrected.
@@ -1830,6 +1836,43 @@ checksum), and the configuration template was left as it is.*
     approved in the household-measures sheet (D-36); none is approved yet.
 - Doc changes: REQ-LOG-007; `docs/plans/ui-redesign.md` (3.5). Phone app only: no server change, no
   migration, no new build.
+
+---
+
+## D-66 Search foods lists every match, with no cap, the best matches first
+- Status: **Accepted** (owner, in chat, 2026-11-10: "When I search for the Item I do want the cap of 30
+  item. I want that all the data available in the Fitssphere must be available as the result when the
+  entered Text is matched the search logic"; "do want" is read as "don't want", from the second
+  sentence). Numbered D-66 because D-63, D-64 and D-65 are the workout fix, the Log meal fix and the
+  Training tab, built at the same time.
+- Answer:
+  - Search foods lists **every** food that matches the search (every word in its name, brand or
+    search words, D-62), from every source: no longer up to 30 from each source of the food list, 30
+    packaged foods, 10 dishes and 10 My foods.
+  - **The best matches first** (owner, in chat, 2026-11-10, after a phone test: "When I search for
+    the Dal Why I am seeing the Baati, Refined Sunflower oil"; of the options offered, "Real matches
+    first"): after a food named exactly as the search (D-51), the results come in four groups:
+    1. foods whose name has every word typed as a whole word ("Moong Dal");
+    2. those where a word typed only starts a word of the name ("Dalia", "Dalda");
+    3. those where it is only inside a word ("Chicken Vindaloo");
+    4. those found only by their hidden search words (Baati, by "dal baati"; a dish by its base food).
+    Inside each group the order by source stays as D-54, D-59 and D-62 set it. A packaged food's
+    brand counts as part of its name. D-61's grouping of brands is unchanged.
+- MVP defaults:
+  - The worst of the words typed counts: "moong dal" puts "Moong daliya" in the second group. Two
+    words typed together count as whole when the name has them apart ("dalmakhani" and "Dal
+    Makhani").
+  - The list scrolls; its rows are drawn as they come into view. A one-letter search can list about
+    17,000 foods.
+  - The search still runs at each letter typed or erased (D-57), with no pause added.
+  - **Ready-made search text** (owner, in chat, 2026-11-10: "apply the index: Ready-made search
+    text", after asking whether an index would make the search faster): each food's and packaged
+    food's name, aliases and brand are kept as the search reads them, written when the list is
+    stored, so a search does not work them out again for every food (on the PC, with about 17,000
+    foods, "dal" took 19 ms in place of 72). A full-text index was measured and not added: at this
+    size it saved almost nothing more.
+- Phone app only: no server change, no migration, no new build; phone schema version 15. Doc
+  changes: REQ-LOG-007; `constraints-and-assumptions.md` (More foods); the data model (the phone).
 
 ---
 

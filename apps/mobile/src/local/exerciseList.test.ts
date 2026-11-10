@@ -81,12 +81,14 @@ describe('Local schema version 13', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE exercises; PRAGMA user_version = 12;');
+      await old.execAsync(
+        'DROP TABLE exercises; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; PRAGMA user_version = 12;',
+      );
       await setMeta(old, 'exercise_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       expect(await searchExercises(old, 'run')).toEqual([]);
     } finally {

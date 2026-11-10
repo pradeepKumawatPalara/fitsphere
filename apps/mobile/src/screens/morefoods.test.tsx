@@ -439,19 +439,26 @@ describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
     await saveEntry(db, 'myFood', { changeId: 'c-my-bread', data: { ...MY_BREAD, savedAt: NOW.toISOString() } });
   }
 
-  it('lists them right after an exact match, before My foods, untagged, found by their item', async () => {
+  it('lists them right after an exact match, before My foods, untagged; one found only by its item comes last (D-66)', async () => {
     await render(withHomeToast);
     await search('bread');
 
     const rows = await screen.findAllByRole('button', { name: /kcal per/ });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
       'Bread, Other Bakers, 250 kcal per 100 g',
-      'Test butter toast, 365 kcal per 100 g',
       'Peanut butter bread, your food, 180 kcal per slice',
       'White Bread, Test Bakers, 250 kcal per 100 g',
       'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
       'Test bread toast, 267 kcal per 100 g, estimated',
       'Bread, white (test), 320 kcal per 100 g',
+      // Its name has no "bread": found by its item, a hidden search word, so listed last (D-66).
+      'Test butter toast, 365 kcal per 100 g',
+    ]);
+    await fireEvent.changeText(screen.getByLabelText('Search foods'), 'toast');
+    // Found by its name, it keeps its place right after an exact match (D-59).
+    expect((await screen.findAllByRole('button', { name: /kcal per/ })).map((row) => row.props.accessibilityLabel)).toEqual([
+      'Test butter toast, 365 kcal per 100 g',
+      'Test bread toast, 267 kcal per 100 g, estimated',
     ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     expect(screen.getByText(/^Home-style foods \(a bread slice, butter toast and the like\): typical values for a home recipe/)).toBeOnTheScreen();

@@ -1,5 +1,6 @@
 import type { Food, PackagedFood } from '@fitsphere/shared';
-import { exactFirst } from './FoodSearchSheet';
+import { nameMatcher } from '../local/store';
+import { bestMatchFirst, exactFirst } from './FoodSearchSheet';
 
 // Search foods puts a food named exactly as the search first; the rest keep their order (D-51; the
 // owner's phone test, 2026-11-05). Synthetic foods.
@@ -36,5 +37,35 @@ describe('D-51 an exact match first', () => {
 
     expect(exactFirst('brea', results)).toEqual(results);
     expect(exactFirst('   ', results)).toEqual(results);
+  });
+});
+
+describe('D-66 the best matches first (the owner, 2026-11-10)', () => {
+  const hidden = (name: string, aliases: string[], source: Food['source'] = 'home') => {
+    const result = food(name, source);
+    return { ...result, food: { ...result.food, aliases } };
+  };
+
+  it('lists whole words, then word starts, then inside a word, then hidden words only, each group in its order', () => {
+    // Synthetic foods in the order by source: a home-style food found by its hidden words first.
+    const results = [
+      hidden('Test baati', ['dal baati']),
+      food('Dalia test', 'brand_label'),
+      packaged('Refined oil', 'Dalda'),
+      food('Test vindaloo', 'indb'),
+      food('Moong dal', 'indb'),
+      food('Mixed dal'),
+    ];
+
+    expect(names(bestMatchFirst('dal', results))).toEqual(['Moong dal', 'Mixed dal', 'Dalia test', 'Refined oil', 'Test vindaloo', 'Test baati']);
+  });
+
+  it('counts the worst word, and two words typed together where the name has them apart', () => {
+    expect(nameMatcher('moong dal')('Moong dal')).toBe(0);
+    expect(nameMatcher('moong dal')('Moong daliya')).toBe(1);
+    expect(nameMatcher('dalmakhani')("Test Maker's Dal-Makhani")).toBe(0);
+    expect(nameMatcher('haldirams')("Haldiram's Bhujia")).toBe(0);
+    expect(nameMatcher('dal')('Chicken Vindaloo')).toBe(2);
+    expect(nameMatcher('dal')('Baati (baked)')).toBe(3);
   });
 });

@@ -301,14 +301,25 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect((await searchFoods(db, 'bhindi')).map((found) => found.code)).toEqual(['est-test-sabzi']);
   });
 
-  it('D-62 ignores spaces and marks: a name typed together, or without its apostrophe, is found', async () => {
-    await replaceFoods(db, 'v2', [food('T001', "Test Maker's Dal-Makhani (Synthetic)"), food('T002', 'Test bread, white')]);
+  it('D-62 ignores marks, and finds words typed together, without its apostrophe, or with a mark between them', async () => {
+    await replaceFoods(db, 'v2', [
+      food('T001', "Test Maker's Dal-Makhani (Synthetic)"),
+      food('T002', 'Test bread, white'),
+      food('T003', 'Test aloo naan', ['stuffed aloo naan']),
+      food('T004', 'Soaked almonds'),
+      food('T005', 'Test dal (tadka)'),
+    ]);
 
     expect((await searchFoods(db, 'makers')).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, 'dalmakhani')).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, "maker's dal-makhani")).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, 'testbread')).map((found) => found.code)).toEqual(['T002']);
     expect((await searchFoods(db, "'")).map((found) => found.code)).toEqual(['T001']);
+    // Never one word's end and the next one's start: "stuffed aloo" and "soaked almonds" have no "dal".
+    expect((await searchFoods(db, 'dal')).map((found) => found.code)).toEqual(['T005', 'T001']);
+    expect((await searchFoods(db, 'daltadka')).map((found) => found.code)).toEqual(['T005']);
+    expect((await searchFoods(db, 'dal-tadka')).map((found) => found.code)).toEqual(['T005']);
+    expect((await searchFoods(db, 'stuffedaloo')).map((found) => found.code)).toEqual(['T003']);
   });
 });
 
@@ -412,7 +423,7 @@ describe('Local schema version 8', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'milk')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -438,7 +449,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchDishes(old, 'atta')).toEqual([]);
@@ -464,7 +475,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
@@ -480,11 +491,11 @@ describe('Local schema version 12', () => {
     try {
       await migrateLocal(old);
       await setMeta(old, 'food_list_version', 'v1');
-      await old.execAsync('DROP TABLE exercises; PRAGMA user_version = 11;');
+      await old.execAsync('DROP TABLE exercises; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; PRAGMA user_version = 11;');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // A brand label that gives no fibre (synthetic values).
       const label: Food = {
@@ -521,7 +532,7 @@ describe('Local schema version 11', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       expect(await searchPackaged(old, 'butter')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       expect(await getMeta(old, 'cursor')).toBe('99');
@@ -548,12 +559,84 @@ describe('Local schema version 10', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 14 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchMyFoods(old, 'bread')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       expect(await getMeta(old, 'cursor')).toBeNull();
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
+describe('D-66 Search foods without a cap', () => {
+  it('finds every match of each kind: more than 30 foods of one source, packaged foods, dishes and My foods', async () => {
+    // Synthetic foods, dishes and products: made-up names and values.
+    const foods: Food[] = Array.from({ length: 45 }, (_, i) => ({
+      source: 'brand_label',
+      code: `test-bread-${i}`,
+      name: `Test bread ${i}`,
+      foodGroup: 'Test Bakers',
+      aliases: [],
+      proteinG: 8,
+      fibreG: 2,
+      fatG: 3,
+      carbsG: 48,
+      kcal: 250,
+      kcalEstimated: false,
+      measures: [],
+      portions: [],
+    }));
+    const dishes: Dish[] = Array.from({ length: 15 }, (_, i) => ({ code: `test_bread_dish_${i}`, name: `Test bread dish ${i}`, portionUnit: 'piece', kcal: 100, proteinG: 3, carbsG: 15, fatG: 3, fibreG: 1 }));
+    const packaged = Array.from({ length: 40 }, (_, i) => ({ ...BUTTER, barcode: `89012345${String(i).padStart(5, '0')}`, name: `Test bread pack ${i}` }));
+    await replaceFoods(db, 'v1', foods, dishes, packaged);
+    for (let i = 0; i < 12; i += 1) {
+      const id = `00000000-0000-4000-d000-${String(i).padStart(12, '0')}`;
+      await saveEntry(db, 'myFood', {
+        changeId: `c-my-bread-${i}`,
+        data: { id, name: `Test bread mine ${i}`, unit: 'slice', kcal: 180, proteinG: 6, carbsG: 20, fatG: 9, fibreG: 1.5, savedAt: AT },
+      });
+    }
+
+    expect(await searchFoods(db, 'bread')).toHaveLength(45);
+    expect(await searchPackaged(db, 'bread')).toHaveLength(40);
+    expect(await searchDishes(db, 'bread')).toHaveLength(15);
+    expect(await searchMyFoods(db, 'bread')).toHaveLength(12);
+    // A limit, where one is given, still keeps that many.
+    expect(await searchFoods(db, 'bread', 30)).toHaveLength(30);
+    expect(await searchPackaged(db, 'bread', 30)).toHaveLength(30);
+  });
+});
+
+describe('Local schema version 15', () => {
+  it('D-66 the update from version 14 makes the search text from the foods on the phone, without downloading them again', async () => {
+    const old = memoryDb();
+    try {
+      // Version 14 as phones have it: build it with the current migrations, then drop what 15 adds.
+      await migrateLocal(old);
+      await old.execAsync(
+        'ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; PRAGMA user_version = 14;',
+      );
+      // Synthetic: a home-style food found by its item, and a packaged food by its brand.
+      await old.runAsync(
+        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated)
+         VALUES ('home', 'home-test-toast', 'Test toast', 'Bread', '["bread"]', 8, 2, 3, 45, 250, 0)`,
+        [],
+      );
+      await old.runAsync(
+        `INSERT INTO packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g) VALUES ('8901234500021', 'Bhujia sev', 'Testiram''S', 592, 10, 40, 40)`,
+        [],
+      );
+      await setMeta(old, 'food_list_version', 'v1');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 15 });
+      expect((await searchFoods(old, 'bread')).map((found) => found.code)).toEqual(['home-test-toast']);
+      expect((await searchPackaged(old, 'testirams')).map((found) => found.barcode)).toEqual(['8901234500021']);
+      expect(await getMeta(old, 'food_list_version')).toBe('v1');
     } finally {
       await old.closeAsync();
     }
