@@ -1,12 +1,10 @@
 import {
   isIstDay,
   istToday,
-  MAX_MEAL_ITEMS,
   mealTotals,
   MEAL_TYPES,
   syncWindowStart,
   type IstDay,
-  type MealItem,
   type MealTag,
   type MealType,
 } from '@fitsphere/shared';
@@ -18,12 +16,10 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  CircleAlert,
   PenLine,
   ScanBarcode,
   Search,
   Sparkles,
-  SquarePen,
   type LucideIcon,
 } from 'lucide-react-native';
 import { useContext, useEffect, useState, type ReactNode } from 'react';
@@ -31,62 +27,31 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
 import { CalendarSheet } from '../components/CalendarSheet';
-import { FoodDetail, type FoodResult } from '../components/FoodDetail';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
+import { MealFoodRows, useMealFoods } from '../components/MealFoods';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
-import { ActionsSheet, DuplicateFoodSheet, SlotPicker } from '../components/MealSheets';
+import { ActionsSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
-import { PortionStepper } from '../components/PortionStepper';
-import { Text, TextButton, TextInput } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { getEntry, listedFoodOf, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
-import {
-  addAmount,
-  amountLimit,
-  GRAMS_RULE,
-  gramsPerUnitOf,
-  ownQuantityRule,
-  parseGrams,
-  parseOwnQuantity,
-  sameFood,
-  servingsMax,
-  unitsMax,
-  withGrams,
-  withOwnQuantity,
-  withPortions,
-  withServings,
-  withUnits,
-} from '../mealItems';
-import {
-  describeItems,
-  formatAmount,
-  formatGrams,
-  formatKcal,
-  formatMeasures,
-  formatOwnUnits,
-  formatPortions,
-  formatServings,
-  MEASURE_NAMES,
-  OWN_UNIT_NAMES,
-  ownQuantityLabel,
-} from '../meals';
+import { getEntry, listSavedMeals, mealCounts, type LocalSavedMeal } from '../local/store';
+import { describeItems, formatGrams, formatKcal } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
-type Params = { day?: string; slot?: string; mealId?: string };
-type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved' | { change: number };
+type Params = { day?: string; slot?: string; mealId?: string; savedId?: string };
+type Sheet = 'day' | 'search' | 'barcode' | 'own' | 'saved';
 
 // Log meal (REQ-LOG-001…003, REQ-LOG-006…008, REQ-LOG-010; REQ-ACC-005): the date, the meal type,
 // foods added by search, barcode, your own food or a saved meal, an optional photo or image link,
 // and a review before saving. The tags "Before training" and "Dessert" are hidden until coaches
 // (D-40): a meal edited here keeps the tags it has.
 // Works offline and with AI off, except the barcode lookup, which needs the internet. Opened from "+" with the selected date (Q-011) and a slot, or from Edit
-// with a meal, whose date then stays the same (MVP default, D-26).
-// A food in the review opens its own page on its amount, where any of its measures can be chosen
-// (D-64); a food with no page (one typed once, or a barcode product not in the list) opens a sheet
-// for its amount, its buttons centred.
+// with a meal, whose date then stays the same (MVP default, D-26), or from a saved meal's "Change
+// amounts first" with its foods (D-69): what is changed here is this day's meal only.
+// The foods are added and changed as in a saved meal (MealFoods.tsx; D-34, D-64).
 export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -99,6 +64,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const today = istToday(now());
   const firstDay = syncWindowStart(today);
   const editing = typeof params.mealId === 'string' && params.mealId !== '';
+  const savedId = !editing && typeof params.savedId === 'string' && params.savedId !== '' ? params.savedId : null;
 
   const [id] = useState(() => (editing ? params.mealId! : sync.newId()));
   const [day, setDay] = useState<IstDay>(() =>
@@ -108,19 +74,15 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     MEAL_TYPES.includes(params.slot as MealType) ? (params.slot as MealType) : null,
   );
   const [tags, setTags] = useState<MealTag[]>([]);
-  const [items, setItems] = useState<MealItem[]>([]);
-  // Foods being added that the meal already has, while "Already in this meal" asks (D-34).
-  const [duplicate, setDuplicate] = useState<MealItem[] | null>(null);
+  const { items, setItems, addItems, change, sheets } = useMealFoods();
+  // The saved meal whose foods this meal started from (D-69), named in a note over the steps.
+  const [fromSaved, setFromSaved] = useState<string | null>(null);
   const [photo, setPhoto] = useState<PhotoDraft>(null);
   const [missing, setMissing] = useState(false);
   const [counts, setCounts] = useState<Record<IstDay, number>>({});
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [ownName, setOwnName] = useState('');
-  const [gramsText, setGramsText] = useState('');
-  const [portions, setPortions] = useState(1);
-  // A food of the review open on its own page (D-64): its place in the meal, and the food.
-  const [page, setPage] = useState<{ index: number; result: FoodResult } | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Edit: the meal as it is on the phone.
@@ -142,7 +104,25 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [editing, id, local.state]);
+  }, [editing, id, local.state, setItems]);
+
+  // "Change amounts first" (D-69): the saved meal's foods, once; the saved meal itself is not changed.
+  const [filledFrom, setFilledFrom] = useState<string | null>(null);
+  useEffect(() => {
+    if (!savedId || filledFrom === savedId || local.state.status !== 'ready') return;
+    let active = true;
+    void getEntry(local.state.db, 'savedMeal', savedId).then((saved) => {
+      if (!active) return;
+      setFilledFrom(savedId);
+      if (!saved) return;
+      setItems(saved.items);
+      setTags(saved.tags);
+      setFromSaved(saved.name);
+    });
+    return () => {
+      active = false;
+    };
+  }, [savedId, filledFrom, local.state, setItems]);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -157,46 +137,6 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
       active = false;
     };
   }, [local.state, firstDay, today, sync.version]);
-
-  function addItems(added: MealItem[]) {
-    // A listed food already in the meal: ask whether to put the amounts together (D-34).
-    if (added.some((item) => items.some((existing) => sameFood(existing, item)))) setDuplicate(added);
-    else addSeparately(added);
-  }
-
-  function addSeparately(added: MealItem[]) {
-    setItems((current) => [...current, ...added].slice(0, MAX_MEAL_ITEMS));
-  }
-
-  /** Each food already in the meal takes the amount added, if it can; the rest are added as they are. */
-  function addToExisting(added: MealItem[]) {
-    setItems((current) => {
-      const next = [...current];
-      const rest: MealItem[] = [];
-      for (const item of added) {
-        const index = next.findIndex((existing) => sameFood(existing, item));
-        const together = index >= 0 ? addAmount(next[index]!, item) : null;
-        if (together) next[index] = together;
-        else rest.push(item);
-      }
-      return [...next, ...rest].slice(0, MAX_MEAL_ITEMS);
-    });
-  }
-
-  /** A food of the review: its own page when the phone lists it (D-64), else the sheet for its amount. */
-  async function change(index: number) {
-    const item = items[index];
-    if (!item) return;
-    const result = local.state.status === 'ready' ? await listedFoodOf(local.state.db, item) : null;
-    if (result) {
-      setPage({ index, result });
-      return;
-    }
-    setGramsText(item.amount.unit === 'g' || item.amount.unit === 'own' ? String(item.amount.value) : '');
-    setPortions(item.amount.unit === 'g' ? 1 : item.amount.value);
-    setSheet({ change: index });
-  }
-
 
   async function save() {
     if (!mealType || items.length === 0) return;
@@ -224,10 +164,6 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     food: items.length > 0 ? 'done' : mealType ? 'now' : 'later',
     review: mealType && items.length > 0 ? 'now' : 'later',
   };
-  const changing = typeof sheet === 'object' && sheet !== null ? items[sheet.change] : undefined;
-  const newGrams = parseGrams(gramsText);
-  // Your own food in its unit (D-39): its quantity is typed, as grams are.
-  const newQuantity = changing?.amount.unit === 'own' ? parseOwnQuantity(gramsText, changing.amount.name) : null;
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -247,6 +183,16 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
           </Pressable>
         )}
+
+        {fromSaved ? (
+          <View style={styles.fromSaved}>
+            <Bookmark size={20} color={colors.warning} />
+            <View style={styles.fromSavedWords}>
+              <Text style={styles.fromSavedTitle}>From {fromSaved}</Text>
+              <Text style={styles.fromSavedText}>Change what you need for this day. Your saved meal stays as it is.</Text>
+            </View>
+          </View>
+        ) : null}
 
         <Step number={1} title="Meal" state={steps.meal} cue={items.length > 0 ? STEP_CUES.mealToSave : STEP_CUES.meal} cueBelow>
           <SlotPicker value={mealType} onChange={setMealType} />
@@ -286,31 +232,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         <MealPhotoField mealId={id} value={photo} onChange={setPhoto} newId={sync.newId} />
 
         <Step number={3} title="Review and save" state={steps.review} cue={STEP_CUES.review}>
-          <View style={styles.review}>
-            {items.length === 0 ? <Text style={styles.empty}>No foods yet.</Text> : null}
-            {items.map((item, index) => (
-              <View key={index} style={[styles.item, index > 0 && styles.itemRuled]}>
-                <View style={styles.itemText}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text
-                    accessibilityLabel={`${item.name}: ${formatAmount(item.amount)}, ${formatKcal(item.kcal)}, ${formatGrams(item.proteinG)} protein`}
-                    style={styles.itemDetail}
-                  >
-                    {formatAmount(item.amount)} · {formatKcal(item.kcal)} · {formatGrams(item.proteinG)} protein
-                    {item.estimated ? ' · estimated' : ''}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Change ${item.name}`}
-                  onPress={() => void change(index)}
-                  style={({ pressed }) => [styles.itemAction, pressed && styles.pressed]}
-                >
-                  <SquarePen size={20} color={colors.accent} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
+          <MealFoodRows items={items} onChange={(index) => void change(index)} />
         </Step>
       </ScrollView>
 
@@ -340,19 +262,6 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           onClose={() => setSheet(null)}
         />
       ) : null}
-      {duplicate ? (
-        <DuplicateFoodSheet
-          {...duplicatePrompt(duplicate, items)}
-          onAdd={() => {
-            addToExisting(duplicate);
-            setDuplicate(null);
-          }}
-          onKeep={() => {
-            addSeparately(duplicate);
-            setDuplicate(null);
-          }}
-        />
-      ) : null}
       {sheet === 'search' ? <FoodSearchSheet today={today} onAdd={addItems} onClose={() => setSheet(null)} /> : null}
       {sheet === 'barcode' ? (
         <BarcodeSheet
@@ -370,193 +279,15 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           title={saved.length === 0 ? 'No saved meals yet' : 'Add a saved meal'}
           actions={saved.map((entry) => ({
             label: `${entry.name} (${describeItems(entry.items)})`,
-            onPress: () => {
-              addItems(entry.items);
-              setMealType((current) => current ?? entry.mealType);
-            },
+            // A saved meal has no meal of its own (D-69): its foods join the meal being logged.
+            onPress: () => addItems(entry.items),
           }))}
           onClose={() => setSheet(null)}
         />
       ) : null}
-      {page && items[page.index] ? (
-        <FoodDetail
-          result={page.result}
-          from={items[page.index]!.amount}
-          fromLabel="In this meal now"
-          backLabel="Back to the meal"
-          addTitle="Save change"
-          onBack={() => setPage(null)}
-          onAdd={(changed) => {
-            setItems((current) => current.map((item, index) => (index === page.index ? changed : item)));
-            setPage(null);
-          }}
-          onRemove={() => {
-            setItems((current) => current.filter((_, index) => index !== page.index));
-            setPage(null);
-          }}
-        />
-      ) : null}
-      {changing ? (
-        <ActionsSheet
-          centred
-          title={changing.name}
-          actions={[
-            ...(changing.amount.unit === 'g' && newGrams !== null && newGrams !== changing.amount.value
-              ? [
-                  {
-                    label: `Change to ${newGrams} g`,
-                    onPress: () =>
-                      setItems((current) => current.map((item, index) => (index === (sheet as { change: number }).change ? withGrams(item, newGrams) : item))),
-                  },
-                ]
-              : []),
-            ...(changing.amount.unit === 'portion' && portions !== changing.amount.value
-              ? [
-                  {
-                    label: `Change to ${formatPortions(portions)}`,
-                    onPress: () =>
-                      setItems((current) =>
-                        current.map((item, index) => (index === (sheet as { change: number }).change ? withPortions(item, portions) : item)),
-                      ),
-                  },
-                ]
-              : []),
-            ...(changing.amount.unit === 'serving' && portions !== changing.amount.value
-              ? [
-                  {
-                    label: `Change to ${formatServings(portions, changing.amount.label)}`,
-                    onPress: () =>
-                      setItems((current) =>
-                        current.map((item, index) => (index === (sheet as { change: number }).change ? withServings(item, portions) : item)),
-                      ),
-                  },
-                ]
-              : []),
-            ...(changing.amount.unit === 'own' && newQuantity !== null && newQuantity !== changing.amount.value
-              ? [
-                  {
-                    label: `Change to ${formatOwnUnits(newQuantity, changing.amount.name)}`,
-                    onPress: () =>
-                      setItems((current) =>
-                        current.map((item, index) => (index === (sheet as { change: number }).change ? withOwnQuantity(item, newQuantity) : item)),
-                      ),
-                  },
-                ]
-              : []),
-            ...(changing.amount.unit === 'measure' && portions !== changing.amount.value
-              ? [
-                  {
-                    label: `Change to ${formatMeasures(portions, changing.amount.measure)}`,
-                    onPress: () =>
-                      setItems((current) =>
-                        current.map((item, index) => (index === (sheet as { change: number }).change ? withUnits(item, portions) : item)),
-                      ),
-                  },
-                ]
-              : []),
-            {
-              label: 'Remove',
-              destructive: true,
-              onPress: () => setItems((current) => current.filter((_, index) => index !== (sheet as { change: number }).change)),
-            },
-          ]}
-          onClose={() => setSheet(null)}
-        >
-          {changing.amount.unit === 'g' ? (
-            <View style={styles.change}>
-              <View style={[styles.gramsBox, newGrams === null && styles.gramsRefused]}>
-                <TextInput
-                  accessibilityLabel="New grams"
-                  value={gramsText}
-                  onChangeText={setGramsText}
-                  keyboardType="number-pad"
-                  style={styles.input}
-                />
-                <Text style={styles.unit}>g</Text>
-              </View>
-              {newGrams === null ? (
-                <View style={styles.problem}>
-                  <CircleAlert size={16} color={colors.danger} />
-                  <Text accessibilityRole="alert" style={styles.problemText}>
-                    {GRAMS_RULE}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : changing.amount.unit === 'own' ? (
-            <View style={styles.change}>
-              <View style={[styles.gramsBox, newQuantity === null && styles.gramsRefused]}>
-                <TextInput
-                  accessibilityLabel={`New ${ownQuantityLabel(changing.amount.name).toLowerCase()}`}
-                  value={gramsText}
-                  onChangeText={setGramsText}
-                  keyboardType={changing.amount.name === 'ml' ? 'number-pad' : 'decimal-pad'}
-                  style={styles.input}
-                />
-                <Text style={styles.unit}>{changing.amount.name === 'ml' ? 'ml' : OWN_UNIT_NAMES[changing.amount.name].many}</Text>
-              </View>
-              {newQuantity === null ? (
-                <View style={styles.problem}>
-                  <CircleAlert size={16} color={colors.danger} />
-                  <Text accessibilityRole="alert" style={styles.problemText}>
-                    {ownQuantityRule(changing.amount.name)}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : changing.amount.unit === 'serving' ? (
-            <PortionStepper
-              value={portions}
-              onChange={setPortions}
-              max={servingsMax(gramsPerUnitOf(changing.amount))}
-              unit={{ one: changing.amount.label.toLowerCase(), many: changing.amount.label.toLowerCase() }}
-              stacked
-            />
-          ) : changing.amount.unit === 'measure' ? (
-            <PortionStepper
-              value={portions}
-              onChange={setPortions}
-              max={unitsMax(gramsPerUnitOf(changing.amount))}
-              unit={MEASURE_NAMES[changing.amount.measure]}
-            />
-          ) : (
-            <PortionStepper value={portions} onChange={setPortions} />
-          )}
-        </ActionsSheet>
-      ) : null}
+      {sheets}
     </View>
   );
-}
-
-/** One way to add food, as a tile like Home's quick tiles. */
-/** "A", "A and B", "A, B and C". */
-function list(names: readonly string[]): string {
-  return names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
-
-/** What "Already in this meal" says about foods added again, and whether any can take the amount (D-34). */
-function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[]): { message: string; canAdd: boolean } {
-  const matches = added.flatMap((item) => {
-    const existing = items.find((current) => sameFood(current, item));
-    return existing ? [{ item, existing, together: addAmount(existing, item) }] : [];
-  });
-  if (matches.length === 1) {
-    const { item, existing, together } = matches[0]!;
-    const already = `${item.name} is already in this meal (${formatAmount(existing.amount)}).`;
-    return together
-      ? { message: `${already} Add ${formatAmount(item.amount)} to it, for ${formatAmount(together.amount)} in all?`, canAdd: true }
-      : { message: `${already} Together that would be over ${amountLimit(existing)}, the most for one food, so it's added on its own.`, canAdd: false };
-  }
-  const names = list(matches.map((match) => match.item.name));
-  const over = matches.filter((match) => !match.together).map((match) => match.item.name);
-  if (over.length === matches.length) {
-    return {
-      message: `${matches.length} foods are already in this meal: ${names}. Together each would be over the most for one food, so they're added on their own.`,
-      canAdd: false,
-    };
-  }
-  const passing = over.length === 0 ? '' : ` ${list(over)} would be over the most for one food, so ${over.length === 1 ? "it's" : "they're"} added on ${over.length === 1 ? 'its' : 'their'} own.`;
-  return { message: `${matches.length} foods are already in this meal: ${names}. Add the amounts to them?${passing}`, canAdd: true };
 }
 
 type StepState = 'now' | 'done' | 'later';
@@ -696,6 +427,11 @@ const useStyles = themedStyles((c) => ({
   aiWords: { flex: 1, gap: 2 },
   aiTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },
   aiText: TYPE.small,
+  // "Change amounts first" (D-69): which saved meal the foods came from, on the saved meals' gold tint.
+  fromSaved: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.warningTint },
+  fromSavedWords: { flex: 1, gap: 2 },
+  fromSavedTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, letterSpacing: 1, color: c.ink },
+  fromSavedText: TYPE.small,
   methods: { flexDirection: 'row', gap: 6 },
   method: {
     flex: 1,
@@ -714,36 +450,9 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   tips: { ...TYPE.small, color: c.inkMuted },
   hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
-  // The meal's foods, ruled like Home's measurements.
-  review: { paddingLeft: 16, paddingRight: 4, paddingVertical: 2, borderRadius: 4, backgroundColor: c.surface },
-  empty: { paddingVertical: 14, fontSize: 15, color: c.inkMuted },
-  item: { minHeight: 64, flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 8 },
-  itemRuled: { borderTopWidth: 1, borderTopColor: c.border },
-  itemText: { flex: 1, gap: 2 },
-  itemName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
-  itemDetail: { fontSize: 14, lineHeight: 20, color: c.inkMuted, fontVariant: ['tabular-nums'] },
-  itemAction: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   footer: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.bg },
   total: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   totalLabel: { ...TYPE.label, color: c.inkMuted },
   totalKcal: TYPE.metric,
   totalProtein: { fontSize: 14, color: c.inkMuted, fontVariant: ['tabular-nums'] },
-  change: { gap: 8 },
-  // The change-grams field in its sheet, as Field, its unit inside it.
-  gramsBox: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: c.accent,
-    backgroundColor: c.surfaceSunken,
-  },
-  gramsRefused: { borderColor: c.danger },
-  input: { ...TYPE.input, flex: 1, paddingVertical: 12, fontVariant: ['tabular-nums'] },
-  unit: { ...TYPE.label, fontSize: 14, color: c.inkMuted },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
 }));

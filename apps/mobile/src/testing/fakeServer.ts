@@ -102,8 +102,11 @@ export function fakeServer(now: Date) {
     } else if (type === 'myFood.set') {
       item = { deleted: false, ...data, updatedAt };
     } else if (type === 'meal.set' || type === 'savedMeal.set') {
-      // The server computes the totals from the items.
-      item = { deleted: false, ...(type === 'meal.set' ? { photo: null } : {}), ...data, totals: mealTotals(data.items as MealItem[]), updatedAt };
+      // The server computes the totals from the items, and keeps no meal for a saved meal (D-69).
+      const { mealType, ...savedData } = data;
+      const kept = type === 'meal.set' ? { photo: null, ...data } : savedData;
+      void mealType;
+      item = { deleted: false, ...kept, totals: mealTotals(data.items as MealItem[]), updatedAt };
     } else if (type === 'workout.set') {
       item = { deleted: false, ...rest, recordedAt, updatedAt };
     } else if (type === 'meal.delete' || type === 'savedMeal.delete' || type === 'workout.delete' || type === 'myFood.delete') {

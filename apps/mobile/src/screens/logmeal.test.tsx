@@ -231,7 +231,7 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     expect(screen.getByLabelText('Synthetic biscuits: 40 g, 180 kcal, 2.8 g protein')).toBeOnTheScreen();
   });
 
-  it('REQ-SAVED-001 a saved meal’s foods can be added, and its slot is used when none is chosen', async () => {
+  it('REQ-SAVED-001 a saved meal’s foods can be added; it chooses no meal, since it has none (D-69)', async () => {
     await render({ day: TODAY }, async (db, server) => {
       await withFoods(db, server);
       await saveEntry(db, 'savedMeal', {
@@ -239,7 +239,6 @@ describe('REQ-LOG-007 adding foods without AI', () => {
         data: {
           id: '00000000-0000-4000-c000-000000000001',
           name: 'Synthetic dinner',
-          mealType: 'dinner',
           tags: [],
           items: [{ source: 'own', ref: null, name: 'Synthetic dal', amount: { unit: 'g', value: 150 }, kcal: 160, proteinG: 9, carbsG: 20, fatG: 4, fibreG: 5, estimated: false }],
           savedAt: NOW.toISOString(),
@@ -251,7 +250,7 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Synthetic dinner (Synthetic dal)' }));
 
     expect(screen.getByLabelText('Synthetic dal: 150 g, 160 kcal, 9.0 g protein')).toBeOnTheScreen();
-    expect(screen.getByRole('radio', { name: 'Dinner' })).toBeChecked();
+    for (const slot of ['Breakfast', 'Lunch', 'Snack', 'Dinner']) expect(screen.getByRole('radio', { name: slot })).not.toBeChecked();
   });
 
   it('two saved meals with the same name are both listed (the owner’s phone test, 2026-11-04)', async () => {
@@ -264,7 +263,6 @@ describe('REQ-LOG-007 adding foods without AI', () => {
           data: {
             id: `00000000-0000-4000-c000-00000000010${n}`,
             name: 'Dal rice',
-            mealType: 'lunch',
             tags: [],
             items: [{ source: 'own', ref: null, name: 'Dal rice', amount: { unit: 'g', value: 200 + n }, kcal: 300, proteinG: 9, carbsG: 50, fatG: 4, fibreG: 5, estimated: false }],
             savedAt: NOW.toISOString(),
@@ -789,5 +787,45 @@ describe('D-36 household units', () => {
     };
     expect(await getEntry(db, 'meal', row!.id)).toMatchObject({ items: [glass] });
     await waitFor(() => expect(server.entries('meals').get(row!.id)).toMatchObject({ items: [glass] }));
+  });
+});
+
+describe('D-69 "Change amounts first" from a saved meal', () => {
+  const DAL: MealItem = { source: 'own', ref: null, name: 'Synthetic dal', amount: { unit: 'g', value: 150 }, kcal: 160, proteinG: 9, carbsG: 20, fatG: 4, fibreG: 5, estimated: false };
+  const SAVED_ID = '00000000-0000-4000-c000-000000000201';
+
+  async function withSaved(db: SqlDb, server: FakeServer) {
+    await withFoods(db, server);
+    await saveEntry(db, 'savedMeal', {
+      changeId: '00000000-0000-4000-b000-000000000201',
+      data: { id: SAVED_ID, name: 'Monday breakfast', tags: [], items: [DAL], savedAt: NOW.toISOString() },
+    });
+  }
+
+  it('opens with the saved meal’s foods and says where they came from; saving logs this day’s meal and leaves the saved meal as it is', async () => {
+    const { db } = await render({ day: '2026-10-26', slot: 'breakfast', savedId: SAVED_ID }, withSaved);
+
+    expect(await screen.findByText('From Monday breakfast')).toBeOnTheScreen();
+    expect(screen.getByText('Change what you need for this day. Your saved meal stays as it is.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Synthetic dal: 150 g, 160 kcal, 9.0 g protein')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Breakfast' })).toBeChecked();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Synthetic dal' }));
+    await fireEvent.changeText(screen.getByLabelText('New grams'), '100');
+    await fireEvent.press(screen.getByRole('button', { name: 'Change to 100 g' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+
+    await waitFor(async () => expect(await db.getAllAsync('SELECT day, meal_type FROM meals', [])).toEqual([{ day: '2026-10-26', meal_type: 'breakfast' }]));
+    const [meal] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
+    expect(await getEntry(db, 'meal', meal!.id)).toMatchObject({ items: [expect.objectContaining({ name: 'Synthetic dal', amount: { unit: 'g', value: 100 } })] });
+    expect(await getEntry(db, 'savedMeal', SAVED_ID)).toMatchObject({ items: [DAL] });
+  });
+
+  it('with no meal chosen yet, asks for it as usual', async () => {
+    await render({ day: TODAY, savedId: SAVED_ID }, withSaved);
+
+    expect(await screen.findByText('From Monday breakfast')).toBeOnTheScreen();
+    expect(screen.getByText('Choose the meal to save')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save meal' })).toBeDisabled();
   });
 });

@@ -1,5 +1,5 @@
 import { SAVED_MEAL_NAME_MAX, type MealType } from '@fitsphere/shared';
-import { Bookmark, Check, Cookie, Moon, Plus, Sun, Sunrise, Trash, type LucideIcon } from 'lucide-react-native';
+import { Bookmark, Check, Cookie, Moon, Plus, SquarePen, Sun, Sunrise, Trash, type LucideIcon } from 'lucide-react-native';
 import { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
@@ -105,26 +105,41 @@ export function ConfirmSheet({
   );
 }
 
-/** "Save to my meals": the name, filled in from the meal's foods (MVP default, D-26). */
+/** What the name sheet says while a new saved meal has no name yet (D-69). */
+export const SAVED_NAME_HINT = 'Give the meal a name, then add its foods.';
+
+/**
+ * A saved meal's name. "Save to my meals" on a logged meal: filled in from its foods (MVP default,
+ * D-26), an empty name an error. A new saved meal (D-69): asked first, empty, with a hint until it is
+ * given, before its foods; and changing the name of one.
+ */
 export function SaveMealSheet({
   initialName,
+  title = 'Save to my meals',
+  actionLabel = 'Save',
+  emptyHint,
   onSave,
   onClose,
 }: {
   initialName: string;
+  title?: string;
+  actionLabel?: string;
+  /** Shown under an empty name in place of the error, and the tile then sits beside the title. */
+  emptyHint?: string;
   onSave(name: string): void;
   onClose(): void;
 }) {
+  const styles = useStyles();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
   return (
     <Sheet
-      header={<SheetHeading icon={Bookmark} title="Save to my meals" />}
+      header={<SheetHeading icon={Bookmark} title={title} inline={emptyHint !== undefined} />}
       onClose={onClose}
       actions={
         <>
           <TextButton
-            title="Save"
+            title={actionLabel}
             filled
             disabled={trimmed === ''}
             onPress={() => {
@@ -142,8 +157,41 @@ export function SaveMealSheet({
         onChangeText={setName}
         maxLength={SAVED_MEAL_NAME_MAX}
         autoCapitalize="sentences"
-        error={trimmed === '' ? 'Enter a name.' : null}
+        placeholder={emptyHint === undefined ? undefined : 'For example, Monday breakfast'}
+        error={trimmed === '' && emptyHint === undefined ? 'Enter a name.' : null}
       />
+      {trimmed === '' && emptyHint !== undefined ? <Text style={styles.hint}>{emptyHint}</Text> : null}
+    </Sheet>
+  );
+}
+
+/**
+ * "Already in my meals" (REQ-SAVED-001): the foods and amounts are a saved meal already, so no copy is
+ * made; "Go to Saved" shows it.
+ */
+export function AlreadySavedSheet({ savedAs, intro, onGoToSaved, onClose }: { savedAs: string; intro: string; onGoToSaved(): void; onClose(): void }) {
+  const styles = useStyles();
+  return (
+    <Sheet
+      header={<SheetHeading icon={Bookmark} title="Already in my meals" inline />}
+      onClose={onClose}
+      actions={
+        <>
+          <TextButton
+            title="Go to Saved"
+            filled
+            onPress={() => {
+              onClose();
+              onGoToSaved();
+            }}
+          />
+          <TextButton title="Cancel" wide onPress={onClose} />
+        </>
+      }
+    >
+      <Text style={styles.body}>
+        {intro} {savedAs}.
+      </Text>
     </Sheet>
   );
 }
@@ -257,34 +305,51 @@ export function SlotPicker({
   );
 }
 
-/** Re-logs a saved meal to a date, in the slot it was saved from unless the user changes it. */
+/**
+ * Logs a saved meal to a date (REQ-SAVED-001). A saved meal has no meal of its own (D-69), so the user
+ * chooses one each time: "Log meal" logs it as it is; "Change amounts first" opens Log meal with its
+ * foods, for this day only.
+ */
 export function RelogSheet({
   name,
   dayLabel,
-  slot,
   onLog,
+  onChangeFirst,
   onClose,
 }: {
   name: string;
   dayLabel: string;
-  slot: MealType;
   onLog(slot: MealType): void;
+  /** With the meal chosen, if one is. */
+  onChangeFirst(slot: MealType | null): void;
   onClose(): void;
 }) {
   const styles = useStyles();
-  const [chosen, setChosen] = useState(slot);
+  const [chosen, setChosen] = useState<MealType | null>(null);
   return (
     <Sheet
-      header={<SheetHeading icon={Plus} title={`Log ${name}`} />}
+      header={<SheetHeading icon={Plus} title={`Log ${name}`} inline />}
       onClose={onClose}
       actions={
         <>
           <TextButton
             title="Log meal"
             filled
+            disabled={chosen === null}
             onPress={() => {
+              if (chosen === null) return;
               onClose();
               onLog(chosen);
+            }}
+          />
+          <TextButton
+            title="Change amounts first"
+            outlined
+            wide
+            icon={SquarePen}
+            onPress={() => {
+              onClose();
+              onChangeFirst(chosen);
             }}
           />
           <TextButton title="Cancel" wide onPress={onClose} />
@@ -293,6 +358,7 @@ export function RelogSheet({
     >
       <Text style={styles.body}>To {dayLabel}</Text>
       <SlotPicker value={chosen} onChange={setChosen} twoByTwo />
+      {chosen === null ? <Text style={styles.hint}>Choose the meal: Breakfast, Lunch, Snack or Dinner.</Text> : null}
     </Sheet>
   );
 }
@@ -323,6 +389,7 @@ const useStyles = themedStyles((c) => ({
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   body: { fontSize: 16, lineHeight: 24 },
+  hint: { ...TYPE.small, color: c.inkMuted },
   // The meals in Log meal (D-58): four tiles of one width in one row, 6 apart, each with its icon over
   // its name; the chosen one filled in caramel, a tick in its corner. Re-logging (3.2): choice
   // blocks, two by two and taller.

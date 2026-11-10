@@ -50,6 +50,11 @@ function AppStack() {
       <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
       <Stack.Screen name="profile" options={{ title: 'Profile' }} />
       <Stack.Screen name="log-meal" options={{ title: 'Log meal' }} />
+      {/* A saved meal (D-69): made new from its name, or opened to change. */}
+      <Stack.Screen
+        name="saved-meal"
+        options={({ route }) => ({ title: (route.params as { savedId?: string } | undefined)?.savedId ? 'Edit saved meal' : 'New saved meal' })}
+      />
       <Stack.Screen name="workout/[id]" options={{ title: 'Workout' }} />
       <Stack.Screen name="weight-history" options={{ title: 'Weight history' }} />
     </Stack>

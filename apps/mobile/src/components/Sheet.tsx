@@ -61,15 +61,26 @@ export function Sheet({ title, header, children, actions, scroll = true, onClose
  * A sheet's heading with the design's 56 tile over it (D-35): caramel, or red for a deletion. Passed
  * as the sheet's `header`.
  */
-export function SheetHeading({ icon: Icon, title, danger = false }: { icon: LucideIcon; title: string; danger?: boolean }) {
+export function SheetHeading({
+  icon: Icon,
+  title,
+  danger = false,
+  inline = false,
+}: {
+  icon: LucideIcon;
+  title: string;
+  danger?: boolean;
+  /** The tile beside the title, on one line (the saved meals' sheets, D-69); else over it. */
+  inline?: boolean;
+}) {
   const styles = useStyles();
   const { colors } = useTheme();
   return (
-    <View style={styles.heading}>
-      <View style={[styles.tile, danger && styles.dangerTile]}>
-        <Icon size={26} color={danger ? colors.danger : colors.accent} />
+    <View style={inline ? styles.headingInline : styles.heading}>
+      <View style={[styles.tile, inline && styles.tileInline, danger && styles.dangerTile]}>
+        <Icon size={inline ? 24 : 26} color={danger ? colors.danger : colors.accent} />
       </View>
-      <Text accessibilityRole="header" style={styles.title}>
+      <Text accessibilityRole="header" style={[styles.title, inline && styles.titleInline]}>
         {title}
       </Text>
     </View>
@@ -92,7 +103,10 @@ const useStyles = themedStyles((c) => ({
   header: { paddingHorizontal: 16, paddingBottom: 12 },
   title: TYPE.sheetTitle,
   heading: { gap: 14 },
+  headingInline: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   tile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
+  tileInline: { width: 48, height: 48 },
+  titleInline: { flex: 1, fontSize: 30, lineHeight: 32 },
   dangerTile: { backgroundColor: c.dangerTint },
   // The body gives way first when the keyboard leaves little room.
   scroll: { flexGrow: 0 },
