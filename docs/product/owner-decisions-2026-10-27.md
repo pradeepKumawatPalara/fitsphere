@@ -1780,6 +1780,33 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-63 A workout's sets a row each, and deleting a workout says what goes
+- Status: **Accepted** (owner, in chat, 2026-11-10, from a phone screenshot of 4.2: "In the Exercise
+  card layout got confused if the User has made multiple sets of the same exercise. So I want that the
+  sets to separated by the /. If you have better UI Design provide me the canva link"; "when I write to
+  delete the workout the message is to confusing me so provide me the Better Message"; on the canvas's
+  "4.2 A workout · PROPOSED", of Now, A (split by /) and B (a row per set): "B. Yes I am ok with the
+  wording").
+- Answer (the redesign's 4.2 and 4.1, changed):
+  - On the workout screen an exercise's sets show **a row each**: a muted label, then the set in
+    condensed figures, "Set 1  10 × 20.0 kg", "Set 2  8 × 22.5 kg". Sets all the same share one row,
+    "3 sets  10 × 40.0 kg"; one set reads "1 set  12 reps". Reps alone say "reps"; a timed set shows
+    its time, "3 sets  1:00"; a weight-and-time set, "0:45 × 24.0 kg". Cardio is unchanged.
+  - **Delete workout** asks "Delete Workout 1 on Tue 10 Nov?" and under it what goes: "Its 2 exercises
+    will be deleted too. It will no longer count in this week's workouts. You can't undo this." A
+    workout's bin on Training asks the same in its sheet: "Workout 2 on Tue 3 Nov will be deleted, with
+    its 2 exercises. It will no longer count in this week's workouts. You can't undo this."
+- MVP defaults:
+  - "this week's" when the workout's Mon–Sun week (IST) is today's, else "that week's", as Home's
+    workouts card names the week (D-34); a workout with no exercises counts in no week (D-41), so it
+    says only "You can't undo this."
+  - A screen reader reads each card as its rows: "Squat: Set 1, 10 × 40.0 kg; Set 2, 12 × 40.0 kg".
+- Doc changes: `docs/architecture/constraints-and-assumptions.md` (the exercise sheet and deleting);
+  `docs/plans/ui-redesign.md` (4.2); `docs/testing/slice-4-manual-testing.md`. Phone app only: no
+  server change, no migration, no new build.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

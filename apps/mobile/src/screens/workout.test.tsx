@@ -3,7 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { Button, Keyboard, type EmitterSubscription } from 'react-native';
 import { getEntry, saveEntry, saveWeighIn } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
-import { renderInApp } from '../testing/appHarness';
+import { NOW, renderInApp } from '../testing/appHarness';
 import { sameSets, withExerciseList } from '../testing/exercises';
 import { exerciseRules, type SetText } from '../workouts';
 import { TrainingScreen } from './TrainingScreen';
@@ -45,7 +45,7 @@ async function startWorkout(pickDay?: string, weightGrams?: number) {
     <>
       {pickDay ? <PickDay day={pickDay} /> : null}
       <TrainingScreen />
-      <WorkoutScreen />
+      <WorkoutScreen now={() => NOW} />
     </>,
     undefined,
     async (db, server) => {
@@ -153,7 +153,16 @@ describe('D-50 picking from the exercise list', () => {
     ]);
     await save();
 
-    expect(await screen.findByRole('button', { name: 'Dumbbell bench press: 10 × 20.0 · 8 × 22.5 · 6 × 25.0 kg' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Dumbbell bench press: Set 1, 10 × 20.0 kg; Set 2, 8 × 22.5 kg; Set 3, 6 × 25.0 kg' })).toBeOnTheScreen();
+    // D-63: each set on its own row, its number beside it.
+    for (const [label, value] of [
+      ['Set 1', '10 × 20.0 kg'],
+      ['Set 2', '8 × 22.5 kg'],
+      ['Set 3', '6 × 25.0 kg'],
+    ] as const) {
+      expect(screen.getByText(label)).toBeOnTheScreen();
+      expect(screen.getByText(value)).toBeOnTheScreen();
+    }
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         {
@@ -191,7 +200,11 @@ describe('D-50 picking from the exercise list', () => {
     await fillSets([{ reps: '15' }, {}, {}]);
     await save();
 
-    expect(await screen.findByRole('button', { name: 'Push-up: 3 × 15' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Push-up: 3 sets, 15 reps' })).toBeOnTheScreen();
+    // D-63: sets all the same share one row.
+    expect(screen.getByText('3 sets')).toBeOnTheScreen();
+    expect(screen.getByText('15 reps')).toBeOnTheScreen();
+    expect(screen.queryByText('Set 1')).toBeNull();
     await waitFor(() => expect(server.entries('workouts').get(id)?.exercises).toEqual([sameSets('Push-up', 3, 15, null)]));
   });
 
@@ -205,7 +218,7 @@ describe('D-50 picking from the exercise list', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Remove set 1' }));
     await save();
 
-    expect(await screen.findByRole('button', { name: 'Push-up: 1 × 12' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Push-up: 1 set, 12 reps' })).toBeOnTheScreen();
   });
 
   it('a timed exercise asks for each set’s time', async () => {
@@ -216,7 +229,7 @@ describe('D-50 picking from the exercise list', () => {
     await fillSets([{ seconds: '60' }, { seconds: '45' }]);
     await save();
 
-    expect(await screen.findByRole('button', { name: 'Plank: 1:00 · 0:45' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Plank: Set 1, 1:00; Set 2, 0:45' })).toBeOnTheScreen();
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         {
@@ -240,7 +253,7 @@ describe('D-50 picking from the exercise list', () => {
     await fillSets([{ weight: '24', seconds: '45' }, {}, {}]);
     await save();
 
-    expect(await screen.findByRole('button', { name: "Farmer's walk: 3 × 0:45 × 24.0 kg" })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: "Farmer's walk: 3 sets, 0:45 × 24.0 kg" })).toBeOnTheScreen();
   });
 
   it('running asks for the time and the distance, and shows the average speed and pace', async () => {
@@ -418,7 +431,7 @@ describe('REQ-TRN-003 the rules of an exercise (Q-042; D-29, D-50)', () => {
     expect(screen.getByText('An exercise holds up to 20 sets.')).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Note (optional)'), 'x'.repeat(500));
     await save();
-    await screen.findByRole('button', { name: `${'x'.repeat(80)}: 20 × 200 × 500.0 kg` });
+    await screen.findByRole('button', { name: `${'x'.repeat(80)}: 20 sets, 200 × 500.0 kg` });
     await addOwn({ name: 'Plate', reps: '1', weight: '0,1' });
 
     await waitFor(async () =>
@@ -438,7 +451,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await fireEvent.changeText(screen.getByLabelText('Note (optional)'), 'Felt easy');
     await save();
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Squat: 3 × 10 × 40.0 kg' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Squat: 3 sets, 10 × 40.0 kg' }));
     expect(screen.getByText('Edit exercise')).toBeOnTheScreen();
     expect(screen.getByLabelText('Set 3, Weight in kg (optional)').props.value).toBe('40.0');
     expect(screen.getByLabelText('Note (optional)').props.value).toBe('Felt easy');
@@ -446,7 +459,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await fireEvent.changeText(screen.getByLabelText('Note (optional)'), '');
     await save();
 
-    expect(await screen.findByRole('button', { name: 'Squat: 10 × 40.0 · 12 × 40.0 · 10 × 40.0 kg' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Squat: Set 1, 10 × 40.0 kg; Set 2, 12 × 40.0 kg; Set 3, 10 × 40.0 kg' })).toBeOnTheScreen();
     const squat = sameSets('Squat', 3, 10, 40_000);
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([{ ...squat, sets: [squat.sets[0], { ...squat.sets[1], reps: 12 }, squat.sets[2]] }]),
@@ -466,12 +479,12 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
       await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000a1', data });
     });
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Push-up: 2 × 15 × 10.0 kg' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Push-up: 2 sets, 15 × 10.0 kg' }));
     expect((await screen.findByLabelText('Set 2, Weight in kg (optional)')).props.value).toBe('10.0');
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
 
     // Running is listed as cardio, but this one was saved in sets: it keeps them, as a name of the user's own.
-    await fireEvent.press(screen.getByRole('button', { name: 'Running: 1 × 1' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Running: 1 set, 1 rep' }));
     expect(await screen.findByRole('radio', { name: 'Log as: Sets and reps' })).toBeChecked();
     expect(screen.getByLabelText('Set 1, Reps').props.value).toBe('1');
   });
@@ -506,7 +519,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     const { db, id } = await startWorkout();
     await addOwn({ name: 'Squat' });
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Squat: 1 × 10' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Squat: 1 set, 10 reps' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Remove exercise' }));
 
     expect(await screen.findByText('No exercises yet.')).toBeOnTheScreen();
@@ -532,7 +545,9 @@ describe('REQ-TRN-003 deleting a workout', () => {
     await waitFor(() => expect(server.entries('workouts').get(id)).toBeDefined());
 
     await fireEvent.press(screen.getByRole('button', { name: 'Delete workout' }));
-    expect(screen.getByText('Delete this workout? It leaves your history and your weekly count.')).toBeOnTheScreen();
+    // D-63: an empty workout counts nowhere, so only that it can't be undone.
+    expect(screen.getByText('Delete Workout 1 on Wed 28 Oct?')).toBeOnTheScreen();
+    expect(screen.getByText("You can't undo this.")).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Keep' }));
     expect(await getEntry(db, 'workout', id)).not.toBeNull();
 
@@ -543,6 +558,33 @@ describe('REQ-TRN-003 deleting a workout', () => {
     expect(await getEntry(db, 'workout', id)).toBeNull();
     expect(await screen.findByText('No workouts logged yet.')).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ deleted: true }));
+  });
+
+  it('D-63 says what goes with it: its exercises, and its count in this week', async () => {
+    await startWorkout();
+    await addOwn({ name: 'Squat' });
+    await addOwn({ name: 'Lunge' });
+    await screen.findByRole('button', { name: 'Edit Lunge' });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete workout' }));
+
+    expect(screen.getByText('Delete Workout 1 on Wed 28 Oct?')).toBeOnTheScreen();
+    expect(
+      screen.getByText("Its 2 exercises will be deleted too. It will no longer count in this week's workouts. You can't undo this."),
+    ).toBeOnTheScreen();
+  });
+
+  it("D-63 a workout of an earlier week says that week's workouts", async () => {
+    await startWorkout('2026-10-20');
+    await addOwn({ name: 'Squat' });
+    await screen.findByRole('button', { name: 'Edit Squat' });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete workout' }));
+
+    expect(screen.getByText('Delete Workout 1 on Tue 20 Oct?')).toBeOnTheScreen();
+    expect(
+      screen.getByText("Its 1 exercise will be deleted too. It will no longer count in that week's workouts. You can't undo this."),
+    ).toBeOnTheScreen();
   });
 });
 

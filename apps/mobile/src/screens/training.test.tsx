@@ -117,7 +117,9 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Delete Workout 1 on Mon 26 Oct' }));
-    expect(screen.getByText('Delete Workout 1 on Mon 26 Oct? It leaves your history and your weekly count.')).toBeOnTheScreen();
+    expect(
+      screen.getByText("Workout 1 on Mon 26 Oct will be deleted, with its 1 exercise. It will no longer count in this week's workouts. You can't undo this."),
+    ).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Keep' }));
     expect(await getEntry(app.db, 'workout', id)).not.toBeNull();
 
@@ -127,6 +129,22 @@ describe('REQ-TRN-004 workouts you have logged', () => {
     await waitFor(async () => expect(await getEntry(app.db, 'workout', id)).toBeNull());
     await waitFor(() => expect(app.server.entries('workouts').get(id)).toMatchObject({ deleted: true }));
     expect(screen.queryByLabelText('Mon 26 Oct: 1 workout')).toBeNull();
+  });
+
+  it('D-63 deleting says what goes: an earlier week’s workout and its exercises, or an empty one', async () => {
+    const app = await renderInApp(<TrainingScreen />);
+    app.server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-20', [SQUAT, PUSH_UP]);
+    app.server.storeWorkoutFromElsewhere('1c8f2e3d-4b5a-4f6e-9d8c-7b6a5f4e3d2c', '2026-10-19', []);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Delete Workout 1 on Tue 20 Oct' }));
+    expect(
+      screen.getByText("Workout 1 on Tue 20 Oct will be deleted, with its 2 exercises. It will no longer count in that week's workouts. You can't undo this."),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete Workout 1 on Mon 19 Oct' }));
+    expect(screen.getByText("Workout 1 on Mon 19 Oct will be deleted. You can't undo this.")).toBeOnTheScreen();
   });
 
   it('REQ-TRN-004 "Load older" reads the 90 days before the phone’s from the server and lists them, view-only', async () => {
