@@ -1,9 +1,9 @@
 import { fromGrams, TARGET_KINDS, TARGET_RANGES, type BodyWeightUnit, type TargetKind } from '@fitsphere/shared';
 import { formatInteger, parseWeightInput, parseWholeNumber, weightRule } from './format';
 
-// The user's own targets for display and input (REQ-ROLE-007; MVP defaults, D-23). Values are
-// stored in canonical units (invariant #6): kcal, grams of protein, steps, workouts a week, and
-// body weight in grams, shown in the body-weight unit.
+// The user's own targets for display and input (REQ-ROLE-007; MVP defaults, D-23, D-70). Values
+// are stored in canonical units (invariant #6): kcal, grams of protein, carbs, fat and fibre, steps,
+// workouts a week, and body weight in grams, shown in the body-weight unit.
 
 type TargetText = {
   label: string;
@@ -33,6 +33,10 @@ function wholeNumber(label: string, kind: TargetKind, unit: string, valueUnit: (
 const WHOLE_NUMBER_TARGETS = {
   calories: wholeNumber('Daily calories', 'calories', 'kcal', () => 'kcal'),
   protein: wholeNumber('Daily protein', 'protein', 'g', () => 'g'),
+  // D-70: shown against what was eaten on the Insight page.
+  carbs: wholeNumber('Daily carbs', 'carbs', 'g', () => 'g'),
+  fat: wholeNumber('Daily fat', 'fat', 'g', () => 'g'),
+  fibre: wholeNumber('Daily fibre', 'fibre', 'g', () => 'g'),
   steps: wholeNumber('Daily steps', 'steps', 'steps', () => 'steps'),
   weekly_workouts: wholeNumber('Weekly workouts', 'weekly_workouts', 'workouts', (value) =>
     value === 1 ? 'workout' : 'workouts',
@@ -57,3 +61,10 @@ export function targetTexts(bodyWeightUnit: BodyWeightUnit): Record<TargetKind, 
 
 /** The order the targets are listed in. */
 export const TARGET_ORDER: readonly TargetKind[] = TARGET_KINDS;
+
+/** Your targets' groups (D-70, the redesign's 6.2 locked again 2026-11-10): food, then activity
+ * and body. The first and last of each group span the row. */
+export const TARGET_GROUPS: readonly { title: string; kinds: readonly TargetKind[]; wide: readonly TargetKind[] }[] = [
+  { title: 'Food', kinds: ['calories', 'protein', 'carbs', 'fat', 'fibre'], wide: ['calories'] },
+  { title: 'Activity and body', kinds: ['steps', 'weekly_workouts', 'body_weight'], wide: ['body_weight'] },
+];

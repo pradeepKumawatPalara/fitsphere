@@ -1,5 +1,5 @@
 import type { MealItem, MealPhoto, MealTag, MealTotals } from '@fitsphere/shared';
-import { Bookmark, SquarePen, Trash, type LucideIcon } from 'lucide-react-native';
+import { Bookmark, ChartPie, SquarePen, Trash, type LucideIcon } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { formatIstTime } from '../format';
 import type { SyncState } from '../local/store';
@@ -24,6 +24,8 @@ type Props = {
   photo?: { mealId: string; photo: MealPhoto } | null;
   /** When a logged meal was last saved, shown as "Saved 8:15 am" in India time (D-34). */
   savedAt?: string;
+  /** A logged meal (D-70): opens Insight on its meal type, from an icon before Edit. */
+  onInsight?(): void;
   /** A logged meal: opens it in Log meal. A saved meal (D-69): opens it to change. */
   onEdit?(): void;
   /** A logged meal: "Save to my meals". */
@@ -36,8 +38,8 @@ type Props = {
 };
 
 // One logged or saved meal (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001): its foods, kcal and protein,
-// a small label per tag (Q-031), its photo or image link, and its actions as icons: Edit, Save to my
-// meals and Delete along the foot of a logged meal's card; a saved meal's, Edit (D-69) and Delete, at
+// a small label per tag (Q-031), its photo or image link, and its actions as icons: Insight (D-70),
+// Edit, Save to my meals and Delete along the foot of a logged meal's card; a saved meal's, Edit (D-69) and Delete, at
 // the top right, beside its name. Each icon is 44 to tap and named for screen readers; Delete
 // is red. The redesign's 3.1 and 3.3 (locked by the owner, 2026-11-03): the kcal in condensed figures,
 // tags as small caramel blocks, a saved meal's name over its foods.
@@ -51,6 +53,7 @@ export function MealCard({
   syncState,
   photo,
   savedAt,
+  onInsight,
   onEdit,
   onSave,
   savedAs = null,
@@ -107,6 +110,7 @@ export function MealCard({
               <MealPhotoPreview mealId={photo.mealId} photo={photo.photo} />
             </View>
           ) : null}
+          {onInsight ? <IconAction icon={ChartPie} label={`Insight: ${title}`} color={colors.accent} onPress={onInsight} /> : null}
           {edit}
           {onSave ? (
             <IconAction
