@@ -2074,9 +2074,11 @@ checksum), and the configuration template was left as it is.*
     match offers "Search all categories". The name can still be searched with neither chosen.
   - The exercise sheet is **a whole page** over the workout, as Search foods (D-44): a back arrow and
     its title ("Add exercise", "Edit exercise") at the top, the back arrow in place of Cancel. Category,
-    Sub-group and the name stay at the top; under them an open Category or Sub-group list, or the
-    matches, fill the page and scroll on their own, and the form (sets, time, calories, heart rate,
-    note) scrolls under them. Save exercise is fixed at the foot, and steps aside while a list shows.
+    Sub-group and the name come first; while a Category or Sub-group list, or the matches, show, they
+    stay and the list fills the page under them, scrolling on its own; while the form (sets, time,
+    calories, heart rate, note) shows, the whole page scrolls, the fields with it (the owner: "the
+    whole screen should be scrollable while adding the timer and calories spend enter"). Save exercise
+    is fixed at the foot, and steps aside while a list shows.
   - The name has a **chevron**, as Category's: it closes the list showing (and the keyboard), or opens
     it again: the matches of the words typed, the choice's exercises, or, with nothing typed or chosen,
     every exercise A to Z ("All exercises · 2,119"). Typing opens it again.

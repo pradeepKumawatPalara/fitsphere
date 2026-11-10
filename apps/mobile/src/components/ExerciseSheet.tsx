@@ -216,6 +216,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const layout = exerciseLayout(match, text.logAs, editing);
   const named = text.name.trim() !== '';
   const choosing = !listClosed && (typingName || browsing) && matches.length > 0;
+  // A list fills the page under the fields: a choice's, or the matches.
+  const listing = picking !== null || choosing;
   // Words typed in a category or sub-group that match none of its exercises (D-67).
   const noMatch = filtered && named && typingName && !listClosed && matches.length === 0 && listed === null;
   const listTitle = browsingAll
@@ -273,10 +275,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   }
 
   return (
-    <FullScreen
-      onClose={onClose}
-      footer={picking || choosing ? undefined : <TextButton title="Save exercise" filled disabled={busy} onPress={save} />}
-    >
+    <FullScreen onClose={onClose} footer={listing ? undefined : <TextButton title="Save exercise" filled disabled={busy} onPress={save} />}>
       <View style={styles.header}>
         <IconButton label="Back to the workout" onPress={onClose}>
           <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
@@ -285,6 +284,16 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           {title}
         </Text>
       </View>
+      {/* One scrolling page while the form shows, the fields at its top scrolling with it (the owner,
+          2026-11-10: the time and calories had too little room); while a list shows it fills the page
+          under the fields and scrolls on its own. The fields stay the same views, so typing keeps the
+          keyboard. */}
+      <ScrollView
+        style={styles.fill}
+        contentContainerStyle={listing ? styles.listing : undefined}
+        scrollEnabled={!listing}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={[styles.top, picking !== null && styles.fill]}>
         <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={chooseFilter} />
         {picking === null ? (
@@ -338,6 +347,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               data={matches}
               keyExtractor={(exercise) => exercise.code}
               keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
               renderItem={({ item: exercise, index }) => {
                 const tag = matchTag(exercise, filter);
                 return (
@@ -356,7 +366,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           </View>
         </View>
       ) : (
-        <ScrollView style={styles.fill} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+        <View style={styles.form}>
       {!named && !filtered ? (
         <Text style={styles.help}>
           Pick a category to see its exercises, or type to search all of them, for example dumbbell, push-up or running. Not in the list?
@@ -546,8 +556,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         {problems.note ? <Problem text={problems.note} /> : null}
       </View>
       {onRemove ? <TextButton title="Remove exercise" destructive icon={Trash} disabled={busy} onPress={() => void run(onRemove)} /> : null}
-        </ScrollView>
+        </View>
       )}
+      </ScrollView>
       {explaining ? (
         <Sheet title="Calories burned" onClose={() => setExplaining(false)} actions={<TextButton title="Close" wide onPress={() => setExplaining(false)} />}>
           <Text style={styles.body}>
@@ -700,6 +711,7 @@ const useStyles = themedStyles((c) => ({
   // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
   top: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   fill: { flex: 1 },
+  listing: { flexGrow: 1 },
   listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
   form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
   listed: { gap: 8 },
