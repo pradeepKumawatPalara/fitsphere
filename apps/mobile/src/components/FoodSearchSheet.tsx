@@ -8,6 +8,7 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
   getMeta,
   listedFoodOf,
+  nameMatcher,
   recentFoodKey,
   recentFoods,
   searchDishes,
@@ -78,6 +79,20 @@ function namesOf(result: Result): string[] {
   if (result.kind === 'dish') return [result.dish.name];
   if (result.kind === 'packaged') return [result.food.name, `${result.food.brand ?? ''} ${result.food.name}`];
   return [result.food.name];
+}
+
+/**
+ * The results, the best matches first (D-66; the owner, 2026-11-10, after "dal" listed Baati and
+ * Dalda oil near the top): foods whose name has every word whole, then those where a word only starts
+ * a word of the name, then those where it is inside a word, then those found only by their hidden
+ * search words. Each group keeps the order by source (D-54, D-59, D-62). A packaged food's brand
+ * counts as part of its name.
+ */
+export function bestMatchFirst(query: string, results: readonly Result[]): Result[] {
+  const groups: Result[][] = [[], [], [], []];
+  const match = nameMatcher(query);
+  for (const result of results) groups[Math.min(...namesOf(result).map(match))]!.push(result);
+  return groups.flat();
 }
 
 /**
@@ -255,7 +270,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
         setResults(
           // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
           // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
-          exactFirst(query, [
+          // D-66: in four groups, the best matches first, each group in that order.
+          exactFirst(query, bestMatchFirst(query, [
             ...listed('home'),
             ...mine.map((food): Result => ({ kind: 'mine', food })),
             ...listed('brand_label'),
@@ -264,7 +280,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
             ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
             ...listed('dish_estimate'),
             ...listed('ifct2017'),
-          ]),
+          ])),
         );
         setListCached(listVersion !== null);
       },

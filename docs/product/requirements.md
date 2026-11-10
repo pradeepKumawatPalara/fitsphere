@@ -515,8 +515,12 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   exact match, untagged, found by their item too, logged in grams or by their serving. Since D-62,
   estimated dishes (typical values for each type of dish, from the owner's dish database) come after
   the dishes, before IFCT's foods, marked "estimated", found by their base food too, logged in grams
-  or by their serving; and the search ignores spaces and marks ("haldirams" finds Haldiram's). The
-  results follow each letter typed or erased;
+  or by their serving; and the search ignores marks and finds words typed together ("haldirams"
+  finds Haldiram's, "dalmakhani" finds Dal Makhani, never a word's end and the next one's start). Since
+  D-66 every match is listed, with no cap on any source, the best matches first: names with the
+  words whole, then words starting with them, then inside a word, then foods found only by hidden
+  search words, each group in the order above. The results follow each letter typed or
+  erased;
   since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
   source tag (the marks above stay on each food's page): a branded food shows its brand under its
   name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·

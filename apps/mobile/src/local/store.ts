@@ -358,6 +358,15 @@ function typesOf(spec: KindSpec): [string, string] {
 
 // --- The local schema ---
 
+/**
+ * How a food search reads names, brands, aliases and the words typed (D-62): the marks ' ’ . are
+ * dropped ("haldirams" finds "Haldiram's", "mr. makhana" finds "Mr. Makhana"), and - & , / ( ) are
+ * read as spaces ("dal-makhani" reads "dal makhani"), as are the double quotes that keep a food's
+ * aliases apart. % and _ stay plain characters.
+ */
+const DROPPED_MARKS = ["'", '’', '.'] as const;
+const SPACE_MARKS = ['-', '&', ',', '/', '(', ')', '"'] as const;
+
 const SYNC_STATE = `sync_state TEXT NOT NULL CHECK (sync_state IN ('synced', 'pending', 'rejected'))`;
 
 /** Each entry moves the local schema up one version; `PRAGMA user_version` counts them. */
@@ -587,6 +596,15 @@ const MIGRATIONS = [
   // exercise list's version is cleared, so the next download brings them.
   `ALTER TABLE exercises ADD COLUMN speed_mets TEXT NOT NULL DEFAULT '[]';
    DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
+  // Ready-made search text (D-66): each food's and packaged food's name, aliases and brand as a search
+  // reads them, kept with the row, so a search does not read them again for every food. Filled here
+  // from the rows already on the phone, so search keeps working offline; each new download writes them.
+  `ALTER TABLE foods ADD COLUMN search_name TEXT NOT NULL DEFAULT '';
+   ALTER TABLE foods ADD COLUMN search_aliases TEXT NOT NULL DEFAULT '';
+   ALTER TABLE packaged_foods ADD COLUMN search_name TEXT NOT NULL DEFAULT '';
+   ALTER TABLE packaged_foods ADD COLUMN search_brand TEXT NOT NULL DEFAULT '';
+   UPDATE foods SET search_name = ${searched('name')}, search_aliases = ${searched('aliases')};
+   UPDATE packaged_foods SET search_name = ${searched('name')}, search_brand = ${searched("coalesce(brand, '')")};`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1025,17 +1043,17 @@ export async function dailyNutrition(
 }
 
 /**
- * My foods whose name has every word of the search, ignoring case, spaces and marks (D-62); names
- * starting with the first word first (D-39).
+ * Every My food whose name has every word of the search, ignoring case, spaces and marks (D-62, D-66);
+ * names starting with the first word first (D-39). A `limit` keeps only that many.
  */
-export async function searchMyFoods(db: SqlDb, query: string, limit = 10): Promise<LocalMyFood[]> {
+export async function searchMyFoods(db: SqlDb, query: string, limit?: number): Promise<LocalMyFood[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const match = wordsMatch(words, ['name']);
-  const first = firstWordFirst(words[0]!, ['name']);
+  const match = wordsMatch(words, READ_NAME);
+  const first = firstWordFirst(words[0]!, READ_NAME);
   const rows = await db.getAllAsync<Record<string, BindValue>>(
-    `SELECT * FROM my_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-    [...match.params, ...first.params, limit],
+    `SELECT * FROM ${searchedTable('my_foods', ['name'])} WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+    [...match.params, ...first.params, sqlLimit(limit)],
   );
   return rows.map((row) => toEntry(KINDS.myFood, row) as LocalMyFood);
 }
@@ -1122,9 +1140,21 @@ export async function replaceFoods(
     for (let start = 0; start < packaged.length; start += PACKAGED_ROWS_PER_INSERT) {
       const batch = packaged.slice(start, start + PACKAGED_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
-        batch.flatMap((food) => [food.barcode, food.name, food.brand, food.kcal, food.proteinG, food.carbsG, food.fatG, food.fibreG, food.servingGrams]),
+        `INSERT INTO packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, search_name, search_brand)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        batch.flatMap((food) => [
+          food.barcode,
+          food.name,
+          food.brand,
+          food.kcal,
+          food.proteinG,
+          food.carbsG,
+          food.fatG,
+          food.fibreG,
+          food.servingGrams,
+          searchText(food.name),
+          searchText(food.brand ?? ''),
+        ]),
       );
     }
     await db.runAsync('DELETE FROM dishes', []);
@@ -1139,8 +1169,8 @@ export async function replaceFoods(
     for (let start = 0; start < foods.length; start += FOOD_ROWS_PER_INSERT) {
       const batch = foods.slice(start, start + FOOD_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures, portions)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures, portions, search_name, search_aliases)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((food) => [
           food.source,
           food.code,
@@ -1155,6 +1185,8 @@ export async function replaceFoods(
           food.kcalEstimated ? 1 : 0,
           JSON.stringify(food.measures),
           JSON.stringify(food.portions),
+          searchText(food.name),
+          searchText(JSON.stringify(food.aliases)),
         ]),
       );
     }
@@ -1162,10 +1194,10 @@ export async function replaceFoods(
   });
 }
 
-/** Foods a statement writes when the list is replaced: 13 values each, within SQLite's 999. */
+/** Foods a statement writes when the list is replaced: 15 values each, within SQLite's 999. */
 const FOOD_ROWS_PER_INSERT = 50;
-/** Packaged foods a statement writes: 9 values each, within SQLite's 999. */
-const PACKAGED_ROWS_PER_INSERT = 100;
+/** Packaged foods a statement writes: 11 values each, within SQLite's 999. */
+const PACKAGED_ROWS_PER_INSERT = 90;
 
 /** A packaged food's brand or name compared for sameness: lowercase, letters and digits, one space between words. */
 function sameKey(text: string | null): string {
@@ -1202,24 +1234,27 @@ export function onePerProduct(foods: readonly PackagedFood[]): PackagedFood[] {
   return [...kept.values()];
 }
 
-/** How many more matches are read than shown, so products listed several times do not crowd out others (D-56). */
+/** With a `limit`, how many more matches are read than kept, so products listed several times do not crowd out others (D-56). */
 const PACKAGED_READ_FACTOR = 4;
 
 /**
- * Searches the packaged foods, offline (D-48): every word must appear in the name or the brand,
- * ignoring case, spaces and marks (D-62: "haldirams" finds Haldiram's); names or brands starting
- * with the first word come first. A product listed under several barcodes with the same values shows
- * once (D-56).
+ * Searches the packaged foods, offline (D-48): every product whose name or brand has every word,
+ * ignoring case, spaces and marks (D-62: "haldirams" finds Haldiram's), all of them (D-66); names or
+ * brands starting with the first word come first. A product listed under several barcodes with the
+ * same values shows once (D-56). A `limit` keeps only that many.
  */
-export async function searchPackaged(db: SqlDb, query: string, limit = 30): Promise<PackagedFood[]> {
+export async function searchPackaged(db: SqlDb, query: string, limit?: number): Promise<PackagedFood[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const columns = ['name', "coalesce(brand, '')"];
+  const columns = [
+    { raw: 'name', read: 'search_name' },
+    { raw: "coalesce(brand, '')", read: 'search_brand' },
+  ];
   const match = wordsMatch(words, columns);
   const first = firstWordFirst(words[0]!, columns);
   const rows = await db.getAllAsync<PackagedRow>(
     `SELECT * FROM packaged_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-    [...match.params, ...first.params, limit * PACKAGED_READ_FACTOR],
+    [...match.params, ...first.params, sqlLimit(limit === undefined ? undefined : limit * PACKAGED_READ_FACTOR)],
   );
   return onePerProduct(rows.map(toPackaged)).slice(0, limit);
 }
@@ -1257,16 +1292,17 @@ function toPackaged(row: PackagedRow): PackagedFood {
 const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_label', 'home', 'dish_estimate'];
 
 /**
- * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in
- * the name or an alias, ignoring case, spaces and marks (D-62). Each source gives up to `limit` foods,
- * in SEARCH_ORDER, so a long list from one never hides another's; within each, names starting with
- * the first word come first.
+ * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007): every food whose name or an
+ * alias has every word, ignoring case, spaces and marks (D-62), all of them (D-66), source by source
+ * in SEARCH_ORDER; within each, names starting with the first word come first. A `limit` keeps only
+ * that many from each source.
  */
-export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise<Food[]> {
+export async function searchFoods(db: SqlDb, query: string, limit?: number): Promise<Food[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const match = wordsMatch(words, ['name', 'aliases']);
-  const first = firstWordFirst(words[0]!, ['name']);
+  const name = { raw: 'name', read: 'search_name' };
+  const match = wordsMatch(words, [name, { raw: 'aliases', read: 'search_aliases' }]);
+  const first = firstWordFirst(words[0]!, [name]);
   const rows = [];
   for (const source of SEARCH_ORDER) {
     rows.push(...(await searchSource(db, source, match, first, limit)));
@@ -1310,26 +1346,26 @@ function toFood(row: FoodRow): Food {
 }
 
 /** One source's matches for `searchFoods`. */
-function searchSource(db: SqlDb, source: Food['source'], match: SqlPart, first: SqlPart, limit: number) {
+function searchSource(db: SqlDb, source: Food['source'], match: SqlPart, first: SqlPart, limit: number | undefined) {
   return db.getAllAsync<FoodRow>(
     `SELECT * FROM foods WHERE source = ? AND ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-    [source, ...match.params, ...first.params, limit],
+    [source, ...match.params, ...first.params, sqlLimit(limit)],
   );
 }
 
 /**
- * Searches the cached dishes, offline (D-28), with the words of a food search: every word must
- * appear in the name, ignoring case, spaces and marks (D-62); names starting with the first word come
- * first.
+ * Searches the cached dishes, offline (D-28), with the words of a food search: every dish whose name
+ * has every word, ignoring case, spaces and marks (D-62), all of them (D-66); names starting with the
+ * first word come first. A `limit` keeps only that many.
  */
-export async function searchDishes(db: SqlDb, query: string, limit = 10): Promise<Dish[]> {
+export async function searchDishes(db: SqlDb, query: string, limit?: number): Promise<Dish[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const match = wordsMatch(words, ['name']);
-  const first = firstWordFirst(words[0]!, ['name']);
+  const match = wordsMatch(words, READ_NAME);
+  const first = firstWordFirst(words[0]!, READ_NAME);
   const rows = await db.getAllAsync<DishRow>(
-    `SELECT * FROM dishes WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-    [...match.params, ...first.params, limit],
+    `SELECT * FROM ${searchedTable('dishes', ['name'])} WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+    [...match.params, ...first.params, sqlLimit(limit)],
   );
   return rows.map(toDish);
 }
@@ -1496,48 +1532,119 @@ const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char
 const like = (word: string) => `%${escapeLike(word)}%`;
 const startsWith = (word: string) => `${escapeLike(word)}%`;
 
+/** A food search's LIMIT: every match when no limit is given (D-66), as SQLite reads a negative LIMIT. */
+const sqlLimit = (limit: number | undefined) => limit ?? -1;
+
 /** A piece of SQL and the values for its `?`s. */
 type SqlPart = { sql: string; params: string[] };
 
-/**
- * What a food search ignores, in the names, brands and aliases searched and in the words typed
- * (D-62): spaces and the marks ' ’ . - & , / ( ), so "haldirams" finds "Haldiram's", "healthfactory"
- * finds "The Health Factory" and "mr. makhana" finds "Mr Makhana". Not % or _, which stay plain
- * characters, nor the double quotes that keep a food's aliases apart.
- */
-const IGNORED_IN_SEARCH = [' ', "'", '’', '.', '-', '&', ',', '/', '(', ')'] as const;
-const IGNORED_IN_WORD = /['’.\-&/()]/g;
-
-/** `lower(column)` without what a search ignores; as it is when the word is nothing but such marks. */
-function searched(column: string, compact: boolean): string {
-  const lowered = `lower(${column})`;
-  if (!compact) return lowered;
-  return IGNORED_IN_SEARCH.reduce((sql, mark) => `replace(${sql}, '${mark.replace(/'/g, "''")}', '')`, lowered);
+/** `lower(column)` read as a search reads it in SQL, after a space, so every word starts after one. */
+function searched(column: string): string {
+  const dropped = DROPPED_MARKS.reduce((sql, mark) => `replace(${sql}, '${mark.replace(/'/g, "''")}', '')`, `lower(${column})`);
+  const spaced = SPACE_MARKS.reduce((sql, mark) => `replace(${sql}, '${mark}', ' ')`, dropped);
+  // Up to four spaces in a row read as one: "dal (makhani)" reads "dal makhani ".
+  return `' ' || replace(replace(${spaced}, '  ', ' '), '  ', ' ')`;
 }
 
-/** A word as searched: without the marks a search ignores, or as typed when it is nothing but such marks. */
-function searchedWord(typed: string): { word: string; compact: boolean } {
-  const word = typed.replace(IGNORED_IN_WORD, '');
-  return word ? { word, compact: true } : { word: typed, compact: false };
+/**
+ * A small table's rows (My foods, dishes), each with its searched columns read once, as s0, s1 and so
+ * on, so the many tests of a word do not read them again (D-66). LIMIT -1 keeps SQLite from folding
+ * this into the query around it, which would read them again for each test. The food list and the
+ * packaged foods keep theirs ready-made (`searchText`).
+ */
+function searchedTable(table: string, columns: readonly string[], where?: string): string {
+  const read = columns.map((column, index) => `${searched(column)} AS s${index}`).join(', ');
+  return `(SELECT *, ${read} FROM ${table}${where ? ` WHERE ${where}` : ''} LIMIT -1)`;
+}
+
+/**
+ * A text as a search reads it, after a space, kept with each food and packaged food when the list is
+ * stored (D-66): as `searched` reads it in SQL.
+ */
+export function searchText(text: string): string {
+  return ` ${readName(text)}`;
+}
+
+/** A searched column: as stored (`raw`), for a word that is nothing but marks, and as a search reads it (`read`). */
+type SearchColumn = { raw: string; read: string };
+
+/** The name of a small table read by `searchedTable`. */
+const READ_NAME: readonly SearchColumn[] = [{ raw: 'name', read: 's0' }];
+
+/** A word typed, read as a search reads it, or as typed when it is nothing but marks. */
+function searchedWord(typed: string): { word: string; read: boolean } {
+  const word = readName(typed);
+  return word ? { word, read: true } : { word: typed, read: false };
+}
+
+/** The longest word typed that is also tried as two words typed together. */
+const JOINED_WORD_MAX = 24;
+
+/**
+ * A word typed as two words run together, at each place it can be split with two letters or more on
+ * either side ("healthfactory": "he althfactory", …, "health factory", …), for matching whole words
+ * written apart (D-62). Never one word's end and the next one's start: "dal" does not find "stuffed
+ * aloo".
+ */
+function joinedForms(word: string): [string, string][] {
+  if (word.includes(' ') || word.length < 4 || word.length > JOINED_WORD_MAX) return [];
+  return Array.from({ length: word.length - 3 }, (_, index) => [word.slice(0, index + 2), word.slice(index + 2)]);
+}
+
+/**
+ * Whether the column, as a search reads it, has the word (D-62): anywhere, or typed as
+ * two words run together where the column has them apart, the first starting a word
+ * ("healthfactory" finds "The Health Factory", "dalmakhani" finds "Dal Makhani"); or, for ordering,
+ * at its start. A word that is nothing but marks is looked for in the column as it is.
+ */
+function columnHas(column: SearchColumn, typed: string, at: 'anywhere' | 'start'): SqlPart {
+  const { word, read } = searchedWord(typed);
+  if (!read) return { sql: `lower(${column.raw}) LIKE ? ESCAPE '\\'`, params: [at === 'anywhere' ? like(word) : startsWith(word)] };
+  const forms = joinedForms(word).map(([first, second]) => ` ${escapeLike(first)} ${escapeLike(second)}%`);
+  const params = [at === 'anywhere' ? like(word) : ` ${escapeLike(word)}%`, ...forms.map((form) => (at === 'anywhere' ? `%${form}` : form))];
+  return { sql: params.map(() => `${column.read} LIKE ? ESCAPE '\\'`).join(' OR '), params };
+}
+
+/**
+ * How well a food's name has the words of a search, for listing the best matches first (D-66), as a
+ * test to run on each name:
+ * 0 every word is a whole word of the name ("dal" in "Moong dal"; two words typed together count when
+ * the name has them apart), 1 a word only starts a word of the name ("Dalia", "Dalda"), 2 a word is
+ * only inside a word ("Vindaloo"), 3 a word is not in the name at all: the food was found by its
+ * hidden search words ("Baati", by "dal baati"). The worst of the words counts.
+ */
+export function nameMatcher(query: string): (name: string) => 0 | 1 | 2 | 3 {
+  const words = searchWords(query).map((typed) => {
+    const { word, read } = searchedWord(typed);
+    return { word, forms: [word, ...(read ? joinedForms(word).map(([first, second]) => `${first} ${second}`) : [])] };
+  });
+  return (name) => {
+    const text = ` ${readName(name)} `;
+    let worst: 0 | 1 | 2 | 3 = 0;
+    for (const { word, forms } of words) {
+      const tier = forms.some((form) => text.includes(` ${form} `)) ? 0 : forms.some((form) => text.includes(` ${form}`)) ? 1 : text.includes(word) ? 2 : 3;
+      if (tier > worst) worst = tier;
+    }
+    return worst;
+  };
+}
+
+/** A name read as a search reads it (D-62): lowercase, ' ’ . dropped, the other marks read as spaces. */
+function readName(name: string): string {
+  return name.toLowerCase().replace(/['’.]/g, '').replace(/[-&,/()"]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /** Every word in one of the columns (D-62). */
-function wordsMatch(words: readonly string[], columns: readonly string[]): SqlPart {
+function wordsMatch(words: readonly string[], columns: readonly SearchColumn[]): SqlPart {
   const parts = words.map((typed): SqlPart => {
-    const { word, compact } = searchedWord(typed);
-    return {
-      sql: `(${columns.map((column) => `${searched(column, compact)} LIKE ? ESCAPE '\\'`).join(' OR ')})`,
-      params: columns.map(() => like(word)),
-    };
+    const each = columns.map((column) => columnHas(column, typed, 'anywhere'));
+    return { sql: `(${each.map((part) => part.sql).join(' OR ')})`, params: each.flatMap((part) => part.params) };
   });
   return { sql: parts.map((part) => part.sql).join(' AND '), params: parts.flatMap((part) => part.params) };
 }
 
 /** Whether one of the columns starts with the word, for ordering (D-62). */
-function firstWordFirst(typed: string, columns: readonly string[]): SqlPart {
-  const { word, compact } = searchedWord(typed);
-  return {
-    sql: `(${columns.map((column) => `${searched(column, compact)} LIKE ? ESCAPE '\\'`).join(' OR ')})`,
-    params: columns.map(() => startsWith(word)),
-  };
+function firstWordFirst(typed: string, columns: readonly SearchColumn[]): SqlPart {
+  const each = columns.map((column) => columnHas(column, typed, 'start'));
+  return { sql: `(${each.map((part) => part.sql).join(' OR ')})`, params: each.flatMap((part) => part.params) };
 }

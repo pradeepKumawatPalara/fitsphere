@@ -58,7 +58,7 @@ repository) as source `dish_estimate`, each with its type of dish's typical valu
 `docs/data/dish-estimates-sheet.csv` (flag `llm`); 1,778 rows held back with their problem (1,259
 weak matches, 519 whose type does not fit the dish). Listed after the dishes, before IFCT, marked
 "estimated", found by their base food. Also 11 packaged products (`data/foods/off-india-extra.csv`),
-and Search foods ignores spaces and marks ("haldirams" finds Haldiram's). Migration
+and Search foods ignores marks and finds words typed together ("haldirams" finds Haldiram's). Migration
 `0021_dish_estimates.sql`, risk R-014, Legal L-19. **On `fitsphere-dev`: migration 0021 before the
 updated API, then `foods:import` (the owner's word, 2026-11-10).**
 
