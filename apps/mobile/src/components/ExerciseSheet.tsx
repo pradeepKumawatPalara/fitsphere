@@ -1,7 +1,7 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { Info, Plus, Search, Trash } from 'lucide-react-native';
+import { ChevronLeft, Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Keyboard, Pressable, View, type TextInputProps } from 'react-native';
+import { FlatList, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -36,6 +36,7 @@ import {
   type SetText,
 } from '../workouts';
 import { ExercisePlacePickers, filterLabel } from './ExercisePlacePickers';
+import { FullScreen } from './FullScreen';
 import { Sheet } from './Sheet';
 import { IconButton, Problem, Text, TextButton, TextInput, useChoiceStyles, useFieldLabelStyle } from './ui';
 
@@ -94,7 +95,8 @@ function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit)
   return required ? label : `${label} (optional)`;
 }
 
-// A bottom sheet for one exercise (REQ-TRN-003; D-50). The name searches FitSphere's exercise list on
+// A page for one exercise (REQ-TRN-003; D-50), opened over the workout with a back arrow, as Search foods
+// (the owner, 2026-11-10: the sheet's matches had too little room; D-67). The name searches FitSphere's exercise list on
 // the phone, offline: up to 8 matches under it, each with its group; picking one shows its type's
 // fields. A list exercise done with a weight asks for it on every set; a bodyweight one shows no
 // weight (the owner, 2026-11-04); cardio asks for a time, with a distance, a treadmill's speed and
@@ -228,18 +230,21 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   }
 
   return (
-    <Sheet
-      title={title}
+    <FullScreen
       onClose={onClose}
-      actions={
-        <>
-          <TextButton title="Save exercise" filled disabled={busy} onPress={save} />
-          <TextButton title="Cancel" wide onPress={onClose} />
-        </>
-      }
+      footer={picking || choosing ? undefined : <TextButton title="Save exercise" filled disabled={busy} onPress={save} />}
     >
-      <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={setFilter} />
-
+      <View style={styles.header}>
+        <IconButton label="Back to the workout" onPress={onClose}>
+          <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
+        </IconButton>
+        <Text accessibilityRole="header" numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
+      </View>
+      <View style={[styles.top, picking !== null && styles.fill]}>
+        <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={setFilter} />
+        {picking === null ? (
       <View style={styles.field}>
         <Text style={labelStyle}>Exercise name</Text>
         <View style={[styles.box, typingName && styles.focused, problems.name ? styles.refused : null]}>
@@ -261,35 +266,41 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         </View>
         {problems.name ? <Problem text={problems.name} /> : null}
       </View>
+        ) : null}
+      </View>
 
+      {picking !== null ? null : choosing ? (
+        <View style={styles.listArea}>
+          <Text style={labelStyle}>{listTitle}</Text>
+          <View style={[styles.matches, styles.fill]}>
+            <FlatList
+              data={matches}
+              keyExtractor={(exercise) => exercise.code}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item: exercise, index }) => {
+                const tag = matchTag(exercise, filter);
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
+                    onPress={() => pick(exercise)}
+                    style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
+                  >
+                    <Text style={styles.matchName}>{exercise.name}</Text>
+                    {tag ? <Text style={[styles.tag, styles.matchTag]}>{tag}</Text> : null}
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </View>
+      ) : (
+        <ScrollView style={styles.fill} contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
       {!named && !filtered ? (
         <Text style={styles.help}>
           Pick a category to see its exercises, or type to search all of them, for example dumbbell, push-up or running. Not in the list?
           Enter your own name.
         </Text>
-      ) : null}
-
-      {choosing ? (
-        <View style={styles.listed}>
-          <Text style={labelStyle}>{listTitle}</Text>
-          <View style={styles.matches}>
-            {matches.map((exercise, index) => {
-              const tag = matchTag(exercise, filter);
-              return (
-                <Pressable
-                  key={exercise.code}
-                  accessibilityRole="button"
-                  accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
-                  onPress={() => pick(exercise)}
-                  style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
-                >
-                  <Text style={styles.matchName}>{exercise.name}</Text>
-                  {tag ? <Text style={[styles.tag, styles.matchTag]}>{tag}</Text> : null}
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
       ) : null}
 
       {noMatch ? (
@@ -474,6 +485,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         {problems.note ? <Problem text={problems.note} /> : null}
       </View>
       {onRemove ? <TextButton title="Remove exercise" destructive icon={Trash} disabled={busy} onPress={() => void run(onRemove)} /> : null}
+        </ScrollView>
+      )}
       {explaining ? (
         <Sheet title="Calories burned" onClose={() => setExplaining(false)} actions={<TextButton title="Close" wide onPress={() => setExplaining(false)} />}>
           <Text style={styles.body}>
@@ -495,7 +508,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <Text style={styles.help}>{COMPENDIUM_CREDIT}</Text>
         </Sheet>
       ) : null}
-    </Sheet>
+    </FullScreen>
   );
 }
 
@@ -621,7 +634,14 @@ const useStyles = themedStyles((c) => ({
   note: { minHeight: 80, textAlignVertical: 'top', lineHeight: 24 },
   unit: { ...TYPE.label, fontSize: 15, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
   help: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
-  listed: { marginTop: -4, gap: 8 },
+  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 6, paddingRight: 8 },
+  title: { ...TYPE.screenHeader, flex: 1 },
+  // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
+  top: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
+  fill: { flex: 1 },
+  listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
+  form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
+  listed: { gap: 8 },
   matches: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   matchTag: { maxWidth: 150, textAlign: 'right' },
   match: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 14, paddingRight: 12 },

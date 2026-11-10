@@ -501,7 +501,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Push-up: 2 sets, 15 × 10.0 kg' }));
     expect((await screen.findByLabelText('Set 2, Weight in kg (optional)')).props.value).toBe('10.0');
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
 
     // Running is listed as cardio, but this one was saved in sets: it keeps them, as a name of the user's own.
     await fireEvent.press(screen.getByRole('button', { name: 'Running: 1 set, 1 rep' }));
@@ -552,7 +552,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await openSheet();
     await typeName('Squat');
     await fillSets([{ reps: '10' }]);
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
 
     expect(screen.queryByRole('header', { name: 'Add exercise' })).toBeNull();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
@@ -859,5 +859,28 @@ describe('D-67 Category and Sub-group', () => {
         exercises: [{ name: 'Sled Drag (Harness)', kind: 'sets', sets: [{ reps: null, weightGrams: 60_000, seconds: 30 }], calories: { kcal: 45, estimated: false } }],
       }),
     );
+  });
+});
+
+describe('D-67 the exercise page', () => {
+  it('is a page with a back arrow; while a list shows, Save exercise steps aside, and the name while a choice list is open', async () => {
+    await startWorkout();
+    await openSheet();
+    expect(screen.getByRole('header', { name: 'Add exercise' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
+    expect(screen.queryByLabelText('Exercise name')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save exercise' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
+
+    expect(screen.getByLabelText('Exercise name')).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Hammer curl, Biceps' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Save exercise' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl, Biceps' }));
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
+    expect(screen.queryByRole('header', { name: 'Add exercise' })).toBeNull();
   });
 });

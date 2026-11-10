@@ -37,7 +37,8 @@ export function filterLabel(filter: ExerciseFilter): string {
 // list under them, each choice with its count and a tick on the chosen one; "All categories" and "All
 // sub-groups" clear the choice. Sub-group follows the category: its sub-groups, or every sub-group name
 // A to Z with none chosen; a category with none reads "No sub-groups" and does not open. Changing the
-// category clears a sub-group it does not have.
+// category clears a sub-group it does not have. On the exercise page an open list fills the page under
+// the fields and scrolls on its own.
 export function ExercisePlacePickers({ filter, counts, open, onOpen, onChange }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -106,13 +107,13 @@ export function ExercisePlacePickers({ filter, counts, open, onOpen, onChange }:
   };
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, open !== null && styles.fill]}>
       <View style={styles.row}>
         {field('category', 'Category', filter.category ?? 'All categories', filter.category !== null, false)}
         {field('subGroup', 'Sub-group', noSubGroups ? 'No sub-groups' : (filter.subGroup ?? 'All sub-groups'), filter.subGroup !== null, noSubGroups)}
       </View>
       {open ? (
-        <View accessibilityLabel={open === 'category' ? 'Categories' : 'Sub-groups'} style={styles.list}>
+        <View accessibilityLabel={open === 'category' ? 'Categories' : 'Sub-groups'} style={[styles.list, styles.grow]}>
           <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.scroll}>
             {options.map((option, index) => {
               const isChosen = option.value === chosen;
@@ -142,6 +143,8 @@ export function ExercisePlacePickers({ filter, counts, open, onOpen, onChange }:
 // matches' panel, raised, its rows ruled.
 const useStyles = themedStyles((c) => ({
   wrap: { gap: 8 },
+  fill: { flex: 1, paddingBottom: 16 },
+  grow: { flex: 1 },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1, minWidth: 0, gap: 8 },
   box: {
@@ -162,7 +165,7 @@ const useStyles = themedStyles((c) => ({
   value: { flex: 1, minWidth: 0, fontSize: 16, lineHeight: 22, color: c.inkMuted },
   chosenValue: { color: c.ink, fontWeight: '600' },
   list: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised, overflow: 'hidden' },
-  scroll: { maxHeight: 360 },
+  scroll: { flex: 1 },
   option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   tick: { width: 18 },

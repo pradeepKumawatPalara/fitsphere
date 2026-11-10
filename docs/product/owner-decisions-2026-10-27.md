@@ -2045,7 +2045,12 @@ checksum), and the configuration template was left as it is.*
   I will Verify it by myself."; then, on the plan's questions: "Allow the sme excercise to the
   different category for now"; "these are already in our list so you can copy paste these category and
   subgroup"; "The file come from My AI tool"; "Keep the only one from the new Excel sheet"; on the plan
-  and the canvas's "4.3 Exercise sheet · PROPOSED": "approve, lock it").
+  and the canvas's "4.3 Exercise sheet · PROPOSED": "approve, lock it"; then, after a phone test: "After
+  Selecting the Category and Subcategory the Excersi is typed in the Excercise name the available options
+  is window is to short. which is a bad UI Desing. in the cateogry and sub group choice list it self as
+  scrolling but Excercise name does not has own scrllnig. My Suggestion would be instead of showing the
+  this screen the pop that come from the Below it should be rendered as the whole page. and we can add
+  the back icon to go back"; on "4.3 Exercise page · PROPOSED": "lock it").
 - Answer (plan [`docs/plans/exercise-library.md`](../plans/exercise-library.md); the redesign's 4.3,
   changed):
   - The owner's file (`D:\fitsphere-data\Gym_Exercise_Library.xlsx`, from the owner's AI tool: 2,090
@@ -2064,6 +2069,11 @@ checksum), and the configuration template was left as it is.*
     a category with none reads "No sub-groups". With either chosen, its exercises show before a word is
     typed ("Barbell · Chest · 20 exercises"); typing narrows them ("19 matches in Barbell · Chest"); no
     match offers "Search all categories". The name can still be searched with neither chosen.
+  - The exercise sheet is **a whole page** over the workout, as Search foods (D-44): a back arrow and
+    its title ("Add exercise", "Edit exercise") at the top, the back arrow in place of Cancel. Category,
+    Sub-group and the name stay at the top; under them an open Category or Sub-group list, or the
+    matches, fill the page and scroll on their own, and the form (sets, time, calories, heart rate,
+    note) scrolls under them. Save exercise is fixed at the foot, and steps aside while a list shows.
 - MVP defaults:
   - The names stay as the file writes them ("Barbell Flat Bench Press"); seven are renamed so no two
     clash: Pilates' Swimming, Criss-Cross, Hip Circles and Jackknife become "… (Pilates)", and Warrior
@@ -2074,8 +2084,7 @@ checksum), and the configuration template was left as it is.*
     every name A to Z. Each choice shows its count; changing the category clears a sub-group it does
     not have.
   - The choice is not saved with the exercise, and the sheet opens with none.
-  - The choice's list opens under the two fields, in the sheet, pushing the name down (the canvas
-    draws it over the name): a list drawn over other content does not take taps on Android.
+  - While a Category or Sub-group list is open, the name steps aside so the list has the page.
 - Doc changes: REQ-TRN-003; `docs/data/exercise-list-sources.md`; the data model;
   `docs/architecture/constraints-and-assumptions.md` (the exercise sheet); `docs/plans/ui-redesign.md`
   (4.3); `docs/testing/slice-4-manual-testing.md`; `CLAUDE.md`. Migration `0022_exercise_places.sql`

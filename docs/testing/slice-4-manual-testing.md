@@ -21,6 +21,8 @@
   selected date's workouts; **All workouts** shows the history, grouped by month. Where a step looks
   for a row in the history, find it under **All workouts**, or under **By day** with its date selected.
   A workout with **no exercise is not listed** anywhere (D-65): add an exercise before leaving it.
+- **Since D-67 the exercise sheet is a page** with a back arrow, which replaces its **Cancel**; Category
+  and Sub-group sit above the name.
 - "Today" and "7 days ago" are IST days. Examples use Fri 30 Oct 2026 and Fri 23 Oct 2026; your
   dates will differ. **Run the whole guide within one IST day**, away from midnight.
 - The header at the top of each tab shows the **selected date** ("Today · Fri 30 Oct", or just
@@ -511,9 +513,10 @@ it logs to, and All workouts lists every workout by month.
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | **Log workout for today** › **Add exercise** | — | Above "Exercise name": **Category** "All categories" and **Sub-group** "All sub-groups" |
+| 1 | **Log workout for today** › **Add exercise** | — | A page "Add exercise" with a back arrow; above "Exercise name": **Category** "All categories" and **Sub-group** "All sub-groups"; **Save exercise** at the foot |
 | 2 | Tap **Category** | — | A list under the two fields: "All categories" ticked, then Barbell, Olympic Weightlifting, Dumbbell… each with its count |
-| 3 | Tap **Barbell** | — | Category "Barbell"; "Barbell · 134 exercises" (about) and its exercises, each with its sub-group |
+| 3 | Tap **Barbell** | — | Category "Barbell"; "Barbell · 134 exercises" (about) and its exercises, each with its sub-group, down to the foot of the page; Save exercise is hidden |
+| 3a | Scroll the list | — | It scrolls on its own; the fields stay at the top |
 | 4 | Tap **Sub-group**; tap **Chest** | — | Only Barbell's sub-groups were listed; now "Barbell · Chest · 20 exercises" (about), with no tags |
 | 5 | Exercise name | `press` | "N matches in Barbell · Chest", each a bench press |
 | 6 | Exercise name | `curl` | "No exercise in Barbell · Chest matches "curl"…" and **Search all categories** |

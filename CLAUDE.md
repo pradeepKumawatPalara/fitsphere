@@ -32,7 +32,8 @@ REQ-TRN-003. The owner's `Gym_Exercise_Library.xlsx` (from the owner's AI tool, 
 repository) joins the exercise list through the review sheet `docs/data/exercise-library-sheet.csv`:
 1,832 new exercises (47 replacing ours, our names kept as other names), 2,119 in all, each with its
 places (category and sub-group; `app.exercises.places`, migration `0022_exercise_places.sql`, phone
-schema version 16). The exercise sheet's Category and Sub-group narrow the search. **On
+schema version 16). The exercise sheet, now a whole page with a back arrow, has Category and
+Sub-group to narrow the search. **On
 `fitsphere-dev`: migration 0022 before the updated API, then `exercises:import`; only when the owner
 says so.**
 

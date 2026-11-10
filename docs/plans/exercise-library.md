@@ -86,6 +86,9 @@ imported until the owner says so.
 | `time_only` | A time (classes, workout formats such as AMRAP or "Murph") |
 
 ## What the user sees (the canvas)
+- **Since the owner's phone test (2026-11-10; canvas "4.3 Exercise page", locked):** the exercise
+  sheet is a whole page over the workout with a back arrow, as Search foods; the lists below fill it
+  and scroll on their own, and Save exercise steps aside while one shows. The rest is as below.
 - Above "Exercise name", side by side: **Category** ("All categories") and **Sub-group** ("All
   sub-groups"). Each opens a list under it, with each choice's count and a tick on the chosen one.
   "All categories" or "All sub-groups" clears the choice.
