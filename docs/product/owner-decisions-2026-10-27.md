@@ -1615,6 +1615,8 @@ checksum), and the configuration template was left as it is.*
   fills; two tokens are added for them, `fatTint` and `warningTint`.
 - Doc changes: `docs/design/design-system.md` (the two tints); `docs/plans/ui-redesign.md` (3.5).
   Phone app only: no server change, no migration, no new build.
+- Changed by D-68 (2026-11-10): no step turns green; the chosen meal has no tick of its own (a green
+  tick marks each meal with food); the "AI meal reading is coming soon" box is left out.
 
 ## D-59 Home-style foods: everyday forms of daily foods, from the owner's AI files
 - Status: **Accepted** (owner, in chat, 2026-11-06: "when I search for the food like Bread it only
@@ -1873,6 +1875,57 @@ checksum), and the configuration template was left as it is.*
     size it saved almost nothing more.
 - Phone app only: no server change, no migration, no new build; phone schema version 15. Doc
   changes: REQ-LOG-007; `constraints-and-assumptions.md` (More foods); the data model (the phone).
+
+## D-68 Log meal holds the date's meals: Save stays, a green tick on each meal with food, no AI box
+- Status: **Accepted** (owner, in chat, 2026-11-10: "Remove the card AI Meal Reading is Comming Soon
+  for now"; "If I click on the save Mean I am going back whcih I do not want. Because on the same
+  screen I want to add the item for theother meal as well"; "when I added al least any one food item
+  in te any Mean I should be able to the green tick on that meal KPI"; "for th existing Green tick of
+  Meal We nned to think what we can do"; on the canvas's proposal: "options A", "Yes I need the
+  questions", "Keep the done button" (later removed, below), and "I should be able to add or remove the more foods item the
+  lucch. If I remove the all luch item it should go back to non greeen state"; then "lock it" on
+  "3.5 Log meal · save and stay · PROPOSED v2"). Numbered D-68 because D-65, D-67 and D-69 are taken
+  by other work built at the same time (the Training tab, and others agreed between the sessions).
+- Answer (the redesign's 3.5, changed):
+  - The "AI meal reading is coming soon" box is left out of Log meal for now. AI meal reading is
+    still slice 7 (D-26), and its switch in Settings stays.
+  - Log meal holds the date's four meals. A meal tapped shows its foods on that date: the ones saved
+    before and any added now. Foods can be added to it or removed from it there. Each meal keeps its
+    changes while another is on show.
+  - **Save stays on the screen.** It saves every meal changed, and its name says what it saves
+    ("Save lunch"; "Save 2 meals"). Then the footer says what was saved in green ("Lunch saved · 2
+    foods · 592 kcal"; "Lunch removed"; "Lunch and Snack saved") over Save, greyed until the next
+    change; the meal stays on show and the cue says "Next: tap another meal". With nothing to save,
+    Save is greyed, with "Add at least one food to save the meal." when the meal on show has none.
+    The back arrow leaves. The Done the canvas showed was removed the same day (owner, in chat,
+    after a phone test: "remove the done bottom most done button it is not required").
+  - A meal with food has a **green tick** in its corner, ringed in the page colour, read out as "has
+    food". Remove every food of a meal and its tick goes at once; the footer then says "Lunch has no
+    foods now. Saving removes it from Tue 10 Nov.", and Save removes the meal.
+  - **Option A:** no step turns green; a step keeps its number, on caramel for the one to do now. The
+    chosen meal is filled in caramel, with no tick of its own.
+  - **The leave question:** back with changes not saved asks "Lunch isn't saved" ("2 meals aren't
+    saved"), "You changed Lunch. Save it before you leave?", with Save lunch and "Leave without
+    saving". Another date asks the same, "before you change the date?", with "Don't save". Its icon
+    and title are in one line, and both buttons are the sheet's width, centred (owner, in chat, after a
+    phone test: "I want that icon and label should be in the same line. and Button Leave wothout
+    Saving should be proper aligned").
+- MVP defaults:
+  - A meal type with two meals saved on one date (from before, or a saved meal logged to it) shows
+    their foods as one list. On Save each saved food stays in its own meal; a food added, or changed
+    on its page, goes to the newest; a meal left with no foods is removed. The photo field is the
+    newest meal's photo.
+  - Foods added before any meal is chosen join the meal tapped next (as a saved meal's foods join its
+    own meal); Save then needs a meal, as before. Back with them asks "Your foods aren't saved", with
+    "Choose the meal" and "Leave without saving".
+  - Editing a meal from its pencil changes that one meal, as before: its type can change, Save goes
+    back, and the meals show no ticks; back with a change asks "You changed this meal. Save it before
+    you leave?".
+  - Nutrition's "+" on a meal opens that meal with its foods, so a food added joins it rather than
+    making another meal of that type.
+- Phone app only: no server change, no migration, no new build. Doc changes: REQ-LOG-001,
+  REQ-LOG-004; `mvp-scope.md` (slice 3); `meal-logging-slice.md`; `ui-redesign.md` (3.5);
+  `constraints-and-assumptions.md` (Log meal).
 
 ## D-69 Create a saved meal in Saved, under the user's own name; a saved meal keeps no meal
 - Status: **Accepted** (owner, in chat, 2026-11-10: "in the Nutrition tab's Saved tab I should be able

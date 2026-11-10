@@ -459,6 +459,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-LOG-001 — Screen entry
 - Requirement: Log meal opens from any "+" button and has a back button and a date chip.
+- MVP (D-68): Log meal holds the date's four meals; a meal tapped shows its foods on that date, to add to or remove from. Save saves every meal changed and stays on the screen (the back arrow leaves); a meal with food has a green tick; back, or another date, with changes not saved asks first. Editing a meal from its pencil changes that one meal, and Save goes back.
 
 ### REQ-LOG-002 — Date picker sheet
 - Requirement: The date chip opens a calendar titled "Log this meal to", on the selected month. Any past day of the phone's 90 days can be picked; future days cannot (Q-017). Each day with a meal has a dot, and each day is read out with its logging status (D-33, which replaced the first sheet listing Today, Yesterday and the five days before, plus "Another day…" for the calendar).
@@ -471,6 +472,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 
 ### REQ-LOG-004 — Free-text entry
 - Requirement: A free-text box with placeholder "Speak or type what you ate…" accepts a description; a sample entry is shown.
+- MVP (D-68): until AI meal reading (slice 7), Log meal shows no box for it; the "AI meal reading is coming soon" box (D-26) is left out for now.
 
 ### REQ-LOG-005 — Voice entry
 - Requirement: "Speak your meal" turns speech into meal text using the phone's **on-device** speech recognition, so the voice never leaves the phone (D-18, answers Q-038; ADR-0005). The text then follows the free-text path, including the AI consent check (REQ-LOG-009). FitSphere stores no audio; audio storage is future scope (D-16). On a phone that cannot recognise speech on the device, the button is hidden.

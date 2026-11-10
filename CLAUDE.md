@@ -12,6 +12,12 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Log meal holds the date's meals — built on branch `fix/log-meal-save-stay` (D-68, 2026-11-10).**
+No "AI meal reading is coming soon" box; a meal tapped shows its foods on the date, to add to or
+remove from; Save saves every meal changed and stays (the back arrow leaves); a green tick on each meal
+with food (no step turns green); back, or another date, with changes not saved asks first. Editing
+from a meal's pencil is unchanged. Phone app only: no server change, no migration, no new build.
+
 **Exercise list — built on branch `feat/exercise-list` (D-50, 2026-11-05).** Plan:
 `docs/plans/exercise-list.md` (Accepted), REQ-TRN-003; screens 4.1 to 4.3 locked. The exercise sheet
 searches FitSphere's own list of 334 exercises (`data/exercises/exercise-list.csv`, `app.exercises`,
