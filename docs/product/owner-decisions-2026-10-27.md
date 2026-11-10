@@ -1841,6 +1841,53 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-65 Training: the date strip on top, "By day" and "All workouts"
+- Status: **Accepted** (owner, in chat, 2026-11-10: "if I want to the see the workout from the last
+  date of last month than I Need to Scroll down the lot of"; "The Date Picker of the log workout is
+  confusing that of whcih date I am logging the workout"; "when I select the date than I can see the
+  workout of that date only and I am shold be able to log the workout of that date"; "apart from this
+  I can also see the whole workout as I can see now"; on the canvas's first proposal: "I want the
+  calender Stripe on the top of Training tab. for now Remove the card No Training plan yet. when I
+  Select the a particualar date I can see the workout of that date. keep the another plan fo the all
+  workout"; on "4.1 Training · PROPOSED v2": "lock it").
+- Answer (the redesign's 4.1, changed; replaces D-43's date chip):
+  - Training opens on the **date strip**, as Home's and Nutrition's (D-34): 7 days ending today, a
+    green mark on each day with a workout. Under it, two choice pills: **By day** (the first) and
+    **All workouts**.
+  - **By day** shows only the selected date's workouts, under one button that names the date it logs
+    to: "Log workout for today", or "Log workout for Sat 31 Oct". A past date shows "Showing Sat 31 Oct"
+    with "Back to today", as Nutrition's (REQ-DATE-002). The date is a label, "Sat 31 Oct · 2 workouts"
+    ("Today, Tue 10 Nov · 1 workout"); its workouts are one card of rows, each with its pencil and bin
+    (D-42), and the day's calories burned (D-50). A date with none says "No workouts on Sun 8 Nov."
+  - **All workouts** is the history as before (one card per date, D-34; each workout a row, "Log
+    another workout" on each date, D-42), grouped by month, newest first: the newest month open, each
+    other folded to one line, "October 2026 · 9 workouts on 8 days"; a tap opens or folds it. "Load
+    older" stays at the bottom.
+  - A date picked on the strip or in the header's calendar shows By day for it.
+  - The "No training plan yet" card is **not shown for now**: no one can send a training plan in the
+    MVP (D-20). It comes back with training plans (REQ-TRN-001, post-MVP).
+  - **A workout with no exercise is not listed** (owner, later the same day: "On the workout hostory by
+    today and All workouts. I do not want to shows the workouts with the zero excesice"; asked whether
+    Home's "Workouts on <date>" sheet should hide them too, so a workout has the same number
+    everywhere: "Hide everywhere"). By day, All workouts, the strip's marks, a month's count and
+    Home's day sheet leave it out, as the weekly count already did (D-41); workouts are numbered
+    without it ("Workout 1", "Workout 2"), on their own screen too. It is still stored, and its own
+    screen, open right after "Log workout", shows it until it gets an exercise or is deleted.
+- MVP defaults:
+  - Training opens on By day each time the app starts; the choice stays while the app runs.
+  - A month's line counts the workouts listed under it and their dates.
+  - After "Load older", the newest month it brought opens, so what came is in sight.
+  - The strip marks a day with a listed workout; screen readers hear "workout logged".
+  - A workout left with no exercise stays stored and synced but cannot be opened again from a list;
+    deleting it, or not saving it until it has an exercise, would change D-29 and is the owner's to
+    decide.
+- Doc changes: REQ-TRN-002, REQ-TRN-003, REQ-TRN-004 and REQ-HOME-007; `docs/architecture/constraints-and-assumptions.md`
+  (the Training tab; starting a workout); `docs/plans/ui-redesign.md` (4.1);
+  `docs/testing/slice-4-manual-testing.md`; `CLAUDE.md`. Phone app only: no server change, no
+  migration, no new build.
+
+---
+
 ## D-66 Search foods lists every match, with no cap, the best matches first
 - Status: **Accepted** (owner, in chat, 2026-11-10: "When I search for the Item I do want the cap of 30
   item. I want that all the data available in the Fitssphere must be available as the result when the

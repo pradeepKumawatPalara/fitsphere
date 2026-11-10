@@ -584,3 +584,13 @@ export function workoutSummary(exercises: readonly Pick<WorkoutExercise, 'name'>
   const { count, names } = workoutParts(exercises);
   return names ? `${count} · ${names}` : count;
 }
+
+/**
+ * The workouts listed and numbered (D-65): those with an exercise, as they count toward the week
+ * (D-41). One with none is still stored, and opens from its own screen, but no list shows it, so
+ * "Workout 2" is the same workout on Training, Home and its own screen. `keep` is listed anyway: the
+ * workout open on its own screen, while it has no exercise yet.
+ */
+export function listedWorkouts<T extends { id: string; exercises: readonly unknown[] }>(workouts: readonly T[], keep?: string): T[] {
+  return workouts.filter((workout) => workout.exercises.length > 0 || workout.id === keep);
+}

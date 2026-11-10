@@ -125,7 +125,7 @@ export function NutritionScreen() {
           firstDay={firstDay}
           selected={selected}
           start={stripStart}
-          mealDays={mealDays}
+          loggedDays={mealDays}
           onSelect={select}
           onShow={showDays}
         />

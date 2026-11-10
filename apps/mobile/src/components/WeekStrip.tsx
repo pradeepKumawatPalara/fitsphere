@@ -15,8 +15,11 @@ type Props = {
   selected: IstDay;
   /** The first of the 7 days shown. */
   start: IstDay;
-  /** Days with at least one meal: their status box is filled (REQ-HOME-002; Q-019). */
-  mealDays?: ReadonlySet<IstDay>;
+  /** Days with something logged: their status box is filled. Home and Nutrition mark meals (REQ-HOME-002;
+   * Q-019), Training workouts (D-65). */
+  loggedDays?: ReadonlySet<IstDay>;
+  /** What screen readers hear on a marked day: "meal logged" (the default) or "workout logged". */
+  loggedLabel?: string;
   onSelect(day: IstDay): void;
   /** Shows the 7 days from `start`. */
   onShow(start: IstDay): void;
@@ -24,13 +27,13 @@ type Props = {
 
 // The date strip (REQ-HOME-002, D-34): 7 days ending today, so no day in it lies ahead; today in blue
 // (REQ-DATE-003), past days selectable back to `firstDay` (REQ-DATE-001), and a status box per day,
-// filled when a meal is logged that day (Q-019). The selected day, which every card below follows,
+// filled when a meal is logged that day (Q-019), or on Training a workout (D-65). The selected day, which every card below follows,
 // is the filled pill; today keeps blue text and a bar under its date.
 //
 // Earlier days are pages to swipe through, 7 a page, as "Earlier days" and "Later days" move: no
 // further back than the 7 holding `firstDay`. A swipe shows days without choosing one. Only the 7
 // shown are there for screen readers; the arrows move them.
-export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect, onShow }: Props) {
+export function WeekStrip({ today, firstDay, selected, start, loggedDays, loggedLabel = 'meal logged', onSelect, onShow }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const canGoBack = addDays(start, -1) >= firstDay;
@@ -58,12 +61,12 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
       const outOfRange = day > today || day < firstDay;
       const isToday = day === today;
       const isSelected = day === selected;
-      const logged = mealDays?.has(day) ?? false;
+      const logged = loggedDays?.has(day) ?? false;
       return (
         <Pressable
           key={day}
           accessibilityRole="button"
-          accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}${logged ? ', meal logged' : ''}`}
+          accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}${logged ? `, ${loggedLabel}` : ''}`}
           accessibilityState={{ selected: isSelected, disabled: outOfRange }}
           disabled={outOfRange}
           onPress={() => onSelect(day)}
@@ -81,7 +84,7 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
           <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
             {parts.date}
           </Text>
-          {mealDays ? (
+          {loggedDays ? (
             <View
               testID={`status-${day}`}
               style={[styles.status, logged && styles.statusFilled, isSelected && (logged ? styles.statusOnSelected : styles.statusOpenOnSelected)]}
@@ -149,7 +152,7 @@ export function WeekStrip({ today, firstDay, selected, start, mealDays, onSelect
 }
 
 // The redesign's 2.3 (locked by the owner, 2026-11-03): square days 64 tall and 4 apart, today outlined
-// in caramel, the selected day filled; a day with a meal has a green mark under its date.
+// in caramel, the selected day filled; a day with a meal (on Training, a workout) has a green mark under its date.
 const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   arrow: { width: 28, height: 64, alignItems: 'center', justifyContent: 'center' },

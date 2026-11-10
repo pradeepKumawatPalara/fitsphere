@@ -18,6 +18,14 @@ remove from; Save saves every meal changed and stays (the back arrow leaves); a 
 with food (no step turns green); back, or another date, with changes not saved asks first. Editing
 from a meal's pencil is unchanged. Phone app only: no server change, no migration, no new build.
 
+**Training tab: By day and All workouts — built on branch `feat/training-tab` (D-65, 2026-11-10),
+in its own folder `D:\fitsphere-training` (removed once merged); on top of D-63.** The date strip at
+the top of Training (a green mark on each workout day) replaces the date chip; "By day" shows the
+selected date's workouts under "Log workout for <date>"; "All workouts" groups the history by month,
+the newest open, the others folded. No "No training plan yet" card for now; a workout with no
+exercise is not listed (Training, Home's day sheet) nor counted when numbering. Phone app only: no server
+change, no migration, no new build.
+
 **Exercise list — built on branch `feat/exercise-list` (D-50, 2026-11-05).** Plan:
 `docs/plans/exercise-list.md` (Accepted), REQ-TRN-003; screens 4.1 to 4.3 locked. The exercise sheet
 searches FitSphere's own list of 334 exercises (`data/exercises/exercise-list.csv`, `app.exercises`,

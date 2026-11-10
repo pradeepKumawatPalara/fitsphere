@@ -56,7 +56,7 @@ async function startWorkout(pickDay?: string, weightGrams?: number) {
     },
   );
   if (pickDay) await fireEvent.press(await screen.findByRole('button', { name: `Pick ${pickDay}` }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
+  await fireEvent.press(await screen.findByRole('button', { name: /^Log workout for / }));
   await screen.findByText(/^Workout \d+ · /);
   return { ...app, id: mockParams.id };
 }
@@ -111,9 +111,28 @@ describe('REQ-TRN-003 starting a workout', () => {
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${id}`);
     expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.getByText('No exercises yet.')).toBeOnTheScreen();
-    expect(await screen.findByRole('button', { name: 'Wed 28 Oct, Workout 1: No exercises' })).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ deleted: false, day: '2026-10-28', exercises: [] }));
     expect(await getEntry(db, 'workout', id)).toMatchObject({ syncState: 'synced' });
+    // D-65: with no exercise yet, Training doesn't list it.
+    expect(screen.getByText('No workouts on Wed 28 Oct.')).toBeOnTheScreen();
+  });
+
+  it('D-65 a workout is numbered among the day’s workouts with an exercise: an empty one doesn’t count', async () => {
+    await renderInApp(
+      <>
+        <TrainingScreen />
+        <WorkoutScreen now={() => NOW} />
+      </>,
+      undefined,
+      async (db, server) => {
+        await withExerciseList(db, server);
+        server.storeWorkoutFromElsewhere('0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b', '2026-10-28', []);
+      },
+    );
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^Log workout for / }));
+
+    expect(await screen.findByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
   });
 
   it('Q-011 a workout started with a past date selected belongs to that day', async () => {
@@ -556,7 +575,7 @@ describe('REQ-TRN-003 deleting a workout', () => {
 
     await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
     expect(await getEntry(db, 'workout', id)).toBeNull();
-    expect(await screen.findByText('No workouts logged yet.')).toBeOnTheScreen();
+    expect(await screen.findByText('No workouts on Wed 28 Oct.')).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ deleted: true }));
   });
 
@@ -618,7 +637,7 @@ async function renderOfflineThenStart() {
     withExerciseList,
   );
   app.server.state.offline = true;
-  await fireEvent.press(await screen.findByRole('button', { name: 'Log workout' }));
+  await fireEvent.press(await screen.findByRole('button', { name: /^Log workout for / }));
   await screen.findByText(/^Workout \d+ · /);
   return { ...app, id: mockParams.id };
 }

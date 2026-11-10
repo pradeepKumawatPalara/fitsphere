@@ -14,7 +14,7 @@ import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { caloriesBurned, deleteWorkoutEffects, exerciseLabel, exerciseLines } from '../workouts';
+import { caloriesBurned, deleteWorkoutEffects, exerciseLabel, exerciseLines, listedWorkouts } from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
 type Sheet = { index: number | null };
@@ -50,7 +50,8 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
       const sameDay = entry ? await listEntries(db, 'workout', entry.day, entry.day) : [];
       if (!active) return;
       setWorkout(entry);
-      setPlace(sameDay.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).findIndex((other) => other.id === id) + 1 || 1);
+      // Numbered among the day's listed workouts, as Training and Home number them (D-65).
+      setPlace(listedWorkouts(sameDay, id).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).findIndex((other) => other.id === id) + 1 || 1);
       setRejected(waiting.filter((change) => isFor(change, id)));
     });
     return () => {
