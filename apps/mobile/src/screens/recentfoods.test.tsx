@@ -9,7 +9,7 @@ import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 
 // Recent foods in Search foods (D-60; the redesign's 3.6 with recent foods, locked by the owner on
 // 2026-11-06; REQ-LOG-007). Today is Wednesday 28 October 2026. Synthetic foods and values.

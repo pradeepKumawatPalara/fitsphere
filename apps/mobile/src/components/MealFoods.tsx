@@ -156,13 +156,24 @@ export function useMealFoods(initial: readonly MealItem[] = []): {
   return { items, setItems, addItems, change, sheets };
 }
 
-/** The meal's foods, ruled on a card, each with its amount, kcal and protein and a button to change it. */
-export function MealFoodRows({ items, onChange }: { items: readonly MealItem[]; onChange(index: number): void }) {
+/**
+ * The meal's foods, ruled on a card, each with its amount, kcal and protein and a button to change it.
+ * `empty` is said when there are none (Log meal names the meal, D-68).
+ */
+export function MealFoodRows({
+  items,
+  empty = 'No foods yet.',
+  onChange,
+}: {
+  items: readonly MealItem[];
+  empty?: string;
+  onChange(index: number): void;
+}) {
   const styles = useStyles();
   const { colors } = useTheme();
   return (
     <View style={styles.review}>
-      {items.length === 0 ? <Text style={styles.empty}>No foods yet.</Text> : null}
+      {items.length === 0 ? <Text style={styles.empty}>{empty}</Text> : null}
       {items.map((item, index) => (
         <View key={index} style={[styles.item, index > 0 && styles.itemRuled]}>
           <View style={styles.itemText}>

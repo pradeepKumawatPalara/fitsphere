@@ -13,7 +13,7 @@ import { NutritionScreen } from './NutritionScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 jest.mock('../photos/takePhoto', () => ({ pickPhoto: jest.fn() }));
 
 // A meal's photo or image link in Log meal and Nutrition (REQ-LOG-006, REQ-LOG-010, REQ-NFR-006;
@@ -73,7 +73,8 @@ async function logMealWithFood(before?: (db: SqlDb) => Promise<void>) {
 }
 
 async function savedMeal(db: SqlDb) {
-  await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+  // Saved, and Log meal stays open for the next meal (D-68).
+  await screen.findByText(/^Lunch saved · /);
   const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
   return getEntry(db, 'meal', row!.id);
 }
@@ -91,7 +92,7 @@ describe('REQ-LOG-006 a meal photo in Log meal', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Take photo' }));
     expect(pick).toHaveBeenCalledWith('camera');
     expect(await screen.findByLabelText('Meal photo')).toHaveProp('source', { uri: `data:image/jpeg;base64,${FILES.thumbnail}` });
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save lunch' }));
 
     const meal = await savedMeal(db);
     expect(meal?.photo).toEqual({ kind: 'photo', mediaId: expect.any(String) });
@@ -152,7 +153,7 @@ describe('REQ-LOG-010 a public image link instead of a photo', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Add link' }));
     expect(screen.getByLabelText('Image link: images.example.com')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save lunch' }));
 
     expect((await savedMeal(db))?.photo).toEqual({ kind: 'link', url: 'https://images.example.com/meal.jpg' });
   });

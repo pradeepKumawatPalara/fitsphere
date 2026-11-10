@@ -10,7 +10,7 @@ import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 
 // More foods (docs/plans/more-foods.md, D-39; the redesign's 3.6 and 3.8, locked by the owner on
 // 2026-11-04): USDA's foods with their servings, your own food in any unit, and My foods. Today is
@@ -402,8 +402,8 @@ describe('D-48 packaged foods sold in India', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
     expect(screen.getByLabelText('Test sandwich bread (Test Bakers): 1.5 × serving (75 g), 188 kcal, 6.0 g protein')).toBeOnTheScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
-    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    await fireEvent.press(screen.getByRole('button', { name: 'Save breakfast' }));
+    expect(await screen.findByText(/^Breakfast saved · /)).toBeOnTheScreen();
     const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
     expect((await getEntry(db, 'meal', row!.id))?.items).toEqual([
       expect.objectContaining({ source: 'barcode', ref: '8901234567890', amount: { unit: 'serving', label: 'Serving', value: 1.5, grams: 75 } }),
@@ -623,7 +623,7 @@ describe('D-39 Enter your own food in any unit', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Change to 80 g' }));
     expect(screen.getByLabelText(/^Synthetic biscuits: 80 g, /)).toBeOnTheScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save breakfast' }));
     await waitFor(() => expect(server.entries('meals').size).toBe(1));
     expect(server.entries('myFoods').size).toBe(0);
   });

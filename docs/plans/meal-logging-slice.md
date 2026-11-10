@@ -47,7 +47,8 @@ The slice's pull requests build on pull request #18 (D-24), which must be merged
 | Offline logging and sync of meals and saved meals | REQ-NFR-004, REQ-NFR-001 (self-access) |
 
 Not in this slice: label photos and all AI reading (slice 7). The free-text, voice and photo-reading
-box shows "AI meal reading is coming soon" until then (D-26).
+box shows "AI meal reading is coming soon" until then (D-26); since D-68 (2026-11-10) Log meal leaves
+that box out.
 
 ## Decisions (D-26)
 1. **Meal photos and public links move into this slice** from slice 7, at the owner's

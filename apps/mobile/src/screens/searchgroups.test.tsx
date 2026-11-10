@@ -9,7 +9,7 @@ import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 
 // Search results without source tags (D-61; the canvas's option C, chosen by the owner on 2026-11-06):
 // a branded food's brand under its name, and the branded foods of one name as one row that opens to
