@@ -523,7 +523,11 @@ it logs to, and All workouts lists every workout by month.
 | 7 | Tap **Search all categories** | — | Both back to All; the curls of every category, each with its category and sub-group |
 | 8 | Category **Smith Machine** | — | Sub-group reads "No sub-groups" and doesn't open |
 | 9 | Category **Sled / Prowler**; tap **Sled Push (High Handles)** | — | Weight and time sets; Calories: "This exercise has no estimate: type the number from your machine or watch." |
-| 10 | Clear the name; type `push-up` | — | "Standard Push-Up" (our old "Push-up" is one of its other names) |
+| 10 | Clear the name; type `push-up` | — | "Standard Push-Up" first (our old "Push-up" is one of its other names) |
+| 11 | Tap the chevron at the end of the name | — | The matches close and the keyboard with them; tap it again: they show again |
+| 12 | Back to All categories; clear the name; tap the chevron | — | "All exercises · 2,119" (about), A to Z |
+| 13 | Pick **Hammer Curl**; Category **Dumbbell** | — | The name stays (it is a dumbbell exercise) |
+| 14 | Category **Barbell** | — | The name clears; Barbell's exercises show to pick from |
 
 **Final expected result:** Category and Sub-group narrow the exercise list, and the library's
 exercises are found and logged like the others.

@@ -2050,7 +2050,10 @@ checksum), and the configuration template was left as it is.*
   is window is to short. which is a bad UI Desing. in the cateogry and sub group choice list it self as
   scrolling but Excercise name does not has own scrllnig. My Suggestion would be instead of showing the
   this screen the pop that come from the Below it should be rendered as the whole page. and we can add
-  the back icon to go back"; on "4.3 Exercise page · PROPOSED": "lock it").
+  the back icon to go back"; on "4.3 Exercise page · PROPOSED": "lock it"; then: "Need a Icon to close and
+  open the choice list in the excercise name inout fields same as Category."; "When I have slected
+  excecise name If I change the category and subcateogry and the excerce is not belong to the that
+  combinations the Excescse name must be disappear").
 - Answer (plan [`docs/plans/exercise-library.md`](../plans/exercise-library.md); the redesign's 4.3,
   changed):
   - The owner's file (`D:\fitsphere-data\Gym_Exercise_Library.xlsx`, from the owner's AI tool: 2,090
@@ -2074,6 +2077,11 @@ checksum), and the configuration template was left as it is.*
     Sub-group and the name stay at the top; under them an open Category or Sub-group list, or the
     matches, fill the page and scroll on their own, and the form (sets, time, calories, heart rate,
     note) scrolls under them. Save exercise is fixed at the foot, and steps aside while a list shows.
+  - The name has a **chevron**, as Category's: it closes the list showing (and the keyboard), or opens
+    it again: the matches of the words typed, the choice's exercises, or, with nothing typed or chosen,
+    every exercise A to Z ("All exercises · 2,119"). Typing opens it again.
+  - An exercise of the list already picked that a new Category or Sub-group does not hold **leaves the
+    name**, so the choice's exercises show to pick from; a name of the user's own stays.
 - MVP defaults:
   - The names stay as the file writes them ("Barbell Flat Bench Press"); seven are renamed so no two
     clash: Pilates' Swimming, Criss-Cross, Hip Circles and Jackknife become "… (Pilates)", and Warrior

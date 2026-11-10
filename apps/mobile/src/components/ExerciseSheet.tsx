@@ -1,8 +1,8 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { ChevronLeft, Info, Plus, Search, Trash } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
-import { parseTwoDecimals, parseWholeNumber } from '../format';
+import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
   exercisePlaceCounts,
@@ -74,6 +74,14 @@ const NO_FILTER: ExerciseFilter = { category: null, subGroup: null };
 const MATCHES_LIMIT = 8;
 const FILTERED_LIMIT = 1000;
 
+/** Whether an exercise is one of a category's or sub-group's (D-67); every one with no choice made. */
+function inFilter(exercise: ListedExercise, filter: ExerciseFilter): boolean {
+  if (filter.category === null && filter.subGroup === null) return true;
+  return exercise.places.some(
+    (place) => (filter.category === null || place.category === filter.category) && (filter.subGroup === null || place.subGroup === filter.subGroup),
+  );
+}
+
 /**
  * What a match is tagged with (D-67): what the choice made doesn't say. With nothing chosen, its
  * category and sub-group ("Core / Abs · Flexion"); with a category, its sub-group there; with a
@@ -129,8 +137,29 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const [filter, setFilter] = useState<ExerciseFilter>(NO_FILTER);
   const [picking, setPicking] = useState<'category' | 'subGroup' | null>(null);
   const [counts, setCounts] = useState<ExercisePlaceCounts | null>(null);
+  // The name's chevron, as Category's (D-67): the list closed with it, until typed in or opened again;
+  // and, opened with nothing typed or chosen, every exercise.
+  const [listClosed, setListClosed] = useState(false);
+  const [showingAll, setShowingAll] = useState(false);
   const filtered = filter.category !== null || filter.subGroup !== null;
-  const browsing = filtered && text.name.trim() === '';
+  const unnamed = text.name.trim() === '';
+  const browsingAll = showingAll && !filtered && unnamed;
+  const browsing = (filtered || browsingAll) && unnamed;
+
+  /**
+   * A new category or sub-group (D-67). An exercise of the list already picked that it does not hold
+   * leaves the name (the owner, 2026-11-10), so the choice's exercises show to pick from; a name of the
+   * user's own stays.
+   */
+  function chooseFilter(next: ExerciseFilter) {
+    setFilter(next);
+    setListClosed(false);
+    if (listed !== null && !inFilter(listed, next)) {
+      change({ name: '' });
+      setListed(null);
+      setPicked(false);
+    }
+  }
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -165,10 +194,10 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    const searching = typingName || browsing;
+    const searching = !listClosed && (typingName || browsing);
     void Promise.all([
       findListedExercise(db, text.name),
-      searching ? searchExercises(db, text.name, filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter) : [],
+      searching ? searchExercises(db, text.name, filtered || browsingAll ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll) : [],
     ]).then(([found, list]) => {
       if (!active) return;
       setListed(found);
@@ -177,7 +206,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     return () => {
       active = false;
     };
-  }, [local.state, text.name, typingName, browsing, filtered, filter]);
+  }, [local.state, text.name, typingName, browsing, browsingAll, listClosed, filtered, filter]);
 
   // An exercise saved as cardio, now listed as done in sets or the other way round, keeps its own
   // fields while it keeps its name, as a name of the user's own.
@@ -186,10 +215,12 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const match = savedOtherwise ? null : listed;
   const layout = exerciseLayout(match, text.logAs, editing);
   const named = text.name.trim() !== '';
-  const choosing = (typingName || browsing) && matches.length > 0;
+  const choosing = !listClosed && (typingName || browsing) && matches.length > 0;
   // Words typed in a category or sub-group that match none of its exercises (D-67).
-  const noMatch = filtered && named && typingName && matches.length === 0 && listed === null;
-  const listTitle = !filtered
+  const noMatch = filtered && named && typingName && !listClosed && matches.length === 0 && listed === null;
+  const listTitle = browsingAll
+    ? `All exercises · ${formatInteger(matches.length)}`
+    : !filtered
     ? 'Matches'
     : browsing
       ? `${filterLabel(filter)} · ${matches.length} ${matches.length === 1 ? 'exercise' : 'exercises'}`
@@ -203,6 +234,18 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
 
   function changeSet(index: number, column: SetColumn, value: string) {
     setText((current) => ({ ...current, sets: current.sets.map((set, at) => (at === index ? { ...set, [column]: value } : set)) }));
+  }
+
+  /** The name's chevron (D-67): closes the list open, or opens it: the matches, the choice's exercises, or every exercise. */
+  function toggleList() {
+    if (choosing) {
+      setListClosed(true);
+      Keyboard.dismiss();
+      return;
+    }
+    setListClosed(false);
+    if (unnamed && !filtered) setShowingAll(true);
+    else setTypingName(true);
   }
 
   function pick(exercise: ListedExercise) {
@@ -243,11 +286,11 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         </Text>
       </View>
       <View style={[styles.top, picking !== null && styles.fill]}>
-        <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={setFilter} />
+        <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={chooseFilter} />
         {picking === null ? (
       <View style={styles.field}>
         <Text style={labelStyle}>Exercise name</Text>
-        <View style={[styles.box, typingName && styles.focused, problems.name ? styles.refused : null]}>
+        <View style={[styles.box, styles.nameBox, (typingName || choosing) && styles.focused, problems.name ? styles.refused : null]}>
           <Search size={20} color={colors.inkMuted} />
           <TextInput
             accessibilityLabel="Exercise name"
@@ -255,14 +298,32 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             onChangeText={(name) => {
               change({ name });
               setTypingName(true);
+              setListClosed(false);
             }}
             placeholder={filtered ? `Search ${filterLabel(filter)}` : 'Search or type an exercise'}
             autoCapitalize="sentences"
             autoFocus={editing === null}
-            onFocus={() => setTypingName(true)}
+            onFocus={() => {
+              setTypingName(true);
+              setListClosed(false);
+            }}
             onBlur={() => setTypingName(false)}
             style={styles.value}
           />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Exercise list"
+            accessibilityState={{ expanded: choosing }}
+            onPress={toggleList}
+            hitSlop={4}
+            style={({ pressed }) => [styles.nameChevron, pressed && styles.pressed]}
+          >
+            {choosing ? (
+              <ChevronUp size={20} strokeWidth={2.25} color={colors.accent} />
+            ) : (
+              <ChevronDown size={20} strokeWidth={2.25} color={colors.accent} />
+            )}
+          </Pressable>
         </View>
         {problems.name ? <Problem text={problems.name} /> : null}
       </View>
@@ -309,7 +370,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             No exercise in {filterLabel(filter)} matches “{text.name.trim()}”. Search them all, or keep your own name.
           </Text>
           <View style={styles.addSet}>
-            <TextButton title="Search all categories" icon={Search} onPress={() => setFilter(NO_FILTER)} />
+            <TextButton title="Search all categories" icon={Search} onPress={() => chooseFilter(NO_FILTER)} />
           </View>
         </View>
       ) : null}
@@ -642,6 +703,9 @@ const useStyles = themedStyles((c) => ({
   listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
   form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
   listed: { gap: 8 },
+  // The name's chevron, as Category's (D-67), at the box's end.
+  nameBox: { paddingRight: 4 },
+  nameChevron: { width: 40, height: 44, alignItems: 'center', justifyContent: 'center' },
   matches: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   matchTag: { maxWidth: 150, textAlign: 'right' },
   match: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 14, paddingRight: 12 },

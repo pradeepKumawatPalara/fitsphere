@@ -1542,14 +1542,22 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
  * starting with the first word come first. With a category or sub-group (D-67), only that one's
  * exercises; then no words lists them all, by name. An exercise named, or with another name, exactly
  * as typed comes before all (D-67: "push-up" finds "Standard Push-Up", which took over our Push-up).
+ * With no words and no choice, nothing; or, with `everything` (the name's chevron, D-67), every
+ * exercise by name.
  */
-export async function searchExercises(db: SqlDb, query: string, limit = 8, filter?: ExerciseFilter): Promise<ListedExercise[]> {
+export async function searchExercises(
+  db: SqlDb,
+  query: string,
+  limit = 8,
+  filter?: ExerciseFilter,
+  everything = false,
+): Promise<ListedExercise[]> {
   const words = exerciseQueryWords(query);
   const place = placeCondition(filter);
-  if (words.length === 0 && place === null) return [];
+  if (words.length === 0 && place === null && !everything) return [];
   const conditions = [...words.map(() => `search_text LIKE ? ESCAPE '\\'`), ...(place ? [place.sql] : [])];
   const rows = await db.getAllAsync<ExerciseRow>(
-    `SELECT * FROM exercises WHERE ${conditions.join(' AND ')}
+    `SELECT * FROM exercises ${conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''}
      ORDER BY ${words.length > 0 ? "name_keys LIKE ? ESCAPE '\\' DESC, name_keys LIKE ? DESC, " : ''}name COLLATE NOCASE LIMIT ?`,
     [
       ...words.map(like),
