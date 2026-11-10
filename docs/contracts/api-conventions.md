@@ -212,7 +212,7 @@ Request:
   | `workout.delete` | `id`, `deletedAt` | Deletes the user's workout with that ID |
   | `meal.set` | `id`, `day`, `mealType`, `tags`, `items`, `photo`, `recordedAt` | Creates the meal, or replaces the whole meal with this `id`. 1 to 30 items; each item's fields and limits are in the data model (`meals`). The server computes the totals; a change that sends them is refused as an unknown field. `photo` is `{"kind": "photo", "mediaId": …}`, `{"kind": "link", "url": …}`, or null or left out for none; a photo ID already used by another meal, or deleted, is refused (data model, `media`). A dish item must be in portions and name a dish on the list, and every other item must be in grams; otherwise the change is `VALIDATION_FAILED` (D-28) |
   | `meal.delete` | `id`, `deletedAt` | Deletes the meal and its photo. A meal the server never had is accepted and changes nothing |
-  | `savedMeal.set` | `id`, `name`, `mealType`, `tags`, `items`, `savedAt` | A copy of a meal, with no day. Name 1 to 60 characters. Its items follow the dish rule of `meal.set` |
+  | `savedMeal.set` | `id`, `name`, `tags`, `items`, `savedAt` | Foods kept under the user's own name, with no day and no meal (D-69); creates the saved meal or replaces it whole. Name 1 to 60 characters. Its items follow the dish rule of `meal.set`. A `mealType` sent by a phone from before D-69 is accepted and not kept |
   | `savedMeal.delete` | `id`, `deletedAt` | Deletes the saved meal |
   | `target.set` | `kind`, `value`, `setAt` | `kind` is `calories`, `protein`, `steps`, `weekly_workouts` or `body_weight`; `value` in that kind's range (data model, `targets`). Who set it is the caller; a change that names anyone is refused as an unknown field (invariant #2) |
   | `setting.set` | `name`, `value`, `setAt` | `name` is `theme` (`system`, `light` or `dark`), `body_weight_unit` or `lifting_weight_unit` (`kg` or `lb`); a value another name allows is refused (data model, `settings`) |
@@ -296,7 +296,7 @@ Response `200`:
   the new cursor and no changes.
 - `meals` and `savedMeals` entries are `{ "deleted": false, … }` with the content and the
   server's `totals`, or `{ "deleted": true, "id", … }` for one the user deleted, which the phone
-  then removes.
+  then removes. A saved meal has no `mealType` (D-69).
 - A deleted workout comes back as `{ "deleted": true, "id", "day", "updatedAt" }`, with no
   content; the phone removes its copy.
 - `setByUserId` is the FitSphere ID of whoever set the target. In the MVP it is always the user

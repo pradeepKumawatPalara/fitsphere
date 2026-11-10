@@ -1874,6 +1874,63 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no new build; phone schema version 15. Doc
   changes: REQ-LOG-007; `constraints-and-assumptions.md` (More foods); the data model (the phone).
 
+## D-69 Create a saved meal in Saved, under the user's own name; a saved meal keeps no meal
+- Status: **Accepted** (owner, in chat, 2026-11-10: "in the Nutrition tab's Saved tab I should be able
+  to create a custom Meal and saved it as the custom name so that I log it everytime quickly", with the
+  example of a Monday breakfast of 4 eggs, 1 glass of milk, 2 roti and 2 sabzi; then, on the first
+  design: "when the User click on the Create saved meal there should be input to ask for the custom
+  name which is mandatory. than There should be otions add the multiple items To add the new item it
+  should works same as the search functionality. I do not want to track the saved food to specfic mean
+  like Breakfast, Lunch, Dinner , and snack. User is free to add any saved meal to any mean"; the
+  second design, "PROPOSED v2" on the redesign canvas, approved with "ok start building this").
+  Numbered D-69 because D-67 (the exercise library) and D-68 (Log meal) were taken by work built at
+  the same time.
+- Answer:
+  - **Create a saved meal**, a button at the top of Nutrition › Saved, asks the meal's **name first**
+    ("New saved meal"; required: "Next: add foods" waits for it). The new screen ("New saved meal")
+    shows the name, with a pencil to change it, and the foods: **Add food** opens Search foods, as in
+    Log meal (recent foods, search, a food's page, your own food), as many times as needed; each food's
+    pencil changes its amount on its page, or removes it (D-64). **Save meal** keeps it in Saved.
+  - **Each saved meal can be changed**: its pencil, beside the bin, opens the same screen ("Edit saved
+    meal", **Save changes**): name, foods and amounts.
+  - **A saved meal keeps no meal** (Breakfast, Lunch, Snack or Dinner), whether made here or saved
+    from a logged meal with the bookmark. Tapping it in Saved asks the meal each time ("Log Monday
+    breakfast", none chosen; **Log meal** waits for one). This replaces Q-036's MVP default (the slot it
+    was saved from).
+  - **Log it as it is, or change it first** (owner, in chat, 2026-11-10: "it should be both If the User
+    want to change it He can change and He can directly logged"): **Change amounts first**, on the same
+    sheet, opens Log meal on the selected date with the saved meal's foods and the meal chosen, if one
+    was, under a note "From Monday breakfast · Change what you need for this day. Your saved meal stays
+    as it is." What is changed there is that day's meal only.
+  - **The same foods are not saved twice** (owner, in chat, 2026-11-10: "Stop create the duplicate
+    one"): saving foods and amounts, in any order, that are already a saved meal says "Already in my
+    meals · These foods and amounts are already saved as …", with Go to Saved, and makes no copy, as
+    the bookmark does (REQ-SAVED-001).
+  - The sheets for the name, logging a saved meal and "Already in my meals" have their tile beside the
+    title, on one line (owner, on the canvas, 2026-11-10).
+- MVP defaults:
+  - When the user logs a saved meal, the meal is chosen each time; none is guessed from the time of
+    day. Log meal's Saved meals tile adds a saved meal's foods to the meal being logged and no longer
+    chooses its meal.
+  - A saved meal's name may repeat another's; only the same foods and amounts are stopped.
+  - A saved meal's tags (hidden until coaches, D-40) are kept when it is changed, and are carried into
+    the day's meal by Change amounts first, as by Log meal.
+  - Leaving the screen without saving keeps nothing, as Log meal does.
+- Server: `savedMeal.set` no longer needs `mealType`; one sent by an older phone (still in its outbox)
+  is accepted and not kept, and the pull no longer sends it. Migration `0023_saved_meals_any_meal.sql`:
+  the saved meal's content rule no longer asks for a meal type; the column stays, unused, and is
+  cleared when a saved meal is saved again. Applied on `fitsphere-dev` at the owner's word on
+  2026-11-10. The exercise library's `0022_exercise_places.sql` (D-67), already applied there, comes
+  with this change word for word, as the migration runner needs every applied migration.
+- Phone: schema version 17: `saved_meals` made again without `meal_type`, every saved meal copied,
+  those waiting to sync too. Version 16 is the exercise library's (D-67), included word for word, as
+  the owner's phone may have it already. No new build. The foods of a
+  meal being put together (adding, "Already in this meal", changing one) are shared by Log meal and the
+  saved meal screen (`components/MealFoods.tsx`).
+- Doc changes: REQ-SAVED-001, REQ-SAVED-002, new REQ-SAVED-003; Q-036 in `mvp-scope.md` and
+  `constraints-and-assumptions.md`; J-03; the data model and `api-conventions.md`; the redesign plan
+  (3.3, 3.3b); CLAUDE.md.
+
 ---
 
 ---
