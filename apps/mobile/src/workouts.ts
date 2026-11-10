@@ -21,6 +21,7 @@ import {
   LIFT_WEIGHT_GRAMS_MIN,
   toGrams,
   weightRangeIn,
+  WORKOUT_TIMER_SECONDS_MAX,
   type BodyWeightUnit,
   type ExerciseGroup,
   type ExerciseLogType,
@@ -28,6 +29,7 @@ import {
   type IstDay,
   type ListedExercise,
   type WorkoutExercise,
+  type WorkoutTimer,
 } from '@fitsphere/shared';
 import { formatInteger, parseOneDecimal, parseTwoDecimals, parseWholeNumber } from './format';
 
@@ -587,10 +589,76 @@ export function workoutSummary(exercises: readonly Pick<WorkoutExercise, 'name'>
 
 /**
  * The workouts listed and numbered (D-65): those with an exercise, as they count toward the week
- * (D-41). One with none is still stored, and opens from its own screen, but no list shows it, so
- * "Workout 2" is the same workout on Training, Home and its own screen. `keep` is listed anyway: the
- * workout open on its own screen, while it has no exercise yet.
+ * (D-41), and those whose timer has started (D-71), so a workout timed before its first exercise is
+ * never lost. One with neither is still stored, and opens from its own screen, but no list shows it,
+ * so "Workout 2" is the same workout on Training, Home and its own screen. `keep` is listed anyway:
+ * the workout open on its own screen, while it has no exercise yet.
  */
-export function listedWorkouts<T extends { id: string; exercises: readonly unknown[] }>(workouts: readonly T[], keep?: string): T[] {
-  return workouts.filter((workout) => workout.exercises.length > 0 || workout.id === keep);
+export function listedWorkouts<T extends { id: string; exercises: readonly unknown[]; timer?: WorkoutTimer | null }>(
+  workouts: readonly T[],
+  keep?: string,
+): T[] {
+  return workouts.filter((workout) => workout.exercises.length > 0 || Boolean(workout.timer) || workout.id === keep);
+}
+
+// The workout timer (D-71). "Start workout" starts it on a workout of today; it counts from the
+// clock, so leaving the screen or closing the app does not stop it; "Pause" stops it and "Resume"
+// counts on; "Mark done" stops it for good, and its total is the time counted, pauses left out.
+// Each step is worked out from the time given, so the screens and the tests share one clock.
+
+/** Where a workout's timer is. */
+export type TimerState = 'none' | 'running' | 'paused' | 'done';
+
+export function timerState(timer: WorkoutTimer | null): TimerState {
+  if (!timer) return 'none';
+  if (timer.doneAt) return 'done';
+  return timer.runningSince ? 'running' : 'paused';
+}
+
+/**
+ * The time counted at `now`, in whole seconds: the time counted before, plus the current run. A clock
+ * set back takes nothing away, and it shows 24 hours at most.
+ */
+export function timerSeconds(timer: WorkoutTimer | null, now: Date): number {
+  if (!timer) return 0;
+  const run = timer.runningSince === null ? 0 : Math.max(0, Math.floor((now.getTime() - Date.parse(timer.runningSince)) / 1000));
+  return Math.min(timer.countedSeconds + run, WORKOUT_TIMER_SECONDS_MAX);
+}
+
+/** "Start workout": a timer running from `now`. */
+export function startTimer(now: Date): WorkoutTimer {
+  const at = now.toISOString();
+  return { startedAt: at, countedSeconds: 0, runningSince: at, doneAt: null };
+}
+
+/** "Pause": the run is counted, and the timer stops. */
+export function pauseTimer(timer: WorkoutTimer, now: Date): WorkoutTimer {
+  return { ...timer, countedSeconds: timerSeconds(timer, now), runningSince: null };
+}
+
+/** "Resume", after a pause or after "Mark done": it counts on from `now`; the time between is not counted. */
+export function resumeTimer(timer: WorkoutTimer, now: Date): WorkoutTimer {
+  return { ...timer, runningSince: now.toISOString(), doneAt: null };
+}
+
+/** "Mark done": the run is counted, and the timer stops for good. */
+export function finishTimer(timer: WorkoutTimer, now: Date): WorkoutTimer {
+  return { ...timer, countedSeconds: timerSeconds(timer, now), runningSince: null, doneAt: now.toISOString() };
+}
+
+/** What a workout's row says of its timer: "Running · 12:34", "Paused · 31:08", "Done · 52:40"; null with none. */
+export function timerLine(timer: WorkoutTimer | null, now: Date): string | null {
+  const state = timerState(timer);
+  if (state === 'none') return null;
+  const label = state === 'running' ? 'Running' : state === 'paused' ? 'Paused' : 'Done';
+  return `${label} · ${formatDuration(timerSeconds(timer, now))}`;
+}
+
+/** A time as a screen reader says it: "12 minutes 34 seconds", "1 hour 5 minutes 12 seconds". */
+export function spokenDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  const part = (value: number, unit: string) => `${value} ${unit}${value === 1 ? '' : 's'}`;
+  return [...(hours ? [part(hours, 'hour')] : []), part(minutes, 'minute'), part(rest, 'second')].join(' ');
 }

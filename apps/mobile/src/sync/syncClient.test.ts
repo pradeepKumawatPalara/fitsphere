@@ -194,9 +194,9 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
     const kept = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
     const gone = '7c2a9e40-1d3b-4f5a-9e6d-2b1c0a9f8e7d';
     const squat = sameSets('Squat', 3, 10, 40_000);
-    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b1', data: { id: kept, day: '2026-10-28', exercises: [], recordedAt: at } });
-    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b2', data: { id: kept, day: '2026-10-28', exercises: [squat], recordedAt: at } });
-    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b3', data: { id: gone, day: '2026-10-28', exercises: [], recordedAt: at } });
+    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b1', data: { id: kept, day: '2026-10-28', exercises: [], recordedAt: at, timer: null } });
+    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b2', data: { id: kept, day: '2026-10-28', exercises: [squat], recordedAt: at, timer: null } });
+    await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b3', data: { id: gone, day: '2026-10-28', exercises: [], recordedAt: at, timer: null } });
     await deleteEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000b4', data: { id: gone, deletedAt: at } });
 
     expect(await syncNow(db, auth(server), clock)).toBe('synced');

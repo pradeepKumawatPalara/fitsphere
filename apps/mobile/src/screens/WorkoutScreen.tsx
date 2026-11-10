@@ -1,11 +1,13 @@
-import { istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise } from '@fitsphere/shared';
+import { istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Dumbbell, Flame, Plus, SquarePen, Trash } from 'lucide-react-native';
+import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { useNow } from '../clock';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { WorkoutTimerBar } from '../components/WorkoutTimerBar';
 import { IconButton, Text, TextButton } from '../components/ui';
 import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -14,7 +16,21 @@ import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { caloriesBurned, deleteWorkoutEffects, exerciseLabel, exerciseLines, listedWorkouts } from '../workouts';
+import {
+  caloriesBurned,
+  deleteWorkoutEffects,
+  exerciseLabel,
+  exerciseLines,
+  finishTimer,
+  formatDuration,
+  listedWorkouts,
+  pauseTimer,
+  resumeTimer,
+  spokenDuration,
+  startTimer,
+  timerSeconds,
+  timerState,
+} from '../workouts';
 
 /** The exercise being edited: its place in the list, or null for a new one. */
 type Sheet = { index: number | null };
@@ -26,6 +42,11 @@ type Sheet = { index: number | null };
 // back arrow leaves (D-42). Each exercise has edit and remove; removing asks first. Named by its
 // place among its day's workouts, "Workout 2 · Tue 3 Nov". The workout counts toward the week once it
 // has an exercise (D-41); deleting it says what goes with it (D-63).
+// The workout timer (D-71): a workout of today has "Start workout" in a bar at its foot; the bar
+// then shows the time counted, with Pause or Resume and "Mark done". A timer already started can be
+// paused, resumed and marked done whatever the date, so a workout that runs past midnight can be
+// finished. Marked done, the bar goes and a panel under the title shows the total, with Resume on a
+// workout of today, in case "Mark done" was tapped by mistake. Each step is saved and synced at once.
 export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -41,6 +62,10 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [confirming, setConfirming] = useState(false);
+  // A timer step being saved: the bar's buttons wait for it.
+  const [stepping, setStepping] = useState(false);
+  // The screen draws again each second only while the timer runs.
+  const clock = useNow(now, typeof workout === 'object' && workout !== null && timerState(workout.timer) === 'running');
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -77,7 +102,24 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const saveExercises = (exercises: WorkoutExercise[]) => sync.save('workout', { ...saved, exercises });
   const editing = sheet?.index === null || sheet?.index === undefined ? null : workout.exercises[sheet.index];
   const burned = caloriesBurned(workout.exercises);
-  const deleted = deleteWorkoutEffects(workout.exercises.length, workout.day, istToday(now()));
+  const today = istToday(clock);
+  const deleted = deleteWorkoutEffects(workout.exercises.length, workout.day, today);
+  const timer = timerState(workout.timer);
+  const seconds = timerSeconds(workout.timer, clock);
+  // Starting, and resuming after "Mark done", are for today's workouts only (D-71).
+  const isToday = workout.day === today;
+
+  /** Saves a timer step; the screen shows it at once, before the phone's copy is read again. */
+  async function step(next: (current: WorkoutTimer | null, at: Date) => WorkoutTimer) {
+    const timerNow = next(saved.timer, now());
+    setStepping(true);
+    setWorkout({ ...saved, timer: timerNow, syncState: 'pending' });
+    try {
+      await sync.save('workout', { ...saved, timer: timerNow });
+    } finally {
+      setStepping(false);
+    }
+  }
 
   async function deleteWorkout() {
     await sync.remove('workout', id);
@@ -107,6 +149,18 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
             </View>
           ) : null}
         </View>
+        {workout.timer && timer === 'done' ? (
+          <View style={styles.done}>
+            <CircleCheck size={22} color={colors.success} />
+            <View accessible accessibilityLabel={`Done, total time ${spokenDuration(seconds)}`} style={styles.doneText}>
+              <Text style={styles.doneLabel}>Done · total time</Text>
+              <Text style={styles.doneTime}>{formatDuration(seconds)}</Text>
+            </View>
+            {isToday ? (
+              <TextButton title="Resume" icon={Play} disabled={stepping} onPress={() => void step((current, at) => resumeTimer(current!, at))} />
+            ) : null}
+          </View>
+        ) : null}
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
         {workout.exercises.map((exercise, index) => {
@@ -178,6 +232,17 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           )}
         </View>
       </ScrollView>
+      {timer === 'running' || timer === 'paused' || (timer === 'none' && isToday) ? (
+        <WorkoutTimerBar
+          state={timer}
+          seconds={seconds}
+          busy={stepping}
+          onStart={() => void step((_, at) => startTimer(at))}
+          onPause={() => void step((current, at) => pauseTimer(current!, at))}
+          onResume={() => void step((current, at) => resumeTimer(current!, at))}
+          onDone={() => void step((current, at) => finishTimer(current!, at))}
+        />
+      ) : null}
       {removing !== null && workout.exercises[removing] ? (
         <ConfirmSheet
           title="Remove exercise?"
@@ -277,6 +342,23 @@ const useStyles = themedStyles((c) => ({
   confirmText: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   actions: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
+  // D-71: the timer's total once marked done, on a green tint with a green edge.
+  done: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 60,
+    paddingVertical: 8,
+    paddingLeft: 14,
+    paddingRight: 6,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.success,
+    backgroundColor: c.successTint,
+  },
+  doneText: { flex: 1 },
+  doneLabel: { ...TYPE.label, color: c.inkMuted },
+  doneTime: { ...TYPE.metric, fontSize: 28, lineHeight: 30 },
   gone: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },
   goneTile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
   goneText: { fontSize: 17, lineHeight: 26 },

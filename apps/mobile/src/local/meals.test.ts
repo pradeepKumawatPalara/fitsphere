@@ -420,13 +420,15 @@ describe('Local schema version 8', () => {
         CREATE TABLE saved_meals (id TEXT PRIMARY KEY, name TEXT NOT NULL, meal_type TEXT NOT NULL, tags TEXT NOT NULL,
           items TEXT NOT NULL, saved_at TEXT NOT NULL, kcal REAL NOT NULL, protein_g REAL NOT NULL, carbs_g REAL,
           fat_g REAL, fibre_g REAL, sync_state TEXT NOT NULL);
+        CREATE TABLE workouts (id TEXT PRIMARY KEY, day TEXT NOT NULL, exercises TEXT NOT NULL, recorded_at TEXT NOT NULL,
+          sync_state TEXT NOT NULL);
         PRAGMA user_version = 7;`);
       await old.runAsync(`INSERT INTO foods VALUES ('ifct2017', 'L002', 'Milk, whole, Cow', 'Synthetic group', '[]', 1, 0, 1, 1, 10, 0)`, []);
       await setMeta(old, 'food_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'milk')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -455,7 +457,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchDishes(old, 'atta')).toEqual([]);
@@ -481,7 +483,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
@@ -497,11 +499,11 @@ describe('Local schema version 12', () => {
     try {
       await migrateLocal(old);
       await setMeta(old, 'food_list_version', 'v1');
-      await old.execAsync('DROP TABLE exercises; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; PRAGMA user_version = 11;');
+      await old.execAsync('DROP TABLE exercises; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 11;');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // A brand label that gives no fibre (synthetic values).
       const label: Food = {
@@ -532,13 +534,13 @@ describe('Local schema version 11', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; PRAGMA user_version = 10;');
+      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 10;');
       await setMeta(old, 'food_list_version', 'v1');
       await setMeta(old, 'cursor', '99');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect(await searchPackaged(old, 'butter')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       expect(await getMeta(old, 'cursor')).toBe('99');
@@ -554,7 +556,7 @@ describe('Local schema version 10', () => {
     try {
       // Version 9 as phones have it: build it with the current migrations, then drop what 10 adds.
       await migrateLocal(old);
-      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; PRAGMA user_version = 9;');
+      await old.execAsync('DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 9;');
       await old.runAsync(
         `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures)
          VALUES ('ifct2017', 'A019', 'Wheat flour, atta', 'Synthetic group', '[]', 10, 11, 1.5, 64, 320, 0, '[]')`,
@@ -565,7 +567,7 @@ describe('Local schema version 10', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchMyFoods(old, 'bread')).toEqual([]);
@@ -623,7 +625,7 @@ describe('Local schema version 15', () => {
       // Version 14 as phones have it: build it with the current migrations, then drop what 15 adds.
       await migrateLocal(old);
       await old.execAsync(
-        'ALTER TABLE exercises DROP COLUMN places; ALTER TABLE exercises DROP COLUMN place_keys; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; PRAGMA user_version = 14;',
+        'ALTER TABLE exercises DROP COLUMN places; ALTER TABLE exercises DROP COLUMN place_keys; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 14;',
       );
       // Synthetic: a home-style food found by its item, and a packaged food by its brand.
       await old.runAsync(
@@ -639,7 +641,7 @@ describe('Local schema version 15', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect((await searchFoods(old, 'bread')).map((found) => found.code)).toEqual(['home-test-toast']);
       expect((await searchPackaged(old, 'testirams')).map((found) => found.barcode)).toEqual(['8901234500021']);
       expect(await getMeta(old, 'food_list_version')).toBe('v1');
@@ -661,7 +663,7 @@ describe('Local schema version 17', () => {
         CREATE TABLE saved_meals (id TEXT PRIMARY KEY, name TEXT NOT NULL, meal_type TEXT NOT NULL, tags TEXT NOT NULL,
           items TEXT NOT NULL, saved_at TEXT NOT NULL, kcal REAL NOT NULL, protein_g REAL NOT NULL, carbs_g REAL,
           fat_g REAL, fibre_g REAL, sync_state TEXT NOT NULL);
-        PRAGMA user_version = 16;`);
+        ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 16;`);
       const synced = id();
       const waiting = id();
       for (const row of [
@@ -679,7 +681,7 @@ describe('Local schema version 17', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       const saved = await listSavedMeals(old);
       expect(saved).toEqual([
         { id: synced, name: 'Synthetic breakfast', tags: [], items: [ATTA], savedAt: AT, kcal: 192, proteinG: 6.34, carbsG: 38.5, fatG: 0.92, fibreG: 6.82, syncState: 'synced' },

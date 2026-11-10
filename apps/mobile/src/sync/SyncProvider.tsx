@@ -160,7 +160,7 @@ export function SyncProvider({
   const startWorkout = useCallback(
     async (day: string) => {
       const id = newId();
-      await save('workout', { id, day, exercises: [], recordedAt: now().toISOString() });
+      await save('workout', { id, day, exercises: [], recordedAt: now().toISOString(), timer: null });
       return id;
     },
     [newId, now, save],

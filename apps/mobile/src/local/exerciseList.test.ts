@@ -1,4 +1,4 @@
-import type { ListedExercise, WorkoutSetData } from '@fitsphere/shared';
+import type { ListedExercise } from '@fitsphere/shared';
 import { sameSets, TEST_EXERCISE_LIST } from '../testing/exercises';
 import { memoryDb } from '../testing/memoryDb';
 import type { SqlDb } from './sql';
@@ -12,6 +12,7 @@ import {
   saveEntry,
   searchExercises,
   setMeta,
+  type WorkoutData,
 } from './store';
 
 // The exercise list on the phone (D-50): replaced whole with its version, searched offline, and a name
@@ -79,7 +80,7 @@ describe('D-50 workouts saved before the exercise list', () => {
   it('reads an exercise saved before D-50 as identical sets', async () => {
     const id = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1b';
     const earlier = { name: 'Squat', sets: 2, reps: 10, weightGrams: 40_000, note: null };
-    const data = { id, day: '2026-10-27', exercises: [earlier], recordedAt: '2026-10-27T03:00:00.000Z' } as unknown as WorkoutSetData;
+    const data = { id, day: '2026-10-27', exercises: [earlier], recordedAt: '2026-10-27T03:00:00.000Z', timer: null } as unknown as WorkoutData;
     await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-000000000001', data });
 
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([sameSets('Squat', 2, 10, 40_000)]);
@@ -92,13 +93,13 @@ describe('Local schema version 13', () => {
     try {
       await migrateLocal(old);
       await old.execAsync(
-        'DROP TABLE exercises; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; PRAGMA user_version = 12;',
+        'DROP TABLE exercises; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 12;',
       );
       await setMeta(old, 'exercise_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       expect(await searchExercises(old, 'run')).toEqual([]);
     } finally {
@@ -159,12 +160,12 @@ describe('Local schema version 16', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('ALTER TABLE exercises DROP COLUMN places; ALTER TABLE exercises DROP COLUMN place_keys; PRAGMA user_version = 15;');
+      await old.execAsync('ALTER TABLE exercises DROP COLUMN places; ALTER TABLE exercises DROP COLUMN place_keys; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 15;');
       await setMeta(old, 'exercise_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       await replaceExercises(old, 'v2', TEST_EXERCISE_LIST);
       expect(names(await searchExercises(old, '', 100, { category: 'Barbell', subGroup: 'Chest' }))).toEqual(['Barbell bench press']);

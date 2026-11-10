@@ -11,6 +11,7 @@ import {
   type TargetKind,
   type Workout,
   type WorkoutExercise,
+  type WorkoutTimer,
 } from '@fitsphere/shared';
 import { ME } from './fakes';
 
@@ -294,9 +295,9 @@ export function fakeServer(now: Date) {
     store('meal.delete', { id, deletedAt: now.toISOString() });
   }
 
-  /** A workout saved, or deleted, from another phone. */
-  function storeWorkoutFromElsewhere(id: string, day: string, exercises: WorkoutExercise[]) {
-    store('workout.set', { id, day, exercises, recordedAt: `${day}T02:00:00.000Z` });
+  /** A workout saved, or deleted, from another phone; with its timer (D-71) when given. */
+  function storeWorkoutFromElsewhere(id: string, day: string, exercises: WorkoutExercise[], timer: WorkoutTimer | null = null) {
+    store('workout.set', { id, day, exercises, recordedAt: `${day}T02:00:00.000Z`, timer });
   }
 
   function deleteWorkoutFromElsewhere(id: string) {
