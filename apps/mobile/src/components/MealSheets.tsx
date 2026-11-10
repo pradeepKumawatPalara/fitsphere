@@ -17,6 +17,7 @@ export function ActionsSheet({
   actions,
   onClose,
   children,
+  centred = false,
 }: {
   title: string;
   /** `destructive`: deletes or removes something, so it shows in the "over" red. */
@@ -24,14 +25,16 @@ export function ActionsSheet({
   onClose(): void;
   /** Shown above the actions, e.g. a field an action uses. */
   children?: ReactNode;
+  /** Each action a button of its own, its label centred (D-64: a food in Log meal's review). */
+  centred?: boolean;
 }) {
   const styles = useStyles();
-  // The actions are a menu: full-width rows in a panel, ruled between them.
+  // The actions are a menu: full-width rows in a panel, ruled between them; or, centred, a button each.
   return (
     <Sheet title={title} onClose={onClose} actions={<TextButton title="Cancel" wide onPress={onClose} />}>
       {children}
       {actions.length > 0 ? (
-        <View style={styles.menu}>
+        <View style={centred ? styles.buttons : styles.menu}>
           {actions.map((action, index) => (
             <Pressable
               // Labels may repeat (two saved meals with the same name), so the place keys it.
@@ -41,9 +44,9 @@ export function ActionsSheet({
                 onClose();
                 action.onPress();
               }}
-              style={({ pressed }) => [styles.menuRow, index > 0 && styles.ruled, pressed && styles.pressed]}
+              style={({ pressed }) => [centred ? styles.button : styles.menuRow, !centred && index > 0 && styles.ruled, pressed && styles.pressed]}
             >
-              <Text style={[styles.menuText, action.destructive && styles.destructiveText]}>{action.label}</Text>
+              <Text style={[centred ? styles.buttonText : styles.menuText, action.destructive && styles.destructiveText]}>{action.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -302,6 +305,20 @@ const useStyles = themedStyles((c) => ({
   ruled: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
   menuText: { ...TYPE.link, fontSize: 16, color: c.accent },
+  // D-64: a button each, raised and outlined, the label centred.
+  buttons: { gap: 10 },
+  button: {
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+  },
+  buttonText: { ...TYPE.buttonSecondary, color: c.ink, textAlign: 'center' },
   destructiveText: { color: c.danger },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },

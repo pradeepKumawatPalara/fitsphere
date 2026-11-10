@@ -607,12 +607,21 @@ describe('D-39 Enter your own food in any unit', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     expect(await screen.findByLabelText('Synthetic biscuits: 50 g, 226 kcal, 4.0 g protein')).toBeOnTheScreen();
+
+    // D-64: a food with no page of its own keeps the sheet for its amount, its buttons centred.
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Synthetic biscuits' }));
+    await fireEvent.changeText(await screen.findByLabelText('New grams'), '80');
+    expect(screen.getByText('Remove')).toHaveStyle({ textAlign: 'center' });
+    expect(screen.getByText('Change to 80 g')).toHaveStyle({ textAlign: 'center' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Change to 80 g' }));
+    expect(screen.getByLabelText(/^Synthetic biscuits: 80 g, /)).toBeOnTheScreen();
+
     await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
     await waitFor(() => expect(server.entries('meals').size).toBe(1));
     expect(server.entries('myFoods').size).toBe(0);
   });
 
-  it('changes an item’s slices in the meal', async () => {
+  it('changes an item’s slices in the meal, on the My food’s page', async () => {
     await render(withMyBread);
     await search('peanut');
     await fireEvent.press(await screen.findByRole('button', { name: 'Peanut butter bread, your food, 180 kcal per slice' }));
@@ -620,8 +629,11 @@ describe('D-39 Enter your own food in any unit', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Change Peanut butter bread' }));
-    await fireEvent.changeText(screen.getByLabelText('New slices eaten'), '3');
-    await fireEvent.press(screen.getByRole('button', { name: 'Change to 3 slices' }));
+    expect(await screen.findByText('In this meal now: 2 slices')).toBeOnTheScreen();
+    // From the meal, the page changes the amount only: no Edit My food.
+    expect(screen.queryByRole('button', { name: 'Edit My food' })).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText('Slices eaten'), '3');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save change' }));
 
     expect(screen.getByLabelText('Peanut butter bread: 3 slices, 540 kcal, 18.0 g protein')).toBeOnTheScreen();
   });

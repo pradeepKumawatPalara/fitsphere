@@ -1807,6 +1807,32 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-64 Changing a food in the meal: its own page, any of its measures, Remove centred
+- Status: **Accepted** (owner, in chat, 2026-11-10, from a phone screenshot of a food's sheet in Log
+  meal's review: "After logged meal whole reviewing the item if I want to change the item's measuring
+  entity I can not do this, like gram to slice, spoon. So want this functionality as well. And here
+  the Remove button is left align I want it to center"; on the canvas's "3.5 Log meal · PROPOSED:
+  change a food in the meal": "approve").
+- Answer (the redesign's 3.5 and 3.6b, changed):
+  - In Log meal's review, a food the phone lists (a listed food, a dish, a packaged food, a My food)
+    opens **its own page** (3.6b) on the amount it has in the meal, said under the boxes: "In this meal
+    now: 100 g". Its Measure offers every measure the food has (Grams, its household units, its
+    servings), so 100 g can become 1 paratha; the breakdown follows the change.
+  - **Save change** replaces the food in the meal; the back arrow ("Back to the meal") leaves it as it
+    was. **Remove from meal**, in red with a bin, is centred under Save change.
+  - A food with **no page** (one typed once in Enter your own food, or a barcode product not in the
+    list) keeps the sheet for its amount, its **Change to …** and **Remove** each a button of its own,
+    the label centred.
+- MVP defaults:
+  - From the meal, a My food's page offers no "Edit My food": it changes the amount only.
+  - The changed food takes the food list's values as they are now, as adding it again would.
+  - Spoons, katoris and the other household units show only for foods whose measures the owner has
+    approved in the household-measures sheet (D-36); none is approved yet.
+- Doc changes: REQ-LOG-007; `docs/plans/ui-redesign.md` (3.5). Phone app only: no server change, no
+  migration, no new build.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

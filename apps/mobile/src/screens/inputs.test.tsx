@@ -121,10 +121,11 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
     expect(fieldProblems()).toEqual([]);
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
+    // D-64: a listed food in the review opens its own page on its amount.
     await fireEvent.press(screen.getByRole('button', { name: 'Change Wheat flour, atta' }));
-    expect(screen.getByLabelText('New grams')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Grams eaten')).toBeOnTheScreen();
     expect(fieldProblems()).toEqual([]);
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the meal' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Add an image link instead' }));
     expect(screen.getByLabelText('Image link')).toBeOnTheScreen();
