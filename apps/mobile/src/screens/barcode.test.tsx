@@ -1,12 +1,12 @@
 import { OFF_ATTRIBUTION, type BarcodeProduct } from '@fitsphere/shared';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import type { SqlDb } from '../local/sql';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ day: '2026-10-28' }) }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ day: '2026-10-28' }), usePreventRemove: () => () => undefined }));
 
 // The camera is replaced by a button that "scans" one barcode; BarcodeCamera has its own tests.
 jest.mock('../components/BarcodeCamera', () => {
@@ -68,8 +68,8 @@ describe('REQ-LOG-007 a scanned barcode', () => {
 
     expect(screen.getByLabelText('Synthetic biscuits (Synthetic brand): 50 g, 240 kcal, 3.5 g protein')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: 'Snack' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
-    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    await fireEvent.press(screen.getByRole('button', { name: 'Save snack' }));
+    expect(await screen.findByText(/^Snack saved · /)).toBeOnTheScreen();
     const [row] = await db.getAllAsync<{ items: string }>('SELECT items FROM meals', []);
     expect(JSON.parse(row!.items)).toEqual([
       {

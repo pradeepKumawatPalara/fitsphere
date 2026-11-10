@@ -1,5 +1,5 @@
-import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem } from '@fitsphere/shared';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
+import { IFCT_ACKNOWLEDGEMENT, type Dish, type Food, type MealItem, type MealType } from '@fitsphere/shared';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { getEntry, replaceFoods, saveEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { GRAMS_RULE } from '../mealItems';
@@ -10,7 +10,24 @@ import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+// The phone's back is held while Log meal has changes not saved (D-68): what the screen last asked.
+type Prevented = (options: { data: { action: unknown }; repeat(): void }) => void;
+let mockLeave: { prevent: boolean; callback?: Prevented } = { prevent: false };
+const mockRepeat = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => mockParams,
+  usePreventRemove: (prevent: boolean, callback?: Prevented) => {
+    mockLeave = { prevent, callback };
+    return () => undefined;
+  },
+}));
+
+/** The phone's back: held and asked about while there are changes not saved, else it goes back. */
+async function pressBack() {
+  if (mockLeave.prevent) await act(async () => mockLeave.callback?.({ data: { action: { type: 'GO_BACK' } }, repeat: mockRepeat }));
+  else mockRepeat();
+}
 
 // Log meal (REQ-LOG-001…003, REQ-LOG-007, REQ-LOG-008, REQ-ACC-005). Today is Wednesday 28 October
 // 2026. Synthetic values; the two foods are IFCT rows as printed.
@@ -21,7 +38,24 @@ const FOODS: Food[] = [
   { source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Edible Oils and Fats', aliases: [], proteinG: 0, fibreG: 0, fatG: 100, carbsG: 0, kcal: 900, kcalEstimated: true, measures: [], portions: [] },
 ];
 
+// Foods as logged, the way the phone keeps them: 60 g of the atta and 5 g of the ghee above.
+const ATTA_60: MealItem = { source: 'ifct2017', ref: 'A019', name: 'Wheat flour, atta', amount: { unit: 'g', value: 60 }, kcal: 192, proteinG: 6.34, carbsG: 38.5, fatG: 0.92, fibreG: 6.82, estimated: false };
+const GHEE_5: MealItem = { source: 'ifct2017', ref: 'T013', name: 'Ghee', amount: { unit: 'g', value: 5 }, kcal: 45, proteinG: 0, carbsG: 0, fatG: 5, fibreG: 0, estimated: true };
+
 type FakeServer = Parameters<NonNullable<Parameters<typeof renderInApp>[2]>>[1];
+
+/** Today's meals already on the phone, saved a minute apart in the order given (synthetic). */
+function withMeals(...meals: [id: string, mealType: MealType, items: MealItem[]][]) {
+  return async (db: SqlDb, server: FakeServer) => {
+    await withFoods(db, server);
+    for (const [index, [id, mealType, items]] of meals.entries()) {
+      await saveEntry(db, 'meal', {
+        changeId: `00000000-0000-4000-b000-0000000d000${index}`,
+        data: { id, day: TODAY, mealType, tags: [], items, recordedAt: new Date(NOW.getTime() - (meals.length - index) * 60_000).toISOString() },
+      });
+    }
+  };
+}
 
 /** The food list on the phone and on the fake server, so the first sync keeps it. */
 async function withFoods(db: SqlDb, server: FakeServer) {
@@ -48,6 +82,8 @@ async function addFood(search: string, name: RegExp, grams: string) {
 beforeEach(() => {
   mockRouter.back.mockClear();
   mockRouter.push.mockClear();
+  mockRepeat.mockClear();
+  mockLeave = { prevent: false };
 });
 
 describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 2026-11-06)', () => {
@@ -63,22 +99,23 @@ describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 
     expect(screen.getByTestId('step-1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.accentTint });
 
     await fireEvent.press(screen.getByRole('radio', { name: 'Breakfast' }));
-    expect(screen.getByLabelText('Step 1, done')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Step 1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
     expect(cue('Start here: tap your meal')).toBeNull();
     expect(cue('Next: tap how to add your food')).toBeOnTheScreen();
     expect(screen.getByLabelText('Step 2')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
 
     await addFood('atta', /^Wheat flour, atta/, '60');
-    expect(screen.getByLabelText('Step 2, done')).toBeOnTheScreen();
     expect(cue('Next: tap how to add your food')).toBeNull();
-    expect(cue('Last: check your foods, then Save meal')).toBeOnTheScreen();
+    expect(cue('Last: check your foods, then Save breakfast')).toBeOnTheScreen();
     expect(screen.getByLabelText('Step 3')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
+    // No step turns green: green is for the meals with food (D-68, option A).
+    expect(screen.queryByLabelText(/^Step \d, done$/)).toBeNull();
+    expect(screen.getByLabelText('Step 2')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.success });
   });
 
   it('foods added before the meal: the meal step asks for the meal to save', async () => {
     await render();
     await addFood('atta', /^Wheat flour, atta/, '60');
-    expect(screen.getByLabelText('Step 2, done')).toBeOnTheScreen();
     expect(cue('Choose the meal to save')).toBeOnTheScreen();
     expect(screen.getByLabelText('Step 1')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
   });
@@ -86,7 +123,7 @@ describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 
   it('opened for a meal (from its + on Home), starts at adding food', async () => {
     await render({ day: TODAY, slot: 'lunch' });
     expect(await screen.findByText('Next: tap how to add your food')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Step 1, done')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Step 1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
   });
 
   it('the four ways to add food are in one row, each with its own tint, named in full', async () => {
@@ -98,6 +135,166 @@ describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 
       expect(within(row).getByRole('button', { name })).toBeOnTheScreen();
     }
     expect(within(row).getByText(/^Own\s+food$/)).toBeOnTheScreen();
+  });
+});
+
+describe('D-68 Log meal holds the date’s meals (the owner’s "3.5 Log meal · save and stay", locked 2026-11-10)', () => {
+  const LUNCH = '00000000-0000-4000-c000-0000000d0001';
+  const LUNCH_2 = '00000000-0000-4000-c000-0000000d0002';
+  const BREAKFAST = '00000000-0000-4000-c000-0000000d0003';
+  const tick = (slot: MealType) => screen.queryByTestId(`has-food-${slot}`);
+  const atta = 'Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein';
+
+  it('a meal with food has a green tick; the meal chosen is filled, with no tick of its own', async () => {
+    await render({ day: TODAY }, withMeals([BREAKFAST, 'breakfast', [ATTA_60]]));
+
+    expect(await screen.findByTestId('has-food-breakfast')).toHaveStyle({ backgroundColor: LIGHT_COLORS.success });
+    expect(screen.getByRole('radio', { name: 'Breakfast' })).toHaveAccessibilityValue({ text: 'has food' });
+    expect(tick('lunch')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Lunch' }));
+    expect(screen.getByRole('radio', { name: 'Lunch' })).toBeChecked();
+    expect(tick('lunch')).toBeNull();
+    expect(screen.getByText('No foods in Lunch.')).toBeOnTheScreen();
+    await addFood('ghee', /^Ghee/, '5');
+    expect(tick('lunch')).toBeOnTheScreen();
+  });
+
+  it('a meal tapped shows its saved foods; a food added joins that same meal on Save', async () => {
+    const { db } = await render({ day: TODAY }, withMeals([LUNCH, 'lunch', [ATTA_60]]));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+
+    expect(await screen.findByLabelText(atta)).toBeOnTheScreen();
+    // Nothing changed yet: nothing to save.
+    expect(screen.getByRole('button', { name: 'Save meal' })).toBeDisabled();
+    await addFood('ghee', /^Ghee/, '5');
+    expect(screen.getByLabelText('Lunch total: 237 kcal, 6.3 g protein')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save lunch' }));
+
+    expect(await screen.findByText('Lunch saved · 2 foods · 237 kcal')).toBeOnTheScreen();
+    expect(await db.getAllAsync('SELECT id FROM meals', [])).toEqual([{ id: LUNCH }]);
+    expect(await getEntry(db, 'meal', LUNCH)).toMatchObject({ mealType: 'lunch', kcal: 237 });
+  });
+
+  it('every food removed: the tick goes, it says the meal will be removed, and Save removes it', async () => {
+    const { db } = await render({ day: TODAY }, withMeals([LUNCH, 'lunch', [ATTA_60]]));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Change Wheat flour, atta' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove from meal' }));
+
+    expect(tick('lunch')).toBeNull();
+    expect(screen.getByText('Lunch has no foods now. Saving removes it from Wed 28 Oct.')).toBeOnTheScreen();
+    expect(screen.getByText('Last: Save lunch to remove it')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save lunch' }));
+
+    expect(await screen.findByText('Lunch removed')).toBeOnTheScreen();
+    expect(await getEntry(db, 'meal', LUNCH)).toBeFalsy();
+  });
+
+  it('each meal keeps its own changes; Save saves them all and says so', async () => {
+    const { db } = await render();
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    await fireEvent.press(screen.getByRole('radio', { name: 'Snack' }));
+    expect(screen.getByText('No foods in Snack.')).toBeOnTheScreen();
+    await addFood('ghee', /^Ghee/, '5');
+    expect(tick('lunch')).toBeOnTheScreen();
+    expect(tick('snack')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Lunch' }));
+    expect(screen.getByLabelText(atta)).toBeOnTheScreen();
+    expect(screen.queryByText('Ghee')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save 2 meals' }));
+
+    expect(await screen.findByText('Lunch and Snack saved')).toBeOnTheScreen();
+    const rows = await db.getAllAsync<{ meal_type: string; kcal: number }>('SELECT meal_type, kcal FROM meals ORDER BY meal_type', []);
+    expect(rows).toEqual([
+      { meal_type: 'lunch', kcal: 192 },
+      { meal_type: 'snack', kcal: 45 },
+    ]);
+  });
+
+  it('a meal saved twice on a date shows all its foods; each stays in its own meal on Save', async () => {
+    const { db } = await render({ day: TODAY }, withMeals([LUNCH, 'lunch', [ATTA_60]], [LUNCH_2, 'lunch', [GHEE_5]]));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+    expect(await screen.findByLabelText(atta)).toBeOnTheScreen();
+    expect(screen.getByText('Ghee')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Ghee' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove from meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save lunch' }));
+
+    expect(await screen.findByText('Lunch saved · 1 food · 192 kcal')).toBeOnTheScreen();
+    expect(await db.getAllAsync('SELECT id FROM meals', [])).toEqual([{ id: LUNCH }]);
+  });
+
+  it('back with changes not saved asks; Leave without saving goes back and saves nothing', async () => {
+    const { db } = await render();
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+    await addFood('atta', /^Wheat flour, atta/, '60');
+
+    await pressBack();
+    expect(screen.getByRole('header', { name: "Lunch isn't saved" })).toBeOnTheScreen();
+    expect(screen.getByText('You changed Lunch. Save it before you leave?')).toBeOnTheScreen();
+    expect(mockRepeat).not.toHaveBeenCalled();
+    // Its icon and title in one line; Leave without saving the sheet's width, centred (the owner, 2026-11-10).
+    expect(screen.getByTestId('leave-heading')).toHaveStyle({ flexDirection: 'row', alignItems: 'center' });
+    expect(within(screen.getByTestId('leave-heading')).getByRole('header', { name: "Lunch isn't saved" })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Leave without saving' })).toHaveStyle({ alignSelf: 'stretch', justifyContent: 'center' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Leave without saving' }));
+
+    expect(mockRepeat).toHaveBeenCalled();
+    expect(await db.getAllAsync('SELECT id FROM meals', [])).toEqual([]);
+  });
+
+  it('the leave question’s Save saves, then goes back', async () => {
+    const { db } = await render();
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+    await addFood('atta', /^Wheat flour, atta/, '60');
+
+    await pressBack();
+    const saves = screen.getAllByRole('button', { name: 'Save lunch' });
+    await fireEvent.press(saves[saves.length - 1]!);
+
+    await waitFor(() => expect(mockRepeat).toHaveBeenCalled());
+    expect(await db.getAllAsync('SELECT meal_type FROM meals', [])).toEqual([{ meal_type: 'lunch' }]);
+  });
+
+  it('with nothing to save, back goes straight back', async () => {
+    await render();
+    await screen.findByRole('button', { name: 'Save meal' });
+
+    await pressBack();
+    expect(mockRepeat).toHaveBeenCalled();
+    expect(screen.queryByRole('header', { name: /isn't saved$/ })).toBeNull();
+  });
+
+  it('another date with changes asks first; Don’t save shows that date’s meals', async () => {
+    const { db } = await render();
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Lunch' }));
+    await addFood('atta', /^Wheat flour, atta/, '60');
+    await fireEvent.press(screen.getByRole('button', { name: 'Date: Wed 28 Oct' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 October 2026, Nothing logged' }));
+
+    expect(screen.getByText('You changed Lunch. Save it before you change the date?')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: "Don't save" }));
+
+    expect(await screen.findByRole('button', { name: 'Date: Tue 27 Oct' })).toBeOnTheScreen();
+    expect(await screen.findByText('No foods in Lunch.')).toBeOnTheScreen();
+    expect(await db.getAllAsync('SELECT id FROM meals', [])).toEqual([]);
+  });
+
+  it('editing a meal: back with a change asks too, and leaving keeps the meal as it was', async () => {
+    const { db } = await render({ mealId: LUNCH }, withMeals([LUNCH, 'lunch', [ATTA_60]]));
+    await screen.findByLabelText(atta);
+    await fireEvent.press(screen.getByRole('radio', { name: 'Dinner' }));
+
+    await pressBack();
+    expect(screen.getByText('You changed this meal. Save it before you leave?')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Leave without saving' }));
+
+    expect(mockRepeat).toHaveBeenCalled();
+    expect(await getEntry(db, 'meal', LUNCH)).toMatchObject({ mealType: 'lunch' });
   });
 });
 
@@ -332,16 +529,19 @@ describe('D-45 a food’s page (the owner, 2026-11-04, after HealthifyMe’s)', 
 });
 
 describe('REQ-LOG-003 and the review before saving', () => {
-  it('REQ-LOG-003 Save needs a meal type and at least one food', async () => {
+  it('REQ-LOG-003 Save needs a meal type and at least one food; it names the meal (D-68)', async () => {
     await render();
-    const save = await screen.findByRole('button', { name: 'Save meal' });
-    expect(save).toBeDisabled();
+    // Nothing to save: Save is greyed, with what to do; there is no Done (the owner, 2026-11-10).
+    expect(await screen.findByRole('button', { name: 'Save meal' })).toBeDisabled();
+    expect(screen.getByText('Add at least one food to save the meal.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
 
     await addFood('atta', /^Wheat flour, atta/, '60');
     expect(screen.getByRole('button', { name: 'Save meal' })).toBeDisabled();
+    expect(screen.getByText('Choose the meal: Breakfast, Lunch, Snack or Dinner.')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('radio', { name: 'Lunch' }));
 
-    expect(screen.getByRole('button', { name: 'Save meal' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save lunch' })).toBeEnabled();
   });
 
   it('REQ-LOG-007 the review can change an amount or remove a food, and shows the total', async () => {
@@ -379,41 +579,58 @@ describe('REQ-LOG-003 and the review before saving', () => {
     expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
   });
 
-  it('REQ-LOG-003 saving keeps the date and meal type, syncs the meal, and goes back', async () => {
+  it('REQ-LOG-003 saving keeps the date and meal type, syncs the meal, and stays for the next meal (D-68)', async () => {
     const { db, server } = await render({ day: '2026-10-26' });
     await addFood('atta', /^Wheat flour, atta/, '60');
     await fireEvent.press(screen.getByRole('radio', { name: 'Snack' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save snack' }));
 
-    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(await screen.findByText('Snack saved · 1 food · 192 kcal')).toBeOnTheScreen();
+    expect(mockRouter.back).not.toHaveBeenCalled();
     const rows = await db.getAllAsync<{ id: string; day: string; meal_type: string; tags: string; kcal: number }>(
       'SELECT id, day, meal_type, tags, kcal FROM meals',
       [],
     );
     expect(rows).toEqual([{ id: expect.any(String), day: '2026-10-26', meal_type: 'snack', tags: '[]', kcal: 192 }]);
     await waitFor(() => expect(server.entries('meals').get(rows[0]!.id)).toMatchObject({ deleted: false, mealType: 'snack' }));
+    // Snack stays on show with its saved food; the next step is another meal. Save waits for a change.
+    expect(screen.getByRole('radio', { name: 'Snack' })).toBeChecked();
+    expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
+    expect(screen.getByText('Next: tap another meal')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save meal' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+
+    // Nothing left to save: back goes straight back.
+    await pressBack();
+    expect(mockRepeat).toHaveBeenCalled();
   });
 
-  it('REQ-LOG-004 the AI box says AI meal reading is coming soon (D-26), and the tips are shown (REQ-LOG-008)', async () => {
+  it('D-68 the AI box is left out for now, and the tips are shown (REQ-LOG-008)', async () => {
     await render();
 
-    expect(await screen.findByText('AI meal reading is coming soon')).toBeOnTheScreen();
-    expect(
-      screen.getByText('Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.'),
-    ).toBeOnTheScreen();
+    expect(await screen.findByText('Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.')).toBeOnTheScreen();
+    expect(screen.queryByText('AI meal reading is coming soon')).toBeNull();
     // The cooked-rice example has no supporting source (D-26 answer 3, amended 2026-10-30).
     expect(screen.queryByText(/cooked rice weighs/)).toBeNull();
   });
 });
 
 describe('what Log meal says about missing values', () => {
-  it('Save meal says to add a food first', async () => {
-    await render();
+  it('Save meal says to add a food first, in a meal being edited', async () => {
+    const mealId = '00000000-0000-4000-c000-00000000e0f1';
+    await render({ mealId }, async (db, server) => {
+      await withFoods(db, server);
+      await saveEntry(db, 'meal', {
+        changeId: '00000000-0000-4000-b000-00000000e0f1',
+        data: { id: mealId, day: TODAY, mealType: 'lunch', tags: [], items: [ATTA_60], recordedAt: NOW.toISOString() },
+      });
+    });
 
-    expect(await screen.findByText('Add at least one food to save the meal.')).toBeOnTheScreen();
-    await addFood('atta', /^Wheat flour, atta/, '60');
-    expect(screen.queryByText('Add at least one food to save the meal.')).toBeNull();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Change Wheat flour, atta' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove from meal' }));
+    expect(screen.getByText('Add at least one food to save the meal.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save meal' })).toBeDisabled();
   });
 
   it('own food: Add says what is missing; each value gives its range, and the grams their rule', async () => {
@@ -628,9 +845,9 @@ describe('D-28 dishes, logged in portions', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
     await fireEvent.press(screen.getByRole('radio', { name: 'Dinner' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save dinner' }));
 
-    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    await screen.findByText(/^Dinner saved · /);
     const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
     const dish: MealItem = {
       source: 'dish',
@@ -769,9 +986,9 @@ describe('D-36 household units', () => {
     await addGlasses();
     await fireEvent.press(screen.getByRole('radio', { name: 'Breakfast' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save breakfast' }));
 
-    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    await screen.findByText(/^Breakfast saved · /);
     const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
     const glass: MealItem = {
       source: 'ifct2017',
@@ -813,7 +1030,7 @@ describe('D-69 "Change amounts first" from a saved meal', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Change Synthetic dal' }));
     await fireEvent.changeText(screen.getByLabelText('New grams'), '100');
     await fireEvent.press(screen.getByRole('button', { name: 'Change to 100 g' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Save meal' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Save breakfast' }));
 
     await waitFor(async () => expect(await db.getAllAsync('SELECT day, meal_type FROM meals', [])).toEqual([{ day: '2026-10-26', meal_type: 'breakfast' }]));
     const [meal] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);

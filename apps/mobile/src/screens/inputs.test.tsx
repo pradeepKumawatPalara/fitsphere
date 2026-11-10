@@ -29,7 +29,7 @@ const mockRouter = {
   replace: jest.fn(),
   back: jest.fn(),
 };
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 // No camera here: the barcode is typed. BarcodeCamera has its own tests.
 jest.mock('../components/BarcodeCamera', () => ({ BarcodeCamera: () => null }));
 

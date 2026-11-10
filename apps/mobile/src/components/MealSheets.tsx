@@ -238,23 +238,28 @@ export function SlotPicker({
   value,
   onChange,
   twoByTwo = false,
+  logged,
 }: {
   value: MealType | null;
   onChange(slot: MealType): void;
   /** Always two by two, with taller blocks (re-logging a saved meal, the redesign's 3.2). */
   twoByTwo?: boolean;
+  /** Log meal (D-68): the meals that have food on the date, each with a green tick. */
+  logged?: ReadonlySet<MealType>;
 }) {
   const styles = useStyles();
   const pill = useChoiceStyles();
   const { colors } = useTheme();
   if (!twoByTwo) {
-    // Log meal (D-58): the four always in one row, each a tile with its icon, the chosen one filled in
-    // caramel with a tick. A name too long for its quarter, with large text, shrinks to fit.
+    // Log meal (D-58, D-68): the four always in one row, each a tile with its icon, the chosen one
+    // filled in caramel; a green tick in the corner of each meal with food. A name too long for its
+    // quarter, with large text, shrinks to fit.
     return (
       <View testID="slot-picker" style={styles.slotLines}>
         <View testID="slot-line-0" style={styles.slotLine}>
           {MEAL_TYPE_ORDER.map((slot) => {
             const chosen = value === slot;
+            const hasFood = logged?.has(slot) ?? false;
             const Icon = MEAL_ICONS[slot];
             return (
               <Pressable
@@ -262,6 +267,7 @@ export function SlotPicker({
                 accessibilityRole="radio"
                 accessibilityLabel={MEAL_TYPE_LABELS[slot]}
                 accessibilityState={{ checked: chosen }}
+                accessibilityValue={hasFood ? { text: 'has food' } : undefined}
                 onPress={() => onChange(slot)}
                 style={({ pressed }) => [styles.mealTile, chosen && styles.mealTileChosen, pressed && pill.pressed]}
               >
@@ -269,9 +275,9 @@ export function SlotPicker({
                 <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.mealTileText, chosen && styles.mealTileTextChosen]}>
                   {MEAL_TYPE_LABELS[slot]}
                 </Text>
-                {chosen ? (
-                  <View style={styles.tick}>
-                    <Check size={11} strokeWidth={3.5} color={colors.primary} />
+                {hasFood ? (
+                  <View testID={`has-food-${slot}`} style={styles.tick}>
+                    <Check size={10} strokeWidth={4} color={colors.bg} />
                   </View>
                 ) : null}
               </Pressable>
@@ -391,7 +397,8 @@ const useStyles = themedStyles((c) => ({
   body: { fontSize: 16, lineHeight: 24 },
   hint: { ...TYPE.small, color: c.inkMuted },
   // The meals in Log meal (D-58): four tiles of one width in one row, 6 apart, each with its icon over
-  // its name; the chosen one filled in caramel, a tick in its corner. Re-logging (3.2): choice
+  // its name; the chosen one filled in caramel. A meal with food has a green tick in its corner,
+  // ringed in the page colour so it stands out on caramel too (D-68). Re-logging (3.2): choice
   // blocks, two by two and taller.
   slotLines: { gap: 6 },
   slotLine: { flexDirection: 'row', gap: 6 },
@@ -414,12 +421,14 @@ const useStyles = themedStyles((c) => ({
     position: 'absolute',
     top: 4,
     right: 4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: c.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: c.onPrimary,
+    backgroundColor: c.success,
   },
   slotLinesTall: { gap: 8 },
   slotLineTall: { flexDirection: 'row', gap: 8 },
