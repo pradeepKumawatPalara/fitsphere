@@ -31,10 +31,15 @@ export function registerWorkoutsRoute(app: FastifyInstance, deps: { db: pg.Pool 
       id: string;
       day: string;
       exercises: Workout['exercises'];
+      timer_started_at: Date | null;
+      timer_counted_seconds: number | null;
+      timer_running_since: Date | null;
+      timer_done_at: Date | null;
       recorded_at: Date;
       updated_at: Date;
     }>(
-      `select id, day::text as day, exercises, recorded_at, updated_at
+      `select id, day::text as day, exercises, timer_started_at, timer_counted_seconds, timer_running_since,
+         timer_done_at, recorded_at, updated_at
        from app.workouts
        where user_id = $1 and deleted_at is null and day between $2 and $3
          and ($4::date is null or (day, id) > ($4::date, $5::uuid))
@@ -50,6 +55,16 @@ export function registerWorkoutsRoute(app: FastifyInstance, deps: { db: pg.Pool 
         day: row.day,
         // Exercises saved before D-50 are served in today's shape.
         exercises: currentExercises(row.exercises),
+        // Its timer (D-71), or none.
+        timer:
+          row.timer_started_at === null
+            ? null
+            : {
+                startedAt: row.timer_started_at.toISOString(),
+                countedSeconds: row.timer_counted_seconds ?? 0,
+                runningSince: row.timer_running_since?.toISOString() ?? null,
+                doneAt: row.timer_done_at?.toISOString() ?? null,
+              },
         recordedAt: row.recorded_at.toISOString(),
         updatedAt: row.updated_at.toISOString(),
       })),

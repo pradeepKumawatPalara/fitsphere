@@ -42,6 +42,7 @@ import {
   type TargetSetData,
   type WeighInSetData,
   type WorkoutSetData,
+  type WorkoutTimer,
   type PackagedFood,
 } from '@fitsphere/shared';
 import type { BindValue, SqlDb } from './sql';
@@ -79,13 +80,16 @@ export type EntryKind =
 /** The profile's one key (REQ-ACC-011); also the owner of its photo in the photos table. */
 export const PROFILE_KEY = 'profile';
 
+/** A workout as the phone keeps and sends it: always with its timer, null until "Start workout" (D-71). */
+export type WorkoutData = Omit<WorkoutSetData, 'timer'> & { timer: WorkoutTimer | null };
+
 /** What a change carries for each kind (api-conventions, "POST /v1/sync"). */
 export type ChangeData = {
   weighIn: WeighInSetData;
   steps: StepsSetData;
   sleep: SleepSetData;
   measurements: MeasurementsSetData;
-  workout: WorkoutSetData;
+  workout: WorkoutData;
   target: TargetSetData;
   setting: SettingSetData;
   meal: MealSetData;
@@ -101,7 +105,7 @@ export type LocalEntries = {
   steps: StepsSetData & { syncState: SyncState };
   sleep: SleepSetData & { syncState: SyncState };
   measurements: MeasurementsSetData & { syncState: SyncState };
-  workout: WorkoutSetData & { syncState: SyncState };
+  workout: WorkoutData & { syncState: SyncState };
   target: { kind: TargetKind; value: number; setAt: string; setByUserId: string | null; syncState: SyncState };
   setting: { name: SettingName; value: string; setAt: string; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
@@ -218,8 +222,10 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['day', 'day'],
       ['exercises', 'exercises', 'json'],
       ['recorded_at', 'recordedAt'],
+      ['timer', 'timer', 'json'],
     ],
-    read: (fields) => ({ ...fields, exercises: currentExercises(fields.exercises as unknown[]) }),
+    // A workout stored before D-71 has no timer.
+    read: (fields) => ({ ...fields, exercises: currentExercises(fields.exercises as unknown[]), timer: fields.timer ?? null }),
     pullColumns: [],
     dayData: true,
   },
@@ -630,6 +636,9 @@ const MIGRATIONS = [
      SELECT id, name, tags, items, saved_at, kcal, protein_g, carbs_g, fat_g, fibre_g, sync_state FROM saved_meals;
    DROP TABLE saved_meals;
    ALTER TABLE saved_meals_new RENAME TO saved_meals;`,
+  // The workout timer (D-71): each workout's timer as JSON, null until "Start workout"; the workouts
+  // already on the phone have none.
+  `ALTER TABLE workouts ADD COLUMN timer TEXT;`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */

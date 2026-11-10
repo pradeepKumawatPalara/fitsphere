@@ -312,10 +312,47 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
   });
 
   it('D-29 a pulled workout is either the whole workout or a deleted one with no content', () => {
-    const live = { deleted: false, ...workout, exercises: [squat, run], updatedAt: RECORDED_AT };
+    const live = { deleted: false, ...workout, exercises: [squat, run], timer: null, updatedAt: RECORDED_AT };
     const deleted = { deleted: true, id: WORKOUT_ID, day: '2026-10-27', updatedAt: RECORDED_AT };
     expect(pulledWorkoutSchema.parse(live)).toEqual(live);
     expect(pulledWorkoutSchema.parse({ ...deleted, exercises: [squat] })).toEqual(deleted);
+  });
+
+  describe('D-71 the workout timer', () => {
+    const STARTED = '2026-10-27T12:00:00.000Z';
+    const running = { startedAt: STARTED, countedSeconds: 0, runningSince: STARTED, doneAt: null };
+    const paused = { startedAt: STARTED, countedSeconds: 754, runningSince: null, doneAt: null };
+    const done = { startedAt: STARTED, countedSeconds: 3_160, runningSince: null, doneAt: '2026-10-27T13:00:00.000Z' };
+
+    it('accepts no timer, one running, paused or done, and a change without it (from an app before D-71)', () => {
+      for (const timer of [null, running, paused, done]) {
+        expect(workoutSetDataSchema.parse({ ...workout, timer })).toEqual({ ...workout, timer });
+      }
+      expect(workoutSetDataSchema.parse(workout)).toEqual(workout);
+    });
+
+    it('refuses a timer running and done at once, a count below 0 or over 24 hours, and unknown fields', () => {
+      expect(detailsFor(workoutSetDataSchema, { ...workout, timer: { ...running, doneAt: STARTED } })).toEqual([
+        { field: 'timer.doneAt', issue: 'invalid_format' },
+      ]);
+      expect(detailsFor(workoutSetDataSchema, { ...workout, timer: { ...paused, countedSeconds: -1 } })).toEqual([
+        { field: 'timer.countedSeconds', issue: 'out_of_range' },
+      ]);
+      expect(detailsFor(workoutSetDataSchema, { ...workout, timer: { ...paused, countedSeconds: 86_401 } })).toEqual([
+        { field: 'timer.countedSeconds', issue: 'out_of_range' },
+      ]);
+      expect(workoutSetDataSchema.safeParse({ ...workout, timer: { ...paused, countedSeconds: 86_400 } }).success).toBe(true);
+      expect(detailsFor(workoutSetDataSchema, { ...workout, timer: { ...paused, laps: [] } })).toEqual([
+        { field: 'timer.laps', issue: 'unknown_field' },
+      ]);
+      expect(workoutSetDataSchema.safeParse({ ...workout, timer: { ...paused, startedAt: 'today' } }).success).toBe(false);
+    });
+
+    it('a pulled workout carries its timer, and one from a server before D-71 reads as none', () => {
+      const live = { deleted: false, ...workout, timer: done, updatedAt: RECORDED_AT };
+      expect(pulledWorkoutSchema.parse(live)).toEqual(live);
+      expect(pulledWorkoutSchema.parse({ deleted: false, ...workout, updatedAt: RECORDED_AT })).toEqual({ ...live, timer: null });
+    });
   });
 });
 

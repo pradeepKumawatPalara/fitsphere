@@ -3,7 +3,7 @@ import * as client from '../api/client';
 import { HeaderActions, HeaderTitle } from '../components/AppHeader';
 import { getEntry, saveEntry } from '../local/store';
 import { ME } from '../testing/fakes';
-import { renderInApp } from '../testing/appHarness';
+import { NOW, renderInApp } from '../testing/appHarness';
 import { TrainingScreen, monthSummary } from './TrainingScreen';
 import { sameSets } from '../testing/exercises';
 
@@ -275,7 +275,7 @@ describe('REQ-TRN-004 All workouts', () => {
   it('REQ-TRN-004 "Load older" reads the 90 days before the phone’s from the server and opens their newest month, view-only', async () => {
     const { server } = await renderTraining();
     server.state.olderWorkouts = [
-      { id: OLD_ID, day: '2026-07-01', exercises: [SQUAT], recordedAt: '2026-07-01T02:00:00.000Z', updatedAt: '2026-07-01T02:00:00.000Z' },
+      { id: OLD_ID, day: '2026-07-01', exercises: [SQUAT], timer: null, recordedAt: '2026-07-01T02:00:00.000Z', updatedAt: '2026-07-01T02:00:00.000Z' },
     ];
     await showAll();
 
@@ -332,7 +332,7 @@ describe('ADR-0007 rule 2 rejected workout changes', () => {
       fake.state.rejectWith = 'DAY_IN_FUTURE';
       await saveEntry(db, 'workout', {
         changeId: '00000000-0000-4000-8000-0000000000b1',
-        data: { id, day: '2026-10-28', exercises: [SQUAT], recordedAt: '2026-10-28T02:00:00.000Z' },
+        data: { id, day: '2026-10-28', exercises: [SQUAT], recordedAt: '2026-10-28T02:00:00.000Z', timer: null },
       });
     });
 
@@ -350,5 +350,61 @@ describe('ADR-0007 rule 2 rejected workout changes', () => {
 
     await waitFor(() => expect(screen.queryByText(/wasn't saved/)).toBeNull());
     expect(await screen.findByText('No workouts on Wed 28 Oct.')).toBeOnTheScreen();
+  });
+});
+
+describe('D-71 each workout’s timer on its row', () => {
+  /** A time `seconds` before now. */
+  const ago = (seconds: number) => new Date(NOW.getTime() - seconds * 1000).toISOString();
+  const DONE = { startedAt: ago(4_000), countedSeconds: 3_160, runningSince: null, doneAt: ago(600) };
+  const RUNNING = { startedAt: ago(754), countedSeconds: 0, runningSince: ago(754), doneAt: null };
+  const PAUSED = { startedAt: ago(90_000), countedSeconds: 1_868, runningSince: null, doneAt: null };
+
+  async function renderTimed() {
+    return renderInApp(<TrainingScreen now={() => NOW} />, undefined, async (_db, server) => {
+      server.storeWorkoutFromElsewhere(ID_1, '2026-10-28', [SQUAT], DONE);
+      server.storeWorkoutFromElsewhere(ID_2, '2026-10-28', [], RUNNING);
+      server.storeWorkoutFromElsewhere(ID_3, '2026-10-27', [PUSH_UP], PAUSED);
+    });
+  }
+
+  it('By day says Running with the time counted, or Done with the total; a timed workout is listed before its first exercise', async () => {
+    await renderTimed();
+
+    expect(await screen.findByText('Done · 52:40')).toBeOnTheScreen();
+    expect(screen.getByText('Running · 12:34')).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Today, Wed 28 Oct · 2 workouts' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: /^Wed 28 Oct, Workout \d: No exercises; Running · 12:34$/ })).toBeOnTheScreen();
+  });
+
+  it('All workouts says Paused with the time counted; a workout with no timer says nothing of one', async () => {
+    await renderInApp(<TrainingScreen now={() => NOW} />, undefined, async (_db, server) => {
+      server.storeWorkoutFromElsewhere(ID_3, '2026-10-27', [PUSH_UP], PAUSED);
+      server.storeWorkoutFromElsewhere(ID_1, '2026-10-26', [SQUAT]);
+    });
+    await showAll();
+
+    expect(await screen.findByText('Paused · 31:08')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Mon 26 Oct, Workout 1: 1 exercise · Squat' })).toBeOnTheScreen();
+    expect(screen.queryByText(/^(Running|Done) · /)).toBeNull();
+  });
+
+  it('an older workout read from the server shows its total', async () => {
+    const { server } = await renderTraining();
+    server.state.olderWorkouts = [
+      {
+        id: OLD_ID,
+        day: '2026-07-01',
+        exercises: [SQUAT],
+        timer: { startedAt: '2026-07-01T02:00:00.000Z', countedSeconds: 3_855, runningSince: null, doneAt: '2026-07-01T03:10:00.000Z' },
+        recordedAt: '2026-07-01T02:00:00.000Z',
+        updatedAt: '2026-07-01T03:10:00.000Z',
+      },
+    ];
+    await showAll();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+
+    expect(await screen.findByLabelText('Wed 1 Jul, Workout 1: 1 exercise · Squat; Done · 1:04:15')).toBeOnTheScreen();
   });
 });

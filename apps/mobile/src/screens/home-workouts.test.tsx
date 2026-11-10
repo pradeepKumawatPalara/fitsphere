@@ -74,7 +74,7 @@ function StartWorkout() {
       <Button title="Start a test workout" onPress={() => void sync.startWorkout('2026-10-28')} />
       <Button
         title="Save a test workout with a squat"
-        onPress={() => void sync.save('workout', { id: newId(), day: '2026-10-28', exercises: [SQUAT], recordedAt: NOW.toISOString() })}
+        onPress={() => void sync.save('workout', { id: newId(), day: '2026-10-28', exercises: [SQUAT], recordedAt: NOW.toISOString(), timer: null })}
       />
     </>
   );

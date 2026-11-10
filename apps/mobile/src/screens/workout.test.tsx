@@ -1,7 +1,6 @@
-import type { WorkoutSetData } from '@fitsphere/shared';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { Button, Keyboard, type EmitterSubscription } from 'react-native';
-import { getEntry, replaceExercises, saveEntry, saveWeighIn } from '../local/store';
+import { getEntry, replaceExercises, saveEntry, saveWeighIn, type WorkoutData } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { sameSets, TEST_EXERCISE_LIST, withExerciseList } from '../testing/exercises';
@@ -497,7 +496,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     ];
     await renderInApp(<WorkoutScreen />, undefined, async (db, server) => {
       await withExerciseList(db, server);
-      const data = { id, day: '2026-10-28', exercises: earlier, recordedAt: '2026-10-28T02:00:00.000Z' } as unknown as WorkoutSetData;
+      const data = { id, day: '2026-10-28', exercises: earlier, recordedAt: '2026-10-28T02:00:00.000Z', timer: null } as unknown as WorkoutData;
       await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000a1', data });
     });
 
@@ -979,5 +978,129 @@ describe('D-67 a long list on the exercise page', () => {
     } finally {
       error.mockRestore();
     }
+  });
+});
+
+describe('D-71 the workout timer', () => {
+  // The screens' clock, moved on by the tests.
+  let clock = NOW;
+  const later = (seconds: number) => {
+    clock = new Date(clock.getTime() + seconds * 1000);
+  };
+
+  beforeEach(() => {
+    clock = NOW;
+  });
+
+  /** Training and the workout screen on the tests' clock, with a workout just logged. */
+  async function logTimed(pickDay?: string) {
+    const app = await renderInApp(
+      <>
+        {pickDay ? <PickDay day={pickDay} /> : null}
+        <TrainingScreen now={() => clock} />
+        <WorkoutScreen now={() => clock} />
+      </>,
+      undefined,
+      async (db, server) => withExerciseList(db, server),
+    );
+    if (pickDay) await fireEvent.press(await screen.findByRole('button', { name: `Pick ${pickDay}` }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^Log workout for / }));
+    await screen.findByText(/^Workout \d+ · /);
+    return { ...app, id: mockParams.id };
+  }
+
+  it('a workout of today has Start workout; it starts the timer, saved and synced, and the time counts', async () => {
+    const { server, id } = await logTimed();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+
+    expect(await screen.findByLabelText('Workout time 0 minutes 0 seconds')).toBeOnTheScreen();
+    expect(screen.getByText('Running')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Mark done' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Start workout' })).toBeNull();
+    const started = { startedAt: NOW.toISOString(), countedSeconds: 0, runningSince: NOW.toISOString(), doneAt: null };
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [], timer: started }));
+    // Training lists it before its first exercise, with its time.
+    expect(await screen.findByText('Running · 0:00')).toBeOnTheScreen();
+
+    later(754);
+
+    expect(await screen.findByLabelText('Workout time 12 minutes 34 seconds', {}, { timeout: 3_000 })).toBeOnTheScreen();
+    expect(await screen.findByText('Running · 12:34', {}, { timeout: 3_000 })).toBeOnTheScreen();
+  });
+
+  it('Pause stops the count and Resume counts on, the time paused left out; Mark done shows the total', async () => {
+    const { server, id } = await logTimed();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    await screen.findByRole('button', { name: 'Pause' });
+
+    later(600);
+    await fireEvent.press(screen.getByRole('button', { name: 'Pause' }));
+    expect(await screen.findByLabelText('Workout time 10 minutes 0 seconds, paused')).toBeOnTheScreen();
+    expect(screen.getByText('Paused')).toBeOnTheScreen();
+
+    later(300);
+    await fireEvent.press(screen.getByRole('button', { name: 'Resume' }));
+    expect(await screen.findByLabelText('Workout time 10 minutes 0 seconds')).toBeOnTheScreen();
+
+    later(154);
+    await fireEvent.press(screen.getByRole('button', { name: 'Mark done' }));
+
+    expect(await screen.findByLabelText('Done, total time 12 minutes 34 seconds')).toBeOnTheScreen();
+    expect(screen.getByText('Done · total time')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mark done' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start workout' })).toBeNull();
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({
+        timer: { startedAt: NOW.toISOString(), countedSeconds: 754, runningSince: null, doneAt: clock.toISOString() },
+      }),
+    );
+    expect(await screen.findByText('Done · 12:34')).toBeOnTheScreen();
+  });
+
+  it('Resume after Mark done, on a workout of today, counts on from the total', async () => {
+    const { server, id } = await logTimed();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    later(754);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mark done' }));
+    await screen.findByText('Done · total time');
+
+    later(60);
+    await fireEvent.press(screen.getByRole('button', { name: 'Resume' }));
+
+    expect(await screen.findByLabelText('Workout time 12 minutes 34 seconds')).toBeOnTheScreen();
+    expect(screen.queryByText('Done · total time')).toBeNull();
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({
+        timer: { countedSeconds: 754, runningSince: clock.toISOString(), doneAt: null },
+      }),
+    );
+  });
+
+  it('a workout of another date has no Start workout', async () => {
+    await logTimed('2026-10-27');
+
+    expect(screen.getByText('Workout 1 · Tue 27 Oct')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Start workout' })).toBeNull();
+    expect(screen.queryByLabelText(/^Workout time /)).toBeNull();
+  });
+
+  it('a timer started before midnight can still be paused and marked done the next day, with no Resume after', async () => {
+    const { server, id } = await logTimed();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    await screen.findByRole('button', { name: 'Pause' });
+
+    // 09:00 to 01:00 the next day, India time.
+    later(16 * 3_600);
+    await fireEvent.press(screen.getByRole('button', { name: 'Pause' }));
+    expect(await screen.findByLabelText('Workout time 16 hours 0 minutes 0 seconds, paused')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mark done' }));
+
+    expect(await screen.findByLabelText('Done, total time 16 hours 0 minutes 0 seconds')).toBeOnTheScreen();
+    expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ day: '2026-10-28', timer: { countedSeconds: 57_600 } }));
   });
 });

@@ -229,15 +229,35 @@ const HANDLERS = new Map<string, Handler>([
   [
     WORKOUT_SET,
     // Creates the workout, or replaces the whole workout with this ID: the change received last
-    // wins (ADR-0007 rule 2), including over an earlier deletion.
+    // wins (ADR-0007 rule 2), including over an earlier deletion. Its timer (D-71) too, except that
+    // a change without `timer`, from an app before D-71, keeps the timer stored ($6 false).
     dayChange(workoutSetDataSchema, (client, userId, data) =>
       client.query(
-        `insert into app.workouts (user_id, id, day, exercises, recorded_at) values ($1, $2, $3, $4::jsonb, $5)
+        `insert into app.workouts (user_id, id, day, exercises, recorded_at,
+           timer_started_at, timer_counted_seconds, timer_running_since, timer_done_at)
+         values ($1, $2, $3, $4::jsonb, $5, $7, $8, $9, $10)
          on conflict (user_id, id) do update
            set day = excluded.day, exercises = excluded.exercises, recorded_at = excluded.recorded_at,
-               deleted_at = null`,
-        // node-postgres would turn an array into a PostgreSQL array, so jsonb gets JSON text.
-        [userId, data.id, data.day, JSON.stringify(data.exercises), data.recordedAt],
+               deleted_at = null,
+               timer_started_at = case when $6::boolean then excluded.timer_started_at else app.workouts.timer_started_at end,
+               timer_counted_seconds =
+                 case when $6::boolean then excluded.timer_counted_seconds else app.workouts.timer_counted_seconds end,
+               timer_running_since =
+                 case when $6::boolean then excluded.timer_running_since else app.workouts.timer_running_since end,
+               timer_done_at = case when $6::boolean then excluded.timer_done_at else app.workouts.timer_done_at end`,
+        [
+          userId,
+          data.id,
+          data.day,
+          // node-postgres would turn an array into a PostgreSQL array, so jsonb gets JSON text.
+          JSON.stringify(data.exercises),
+          data.recordedAt,
+          data.timer !== undefined,
+          data.timer?.startedAt ?? null,
+          data.timer?.countedSeconds ?? null,
+          data.timer?.runningSince ?? null,
+          data.timer?.doneAt ?? null,
+        ],
       ),
     ),
   ],
@@ -249,7 +269,8 @@ const HANDLERS = new Map<string, Handler>([
       const data = workoutDeleteDataSchema.safeParse(input);
       if (!data.success) return 'VALIDATION_FAILED';
       await client.query(
-        `update app.workouts set deleted_at = $3, exercises = null
+        `update app.workouts set deleted_at = $3, exercises = null, timer_started_at = null,
+           timer_counted_seconds = null, timer_running_since = null, timer_done_at = null
          where user_id = $1 and id = $2 and deleted_at is null`,
         [account.id, data.data.id, data.data.deletedAt],
       );
@@ -648,6 +669,8 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
        union all
        select 'workout', change_seq,
          json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'exercises', exercises,
+           'timer', case when timer_started_at is null then null else json_build_object('startedAt', timer_started_at,
+             'countedSeconds', timer_counted_seconds, 'runningSince', timer_running_since, 'doneAt', timer_done_at) end,
            'recordedAt', recorded_at, 'updatedAt', updated_at)
        from app.workouts where user_id = $1 and change_seq > $2 and day >= $3
        union all
@@ -813,6 +836,12 @@ function toPulledWorkout(workout: StoredWorkout): PulledWorkout {
     day: workout.day,
     // Exercises saved before D-50 are served in today's shape.
     exercises: currentExercises(workout.exercises),
+    timer: workout.timer && {
+      startedAt: utc(workout.timer.startedAt),
+      countedSeconds: workout.timer.countedSeconds,
+      runningSince: workout.timer.runningSince && utc(workout.timer.runningSince),
+      doneAt: workout.timer.doneAt && utc(workout.timer.doneAt),
+    },
     recordedAt: utc(workout.recordedAt),
     updatedAt: utc(workout.updatedAt),
   };

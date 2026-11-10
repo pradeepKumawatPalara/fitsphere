@@ -1,4 +1,3 @@
-import type { WorkoutSetData } from '@fitsphere/shared';
 import { memoryDb } from '../testing/memoryDb';
 import type { SqlDb } from './sql';
 import {
@@ -17,6 +16,7 @@ import {
   rejectedChanges,
   saveEntry,
   setMeta,
+  type WorkoutData,
 } from './store';
 import { sameSets } from '../testing/exercises';
 
@@ -48,11 +48,11 @@ function changeId(): string {
   return `00000000-0000-4000-8000-${String(next).padStart(12, '0')}`;
 }
 
-function workout(id: string, fields: Partial<WorkoutSetData> = {}): WorkoutSetData {
-  return { id, day: DAY, exercises: [SQUAT], recordedAt: AT, ...fields };
+function workout(id: string, fields: Partial<WorkoutData> = {}): WorkoutData {
+  return { id, day: DAY, exercises: [SQUAT], recordedAt: AT, timer: null, ...fields };
 }
 
-async function save(data: WorkoutSetData) {
+async function save(data: WorkoutData) {
   const id = changeId();
   await saveEntry(db, 'workout', { changeId: id, data });
   return id;
@@ -191,11 +191,54 @@ describe('Local schema version 6', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 17 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listEntries(old, 'workout', '2026-10-01', '2026-10-31')).toEqual([]);
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
+describe('D-71 the workout timer on the phone', () => {
+  const RUNNING = { startedAt: AT, countedSeconds: 0, runningSince: AT, doneAt: null };
+  const DONE = { startedAt: AT, countedSeconds: 3_160, runningSince: null, doneAt: LATER };
+
+  it('keeps each step of a workout’s timer, queued in order with the workout', async () => {
+    const first = await save(workout(ID_A, { timer: RUNNING }));
+    const second = await save(workout(ID_A, { timer: DONE }));
+
+    expect(await getEntry(db, 'workout', ID_A)).toEqual({ ...workout(ID_A, { timer: DONE }), syncState: 'pending' });
+    const queued = await pendingChanges(db, 10);
+    expect(queued.map((change) => change.changeId)).toEqual([first, second]);
+    expect(queued.map((change) => (change.data as WorkoutData).timer)).toEqual([RUNNING, DONE]);
+  });
+
+  it('applies the server’s timer, and reads a workout pulled with none as no timer', async () => {
+    await applyServerEntries(db, 'workout', [{ deleted: false, ...workout(ID_A, { timer: DONE }) }, { deleted: false, ...workout(ID_B) }]);
+
+    expect((await getEntry(db, 'workout', ID_A))?.timer).toEqual(DONE);
+    expect((await getEntry(db, 'workout', ID_B))?.timer).toBeNull();
+  });
+});
+
+describe('Local schema version 18', () => {
+  it('D-71 the update from version 17 keeps every workout, waiting ones too, each with no timer', async () => {
+    const old = memoryDb();
+    try {
+      // Version 17 as phones have it: build it with the current migrations, then drop what 18 adds.
+      await migrateLocal(old);
+      await old.execAsync('ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 17;');
+      await old.runAsync(`INSERT INTO workouts VALUES (?, ?, ?, ?, 'synced')`, [ID_A, DAY, JSON.stringify([SQUAT]), AT]);
+      await old.runAsync(`INSERT INTO workouts VALUES (?, ?, ?, ?, 'pending')`, [ID_B, DAY, '[]', LATER]);
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await getEntry(old, 'workout', ID_A)).toEqual({ ...workout(ID_A), syncState: 'synced' });
+      expect(await getEntry(old, 'workout', ID_B)).toEqual({ ...workout(ID_B, { exercises: [], recordedAt: LATER }), syncState: 'pending' });
     } finally {
       await old.closeAsync();
     }

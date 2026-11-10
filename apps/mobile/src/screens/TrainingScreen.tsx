@@ -13,11 +13,13 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  CircleCheck,
   ClockArrowDown,
   Dumbbell,
   Flame,
   History,
   List,
+  Pause,
   Plus,
   SquarePen,
   Trash,
@@ -27,6 +29,7 @@ import {
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { callApi } from '../api/client';
+import { useNow } from '../clock';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { ConfirmSheet } from '../components/MealSheets';
@@ -40,12 +43,19 @@ import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { caloriesBurned, deleteWorkoutEffects, listedWorkouts, workoutSummary } from '../workouts';
+import { caloriesBurned, deleteWorkoutEffects, listedWorkouts, timerLine, timerState, workoutSummary } from '../workouts';
 
 const CHUNK_DAYS = 90;
 
 /** A workout of the history: one on the phone, or an older one read from the server. */
-type Row = { id: string; day: string; exercises: Workout['exercises']; recordedAt: string; syncState: SyncState | null };
+type Row = {
+  id: string;
+  day: string;
+  exercises: Workout['exercises'];
+  timer: Workout['timer'];
+  recordedAt: string;
+  syncState: SyncState | null;
+};
 
 /** What "Load older" says: that a range was empty (info), or why it could not load (error). */
 type Message = { text: string; tone: 'info' | 'error'; offline?: boolean };
@@ -99,8 +109,10 @@ function deleteWorkoutMessage(workout: { day: string; name: string; exercises: n
 // 6; MVP default, D-29). A date picked on the strip or the header's calendar shows By day. Deleting a
 // workout says what goes with it (D-63). A workout with no exercise is not listed, marked or counted,
 // and the others are numbered without it (D-65). No "No training plan yet" card for now (D-65): no one
-// can send a plan in the MVP (D-20).
-export function TrainingScreen() {
+// can send a plan in the MVP (D-20). Each workout's row says its timer (D-71): "Running · 12:34",
+// counting, "Paused · 31:08" or "Done · 52:40"; a workout whose timer has started is listed before
+// its first exercise.
+export function TrainingScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
@@ -135,7 +147,7 @@ export function TrainingScreen() {
     let active = true;
     void Promise.all([listEntries(db, 'workout', firstDay, today), rejectedChanges(db)]).then(([workouts, waiting]) => {
       if (!active) return;
-      setRecent(workouts.map(({ id, day, exercises, recordedAt, syncState }) => ({ id, day, exercises, recordedAt, syncState })));
+      setRecent(workouts.map(({ id, day, exercises, timer, recordedAt, syncState }) => ({ id, day, exercises, timer, recordedAt, syncState })));
       setRejected(waiting.filter((change) => change.type === WORKOUT_SET || change.type === WORKOUT_DELETE));
     });
     return () => {
@@ -149,6 +161,8 @@ export function TrainingScreen() {
   const open = openMonths ?? new Set(months[0] ? [months[0].month] : []);
   const workoutDays = new Set(listed.map((row) => row.day));
   const dayWorkouts = byDate(listed.filter((row) => row.day === selected))[0]?.workouts ?? [];
+  // The rows draw again each second only while a timer runs (D-71).
+  const clock = useNow(now, listed.some((row) => timerState(row.timer) === 'running'));
 
   function openWorkout(id: string) {
     router.push(`/workout/${id}`);
@@ -210,7 +224,7 @@ export function TrainingScreen() {
     );
     if (page.kind !== 'ok') return page.kind === 'offline' ? 'offline' : 'failed';
     // The server sends oldest first; the history shows newest first.
-    return [...page.body.items].reverse().map(({ id, day, exercises, recordedAt }) => ({ id, day, exercises, recordedAt, syncState: null }));
+    return [...page.body.items].reverse().map(({ id, day, exercises, timer, recordedAt }) => ({ id, day, exercises, timer, recordedAt, syncState: null }));
   }
 
   /**
@@ -227,12 +241,24 @@ export function TrainingScreen() {
           const summary = workoutSummary(workout.exercises);
           const notSaved = workout.syncState === 'rejected';
           const note = notSaved ? 'not saved' : workout.syncState === 'pending' ? 'waiting to sync' : null;
+          const timed = timerLine(workout.timer, clock);
+          const timedState = timerState(workout.timer);
           const text = (
             <>
               <Text style={styles.name}>{name}</Text>
               <Text numberOfLines={1} style={styles.summary}>
                 {summary}
               </Text>
+              {timed ? (
+                <View style={styles.noteLine}>
+                  {timedState === 'running' ? <View style={styles.runningDot} /> : null}
+                  {timedState === 'paused' ? <Pause size={12} color={colors.warning} fill={colors.warning} /> : null}
+                  {timedState === 'done' ? <CircleCheck size={14} color={colors.success} /> : null}
+                  <Text style={[styles.timer, timedState === 'running' ? styles.running : timedState === 'paused' ? styles.paused : null]}>
+                    {timed}
+                  </Text>
+                </View>
+              ) : null}
               {note ? (
                 <View style={styles.noteLine}>
                   <View style={[styles.dot, notSaved && styles.dotProblem]} />
@@ -244,14 +270,14 @@ export function TrainingScreen() {
           return (
             <View key={workout.id} style={[styles.row, index > 0 && styles.ruled]}>
               {viewOnly ? (
-                <View accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}`} style={styles.rowText}>
+                <View accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}${timed ? `; ${timed}` : ''}`} style={styles.rowText}>
                   {text}
                 </View>
               ) : (
                 <>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}`}
+                    accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}${timed ? `; ${timed}` : ''}`}
                     onPress={() => openWorkout(workout.id)}
                     style={({ pressed }) => [styles.rowText, pressed && styles.pressed]}
                   >
@@ -530,6 +556,11 @@ const useStyles = themedStyles((c) => ({
   noteLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.inkMuted },
   dotProblem: { backgroundColor: c.danger },
+  // D-71: a workout's timer, in condensed capitals: green while it runs, gold paused, muted when done.
+  timer: { ...TYPE.link, fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'], color: c.inkMuted },
+  running: { color: c.success },
+  paused: { color: c.warning },
+  runningDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.success },
   note: { ...TYPE.label, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted },
   problem: { color: c.danger },
   empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted },

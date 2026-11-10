@@ -43,6 +43,7 @@
 | Deleting a workout, after confirming | Implemented | S4-12, S4-15 |
 | Several workouts on one day | Implemented | S4-11 |
 | Past dates and the history (newest first, last 90 days on the phone) | Implemented | S4-13, S4-17 |
+| The workout timer: Start workout, Pause and Resume, Mark done, today only (D-71; migrations 0025 and 0026 on `fitsphere-dev` first) | Implemented | S4-22 to S4-26 |
 | Home workout tracker ("N of T · M left", "target reached", Mon to Sun circles) | Implemented | S4-02, S4-03, S4-11 to S4-15 |
 | Offline workouts and sync | Implemented | S4-14 |
 | "Load older": older workouts from the server, view-only | Implemented | S4-16 |
@@ -539,6 +540,107 @@ exercises are found and logged like the others.
 
 ---
 
+### S4-22 · Start workout and the timer (D-71)
+**Screen:** Workout › timer bar · **Covers:** REQ-TRN-003, REQ-TRN-004, D-71 · **Start:** Training, today selected, online, after migrations 0025 and 0026 on `fitsphere-dev` · **Data:** none
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | **Log workout for today** | — | The new workout; at the foot of the screen a bar with **Start workout** |
+| 2 | Tap **Start workout** | — | The bar shows "WORKOUT TIME" and "0:00" counting up each second, a green **Running** tag, **Pause** and **Mark done** |
+| 3 | Wait about a minute | — | "1:00", "1:01"… |
+| 4 | Back arrow to Training | — | The workout is listed, though it has no exercise yet: "Workout N", "No exercises", and a green "RUNNING · 1:05" counting |
+| 5 | Home | — | The week's count has not changed (a workout counts once it has an exercise) |
+| 6 | Open the workout again; **Add exercise**, add a squat; save | — | The timer has kept counting while you were away |
+
+**Final expected result:** Start workout starts a timer that counts in minutes and seconds, on the
+workout and on its Training row.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
+### S4-23 · Pause and Resume (D-71)
+**Screen:** Workout › timer bar · **Covers:** REQ-TRN-003, D-71 · **Start:** the running workout of S4-22 · **Data:** none
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | Tap **Pause** | — | The time stops; a gold **Paused** tag; Pause becomes **Resume** |
+| 2 | Wait 30 seconds | — | The time has not moved |
+| 3 | Tap **Resume** | — | It counts on from where it stopped (the 30 seconds paused are not counted); **Running** again |
+| 4 | Pause it; back to Training | — | The row says "PAUSED · <time>" in gold, not counting |
+
+**Final expected result:** the timer can be paused and resumed at any time, and the time paused is
+left out.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
+### S4-24 · Close the app while it runs (D-71)
+**Screen:** Workout · **Covers:** REQ-TRN-003, D-71 · **Start:** the workout of S4-23, **Resume** tapped · **Data:** none
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | Note the time; close the app fully (swipe it away) | — | — |
+| 2 | Wait about 2 minutes; open the app; open the workout | — | The time is about 2 minutes on from the time noted, still counting |
+| 3 | Turn on flight mode; tap **Pause**, then **Resume** | — | Both work offline; the workout's Training row says "waiting to sync" |
+| 4 | Turn flight mode off | — | "waiting to sync" goes after the next sync |
+
+**Final expected result:** the timer counts from the clock, so closing the app does not stop it, and
+it works offline.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
+### S4-25 · Mark done and the total (D-71)
+**Screen:** Workout and Training · **Covers:** REQ-TRN-003, REQ-TRN-004, D-71 · **Start:** the running workout of S4-24 · **Data:** none
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | Tap **Mark done** | — | The bar goes; under the title a green panel "DONE · TOTAL TIME" with the total, and **Resume** |
+| 2 | Back to Training | — | The row says "DONE · <total>" with a green tick, not counting; **All workouts** shows it too |
+| 3 | Open the workout; tap **Resume** on the panel | — | The bar comes back, counting on from the total |
+| 4 | Tap **Mark done** again | — | The panel shows the new total |
+
+**Final expected result:** Mark done stops the timer and shows the total time, pauses left out; a Mark
+done tapped by mistake can be undone today.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
+### S4-26 · Another date has no timer (D-71)
+**Screen:** Training › a past date · **Covers:** REQ-TRN-003, D-71 · **Start:** Training · **Data:** the Deadlift workout of S4-13 (7 days ago)
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | Tap the Deadlift day on the strip; open its workout | — | No timer bar and no **Start workout** |
+| 2 | Tap a day this week without a workout; **Log workout for <date>** | — | The new workout has no **Start workout** either |
+| 3 | (Optional, late evening) Start a timer on today's workout before midnight; after midnight open it | — | It still counts; **Pause** and **Mark done** work; once done there is no Resume (it is no longer today) |
+
+**Final expected result:** the timer starts on today's workouts only; one already started can still be
+finished.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
 ## Cleanup
 
 | # | What | How | Confirm |
@@ -551,7 +653,7 @@ exercises are found and logged like the others.
 ## Troubleshooting
 | Symptom | Likely cause and what to do |
 |---|---|
-| "Sync: failed" on Account, and workouts keep "waiting to sync" while online | Migration 0007 (or 0006) is not applied on `fitsphere-dev` (P-01); check `.dev-phone/api.log` |
+| "Sync: failed" on Account, and workouts keep "waiting to sync" while online | Migration 0007 (or 0006) is not applied on `fitsphere-dev` (P-01); since D-71, migrations 0025 and 0026 too; check `.dev-phone/api.log` |
 | "Load older" says "Something went wrong. Try again later." | The API couldn't be reached or refused the request. Check "API: ok" on Account › Development and `.dev-phone/api.log` |
 | App stuck on "Reloading…" | Force-stop the app (Android Settings › Apps › FitSphere › Force stop) and open it again |
 | A row says "not saved" in red, and Training or Home shows "This workout wasn't saved: … Edit or discard it." | The server refused the change. Note the reason text and the steps; don't discard it before reporting |
@@ -581,3 +683,8 @@ exercises are found and logged like the others.
 | S4-19 | 30 exercises (optional) | | |
 | S4-20 | By day and All workouts (D-65) | | |
 | S4-21 | Category and Sub-group (D-67) | | |
+| S4-22 | Start workout and the timer (D-71) | | |
+| S4-23 | Pause and Resume (D-71) | | |
+| S4-24 | Close the app while it runs (D-71) | | |
+| S4-25 | Mark done and the total (D-71) | | |
+| S4-26 | Another date has no timer (D-71) | | |

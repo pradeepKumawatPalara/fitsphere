@@ -307,13 +307,33 @@ export function currentExercises(stored: readonly unknown[]): WorkoutExercise[] 
   return stored.map(fromEarlierExercise) as WorkoutExercise[];
 }
 
+/** The longest a workout's timer counts (D-71): 24 hours, as an exercise's time. */
+export const WORKOUT_TIMER_SECONDS_MAX = EXERCISE_SECONDS_MAX;
+
+/**
+ * A workout's timer (D-71), started with "Start workout". `countedSeconds` is the time counted
+ * before the current run; `runningSince` is set while it runs, and `doneAt` once it is marked done.
+ * It runs, is paused (neither set) or is done, never running and done at once.
+ */
+export const workoutTimerSchema = z
+  .strictObject({
+    startedAt: instantSchema,
+    countedSeconds: z.int().min(0).max(WORKOUT_TIMER_SECONDS_MAX),
+    runningSince: instantSchema.nullable(),
+    doneAt: instantSchema.nullable(),
+  })
+  .refine((timer) => timer.runningSince === null || timer.doneAt === null, { path: ['doneAt'] });
+export type WorkoutTimer = z.infer<typeof workoutTimerSchema>;
+
 /** Creates a workout, or replaces the whole workout with this ID. `recordedAt` is when it was
- * started; editing the exercises keeps it. */
+ * started; editing the exercises keeps it. `timer` is null until "Start workout" (D-71); a change
+ * without it, from an app before D-71, keeps the timer the server has. */
 export const workoutSetDataSchema = z.strictObject({
   id: idSchema,
   day: istDaySchema,
   exercises: z.array(workoutExerciseSchema).max(MAX_WORKOUT_EXERCISES),
   recordedAt: instantSchema,
+  timer: workoutTimerSchema.nullable().optional(),
 });
 export type WorkoutSetData = z.infer<typeof workoutSetDataSchema>;
 
@@ -784,11 +804,21 @@ export const servedExerciseSchema = z.preprocess(
   ]),
 );
 
-/** A workout the server holds, in the pull and in the history. */
+/** A workout the server holds, in the pull and in the history. Its timer (D-71), or null: none, or
+ * from a server before D-71. */
 export const workoutSchema = z.object({
   id: idSchema,
   day: istDaySchema,
   exercises: z.array(servedExerciseSchema),
+  timer: z
+    .object({
+      startedAt: instantSchema,
+      countedSeconds: z.int(),
+      runningSince: instantSchema.nullable(),
+      doneAt: instantSchema.nullable(),
+    })
+    .nullable()
+    .default(null),
   recordedAt: instantSchema,
   updatedAt: instantSchema,
 });
