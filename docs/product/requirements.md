@@ -511,8 +511,11 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   come in this order: My foods, brand labels, packaged foods,
   INDB's recipes, then dishes and IFCT's foods. Since D-59, home-style forms of daily foods (a
   bread slice, butter toast, bread omelette), typical values for a home recipe, come right after an
-  exact match, untagged, found by their item too, logged in grams or by their serving. The results
-  follow each letter typed or erased;
+  exact match, untagged, found by their item too, logged in grams or by their serving. Since D-62,
+  estimated dishes (typical values for each type of dish, from the owner's dish database) come after
+  the dishes, before IFCT's foods, marked "estimated", found by their base food too, logged in grams
+  or by their serving; and the search ignores spaces and marks ("haldirams" finds Haldiram's). The
+  results follow each letter typed or erased;
   since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
   source tag (the marks above stay on each food's page): a branded food shows its brand under its
   name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·

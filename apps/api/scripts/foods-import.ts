@@ -5,21 +5,24 @@
 // data/foods/usda-fndds-foods.csv (with usda-fndds-portions.csv) into its archive, not the food list;
 // Open Food Facts' packaged foods sold in India, data/foods/off-india-products.csv, into
 // app.packaged_foods; the approved rows of docs/data/brand-labels-sheet.csv into app.foods and
-// app.food_portions as source brand_label; and those of docs/data/home-foods-sheet.csv as source home
-// (ADR-0006 rule 1; D-28; D-36; D-39; D-46; D-47; D-48; D-49; D-59; ADR-0009;
+// app.food_portions as source brand_label; those of docs/data/home-foods-sheet.csv as source home; and
+// those of docs/data/dish-estimates-sheet.csv as source dish_estimate, with the packaged products of
+// data/foods/off-india-extra.csv added to Open Food Facts' (ADR-0006 rule 1; D-28; D-36; D-39; D-46;
+// D-47; D-48; D-49; D-59; D-62; ADR-0009;
 // docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
 // any row is wrong. Running it again gives the same tables.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
 import { readRecipeSheet } from '../src/foods/dishes.ts';
+import { DISH_ESTIMATE_SOURCE, readDishEstimatesSheet } from '../src/foods/dishEstimates.ts';
 import { HOME_FOOD_SOURCE, readHomeFoodsSheet } from '../src/foods/homeFoods.ts';
 import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../src/foods/brandLabels.ts';
 import { readIfctCsv } from '../src/foods/ifct.ts';
 import { INDB_SOURCE, readIndbCsv } from '../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../src/foods/importFoods.ts';
 import { readMeasuresSheet } from '../src/foods/measures.ts';
-import { readPackagedCsv } from '../src/foods/offIndia.ts';
+import { readPackagedCsv, withExtraPackaged } from '../src/foods/offIndia.ts';
 import { readUsdaCsv } from '../src/foods/usda.ts';
 
 const url = process.env.DATABASE_URL;
@@ -38,7 +41,11 @@ const usda = readUsdaCsv(
 );
 const labels = readBrandLabelsSheet(readFileSync(path.join(root, 'docs/data/brand-labels-sheet.csv'), 'utf8'));
 const home = readHomeFoodsSheet(readFileSync(path.join(root, 'docs/data/home-foods-sheet.csv'), 'utf8'));
-const packaged = readPackagedCsv(readFileSync(path.join(root, 'data/foods/off-india-products.csv'), 'utf8'));
+const estimates = readDishEstimatesSheet(readFileSync(path.join(root, 'docs/data/dish-estimates-sheet.csv'), 'utf8'));
+const packaged = withExtraPackaged(
+  readPackagedCsv(readFileSync(path.join(root, 'data/foods/off-india-products.csv'), 'utf8')),
+  readPackagedCsv(readFileSync(path.join(root, 'data/foods/off-india-extra.csv'), 'utf8')),
+);
 const indb = readIndbCsv(
   readFileSync(path.join(root, 'data/foods/indb-foods.csv'), 'utf8'),
   readFileSync(path.join(root, 'data/foods/indb-portions.csv'), 'utf8'),
@@ -73,6 +80,11 @@ try {
   const homeServings = await importPortions(client, HOME_FOOD_SOURCE, home.portions);
   console.log(
     `Imported ${homeFoods.total} approved home-style foods with ${homeServings} servings. Not imported: ${home.proposed} proposed (waiting for the owner's OK).`,
+  );
+  const estimated = await importFoods(client, estimates.foods, DISH_ESTIMATE_SOURCE);
+  const estimatedServings = await importPortions(client, DISH_ESTIMATE_SOURCE, estimates.portions);
+  console.log(
+    `Imported ${estimated.total} estimated dishes with ${estimatedServings} servings. Not imported: ${estimates.held} held back with a problem.`,
   );
 } finally {
   await client.end();

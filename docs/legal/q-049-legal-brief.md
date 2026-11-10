@@ -284,7 +284,22 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
 - Questions: is that enough for users to know these values are estimates? Does a calorie app need
   to say more where values are not measured or published?
 
-### G. Anything else before real users
+### G. Estimated dishes from the owner's dish database (D-62, accepted risk R-014)
+
+**L-19 Dish names from a recipe site, values by type of dish, and more packaged products (MVP).**
+- Facts: since D-62 (2026-11-10) FitSphere lists 5,025 Indian dishes from a database the owner
+  supplied (`Indian_Food_Database_MASTER.xlsx`). Their names are the recipe site Archana's Kitchen's
+  (names only; the file says the recipes' text was left out) or were made by the file's own grammar.
+  Their values are the typical values of each type of dish, set by the file's maker, not measured
+  for each dish; the file names INDB 2024 (no licence stated, L-15) and IFCT 2017 (R-007) among its
+  sources. The results say "estimated" and the sources sheet behind the i says they are typical
+  values. 11 more packaged products from the same file, which says they come from Open Food Facts
+  India, joined the packaged foods (the same licence as L-13).
+- Questions: may FitSphere use dish names taken from a recipe site's list? Does using INDB's and
+  IFCT's values to set typical values raise the questions of L-15 and R-007 again? Is "estimated"
+  enough for users to know these are not measured?
+
+### H. Anything else before real users
 
 **L-14 What else is needed (MVP).**
 - Question: what else must be in place before the release? For example: the privacy notice

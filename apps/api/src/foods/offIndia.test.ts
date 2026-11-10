@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { toCsv } from './csv.ts';
 import { FoodListError } from './ifct.ts';
-import { exportColumns, PACKAGED_HEADER, packagedFromRow, packagedRow, readPackagedCsv, validBarcode } from './offIndia.ts';
+import { exportColumns, PACKAGED_HEADER, packagedFromRow, packagedRow, readPackagedCsv, validBarcode, withExtraPackaged } from './offIndia.ts';
 
 // Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009). Synthetic rows in
 // the export's columns, not real products; the real export is converted by `npm run off:convert`.
@@ -131,5 +131,25 @@ describe('D-48 the committed packaged foods file', () => {
 
     expect(foods.length).toBeGreaterThan(1_000);
     expect(new Set(foods.map((food) => food.barcode)).size).toBe(foods.length);
+  });
+});
+
+describe('D-62 the extra packaged products from the owner’s dish database', () => {
+  const read = (file: string) => readPackagedCsv(readFileSync(new URL(`../../../../data/foods/${file}`, import.meta.url), 'utf8'));
+
+  it('adds 11 products FitSphere lacked, none already listed', () => {
+    const extra = read('off-india-extra.csv');
+    const all = withExtraPackaged(read('off-india-products.csv'), extra);
+
+    expect(extra).toHaveLength(11);
+    expect(all).toHaveLength(read('off-india-products.csv').length + 11);
+    expect(extra.find((food) => food.name === 'Bhujia sev 200g')).toMatchObject({ brand: "Haldiram'S", kcal: 592 });
+  });
+
+  it('refuses a barcode already listed, even with other leading zeros', () => {
+    const [food] = read('off-india-extra.csv');
+    if (!food) throw new Error('No extra product');
+
+    expect(() => withExtraPackaged([food], [{ ...food, barcode: `0${food.barcode}` }])).toThrow(`barcode 0${food.barcode} is in both files`);
   });
 });

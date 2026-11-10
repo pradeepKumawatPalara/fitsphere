@@ -470,6 +470,60 @@ describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
   });
 });
 
+describe('D-62 estimated dishes (the owner, 2026-11-10)', () => {
+  // A synthetic estimated dish, made-up values: 4 × 6 + 4 × 30 + 9 × 14 = 270 kcal.
+  const ESTIMATED_PAKORA: Food = {
+    source: 'dish_estimate',
+    code: 'est-test-bread-pakora',
+    name: 'Test bread pakora',
+    foodGroup: 'Bread',
+    aliases: ['bread'],
+    proteinG: 6,
+    fibreG: 2,
+    fatG: 14,
+    carbsG: 30,
+    kcal: 270,
+    kcalEstimated: true,
+    measures: [],
+    portions: [{ label: 'Piece', grams: 60 }],
+  };
+  const IFCT_BREAD: Food = { ...FOODS[0]!, code: 'A099', name: 'Bread, white (test)' };
+
+  async function withPakora(db: SqlDb, server: FakeServer) {
+    const foods = [...FOODS, IFCT_BREAD, LABEL_BREAD, ESTIMATED_PAKORA];
+    server.state.foods = foods;
+    server.state.packaged = [PACKAGED_BREAD];
+    await replaceFoods(db, server.state.foodsVersion, foods, [], [PACKAGED_BREAD]);
+  }
+
+  it('lists them after INDB and the dishes, before IFCT, marked estimated, and credits them behind the i', async () => {
+    await render(withPakora);
+    await search('bread');
+
+    const rows = await screen.findAllByRole('button', { name: /kcal per/ });
+    expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'White Bread, Test Bakers, 250 kcal per 100 g',
+      'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
+      'Test bread toast, 267 kcal per 100 g, estimated',
+      'Test bread pakora, 270 kcal per 100 g, estimated',
+      'Bread, white (test), 320 kcal per 100 g',
+    ]);
+    await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
+    expect(screen.getByText(/^Estimated dishes: typical values for each type of dish/)).toBeOnTheScreen();
+  });
+
+  it('opens on its serving, its page saying it is an estimated dish', async () => {
+    await render(withPakora);
+    await search('pakora');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test bread pakora, 270 kcal per 100 g, estimated' }));
+
+    expect(screen.getByText('Estimated dish')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: Piece (60 g)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Quantity: 1')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 162 kcal')).toBeOnTheScreen();
+  });
+});
+
 describe('D-46 INDB’s Indian recipes', () => {
   it('a recipe opens on its serving, counted in halves, its values estimated', async () => {
     await render();
