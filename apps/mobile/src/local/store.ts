@@ -1024,14 +1024,18 @@ export async function dailyNutrition(
   return Object.fromEntries(rows.map((row) => [row.day, { kcal: round(row.kcal), proteinG: round(row.protein_g) }]));
 }
 
-/** My foods whose name has every word of the search, ignoring case; names starting with the first word first (D-39). */
+/**
+ * My foods whose name has every word of the search, ignoring case, spaces and marks (D-62); names
+ * starting with the first word first (D-39).
+ */
 export async function searchMyFoods(db: SqlDb, query: string, limit = 10): Promise<LocalMyFood[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
+  const match = wordsMatch(words, ['name']);
+  const first = firstWordFirst(words[0]!, ['name']);
   const rows = await db.getAllAsync<Record<string, BindValue>>(
-    `SELECT * FROM my_foods WHERE ${words.map(() => `lower(name) LIKE ? ESCAPE '\\'`).join(' AND ')}
-     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.map(like), startsWith(words[0]!), limit],
+    `SELECT * FROM my_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+    [...match.params, ...first.params, limit],
   );
   return rows.map((row) => toEntry(KINDS.myFood, row) as LocalMyFood);
 }
@@ -1203,17 +1207,19 @@ const PACKAGED_READ_FACTOR = 4;
 
 /**
  * Searches the packaged foods, offline (D-48): every word must appear in the name or the brand,
- * ignoring case; names or brands starting with the first word come first. A product listed under
- * several barcodes with the same values shows once (D-56).
+ * ignoring case, spaces and marks (D-62: "haldirams" finds Haldiram's); names or brands starting
+ * with the first word come first. A product listed under several barcodes with the same values shows
+ * once (D-56).
  */
 export async function searchPackaged(db: SqlDb, query: string, limit = 30): Promise<PackagedFood[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const conditions = words.map(() => `(lower(name) LIKE ? ESCAPE '\\' OR lower(coalesce(brand, '')) LIKE ? ESCAPE '\\')`);
+  const columns = ['name', "coalesce(brand, '')"];
+  const match = wordsMatch(words, columns);
+  const first = firstWordFirst(words[0]!, columns);
   const rows = await db.getAllAsync<PackagedRow>(
-    `SELECT * FROM packaged_foods WHERE ${conditions.join(' AND ')}
-     ORDER BY (lower(name) LIKE ? OR lower(coalesce(brand, '')) LIKE ?) DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), startsWith(words[0]!), limit * PACKAGED_READ_FACTOR],
+    `SELECT * FROM packaged_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+    [...match.params, ...first.params, limit * PACKAGED_READ_FACTOR],
   );
   return onePerProduct(rows.map(toPackaged)).slice(0, limit);
 }
@@ -1244,22 +1250,26 @@ function toPackaged(row: PackagedRow): PackagedFood {
   };
 }
 
-/** The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian foods, brand labels, then home-style foods (D-46, D-47, D-49, D-59). */
-const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_label', 'home'];
+/**
+ * The order the food list's sources are searched and listed in: INDB's Indian recipes, IFCT's Indian
+ * foods, brand labels, home-style foods, then the estimated dishes (D-46, D-47, D-49, D-59, D-62).
+ */
+const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_label', 'home', 'dish_estimate'];
 
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007). Every word must appear in
- * the name or an alias, ignoring case. Each source gives up to `limit` foods, in SEARCH_ORDER, so a
- * long list from one never hides another's; within each, names starting with the first word come
- * first.
+ * the name or an alias, ignoring case, spaces and marks (D-62). Each source gives up to `limit` foods,
+ * in SEARCH_ORDER, so a long list from one never hides another's; within each, names starting with
+ * the first word come first.
  */
 export async function searchFoods(db: SqlDb, query: string, limit = 30): Promise<Food[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const conditions = words.map(() => `(lower(name) LIKE ? ESCAPE '\\' OR lower(aliases) LIKE ? ESCAPE '\\')`);
+  const match = wordsMatch(words, ['name', 'aliases']);
+  const first = firstWordFirst(words[0]!, ['name']);
   const rows = [];
   for (const source of SEARCH_ORDER) {
-    rows.push(...(await searchSource(db, source, words, conditions, limit)));
+    rows.push(...(await searchSource(db, source, match, first, limit)));
   }
   return rows.map(toFood);
 }
@@ -1300,25 +1310,26 @@ function toFood(row: FoodRow): Food {
 }
 
 /** One source's matches for `searchFoods`. */
-function searchSource(db: SqlDb, source: Food['source'], words: string[], conditions: string[], limit: number) {
+function searchSource(db: SqlDb, source: Food['source'], match: SqlPart, first: SqlPart, limit: number) {
   return db.getAllAsync<FoodRow>(
-    `SELECT * FROM foods WHERE source = ? AND ${conditions.join(' AND ')}
-     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
-    [source, ...words.flatMap((word) => [like(word), like(word)]), startsWith(words[0]!), limit],
+    `SELECT * FROM foods WHERE source = ? AND ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+    [source, ...match.params, ...first.params, limit],
   );
 }
 
 /**
  * Searches the cached dishes, offline (D-28), with the words of a food search: every word must
- * appear in the name, ignoring case; names starting with the first word come first.
+ * appear in the name, ignoring case, spaces and marks (D-62); names starting with the first word come
+ * first.
  */
 export async function searchDishes(db: SqlDb, query: string, limit = 10): Promise<Dish[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
+  const match = wordsMatch(words, ['name']);
+  const first = firstWordFirst(words[0]!, ['name']);
   const rows = await db.getAllAsync<DishRow>(
-    `SELECT * FROM dishes WHERE ${words.map(() => `lower(name) LIKE ? ESCAPE '\\'`).join(' AND ')}
-     ORDER BY lower(name) LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.map(like), startsWith(words[0]!), limit],
+    `SELECT * FROM dishes WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+    [...match.params, ...first.params, limit],
   );
   return rows.map(toDish);
 }
@@ -1484,3 +1495,49 @@ function searchWords(query: string): string[] {
 const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char}`);
 const like = (word: string) => `%${escapeLike(word)}%`;
 const startsWith = (word: string) => `${escapeLike(word)}%`;
+
+/** A piece of SQL and the values for its `?`s. */
+type SqlPart = { sql: string; params: string[] };
+
+/**
+ * What a food search ignores, in the names, brands and aliases searched and in the words typed
+ * (D-62): spaces and the marks ' ’ . - & , / ( ), so "haldirams" finds "Haldiram's", "healthfactory"
+ * finds "The Health Factory" and "mr. makhana" finds "Mr Makhana". Not % or _, which stay plain
+ * characters, nor the double quotes that keep a food's aliases apart.
+ */
+const IGNORED_IN_SEARCH = [' ', "'", '’', '.', '-', '&', ',', '/', '(', ')'] as const;
+const IGNORED_IN_WORD = /['’.\-&/()]/g;
+
+/** `lower(column)` without what a search ignores; as it is when the word is nothing but such marks. */
+function searched(column: string, compact: boolean): string {
+  const lowered = `lower(${column})`;
+  if (!compact) return lowered;
+  return IGNORED_IN_SEARCH.reduce((sql, mark) => `replace(${sql}, '${mark.replace(/'/g, "''")}', '')`, lowered);
+}
+
+/** A word as searched: without the marks a search ignores, or as typed when it is nothing but such marks. */
+function searchedWord(typed: string): { word: string; compact: boolean } {
+  const word = typed.replace(IGNORED_IN_WORD, '');
+  return word ? { word, compact: true } : { word: typed, compact: false };
+}
+
+/** Every word in one of the columns (D-62). */
+function wordsMatch(words: readonly string[], columns: readonly string[]): SqlPart {
+  const parts = words.map((typed): SqlPart => {
+    const { word, compact } = searchedWord(typed);
+    return {
+      sql: `(${columns.map((column) => `${searched(column, compact)} LIKE ? ESCAPE '\\'`).join(' OR ')})`,
+      params: columns.map(() => like(word)),
+    };
+  });
+  return { sql: parts.map((part) => part.sql).join(' AND '), params: parts.flatMap((part) => part.params) };
+}
+
+/** Whether one of the columns starts with the word, for ordering (D-62). */
+function firstWordFirst(typed: string, columns: readonly string[]): SqlPart {
+  const { word, compact } = searchedWord(typed);
+  return {
+    sql: `(${columns.map((column) => `${searched(column, compact)} LIKE ? ESCAPE '\\'`).join(' OR ')})`,
+    params: columns.map(() => startsWith(word)),
+  };
+}

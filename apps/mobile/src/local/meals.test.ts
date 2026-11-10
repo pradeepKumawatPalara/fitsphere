@@ -292,6 +292,24 @@ describe('ADR-0006 rule 1 the cached food list', () => {
 
     expect(await searchFoods(db, 'boiled')).toEqual([]);
   });
+
+  it('D-62 lists the estimated dishes after the other sources, found by their base food words too', async () => {
+    const estimated = { ...food('est-test-sabzi', 'Test okra sabzi', ['okra', 'bhindi']), source: 'dish_estimate' as const, kcalEstimated: true };
+    await replaceFoods(db, 'v2', [estimated, food('V001', 'Okra, raw'), { ...food('BFP301', 'Okra fry'), source: 'indb' as const }]);
+
+    expect((await searchFoods(db, 'okra')).map((found) => found.code)).toEqual(['BFP301', 'V001', 'est-test-sabzi']);
+    expect((await searchFoods(db, 'bhindi')).map((found) => found.code)).toEqual(['est-test-sabzi']);
+  });
+
+  it('D-62 ignores spaces and marks: a name typed together, or without its apostrophe, is found', async () => {
+    await replaceFoods(db, 'v2', [food('T001', "Test Maker's Dal-Makhani (Synthetic)"), food('T002', 'Test bread, white')]);
+
+    expect((await searchFoods(db, 'makers')).map((found) => found.code)).toEqual(['T001']);
+    expect((await searchFoods(db, 'dalmakhani')).map((found) => found.code)).toEqual(['T001']);
+    expect((await searchFoods(db, "maker's dal-makhani")).map((found) => found.code)).toEqual(['T001']);
+    expect((await searchFoods(db, 'testbread')).map((found) => found.code)).toEqual(['T002']);
+    expect((await searchFoods(db, "'")).map((found) => found.code)).toEqual(['T001']);
+  });
 });
 
 // Synthetic packaged foods (D-48): made-up values, not real products.
@@ -325,6 +343,18 @@ describe('D-48 the cached packaged foods', () => {
 
     await replaceFoods(db, 'v2', [], [], [BISCUIT]);
     expect(await searchPackaged(db, 'butter')).toEqual([BISCUIT]);
+  });
+
+  it('D-62 finds a brand typed without its apostrophe or its spaces, brands starting with it first', async () => {
+    // Synthetic brands, written as some labels write them.
+    const BHUJIA = { ...BUTTER, barcode: '8901234500011', name: 'Bhujia sev', brand: "Testiram'S" };
+    const BAR = { ...BUTTER, barcode: '8901234500012', name: 'Protein bar', brand: 'The Test Factory' };
+    const OTHER = { ...BUTTER, barcode: '8901234500013', name: 'Bhujia like testirams', brand: 'Other Foods' };
+    await replaceFoods(db, 'v1', [], [], [BHUJIA, BAR, OTHER]);
+
+    expect((await searchPackaged(db, 'testirams')).map((found) => found.barcode)).toEqual([BHUJIA.barcode, OTHER.barcode]);
+    expect((await searchPackaged(db, 'testfactory')).map((found) => found.barcode)).toEqual([BAR.barcode]);
+    expect((await searchPackaged(db, 'test factory bar')).map((found) => found.barcode)).toEqual([BAR.barcode]);
   });
 
   it('shows a product listed under several barcodes with the same values once, taking a copy’s serving (D-56)', async () => {

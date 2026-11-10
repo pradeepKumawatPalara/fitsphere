@@ -21,7 +21,7 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { FoodDetail, type FoodResult } from './FoodDetail';
-import { BRAND_LABEL_CREDIT, HOME_FOODS_CREDIT } from './foodSources';
+import { BRAND_LABEL_CREDIT, DISH_ESTIMATES_CREDIT, HOME_FOODS_CREDIT } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
 import { Sheet } from './Sheet';
@@ -253,7 +253,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
         if (!active) return;
         const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
         setResults(
-          // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT.
+          // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
+          // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
           exactFirst(query, [
             ...listed('home'),
             ...mine.map((food): Result => ({ kind: 'mine', food })),
@@ -261,6 +262,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
             ...packaged.map((food): Result => ({ kind: 'packaged', food })),
             ...listed('indb'),
             ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+            ...listed('dish_estimate'),
             ...listed('ifct2017'),
           ]),
         );
@@ -469,6 +471,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
           <Text style={styles.source}>Foods marked INDB: {INDB_ACKNOWLEDGEMENT}</Text>
           <Text style={styles.source}>Foods marked Brand label: {BRAND_LABEL_CREDIT}</Text>
           <Text style={styles.source}>Home-style foods (a bread slice, butter toast and the like): {HOME_FOODS_CREDIT}</Text>
+          <Text style={styles.source}>Estimated dishes: {DISH_ESTIMATES_CREDIT}</Text>
           <Text style={styles.source}>Foods marked Packaged: {OFF_ATTRIBUTION}.</Text>
         </Sheet>
       ) : null}

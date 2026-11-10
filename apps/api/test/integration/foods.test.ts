@@ -4,12 +4,13 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readRecipeSheet, type ImportedDish } from '../../src/foods/dishes.ts';
 import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../../src/foods/brandLabels.ts';
+import { DISH_ESTIMATE_SOURCE, readDishEstimatesSheet } from '../../src/foods/dishEstimates.ts';
 import { HOME_FOOD_SOURCE, readHomeFoodsSheet } from '../../src/foods/homeFoods.ts';
 import { readIfctCsv } from '../../src/foods/ifct.ts';
 import { INDB_GROUP, INDB_SOURCE, readIndbCsv } from '../../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../../src/foods/importFoods.ts';
 import { readMeasuresSheet } from '../../src/foods/measures.ts';
-import { readPackagedCsv } from '../../src/foods/offIndia.ts';
+import { readPackagedCsv, withExtraPackaged } from '../../src/foods/offIndia.ts';
 import { readUsdaCsv } from '../../src/foods/usda.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
@@ -332,6 +333,52 @@ describe('D-59 home-style foods: foods:import and GET /v1/foods', () => {
   });
 });
 
+describe('D-62 estimated dishes: foods:import and GET /v1/foods', () => {
+  const ESTIMATES = readDishEstimatesSheet(readFileSync(new URL('../../../../docs/data/dish-estimates-sheet.csv', import.meta.url), 'utf8'));
+
+  it('imports the approved rows of the committed sheet whole, each with its serving, flagged llm; the held rows stay out', async () => {
+    try {
+      expect((await importFoods(client, ESTIMATES.foods, DISH_ESTIMATE_SOURCE)).total).toBe(5_025);
+      expect(await importPortions(client, DISH_ESTIMATE_SOURCE, ESTIMATES.portions)).toBe(5_025);
+      expect(
+        (await client.query(`select flag, estimated, count(*)::int as n from app.foods where source = 'dish_estimate' group by flag, estimated`)).rows,
+      ).toEqual([{ flag: 'llm', estimated: true, n: 5_025 }]);
+      expect((await client.query(`select count(*)::int as n from app.foods where code = 'est-classic-south-indian-rava-idli'`)).rows).toEqual([{ n: 0 }]);
+    } finally {
+      await importFoods(client, [], DISH_ESTIMATE_SOURCE);
+    }
+  });
+
+  it('serves an estimated dish, marked estimated, with its base food words as aliases and its serving, never its flag', async () => {
+    const user = await api.signUpWithAccount();
+    await importFoods(client, ESTIMATES.foods, DISH_ESTIMATE_SOURCE);
+    await importPortions(client, DISH_ESTIMATE_SOURCE, ESTIMATES.portions);
+    try {
+      const response = await getFoods(user.token);
+      const body: FoodsResponse = response.json();
+
+      expect(body.items?.find((food) => food.code === 'est-bhindi-masala')).toEqual({
+        source: 'dish_estimate',
+        code: 'est-bhindi-masala',
+        name: 'Bhindi Masala',
+        foodGroup: 'Okra / Bhindi',
+        aliases: ['okra', 'bhindi'],
+        proteinG: 2.5,
+        fibreG: 2.5,
+        fatG: 6.5,
+        carbsG: 9,
+        kcal: 100,
+        kcalEstimated: true,
+        measures: [],
+        portions: [{ label: 'Katori', grams: 150 }],
+      });
+      expect(response.body).not.toContain('llm');
+    } finally {
+      await importFoods(client, [], DISH_ESTIMATE_SOURCE);
+    }
+  });
+});
+
 // Synthetic brand labels: made-up values, not real products'.
 describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
   const SHEET_HEADER = 'code,brand,product,status,basis,kcal,protein_g,carbs_g,fat_g,fibre_g,serving,serving_grams,source_url,read_on,notes,flag,search_words';
@@ -469,6 +516,15 @@ describe('D-48 packaged foods sold in India: foods:import and GET /v1/foods', ()
     try {
       expect(await importPackagedFoods(client, packaged)).toBe(9_764);
       expect((await client.query('select count(*)::int as n from app.packaged_foods')).rows).toEqual([{ n: 9_764 }]);
+    } finally {
+      await importPackagedFoods(client, []);
+    }
+  });
+
+  it('D-62 imports the 11 extra products from the owner’s dish database with them', async () => {
+    const read = (file: string) => readPackagedCsv(readFileSync(new URL(`../../../../data/foods/${file}`, import.meta.url), 'utf8'));
+    try {
+      expect(await importPackagedFoods(client, withExtraPackaged(read('off-india-products.csv'), read('off-india-extra.csv')))).toBe(9_775);
     } finally {
       await importPackagedFoods(client, []);
     }

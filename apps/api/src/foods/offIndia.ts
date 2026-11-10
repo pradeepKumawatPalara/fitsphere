@@ -139,6 +139,19 @@ function round(value: number): number {
 
 const VALUE = /^\d{1,4}(\.\d{1,2})?$/;
 
+/**
+ * The packaged foods with those of data/foods/off-india-extra.csv added (D-62): products from the
+ * owner's dish database (Open Food Facts India, export of 27 October 2026) that FitSphere's own export
+ * lacked and that pass the same checks. A barcode in both, ignoring leading zeros, refuses the import.
+ */
+export function withExtraPackaged(foods: readonly PackagedFood[], extra: readonly PackagedFood[]): PackagedFood[] {
+  const key = (barcode: string) => barcode.replace(/^0+/, '');
+  const known = new Set(foods.map((food) => key(food.barcode)));
+  const twice = extra.find((food) => known.has(key(food.barcode)));
+  if (twice) throw new FoodListError(`Packaged foods: barcode ${twice.barcode} is in both files`);
+  return [...foods, ...extra];
+}
+
 /** Parses and checks the whole file; any problem refuses all of it, naming the line. */
 export function readPackagedCsv(text: string): PackagedFood[] {
   const [header, ...rows] = parseCsv(text);

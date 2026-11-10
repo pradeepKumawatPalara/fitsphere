@@ -464,7 +464,7 @@ export const MEAL_ITEM_MEASURES_MAX = 10;
 /** The most one item can hold, whatever its amount. */
 export const MEAL_ITEM_KCAL_MAX = 20_000;
 export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
-export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'brand_label', 'home', 'dish', 'barcode', 'own'] as const;
+export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'brand_label', 'home', 'dish_estimate', 'dish', 'barcode', 'own'] as const;
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
 /** The servings of a USDA or INDB food, in halves, as household units (more-foods plan; D-46). */
 export const MEAL_ITEM_SERVINGS_MAX = 10;
@@ -549,6 +549,8 @@ const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
   brand_label: ['g', 'serving'],
   // A home-style food in grams or its serving (D-59).
   home: ['g', 'serving'],
+  // An estimated dish in grams or its serving (D-62).
+  dish_estimate: ['g', 'serving'],
   dish: ['portion'],
   // A packaged food by its barcode, also in the serving its label gives in grams (D-48).
   barcode: ['g', 'serving'],
@@ -962,10 +964,11 @@ export const INDB_ACKNOWLEDGEMENT =
 
 /**
  * The food list's sources: Indian data only (D-47), since D-49 brands' own labels approved by the
- * owner, and since D-59 home-style forms of daily foods (a bread slice, butter toast). USDA's FNDDS
- * foods are archived on the server, not served; a meal logged with one keeps it (MEAL_ITEM_SOURCES).
+ * owner, since D-59 home-style forms of daily foods (a bread slice, butter toast), and since D-62
+ * estimated dishes: Indian dishes with the typical values of their type of dish. USDA's FNDDS foods
+ * are archived on the server, not served; a meal logged with one keeps it (MEAL_ITEM_SOURCES).
  */
-export const FOOD_SOURCES = ['ifct2017', 'indb', 'brand_label', 'home'] as const;
+export const FOOD_SOURCES = ['ifct2017', 'indb', 'brand_label', 'home', 'dish_estimate'] as const;
 export type FoodSource = (typeof FOOD_SOURCES)[number];
 
 /** One food of the list, per 100 g edible portion. */

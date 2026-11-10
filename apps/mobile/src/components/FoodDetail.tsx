@@ -167,9 +167,11 @@ export function FoodDetail({
   const [start] = useState(() => (from ? startOf(result, measures, from) : null));
   // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
   // so its serving, not grams of the cooked dish, gives INDB's own figures. A home-style food opens on
-  // its serving too, as it is eaten: a slice, two slices, a plate (D-59). A recent food opens on the
-  // amount it was last logged in, when it still has it (D-60).
-  const servingFirst = result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home') && result.food.portions.length > 0;
+  // its serving too, as it is eaten: a slice, two slices, a plate (D-59), and so does an estimated
+  // dish: a katori, a plate, a piece (D-62). A recent food opens on the amount it was last logged in,
+  // when it still has it (D-60).
+  const servingFirst =
+    result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
   const [measureIndex, setMeasureIndex] = useState(start?.measureIndex ?? (servingFirst ? 1 : 0));
   const [count, setCount] = useState(start?.count ?? 1);
   const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
