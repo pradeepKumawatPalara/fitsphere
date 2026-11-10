@@ -27,6 +27,17 @@ remove from; Save saves every meal changed and stays (the back arrow leaves); a 
 with food (no step turns green); back, or another date, with changes not saved asks first. Editing
 from a meal's pencil is unchanged. Phone app only: no server change, no migration, no new build.
 
+**Workout timer — built on branch `feat/workout-timer` (D-71, 2026-11-10), in its own folder
+`D:\fitsphere-timer` (removed once merged).** Plan: `docs/plans/workout-timer.md` (Accepted),
+REQ-TRN-003, REQ-TRN-004; canvas boards `WorkoutTimer*` and `TrainingTimer*` locked (version 68). A
+workout of today has **Start workout** in a bar at its foot; then the time in minutes and seconds,
+Pause or Resume, and Mark done ("Done · total time", pauses left out; Resume today only); a timer
+started can be finished after midnight; Training's rows say "Running", "Paused" or "Done" with the
+time; a timed workout is listed before its first exercise but counts only with one (D-41). The time
+comes from the clock (`app.workouts.timer_*`, migrations `0025_workout_timer.sql` and `0026_workout_timer_count.sql`; phone schema
+version 18, `workouts.timer`). No new build. **On `fitsphere-dev`: migrations 0025 and 0026 before the updated
+API; only when the owner says so.**
+
 **Training tab: By day and All workouts — built on branch `feat/training-tab` (D-65, 2026-11-10),
 in its own folder `D:\fitsphere-training` (removed once merged); on top of D-63.** The date strip at
 the top of Training (a green mark on each workout day) replaces the date chip; "By day" shows the

@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (the exercise library's places, D-67: migration 0022, phone schema version 16).
+- Last updated: 2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
+  Earlier the same day (the exercise library's places, D-67: migration 0022, phone schema version 16).
   Earlier the same day (Search foods' ready-made search text, D-66: phone schema version 15).
   2026-11-05 (the exercise list and the exercise's new shape, D-50: migration 0016,
   `exercises`, phone schema version 13). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
@@ -214,6 +215,10 @@ may hold several workouts, and each with at least one exercise counts toward the
 | `day` | `date` | Not null. The IST day the user chose when starting it (invariant #5); not later than today in IST. Kept after a deletion |
 | `exercises` | `jsonb` | **Health**. An array of 0 to 30 exercises; null exactly when the workout is deleted |
 | `recorded_at` | `timestamptz` | Not null. When the workout was started on the phone (UTC); editing it keeps this time |
+| `timer_started_at` | `timestamptz` | **Health**. The workout timer (D-71): when "Start workout" was first tapped (UTC); null until then |
+| `timer_counted_seconds` | `integer` | The time counted before the current run, 0 to 86,400; null exactly when `timer_started_at` is |
+| `timer_running_since` | `timestamptz` | While the timer runs, when it was last started or resumed (UTC); otherwise null |
+| `timer_done_at` | `timestamptz` | When the timer was marked done (UTC); otherwise null. Never set while `timer_running_since` is |
 | `deleted_at` | `timestamptz` | When the user deleted it; null while it exists |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
@@ -235,8 +240,14 @@ may hold several workouts, and each with at least one exercise counts toward the
   Workouts keep each exercise's name, not a link to the exercise list.
 - A new change for the workout replaces the whole workout, and the change the server receives
   last wins, also over an earlier deletion (ADR-0007 rule 2).
-- **Deleting** empties `exercises` and sets `deleted_at`, keeping the row and its day, so the
-  user's other phones learn of the deletion at their next sync.
+- **The timer** (D-71, migrations 0025 and 0026): the four `timer_` columns are all null, or the timer has
+  started with a count; running (`timer_running_since` set), paused (neither set) or done
+  (`timer_done_at` set). Its time is the count plus the time since `timer_running_since`, at most 24
+  hours, worked out on the phone. In changes and the pull it is one field, `timer`: `{ startedAt,
+  countedSeconds, runningSince, doneAt }` or null; a `workout.set` without it, from an app before
+  D-71, keeps the timer stored.
+- **Deleting** empties `exercises` and the timer and sets `deleted_at`, keeping the row and its day,
+  so the user's other phones learn of the deletion at their next sync.
 - Indexes (`user_id`, `change_seq`) for the sync pull and (`user_id`, `day`) for the history.
 - Who may read or write it: the
   [permission matrix](../security/data-and-threat-model.md#permission-matrix) ("Workouts and
@@ -610,7 +621,7 @@ rule 5 and D-14 require.
 | `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g, `measures` (JSON) | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3; `measures` version 8 |
 | `dishes` | `code` (key), `name`, `portion_unit`, values for one portion | The dishes of `GET /v1/foods` (D-28), replaced whole with `foods`. Not personal data. Schema version 5 |
 | `photos` | `id` (key, the photo ID), `meal_id`, `thumbnail`, `full` (base64 JPEG), `uploaded`, `created_at` | **Health.** The encrypted photo cache (ADR-0007 rule 5; ADR-0002 rule 7): photo files are kept only here, never as files. A photo taken here keeps both files and waits with `uploaded = 0`; one from another phone keeps the files once viewed. Schema version 4 |
-| `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
+| `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `timer` (JSON or null), `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29); `timer` version 18 (D-71), null for the workouts stored before |
 | `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
 | `my_foods` | `id` (key), `name`, `unit`, the values, `saved_at`, `sync_state` | **Health.** My foods (REQ-LOG-011), never pruned. Schema version 10 (D-39) |
 | `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `speed_mets` (JSON), `places` (JSON), `place_keys`, `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, and `place_keys` its places as the exercise sheet's Category and Sub-group narrow a search ("<Barbell>Chest<" each, D-67), written on the phone. Not personal data. Schema version 13 |

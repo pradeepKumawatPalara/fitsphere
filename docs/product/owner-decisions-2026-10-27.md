@@ -2166,6 +2166,56 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-71 The workout timer: Start workout, Pause and Resume, Mark done, today only
+- Status: **Accepted** (owner, in chat, 2026-11-10: "in the log workout of the Training tab I want to
+  have a start work button where when the User click it shows a stopwatch/timer that count time in
+  minutes and seconds and when the work out has been done user can marke this workout done. and total
+  time is calculated. User can stop the timer and resume at the any time. this is enable for the today
+  date only."; the plan `docs/plans/workout-timer.md` and the canvas's "4.2 A workout · PROPOSED
+  (D-71): the workout timer", version 66, approved and locked with "approve, lock it"). Numbered D-71
+  because D-70 (the meal insight) was taken by work built at the same time.
+- Answer:
+  - **Start workout**: a workout of today has a bar at the foot of its screen with **Start workout**.
+    Tapped, the bar shows **Workout time** counting up in minutes and seconds ("12:34"; from an hour,
+    "1:05:12"), a green **Running** tag, **Pause** and **Mark done**.
+  - **Pause and Resume** at any time: paused, the time stops, the tag turns gold, **Paused**, and
+    Pause becomes **Resume**, which counts on from where it stopped.
+  - **Mark done** stops the timer and the bar goes; under the title a green panel says **Done · total
+    time 52:40**: the time counted, pauses left out. A **Resume** on the panel, on a workout of today,
+    undoes a Mark done tapped by mistake and counts on.
+  - **Today only**: a workout of another date has no Start workout and no bar; a timed one shows its
+    done panel without Resume.
+  - On **Training**, in By day and All workouts, a timed workout's row says **Running · 12:34**
+    (green, counting), **Paused · 31:08** (gold) or **Done · 52:40**.
+- MVP defaults:
+  - A timer already started can be paused, resumed and marked done whatever the date, so a workout
+    that runs past midnight can be finished; it stays on the date it was logged to.
+  - The time comes from the phone's clock: leaving the screen, closing the app or turning the phone
+    off does not stop it. A clock set back takes no time away; a timer shows 24 hours at most.
+  - Mark done is not required: the workout is still saved at every change (D-29), and a workout logged
+    without the timer stays as it was. Mark done with no exercise is allowed and keeps the time.
+  - A workout whose timer has started is **listed** on Training and in Home's day sheet before its
+    first exercise ("No exercises"), so a running workout is never lost; this changes D-65's "a workout
+    with no exercise is not listed" for timed workouts only. It still **counts toward the week only once
+    it has an exercise** (D-41, unchanged).
+  - Each workout has its own timer; two may run at once. Deleting a workout deletes its timer.
+  - Not in this change: Reset to 0:00, laps and rest timers, sound or vibration, a lock-screen timer
+    (it needs a native module and a new build), the time on Home, typing the total by hand, using the
+    time to estimate calories.
+- Server: `workout.set` takes `timer` (`startedAt`, `countedSeconds` 0 to 86,400, `runningSince`,
+  `doneAt`; never running and done at once), or null; a change without it, from an app before D-71,
+  keeps the timer stored. The pull and `GET /v1/users/{userId}/workouts` send it. Migration
+  `0025_workout_timer.sql`: four columns on `app.workouts`, with checks; a deleted workout has none;
+  `0026_workout_timer_count.sql` makes the count required once the timer has started (0025's rule let
+  a start with no count through). Any database needs migrations 0025 and 0026 before this API runs.
+- Phone: schema version 18, a `timer` column (JSON) on `workouts`; workouts stored before have none.
+  JavaScript only: no new build.
+- Doc changes: REQ-TRN-003 and REQ-TRN-004; the data model and `api-conventions.md`; the redesign plan
+  (4.1, 4.2); `constraints-and-assumptions.md`; the slice 4 manual test guide (S4-22 to S4-26);
+  CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

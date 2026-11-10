@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -208,7 +208,7 @@ Request:
   | `steps.set` | `day`, `steps`, `recordedAt` | Whole steps, 0 to 100,000 (Q-028) |
   | `sleep.set` | `day`, `sleepMinutes`, `recordedAt` | Whole minutes, 0 to 1,440 (Q-028) |
   | `measurements.set` | `day`, `upperWaistMm`, `lowerWaistMm`, `chestMm`, `hipsMm`, `armMm`, `thighMm`, `notes`, `recordedAt` | Both waist values required; the others `null` when not entered. Whole millimetres, 100 to 2,500 (Q-028). `notes` 1 to 500 characters, or `null` |
-  | `workout.set` | `id`, `day`, `exercises`, `recordedAt` | `id` is a UUID made on the phone. 0 to 30 exercises, each `{ name, sets, reps, weightGrams, note }`: name 1 to 80 characters; sets 1 to 20; reps 1 to 200; `weightGrams` 100 to 500,000 or `null`; `note` 1 to 500 characters or `null` (data model, `workouts`) |
+  | `workout.set` | `id`, `day`, `exercises`, `recordedAt`, `timer` | `id` is a UUID made on the phone. 0 to 30 exercises, each as the data model's `workouts` sets out (D-50). `timer` (D-71) is `{ startedAt, countedSeconds, runningSince, doneAt }`, `countedSeconds` 0 to 86,400, never running and done at once, or `null`; a change without it, from an app before D-71, keeps the timer stored |
   | `workout.delete` | `id`, `deletedAt` | Deletes the user's workout with that ID |
   | `meal.set` | `id`, `day`, `mealType`, `tags`, `items`, `photo`, `recordedAt` | Creates the meal, or replaces the whole meal with this `id`. 1 to 30 items; each item's fields and limits are in the data model (`meals`). The server computes the totals; a change that sends them is refused as an unknown field. `photo` is `{"kind": "photo", "mediaId": …}`, `{"kind": "link", "url": …}`, or null or left out for none; a photo ID already used by another meal, or deleted, is refused (data model, `media`). A dish item must be in portions and name a dish on the list, and every other item must be in grams; otherwise the change is `VALIDATION_FAILED` (D-28) |
   | `meal.delete` | `id`, `deletedAt` | Deletes the meal and its photo. A meal the server never had is accepted and changes nothing |
@@ -346,6 +346,7 @@ Sorted by day, oldest first; workouts on the same day by `id`. Deleted workouts 
   "items": [
     { "id": "0b9e1d2c-…", "day": "2026-07-01",
       "exercises": [ { "name": "Squat", "sets": 3, "reps": 10, "weightGrams": 40000, "note": null } ],
+      "timer": { "startedAt": "…", "countedSeconds": 3160, "runningSince": null, "doneAt": "…" },
       "recordedAt": "…", "updatedAt": "…" }
   ],
   "nextCursor": null
@@ -357,6 +358,7 @@ Sorted by day, oldest first; workouts on the same day by `id`. Deleted workouts 
   cursor from another route is `VALIDATION_FAILED`.
 - The app uses it for the user's own workouts older than the 90 days the phone holds, read online
   (REQ-TRN-004; ADR-0007 rules 1 and 6).
+- `timer` is the workout's timer (D-71), or `null` when it was never started.
 
 ### `GET /v1/foods`
 Query: `version` (optional), the version of the list the phone already holds.
