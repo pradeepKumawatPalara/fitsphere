@@ -506,6 +506,32 @@ it logs to, and All workouts lists every workout by month.
 
 ---
 
+### S4-21 · Category and Sub-group (D-67)
+**Screen:** Workout › Add exercise · **Covers:** REQ-TRN-003, D-67 · **Start:** Training, today selected, online, after `exercises:import` with the library · **Data:** none
+
+| # | Tap / do | Enter or select | You should see |
+|---|---|---|---|
+| 1 | **Log workout for today** › **Add exercise** | — | Above "Exercise name": **Category** "All categories" and **Sub-group** "All sub-groups" |
+| 2 | Tap **Category** | — | A list under the two fields: "All categories" ticked, then Barbell, Olympic Weightlifting, Dumbbell… each with its count |
+| 3 | Tap **Barbell** | — | Category "Barbell"; "Barbell · 134 exercises" (about) and its exercises, each with its sub-group |
+| 4 | Tap **Sub-group**; tap **Chest** | — | Only Barbell's sub-groups were listed; now "Barbell · Chest · 20 exercises" (about), with no tags |
+| 5 | Exercise name | `press` | "N matches in Barbell · Chest", each a bench press |
+| 6 | Exercise name | `curl` | "No exercise in Barbell · Chest matches "curl"…" and **Search all categories** |
+| 7 | Tap **Search all categories** | — | Both back to All; the curls of every category, each with its category and sub-group |
+| 8 | Category **Smith Machine** | — | Sub-group reads "No sub-groups" and doesn't open |
+| 9 | Category **Sled / Prowler**; tap **Sled Push (High Handles)** | — | Weight and time sets; Calories: "This exercise has no estimate: type the number from your machine or watch." |
+| 10 | Clear the name; type `push-up` | — | "Standard Push-Up" (our old "Push-up" is one of its other names) |
+
+**Final expected result:** Category and Sub-group narrow the exercise list, and the library's
+exercises are found and logged like the others.
+
+**Result**
+- [ ] Pass
+- [ ] Fail
+- Actual result / notes:
+
+---
+
 ## Cleanup
 
 | # | What | How | Confirm |
@@ -547,3 +573,4 @@ it logs to, and All workouts lists every workout by month.
 | S4-18 | Weight, steps, sleep (regression) | | |
 | S4-19 | 30 exercises (optional) | | |
 | S4-20 | By day and All workouts (D-65) | | |
+| S4-21 | Category and Sub-group (D-67) | | |

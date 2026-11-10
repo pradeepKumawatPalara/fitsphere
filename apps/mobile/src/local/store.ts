@@ -1463,6 +1463,7 @@ type ExerciseRow = {
   compendium_code: string | null;
   met: number | null;
   speed_mets: string;
+  places: string;
 };
 
 function toListedExercise(row: ExerciseRow): ListedExercise {
@@ -1475,11 +1476,35 @@ function toListedExercise(row: ExerciseRow): ListedExercise {
     compendiumCode: row.compendium_code,
     met: row.met,
     speedMets: JSON.parse(row.speed_mets) as ListedExercise['speedMets'],
+    places: JSON.parse(row.places) as ListedExercise['places'],
   };
 }
 
-/** Exercises a statement writes when the list is replaced: 10 values each, within SQLite's 999. */
-const EXERCISE_ROWS_PER_INSERT = 90;
+/**
+ * An exercise's places as keys a search narrows by (D-67): "<Barbell>Chest<" for each, so a category
+ * is found with LIKE '%<Barbell>%', a sub-group with '%>Chest<%' and both with '%<Barbell>Chest<%'.
+ */
+function placeKeys(places: ListedExercise['places']): string {
+  return places.map((place) => `<${place.category}>${place.subGroup ?? ''}<`).join('');
+}
+
+/** What the exercise sheet's Category and Sub-group narrow a search to (D-67); null for every one. */
+export type ExerciseFilter = { category: string | null; subGroup: string | null };
+
+/** The SQL that keeps a search to `filter`'s exercises, or null for all. */
+function placeCondition(filter: ExerciseFilter | undefined): SqlPart | null {
+  if (!filter || (filter.category === null && filter.subGroup === null)) return null;
+  const pattern =
+    filter.category !== null && filter.subGroup !== null
+      ? `%<${escapeLike(filter.category)}>${escapeLike(filter.subGroup)}<%`
+      : filter.category !== null
+        ? `%<${escapeLike(filter.category)}>%`
+        : `%>${escapeLike(filter.subGroup!)}<%`;
+  return { sql: `place_keys LIKE ? ESCAPE '\\'`, params: [pattern] };
+}
+
+/** Exercises a statement writes when the list is replaced: 12 values each, within SQLite's 999. */
+const EXERCISE_ROWS_PER_INSERT = 80;
 
 /** Replaces the cached exercise list (D-50) and records its version, in one transaction. */
 export async function replaceExercises(db: SqlDb, version: string, exercises: readonly ListedExercise[]): Promise<void> {
@@ -1488,8 +1513,8 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
     for (let start = 0; start < exercises.length; start += EXERCISE_ROWS_PER_INSERT) {
       const batch = exercises.slice(start, start + EXERCISE_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, search_text, name_keys)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, places, place_keys, search_text, name_keys)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((exercise) => [
           exercise.code,
           exercise.name,
@@ -1499,6 +1524,8 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
           exercise.compendiumCode,
           exercise.met,
           JSON.stringify(exercise.speedMets),
+          JSON.stringify(exercise.places),
+          placeKeys(exercise.places),
           exerciseSearchText(exercise),
           // " name other names ", so a whole key is found with LIKE '% key %' and the name's comes first.
           ` ${[exercise.name, ...exercise.aliases].map(exerciseNameKey).join(' ')} `,
@@ -1512,17 +1539,54 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
 /**
  * Searches the cached exercise list, offline (D-50): every word must appear in the name, another name
  * or the group's words, ignoring case, hyphens and doubled letters ("dumbell" finds "Dumbbell"); names
- * starting with the first word come first.
+ * starting with the first word come first. With a category or sub-group (D-67), only that one's
+ * exercises; then no words lists them all, by name. An exercise named, or with another name, exactly
+ * as typed comes before all (D-67: "push-up" finds "Standard Push-Up", which took over our Push-up).
  */
-export async function searchExercises(db: SqlDb, query: string, limit = 8): Promise<ListedExercise[]> {
+export async function searchExercises(db: SqlDb, query: string, limit = 8, filter?: ExerciseFilter): Promise<ListedExercise[]> {
   const words = exerciseQueryWords(query);
-  if (words.length === 0) return [];
+  const place = placeCondition(filter);
+  if (words.length === 0 && place === null) return [];
+  const conditions = [...words.map(() => `search_text LIKE ? ESCAPE '\\'`), ...(place ? [place.sql] : [])];
   const rows = await db.getAllAsync<ExerciseRow>(
-    `SELECT * FROM exercises WHERE ${words.map(() => `search_text LIKE ? ESCAPE '\\'`).join(' AND ')}
-     ORDER BY name_keys LIKE ? DESC, name COLLATE NOCASE LIMIT ?`,
-    [...words.map(like), ` ${startsWith(words[0]!)}`, limit],
+    `SELECT * FROM exercises WHERE ${conditions.join(' AND ')}
+     ORDER BY ${words.length > 0 ? "name_keys LIKE ? ESCAPE '\\' DESC, name_keys LIKE ? DESC, " : ''}name COLLATE NOCASE LIMIT ?`,
+    [
+      ...words.map(like),
+      ...(place ? place.params : []),
+      ...(words.length > 0 ? [`% ${escapeLike(exerciseNameKey(query))} %`, ` ${startsWith(words[0]!)}`] : []),
+      limit,
+    ],
   );
   return rows.map(toListedExercise);
+}
+
+/** How many exercises each category, each category's sub-group and each sub-group name holds (D-67). */
+export type ExercisePlaceCounts = {
+  total: number;
+  byCategory: ReadonlyMap<string, number>;
+  /** By "Category>Sub-group". */
+  byPlace: ReadonlyMap<string, number>;
+  /** By sub-group name, across categories: "Chest" in Barbell, Dumbbell, Cable and Machine. */
+  bySubGroup: ReadonlyMap<string, number>;
+};
+
+/** Counts the cached list's exercises by category and sub-group (D-67); an exercise counts once in each. */
+export async function exercisePlaceCounts(db: SqlDb): Promise<ExercisePlaceCounts> {
+  const rows = await db.getAllAsync<{ places: string }>('SELECT places FROM exercises', []);
+  const byCategory = new Map<string, number>();
+  const byPlace = new Map<string, number>();
+  const bySubGroup = new Map<string, number>();
+  const add = (map: Map<string, number>, keys: Iterable<string>) => {
+    for (const key of keys) map.set(key, (map.get(key) ?? 0) + 1);
+  };
+  for (const row of rows) {
+    const places = JSON.parse(row.places) as ListedExercise['places'];
+    add(byCategory, new Set(places.map((place) => place.category)));
+    add(byPlace, new Set(places.filter((place) => place.subGroup !== null).map((place) => `${place.category}>${place.subGroup}`)));
+    add(bySubGroup, new Set(places.flatMap((place) => (place.subGroup === null ? [] : [place.subGroup]))));
+  }
+  return { total: rows.length, byCategory, byPlace, bySubGroup };
 }
 
 /** The weight to estimate calories burned with (D-50): the latest weigh-in on or before `day`, or null. */

@@ -2,16 +2,20 @@ import { readFileSync } from 'node:fs';
 import type { ExercisesResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { importExercises, readExerciseList, readSpeedMets } from '../../src/exercises/exerciseList.ts';
+import { importExercises, readExerciseLibrary, readExerciseList, readSpeedMets } from '../../src/exercises/exerciseList.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 import { connect } from './database.ts';
 
-// The exercise-list import into PostgreSQL and GET /v1/exercises (D-50).
+// The exercise-list import into PostgreSQL and GET /v1/exercises (D-50), with the exercise library's
+// exercises and places (D-67).
 
 const LIST = readSpeedMets(
   readFileSync(new URL('../../../../data/exercises/speed-mets.csv', import.meta.url), 'utf8'),
-  readExerciseList(readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8')),
+  readExerciseLibrary(
+    readFileSync(new URL('../../../../docs/data/exercise-library-sheet.csv', import.meta.url), 'utf8'),
+    readExerciseList(readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8')),
+  ),
 );
 
 let client: pg.Client;
@@ -41,11 +45,22 @@ describe('D-50 exercises:import', () => {
     const { rows } = await client.query<{ total: number; without: number }>(
       `select count(*)::int as total, count(*) filter (where met is null)::int as without from app.exercises`,
     );
-    expect(rows[0]).toEqual({ total: 334, without: 2 });
+    expect(rows[0]).toEqual({ total: 2119, without: 270 });
     const running = await client.query(`select log_type, compendium_code, met::text, aliases from app.exercises where code = 'running'`);
     expect(running.rows).toEqual([{ log_type: 'distance_time', compendium_code: '12145', met: '10.5', aliases: ['run', 'outdoor run'] }]);
     const bands = await client.query(`select count(*)::int as n from app.exercise_speed_mets`);
     expect(bands.rows).toEqual([{ n: 87 }]);
+    const pushPress = await client.query(`select places from app.exercises where code = 'push-press'`);
+    expect(pushPress.rows).toEqual([
+      {
+        places: [
+          { category: 'Barbell', subGroup: 'Shoulders' },
+          { category: 'CrossFit / Functional Fitness', subGroup: 'Weightlifting & Loaded' },
+        ],
+      },
+    ]);
+    const placed = await client.query(`select count(*)::int as n from app.exercises where places <> '[]'::jsonb`);
+    expect(placed.rows).toEqual([{ n: 2019 }]);
   });
 
   it('gives the same table when run again, removes an exercise no longer listed, and leaves the table as it was on a failure', async () => {
@@ -54,10 +69,10 @@ describe('D-50 exercises:import', () => {
     expect((await client.query(`select 1 from app.exercise_speed_mets where exercise_code = 'cycling'`)).rowCount).toBe(0);
 
     await expect(importExercises(client, [...LIST.slice(0, 5), { ...LIST[5]!, met: -1 }])).rejects.toThrow();
-    expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(332);
+    expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(2117);
 
     await importExercises(client, LIST);
-    expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(334);
+    expect((await client.query(`select count(*)::int as n from app.exercises`)).rows[0]?.n).toBe(2119);
   });
 });
 
@@ -90,17 +105,19 @@ describe('authorization: GET /v1/exercises', () => {
 
     expect(response.statusCode).toBe(200);
     const body: ExercisesResponse = response.json();
-    expect(body.items).toHaveLength(334);
-    expect(body.items?.find((exercise) => exercise.code === 'push-up')).toEqual({
-      code: 'push-up',
-      name: 'Push-up',
+    expect(body.items).toHaveLength(2119);
+    expect(body.items?.find((exercise) => exercise.code === 'standard-push-up')).toEqual({
+      code: 'standard-push-up',
+      name: 'Standard Push-Up',
       group: 'bodyweight',
       logType: 'reps',
-      aliases: ['pushups', 'press-up'],
+      aliases: ['Push-up', 'pushups', 'press-up'],
       compendiumCode: '02022',
       met: 3.8,
       speedMets: [],
+      places: [{ category: 'Bodyweight / Calisthenics', subGroup: 'Push' }],
     });
+    expect(body.items?.find((exercise) => exercise.code === 'kabaddi')?.places).toEqual([]);
     expect(body.items?.find((exercise) => exercise.code === 'running')?.speedMets.slice(0, 2)).toEqual([
       { fromKmh: 4.2, compendiumCode: '12026', met: 3.3 },
       { fromKmh: 6.4, compendiumCode: '12028', met: 6.5 },

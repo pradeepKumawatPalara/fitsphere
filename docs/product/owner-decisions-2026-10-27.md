@@ -2033,6 +2033,57 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-67 The exercise library: the owner's 2,090 exercises, by Category and Sub-group
+- Status: **Accepted** (owner, in chat, 2026-11-10: "In the d:/fitssphere-data I have added a new
+  file: Gym_Exercise_Library. reads it and Dumped it into our Fitsshere excesice database. SO that
+  when the USer search for it. It can see the Rssult."; "While Adding the excercise there should be a
+  two new drosown to slect the excesice category and subgroup refer to the sheets"; "for the existing
+  available excercise LEave the cateogry and sub group value empty for now"; "If as the our new list
+  system can not calculate the calories and keep is empty let theuser emter its value by itslef"; "for
+  the New list decide ourself that this excesice needs the stes, timer and other entervalue as pr your
+  decsion. whatever you took decison for the each excesrcie generate the CSV and let me knwot he name.
+  I will Verify it by myself."; then, on the plan's questions: "Allow the sme excercise to the
+  different category for now"; "these are already in our list so you can copy paste these category and
+  subgroup"; "The file come from My AI tool"; "Keep the only one from the new Excel sheet"; on the plan
+  and the canvas's "4.3 Exercise sheet · PROPOSED": "approve, lock it").
+- Answer (plan [`docs/plans/exercise-library.md`](../plans/exercise-library.md); the redesign's 4.3,
+  changed):
+  - The owner's file (`D:\fitsphere-data\Gym_Exercise_Library.xlsx`, from the owner's AI tool: 2,090
+    rows, 39 categories, 59 sub-group names) joins the exercise list through the review sheet
+    `docs/data/exercise-library-sheet.csv`: **1,832 new exercises**, each logged as FitSphere decided
+    (one of D-50's eight types), with a Compendium MET where an activity the list already uses fits,
+    and none for 268 (sled work, skills, drills, rehab, most branded classes), whose calories are
+    typed.
+  - An exercise listed in several categories is **one exercise with several places**. An exercise
+    already in our list takes the file's category and sub-group (187 of them).
+  - Of the 84 names like ours, the **47 that are the same exercise replace ours**, keeping our names
+    as other names to be found by; the other 37 stay apart (the plan lists them all). Our list goes
+    from 334 to 287; the whole list is 2,119.
+  - The exercise sheet gets **Category** and **Sub-group** above the name. Sub-group lists the chosen
+    category's sub-groups, or every sub-group name with none chosen ("Chest" finds every category's);
+    a category with none reads "No sub-groups". With either chosen, its exercises show before a word is
+    typed ("Barbell · Chest · 20 exercises"); typing narrows them ("19 matches in Barbell · Chest"); no
+    match offers "Search all categories". The name can still be searched with neither chosen.
+- MVP defaults:
+  - The names stay as the file writes them ("Barbell Flat Bench Press"); seven are renamed so no two
+    clash: Pilates' Swimming, Criss-Cross, Hip Circles and Jackknife become "… (Pilates)", and Warrior
+    I, II and III become Warrior 1, 2 and 3 (the search counts a doubled letter once).
+  - A match shows what the choice does not: its category and sub-group with nothing chosen, its
+    sub-group with a category chosen, nothing with both; an exercise in no category keeps its group.
+  - The categories and sub-groups come in the file's order; Sub-group with no category chosen lists
+    every name A to Z. Each choice shows its count; changing the category clears a sub-group it does
+    not have.
+  - The choice is not saved with the exercise, and the sheet opens with none.
+  - The choice's list opens under the two fields, in the sheet, pushing the name down (the canvas
+    draws it over the name): a list drawn over other content does not take taps on Android.
+- Doc changes: REQ-TRN-003; `docs/data/exercise-list-sources.md`; the data model;
+  `docs/architecture/constraints-and-assumptions.md` (the exercise sheet); `docs/plans/ui-redesign.md`
+  (4.3); `docs/testing/slice-4-manual-testing.md`; `CLAUDE.md`. Migration `0022_exercise_places.sql`
+  (`app.exercises.places`), phone schema version 16; no new build. On `fitsphere-dev`: migration 0022
+  before the updated API, then `exercises:import`; only when the owner says so.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

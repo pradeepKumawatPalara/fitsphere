@@ -26,6 +26,16 @@ the newest open, the others folded. No "No training plan yet" card for now; a wo
 exercise is not listed (Training, Home's day sheet) nor counted when numbering. Phone app only: no server
 change, no migration, no new build.
 
+**Exercise library — built on branch `feat/exercise-library` (D-67, 2026-11-10), on top of
+`feat/training-tab`, in `D:\fitsphere-training`.** Plan: `docs/plans/exercise-library.md` (Accepted),
+REQ-TRN-003. The owner's `Gym_Exercise_Library.xlsx` (from the owner's AI tool, kept outside the
+repository) joins the exercise list through the review sheet `docs/data/exercise-library-sheet.csv`:
+1,832 new exercises (47 replacing ours, our names kept as other names), 2,119 in all, each with its
+places (category and sub-group; `app.exercises.places`, migration `0022_exercise_places.sql`, phone
+schema version 16). The exercise sheet's Category and Sub-group narrow the search. **On
+`fitsphere-dev`: migration 0022 before the updated API, then `exercises:import`; only when the owner
+says so.**
+
 **Exercise list — built on branch `feat/exercise-list` (D-50, 2026-11-05).** Plan:
 `docs/plans/exercise-list.md` (Accepted), REQ-TRN-003; screens 4.1 to 4.3 locked. The exercise sheet
 searches FitSphere's own list of 334 exercises (`data/exercises/exercise-list.csv`, `app.exercises`,

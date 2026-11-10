@@ -6,6 +6,8 @@ import {
   DEFAULT_SETTINGS,
   errorBodySchema,
   exerciseMet,
+  EXERCISE_CATEGORIES,
+  EXERCISE_SUB_GROUPS,
   exerciseNameKey,
   exercisesResponseSchema,
   foodsResponseSchema,
@@ -328,12 +330,26 @@ describe('D-50 the exercise list', () => {
   it('lists each exercise with its group, how it is logged, and its Compendium MET or none', () => {
     const running = { code: 'running', name: 'Running', group: 'cardio', logType: 'distance_time', aliases: ['run'], compendiumCode: '12145', met: 10.5 };
     const kabaddi = { ...running, code: 'kabaddi', name: 'Kabaddi', group: 'sport', logType: 'time_only', aliases: [], compendiumCode: null, met: null };
+    // A list from before D-67 reads with no places.
     expect(exercisesResponseSchema.parse({ version: 'v1', items: [running, kabaddi] }).items).toEqual([
-      { ...running, speedMets: [] },
-      { ...kabaddi, speedMets: [] },
+      { ...running, speedMets: [], places: [] },
+      { ...kabaddi, speedMets: [], places: [] },
     ]);
     expect(exercisesResponseSchema.parse({ version: 'v1', items: null }).items).toBeNull();
     expect(exercisesResponseSchema.safeParse({ version: 'v1', items: [{ ...running, logType: 'laps' }] }).success).toBe(false);
+  });
+
+  it('D-67 gives an exercise its places in the library, a sub-group or none', () => {
+    const squat = { code: 'smith-machine-squat', name: 'Smith Machine Squat', group: 'machine', logType: 'weight_reps', aliases: [], compendiumCode: '02052', met: 5 };
+    const places = [
+      { category: 'Smith Machine', subGroup: null },
+      { category: 'Barbell', subGroup: 'Legs' },
+    ];
+    expect(exercisesResponseSchema.parse({ version: 'v1', items: [{ ...squat, places }] }).items?.[0]?.places).toEqual(places);
+    expect(exercisesResponseSchema.safeParse({ version: 'v1', items: [{ ...squat, places: [{ category: 'Smith Machine' }] }] }).success).toBe(false);
+    expect(EXERCISE_CATEGORIES).toHaveLength(39);
+    expect(EXERCISE_SUB_GROUPS.Barbell).toEqual(['Chest', 'Shoulders', 'Back', 'Legs', 'Glutes', 'Arms', 'Core', 'Full Body']);
+    expect(EXERCISE_SUB_GROUPS['Smith Machine']).toEqual([]);
   });
 
   it('estimates with the speed band starting at the highest speed at or below the speed, or the exercise\u2019s own MET', () => {

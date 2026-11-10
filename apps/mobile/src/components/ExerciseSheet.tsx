@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, View, type TextInputProps } from 'react-native';
 import { parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { findListedExercise, searchExercises, weighInOnOrBefore } from '../local/store';
+import {
+  exercisePlaceCounts,
+  findListedExercise,
+  searchExercises,
+  weighInOnOrBefore,
+  type ExerciseFilter,
+  type ExercisePlaceCounts,
+} from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -28,6 +35,7 @@ import {
   type SetColumn,
   type SetText,
 } from '../workouts';
+import { ExercisePlacePickers, filterLabel } from './ExercisePlacePickers';
 import { Sheet } from './Sheet';
 import { IconButton, Problem, Text, TextButton, TextInput, useChoiceStyles, useFieldLabelStyle } from './ui';
 
@@ -59,6 +67,27 @@ function hours(seconds: number): string {
   return String(Number((seconds / 3600).toFixed(2)));
 }
 
+/** No category or sub-group chosen (D-67). */
+const NO_FILTER: ExerciseFilter = { category: null, subGroup: null };
+/** Matches shown while typing with no choice made (D-50), and the most a category or sub-group shows. */
+const MATCHES_LIMIT = 8;
+const FILTERED_LIMIT = 1000;
+
+/**
+ * What a match is tagged with (D-67): what the choice made doesn't say. With nothing chosen, its
+ * category and sub-group ("Core / Abs · Flexion"); with a category, its sub-group there; with a
+ * sub-group, its category; with both, nothing. An exercise of FitSphere's list in no category keeps
+ * its group (D-50).
+ */
+function matchTag(exercise: ListedExercise, filter: ExerciseFilter): string | null {
+  if (exercise.places.length === 0) return filter.category === null && filter.subGroup === null ? GROUP_LABELS[exercise.group] : null;
+  if (filter.category !== null && filter.subGroup !== null) return null;
+  if (filter.category !== null) return exercise.places.find((place) => place.category === filter.category)?.subGroup ?? null;
+  if (filter.subGroup !== null) return exercise.places.find((place) => place.subGroup === filter.subGroup)?.category ?? null;
+  const [place] = exercise.places;
+  return place!.subGroup === null ? place!.category : `${place!.category} · ${place!.subGroup}`;
+}
+
 /** A set's column as its header and its fields' names read it. */
 function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit): string {
   const label = column === 'reps' ? 'Reps' : column === 'weight' ? `Weight in ${unit}` : 'Time in sec';
@@ -72,7 +101,9 @@ function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit)
 // incline or a machine's level. A name of the user's own asks "Log as". Each set has its own reps,
 // weight and time; Add set copies the last. Weights are in the lifting-weight unit setting
 // (REQ-TRN-005, REQ-ACC-002). Nothing is saved until every field is valid; Cancel closes without
-// saving (as Q-029).
+// saving (as Q-029). Above the name, Category and Sub-group narrow the search (D-67): with either
+// chosen, its exercises show before a word is typed, every match of the words typed after, each
+// tagged with what is not chosen yet; the choice is not saved with the exercise.
 export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -92,6 +123,23 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   // The weight calories are estimated with, and the i's explanation open (D-50).
   const [weightGrams, setWeightGrams] = useState<number | null>(null);
   const [explaining, setExplaining] = useState(false);
+  // The category and sub-group the search is narrowed to, the picker open, and the list's counts (D-67).
+  const [filter, setFilter] = useState<ExerciseFilter>(NO_FILTER);
+  const [picking, setPicking] = useState<'category' | 'subGroup' | null>(null);
+  const [counts, setCounts] = useState<ExercisePlaceCounts | null>(null);
+  const filtered = filter.category !== null || filter.subGroup !== null;
+  const browsing = filtered && text.name.trim() === '';
+
+  useEffect(() => {
+    if (local.state.status !== 'ready') return;
+    let active = true;
+    void exercisePlaceCounts(local.state.db).then((read) => {
+      if (active) setCounts(read);
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state]);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -115,7 +163,11 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([findListedExercise(db, text.name), typingName ? searchExercises(db, text.name) : []]).then(([found, list]) => {
+    const searching = typingName || browsing;
+    void Promise.all([
+      findListedExercise(db, text.name),
+      searching ? searchExercises(db, text.name, filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter) : [],
+    ]).then(([found, list]) => {
       if (!active) return;
       setListed(found);
       setMatches(list);
@@ -123,7 +175,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     return () => {
       active = false;
     };
-  }, [local.state, text.name, typingName]);
+  }, [local.state, text.name, typingName, browsing, filtered, filter]);
 
   // An exercise saved as cardio, now listed as done in sets or the other way round, keeps its own
   // fields while it keeps its name, as a name of the user's own.
@@ -132,7 +184,14 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const match = savedOtherwise ? null : listed;
   const layout = exerciseLayout(match, text.logAs, editing);
   const named = text.name.trim() !== '';
-  const choosing = typingName && matches.length > 0;
+  const choosing = (typingName || browsing) && matches.length > 0;
+  // Words typed in a category or sub-group that match none of its exercises (D-67).
+  const noMatch = filtered && named && typingName && matches.length === 0 && listed === null;
+  const listTitle = !filtered
+    ? 'Matches'
+    : browsing
+      ? `${filterLabel(filter)} · ${matches.length} ${matches.length === 1 ? 'exercise' : 'exercises'}`
+      : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} in ${filterLabel(filter)}`;
   const estimated = estimateCalories(match, effortOf(text, layout), weightGrams);
   const estimate = 'estimate' in estimated ? estimated.estimate : null;
 
@@ -179,6 +238,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         </>
       }
     >
+      <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={setFilter} />
+
       <View style={styles.field}>
         <Text style={labelStyle}>Exercise name</Text>
         <View style={[styles.box, typingName && styles.focused, problems.name ? styles.refused : null]}>
@@ -190,7 +251,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               change({ name });
               setTypingName(true);
             }}
-            placeholder="Search or type an exercise"
+            placeholder={filtered ? `Search ${filterLabel(filter)}` : 'Search or type an exercise'}
             autoCapitalize="sentences"
             autoFocus={editing === null}
             onFocus={() => setTypingName(true)}
@@ -201,26 +262,44 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         {problems.name ? <Problem text={problems.name} /> : null}
       </View>
 
-      {!named ? (
+      {!named && !filtered ? (
         <Text style={styles.help}>
-          Type to search the exercise list, for example dumbbell, push-up or running. Not in the list? Enter your own name.
+          Pick a category to see its exercises, or type to search all of them, for example dumbbell, push-up or running. Not in the list?
+          Enter your own name.
         </Text>
       ) : null}
 
       {choosing ? (
-        <View style={styles.matches}>
-          {matches.map((exercise, index) => (
-            <Pressable
-              key={exercise.code}
-              accessibilityRole="button"
-              accessibilityLabel={`${exercise.name}, ${GROUP_LABELS[exercise.group]}`}
-              onPress={() => pick(exercise)}
-              style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
-            >
-              <Text style={styles.matchName}>{exercise.name}</Text>
-              <Text style={styles.tag}>{GROUP_LABELS[exercise.group]}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.listed}>
+          <Text style={labelStyle}>{listTitle}</Text>
+          <View style={styles.matches}>
+            {matches.map((exercise, index) => {
+              const tag = matchTag(exercise, filter);
+              return (
+                <Pressable
+                  key={exercise.code}
+                  accessibilityRole="button"
+                  accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
+                  onPress={() => pick(exercise)}
+                  style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
+                >
+                  <Text style={styles.matchName}>{exercise.name}</Text>
+                  {tag ? <Text style={[styles.tag, styles.matchTag]}>{tag}</Text> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      {noMatch ? (
+        <View style={styles.listed}>
+          <Text style={styles.help}>
+            No exercise in {filterLabel(filter)} matches “{text.name.trim()}”. Search them all, or keep your own name.
+          </Text>
+          <View style={styles.addSet}>
+            <TextButton title="Search all categories" icon={Search} onPress={() => setFilter(NO_FILTER)} />
+          </View>
         </View>
       ) : null}
 
@@ -228,7 +307,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         <>
           {match ? (
             <View style={styles.typeLine}>
-              <Text style={styles.tag}>{GROUP_LABELS[match.group]}</Text>
+              <Text style={styles.tag}>{matchTag(match, NO_FILTER)}</Text>
               <Text style={styles.help}>{LOG_TYPE_LABELS[match.logType]}</Text>
             </View>
           ) : (
@@ -542,7 +621,9 @@ const useStyles = themedStyles((c) => ({
   note: { minHeight: 80, textAlignVertical: 'top', lineHeight: 24 },
   unit: { ...TYPE.label, fontSize: 15, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
   help: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
-  matches: { marginTop: -6, borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  listed: { marginTop: -4, gap: 8 },
+  matches: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
+  matchTag: { maxWidth: 150, textAlign: 'right' },
   match: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingLeft: 14, paddingRight: 12 },
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },

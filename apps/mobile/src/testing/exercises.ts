@@ -45,21 +45,27 @@ const TREADMILL_WALKING_BANDS = bands([
   [6.4, '17361', 5.8],
 ]);
 
-/** One exercise of each type, and a few more dumbbell ones to search among. */
+/** One exercise of each type, a few more dumbbell ones to search among, and two of the library's (D-67), most with places. */
 export const TEST_EXERCISE_LIST: ListedExercise[] = [
-  { code: 'dumbbell-bench-press', name: 'Dumbbell bench press', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell press'], compendiumCode: '02054', met: 3.5, speedMets: [] },
-  { code: 'dumbbell-curl', name: 'Dumbbell curl', group: 'dumbbell', logType: 'weight_reps', aliases: [], compendiumCode: '02054', met: 3.5, speedMets: [] },
-  { code: 'hammer-curl', name: 'Hammer curl', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell hammer curl'], compendiumCode: '02054', met: 3.5, speedMets: [] },
-  { code: 'barbell-bench-press', name: 'Barbell bench press', group: 'barbell', logType: 'weight_reps', aliases: ['bench press'], compendiumCode: '02054', met: 3.5, speedMets: [] },
-  { code: 'push-up', name: 'Push-up', group: 'bodyweight', logType: 'reps', aliases: ['pushups', 'press-up'], compendiumCode: '02022', met: 3.8, speedMets: [] },
-  { code: 'parallel-bar-dip', name: 'Parallel bar dip', group: 'bodyweight', logType: 'reps', aliases: ['dips', 'dip'], compendiumCode: '02022', met: 3.8, speedMets: [] },
-  { code: 'plank', name: 'Plank', group: 'bodyweight', logType: 'time', aliases: [], compendiumCode: '02024', met: 2.8, speedMets: [] },
-  { code: 'farmers-walk', name: "Farmer's walk", group: 'dumbbell', logType: 'weight_time', aliases: ["farmer's carry"], compendiumCode: '17019', met: 6.5, speedMets: [] },
-  { code: 'running', name: 'Running', group: 'cardio', logType: 'distance_time', aliases: ['run'], compendiumCode: '12145', met: 10.5, speedMets: RUNNING_BANDS },
-  { code: 'treadmill-walking', name: 'Treadmill walking', group: 'cardio', logType: 'treadmill', aliases: ['treadmill walk'], compendiumCode: '17358', met: 4.8, speedMets: TREADMILL_WALKING_BANDS },
-  { code: 'exercise-bike', name: 'Exercise bike', group: 'cardio', logType: 'cardio_machine', aliases: ['stationary bike'], compendiumCode: '01200', met: 6.8, speedMets: [] },
-  { code: 'yoga', name: 'Yoga', group: 'yoga', logType: 'time_only', aliases: [], compendiumCode: '02175', met: 2.3, speedMets: [] },
-  { code: 'kabaddi', name: 'Kabaddi', group: 'sport', logType: 'time_only', aliases: [], compendiumCode: null, met: null, speedMets: [] },
+  { code: 'dumbbell-bench-press', name: 'Dumbbell bench press', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell press'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Chest' }] },
+  { code: 'dumbbell-curl', name: 'Dumbbell curl', group: 'dumbbell', logType: 'weight_reps', aliases: [], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Biceps' }] },
+  { code: 'hammer-curl', name: 'Hammer curl', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell hammer curl'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Biceps' }] },
+  { code: 'barbell-bench-press', name: 'Barbell bench press', group: 'barbell', logType: 'weight_reps', aliases: ['bench press'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Barbell', subGroup: 'Chest' }] },
+  { code: 'push-up', name: 'Push-up', group: 'bodyweight', logType: 'reps', aliases: ['pushups', 'press-up'], compendiumCode: '02022', met: 3.8, speedMets: [], places: [{ category: 'Bodyweight / Calisthenics', subGroup: 'Push' }] },
+  { code: 'parallel-bar-dip', name: 'Parallel bar dip', group: 'bodyweight', logType: 'reps', aliases: ['dips', 'dip'], compendiumCode: '02022', met: 3.8, speedMets: [], places: [
+      { category: 'Bodyweight / Calisthenics', subGroup: 'Push' },
+      { category: 'CrossFit / Functional Fitness', subGroup: 'Gymnastics' },
+    ] },
+  { code: 'plank', name: 'Plank', group: 'bodyweight', logType: 'time', aliases: [], compendiumCode: '02024', met: 2.8, speedMets: [], places: [] },
+  { code: 'farmers-walk', name: "Farmer's walk", group: 'dumbbell', logType: 'weight_time', aliases: ["farmer's carry"], compendiumCode: '17019', met: 6.5, speedMets: [], places: [] },
+  { code: 'running', name: 'Running', group: 'cardio', logType: 'distance_time', aliases: ['run'], compendiumCode: '12145', met: 10.5, speedMets: RUNNING_BANDS, places: [] },
+  { code: 'treadmill-walking', name: 'Treadmill walking', group: 'cardio', logType: 'treadmill', aliases: ['treadmill walk'], compendiumCode: '17358', met: 4.8, speedMets: TREADMILL_WALKING_BANDS, places: [] },
+  { code: 'exercise-bike', name: 'Exercise bike', group: 'cardio', logType: 'cardio_machine', aliases: ['stationary bike'], compendiumCode: '01200', met: 6.8, speedMets: [], places: [] },
+  { code: 'yoga', name: 'Yoga', group: 'yoga', logType: 'time_only', aliases: [], compendiumCode: '02175', met: 2.3, speedMets: [], places: [] },
+  { code: 'kabaddi', name: 'Kabaddi', group: 'sport', logType: 'time_only', aliases: [], compendiumCode: null, met: null, speedMets: [], places: [] },
+  // Two of the exercise library's (D-67): one in a category without sub-groups, one with no Compendium activity.
+  { code: 'smith-machine-squat', name: 'Smith Machine Squat', group: 'machine', logType: 'weight_reps', aliases: [], compendiumCode: '02052', met: 5.0, speedMets: [], places: [{ category: 'Smith Machine', subGroup: null }] },
+  { code: 'sled-drag-harness', name: 'Sled Drag (Harness)', group: 'other', logType: 'weight_time', aliases: [], compendiumCode: null, met: null, speedMets: [], places: [{ category: 'Sandbag / Strongman', subGroup: 'Strongman' }] },
 ];
 
 /** A `renderInApp` step: the test list on the server, and already on the phone at the server's version. */

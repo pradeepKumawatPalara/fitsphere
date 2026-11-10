@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (Search foods' ready-made search text, D-66: phone schema version 15).
+- Last updated: 2026-11-10 (the exercise library's places, D-67: migration 0022, phone schema version 16).
+  Earlier the same day (Search foods' ready-made search text, D-66: phone schema version 15).
   2026-11-05 (the exercise list and the exercise's new shape, D-50: migration 0016,
   `exercises`, phone schema version 13). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, steps 1 and 3: settings and the AI consent record,
   migration 0008, and the phone's `settings` table, version 7; D-31). 2026-10-29 (Training slice, step 1: workouts, migration 0007; D-29). Earlier the
@@ -489,7 +490,9 @@ policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 
 ### `exercises` — reference data
 FitSphere's exercise list (D-50; `docs/data/exercise-list-sources.md`): loaded from
-`data/exercises/exercise-list.csv` by `exercises:import`, replaced whole. Migration 0016. Not personal
+`data/exercises/exercise-list.csv` and the exercise library's review sheet
+`docs/data/exercise-library-sheet.csv` (D-67) by `exercises:import`, replaced whole. Migrations 0016
+and 0022. Not personal
 data; row level security on, no policies. Sent to the phone by `GET /v1/exercises`, with a version so
 an unchanged list is not sent again.
 
@@ -501,6 +504,7 @@ an unchanged list is not sent again.
 | `log_type` | `text` | `weight_reps`, `reps`, `time`, `weight_time`, `distance_time`, `treadmill`, `cardio_machine` or `time_only` |
 | `aliases` | `text[]` | Not null. Other names to search by |
 | `compendium_code`, `met` | `text`, `numeric(4,1)` | Together: the 2024 Adult Compendium's activity code (5 digits) and its MET, unchanged; both null when the Compendium lists no such activity |
+| `places` | `jsonb` | Not null, an array, default `[]` (D-67): each `{ "category", "subGroup" }` the library lists it under, `subGroup` null for a category with none; the categories and sub-groups are `EXERCISE_SUB_GROUPS`'s (checked by the import) |
 | `updated_at` | `timestamptz` | Not null |
 
 ### `exercise_speed_mets` — reference data
@@ -609,7 +613,7 @@ rule 5 and D-14 require.
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29) |
 | `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
 | `my_foods` | `id` (key), `name`, `unit`, the values, `saved_at`, `sync_state` | **Health.** My foods (REQ-LOG-011), never pruned. Schema version 10 (D-39) |
-| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `speed_mets` (JSON), `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, written on the phone. Not personal data. Schema version 13 |
+| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `speed_mets` (JSON), `places` (JSON), `place_keys`, `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, and `place_keys` its places as the exercise sheet's Category and Sub-group narrow a search ("<Barbell>Chest<" each, D-67), written on the phone. Not personal data. Schema version 13 |
 | `profile` | `id` (key, always `profile`), `name`, `date_of_birth`, `sex`, `height_mm`, `phone`, `address` (JSON), `photo_media_id`, `set_at`, `sync_state` | **Health and contact.** The user's profile (REQ-ACC-011), at most one row. Never pruned. Its photo is a row of `photos` whose `meal_id` is `profile`. Schema version 9 (D-38) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version`, `exercise_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
@@ -662,9 +666,11 @@ rule 5 and D-14 require.
   food. The update fills them from the rows already on the phone and keeps `food_list_version`, so
   search keeps working offline and nothing is downloaded again. The packaged foods are written 90
   rows a statement. My foods and dishes, a few rows each, are read the same way at search time.
+- **Version 16** (the exercise library, D-67) adds `exercises.places` (JSON) and `exercises.place_keys`
+  and clears `exercise_list_version`, so the next download brings them. The list is written 80 rows a
+  statement.
 - **Version 17** (saved meals keep no meal, D-69) makes `saved_meals` again without `meal_type` and
-  copies every saved meal into it, those waiting to sync too. Version 16 is the exercise library's
-  (D-67).
+  copies every saved meal into it, those waiting to sync too.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

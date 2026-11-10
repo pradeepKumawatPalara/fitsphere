@@ -144,17 +144,18 @@ describe('REQ-TRN-003 starting a workout', () => {
 });
 
 describe('D-50 picking from the exercise list', () => {
-  it('lists the matches of a search with their group, "dumbell" finding the dumbbell exercises', async () => {
+  it('lists the matches of a search with their category and sub-group, or their group, "dumbell" finding the dumbbell exercises', async () => {
     await startWorkout();
     await openSheet();
-    expect(screen.getByText(/^Type to search the exercise list/)).toBeOnTheScreen();
+    expect(screen.getByText(/^Pick a category to see its exercises, or type to search all of them/)).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'dumbell');
 
-    expect(await screen.findByRole('button', { name: 'Dumbbell bench press, Dumbbell' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Dumbbell curl, Dumbbell' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Dumbbell bench press, Dumbbell · Chest' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+    // In no category of the library (D-67): its group, as D-50 tags it.
     expect(screen.getByRole('button', { name: "Farmer's walk, Dumbbell" })).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Push-up, Bodyweight' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Push-up, / })).toBeNull();
     expect(screen.queryByText('Sets')).toBeNull();
   });
 
@@ -164,7 +165,7 @@ describe('D-50 picking from the exercise list', () => {
 
     await pick('dumbell', 'Dumbbell bench press');
     expect(screen.getByText('Weight and reps')).toBeOnTheScreen();
-    expect(screen.getByText('Dumbbell')).toBeOnTheScreen();
+    expect(screen.getByText('Dumbbell · Chest')).toBeOnTheScreen();
     await fillSets([
       { reps: '10', weight: '20' },
       { reps: '8', weight: '22.5' },
@@ -386,7 +387,7 @@ describe('D-50 picking from the exercise list', () => {
       await startWorkout();
       await openSheet();
       await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'Curl');
-      expect(await screen.findByRole('button', { name: 'Dumbbell curl, Dumbbell' })).toBeOnTheScreen();
+      expect(await screen.findByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
       expect(screen.queryByLabelText('Set 1, Reps')).toBeNull();
 
       await act(() => hide.forEach((listener) => listener()));
@@ -766,5 +767,97 @@ describe('D-50 calories burned and heart rate', () => {
     expect(screen.getByText(/^Activity values: Herrmann SD/)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByText(/^Activity values/)).toBeNull();
+  });
+});
+
+/** Opens the picker `label` (Category or Sub-group), whatever it shows, and picks `choice` (its name, before the count). */
+async function choosePlace(label: 'Category' | 'Sub-group', choice: string) {
+  await fireEvent.press(screen.getByRole('button', { name: new RegExp(`^${label}: `) }));
+  await fireEvent.press(await screen.findByRole('button', { name: new RegExp(`^${choice.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}, \\d+ exercises?$`) }));
+}
+
+describe('D-67 Category and Sub-group', () => {
+  it('opens on every category; a category lists its exercises before a word is typed, each with its sub-group', async () => {
+    await startWorkout();
+    await openSheet();
+    expect(screen.getByRole('button', { name: 'Category: All categories' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sub-group: All sub-groups' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
+    expect(await screen.findByRole('button', { name: 'All categories, 15 exercises' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Smith Machine, 1 exercise' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
+
+    expect(screen.queryByRole('button', { name: /^Barbell, / })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Category: Dumbbell' })).toBeOnTheScreen();
+    expect(await screen.findByText('Dumbbell · 3 exercises')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell bench press, Chest' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell curl, Biceps' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Biceps' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Farmer's walk/ })).toBeNull();
+    expect(screen.getByPlaceholderText('Search Dumbbell')).toBeOnTheScreen();
+  });
+
+  it('the sub-groups follow the category; typing narrows the choice; no match offers to search them all', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Category', 'Dumbbell');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sub-group: All sub-groups' }));
+    expect(screen.getByRole('button', { name: 'All sub-groups, 3 exercises' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Chest, 1 exercise' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Push, / })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Biceps, 2 exercises' }));
+
+    expect(await screen.findByText('Dumbbell · Biceps · 2 exercises')).toBeOnTheScreen();
+    // With both chosen, a match needs no tag.
+    expect(screen.getByRole('button', { name: 'Hammer curl' })).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'hammer');
+    expect(await screen.findByText('1 match in Dumbbell · Biceps')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Dumbbell curl' })).toBeNull();
+
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'squat');
+    expect(await screen.findByText('No exercise in Dumbbell · Biceps matches \u201csquat\u201d. Search them all, or keep your own name.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Search all categories' }));
+
+    expect(screen.getByRole('button', { name: 'Category: All categories' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Smith Machine Squat, Smith Machine' })).toBeOnTheScreen();
+  });
+
+  it('a sub-group alone finds it in every category; a category without sub-groups reads "No sub-groups" and clears the one chosen', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Sub-group', 'Push');
+
+    expect(await screen.findByText('Push · 2 exercises')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Push-up, Bodyweight / Calisthenics' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Parallel bar dip, Bodyweight / Calisthenics' })).toBeOnTheScreen();
+
+    await choosePlace('Category', 'Smith Machine');
+
+    expect(screen.getByRole('button', { name: 'Sub-group: No sub-groups' })).toBeDisabled();
+    expect(await screen.findByText('Smith Machine · 1 exercise')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Smith Machine Squat' })).toBeOnTheScreen();
+  });
+
+  it('picking an exercise works as before, and one with no Compendium activity has no estimate: calories are typed', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await openSheet();
+    await choosePlace('Category', 'Sandbag / Strongman');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Sled Drag (Harness), Strongman' }));
+
+    expect(screen.getByText('Sandbag / Strongman · Strongman')).toBeOnTheScreen();
+    expect(screen.getByText('Weight and time')).toBeOnTheScreen();
+    expect(screen.getByText('This exercise has no estimate: type the number from your machine or watch.')).toBeOnTheScreen();
+    await fillSets([{ weight: '60', seconds: '30' }]);
+    await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '45');
+    await save();
+
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({
+        exercises: [{ name: 'Sled Drag (Harness)', kind: 'sets', sets: [{ reps: null, weightGrams: 60_000, seconds: 30 }], calories: { kcal: 45, estimated: false } }],
+      }),
+    );
   });
 });

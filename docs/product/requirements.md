@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-10 (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -595,6 +595,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - D-43: a date chip above "Log workout", as Log meal's, opens the calendar "Log this workout to"; the day picked becomes the app's selected date, which "Log workout" logs to.
 - D-65 (replacing D-43's chip): the date strip at the top of Training picks the date, as Home's and Nutrition's; the button names it, "Log workout for today" or "Log workout for Sat 31 Oct", and logs to it.
 - D-50 (replacing D-29's "typed freely" and "the same for every set"): the name searches FitSphere's exercise list (334 exercises, kept on the phone, offline) or is typed. Each list exercise has one of eight types that decides its fields: weight and reps (a weight on every set), reps (no weight: bodyweight), time, weight and time, distance and time (the average speed and pace shown), treadmill (speed, incline), cardio machine (level), time only. A name of the user's own asks "Log as": sets and reps, time, or cardio. Each set has its own reps, weight and time, 1 to 20 sets. Exercises saved before read as identical sets. Each exercise may have calories burned (a Compendium MET estimate, by speed for running, walking and cycling, or typed in its place) and an average and highest heart rate; calories show on the Training tab only, never on Home.
+- D-67: the exercise library joins the list: the owner's 2,090 exercises by category and sub-group (1,832 new, 47 of them replacing ours with our names kept as other names; 2,119 in all), each logged as FitSphere decided, with a Compendium MET where one fits and typed calories where none does. Above the name, Category and Sub-group narrow the search: Sub-group follows the category; with either chosen its exercises show before a word is typed; "Search all categories" clears both. The name can still be searched with neither chosen.
 
 ### REQ-TRN-004 — Workout history
 - Requirement: "Workouts you have logged" lists past workouts.
