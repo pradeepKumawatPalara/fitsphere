@@ -394,7 +394,15 @@ describe('REQ-ROLE-007 target.set data', () => {
     expect(
       detailsFor(targetSetDataSchema, { kind: 'calories', value: 2_000, setAt: RECORDED_AT, setByUserId: CHANGE_ID }),
     ).toEqual([{ field: 'setByUserId', issue: 'unknown_field' }]);
-    expect(targetSetDataSchema.safeParse({ kind: 'carbs', value: 200, setAt: RECORDED_AT }).success).toBe(false);
+    expect(targetSetDataSchema.safeParse({ kind: 'sugar', value: 200, setAt: RECORDED_AT }).success).toBe(false);
+  });
+
+  it('D-70 daily carbs, fat and fibre in whole grams, in the ranges the owner approved', () => {
+    expect(TARGET_RANGES.carbs).toEqual({ min: 10, max: 1_000 });
+    expect(TARGET_RANGES.fat).toEqual({ min: 5, max: 500 });
+    expect(TARGET_RANGES.fibre).toEqual({ min: 5, max: 100 });
+    expect(targetSetDataSchema.safeParse({ kind: 'fibre', value: 30, setAt: RECORDED_AT }).success).toBe(true);
+    expect(targetSetDataSchema.safeParse({ kind: 'fat', value: 60.5, setAt: RECORDED_AT }).success).toBe(false);
   });
 });
 
