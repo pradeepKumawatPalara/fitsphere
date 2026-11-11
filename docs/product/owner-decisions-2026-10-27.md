@@ -969,6 +969,8 @@ checksum), and the configuration template was left as it is.*
      a time, back to the 7 holding the first of the phone's 90 days (D-23). This replaces the
      Monday-to-Sunday weeks of the first swipeable strip (D-33's review, item 9). Home's workout
      tracker keeps Monday-to-Sunday weeks.
+     *Replaced by D-79 (2026-11-11): the strip shows Monday to Sunday again, this week's days after
+     today greyed; the arrows' names are kept.*
   4. **The same food added again to a meal (REQ-LOG-007).** Only in Log meal's list, while a meal
      is built or edited: adding a listed food the meal already has (the same food-list item, dish
      or barcode, in the same unit) asks "Already in this meal". "Add to existing" puts the amounts
@@ -1852,7 +1854,8 @@ checksum), and the configuration template was left as it is.*
   workout"; on "4.1 Training · PROPOSED v2": "lock it").
 - Answer (the redesign's 4.1, changed; replaces D-43's date chip):
   - Training opens on the **date strip**, as Home's and Nutrition's (D-34): 7 days ending today, a
-    green mark on each day with a workout. Under it, two choice pills: **By day** (the first) and
+    green mark on each day with a workout. *(Since D-79, 2026-11-11: Monday to Sunday, the days after
+    today greyed.)* Under it, two choice pills: **By day** (the first) and
     **All workouts**.
   - **By day** shows only the selected date's workouts, under one button that names the date it logs
     to: "Log workout for today", or "Log workout for Sat 31 Oct". A past date shows "Showing Sat 31 Oct"
@@ -2414,6 +2417,31 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-ROLE-006's open question, REQ-ROLE-007, new REQ-ROLE-018; Q-014 in
   `constraints-and-assumptions.md`; backlog E-11, and phone checks S6-10 to S6-13; the data model and
   `api-conventions.md`; the redesign plan (2.3, 3.10, 6.2, new 6.7); CLAUDE.md.
+
+---
+
+## D-79 The date strip shows Monday to Sunday; the days after today are greyed
+- Status: **Accepted** (owner, in chat, 2026-11-11: "In the whole Fitsphere app the top calender
+  Strip show the 7 days from today to last 7 days. I want that this calender strip shoould show the
+  days form monday to sunday format. the future date slected is become disable. Before any code
+  change show me the design over the canva. than build it"; then "lock it" for the canvas's "2.3 Date
+  strip · PROPOSED (D-79)", version 74, locked in version 75). Numbered D-79 because D-78 (Search
+  foods shows each branded product once) was taken by work done at the same time.
+- Answer (REQ-HOME-002; replaces D-34 answer 3):
+  - The date strip on **Home, Nutrition and Training** (one strip, shared) shows a **week, Monday to
+    Sunday**: the app opens on the week holding today, and a day chosen another way (the calendar,
+    Back to today) shows the week holding it.
+  - This week's **days after today are greyed and cannot be picked** (Q-017 unchanged): tapping one
+    does nothing, and screen readers hear it as "not available", as in the calendar (D-34 answer 5).
+    The days before the first of the phone's 90 days are greyed the same way (D-23).
+  - Swiping, "Earlier days" and "Later days" move **a week at a time**, back to the week holding the
+    first of the 90 days and on to this week; "Later days" is greyed on this week.
+  - Unchanged: today outlined, the selected day filled, the green mark of a day with a meal (on
+    Training, a workout), the "Showing <date>" banner, and Home's workout tracker, which already
+    shows Monday-to-Sunday weeks (REQ-HOME-007), now the same week as the strip.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-HOME-002; Q-019's row in `docs/product/mvp-scope.md`; D-34 answer 3's
+  amendment; the redesign plan's 2.3; CLAUDE.md.
 
 ---
 
