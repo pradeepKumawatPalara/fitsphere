@@ -2,6 +2,7 @@
 // REQ-ROLE-007, REQ-LOG-*, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, REQ-ACC-011;
 // My foods and USDA servings, D-39).
 import {
+  FOOD_SOURCES,
   currentExercises,
   isAcceptedDateOfBirth,
   isFutureIstDay,
@@ -17,6 +18,7 @@ import {
   MY_FOOD_SET,
   myFoodDeleteDataSchema,
   myFoodSetDataSchema,
+  OZ_SERVING_LABEL,
   PACKAGED_SERVING_LABEL,
   PROFILE_SET,
   profileSetDataSchema,
@@ -545,14 +547,18 @@ async function itemsListed(client: pg.PoolClient, items: MealItem[]): Promise<bo
   return (await dishesListed(client, items)) && (await measuresListed(client, items)) && (await servingsListed(client, items));
 }
 
+/** The foods that may be logged in oz (D-76): every listed food, and packaged foods by their barcode. */
+const OZ_SOURCES: ReadonlySet<MealItem['source']> = new Set([...FOOD_SOURCES, 'barcode']);
+
 /**
  * An INDB serving must be on the list for its food, with the grams per serving it came to (D-46); a
  * USDA serving, logged before USDA's foods were archived, on the archive (D-39, D-47); a packaged
- * food's, on the packaged foods, as their one "Serving" (D-48).
+ * food's, on the packaged foods, as their one "Serving" (D-48). oz is a weight every listed and
+ * packaged food may be logged in, its grams checked by the meal's schema (D-76).
  */
 async function servingsListed(client: pg.PoolClient, items: MealItem[]): Promise<boolean> {
   const used = items.flatMap((item) =>
-    item.amount.unit === 'serving'
+    item.amount.unit === 'serving' && !(item.amount.label === OZ_SERVING_LABEL && OZ_SOURCES.has(item.source))
       ? [{ source: item.source, code: item.ref ?? '', label: item.amount.label, grams: item.amount.grams / item.amount.value }]
       : [],
   );

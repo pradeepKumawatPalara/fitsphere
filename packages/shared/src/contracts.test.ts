@@ -815,6 +815,23 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
     }
   });
 
+  it('D-76 a listed or packaged food may be in oz: 28.35 g each, in halves to 10', () => {
+    const oz = (value: number, grams: number) => ({ unit: 'serving', label: 'oz', value, grams });
+    for (const source of ['ifct2017', 'indb', 'brand_label', 'home', 'dish_estimate', 'barcode'] as const) {
+      expect(mealItemSchema.safeParse({ ...item, source, amount: oz(2, 56.7) }).success).toBe(true);
+    }
+    expect(mealItemSchema.safeParse({ ...item, amount: oz(0.5, 14.18) }).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...item, amount: oz(10, 283.5) }).success).toBe(true);
+    for (const amount of [oz(2, 60), oz(0.25, 7.09), oz(10.5, 297.68)]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
+    }
+    // An IFCT food has no servings of its own: oz only.
+    expect(mealItemSchema.safeParse({ ...item, amount: { unit: 'serving', label: 'Slice', value: 1, grams: 25 } }).success).toBe(false);
+    for (const source of ['dish', 'own'] as const) {
+      expect(mealItemSchema.safeParse({ ...item, source, amount: oz(1, 28.35) }).success).toBe(false);
+    }
+  });
+
   it('D-36 the food list gives each food its measured units', () => {
     const milk = {
       source: 'ifct2017',

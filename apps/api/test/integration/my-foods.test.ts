@@ -275,6 +275,56 @@ describe('D-39 meals with USDA servings (archived, D-47) and your own units', ()
     expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'accepted', 'rejected']);
   });
 
+  it('D-76 accepts a home-style food by the one slice its serving of two gives, at half its grams', async () => {
+    const user = await api.signUpWithAccount();
+    const slices = (value: number, grams: number): MealItem => ({
+      source: 'home',
+      ref: 'home-test-toast',
+      name: 'Test toast',
+      amount: { unit: 'serving', label: 'Slice', value, grams },
+      kcal: 53.76,
+      proteinG: 1.15,
+      carbsG: 2.32,
+      fatG: 1.46,
+      fibreG: null,
+      estimated: false,
+    });
+
+    const reply = await syncOk(user, [meal([slices(1, 28)]), meal([slices(3, 84)]), meal([slices(1, 30)])]);
+
+    expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'accepted', 'rejected']);
+  });
+
+  it('D-76 accepts oz for a listed or packaged food, at 28.35 g each, and refuses it for a dish', async () => {
+    const user = await api.signUpWithAccount();
+    const oz = (value: number, grams: number) => ({ unit: 'serving' as const, label: 'oz', value, grams });
+    const atta: MealItem = {
+      source: 'ifct2017',
+      ref: 'A019',
+      name: 'Wheat flour, atta',
+      amount: oz(2, 56.7),
+      kcal: 181.44,
+      proteinG: 5.99,
+      carbsG: 36.38,
+      fatG: 0.87,
+      fibreG: 6.44,
+      estimated: false,
+    };
+    const bread: MealItem = { ...atta, source: 'barcode', ref: '8901234567890', name: 'Test sandwich bread (Test Foods)', amount: oz(1.5, 42.53) };
+    const toast: MealItem = { ...atta, source: 'home', ref: 'home-test-toast', name: 'Test toast', amount: oz(0.5, 14.18) };
+
+    const reply = await syncOk(user, [
+      meal([atta]),
+      meal([bread]),
+      meal([toast]),
+      meal([{ ...atta, amount: oz(2, 60) }]),
+      meal([{ ...atta, amount: { unit: 'serving', label: 'Slice', value: 1, grams: 28 } }]),
+      meal([{ ...atta, source: 'dish', ref: 'test_dal', estimated: true }]),
+    ]);
+
+    expect(reply.results.map((entry) => entry.status)).toEqual(['accepted', 'accepted', 'accepted', 'rejected', 'rejected', 'rejected']);
+  });
+
   it('accepts your own food by the slice, naming the My food it came from', async () => {
     const user = await api.signUpWithAccount();
     const own: MealItem = {

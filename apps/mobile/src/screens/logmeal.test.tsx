@@ -908,7 +908,8 @@ describe('D-36 household units', () => {
     expect(screen.getByLabelText('Measure: Grams')).toBeOnTheScreen();
     expect(screen.getByLabelText('Grams eaten')).toHaveDisplayValue('100');
     await fireEvent.press(screen.getByRole('button', { name: 'Measure: Grams' }));
-    expect(wheel('Measure')).toEqual(['Grams', 'Glass (258 g)']);
+    // D-76: the food's own measures first, then Grams, then oz.
+    expect(wheel('Measure')).toEqual(['Glass (258 g)', 'Grams', 'oz (28.35 g)']);
     expect(screen.getByText('Type the grams in the box')).toBeOnTheScreen();
     await fireEvent.press(within(screen.getByLabelText('Measure')).getByRole('button', { name: 'Glass (258 g)' }));
     // 7.5 glasses is 1,935 g; 8 would pass 2,000 g, the most for one food.
@@ -931,15 +932,35 @@ describe('D-36 household units', () => {
     expect(screen.getByLabelText('Milk, whole, Cow: 1.5 glasses (387 g), 283 kcal, 12.6 g protein')).toBeOnTheScreen();
   });
 
-  it('a food without units is in grams only, as before', async () => {
+  it('D-76 a food without units opens on Grams, and can be logged in oz, 28.35 g each', async () => {
     await render({ day: TODAY }, withMilk);
     await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');
     await fireEvent.press(await screen.findByRole('button', { name: /^Wheat flour, atta/ }));
 
-    expect(screen.queryByRole('button', { name: /^Measure: / })).toBeNull();
     expect(screen.getByLabelText('Measure: Grams')).toBeOnTheScreen();
     expect(screen.getByLabelText('Grams eaten')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Measure: Grams' }));
+    expect(wheel('Measure')).toEqual(['Grams', 'oz (28.35 g)']);
+    await fireEvent.press(within(screen.getByLabelText('Measure')).getByRole('button', { name: 'oz (28.35 g)' }));
+    // 10 oz is 283.5 g: oz is counted in halves to 10, as other servings.
+    expect(wheel('Quantity')).toEqual(Array.from({ length: 20 }, (_, index) => String((index + 1) / 2)));
+    await fireEvent.press(within(screen.getByLabelText('Quantity')).getByRole('button', { name: '2' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+
+    expect(screen.getByLabelText('Measure: oz (28.35 g)')).toBeOnTheScreen();
+    expect(screen.getByText('Net wt: 56.7 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 181 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: 6.0 g')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByLabelText('Wheat flour, atta: 2 oz (56.7 g), 181 kcal, 6.0 g protein')).toBeOnTheScreen();
+
+    // Opened again from the review (D-64), the page is on its oz.
+    await fireEvent.press(screen.getByRole('button', { name: 'Change Wheat flour, atta' }));
+    expect(await screen.findByText('In this meal now: 2 oz (56.7 g)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Measure: oz (28.35 g)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Quantity: 2')).toBeOnTheScreen();
   });
 
   it('D-64 the review changes a food’s measure: 100 g of milk becomes 1 glass', async () => {

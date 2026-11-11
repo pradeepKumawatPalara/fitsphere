@@ -7,6 +7,8 @@ import {
   myFoodValueMax,
   OWN_UNIT_COUNT_MAX,
   OWN_UNIT_COUNT_MIN,
+  OZ_GRAMS,
+  OZ_SERVING_LABEL,
   PACKAGED_SERVING_LABEL,
   type BarcodeProduct,
   type Dish,
@@ -182,11 +184,22 @@ export function itemFromPackaged(food: PackagedFood, grams: number): MealItem {
   };
 }
 
-/** `count` servings of a packaged food, as its label gives one in grams, counted in halves (D-48). */
-export function itemFromPackagedServings(food: PackagedFood & { servingGrams: number }, count: number): MealItem {
-  const grams = gramsOfUnits(food.servingGrams, count);
-  return { ...itemFromPackaged(food, grams), amount: { unit: 'serving', label: PACKAGED_SERVING_LABEL, value: count, grams } };
+/**
+ * `count` servings of a packaged food, counted in halves: its label's serving in grams, named
+ * "Serving" (D-48), or oz (D-76).
+ */
+export function itemFromPackagedServings(food: PackagedFood, serving: FoodServing, count: number): MealItem {
+  const grams = gramsOfUnits(serving.grams, count);
+  return { ...itemFromPackaged(food, grams), amount: { unit: 'serving', label: serving.label, value: count, grams } };
 }
+
+/** The serving a packaged food's label gives in grams (D-48), or null when it gives none. */
+export function packagedServing(food: PackagedFood): FoodServing | null {
+  return food.servingGrams === null ? null : { label: PACKAGED_SERVING_LABEL, grams: food.servingGrams };
+}
+
+/** oz, a weight every listed and packaged food may be logged in (D-76). */
+export const OZ_SERVING: FoodServing = { label: OZ_SERVING_LABEL, grams: OZ_GRAMS };
 
 /** The same item for another number of servings, from the values and grams it already has. */
 export function withServings(item: MealItem, count: number): MealItem {

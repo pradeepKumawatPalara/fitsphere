@@ -5,7 +5,7 @@ import type { SqlDb } from '../local/sql';
 import { itemFromOwn, itemFromServings, parseOwnQuantity, withOwnQuantity, withServings } from '../mealItems';
 import { formatAmount } from '../meals';
 import { NOW, renderInApp } from '../testing/appHarness';
-import { pickAmount } from '../testing/foodPage';
+import { pickAmount, wheel } from '../testing/foodPage';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
@@ -409,6 +409,28 @@ describe('D-48 packaged foods sold in India', () => {
       expect.objectContaining({ source: 'barcode', ref: '8901234567890', amount: { unit: 'serving', label: 'Serving', value: 1.5, grams: 75 } }),
     ]);
   });
+
+  it('D-76 are also added in oz, 28.35 g each, after their serving and Grams', async () => {
+    const { db } = await render(withPackaged);
+    await search('test bakers');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test sandwich bread, Test Bakers, 250 kcal per 100 g' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Measure: Grams' }));
+    expect(wheel('Measure')).toEqual(['Serving (50 g)', 'Grams', 'oz (28.35 g)']);
+    await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+    await pickAmount({ measure: 'oz (28.35 g)', quantity: '2' });
+    expect(screen.getByText('Net wt: 56.7 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 142 kcal')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+    expect(screen.getByLabelText('Test sandwich bread (Test Bakers): 2 oz (56.7 g), 142 kcal, 4.5 g protein')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save breakfast' }));
+    expect(await screen.findByText(/^Breakfast saved · /)).toBeOnTheScreen();
+    const [row] = await db.getAllAsync<{ id: string }>('SELECT id FROM meals', []);
+    expect((await getEntry(db, 'meal', row!.id))?.items).toEqual([
+      expect.objectContaining({ source: 'barcode', ref: '8901234567890', amount: { unit: 'serving', label: 'oz', value: 2, grams: 56.7 } }),
+    ]);
+  });
 });
 
 describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
@@ -477,6 +499,30 @@ describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
 
     expect(screen.getByLabelText('Test butter toast: 1 × 2 slices (56 g), 204 kcal, 4.5 g protein')).toBeOnTheScreen();
+  });
+
+  it('D-76 offers the one slice its serving of two gives, smallest first, then Grams and oz; still opens on its serving', async () => {
+    // The food list brings the single unit as one more serving, after the food's own (foods:import).
+    const sliced: Food = { ...HOME_TOAST, portions: [{ label: '2 slices', grams: 56 }, { label: 'Slice', grams: 28 }] };
+    await render(async (db, server) => {
+      const foods = [...FOODS, sliced];
+      server.state.foods = foods;
+      await replaceFoods(db, server.state.foodsVersion, foods, [], []);
+    });
+    await search('makhan toast');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Test butter toast, 365 kcal per 100 g' }));
+    expect(screen.getByLabelText('Measure: 2 slices (56 g)')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Quantity: 1' }));
+    expect(wheel('Measure')).toEqual(['Slice (28 g)', '2 slices (56 g)', 'Grams', 'oz (28.35 g)']);
+    await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+    await pickAmount({ measure: 'Slice (28 g)', quantity: '3' });
+    expect(screen.getByLabelText('Measure: Slice (28 g)')).toBeOnTheScreen();
+    expect(screen.getByText('Net wt: 84 g')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Adds 307 kcal')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByLabelText('Test butter toast: 3 × slice (84 g), 307 kcal, 6.7 g protein')).toBeOnTheScreen();
   });
 });
 
