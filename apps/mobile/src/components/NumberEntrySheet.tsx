@@ -1,4 +1,4 @@
-import { CircleAlert } from 'lucide-react-native';
+import { Calendar, CircleAlert } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { themedStyles, useTheme } from '../theme';
@@ -17,6 +17,8 @@ type Props = {
   /** Shown when the text cannot be saved. */
   rule: string;
   decimal: boolean;
+  /** A line under the number: its first words in bold, e.g. a target's "From today, Wed 11 Nov." (D-77). */
+  note?: { lead: string; text: string };
   onSave(value: number): Promise<void>;
   onClose(): void;
 };
@@ -25,7 +27,7 @@ type Props = {
 // Nothing is saved until the value is valid; Cancel closes without saving. The redesign's 2.4 (locked
 // by the owner, 2026-11-03): the number large in a sunken box with its unit, the outline caramel
 // while typing and red with the rule under it when the value can't be saved; a spinner on Save.
-export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, onSave, onClose }: Props) {
+export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, note, onSave, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [text, setText] = useState(initialText);
@@ -78,6 +80,14 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
           </Text>
         </View>
       ) : null}
+      {note ? (
+        <View style={styles.note}>
+          <Calendar size={18} color={colors.accent} style={styles.noteIcon} />
+          <Text style={styles.noteText}>
+            <Text style={styles.noteLead}>{note.lead}</Text> {note.text}
+          </Text>
+        </View>
+      ) : null}
     </Sheet>
   );
 }
@@ -101,4 +111,8 @@ const useStyles = themedStyles((c) => ({
   unit: { ...TYPE.label, fontSize: 20, lineHeight: 24, letterSpacing: 1 },
   problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  noteIcon: { marginTop: 2 },
+  noteText: { fontSize: 15, lineHeight: 22, flexShrink: 1, color: c.inkMuted },
+  noteLead: { fontWeight: '600', color: c.ink },
 }));

@@ -20,7 +20,7 @@ async function weighInsAndTarget(db: SqlDb, weighIns: Record<string, number>) {
     'weighIn',
     Object.entries(weighIns).map(([day, weightGrams]) => ({ day, weightGrams, recordedAt: AT })),
   );
-  await applyServerEntries(db, 'target', [{ kind: 'body_weight', value: 75_000, setAt: AT, setByUserId: null }]);
+  await applyServerEntries(db, 'target', [{ kind: 'body_weight', day: '2026-10-20', value: 75_000, setAt: AT, setByUserId: null }]);
 }
 
 /** A button that changes the body-weight unit, as the Settings screen does. */
@@ -87,5 +87,5 @@ it('REQ-ACC-003 changing the body-weight unit while Progress is open converts ev
   // Only the display changed (invariant #6).
   expect(await getEntry(db, 'weighIn', '2026-10-28')).toMatchObject({ weightGrams: 78_800 });
   expect(await getEntry(db, 'weighIn', '2026-09-30')).toMatchObject({ weightGrams: 80_000 });
-  expect(await getEntry(db, 'target', 'body_weight')).toMatchObject({ value: 75_000 });
+  expect(await getEntry(db, 'target', 'body_weight|2026-10-20')).toMatchObject({ value: 75_000 });
 });

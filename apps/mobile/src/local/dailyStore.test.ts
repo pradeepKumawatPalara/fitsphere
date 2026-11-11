@@ -9,6 +9,7 @@ import {
   getWeighIn,
   listEntries,
   listTargets,
+  targetsOn,
   markAccepted,
   markRejected,
   migrateLocal,
@@ -88,7 +89,8 @@ const SAMPLES: { [K in EntryKind]: { key: string; data: ChangeData[K]; stored: R
     },
     stored: { day: DAY, exercises: [sameSets('Squat', 3, 10, 40_000)], timer: null },
   },
-  target: { key: 'calories', data: { kind: 'calories', value: 2_000, setAt: AT }, stored: { value: 2_000, setByUserId: null } },
+  // A target is kept per kind and the IST day it starts (D-77).
+  target: { key: `calories|${DAY}`, data: { kind: 'calories', value: 2_000, day: DAY, setAt: AT }, stored: { day: DAY, value: 2_000, setByUserId: null } },
   setting: { key: 'body_weight_unit', data: { name: 'body_weight_unit', value: 'lb', setAt: AT }, stored: { value: 'lb' } },
   meal: {
     key: MEAL_ID,
@@ -159,14 +161,36 @@ describe('ADR-0007 the outbox for every kind', () => {
     expect(await getEntry(db, 'measurements', DAY)).toMatchObject({ upperWaistMm: 800, chestMm: null, notes: null });
   });
 
-  it('REQ-ROLE-007 targets are kept per kind and listed together', async () => {
-    await save('target', { kind: 'calories', value: 2_000, setAt: AT });
-    await save('target', { kind: 'weekly_workouts', value: 4, setAt: AT });
-    await save('target', { kind: 'calories', value: 1_800, setAt: AT });
+  it('D-77 a target is kept per kind and start day: the same day replaces its value, another day is kept beside it', async () => {
+    const next = '2026-10-28';
+    await save('target', { kind: 'calories', value: 2_000, day: DAY, setAt: AT });
+    await save('target', { kind: 'weekly_workouts', value: 4, day: DAY, setAt: AT });
+    await save('target', { kind: 'calories', value: 1_800, day: DAY, setAt: AT });
+    await save('target', { kind: 'calories', value: 2_200, day: next, setAt: `${next}T03:00:00.000Z` });
 
-    expect((await listTargets(db)).map(({ kind, value }) => [kind, value])).toEqual([
-      ['calories', 1_800],
-      ['weekly_workouts', 4],
+    expect((await listTargets(db)).map(({ kind, day, value }) => [kind, day, value])).toEqual([
+      ['calories', DAY, 1_800],
+      ['weekly_workouts', DAY, 4],
+      ['calories', next, 2_200],
+    ]);
+  });
+
+  it('D-77 the targets on a day: of each kind, the latest value starting on or before it; none before the first', async () => {
+    await save('target', { kind: 'calories', value: 1_800, day: '2026-10-20', setAt: AT });
+    await save('target', { kind: 'calories', value: 2_000, day: '2026-10-25', setAt: AT });
+    await save('target', { kind: 'protein', value: 110, day: '2026-10-25', setAt: AT });
+
+    const on = async (day: string) => (await targetsOn(db, day)).map(({ kind, value }) => [kind, value]);
+    expect(await on('2026-10-19')).toEqual([]);
+    expect(await on('2026-10-20')).toEqual([['calories', 1_800]]);
+    expect(await on('2026-10-24')).toEqual([['calories', 1_800]]);
+    expect(await on('2026-10-25')).toEqual([
+      ['calories', 2_000],
+      ['protein', 110],
+    ]);
+    expect(await on('2026-11-30')).toEqual([
+      ['calories', 2_000],
+      ['protein', 110],
     ]);
   });
 });
@@ -175,12 +199,13 @@ describe('ADR-0007 the pull for every kind', () => {
   it('ADR-0007 applies the server’s entries as synced, with who set a target', async () => {
     await applyServerEntries(db, 'steps', [{ day: DAY, steps: 5_000, recordedAt: AT }]);
     await applyServerEntries(db, 'target', [
-      { kind: 'protein', value: 120, setAt: AT, setByUserId: '11111111-1111-4111-8111-111111111111' },
+      { kind: 'protein', day: DAY, value: 120, setAt: AT, setByUserId: '11111111-1111-4111-8111-111111111111' },
     ]);
 
     expect(await getEntry(db, 'steps', DAY)).toEqual({ day: DAY, steps: 5_000, recordedAt: AT, syncState: 'synced' });
-    expect(await getEntry(db, 'target', 'protein')).toEqual({
+    expect(await getEntry(db, 'target', `protein|${DAY}`)).toEqual({
       kind: 'protein',
+      day: DAY,
       value: 120,
       setAt: AT,
       setByUserId: '11111111-1111-4111-8111-111111111111',
@@ -200,16 +225,18 @@ describe('ADR-0007 the pull for every kind', () => {
     expect(await getWeighIn(db, DAY)).toMatchObject({ weightGrams: 70_000, syncState: 'pending' });
   });
 
-  it('ADR-0007 a waiting target of one kind does not hold back another kind', async () => {
-    await save('target', { kind: 'calories', value: 2_000, setAt: AT });
+  it('ADR-0007 a waiting target of one kind and day does not hold back another kind, nor another day (D-77)', async () => {
+    await save('target', { kind: 'calories', value: 2_000, day: DAY, setAt: AT });
 
     await applyServerEntries(db, 'target', [
-      { kind: 'calories', value: 1, setAt: AT, setByUserId: null },
-      { kind: 'steps', value: 10_000, setAt: AT, setByUserId: null },
+      { kind: 'calories', day: DAY, value: 1, setAt: AT, setByUserId: null },
+      { kind: 'calories', day: '2026-10-20', value: 1_800, setAt: AT, setByUserId: null },
+      { kind: 'steps', day: DAY, value: 10_000, setAt: AT, setByUserId: null },
     ]);
 
-    expect(await getEntry(db, 'target', 'calories')).toMatchObject({ value: 2_000, syncState: 'pending' });
-    expect(await getEntry(db, 'target', 'steps')).toMatchObject({ value: 10_000, syncState: 'synced' });
+    expect(await getEntry(db, 'target', `calories|${DAY}`)).toMatchObject({ value: 2_000, syncState: 'pending' });
+    expect(await getEntry(db, 'target', 'calories|2026-10-20')).toMatchObject({ value: 1_800, syncState: 'synced' });
+    expect(await getEntry(db, 'target', `steps|${DAY}`)).toMatchObject({ value: 10_000, syncState: 'synced' });
   });
 });
 
@@ -219,7 +246,9 @@ describe('ADR-0007 rule 1 pruning across kinds', () => {
     await applyServerEntries(db, 'steps', [{ day: old, steps: 1, recordedAt: AT }]);
     await applyServerEntries(db, 'sleep', [{ day: old, sleepMinutes: 1, recordedAt: AT }]);
     await applyServerEntries(db, 'measurements', [{ ...SAMPLES.measurements.data, day: old }]);
-    await applyServerEntries(db, 'target', [{ kind: 'steps', value: 10_000, setAt: '2026-01-01T00:00:00.000Z', setByUserId: null }]);
+    await applyServerEntries(db, 'target', [
+      { kind: 'steps', day: '2026-01-01', value: 10_000, setAt: '2026-01-01T00:00:00.000Z', setByUserId: null },
+    ]);
     await save('sleep', { day: '2026-07-02', sleepMinutes: 2, recordedAt: AT });
 
     expect(await pruneSynced(db, '2026-10-28')).toBe(3);
@@ -227,7 +256,7 @@ describe('ADR-0007 rule 1 pruning across kinds', () => {
     expect(await getEntry(db, 'steps', old)).toBeNull();
     expect(await getEntry(db, 'measurements', old)).toBeNull();
     expect(await getEntry(db, 'sleep', '2026-07-02')).toMatchObject({ syncState: 'pending' });
-    expect(await getEntry(db, 'target', 'steps')).toMatchObject({ value: 10_000 });
+    expect(await getEntry(db, 'target', 'steps|2026-01-01')).toMatchObject({ value: 10_000 });
   });
 
   it('REQ-HOME-008 lists a week of measurements', async () => {
@@ -239,6 +268,47 @@ describe('ADR-0007 rule 1 pruning across kinds', () => {
     const week = await listEntries(db, 'measurements', '2026-10-26', '2026-11-01');
 
     expect(week.map((entry) => entry.day)).toEqual(['2026-10-27']);
+  });
+});
+
+describe('Local schema version 19 (D-77)', () => {
+  it('D-77 an update keeps a target waiting to sync, from the IST day it was set, adds that day to its change, and fetches the synced ones again', async () => {
+    const old = memoryDb();
+    try {
+      await migrateLocal(old);
+      // Version 18's targets: one value per kind.
+      await old.execAsync(`DROP TABLE targets;
+        CREATE TABLE targets (kind TEXT PRIMARY KEY, value INTEGER NOT NULL, set_at TEXT NOT NULL, set_by_user_id TEXT,
+          sync_state TEXT NOT NULL CHECK (sync_state IN ('synced', 'pending', 'rejected')));
+        PRAGMA user_version = 18;`);
+      // Set at 20:00 UTC on 10 Nov: 01:30 on 11 Nov in India.
+      const setAt = '2026-11-10T20:00:00.000Z';
+      await old.runAsync(`INSERT INTO targets VALUES ('calories', 2200, ?, NULL, 'pending')`, [setAt]);
+      await old.runAsync(`INSERT INTO targets VALUES ('protein', 120, ?, 'user-1', 'synced')`, [AT]);
+      await old.runAsync(
+        `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c1', 'target.set', ?, ?, 'pending')`,
+        [JSON.stringify({ kind: 'calories', value: 2_200, setAt }), setAt],
+      );
+      await old.runAsync(
+        `INSERT INTO outbox (change_id, type, data, created_at, status) VALUES ('c2', 'steps.set', ?, ?, 'pending')`,
+        [JSON.stringify({ day: DAY, steps: 10, recordedAt: AT }), AT],
+      );
+      await setMeta(old, 'cursor', '99');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
+      expect(await listTargets(old)).toEqual([
+        { kind: 'calories', day: '2026-11-11', value: 2_200, setAt, setByUserId: null, syncState: 'pending' },
+      ]);
+      expect((await pendingChanges(old, 10)).map((entry) => entry.data)).toEqual([
+        { kind: 'calories', value: 2_200, setAt, day: '2026-11-11' },
+        { day: DAY, steps: 10, recordedAt: AT },
+      ]);
+      expect(await getMeta(old, 'cursor')).toBeNull();
+    } finally {
+      await old.closeAsync();
+    }
   });
 });
 

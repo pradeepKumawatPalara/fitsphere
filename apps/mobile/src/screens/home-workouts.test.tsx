@@ -43,7 +43,8 @@ async function renderHome(workoutDays: string[], extra?: ReactNode, emptyDays: s
   const db = memoryDb();
   await migrateLocal(db);
   const server = fakeServer(NOW);
-  server.storeTargetFromElsewhere('weekly_workouts', 5);
+  // Since 1 Oct, so every week shown has it (D-77).
+  server.storeTargetFromElsewhere('weekly_workouts', 5, '2026-10-01');
   workoutDays.forEach((day) => server.storeWorkoutFromElsewhere(newId(), day, [SQUAT]));
   emptyDays.forEach((day) => server.storeWorkoutFromElsewhere(newId(), day, []));
   const client = fakeAuthClient(fakeSession({ age_confirmed: true, age_confirmation_text_version: '2026-10-27' }));

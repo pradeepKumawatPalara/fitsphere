@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { dayParts, formatDay } from '../format';
 import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
+import { NoTargetNote } from './NoTargetNote';
 import { Text, TextButton } from './ui';
 
 type Props = {
@@ -13,9 +14,11 @@ type Props = {
   dayCounts: Readonly<Record<IstDay, number>>;
   /** Workouts with at least one exercise that week; an empty one does not count (D-41). */
   count: number;
-  /** The user's weekly workout target, or null (REQ-ROLE-007). */
+  /** The user's weekly workout target for that week, the one on its Sunday, or null (REQ-ROLE-007,
+   * D-77). */
   target: number | null;
-  onSetTarget(): void;
+  /** Null for a past week with no target: one set now starts today (D-77). */
+  onSetTarget: (() => void) | null;
   /** A day up to today was tapped: open its workout, choose one, or start one (D-34). */
   onDay(day: IstDay): void;
 };
@@ -71,11 +74,12 @@ export function WorkoutTracker({ day, today, dayCounts, count, target, onSetTarg
           );
         })}
       </View>
-      {target === null ? (
+      {target === null && onSetTarget ? (
         <View style={styles.setTarget}>
           <TextButton title="Set a weekly workout target" outlined onPress={onSetTarget} />
         </View>
       ) : null}
+      {target === null && !onSetTarget ? <NoTargetNote text="No target that week" /> : null}
     </View>
   );
 }

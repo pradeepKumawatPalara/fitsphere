@@ -41,7 +41,7 @@ async function meal(db: SqlDb, mealType: 'breakfast' | 'lunch' | 'snack' | 'dinn
 }
 
 async function target(db: SqlDb, kind: TargetKind, value: number) {
-  await saveEntry(db, 'target', { changeId: id(), data: { kind, value, setAt: AT } });
+  await saveEntry(db, 'target', { changeId: id(), data: { kind, value, day: TODAY, setAt: AT } });
 }
 
 /** Breakfast: atta; lunch: atta and ghee; targets for calories and protein only. */
@@ -140,6 +140,24 @@ describe('REQ-NUT-005 Insight', () => {
     expect(screen.queryByText(/% of your/)).toBeNull();
     expect(screen.queryByLabelText(/^Left today/)).toBeNull();
     expect(screen.getAllByRole('button', { name: 'Set a target' })).toHaveLength(5);
+  });
+
+  it('D-77 a past day is measured against the targets it had; one with none then says so, with nothing to set', async () => {
+    const YESTERDAY = '2026-10-27';
+    mockParams.day = YESTERDAY;
+    mockParams.scope = 'day';
+    await renderInApp(<InsightScreen now={() => NOW} />, undefined, async (db) => {
+      await saveEntry(db, 'meal', { changeId: id(), data: { id: id(), day: YESTERDAY, mealType: 'lunch', tags: [], items: [ATTA], recordedAt: AT } });
+      await saveEntry(db, 'target', { changeId: id(), data: { kind: 'calories', value: 1_800, day: '2026-10-20', setAt: AT } });
+      // Set today: not yesterday's.
+      await saveEntry(db, 'target', { changeId: id(), data: { kind: 'calories', value: 2_000, day: TODAY, setAt: AT } });
+      await saveEntry(db, 'target', { changeId: id(), data: { kind: 'protein', value: 110, day: TODAY, setAt: AT } });
+    });
+
+    expect(await screen.findByText('Tue 27 Oct')).toBeOnTheScreen();
+    expect(screen.getByText(/of your 1,800 kcal daily target/)).toBeOnTheScreen();
+    expect(screen.getAllByText('No target on this day')).toHaveLength(4);
+    expect(screen.queryByRole('button', { name: 'Set a target' })).toBeNull();
   });
 });
 

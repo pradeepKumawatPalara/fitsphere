@@ -4,6 +4,7 @@ import { CalendarDays, ChartPie, Check, ChevronDown, ChevronUp, Info, Plus } fro
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { MEAL_ICONS } from '../components/MealSheets';
+import { NoTargetNote } from '../components/NoTargetNote';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay, formatInteger } from '../format';
 import {
@@ -22,7 +23,7 @@ import {
   type TopFoodKey,
 } from '../insight';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { listMealsOfDay, listTargets, type LocalMeal } from '../local/store';
+import { listMealsOfDay, targetsOn, type LocalMeal } from '../local/store';
 import { formatAmount, formatKcal, MEAL_TYPE_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
@@ -62,7 +63,8 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([listMealsOfDay(db, day), listTargets(db)]).then(([dayMeals, list]) => {
+    // The targets the day had (D-77).
+    void Promise.all([listMealsOfDay(db, day), targetsOn(db, day)]).then(([dayMeals, list]) => {
       if (!active) return;
       setMeals(dayMeals);
       setTargets(Object.fromEntries(list.map((target) => [target.kind, target.value])));
@@ -83,6 +85,8 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
   const byMeal = kcalByMeal(meals);
   const inScope = scope === 'day' ? meals : meals.filter((meal) => meal.mealType === scope);
   const label = scopeLabel(scope);
+  // A past day with no target keeps none: one set now starts today (D-77).
+  const setTarget = day === today ? () => router.push('/targets') : null;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -133,8 +137,8 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
         </View>
       ) : (
         <>
-          <CaloriesCard meals={meals} scope={scope} target={targets.calories ?? null} byMeal={byMeal} onSetTarget={() => router.push('/targets')} />
-          <NutrientsCard meals={meals} scope={scope} targets={targets} onSetTarget={() => router.push('/targets')} />
+          <CaloriesCard meals={meals} scope={scope} target={targets.calories ?? null} byMeal={byMeal} onSetTarget={setTarget} />
+          <NutrientsCard meals={meals} scope={scope} targets={targets} onSetTarget={setTarget} />
           <TopFoodsCard
             meals={meals}
             scope={scope}
@@ -164,7 +168,8 @@ function CaloriesCard({
   scope: InsightScope;
   target: number | null;
   byMeal: Record<MealType, number | null>;
-  onSetTarget(): void;
+  /** Null on a past day with no target (D-77). */
+  onSetTarget: (() => void) | null;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -189,8 +194,14 @@ function CaloriesCard({
         </Text>
       ) : (
         <View style={styles.noTarget}>
-          <Text style={styles.small}>No daily target</Text>
-          <TextButton title="Set a target" outlined onPress={onSetTarget} />
+          {onSetTarget ? (
+            <>
+              <Text style={styles.small}>No daily target</Text>
+              <TextButton title="Set a target" outlined onPress={onSetTarget} />
+            </>
+          ) : (
+            <NoTargetNote />
+          )}
         </View>
       )}
       <View testID="kcal-bar" style={styles.kcalBar}>
@@ -240,7 +251,8 @@ function NutrientsCard({
   meals: readonly LocalMeal[];
   scope: InsightScope;
   targets: Partial<Record<TargetKind, number>>;
-  onSetTarget(): void;
+  /** Null on a past day with no target (D-77). */
+  onSetTarget: (() => void) | null;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -297,8 +309,14 @@ function NutrientsCard({
               </>
             ) : (
               <View style={styles.noTarget}>
-                <Text style={styles.note}>No daily target</Text>
-                <TextButton title="Set a target" outlined onPress={onSetTarget} />
+                {onSetTarget ? (
+                  <>
+                    <Text style={styles.note}>No daily target</Text>
+                    <TextButton title="Set a target" outlined onPress={onSetTarget} />
+                  </>
+                ) : (
+                  <NoTargetNote />
+                )}
               </View>
             )}
             {missing.length > 0 ? <MissingNote text={missingNote(missing, nutrient.label)} /> : null}

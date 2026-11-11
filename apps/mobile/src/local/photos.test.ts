@@ -211,6 +211,10 @@ describe('Local schema version 4', () => {
         CREATE TABLE saved_meals (id TEXT PRIMARY KEY, name TEXT NOT NULL, meal_type TEXT NOT NULL, tags TEXT NOT NULL,
           items TEXT NOT NULL, saved_at TEXT NOT NULL, kcal REAL NOT NULL, protein_g REAL NOT NULL, carbs_g REAL,
           fat_g REAL, fibre_g REAL, sync_state TEXT NOT NULL);
+        CREATE TABLE targets (kind TEXT PRIMARY KEY, value INTEGER NOT NULL, set_at TEXT NOT NULL, set_by_user_id TEXT,
+          sync_state TEXT NOT NULL);
+        CREATE TABLE outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, change_id TEXT NOT NULL UNIQUE, type TEXT NOT NULL,
+          data TEXT NOT NULL, created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error_code TEXT);
         PRAGMA user_version = 3;`);
       const mealId = id();
       await old.runAsync(`INSERT INTO meals VALUES (?, ?, 'lunch', '[]', ?, ?, 180, 4, NULL, NULL, NULL, 'synced')`, [
@@ -223,7 +227,7 @@ describe('Local schema version 4', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect(await getEntry(old, 'meal', mealId)).toMatchObject({ id: mealId, photo: null });
       expect(await getMeta(old, 'cursor')).toBeNull();
     } finally {

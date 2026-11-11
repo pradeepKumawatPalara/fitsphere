@@ -92,7 +92,8 @@ export function fakeServer(now: Date) {
 
   function store(type: ChangeType, data: Record<string, unknown>) {
     const { list, key } = KINDS[type];
-    const slot = `${list}|${key === null ? 'profile' : String(data[key])}`;
+    // A target is kept per kind and start day (D-77): `entries('targets')` gives each kind's latest.
+    const slot = `${list}|${key === null ? 'profile' : String(data[key])}${type === 'target.set' ? `|${String(data.day)}` : ''}`;
     const updatedAt = now.toISOString();
     const { setAt, recordedAt, ...rest } = data;
     let item: Record<string, unknown>;
@@ -122,7 +123,7 @@ export function fakeServer(now: Date) {
     stored.set(slot, { item, seq });
   }
 
-  /** The values stored for one list, keyed by day (by kind for targets, by name for settings, by ID for
+  /** The values stored for one list, keyed by day (by kind for targets, its latest day's, by name for settings, by ID for
    * meals and workouts). */
   function entries(list: ListName): Map<string, Record<string, unknown>> {
     const result = new Map<string, Record<string, unknown>>();
@@ -281,9 +282,9 @@ export function fakeServer(now: Date) {
     store('steps.set', { day, steps, recordedAt: `${day}T02:00:00.000Z` });
   }
 
-  /** A target set from another phone. */
-  function storeTargetFromElsewhere(kind: TargetKind, value: number) {
-    store('target.set', { kind, value, setAt: now.toISOString() });
+  /** A target set from another phone, from today on unless another day is given (D-77). */
+  function storeTargetFromElsewhere(kind: TargetKind, value: number, day: string = istToday(now)) {
+    store('target.set', { kind, value, day, setAt: now.toISOString() });
   }
 
   /** A meal saved, or deleted, on another phone. */

@@ -445,7 +445,7 @@ describe('Home with meals (REQ-HOME-002…005, REQ-NAV-003)', () => {
     await renderInApp(<HomeScreen />, undefined, async (db) => {
       await meal(db, { items: [ATTA, GHEE] });
       await db.runAsync(
-        `INSERT INTO targets (kind, value, set_at, set_by_user_id, sync_state) VALUES ('calories', 2000, ?, null, 'synced')`,
+        `INSERT INTO targets (kind, day, value, set_at, set_by_user_id, sync_state) VALUES ('calories', '2026-10-01', 2000, ?, null, 'synced')`,
         [AT],
       );
     });

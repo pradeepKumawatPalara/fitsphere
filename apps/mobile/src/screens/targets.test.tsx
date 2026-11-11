@@ -2,13 +2,13 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { StyleSheet } from 'react-native';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WorkoutTracker } from '../components/WorkoutTracker';
-import { getEntry } from '../local/store';
-import { renderInApp } from '../testing/appHarness';
+import { applyServerEntries, listTargets, pendingChanges } from '../local/store';
+import { NOW, renderInApp } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
 import { HomeScreen } from './HomeScreen';
 import { TargetsScreen } from './TargetsScreen';
 
-const mockRouter = { replace: jest.fn(), push: jest.fn() };
+const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
 // Own targets (REQ-ROLE-007, D-20), the calories and protein cards (REQ-HOME-003, REQ-HOME-004) and
@@ -90,7 +90,13 @@ describe('REQ-ROLE-007 Your targets', () => {
     }
     await waitFor(() => expect(server.entries('targets').get('body_weight')).toMatchObject({ value: 68_500 }));
     expect(server.entries('targets').get('fibre')).toMatchObject({ value: 30 });
-    expect(await getEntry(db, 'target', 'calories')).toMatchObject({ value: 2_000, syncState: 'synced', setByUserId: expect.any(String) });
+    // From today, the day the harness's clock gives (D-77).
+    expect((await listTargets(db)).find((target) => target.kind === 'calories')).toMatchObject({
+      day: '2026-10-28',
+      value: 2_000,
+      syncState: 'synced',
+      setByUserId: expect.any(String),
+    });
   });
 
   it('REQ-ROLE-007 a new value replaces the old one', async () => {
@@ -128,6 +134,66 @@ describe('REQ-ROLE-007 Your targets', () => {
   });
 });
 
+describe('D-77 Your targets by date', () => {
+  // Today is Wednesday 28 October 2026, the harness's clock.
+  const now = () => NOW;
+  const kept = (db: Parameters<typeof applyServerEntries>[0]) =>
+    applyServerEntries(db, 'target', [
+      { kind: 'calories', day: '2026-10-20', value: 1_800, setAt: '2026-10-20T03:00:00.000Z', setByUserId: null },
+      { kind: 'protein', day: '2026-10-20', value: 110, setAt: '2026-10-20T03:00:00.000Z', setByUserId: null },
+    ]);
+
+  it('each target says since when its value holds; the sheet says a change starts today and earlier days keep theirs', async () => {
+    await renderInApp(<TargetsScreen now={now} />, now, kept);
+
+    const calories = await screen.findByRole('button', { name: 'Daily calories: 1,800 kcal' });
+    expect(within(calories).getByText('Set by you')).toBeOnTheScreen();
+    expect(within(calories).getByText('since 20 Oct')).toBeOnTheScreen();
+
+    await fireEvent.press(calories);
+    expect(screen.getByText('From today, Wed 28 Oct.')).toBeOnTheScreen();
+    expect(screen.getByText(/Earlier days keep the target they had\./)).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Daily calories in kcal'), '2000');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    const changed = await screen.findByRole('button', { name: 'Daily calories: 2,000 kcal' });
+    await waitFor(() => expect(within(changed).getByText('from today')).toBeOnTheScreen());
+  });
+
+  it('a change today is kept beside the earlier value, which the days before keep', async () => {
+    const { db } = await renderInApp(<TargetsScreen now={now} />, now, kept);
+
+    await setTarget('Daily calories', '2000');
+
+    await screen.findByRole('button', { name: 'Daily calories: 2,000 kcal' });
+    await waitFor(async () =>
+      expect((await listTargets(db)).filter((target) => target.kind === 'calories').map(({ day, value }) => [day, value])).toEqual([
+        ['2026-10-20', 1_800],
+        ['2026-10-28', 2_000],
+      ]),
+    );
+  });
+
+  it('saving the value that already holds changes nothing', async () => {
+    const { db } = await renderInApp(<TargetsScreen now={now} />, now, kept);
+
+    await setTarget('Daily protein', '110');
+
+    expect(await screen.findByRole('button', { name: 'Daily protein: 110 g' })).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Daily protein in g')).toBeNull();
+    expect(await pendingChanges(db, 10)).toEqual([]);
+    expect((await listTargets(db)).filter((target) => target.kind === 'protein')).toHaveLength(1);
+  });
+
+  it('REQ-ROLE-018 Target history opens from under the targets', async () => {
+    await renderInApp(<TargetsScreen now={now} />, now);
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Target history' }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith('/target-history');
+  });
+});
+
 describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
   it('REQ-ROLE-007 with no target, shows the amount eaten without a percentage, and "Set a target" opens the targets', async () => {
     await renderInApp(<HomeScreen />);
@@ -141,22 +207,45 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
     expect(mockRouter.push).toHaveBeenCalledWith('/targets');
   });
 
-  it('REQ-ROLE-007 with targets set, Home shows each card against its target', async () => {
+  it('D-77 each date shows the targets it had: a change today leaves the days before it as they were', async () => {
     const { db } = await renderInApp(<HomeScreen />);
     await db.runAsync(
-      `INSERT INTO targets (kind, value, set_at, set_by_user_id, sync_state) VALUES
-       ('calories', 2000, '2026-10-28T03:00:00.000Z', null, 'synced'),
-       ('protein', 120, '2026-10-28T03:00:00.000Z', null, 'synced'),
-       ('weekly_workouts', 4, '2026-10-28T03:00:00.000Z', null, 'synced')`,
+      `INSERT INTO targets (kind, day, value, set_at, set_by_user_id, sync_state) VALUES
+       ('calories', '2026-10-20', 1800, '2026-10-20T03:00:00.000Z', null, 'synced'),
+       ('protein', '2026-10-20', 120, '2026-10-20T03:00:00.000Z', null, 'synced'),
+       ('calories', '2026-10-28', 2000, '2026-10-28T03:00:00.000Z', null, 'synced'),
+       ('weekly_workouts', '2026-10-28', 4, '2026-10-28T03:00:00.000Z', null, 'synced')`,
       [],
     );
     await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct' }));
 
-    // A target applies to past days too (Q-014 MVP default, D-23).
-    expect(await screen.findByText('0 of 2,000 kcal')).toBeOnTheScreen();
-    expect(screen.getByLabelText('2,000 kcal remaining')).toBeOnTheScreen();
+    expect(await screen.findByText('0 of 1,800 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText('1,800 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('120 g remaining')).toBeOnTheScreen();
+    // The week of 26 Oct takes its Sunday's workout target, set on Wednesday: a change counts for its week.
     expect(screen.getByText('0 of 4 · 4 left')).toBeOnTheScreen();
+
+    // Today: the new calorie target.
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to today' }));
+    expect(await screen.findByText('0 of 2,000 kcal')).toBeOnTheScreen();
+  });
+
+  it('D-77 a past date before any target says so, with no "Set a target": one set now starts today', async () => {
+    const { db } = await renderInApp(<HomeScreen />);
+    await db.runAsync(
+      `INSERT INTO targets (kind, day, value, set_at, set_by_user_id, sync_state) VALUES
+       ('calories', '2026-10-27', 2000, '2026-10-27T03:00:00.000Z', null, 'synced'),
+       ('protein', '2026-10-27', 120, '2026-10-27T03:00:00.000Z', null, 'synced')`,
+      [],
+    );
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct' }));
+
+    expect(await screen.findByLabelText('0 kcal eaten')).toBeOnTheScreen();
+    expect(screen.getAllByText('No target on this day')).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'Set a target' })).toBeNull();
+    // This week has no workout target yet: one set today counts for it.
+    expect(screen.getByRole('button', { name: 'Set a weekly workout target' })).toBeOnTheScreen();
   });
 
   it('REQ-HOME-003 target 2000 and 1500 eaten: 75% and 500 kcal remaining', async () => {
@@ -225,6 +314,16 @@ describe('REQ-HOME-007 workout tracker', () => {
       <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={1} target={1} onSetTarget={jest.fn()} onDay={jest.fn()} />,
     );
     expect(screen.getByText('1 workout · target achieved')).toBeOnTheScreen();
+  });
+
+  it('D-77 a past week with no target says so, with nothing to set', async () => {
+    await render(
+      <WorkoutTracker day="2026-10-21" today="2026-10-28" dayCounts={{}} count={2} target={null} onSetTarget={null} onDay={jest.fn()} />,
+    );
+
+    expect(screen.getByText('2 workouts that week')).toBeOnTheScreen();
+    expect(screen.getByText('No target that week')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Set a weekly workout target' })).toBeNull();
   });
 
   it('REQ-ROLE-007 with no target, offers to set one', async () => {
