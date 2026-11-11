@@ -1,14 +1,15 @@
 import { istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash } from 'lucide-react-native';
+import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash, TrendingUp, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNow } from '../clock';
+import { ExerciseDetailsPage } from '../components/ExerciseDetailsPage';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { WorkoutTimerBar } from '../components/WorkoutTimerBar';
-import { IconButton, Text, TextButton } from '../components/ui';
+import { Text, TextButton } from '../components/ui';
 import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listEntries, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
@@ -39,9 +40,10 @@ type Sheet = { index: number | null };
 // (D-50), with an optional note (Q-042).
 // Every change is saved on the phone at once and synced (ADR-0007); there is no draft and no
 // "Finish" step (MVP default, D-29), and no Done: Save in the exercise sheet saves, and the header's
-// back arrow leaves (D-42). Each exercise has edit and remove; removing asks first. Named by its
-// place among its day's workouts, "Workout 2 · Tue 3 Nov". The workout counts toward the week once it
-// has an exercise (D-41); deleting it says what goes with it (D-63).
+// back arrow leaves (D-42). Each exercise has a bar at its foot with Progress (its page: progress,
+// history and how to, D-82), Edit and Remove; removing asks first. Named by its place among its day's workouts,
+// "Workout 2 · Tue 3 Nov". The workout counts toward the week once it has an exercise (D-41);
+// deleting it says what goes with it (D-63).
 // The workout timer (D-71): a workout of today has "Start workout" in a bar at its foot; the bar
 // then shows the time counted, with Pause or Resume and "Mark done". A timer already started can be
 // paused, resumed and marked done whatever the date, so a workout that runs past midnight can be
@@ -61,6 +63,8 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [removing, setRemoving] = useState<number | null>(null);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // The exercise whose page is open (D-82): its progress, history and how to.
+  const [detailsFor, setDetailsFor] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   // A timer step being saved: the bar's buttons wait for it.
   const [stepping, setStepping] = useState(false);
@@ -194,12 +198,24 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
                   {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
                 </View>
               </Pressable>
-              <IconButton label={`Edit ${exercise.name}`} onPress={() => setSheet({ index })}>
-                <SquarePen size={20} color={colors.accent} />
-              </IconButton>
-              <IconButton label={`Remove ${exercise.name}`} onPress={() => setRemoving(index)}>
-                <Trash size={20} color={colors.danger} />
-              </IconButton>
+              <View style={styles.exerciseActions}>
+                <ExerciseAction
+                  icon={TrendingUp}
+                  title="Progress"
+                  label={`${exercise.name}: progress, history and how to`}
+                  color={colors.accent}
+                  onPress={() => setDetailsFor(exercise.name)}
+                />
+                <ExerciseAction
+                  icon={SquarePen}
+                  title="Edit"
+                  label={`Edit ${exercise.name}`}
+                  color={colors.accent}
+                  middle
+                  onPress={() => setSheet({ index })}
+                />
+                <ExerciseAction icon={Trash} title="Remove" label={`Remove ${exercise.name}`} color={colors.danger} onPress={() => setRemoving(index)} />
+              </View>
             </View>
           );
         })}
@@ -253,6 +269,17 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           onClose={() => setRemoving(null)}
         />
       ) : null}
+      {detailsFor !== null ? (
+        <ExerciseDetailsPage
+          name={detailsFor}
+          now={now}
+          onClose={() => setDetailsFor(null)}
+          onOpenWorkout={(other) => {
+            setDetailsFor(null);
+            if (other !== workout.id) router.push(`/workout/${other}`);
+          }}
+        />
+      ) : null}
       {sheet ? (
         <ExerciseSheet
           title={editing ? 'Edit exercise' : 'Add exercise'}
@@ -272,6 +299,39 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * One of an exercise's actions in the bar at its card's foot (D-82, the owner's C on the canvas's 4.2
+ * "The exercise icons"): an icon and a word, a third of the card's width.
+ */
+function ExerciseAction({
+  icon: Icon,
+  title,
+  label,
+  color,
+  middle = false,
+  onPress,
+}: {
+  icon: LucideIcon;
+  title: string;
+  label: string;
+  color: string;
+  middle?: boolean;
+  onPress(): void;
+}) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.exerciseAction, middle && styles.exerciseActionMiddle, pressed && styles.pressed]}
+    >
+      <Icon size={17} strokeWidth={2.25} color={color} />
+      <Text style={[styles.exerciseActionText, { color }]}>{title}</Text>
+    </Pressable>
   );
 }
 
@@ -311,17 +371,13 @@ const useStyles = themedStyles((c) => ({
     color: c.inkMuted,
     textAlign: 'center',
   },
-  exercise: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingVertical: 12,
-    paddingLeft: 12,
-    paddingRight: 2,
-    borderRadius: 4,
-    backgroundColor: c.surface,
-  },
-  exerciseMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  exercise: { borderRadius: 4, backgroundColor: c.surface, overflow: 'hidden' },
+  exerciseMain: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, paddingLeft: 12, paddingRight: 14 },
+  // D-82: Progress, Edit and Remove in a bar at the card's foot, each a third of its width.
+  exerciseActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.border },
+  exerciseAction: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  exerciseActionMiddle: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: c.border },
+  exerciseActionText: { ...TYPE.link },
   pressed: { opacity: 0.6 },
   number: { width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSunken },
   numberText: { ...TYPE.metric, fontSize: 16, lineHeight: 18, color: c.accent },

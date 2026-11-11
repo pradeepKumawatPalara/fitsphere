@@ -1,5 +1,5 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { ChevronDown, ChevronLeft, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
@@ -35,6 +35,7 @@ import {
   type SetColumn,
   type SetText,
 } from '../workouts';
+import { ExerciseDetailsPage } from './ExerciseDetailsPage';
 import { ExercisePlacePickers, filterLabel } from './ExercisePlacePickers';
 import { FullScreen } from './FullScreen';
 import { Sheet } from './Sheet';
@@ -117,7 +118,8 @@ function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit)
 // (REQ-TRN-005, REQ-ACC-002). Nothing is saved until every field is valid; Cancel closes without
 // saving (as Q-029). Above the name, Category and Sub-group narrow the search (D-67): with either
 // chosen, its exercises show before a word is typed, every match of the words typed after, each
-// tagged with what is not chosen yet; the choice is not saved with the exercise.
+// tagged with what is not chosen yet; the choice is not saved with the exercise. A picked exercise
+// of the list has How to do it, which opens its page on How to (D-82).
 export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -145,6 +147,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   // and, opened with nothing typed or chosen, every exercise.
   const [listClosed, setListClosed] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
+  // The picked exercise's page, opened on How to (D-82); the form waits under it.
+  const [howTo, setHowTo] = useState(false);
   const filtered = filter.category !== null || filter.subGroup !== null;
   const unnamed = text.name.trim() === '';
   const browsingAll = showingAll && !filtered && unnamed;
@@ -401,6 +405,16 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             <View style={styles.typeLine}>
               <Text style={styles.tag}>{matchTag(match, NO_FILTER)}</Text>
               <Text style={styles.help}>{LOG_TYPE_LABELS[match.logType]}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`How to do ${match.name}`}
+                onPress={() => setHowTo(true)}
+                style={({ pressed }) => [styles.howTo, pressed && styles.howToPressed]}
+              >
+                <BookOpen size={17} strokeWidth={2.25} color={colors.accent} />
+                <Text style={styles.howToText}>How to do it</Text>
+                <ChevronRight size={16} strokeWidth={2.5} color={colors.accent} />
+              </Pressable>
             </View>
           ) : (
             <View style={styles.field}>
@@ -590,6 +604,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <Text style={styles.help}>{COMPENDIUM_CREDIT}</Text>
         </Sheet>
       ) : null}
+      {howTo && match ? <ExerciseDetailsPage name={match.name} initialTab="howto" onClose={() => setHowTo(false)} /> : null}
     </FullScreen>
   );
 }
@@ -750,6 +765,9 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceSunken,
   },
   typeLine: { marginTop: -6, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  howTo: { marginLeft: 'auto', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  howToPressed: { opacity: 0.7 },
+  howToText: { ...TYPE.link, color: c.accent },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   choice: { paddingHorizontal: 12 },
   choiceText: { fontSize: 15, letterSpacing: 0.5 },
