@@ -1,0 +1,140 @@
+barcode,brand,name,action,new_name,new_brand,reason
+8902080304561,7up,7 up,keep,,,The brand is the product's own name (Open Food Facts: Sodas)
+8908015078026,Abhi Eggs,Abhi Eggs,keep,,,The brand is the product's own name (Open Food Facts: Eggs)
+8904287005401,Amore,Amore,keep,,,The brand is the product's own name (Open Food Facts: Wafers)
+8901262070430,Amul,Amul,remove,,,"Amul makes many products, and Open Food Facts does not say which this is (category only: Chocolate candies)"
+8901262176521,Amul kulfi,Amul kulfi,keep,,,The brand is the product's own name (Open Food Facts: Ice creams)
+8902080504046,Aquafina,Aquafina,keep,,,The brand is the product's own name (Open Food Facts: Drinking water)
+8909081004841,B Natural,B Natural,rename,B Natural Mango,,Open Food Facts' generic name: B Natural Mango
+8901725193119,bingo,bingo,remove,,,"bingo makes many products, and Open Food Facts does not say which this is (no category)"
+8906017290033,BISLERI,Bisleri,keep,,,The brand is the product's own name (Open Food Facts: Natural mineral waters)
+8901030543944,Boost,BOOST,keep,,,The brand is the product's own name (Open Food Facts: Malt)
+8901030712012,Boost,Boost,keep,,,The brand is the product's own name (Open Food Facts: Beverage preparations)
+8901030817182,Boost,Boost,keep,,,The brand is the product's own name (Open Food Facts: Beverages)
+8909106018327,Boost,Boost,keep,,,The brand is the product's own name (Open Food Facts: Beverage preparations)
+8909106043138,Boost Drink,Boost Drink,keep,,,The brand is the product's own name (Open Food Facts: Boost)
+7622202237416,Bournvita,Bournvita 13.4g,keep,,,The brand is the product's own name (Open Food Facts: Cereal based beverage mix)
+7622202818516,Bournvita,Bournvita,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8901063142664,Britannia,britannia,remove,,,"Britannia makes many products, and Open Food Facts does not say which this is (category only: Biscuits)"
+7622201385125,Cadbury,cadbury,remove,,,"Cadbury makes many products, and Open Food Facts does not say which this is (category only: Biscuit (cookie) snack w chocolate filling)"
+6221007004066,Chocapic,Chocapic,keep,,,The brand is the product's own name (Open Food Facts: no category)
+3948764011252,Coca Cola,CocaCola,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901764971020,Coca Cola,Thums Up,remove,,,"Its values say 0 kcal and 3.3 g protein, but Open Food Facts files it as an ordinary cola (Colas), not a sugar-free one; the other Thums Up copies give 39 to 42 kcal"
+3948764012501,Coca-Cola,Coca cola 2ltr,keep,,,The brand is the product's own name (Open Food Facts: Colas)
+89000564,Coca-Cola,Coca Cola,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901764061189,Coca-Cola,Coca Cola,remove,,,"Its values say 0 kcal, but Open Food Facts files it as an ordinary cola (Colas), not a sugar-free one; the other Coca-Cola copies give 44 kcal"
+8908013746033,Cravova,Cravova,keep,,,The brand is the product's own name (Open Food Facts: Fruit sodas)
+8906014640053,Dalda,Dalda,keep,,,The brand is the product's own name (Open Food Facts: Vegetable oils)
+8901246003492,Del Monte,Del monte,remove,,,"Del Monte makes many products, and Open Food Facts does not say which this is (no category)"
+8901246006660,Del Monte,Del Monte,remove,,,"Del Monte makes many products, and Open Food Facts does not say which this is (no category)"
+8901491990219,Doritos,Doritos,keep,,,The brand is the product's own name (Open Food Facts: Corn chips)
+8904405987985,Elvish,Elvish,keep,,,The brand is the product's own name (Open Food Facts: Beverages)
+8906001387015,English Oven,English oven,remove,,,"English Oven makes many products, and Open Food Facts does not say which this is (no category)"
+8908022521010,Evocus,Evocus,keep,,,The brand is the product's own name (Open Food Facts: Waters)
+8901058010749,Fassi,Maggie,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (named only ""Maggie"", brand ""Fassi""; category only: Maggie)"
+8000500126936,Ferrero rocher,Ferrero Rocher,keep,,,The brand is the product's own name (Open Food Facts: Neules)
+8902579001360,Frooti,Frooti 125ml,keep,,,The brand is the product's own name (Open Food Facts: Frooti-mango-drink)
+8902579103170,Frooti,Frooti,keep,,,The brand is the product's own name (Open Food Facts: Ready to serve fruit drink)
+8902080002368,Gatorade,Gatorade 250 ml,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8901063092334,GOOD DAY,BRITANNIA,rename,Good Day,Britannia,"Open Food Facts has its name and brand the wrong way round (name BRITANNIA, brand GOOD DAY); its barcode is Britannia's (8901063…)"
+8906122120317,Groovy,Groovy,keep,,,The brand is the product's own name (Open Food Facts: Still fruit soft drink with sugar)
+8908017333314,Grow Vita,Grow Vita,keep,,,The brand is the product's own name (Open Food Facts: Beverage preparations)
+8904063240217,Haldiram's,Haldiram's,remove,,,"Haldiram's makes many products, and Open Food Facts does not say which this is (category only: Salty snacks)"
+8908016501172,Hello tempay,Hello tempay,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8901071701983,Hershey's,hershey-s,remove,,,"Hershey's makes many products, and Open Food Facts does not say which this is (no category)"
+8901071732598,Hershey's,HERSHEY'S,remove,,,"Hershey's makes many products, and Open Food Facts does not say which this is (category only: Milkshakes)"
+8901357000472,Hi-Tea,Hi-Tea,keep,,,The brand is the product's own name (Open Food Facts: Teas)
+8901030976094,Horlicks,Horlicks,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901030976148,Horlicks,horlicks 1 kg,keep,,,The brand is the product's own name (Open Food Facts: Beverage preparations)
+8901030976940,Horlicks,horlicks,keep,,,The brand is the product's own name (Open Food Facts: Beverage preparations)
+8909106024564,Horlicks,HORLICKS,keep,,,The brand is the product's own name (Open Food Facts: Energy drink with sugar)
+8901499010445,Kellogg's,kellogg-s,remove,,,"Kellogg's makes many products, and Open Food Facts does not say which this is (category only: Breakfast cereals)"
+8901499011312,Kellogg's,Kellogg's,remove,,,"Kellogg's makes many products, and Open Food Facts does not say which this is (category only: Breakfast cereals)"
+8901030921667,Kissan,kissan,rename,Tomato Ketchup,,Open Food Facts' generic name: tomato ketchup
+0941458001846,KitKat,KitKat,keep,,,The brand is the product's own name (Open Food Facts: Candy chocolate bars)
+89005637,KitKat,KitKat,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8901030757501,Knorr,Knorr,rename,Tomato Soup,,Open Food Facts' generic name: Tomato Soup
+8901030900280,Knorr,knorr,remove,,,"Knorr makes many products, and Open Food Facts does not say which this is (no category)"
+8901030976742,Knorr,Knorr,remove,,,"Knorr makes many products, and Open Food Facts does not say which this is (category only: Ramen)"
+8907459000365,Kopiko,Kopiko,keep,,,The brand is the product's own name (Open Food Facts: Candies)
+8901491100519,Kurkure,Kurkure,keep,,,The brand is the product's own name (Open Food Facts: Namkeen)
+8901491103084,Kurkure,Kurkure,rename,Green Chutney Style,,Open Food Facts' generic name: Green Chutney Style
+8901491367219,kurkure,kurkure,keep,,,The brand is the product's own name (Open Food Facts: Kurkure)
+8908013982646,Lahori Zeera,Lahori Zeera,keep,,,The brand is the product's own name (Open Food Facts: Carbonated fruit soft drink)
+8908013982912,LAHORI ZEERA,LAHORI Zeera,keep,,,The brand is the product's own name (Open Food Facts: Beverages)
+8908015382277,Lalbaba rice,Lalbaba rice,keep,,,The brand is the product's own name (Open Food Facts: Rices)
+8901491101820,Lay's,lays,keep,,,The brand is the product's own name (Open Food Facts: Potato crisps)
+8906084416497,M.O.M,M.O.M,remove,,,"M.O.M makes many products, and Open Food Facts does not say which this is (category only: Snacks)"
+3948764175022,Maaza,Maaza,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901058000269,Maggi,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Noodles)"
+8901058001181,Maggi,maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Tomato Ketchup)"
+8901058005608,Maggi,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Noodles)"
+8901058008050,Maggi,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Instant noodles)"
+8901058017670,Maggi,Maggi 280g,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Noodles)"
+8901058017687,Maggi,maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Maggie)"
+8901058851335,Maggi,maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: céréales-et-pommes-de-terre)"
+8901058898613,Maggi,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (no category)"
+8901058901542,Maggi,Maggie,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (named only ""Maggie"", brand ""Maggi""; category only: Instant noodles)"
+89080450,Maggi,maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (category only: Tomato sauces)"
+8908001783774,Maharashtra Chai,Maharashtra Chai,keep,,,The brand is the product's own name (Open Food Facts: Teas)
+8908016793089,Master Chow,Master chow,remove,,,"Master Chow makes many products, and Open Food Facts does not say which this is (category only: Noodles)"
+8908000738270,Meriba,Meriba,keep,,,The brand is the product's own name (Open Food Facts: Waters)
+8901058004120,Milo,Milo,keep,,,The brand is the product's own name (Open Food Facts: Chocolate milks)
+8902080001378,Mirinda,Mirinda,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8902080204021,Mirinda,Mirinda,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8850389106907,Mogu mogu,Mogu mogu,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8906116957745,MuscleBlaze,Muscle Blaze,remove,,,"MuscleBlaze makes many products, and Open Food Facts does not say which this is (no category)"
+8904327601334,My Protein Bar,My Protein Bar,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8908001700184,Namaste India,Namaste India,rename,Pasteurized Toned Milk,,Open Food Facts' generic name: Pasteurized Toned Milk
+8901058014235,Neslé,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (named only ""Maggi"", brand ""Neslé""; category only: Instant noodles)"
+8901058000290,Nestlé,maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (named only ""maggi"", brand ""Nestlé""; category only: Instant Noodles with Seasoning)"
+8901058010572,Nestle,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (named only ""Maggi"", brand ""Nestle""; no category)"
+8901058897838,Nestlé,Maggi,remove,,,"Maggi makes many products, and Open Food Facts does not say which this is (named only ""Maggi"", brand ""Nestlé""; category only: Instant noodles)"
+8901560230314,NiLoNs,NiLoNs,remove,,,"NiLoNs makes many products, and Open Food Facts does not say which this is (no category)"
+8901014000159,Nissin,nissin,remove,,,"Nissin makes many products, and Open Food Facts does not say which this is (category only: Instant noodles)"
+3017620425035,Nutella,Nutella,keep,,,The brand is the product's own name (Open Food Facts: produits-a-tartiner-sucres)
+7622201428501,Oreo,Oreo,keep,,,The brand is the product's own name (Open Food Facts: Filled biscuits)
+7622201464486,Oreo,Oreo,keep,,,The brand is the product's own name (Open Food Facts: Chocolate sandwich cookies)
+7622202225598,Oreo,OREO,keep,,,The brand is the product's own name (Open Food Facts: Chocolate sandwich cookies)
+8901719128288,Parle,Parle,remove,,,"Parle makes many products, and Open Food Facts does not say which this is (category only: Snacks)"
+8901719130397,Parle,parle,remove,,,"Parle makes many products, and Open Food Facts does not say which this is (no category)"
+8901719100956,Parle-G,Parle G,keep,,,The brand is the product's own name (Open Food Facts: Biscuits)
+8902080104062,Pepsi,pepsi,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8902080105045,Pepsi,Pepsi,keep,,,The brand is the product's own name (Open Food Facts: Carbonated waters)
+8906063434115,Prabhat,Prabhat,remove,,,"Prabhat makes many products, and Open Food Facts does not say which this is (no category)"
+8886467122866,Pringles,pringles,keep,,,The brand is the product's own name (Open Food Facts: Stacked extruded potato crisps)
+8906048502037,Protinex,Protinex,keep,,,The brand is the product's own name (Open Food Facts: Beverage preparations)
+6936140543340,Satvikveda,Satvikveda,keep,,,The brand is the product's own name (Open Food Facts: Millet-cookies)
+8904304421917,Skter,Skter,keep,,,The brand is the product's own name (Open Food Facts: Waters)
+8902080001521,Slice,Slice,keep,,,The brand is the product's own name (Open Food Facts: Fruit-based beverages)
+8902080003068,Slice,Slice,keep,,,The brand is the product's own name (Open Food Facts: mango beverages)
+8902080404025,Slice,Slice,keep,,,The brand is the product's own name (Open Food Facts: Fruit juices)
+8901764082054,smart water,smart water,keep,,,The brand is the product's own name (Open Food Facts: Waters)
+4902179003676,Smoodh,Smoodh,keep,,,The brand is the product's own name (Open Food Facts: Chocolate-juice)
+3948764032301,Sprite,Sprite,keep,,,The brand is the product's own name (Open Food Facts: A)
+8901764032158,Sprite,Sprite,keep,,,The brand is the product's own name (Open Food Facts: no category)
+8901764032301,Sprite,Sprite,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901764032806,Sprite,Sprite,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8992761002022,Sprite,Sprite 390ml,keep,,,The brand is the product's own name (Open Food Facts: minuman lemon & jeruk nipis bersoda)
+8901688122966,Sumeru,sumeru,remove,,,"Sumeru makes many products, and Open Food Facts does not say which this is (no category)"
+3948725132866,Sunfeast,Sunfeast,remove,,,"Sunfeast makes many products, and Open Food Facts does not say which this is (no category)"
+8906043347985,Supply 360,Supply 360,remove,,,"Supply 360 makes many products, and Open Food Facts does not say which this is (no category)"
+8909106043671,Taj Mahal,Taj Mahal,keep,,,The brand is the product's own name (Open Food Facts: Teas)
+0121234415146,The Natural Eggs,The Natural Eggs,keep,,,The brand is the product's own name (Open Food Facts: white-eggs)
+0001241000224,Threptin,Threptin,keep,,,The brand is the product's own name (Open Food Facts: Biscuits)
+3948764042508,Thums Up,Thums Up,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901764041105,Thums Up,Thums Up,keep,,,The brand is the product's own name (Open Food Facts: Colas)
+8901764042911,Thums up,Thums up,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8901764972065,Thums Up,Thums Up,keep,,,The brand is the product's own name (Open Food Facts: Plant base juice)
+3948764042911,thumsup,thums up,keep,,,The brand is the product's own name (Open Food Facts: Sweetened beverages)
+8906090572217,Too Yumm,Too yumm,remove,,,"Too Yumm makes many products, and Open Food Facts does not say which this is (category only: Crisps)"
+8902080000821,Tropicana,Tropicana,remove,,,"Tropicana makes many products, and Open Food Facts does not say which this is (no category)"
+8906069402668,Veeba,Veeba,remove,,,"Veeba makes many products, and Open Food Facts does not say which this is (category only: Pasta sauces)"
+8906013030022,Wai wai,Wai wai,keep,,,The brand is the product's own name (Open Food Facts: Instant noodles)
+8906013032187,WAIWAI,WAI WAI,keep,,,The brand is the product's own name (Open Food Facts: Instant noodles)
+8901808000068,Weikfield,WeiKFiELD,rename,Custard Powder,,Open Food Facts' generic name: Custurd powder
+8906131940128,Wild Date,Wild Date,keep,,,The brand is the product's own name (Open Food Facts: Nut bars)
+8906019270002,Yakult,Yakult,keep,,,The brand is the product's own name (Open Food Facts: Yogurts)
+8906019270019,Yakult,Yakult,keep,,,The brand is the product's own name (Open Food Facts: fermented-milk-drinks-with-sugar)
+6901045144350,Yoga Bar,Yoga bar,remove,,,"Yoga Bar makes many products, and Open Food Facts does not say which this is (category only: Protein bars)"
+8906069407984,Zyro,Zyro,keep,,,The brand is the product's own name (Open Food Facts: Beverages)
