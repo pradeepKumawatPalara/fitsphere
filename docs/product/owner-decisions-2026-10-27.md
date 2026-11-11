@@ -1580,7 +1580,7 @@ checksum), and the configuration template was left as it is.*
   character erase my search result should refresh based on the new input").
 - Answer: while something is typed, a cross at the end of the search box clears the search and its
   results. The results follow the search as each letter is typed or erased; the app already did
-  this, and a test now covers it.
+  this, and a test now covers it. (Since D-72 the phone searches once typing pauses.)
 - The microphone asked for in the same message is **on hold** (owner, 2026-11-06: "For now keep on
   hold the mic I will let you later to implement"); backlog E-28. FitSphere's own microphone may use
   only the phone's on-device speech recognition (ADR-0005, D-18), which needs a new module and a new
@@ -1912,8 +1912,11 @@ checksum), and the configuration template was left as it is.*
     words typed together count as whole when the name has them apart ("dalmakhani" and "Dal
     Makhani").
   - The list scrolls; its rows are drawn as they come into view. A one-letter search can list about
-    17,000 foods.
-  - The search still runs at each letter typed or erased (D-57), with no pause added.
+    17,000 foods. (Since D-72 one or two characters find only the foods named by them; since D-73 the
+    list shows its rows 200 at a time.)
+  - The search still runs at each letter typed or erased (D-57), with no pause added. (Changed by
+    D-72: the phone searches once typing pauses, and one or two characters find only the foods named
+    by them.)
   - **Ready-made search text** (owner, in chat, 2026-11-10: "apply the index: Ready-made search
     text", after asking whether an index would make the search faster): each food's and packaged
     food's name, aliases and brand are kept as the search reads them, written when the list is
@@ -2213,6 +2216,109 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-TRN-003 and REQ-TRN-004; the data model and `api-conventions.md`; the redesign plan
   (4.1, 4.2); `constraints-and-assumptions.md`; the slice 4 manual test guide (S4-22 to S4-26);
   CLAUDE.md.
+
+---
+
+## D-72 Search foods searches less often
+- Status: **Accepted** (owner, in chat, 2026-11-11, after a speed test of Search foods and a list of
+  ways to make it faster: "lets implement the A. Search less often. regarding the 3 point that if our
+  db has food with the item length of 1,2 than they alos should be appear when the search").
+- Answer:
+  - **A pause before searching**: the phone searches once typing pauses for a moment, not at every
+    letter, so a word typed quickly is searched once. The results of the text before stay on the
+    screen meanwhile; "No foods found" shows only once the search for the text typed is done.
+    Emptying the box, or its cross (D-57), clears the results at once.
+  - **One search at a time**: a search waits for the one under way to finish, and only the latest
+    text waits; texts typed in between are never searched.
+  - **Three characters or more** (spaces not counted) search as before (D-62, D-66). With one or two,
+    a food is listed only when its whole name, a packaged food's brand, or one of a food's other names
+    is exactly what was typed, ignoring case and marks: "h" finds the product named H, "on" the brand
+    ON's products, "go" Go's cheese, "id" iD's. A line above them says "Type 3 letters or more to
+    search all foods."
+- Why: on the PC, with the food list as the phone holds it (7,300 foods and 9,775 packaged foods), one
+  letter took 210 ms of search work for up to 15,600 foods and 263 ms until the screen showed them;
+  three letters or more took 11 to 37 ms. Typing "paneer butter masala" ran 20 searches, 572 ms of
+  work in all. After this change one or two characters take about 9 ms, and that text typed without
+  stopping is searched once (about 22 ms). The phone itself was not measured.
+- MVP defaults: the pause is 250 ms; marks alone (such as "-") find nothing; a search already under
+  way is not stopped, its results are dropped when the text has changed.
+- Phone app only: no server change, no migration, no new build, no phone schema change. Doc changes:
+  REQ-LOG-007; `constraints-and-assumptions.md` (More foods); D-57 and D-66 point here.
+
+---
+
+## D-73 Search foods: the results 200 at a time, each food read in full only when opened
+- Status: **Accepted** (owner, in chat, 2026-11-11: "now implemet 4. Show the first 100 or so rows,
+  and load more as you scroll., 5. Read only what the list shows."; then, told that after D-72 these
+  would save little time on the PC and could change a name's brand row while scrolling: "Build Both 4
+  and 5. My core Idea is End User should not feel like the when He scroll down he should be wait too
+  much than loads. loading of the data should be smooth. and Initial screen must be filled by the
+  result if the search text has more result. for this if it is necessaary to load the 200 items once
+  instead of 100 fell free to load.").
+- Answer:
+  - **The results 200 at a time**: the list shows the first 200 rows of results; when its end is
+    near (about two screens away), it adds the next 200, until every match is listed (D-66). A new
+    search starts again at its first 200.
+  - **No waiting while scrolling**: the rows added come from the results the search already found,
+    so scrolling never searches again. Every match is still put in order (D-51, D-66) and a name's
+    brands grouped (D-61) before the first row shows, so a row such as "Sandwich Bread · 5 brands" is
+    whole from the start and never changes while scrolling. (Not chosen: reading each 200 from the
+    database as the list scrolls, which would search again for every page and could show a name with
+    fewer brands until the rest came.)
+  - **The first screen filled**: the first 15 rows are drawn at once, more than the tallest phone
+    shows.
+  - **Each food read in full only when opened**: for the list, the search reads of each food only what
+    its row needs (its name, brand, kcal and whether its values are estimated); its other names,
+    servings and household units are read when its page opens. Packaged foods, dishes and My foods
+    were already read this way.
+- Why: after D-72 the biggest searches (three letters such as "chi", about 1,400 foods) took 23 to 33
+  ms on the PC, most of it finding the matches; reading less for each food made no difference that
+  could be measured on the PC, and showing 200 rows at a time does not change the search's time. The
+  change is for scrolling that never waits and rows that never change; the phone was not measured.
+- MVP defaults: 200 rows a time; more added two screens before the end; 15 rows drawn first; a food
+  that has left the food list between the search and the tap (a new list downloaded meanwhile) does
+  not open.
+- Phone app only: no server change, no migration, no new build, no phone schema change. Doc changes:
+  REQ-LOG-007; `constraints-and-assumptions.md` (More foods); D-66 points here.
+
+---
+
+## D-74 The phone keeps the food list in memory between searches
+- Status: **Accepted** (owner, in chat, 2026-11-11, from the list of search speed-ups not yet done:
+  "Lets build: Bigger memory cache on the phone").
+- Answer: the phone's database keeps up to **8 MB** of its pages in memory, read and decrypted, in
+  place of SQLite's default of about 2 MB. A food search reads the whole food list, about 2.4 MB (1.3
+  MB of foods and 1.1 MB of packaged foods, as the phone holds them on 2026-11-11), which did not fit:
+  each search pushed out pages the next one needed, so most of the list was read from storage and
+  decrypted again at every search. Now it is read once and stays.
+- Why: on the PC, with an unencrypted copy of the phone's database, searches took 4 to 5 ms less with
+  the larger cache ("dal" from about 13 ms to about 9 ms, "chi" from about 18 ms to 14 ms, "paneer" from
+  25–29 ms to about 20 ms). On the phone the decrypting saved comes on top; the phone was not measured.
+- Privacy: as before, decrypted pages are only in the app's own memory while it runs; nothing is
+  written to storage unencrypted (ADR-0007 rule 5).
+- MVP defaults: 8 MB, about three times the food list today, so it still fits as the list grows; the
+  memory is used only as pages are read (about 3 MB for the whole database today). Set after the key,
+  at each start; it lasts as long as the connection.
+- Phone app only: no server change, no migration, no new build, no phone schema change. Doc changes:
+  the data model ("On the phone").
+
+---
+
+## D-75 Search foods orders its results in one pass
+- Status: **Accepted** (owner, in chat, 2026-11-11, from the list of search speed-ups not yet done:
+  "Explain The part Cheaper ordering implement this").
+- Answer: the results keep **exactly the same order** (D-51 the exact match first; D-66 the four
+  groups; inside each, the order by source). The phone now works the order out in one pass over the
+  results, reading each name once for each test, where it used to make two passes and read each name
+  three times (once for the groups, twice for the exact match; a packaged food has two names, its own
+  and its brand with it).
+- Why: on the PC, with the food list as the phone holds it, putting "chi"'s 1,391 results in order
+  took about 4 ms in place of 6.5, "rea"'s 1,188 about 3.5 in place of 5.5, "milk"'s 733 about 2 in
+  place of 3.2: about a third less, the same order checked on each. The phone was not measured. Not
+  done: reading the order from each food's ready-made search text, which saved under 1 ms more and
+  would have meant carrying that text with every result.
+- Phone app only: no server change, no migration, no new build, no phone schema change; no change to
+  any requirement.
 
 ---
 

@@ -538,8 +538,12 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   finds Haldiram's, "dalmakhani" finds Dal Makhani, never a word's end and the next one's start). Since
   D-66 every match is listed, with no cap on any source, the best matches first: names with the
   words whole, then words starting with them, then inside a word, then foods found only by hidden
-  search words, each group in the order above. The results follow each letter typed or
-  erased;
+  search words, each group in the order above. The results follow the text typed or erased;
+  since D-72 the phone searches once typing pauses, one search at a time, and one or two characters
+  find only the foods whose name, brand or other name is all of them ("on" finds the brand ON),
+  under "Type 3 letters or more to search all foods."; since D-73 the list shows the results 200 at a
+  time, adding the next 200 from those already found as its end comes near, and a food's servings
+  and units are read when its page opens;
   since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
   source tag (the marks above stay on each food's page): a branded food shows its brand under its
   name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·
