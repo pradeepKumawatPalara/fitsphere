@@ -609,6 +609,10 @@ error". The app therefore checks at start that SQLCipher is active and does not 
 database unencrypted. If that check fails on a phone, it is raised with the owner, as ADR-0007
 rule 5 and D-14 require.
 
+Once the key is set, the connection keeps up to 8 MB of the database in memory, read and decrypted
+(`PRAGMA cache_size = -8192`, D-74), so the whole food list a search reads stays there between
+searches. The setting lasts as long as the connection and is set at each start.
+
 | Local table | Holds | Rules |
 |---|---|---|
 | `weigh_ins` | `day` (key), `weight_grams`, `recorded_at`, `sync_state` | `sync_state` is `synced`, `pending` or `rejected` |

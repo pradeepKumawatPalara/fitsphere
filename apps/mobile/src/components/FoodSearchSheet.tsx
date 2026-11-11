@@ -1,20 +1,25 @@
 import { addDays, IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type IstDay, type MealItem } from '@fitsphere/shared';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Search, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { TEXTS } from '../auth/texts';
 import { formatInteger } from '../format';
+import { latestOnly } from '../latestOnly';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
+  getFood,
   getMeta,
+  isShortSearch,
   listedFoodOf,
   nameMatcher,
   recentFoodKey,
   recentFoods,
+  SEARCH_MIN_CHARACTERS,
   searchDishes,
-  searchFoods,
+  searchFoodSummaries,
   searchMyFoods,
   searchPackaged,
+  type FoodSummary,
   type LocalMyFood,
 } from '../local/store';
 import { formatAmount, formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
@@ -46,8 +51,17 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // food's page over them (D-45, FoodDetail), and its back arrow returns to the same results. A My food
 // can be edited or deleted from its page.
 //
-// The results follow the search as it is typed or erased, a letter at a time; the cross at the end of
-// the box clears it, and its results, and is shown only while something is typed (D-57).
+// The results follow the search as it is typed or erased; the cross at the end of the box clears it,
+// and its results, and is shown only while something is typed (D-57). Since D-72 the phone searches
+// less often: it waits for a short pause in typing (SEARCH_PAUSE_MS) before searching, so a word typed
+// quickly is searched once, not at every letter; an emptied box clears at once. One search runs at a
+// time, and only the latest text waits for it. One or two characters find only the foods named by
+// them, whole (a product named "H", the brand "ON"), under a line asking for three or more.
+//
+// Since D-73 the list reads of each food found only what its row shows (FoodSummary); the food is read
+// whole when it is opened. It shows the first RESULT_PAGE_ROWS rows and adds as many again from the
+// results already found as the end comes near, so scrolling never waits for a search; every match is
+// ordered and grouped before the first row shows, so a name's brands are all in its row from the start.
 //
 // Before anything is typed, Recent foods lists what was logged on the last five days, today's first,
 // each food once by its name with the amount it was last logged in (D-60, the redesign's 3.6 with
@@ -57,10 +71,17 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // by the search, goes into the meal with them. The keyboard opens by itself only when there are no
 // recent foods, so it does not hide them.
 
-type Result = FoodResult;
+/** A food found: as its page opens it, but a food of the list as its summary only (D-73). */
+type Result = Exclude<FoodResult, { kind: 'food' }> | { kind: 'food'; food: FoodSummary };
 
 /** How many days Recent foods looks back, today included (D-60). */
 export const RECENT_FOOD_DAYS = 5;
+
+/** How long typing must pause before the phone searches, in milliseconds (D-72). */
+export const SEARCH_PAUSE_MS = 250;
+
+/** How many rows of results the list shows at first, and adds each time its end comes near (D-73). */
+export const RESULT_PAGE_ROWS = 200;
 
 function nameOf(result: Result): string {
   return result.kind === 'dish' ? result.dish.name : result.food.name;
@@ -82,28 +103,32 @@ function namesOf(result: Result): string[] {
 }
 
 /**
- * The results, the best matches first (D-66; the owner, 2026-11-10, after "dal" listed Baati and
- * Dalda oil near the top): foods whose name has every word whole, then those where a word only starts
- * a word of the name, then those where it is inside a word, then those found only by their hidden
- * search words. Each group keeps the order by source (D-54, D-59, D-62). A packaged food's brand
- * counts as part of its name.
+ * The results in the order Search foods lists them, given in the order by source (D-54, D-59, D-62):
+ * - those named exactly as the search first ("bread" finds "Bread" above "Bread, white" and "Brown
+ *   bread"), ignoring case, spaces and punctuation (D-51);
+ * - before and after them alike, the best matches first (D-66; the owner, 2026-11-10, after "dal"
+ *   listed Baati and Dalda oil near the top): foods whose name has every word whole, then those where
+ *   a word only starts a word of the name, then those where it is inside a word, then those found
+ *   only by their hidden search words.
+ * Each group keeps the order by source. A packaged food's brand counts as part of its name. Worked out
+ * in one pass, each name read once for each test (D-75), where the exact match and the best match
+ * used to be two passes reading every name three times.
  */
-export function bestMatchFirst(query: string, results: readonly Result[]): Result[] {
-  const groups: Result[][] = [[], [], [], []];
-  const match = nameMatcher(query);
-  for (const result of results) groups[Math.min(...namesOf(result).map(match))]!.push(result);
-  return groups.flat();
-}
-
-/**
- * The results with those named exactly as the search first ("bread" finds "Bread" above "Bread,
- * white" and "Brown bread"), ignoring case, spaces and punctuation; the rest keep their order (D-51).
- */
-export function exactFirst(query: string, results: readonly Result[]): Result[] {
+export function inSearchOrder(query: string, results: readonly Result[]): Result[] {
   const key = matchKey(query);
-  if (!key) return [...results];
-  const exact = (result: Result) => namesOf(result).some((name) => matchKey(name) === key);
-  return [...results.filter(exact), ...results.filter((result) => !exact(result))];
+  const match = nameMatcher(query);
+  // Exact matches in groups 0 to 3, the rest in 4 to 7, each by how well the name matches.
+  const groups: Result[][] = [[], [], [], [], [], [], [], []];
+  for (const result of results) {
+    let best = 3;
+    let exact = false;
+    for (const name of namesOf(result)) {
+      best = Math.min(best, match(name));
+      if (key && !exact && matchKey(name) === key) exact = true;
+    }
+    groups[(exact ? 0 : 4) + best]!.push(result);
+  }
+  return groups.flat();
 }
 
 /** A My food's values are per 100 g or ml, or per one of its unit: "100 g", "slice". */
@@ -205,10 +230,14 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
   const local = useLocalDatabase();
   const { version } = useSync();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Result[]>([]);
+  // D-72: the text searched for, once typing pauses; and the results, with the text they are for.
+  const [searched, setSearched] = useState('');
+  const [found, setFound] = useState<{ query: string; results: Result[] }>({ query: '', results: [] });
+  const results = found.results;
+  const [runLatest] = useState(latestOnly);
   const [listCached, setListCached] = useState(true);
   // The food whose page is open, and the amount it was last logged in when opened from Recent foods.
-  const [chosen, setChosen] = useState<{ result: Result; from?: MealItem['amount'] } | null>(null);
+  const [chosen, setChosen] = useState<{ result: FoodResult; from?: MealItem['amount'] } | null>(null);
   const [editing, setEditing] = useState<LocalMyFood | null>(null);
   // The food sources' sheet, behind the i (D-44).
   const [sources, setSources] = useState(false);
@@ -217,6 +246,11 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
   const [ticked, setTicked] = useState<string[]>([]);
   // The names whose brands are open (D-61).
   const [openNames, setOpenNames] = useState<string[]>([]);
+  // D-73: how many rows the list shows, for the results they were counted for.
+  const [paged, setPaged] = useState<{ results: Result[]; rows: number }>({ results, rows: RESULT_PAGE_ROWS });
+  const shownRows = paged.results === results ? paged.rows : RESULT_PAGE_ROWS;
+  // The results as rows, worked out once for each search, not at every change of the screen.
+  const rows = useMemo(() => groupBrands(results), [results]);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -240,6 +274,17 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     setTicked((current) => (current.includes(key) ? current.filter((entry) => entry !== key) : [...current, key]));
   }
 
+  /** A food's page from the results: a food of the list is read whole first (D-73); one no longer listed does not open. */
+  async function choose(result: Result) {
+    if (result.kind !== 'food') {
+      setChosen({ result });
+      return;
+    }
+    if (local.state.status !== 'ready') return;
+    const food = await getFood(local.state.db, result.food.source, result.food.code);
+    if (food) setChosen({ result: { kind: 'food', food } });
+  }
+
   /** A recent food's page, on its last amount; a food no longer listed has no page, and its name ticks it (MVP default, D-60). */
   async function open(item: MealItem) {
     if (local.state.status !== 'ready') return;
@@ -253,42 +298,61 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     onClose();
   }
 
+  /** The text typed or cleared (D-72): an emptied box clears the search and its results at once. */
+  function changeQuery(text: string) {
+    setQuery(text);
+    if (text.trim() === '') {
+      setSearched('');
+      setFound({ query: '', results: [] });
+    }
+  }
+
+  // D-72: any other text is searched once typing pauses.
+  useEffect(() => {
+    if (query.trim() === '') return;
+    const timer = setTimeout(() => setSearched(query), SEARCH_PAUSE_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([
-      searchDishes(db, query),
-      searchFoods(db, query),
-      searchMyFoods(db, query),
-      searchPackaged(db, query),
-      getMeta(db, 'food_list_version'),
-    ]).then(
-      ([dishes, foods, mine, packaged, listVersion]) => {
-        if (!active) return;
-        const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
-        setResults(
-          // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
-          // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
-          // D-66: in four groups, the best matches first, each group in that order.
-          exactFirst(query, bestMatchFirst(query, [
-            ...listed('home'),
-            ...mine.map((food): Result => ({ kind: 'mine', food })),
-            ...listed('brand_label'),
-            ...packaged.map((food): Result => ({ kind: 'packaged', food })),
-            ...listed('indb'),
-            ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
-            ...listed('dish_estimate'),
-            ...listed('ifct2017'),
-          ])),
-        );
-        setListCached(listVersion !== null);
-      },
-    );
+    // D-72: one search at a time; a newer text replaces one still waiting to start.
+    runLatest(async () => {
+      if (!active) return;
+      const [dishes, foods, mine, packaged, listVersion] = await Promise.all([
+        searchDishes(db, searched),
+        searchFoodSummaries(db, searched),
+        searchMyFoods(db, searched),
+        searchPackaged(db, searched),
+        getMeta(db, 'food_list_version'),
+      ]);
+      if (!active) return;
+      const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
+      setFound({
+        query: searched,
+        // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
+        // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
+        // D-51: those named exactly as the search first; D-66: in four groups, the best matches first,
+        // each group in that order.
+        results: inSearchOrder(searched, [
+          ...listed('home'),
+          ...mine.map((food): Result => ({ kind: 'mine', food })),
+          ...listed('brand_label'),
+          ...packaged.map((food): Result => ({ kind: 'packaged', food })),
+          ...listed('indb'),
+          ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+          ...listed('dish_estimate'),
+          ...listed('ifct2017'),
+        ]),
+      });
+      setListCached(listVersion !== null);
+    });
     return () => {
       active = false;
     };
-  }, [local.state, query, version]);
+  }, [local.state, searched, version, runLatest]);
 
   if (editing) {
     return (
@@ -302,7 +366,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     );
   }
 
-  const lines = groupBrands(results).flatMap((row): Line[] => {
+  const lines = rows.flatMap((row): Line[] => {
     if (row.kind === 'one') return [row];
     const open = openNames.includes(row.key);
     return [{ kind: 'brands', row, open }, ...(open ? row.members.map((result): Line => ({ kind: 'member', result, group: row.name })) : [])];
@@ -347,20 +411,24 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
                 key={recent === null ? 'reading' : 'read'}
                 accessibilityLabel="Search foods"
                 value={query}
-                onChangeText={setQuery}
+                onChangeText={changeQuery}
                 placeholder="e.g. atta, dal, paneer"
                 autoFocus={recent !== null && recent.length === 0}
                 style={styles.searchInput}
               />
               {query !== '' ? (
-                <IconButton label="Clear search" onPress={() => setQuery('')}>
+                <IconButton label="Clear search" onPress={() => changeQuery('')}>
                   <X size={20} strokeWidth={2.25} color={colors.inkMuted} />
                 </IconButton>
               ) : null}
             </View>
             {!listCached ? (
               <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
-            ) : query.trim() !== '' && results.length === 0 ? (
+            ) : query.trim() !== '' && isShortSearch(query) ? (
+              // D-72: one or two characters list only the foods named by them, under this line.
+              <Text style={styles.empty}>Type {SEARCH_MIN_CHARACTERS} letters or more to search all foods.</Text>
+            ) : query.trim() !== '' && found.query === query && results.length === 0 ? (
+              // Only once the search for this text is done, not while it waits for the pause (D-72).
               <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
             ) : query.trim() === '' && recent !== null && recent.length === 0 ? (
               <Text style={styles.empty}>Foods you log show here for {RECENT_FOOD_DAYS} days, so you can add them again with a tap.</Text>
@@ -413,7 +481,15 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
             />
           ) : (
           <FlatList
-            data={lines}
+            // D-73: the first rows, and more from the results found as the end comes near (two screens
+            // ahead), so they are there before the user reaches them.
+            data={lines.slice(0, shownRows)}
+            onEndReached={() => {
+              if (shownRows < lines.length) setPaged({ results, rows: shownRows + RESULT_PAGE_ROWS });
+            }}
+            onEndReachedThreshold={2}
+            initialNumToRender={15}
+            testID="food-results"
             keyExtractor={(line) => (line.kind === 'brands' ? `brands:${line.row.key}` : line.kind === 'member' ? `member:${keyOf(line.result)}` : keyOf(line.result))}
             style={[styles.list, lines.length > 0 && styles.listCard]}
             keyboardShouldPersistTaps="handled"
@@ -445,7 +521,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`${line.group}, ${said.lead ?? said.name}, ${said.detail}`}
-                    onPress={() => setChosen({ result: line.result })}
+                    onPress={() => void choose(line.result)}
                     style={({ pressed }) => [styles.row, styles.member, pressed && styles.pressed]}
                   >
                     <View style={styles.rowText}>
@@ -460,7 +536,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={said.said}
-                  onPress={() => setChosen({ result: line.result })}
+                  onPress={() => void choose(line.result)}
                   style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                 >
                   <View style={styles.rowText}>

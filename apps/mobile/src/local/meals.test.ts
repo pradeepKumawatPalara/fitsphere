@@ -8,7 +8,9 @@ import {
   deleteEntry,
   discardRejected,
   getEntry,
+  getFood,
   getMeta,
+  isShortSearch,
   listMealsOfDay,
   listSavedMeals,
   markAccepted,
@@ -21,6 +23,7 @@ import {
   saveEntry,
   searchDishes,
   searchFoods,
+  searchFoodSummaries,
   searchMyFoods,
   searchPackaged,
   setMeta,
@@ -247,7 +250,27 @@ describe('ADR-0006 rule 1 the cached food list', () => {
   it('REQ-LOG-007 finds foods offline by any word, ignoring case, names starting with it first', async () => {
     expect((await searchFoods(db, 'ATTA')).map((found) => found.code)).toEqual(['A019']);
     expect((await searchFoods(db, 'dal gram')).map((found) => found.code)).toEqual(['B021']);
-    expect((await searchFoods(db, 'r')).map((found) => found.code).slice(0, 2)).toEqual(['B021', 'A015']);
+    await replaceFoods(db, 'v2', [...LIST, food('Z001', 'Dal tadka')]);
+    expect((await searchFoods(db, 'dal')).map((found) => found.code)).toEqual(['Z001', 'B021']);
+  });
+
+  it('D-72 finds with one or two characters only a name, or another name, that is all of them', async () => {
+    await replaceFoods(db, 'v2', [
+      ...LIST,
+      food('S001', 'Q'),
+      food('S002', 'Test Zq cheese slices', ['Zq', 'cheese']),
+      food('S003', 'Test quinoa'),
+    ]);
+
+    expect((await searchFoods(db, 'q')).map((found) => found.code)).toEqual(['S001']);
+    expect((await searchFoods(db, ' ZQ ')).map((found) => found.code)).toEqual(['S002']);
+    // Part of a word, or of a name, is not enough: "r" is in four names, "gh" starts Ghee.
+    expect(await searchFoods(db, 'r')).toEqual([]);
+    expect(await searchFoods(db, 'gh')).toEqual([]);
+    // Marks alone find nothing.
+    expect(await searchFoods(db, '-')).toEqual([]);
+    // Three characters search as before.
+    expect((await searchFoods(db, 'ghe')).map((found) => found.code)).toEqual(['T013']);
   });
 
   it('D-36 keeps each food’s household units with it', async () => {
@@ -255,6 +278,19 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     await replaceFoods(db, 'v2', [ghee]);
 
     expect(await searchFoods(db, 'ghee')).toEqual([ghee]);
+  });
+
+  it('D-73 finds for the list the same foods, in the same order, as summaries, and reads one whole when it opens', async () => {
+    const ghee = { ...food('T013', 'Ghee'), measures: [{ measure: 'teaspoon' as const, grams: 4.6 }], portions: [{ label: 'Spoon', grams: 5 }] };
+    await replaceFoods(db, 'v2', [...LIST.filter((listed) => listed.code !== 'T013'), ghee, food('Z001', 'Dal tadka')]);
+
+    for (const query of ['dal', 'gooseberry', 'ghee', 'raw rice', 'r']) {
+      const summaries = (await searchFoods(db, query)).map(({ source, code, name, foodGroup, kcal, kcalEstimated }) => ({ source, code, name, foodGroup, kcal, kcalEstimated }));
+      expect(await searchFoodSummaries(db, query)).toEqual(summaries);
+    }
+    expect(await searchFoodSummaries(db, 'ghee')).toEqual([{ source: 'ifct2017', code: 'T013', name: 'Ghee', foodGroup: 'Synthetic group', kcal: 10, kcalEstimated: false }]);
+    expect(await getFood(db, 'ifct2017', 'T013')).toEqual(ghee);
+    expect(await getFood(db, 'ifct2017', 'T999')).toBeNull();
   });
 
   it('D-26 finds a food by its alias', async () => {
@@ -314,7 +350,9 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect((await searchFoods(db, 'dalmakhani')).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, "maker's dal-makhani")).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, 'testbread')).map((found) => found.code)).toEqual(['T002']);
-    expect((await searchFoods(db, "'")).map((found) => found.code)).toEqual(['T001']);
+    // A word of marks alone is looked for as typed; with one character only, the search is short (D-72).
+    expect((await searchFoods(db, "' dal")).map((found) => found.code)).toEqual(['T001']);
+    expect(await searchFoods(db, "'")).toEqual([]);
     // Never one word's end and the next one's start: "stuffed aloo" and "soaked almonds" have no "dal".
     expect((await searchFoods(db, 'dal')).map((found) => found.code)).toEqual(['T005', 'T001']);
     expect((await searchFoods(db, 'daltadka')).map((found) => found.code)).toEqual(['T005']);
@@ -615,6 +653,38 @@ describe('D-66 Search foods without a cap', () => {
     // A limit, where one is given, still keeps that many.
     expect(await searchFoods(db, 'bread', 30)).toHaveLength(30);
     expect(await searchPackaged(db, 'bread', 30)).toHaveLength(30);
+  });
+});
+
+describe('D-72 a search of one or two characters', () => {
+  it('is short below three characters, spaces not counted', () => {
+    expect(['a', 'ab', ' ab ', 'a b', '-', '米菓'].map(isShortSearch)).toEqual([true, true, true, true, true, true]);
+    expect(['abc', 'a bc', '50%', 'दाल'].map(isShortSearch)).toEqual([false, false, false, false]);
+  });
+
+  it('finds the packaged foods named by it, or of a brand named by it, the dishes and My foods named by it', async () => {
+    // Synthetic products, dishes and My foods: made-up names and values.
+    const named = { ...BUTTER, barcode: '8901234500001', name: 'Q', brand: null };
+    const branded = { ...BUTTER, barcode: '8901234500002', name: 'Test whey', brand: 'Z.Y.' };
+    const other = { ...BUTTER, barcode: '8901234500003', name: 'Test quark', brand: 'Zyx Foods' };
+    const dish: Dish = { code: 'test_qa', name: 'Qa', portionUnit: 'piece', kcal: 100, proteinG: 3, carbsG: 15, fatG: 3, fibreG: 1 };
+    const longer: Dish = { code: 'test_qa_curry', name: 'Qa curry', portionUnit: 'katori', kcal: 150, proteinG: 4, carbsG: 15, fatG: 6, fibreG: 2 };
+    await replaceFoods(db, 'v1', [], [dish, longer], [named, branded, other]);
+    for (const [i, name] of ['Qa', 'Qa shake'].entries()) {
+      await saveEntry(db, 'myFood', {
+        changeId: `c-short-${i}`,
+        data: { id: `00000000-0000-4000-d100-${String(i).padStart(12, '0')}`, name, unit: 'g', kcal: 100, proteinG: 5, carbsG: 10, fatG: 2, fibreG: null, savedAt: AT },
+      });
+    }
+
+    expect(await searchPackaged(db, 'q')).toEqual([named]);
+    expect(await searchPackaged(db, 'zy')).toEqual([branded]);
+    expect((await searchDishes(db, 'QA')).map((found) => found.code)).toEqual(['test_qa']);
+    expect((await searchMyFoods(db, 'qa')).map((found) => found.name)).toEqual(['Qa']);
+    // A product with no brand is not found by a search of marks alone.
+    expect(await searchPackaged(db, '.')).toEqual([]);
+    // Three characters find by part of a word again.
+    expect((await searchMyFoods(db, 'qa s')).map((found) => found.name)).toEqual(['Qa shake']);
   });
 });
 
