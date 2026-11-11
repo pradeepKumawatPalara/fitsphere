@@ -12,6 +12,16 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**More measures for a food — built on branch `feat/food-measures` (D-76, 2026-11-11), in its own
+folder `D:itsphere-measures` (removed once merged).** Plan: `docs/plans/food-measures.md`
+(Accepted), REQ-LOG-007; canvas boards `FoodMeasures*` locked (version 71). The food page's Measure
+wheel: a serving that holds several things also gives one of them ("2 slices" gives Slice, "Plate (4
+pc)" gives Piece; 244 foods, added to `app.food_portions` by `foods:import`), and oz (28.35 g, a
+serving named "oz") for every listed and packaged food; each measure shows its grams beside its name,
+the food's own first, then Grams, then oz. No migration, no phone schema change, no new build. More
+units for foods with none ("Part B") waits for the owner. **On `fitsphere-dev`: `foods:import` with
+this API; only when the owner says so.**
+
 **Meal insight — built on branch `feat/meal-insight` (D-70, 2026-11-10).** Plan:
 `docs/plans/meal-insight.md` (Accepted), REQ-NUT-005, REQ-NUT-006, REQ-ROLE-007. Each logged meal's
 card in Nutrition › Consumed has an Insight icon before Edit; the Insight page (`InsightScreen.tsx`,

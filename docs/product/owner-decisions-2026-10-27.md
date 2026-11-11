@@ -2322,6 +2322,48 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-76 More measures for a food: one of a serving's things, and oz
+- Status: **Accepted** (owner, in chat, 2026-11-11: three pictures of another app's amount picker,
+  "on the Measuring tab I should be able to pick above screen shot options of the selected food item
+  ... according to the data we have"; then "I approve Part A. Keep the oz for now. Let's first build in
+  the canvas", and "lock it" for the canvas's "3.6b Food page · more measures"). Plan:
+  `docs/plans/food-measures.md` (Accepted).
+- Context: the food page already had the picker (D-45), but nearly every food had only Grams and at
+  most one serving: IFCT's none (the household-unit rows are not yet weighed, D-36), INDB's 917 of
+  1,014 one each, home-style foods, estimated dishes and 115 brand labels one each. The owner's dish
+  workbook gives one serving per dish too, and Open Food Facts names a unit in 505 of the 6,263
+  packaged servings. Sizes the data does not hold (a roti's "piece", small and large) are not made up
+  (D-36).
+- Answers:
+  1. **The single unit inside a serving:** a serving that holds several things also gives one of
+     them, its grams divided: "2 slices" of 56 g gives **Slice**, 28 g; "Plate (4 pc)" of 60 g gives
+     **Piece**, 15 g; "3 biscuits" of 16 g, **Biscuit**, 5.33 g; "1/4 cup" of 30 g, **Cup**, 120 g.
+     `foods:import` adds it to `app.food_portions` after the food's own serving; the sync's serving
+     check covers it. 244 foods on 2026-11-11: 212 estimated dishes, 20 home-style foods, 12 brand
+     labels (INDB's servings are all of one thing). A serving's name is never changed: a meal logged
+     with it is checked by that name when it is saved again.
+  2. **oz** for every listed and packaged food: 28.35 g each, counted in halves from 0.5 to 10, as
+     other servings. Logged as a serving named "oz" (meals show "2 oz (56.7 g)"), so changing it,
+     "Add to existing" (oz joins oz only), Recent foods and Insight work as for servings. An IFCT
+     food may now be logged by a serving, oz only; no food's own serving may be named "oz" (the
+     import refuses the sheet). Not for dishes (portions) or My foods (their own unit). The owner:
+     "Keep the oz for now".
+  3. **The Measure wheel** (the redesign's 3.6b "more measures", locked 2026-11-11): each measure
+     shows its grams beside its name, smaller and muted ("Slice  28 g"), in Barlow as written (so "oz"
+     stays lower case); the food's own measures first, smallest first, then Grams, then oz. The page
+     still opens where it did: INDB, home-style foods and estimated dishes on their serving, the
+     others on Grams, a recent food or a food in the meal on its amount (D-60, D-64).
+- Not done (the owner's choice): units named on packaged labels (too few for a migration and a phone
+  schema change); more units for foods with none (piece, katori, bowl…) from the owner's AI tool or
+  weighing ("Part B", to be decided later); sizes; ml for drinks.
+- MVP defaults: 1 oz = 28.35 g; a unit's grams rounded to two decimals (the meal's check allows
+  0.02 g); a unit of the same name as one the food has (in any case) is not added twice.
+- No migration, no phone schema change, no new build: `foods:import` again on `fitsphere-dev`, with
+  this API. Doc changes: REQ-LOG-007, the data model (`app.food_portions`, the meal item's amount),
+  `food-list-sources.md`, the plan.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants
