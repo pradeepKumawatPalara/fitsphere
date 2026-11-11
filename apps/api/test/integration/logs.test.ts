@@ -53,7 +53,7 @@ describe('ADR-0002 step 6 log content', () => {
                 recordedAt: '2026-10-01T02:00:00.000Z',
               },
             },
-            { changeId: randomUUID(), type: 'target.set', data: { kind: 'calories', value: 2_345, setAt: '2026-10-01T02:00:00.000Z' } },
+            { changeId: randomUUID(), type: 'target.set', data: { kind: 'calories', value: 2_345, day: '2026-10-01', setAt: '2026-10-01T02:00:00.000Z' } },
             {
               changeId: randomUUID(),
               type: 'meal.set',

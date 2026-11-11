@@ -387,7 +387,7 @@ describe('ADR-0007 rule 1 workouts in the pull', () => {
         { changeId: randomUUID(), type: 'steps.set', data: { day: TODAY, steps: 1, recordedAt: RECORDED_AT } },
         workout(randomUUID(), TODAY),
         workout(randomUUID(), TODAY, []),
-        { changeId: randomUUID(), type: 'target.set', data: { kind: 'weekly_workouts', value: 4, setAt: RECORDED_AT } },
+        { changeId: randomUUID(), type: 'target.set', data: { kind: 'weekly_workouts', value: 4, day: TODAY, setAt: RECORDED_AT } },
       ]);
       const second = await call(first.cursor);
 

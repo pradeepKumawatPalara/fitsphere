@@ -231,12 +231,12 @@ describe('Home and daily tracking tables (migration 0002)', () => {
     await insert(800, 2_500, 'x'.repeat(500));
   });
 
-  it('D-23 checks each target against its kind’s range and holds one value per kind', async () => {
+  it('D-23 checks each target against its kind’s range; D-77 holds one value per kind and day', async () => {
     const user = await insertUser(client);
-    const insert = (kind: string, value: number) =>
+    const insert = (kind: string, value: number, day = '2026-11-11') =>
       client.query(
-        `insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, $2, $3, $1, now())`,
-        [user, kind, value],
+        `insert into app.targets (user_id, kind, day, value, set_by_user_id, set_at) values ($1, $2, $3, $4, $1, now())`,
+        [user, kind, day, value],
       );
     for (const [kind, low, high] of [
       ['calories', 500, 10_000],
@@ -253,6 +253,7 @@ describe('Home and daily tracking tables (migration 0002)', () => {
       await expect(insert(kind, high + 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
       await insert(kind, high);
       await expect(insert(kind, low)).rejects.toSatisfy((error) => sqlState(error) === UNIQUE_VIOLATION);
+      await insert(kind, low, '2026-11-10');
     }
     await expect(insert('sugar', 100)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
   });
@@ -260,7 +261,9 @@ describe('Home and daily tracking tables (migration 0002)', () => {
   it('REQ-ACC-009 deleting a user deletes their daily data and targets', async () => {
     const user = await insertUser(client);
     await client.query(`insert into app.step_counts (user_id, day, steps, recorded_at) values ($1, '2026-10-04', 10, now())`, [user]);
-    await client.query(`insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'steps', 10, $1, now())`, [user]);
+    await client.query(`insert into app.targets (user_id, kind, day, value, set_by_user_id, set_at) values ($1, 'steps', '2026-10-04', 10, $1, now())`, [
+      user,
+    ]);
 
     await client.query('delete from app.users where id = $1', [user]);
 
@@ -272,7 +275,7 @@ describe('Home and daily tracking tables (migration 0002)', () => {
 
   it('backlog E-02 a target outlives the account of the person who set it, without their ID', async () => {
     const [trainee, setter] = [await insertUser(client), await insertUser(client)];
-    await client.query(`insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'calories', 2000, $2, now())`, [
+    await client.query(`insert into app.targets (user_id, kind, day, value, set_by_user_id, set_at) values ($1, 'calories', '2026-10-04', 2000, $2, now())`, [
       trainee,
       setter,
     ]);

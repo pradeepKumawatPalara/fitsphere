@@ -134,7 +134,7 @@ export type AiConsentResponse = z.infer<typeof aiConsentResponseSchema>;
 export const MAX_SYNC_CHANGES = 100;
 export const SYNC_PAGE_SIZE = 500;
 /** The phone keeps, and the pull returns, the last 90 IST days of day data (ADR-0007 rule 1).
- * Targets are not day data: the pull always returns the current ones. */
+ * Targets are not day data: the pull returns every target value, with the day it starts (D-77). */
 export const SYNC_WINDOW_DAYS = 90;
 
 /** The first IST day of the window that ends today: 90 days including today. */
@@ -343,9 +343,10 @@ export const workoutDeleteDataSchema = z.strictObject({
 });
 export type WorkoutDeleteData = z.infer<typeof workoutDeleteDataSchema>;
 
-// Targets (REQ-ROLE-007): the user's own, one current value per kind (Q-014 MVP default, D-23).
-// Who set a target comes from the sign-in token, never from the change, so it is not a field here.
-// Daily carbs, fat and fibre joined them for the Insight page (D-70).
+// Targets (REQ-ROLE-007): the user's own. Each value holds from its IST day on, until the next
+// value of that kind; earlier days keep theirs (D-77, answering Q-014; REQ-ROLE-018). Who set a
+// target comes from the sign-in token, never from the change, so it is not a field here. Daily
+// carbs, fat and fibre joined them for the Insight page (D-70).
 
 export const TARGET_SET = 'target.set';
 export const TARGET_KINDS = ['calories', 'protein', 'carbs', 'fat', 'fibre', 'steps', 'weekly_workouts', 'body_weight'] as const;
@@ -368,6 +369,9 @@ function targetSchemaFor<K extends TargetKind>(kind: K) {
   return z.strictObject({
     kind: z.literal(kind),
     value: z.int().min(TARGET_RANGES[kind].min).max(TARGET_RANGES[kind].max),
+    /** The IST day the value starts: the day it was set on the phone (D-77), kept as its own field
+     * (invariant 5); not later than today. */
+    day: istDaySchema,
     setAt: instantSchema,
   });
 }
@@ -847,6 +851,8 @@ export type PulledWorkout = z.infer<typeof pulledWorkoutSchema>;
 
 export const targetSchema = z.object({
   kind: z.enum(TARGET_KINDS),
+  /** The IST day the value starts (D-77). */
+  day: istDaySchema,
   value: z.int(),
   /** Null only once the person who set it has deleted their account (backlog E-02). */
   setByUserId: idSchema.nullable(),

@@ -109,7 +109,7 @@ async function userWithData(server = api) {
       notes: null,
       recordedAt: AT,
     }),
-    change('target.set', { kind: 'calories', value: 2_000, setAt: AT }),
+    change('target.set', { kind: 'calories', value: 2_000, day: TODAY, setAt: AT }),
     change('workout.set', { id: randomUUID(), day: TODAY, exercises: [], recordedAt: AT }),
     meal(oldPhoto),
     meal(livePhoto),
