@@ -455,11 +455,14 @@ describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
       'Test butter toast, 365 kcal per 100 g',
     ]);
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'toast');
-    // Found by its name, it keeps its place right after an exact match (D-59).
-    expect((await screen.findAllByRole('button', { name: /kcal per/ })).map((row) => row.props.accessibilityLabel)).toEqual([
-      'Test butter toast, 365 kcal per 100 g',
-      'Test bread toast, 267 kcal per 100 g, estimated',
-    ]);
+    // Found by its name, it keeps its place right after an exact match (D-59). The rows for "bread"
+    // stay until typing pauses (D-72).
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: /kcal per/ }).map((row) => row.props.accessibilityLabel)).toEqual([
+        'Test butter toast, 365 kcal per 100 g',
+        'Test bread toast, 267 kcal per 100 g, estimated',
+      ]),
+    );
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     expect(screen.getByText(/^Home-style foods \(a bread slice, butter toast and the like\): typical values for a home recipe/)).toBeOnTheScreen();
   });

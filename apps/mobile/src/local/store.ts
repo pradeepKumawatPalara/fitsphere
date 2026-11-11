@@ -1078,12 +1078,13 @@ export async function dailyNutrition(
 
 /**
  * Every My food whose name has every word of the search, ignoring case, spaces and marks (D-62, D-66);
- * names starting with the first word first (D-39). A `limit` keeps only that many.
+ * names starting with the first word first (D-39). A short search finds only a name that is all of
+ * it (D-72). A `limit` keeps only that many.
  */
 export async function searchMyFoods(db: SqlDb, query: string, limit?: number): Promise<LocalMyFood[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const match = wordsMatch(words, READ_NAME);
+  const match = isShortSearch(query) ? wholeMatch(query, ['s0']) : wordsMatch(words, READ_NAME);
   const first = firstWordFirst(words[0]!, READ_NAME);
   const rows = await db.getAllAsync<Record<string, BindValue>>(
     `SELECT * FROM ${searchedTable('my_foods', ['name'])} WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
@@ -1148,8 +1149,8 @@ export async function listedFoodOf(db: SqlDb, item: MealItem): Promise<ListedFoo
     const row = await db.getFirstAsync<PackagedRow>('SELECT * FROM packaged_foods WHERE barcode = ?', [item.ref]);
     return row ? { kind: 'packaged', food: toPackaged(row) } : null;
   }
-  const row = await db.getFirstAsync<FoodRow>('SELECT * FROM foods WHERE source = ? AND code = ?', [item.source, item.ref]);
-  return row ? { kind: 'food', food: toFood(row) } : null;
+  const food = await getFood(db, item.source, item.ref);
+  return food ? { kind: 'food', food } : null;
 }
 
 /** Saved meals, by name (REQ-SAVED-001). */
@@ -1275,7 +1276,8 @@ const PACKAGED_READ_FACTOR = 4;
  * Searches the packaged foods, offline (D-48): every product whose name or brand has every word,
  * ignoring case, spaces and marks (D-62: "haldirams" finds Haldiram's), all of them (D-66); names or
  * brands starting with the first word come first. A product listed under several barcodes with the
- * same values shows once (D-56). A `limit` keeps only that many.
+ * same values shows once (D-56). A short search finds only a name or a brand that is all of it
+ * (D-72: "on" finds the brand ON, "h" the product named H). A `limit` keeps only that many.
  */
 export async function searchPackaged(db: SqlDb, query: string, limit?: number): Promise<PackagedFood[]> {
   const words = searchWords(query);
@@ -1284,7 +1286,7 @@ export async function searchPackaged(db: SqlDb, query: string, limit?: number): 
     { raw: 'name', read: 'search_name' },
     { raw: "coalesce(brand, '')", read: 'search_brand' },
   ];
-  const match = wordsMatch(words, columns);
+  const match = isShortSearch(query) ? wholeMatch(query, ['search_name', 'search_brand']) : wordsMatch(words, columns);
   const first = firstWordFirst(words[0]!, columns);
   const rows = await db.getAllAsync<PackagedRow>(
     `SELECT * FROM packaged_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
@@ -1328,20 +1330,65 @@ const SEARCH_ORDER: readonly Food['source'][] = ['indb', 'ifct2017', 'brand_labe
 /**
  * Searches the cached food list, offline (ADR-0006 rule 1; REQ-LOG-007): every food whose name or an
  * alias has every word, ignoring case, spaces and marks (D-62), all of them (D-66), source by source
- * in SEARCH_ORDER; within each, names starting with the first word come first. A `limit` keeps only
- * that many from each source.
+ * in SEARCH_ORDER; within each, names starting with the first word come first. A short search finds
+ * only a name, or one of its other names, that is all of it (D-72: "go" finds the brand Go's labels,
+ * whose other names have "Go"). A `limit` keeps only that many from each source.
  */
 export async function searchFoods(db: SqlDb, query: string, limit?: number): Promise<Food[]> {
+  return (await foodMatches<FoodRow>(db, query, '*', limit)).map(toFood);
+}
+
+/**
+ * What Search foods' list reads of a food (D-73): enough to order it, group it with its brand and draw
+ * its row. The rest (its other names, servings and household units) is read when it is opened
+ * (`getFood`), so a search reads less for each of its matches.
+ */
+export type FoodSummary = Pick<Food, 'source' | 'code' | 'name' | 'foodGroup' | 'kcal' | 'kcalEstimated'>;
+
+/** `searchFoods`' matches, in the same order, each as its summary (D-73). */
+export async function searchFoodSummaries(db: SqlDb, query: string, limit?: number): Promise<FoodSummary[]> {
+  const rows = await foodMatches<Pick<FoodRow, 'source' | 'code' | 'name' | 'food_group' | 'kcal' | 'kcal_estimated'>>(
+    db,
+    query,
+    'source, code, name, food_group, kcal, kcal_estimated',
+    limit,
+  );
+  return rows.map((row) => ({
+    source: row.source,
+    code: row.code,
+    name: row.name,
+    foodGroup: row.food_group,
+    kcal: row.kcal,
+    kcalEstimated: row.kcal_estimated === 1,
+  }));
+}
+
+/**
+ * A food of the cached list, whole, by its source and code (D-73); null when it is no longer listed.
+ * Any source a meal's item names may be asked for (a USDA food a phone still holds from before D-47).
+ */
+export async function getFood(db: SqlDb, source: string, code: string): Promise<Food | null> {
+  const row = await db.getFirstAsync<FoodRow>('SELECT * FROM foods WHERE source = ? AND code = ?', [source, code]);
+  return row ? toFood(row) : null;
+}
+
+/** The rows `searchFoods` finds, with only `columns` read. */
+async function foodMatches<T>(db: SqlDb, query: string, columns: string, limit: number | undefined): Promise<T[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
   const name = { raw: 'name', read: 'search_name' };
-  const match = wordsMatch(words, [name, { raw: 'aliases', read: 'search_aliases' }]);
+  const match = isShortSearch(query) ? wholeMatch(query, ['search_name'], true) : wordsMatch(words, [name, { raw: 'aliases', read: 'search_aliases' }]);
   const first = firstWordFirst(words[0]!, [name]);
-  const rows = [];
+  const rows: T[] = [];
   for (const source of SEARCH_ORDER) {
-    rows.push(...(await searchSource(db, source, match, first, limit)));
+    rows.push(
+      ...(await db.getAllAsync<T>(
+        `SELECT ${columns} FROM foods WHERE source = ? AND ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+        [source, ...match.params, ...first.params, sqlLimit(limit)],
+      )),
+    );
   }
-  return rows.map(toFood);
+  return rows;
 }
 
 /** A row of the cached food list. */
@@ -1379,23 +1426,16 @@ function toFood(row: FoodRow): Food {
   };
 }
 
-/** One source's matches for `searchFoods`. */
-function searchSource(db: SqlDb, source: Food['source'], match: SqlPart, first: SqlPart, limit: number | undefined) {
-  return db.getAllAsync<FoodRow>(
-    `SELECT * FROM foods WHERE source = ? AND ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-    [source, ...match.params, ...first.params, sqlLimit(limit)],
-  );
-}
-
 /**
  * Searches the cached dishes, offline (D-28), with the words of a food search: every dish whose name
  * has every word, ignoring case, spaces and marks (D-62), all of them (D-66); names starting with the
- * first word come first. A `limit` keeps only that many.
+ * first word come first. A short search finds only a name that is all of it (D-72). A `limit` keeps
+ * only that many.
  */
 export async function searchDishes(db: SqlDb, query: string, limit?: number): Promise<Dish[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const match = wordsMatch(words, READ_NAME);
+  const match = isShortSearch(query) ? wholeMatch(query, ['s0']) : wordsMatch(words, READ_NAME);
   const first = firstWordFirst(words[0]!, READ_NAME);
   const rows = await db.getAllAsync<DishRow>(
     `SELECT * FROM ${searchedTable('dishes', ['name'])} WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
@@ -1632,6 +1672,36 @@ function searchWords(query: string): string[] {
     .split(/[\s,]+/)
     .filter((word) => word.length > 0)
     .slice(0, 5);
+}
+
+/** The fewest characters, spaces not counted, a search needs to find foods by part of their name (D-72). */
+export const SEARCH_MIN_CHARACTERS = 3;
+
+/**
+ * Whether a food search is short (D-72): fewer than SEARCH_MIN_CHARACTERS, spaces not counted. One or
+ * two letters match thousands of foods; a short search finds only those named by all of it.
+ */
+export function isShortSearch(query: string): boolean {
+  return query.replace(/\s/g, '').length < SEARCH_MIN_CHARACTERS;
+}
+
+/**
+ * A short search's match (D-72): one of the columns, read as a search reads it, is the search whole;
+ * with `aliases`, also one of a food's other names. Marks alone find nothing.
+ */
+function wholeMatch(query: string, columns: readonly string[], aliases = false): SqlPart {
+  const text = readName(query);
+  if (!text) return { sql: '0', params: [] };
+  const parts: SqlPart[] = columns.map((column) => ({ sql: `${column} = ?`, params: [` ${text}`] }));
+  if (aliases) {
+    parts.push({
+      // Each other name is read only where the ready-made search text has the search as a word, so
+      // the thousands of foods without it are passed over quickly.
+      sql: `(search_aliases LIKE ? ESCAPE '\\' AND EXISTS (SELECT 1 FROM json_each(aliases) WHERE ${searched('value')} = ?))`,
+      params: [`% ${escapeLike(text)} %`, ` ${text}`],
+    });
+  }
+  return { sql: `(${parts.map((part) => part.sql).join(' OR ')})`, params: parts.flatMap((part) => part.params) };
 }
 
 const escapeLike = (word: string) => word.replace(/[\\%_]/g, (char) => `\\${char}`);

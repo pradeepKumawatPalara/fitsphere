@@ -11,6 +11,15 @@ const KEY_NAME = 'fitsphere-db-key';
 const KEY_PATTERN = /^[0-9a-f]{64}$/;
 
 /**
+ * How much of the database the connection keeps in memory, read and decrypted, in KiB (D-74). SQLite
+ * keeps about 2 MB by default, but a food search reads the whole food list, about 2.4 MB (the foods
+ * and the packaged foods), so each search pushed out pages the next one needed, and read and
+ * decrypted most of the list again. 8 MB holds it about three times over; memory is used only as
+ * pages are read.
+ */
+export const PAGE_CACHE_KIB = 8192;
+
+/**
  * Expo's docs warn that without SQLCipher in the build, setting the key "has no effect and does
  * not throw an error". The app then stops instead of running unencrypted (ADR-0007 rule 5, D-14).
  */
@@ -68,6 +77,8 @@ async function openEncrypted(): Promise<LocalDatabase> {
     db = await SQLite.openDatabaseAsync(DATABASE_NAME);
     await db.execAsync(`PRAGMA key = "x'${key}'"`);
   }
+  // After the key, which SQLCipher needs first; it lasts as long as this connection (D-74).
+  await db.execAsync(`PRAGMA cache_size = -${PAGE_CACHE_KIB}`);
   await migrateLocal(db);
   return { db: oneTransactionAtATime(db), cipherVersion: cipher.cipher_version };
 }

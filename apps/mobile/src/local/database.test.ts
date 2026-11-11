@@ -67,6 +67,18 @@ describe('ADR-0007 rule 5: the encrypted phone database', () => {
     expect(await getMeta(opened.db, 'user_id')).toBe('user-1');
   });
 
+  it('D-74 keeps 8 MB of the database in memory, set after the key and before the tables are brought up to date', async () => {
+    const { db, statements } = recordingDb('4.6.1 community');
+    jest.mocked(SQLite.openDatabaseAsync).mockResolvedValue(db as never);
+
+    const opened = await openLocalDatabase('user-1');
+
+    const cache = statements.indexOf('PRAGMA cache_size = -8192');
+    expect(cache).toBeGreaterThan(statements.indexOf(`PRAGMA key = "x'${KEY}'"`));
+    expect(cache).toBeLessThan(statements.indexOf('PRAGMA user_version'));
+    expect(await opened.db.getFirstAsync('PRAGMA cache_size', [])).toEqual({ cache_size: -8192 });
+  });
+
   it('ADR-0007 reuses the stored key on the next start', async () => {
     mockSecure.set('fitsphere-db-key', 'cd'.repeat(32));
     const { db, statements } = recordingDb('4.6.1 community');
