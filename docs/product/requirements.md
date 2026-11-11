@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-11 (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -306,7 +306,10 @@ B-22).
 - Requirement: The header shows the selected date and the user's username.
 
 ### REQ-HOME-002 — Week strip
-- Requirement: A strip of 7 days ending today shows a status box per day and highlights today and the selected day (D-34, which replaced the first Monday-to-Sunday strip). Swiping, or "Earlier days" and "Later days", moves it 7 days at a time, back to the 7 holding the first of the phone's 90 days (D-23); no day after today is shown (Q-017). Home's workout tracker keeps Monday-to-Sunday weeks (REQ-HOME-007).
+- Requirement: A strip of one week, Monday to Sunday, shows a status box per day and highlights today and the selected day (D-79, 2026-11-11, which replaced D-34's 7 days ending today). It opens on the week holding today; a day chosen another way shows the week holding it. This week's days after today are greyed and cannot be picked (Q-017), nor can the days before the first of the phone's 90 days (D-23); screen readers hear such a day as "not available". Swiping, or "Earlier days" and "Later days", moves it a week at a time, back to the week holding the first of the 90 days and on to this week. Home's workout tracker shows the same Monday-to-Sunday weeks (REQ-HOME-007).
+- Acceptance criteria (D-79):
+  - Given today is Wednesday 28 Oct, the strip shows Mon 26 Oct to Sun 1 Nov; Thu 29 Oct to Sun 1 Nov are greyed and tapping one changes nothing; "Later days" is greyed.
+  - Given "Earlier days" is tapped, Mon 19 Oct to Sun 25 Oct are shown and every one of them can be picked.
 - MVP default (D-18): a day's box is filled when at least one meal is logged that day (Q-019).
 - Built in the Home and daily tracking slice, except the status box, which comes with meals in the Meal logging slice (D-23).
 

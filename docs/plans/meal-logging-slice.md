@@ -40,7 +40,7 @@ The slice's pull requests build on pull request #18 (D-24), which must be merged
 | In this slice | Requirements |
 |---|---|
 | "+" on Home and Nutrition | REQ-NAV-003 |
-| Nutrition: date strip and tabs; Consumed (Eaten summary, meal slots, ••• menu); Diet plan empty state; Saved. *Since changed: icons on each meal in place of the ••• menu (D-33); slots fold (D-34); the date strip shows 7 days ending today (D-34)* | REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001, REQ-SAVED-002 |
+| Nutrition: date strip and tabs; Consumed (Eaten summary, meal slots, ••• menu); Diet plan empty state; Saved. *Since changed: icons on each meal in place of the ••• menu (D-33); slots fold (D-34); the date strip shows 7 days ending today (D-34), then Monday to Sunday again (D-79)* | REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001, REQ-SAVED-002 |
 | Log meal: screen, date chip and day sheet, meal type and tags, search, barcode, saved meals, tips, review. *Since changed: the date chip opens a calendar (D-33); a food added again can join the one already in the meal (D-34)* | REQ-LOG-001…003, REQ-LOG-007, REQ-LOG-008, REQ-ACC-005 |
 | Meal photo upload and storage (not AI reading); public image link with the warning (D-26) | REQ-LOG-006 (meal photos only), REQ-LOG-010, REQ-NFR-006 |
 | Home: real calories and protein; the week strip's status box; "By meal" | REQ-HOME-002…005 |

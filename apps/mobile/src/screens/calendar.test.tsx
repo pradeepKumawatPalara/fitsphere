@@ -95,15 +95,17 @@ describe('REQ-NAV-002 calendar', () => {
 });
 
 describe('D-23 date strip limit', () => {
-  it('D-23 "Earlier days" stops at the 7 days holding the first of the 90 days', async () => {
+  it('D-23 "Earlier days" stops at the week holding the first of the 90 days (Mon 27 Jul to Sun 2 Aug, D-79)', async () => {
     await renderHome();
     const earlier = await screen.findByRole('button', { name: 'Earlier days' });
 
-    for (let span = 0; span < 13; span += 1) await fireEvent.press(earlier);
+    for (let week = 0; week < 13; week += 1) await fireEvent.press(earlier);
 
     expect(screen.getByRole('button', { name: 'Earlier days' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Thursday 30 Jul' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Monday 27 Jul, not available' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Thursday 30 Jul, not available' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Friday 31 Jul' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Sunday 2 Aug' })).toBeEnabled();
   });
 });
 

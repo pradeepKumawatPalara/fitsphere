@@ -12,6 +12,13 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Date strip, Monday to Sunday — built on branch `fix/week-strip-mon-sun` (D-79, 2026-11-11), in its
+own folder `D:\fitsphere-weekstrip` (removed once merged).** Canvas boards `WeekStripMonSun*` locked
+(version 75). The strip on Home, Nutrition and Training shows a week, Monday to Sunday (was 7 days
+ending today, D-34); this week's days after today are greyed, cannot be picked and are "not
+available" to screen readers; the arrows and swipes move a week at a time, within the 90 days.
+Phone app only: no server change, no migration, no new build.
+
 **Targets by date — built on branch `feat/target-history` (D-77, 2026-11-11), in its own folder
 `D:\fitsphere-targets` (removed once merged).** Plan: `docs/plans/target-history.md` (Accepted),
 REQ-ROLE-007, REQ-ROLE-018; canvas boards `TargetsDated*`, `TargetHistory*` and `HomeTargetsByDate*`
