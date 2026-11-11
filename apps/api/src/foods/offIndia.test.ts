@@ -2,7 +2,19 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { toCsv } from './csv.ts';
 import { FoodListError } from './ifct.ts';
-import { exportColumns, PACKAGED_HEADER, packagedFromRow, packagedRow, readPackagedCsv, validBarcode, withExtraPackaged } from './offIndia.ts';
+import {
+  exportColumns,
+  PACKAGED_HEADER,
+  PACKAGED_NAME_FIXES_HEADER,
+  packagedFromRow,
+  packagedRow,
+  readPackagedCsv,
+  readPackagedNameFixes,
+  validBarcode,
+  withExtraPackaged,
+  withNameFixes,
+} from './offIndia.ts';
+import type { PackagedFood } from '@fitsphere/shared';
 
 // Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009). Synthetic rows in
 // the export's columns, not real products; the real export is converted by `npm run off:convert`.
@@ -151,5 +163,90 @@ describe('D-62 the extra packaged products from the owner’s dish database', ()
     if (!food) throw new Error('No extra product');
 
     expect(() => withExtraPackaged([food], [{ ...food, barcode: `0${food.barcode}` }])).toThrow(`barcode 0${food.barcode} is in both files`);
+  });
+});
+
+describe('D-80 the packaged foods named only by their brand', () => {
+  // Synthetic products named only by their brand, not real ones; their barcodes' check digits are right.
+  const named = (barcode: string, name: string, brand: string): PackagedFood => ({
+    barcode,
+    name,
+    brand,
+    kcal: 450,
+    proteinG: 7,
+    carbsG: 70,
+    fatG: 15,
+    fibreG: null,
+    servingGrams: null,
+  });
+  const ONE_PRODUCT = named('8901234500019', 'Testola', 'Testola');
+  const MANY_PRODUCTS = named('8901234500026', 'Test Foods', 'Test Foods');
+  const SOUP = named('8901234500033', 'test kitchen', 'Test Kitchen');
+  // Its name and brand the wrong way round.
+  const SWAPPED = named('8901234567890', 'TEST FOODS', 'CRUNCHY');
+  const sheet = (...rows: string[]) => [PACKAGED_NAME_FIXES_HEADER.join(','), ...rows].join('\n');
+  const SHEET = sheet(
+    "8901234500019,Testola,Testola,keep,,,The brand is the product's own name",
+    '8901234500026,Test Foods,Test Foods,remove,,,Test Foods makes many products',
+    "8901234500033,Test Kitchen,test kitchen,rename,Tomato Soup,,Open Food Facts' generic name: Tomato Soup",
+    '8901234567890,CRUNCHY,TEST FOODS,rename,Crunchy,Test Foods,Its name and brand the wrong way round',
+    '96385074,Test Gone,Test Gone,remove,,,No longer listed',
+  );
+
+  it('reads the reviewed names', () => {
+    expect(readPackagedNameFixes(SHEET)).toEqual([
+      { barcode: '8901234500019', action: 'keep', newName: null, newBrand: null },
+      { barcode: '8901234500026', action: 'remove', newName: null, newBrand: null },
+      { barcode: '8901234500033', action: 'rename', newName: 'Tomato Soup', newBrand: null },
+      { barcode: '8901234567890', action: 'rename', newName: 'Crunchy', newBrand: 'Test Foods' },
+      { barcode: '96385074', action: 'remove', newName: null, newBrand: null },
+    ]);
+  });
+
+  it('refuses a sheet with a mistake, naming the line', () => {
+    expect(() => readPackagedNameFixes('barcode,name\n')).toThrow('header');
+    expect(() => readPackagedNameFixes(sheet('8901234500019,Testola,Testola,hide,,,Why'))).toThrow('line 2: the action');
+    expect(() => readPackagedNameFixes(sheet('8901234500019,Testola,Testola,rename,,,Why'))).toThrow('line 2: a new name');
+    expect(() => readPackagedNameFixes(sheet('8901234500019,Testola,Testola,keep,Other,,Why'))).toThrow('line 2: a new name');
+    expect(() => readPackagedNameFixes(sheet('8901234500019,Testola,Testola,remove,,Other,Why'))).toThrow('line 2: a new brand');
+    expect(() => readPackagedNameFixes(sheet('8901234500019,Testola,Testola,keep,,,'))).toThrow('line 2: the reason');
+    expect(() => readPackagedNameFixes(sheet('8901234500018,Testola,Testola,keep,,,Why'))).toThrow('line 2: the barcode');
+    expect(() =>
+      readPackagedNameFixes(sheet('8901234500019,Testola,Testola,keep,,,Why', '8901234500019,Testola,Testola,keep,,,Why')),
+    ).toThrow('line 3: the barcode');
+  });
+
+  it('renames (and rebrands) and leaves out as reviewed, keeps every other food in its order, and counts a fix no longer listed', () => {
+    const fixed = withNameFixes([ONE_PRODUCT, MANY_PRODUCTS, SWAPPED, SOUP], readPackagedNameFixes(SHEET));
+
+    expect(fixed).toEqual({
+      foods: [ONE_PRODUCT, { ...SWAPPED, name: 'Crunchy', brand: 'Test Foods' }, { ...SOUP, name: 'Tomato Soup' }],
+      renamed: 2,
+      removed: 1,
+      notFound: 1,
+    });
+  });
+
+  it('the committed sheet: 139 products reviewed, 86 kept, 7 renamed, 46 left out, and none left named only by its brand', () => {
+    const read = (file: string) => readFileSync(new URL(`../../../../${file}`, import.meta.url), 'utf8');
+    const fixes = readPackagedNameFixes(read('docs/data/packaged-name-fixes.csv'));
+    const all = withExtraPackaged(readPackagedCsv(read('data/foods/off-india-products.csv')), readPackagedCsv(read('data/foods/off-india-extra.csv')));
+    const listed = new Set(all.map((food) => food.barcode));
+    const count = (action: string) => fixes.filter((fix) => fix.action === action).length;
+
+    expect([fixes.length, count('keep'), count('rename'), count('remove')]).toEqual([139, 86, 7, 46]);
+    for (const fix of fixes) expect(listed.has(fix.barcode), fix.barcode).toBe(true);
+    const fixed = withNameFixes(all, fixes);
+    expect([fixed.foods.length, fixed.renamed, fixed.removed, fixed.notFound]).toEqual([all.length - 46, 7, 46, 0]);
+    const at = (barcode: string) => fixed.foods.find((food) => food.barcode === barcode);
+    expect(at('8901030757501')).toMatchObject({ name: 'Tomato Soup', brand: 'Knorr' });
+    expect(at('8901063092334')).toMatchObject({ name: 'Good Day', brand: 'Britannia' });
+    for (const gone of ['8901262070430', '8906001387015', '8901058010572', '8901764061189']) expect(at(gone), gone).toBeUndefined();
+
+    // Every product still named only by its brand (letters and digits, a pack size left out) was reviewed and kept.
+    const bare = (text: string) => text.toLowerCase().replace(/\d+(\.\d+)?\s*(g|gm|ml|l|ltr|kg)\b/g, '').replace(/[^\p{L}\p{N}]/gu, '');
+    const kept = new Set(fixes.filter((fix) => fix.action === 'keep').map((fix) => fix.barcode));
+    const brandOnly = fixed.foods.filter((food) => food.brand && bare(food.name).replace(bare(food.brand), '') === '');
+    expect(brandOnly.filter((food) => !kept.has(food.barcode)).map((food) => food.barcode)).toEqual([]);
   });
 });

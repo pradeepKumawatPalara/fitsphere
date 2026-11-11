@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-11 (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -538,7 +538,15 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   with its serving, counted in halves. USDA's FNDDS foods (D-39) are archived, not listed.
   Since D-48, packaged foods sold in India, from Open Food Facts' data (ADR-0009), are found by
   name or brand, marked "Packaged" with the brand, in grams or by their label's serving; since
-  D-56 a product listed under several barcodes with the same values shows once. Since
+  D-56 a product listed under several barcodes with the same values shows once; since D-78 each
+  branded product shows once whatever its values, its brand label and barcodes together (the same
+  brand and name, ignoring a pack size), with its copies saved with no brand (told by the barcode's
+  company and a close energy, or the brand at the front of the name), showing the brand label, else
+  the energy most copies give, each copy with its own serving; since D-80 a packaged food named
+  only by its brand ("Amul") keeps that name when the brand is the product's own (Nutella), takes
+  the generic name Open Food Facts gives it, or is left out of the list (it still scans), and a few
+  whose name and brand were swapped, or whose values their own data contradicts, were put right or
+  left out. Since
   D-49, brands' own labels, read from their websites (since D-52 also from shops' listings of the
   products; since D-53 a few are an AI tool's estimates) and approved by the owner, are listed before
   them, marked "Brand label", in grams or by their serving; a fibre the label does not give is

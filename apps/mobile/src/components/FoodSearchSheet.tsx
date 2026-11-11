@@ -1,4 +1,4 @@
-import { addDays, IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type IstDay, type MealItem } from '@fitsphere/shared';
+import { addDays, IFCT_ACKNOWLEDGEMENT, INDB_ACKNOWLEDGEMENT, OFF_ATTRIBUTION, type Food, type IstDay, type MealItem, type PackagedFood } from '@fitsphere/shared';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Search, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
@@ -42,6 +42,11 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 // opens to list them, a brand each. USDA's foods are no longer listed (D-47). IFCT's acknowledgement
 // is one tap away, behind the i at the top (D-25, changed by D-44): the dishes' values come from IFCT too; INDB's and Open Food Facts'
 // credits are shown with it.
+//
+// Since D-78 each branded product is one row: a brand label and Open Food Facts' barcodes of the same
+// brand and name (ignoring a pack size), with those saved with no brand that are its copies (by the
+// barcode's company, or the brand at the front of the name), show one copy, the brand label when there
+// is one.
 //
 // A food whose name is exactly what was typed comes first, wherever its source would list it; the
 // rest keep that order (D-51). Since D-59 the home-style forms of daily foods (a bread slice, butter
@@ -181,6 +186,166 @@ export function groupBrands(results: readonly Result[]): ResultRow[] {
 /** How many different brands a name's foods have, ignoring case. */
 export function brandCount(members: readonly Result[]): number {
   return new Set(members.map((member) => brandOf(member)?.brand.toLowerCase())).size;
+}
+
+/**
+ * A pack size in a name, as Open Food Facts' names give it: "500ml", "1 ltr", "(200 g)", "70.5g"
+ * (D-78). What comes before it is kept by the first group, so no lookbehind is needed.
+ */
+const PACK_SIZE = /(^|[^\p{L}\p{N}])\d+(?:[.,]\d+)?\s*(?:g|gm|gms|gram|grams|kg|kgs|ml|l|lt|ltr|ltrs|litre|litres|liter|liters)(?![\p{L}\p{N}])/giu;
+
+/** A product (D-78): its brand, letters and digits only, and its name's words without the brand. */
+type Product = { brand: string; words: string[] };
+
+const keyOfProduct = (product: Product) => `${product.brand}|${product.words.join('')}`;
+
+/** A name's words, lowercase, letters and digits only, without a pack size. */
+function nameWords(name: string): string[] {
+  return matchKey(name.replace(PACK_SIZE, '$1 '))
+    .split(' ')
+    .filter(Boolean);
+}
+
+/** The product a branded food is (D-78): its brand, and its name without the brand at its front (written with or without spaces) or a pack size. */
+function productOf(result: Result): Product | null {
+  const branded = brandOf(result);
+  if (!branded) return null;
+  const brand = matchKey(branded.brand).replace(/ /g, '');
+  if (!brand) return null;
+  const words = nameWords(nameOf(result));
+  let joined = '';
+  for (let at = 0; at < words.length && joined.length < brand.length; at++) {
+    joined += words[at];
+    if (joined === brand) return { brand, words: words.slice(at + 1) };
+  }
+  return { brand, words };
+}
+
+/**
+ * Which product a branded food is (D-78): its brand and its name, the brand left out of the name,
+ * ignoring case, spaces, marks and a pack size. "AMUL PURE GHEE" (brand AMUL), "Amul pure ghee 500ml"
+ * and the brand label "Pure Ghee" (Amul) are one product; "Haldiram's" and "Haldirams" one brand.
+ * Null for a food with no brand: onePerProduct places it from the foods found with it.
+ */
+export function productKey(result: Result): string | null {
+  const product = productOf(result);
+  return product && keyOfProduct(product);
+}
+
+/**
+ * The company a 13-digit barcode belongs to, as far as one company's products share it: its first 7
+ * digits (Britannia's are 8901063…, Amul's 8901262…). Null for a shorter barcode.
+ */
+const companyOf = (barcode: string) => (/^\d{13}$/.test(barcode) ? barcode.slice(0, 7) : null);
+
+/**
+ * How far a food with no brand's energy may be from a copy of the brand's product it is placed with by
+ * its barcode's company alone: a tenth. Seven digits can be shared by more than one company, and a
+ * general name ("Chocolate", "Mango Pickle") by more than one of a company's products.
+ */
+const SAME_COMPANY_KCAL_GAP = 0.1;
+
+/**
+ * Whose product a packaged food with no brand is (D-78; the owner, 2026-11-11, after three "Milk Bikis"
+ * with no brand listed under Britannia's), told from the branded foods found with it:
+ * - the one brand whose product of the same name has a barcode of the same company and an energy within
+ *   a tenth of it ("Milk Bikis", 8901063…, 459 kcal, as Britannia's Milk Bikis);
+ * - else the brand written at the front of its name, when that brand has the rest as a product
+ *   ("BRITANNIA Milk Bikis");
+ * - else its company, so one company's products with no brand and the same name are one product.
+ * Never by its name alone: a "Mayonnaise" with no brand may be any maker's. Null when none can be told.
+ */
+function placed(food: PackagedFood, products: ReadonlySet<string>, owners: ReadonlyMap<string, ReadonlyMap<string, number[]>>): Product | null {
+  const words = nameWords(food.name);
+  if (words.length === 0) return null;
+  const company = companyOf(food.barcode);
+  const brands = company === null ? undefined : owners.get(`${company}|${words.join('')}`);
+  if (brands?.size === 1) {
+    const [[brand, energies]] = [...brands] as [[string, number[]]];
+    if (energies.some((kcal) => Math.abs(kcal - food.kcal) <= SAME_COMPANY_KCAL_GAP * Math.max(kcal, food.kcal))) return { brand, words };
+  }
+  let joined = '';
+  for (let at = 0; at < words.length - 1; at++) {
+    joined += words[at];
+    const rest = { brand: joined, words: words.slice(at + 1) };
+    if (products.has(keyOfProduct(rest))) return rest;
+  }
+  return company === null ? null : { brand: `#${company}`, words };
+}
+
+/**
+ * The copy of a product that its row shows (D-78; the owner, 2026-11-11): a brand label, read from the
+ * brand's page or approved by the owner; otherwise a copy that names its brand, then the energy most
+ * copies give (in whole kcal, as shown), then the copy with the most values (its fibre, its serving),
+ * then one whose name has no pack size, then the first in the order. Each copy keeps its own values and
+ * serving.
+ */
+function shownCopy(copies: readonly Result[]): Result {
+  const label = copies.find((copy) => copy.kind === 'food');
+  if (label) return label;
+  const packaged = copies.filter((copy) => copy.kind === 'packaged');
+  const votes = new Map<number, number>();
+  for (const copy of packaged) votes.set(Math.round(copy.food.kcal), (votes.get(Math.round(copy.food.kcal)) ?? 0) + 1);
+  const score = ({ food }: (typeof packaged)[number]) => [
+    food.brand?.trim() ? 1 : 0,
+    votes.get(Math.round(food.kcal)) ?? 0,
+    (food.fibreG === null ? 0 : 1) + (food.servingGrams === null ? 0 : 1),
+    food.name.search(PACK_SIZE) < 0 ? 1 : 0,
+  ];
+  let shown = packaged[0];
+  for (const copy of packaged.slice(1)) {
+    const [mine, best] = [score(copy), score(shown!)];
+    const at = mine.findIndex((value, index) => value !== best[index]);
+    if (at >= 0 && mine[at]! > best[at]!) shown = copy;
+  }
+  return shown ?? copies[0]!;
+}
+
+/**
+ * The results with each branded product once (D-78), where its first copy was: the brand labels and
+ * Open Food Facts' packaged foods of one product (productKey), and the packaged foods with no brand
+ * that are its copies (placed), whatever their values, as one row showing one copy (shownCopy). Every
+ * other food, and the order, are unchanged. Every barcode stays on the phone and the server, so any
+ * pack still scans; a meal keeps the values it was logged with.
+ */
+export function onePerProduct(results: readonly Result[]): Result[] {
+  const products = results.map(productOf);
+  // The products found, and by each company and product name its brands with their copies' energies,
+  // to place the foods with no brand.
+  const found = new Set<string>();
+  const owners = new Map<string, Map<string, number[]>>();
+  results.forEach((result, at) => {
+    const product = products[at];
+    if (!product) return;
+    found.add(keyOfProduct(product));
+    const company = result.kind === 'packaged' ? companyOf(result.food.barcode) : null;
+    if (company === null || result.kind !== 'packaged') return;
+    const name = `${company}|${product.words.join('')}`;
+    const brands = owners.get(name) ?? owners.set(name, new Map()).get(name)!;
+    const energies = brands.get(product.brand);
+    if (energies) energies.push(result.food.kcal);
+    else brands.set(product.brand, [result.food.kcal]);
+  });
+  const keys = results.map((result, at) => {
+    const product = products[at] ?? (result.kind === 'packaged' && !result.food.brand?.trim() ? placed(result.food, found, owners) : null);
+    return product ? keyOfProduct(product) : null;
+  });
+  const copies = new Map<string, Result[]>();
+  results.forEach((result, at) => {
+    const key = keys[at] ?? null;
+    if (key === null) return;
+    const list = copies.get(key);
+    if (list) list.push(result);
+    else copies.set(key, [result]);
+  });
+  const shown = new Set<string>();
+  return results.flatMap((result, at) => {
+    const key = keys[at] ?? null;
+    if (key === null) return [result];
+    if (shown.has(key)) return [];
+    shown.add(key);
+    return [shownCopy(copies.get(key)!)];
+  });
 }
 
 function keyOf(result: Result): string {
@@ -335,8 +500,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
         // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
         // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
         // D-51: those named exactly as the search first; D-66: in four groups, the best matches first,
-        // each group in that order.
-        results: inSearchOrder(searched, [
+        // each group in that order. D-78: each branded product once, where its first copy was.
+        results: onePerProduct(inSearchOrder(searched, [
           ...listed('home'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
           ...listed('brand_label'),
@@ -345,7 +510,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
           ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
           ...listed('dish_estimate'),
           ...listed('ifct2017'),
-        ]),
+        ])),
       });
       setListCached(listVersion !== null);
     });

@@ -1282,50 +1282,14 @@ const FOOD_ROWS_PER_INSERT = 50;
 /** Packaged foods a statement writes: 11 values each, within SQLite's 999. */
 const PACKAGED_ROWS_PER_INSERT = 90;
 
-/** A packaged food's brand or name compared for sameness: lowercase, letters and digits, one space between words. */
-function sameKey(text: string | null): string {
-  return (text ?? '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim();
-}
-
-/**
- * What makes two packaged foods the same product for search (D-56): the brand, the name (without the
- * brand in front) and every value. Open Food Facts keeps one product a barcode, so a food sold in
- * several pack sizes, or added twice, is there several times with the same values.
- */
-function sameProduct(food: PackagedFood): string {
-  const brand = sameKey(food.brand);
-  const name = sameKey(food.name);
-  const bare = brand && name.startsWith(`${brand} `) ? name.slice(brand.length + 1) : name;
-  return JSON.stringify([brand, bare, food.kcal, food.proteinG, food.carbsG, food.fatG, food.fibreG]);
-}
-
-/**
- * The packaged foods with each product once (D-56): the first in their order stays, taking the
- * serving of a copy when it has none. Every barcode stays on the phone, so any pack still scans.
- */
-export function onePerProduct(foods: readonly PackagedFood[]): PackagedFood[] {
-  const kept = new Map<string, PackagedFood>();
-  for (const food of foods) {
-    const key = sameProduct(food);
-    const first = kept.get(key);
-    if (!first) kept.set(key, food);
-    else if (first.servingGrams === null && food.servingGrams !== null) kept.set(key, { ...first, servingGrams: food.servingGrams });
-  }
-  return [...kept.values()];
-}
-
-/** With a `limit`, how many more matches are read than kept, so products listed several times do not crowd out others (D-56). */
-const PACKAGED_READ_FACTOR = 4;
-
 /**
  * Searches the packaged foods, offline (D-48): every product whose name or brand has every word,
  * ignoring case, spaces and marks (D-62: "haldirams" finds Haldiram's), all of them (D-66); names or
- * brands starting with the first word come first. A product listed under several barcodes with the
- * same values shows once (D-56). A short search finds only a name or a brand that is all of it
- * (D-72: "on" finds the brand ON, "h" the product named H). A `limit` keeps only that many.
+ * brands starting with the first word come first. Every barcode is returned, each with its own values
+ * and serving: Search foods shows each product once (D-78, which replaced D-56's copies with the same
+ * values, where a copy could show another barcode's serving). A short search finds only a name or a
+ * brand that is all of it (D-72: "on" finds the brand ON, "h" the product named H). A `limit` keeps
+ * only that many.
  */
 export async function searchPackaged(db: SqlDb, query: string, limit?: number): Promise<PackagedFood[]> {
   const words = searchWords(query);
@@ -1338,9 +1302,9 @@ export async function searchPackaged(db: SqlDb, query: string, limit?: number): 
   const first = firstWordFirst(words[0]!, columns);
   const rows = await db.getAllAsync<PackagedRow>(
     `SELECT * FROM packaged_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-    [...match.params, ...first.params, sqlLimit(limit === undefined ? undefined : limit * PACKAGED_READ_FACTOR)],
+    [...match.params, ...first.params, sqlLimit(limit)],
   );
-  return onePerProduct(rows.map(toPackaged)).slice(0, limit);
+  return rows.map(toPackaged);
 }
 
 type PackagedRow = {

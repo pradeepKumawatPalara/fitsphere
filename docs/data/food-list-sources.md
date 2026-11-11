@@ -574,6 +574,29 @@ product or a file the owner made with another AI tool, and approved by the owner
   same checks; the other 324 of its 335 new barcodes failed them (energy 142, barcode 137, values
   out of range 24, name 21). `foods:import` adds them to the packaged foods and refuses a barcode in
   both files.
+- **Names that were only the brand (D-80, 2026-11-11):** 131 products (130 of the export's, 1 of
+  the extra file) are named only by their brand, a pack size aside ("Amul", "English oven", "Maggi
+  280g"), so a search for the brand listed a product nobody could tell. Each was reviewed against Open
+  Food Facts' own fields in the export of 2026-11-04 (its generic name, category and quantity) in
+  `docs/data/packaged-name-fixes.csv`, which says why for each:
+  - **keep, 87:** the brand is the product's own name (Coca-Cola, Sprite, Nutella, KitKat, Horlicks,
+    Kurkure, Bisleri, Yakult, waters, teas, one-product brands);
+  - **rename, 6:** to the generic name Open Food Facts gives it: Knorr "Tomato Soup", Kissan "Tomato
+    Ketchup", Kurkure "Green Chutney Style", "B Natural Mango", Namaste India "Pasteurized Toned
+    Milk", Weikfield "Custard Powder" (Open Food Facts writes "Custurd");
+  - **remove, 38:** a brand of many products, and nothing says which this is (no generic name, at most
+    a category such as "Biscuits", "Noodles" or "Chocolate candies"): Amul, Britannia, Cadbury, Bingo,
+    Del Monte (2), English Oven, Haldiram's, Hershey's (2), Kellogg's (2), Knorr (2), Maggi (9), M.O.M,
+    MuscleBlaze, Nilon's, Nissin, Parle (2), Prabhat, Sumeru, Sunfeast, Supply 360, Too Yumm,
+    Tropicana, Veeba, Yoga Bar, Master Chow.
+  Then, at the owner's word, 8 more: "BRITANNIA" with brand "GOOD DAY" renamed "Good Day" by
+  Britannia (name and brand the wrong way round; its barcode is Britannia's), 6 named only "Maggi"
+  under another brand (Nestlé, Nestle, Neslé, "Fassi", or "Maggie" under Maggi) removed, and 2 colas
+  at 0 kcal that Open Food Facts files as ordinary colas removed (a Coca-Cola, 8901764061189, which was
+  one of the 131, and a Thums Up, 8901764971020). In all, 139 products: 86 kept, 7 renamed, 46
+  removed. The Gatorades at about 1 kcal are kept: Open Food Facts files their series as sugar-free.
+  `foods:import` applies it after reading both files; a fix for a barcode no longer listed is counted,
+  not applied. A removed product still scans (a scan asks Open Food Facts through the server).
 
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,

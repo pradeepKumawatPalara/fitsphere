@@ -152,6 +152,77 @@ export function withExtraPackaged(foods: readonly PackagedFood[], extra: readonl
   return [...foods, ...extra];
 }
 
+/**
+ * docs/data/packaged-name-fixes.csv (D-80): packaged foods reviewed one by one against Open Food Facts'
+ * own data, chiefly those whose name was only their brand ("Amul", "English oven"): `keep` (the brand
+ * is the product's own name: "Nutella", "Sprite"), `rename` (to the name Open Food Facts gives it as
+ * its generic name: Knorr's "Tomato Soup"; with `new_brand` when its name and brand were swapped), or
+ * `remove` (a brand of many products, with nothing to tell which this is; or values its own data
+ * contradicts, as a sugared cola at 0 kcal). `reason` says why.
+ */
+export const PACKAGED_NAME_FIXES_HEADER: readonly string[] = ['barcode', 'brand', 'name', 'action', 'new_name', 'new_brand', 'reason'];
+
+export const PACKAGED_NAME_ACTIONS = ['keep', 'rename', 'remove'] as const;
+
+export type PackagedNameFix = {
+  barcode: string;
+  action: (typeof PACKAGED_NAME_ACTIONS)[number];
+  newName: string | null;
+  newBrand: string | null;
+};
+
+/** Parses and checks the whole sheet; any problem refuses all of it, naming the line. */
+export function readPackagedNameFixes(text: string): PackagedNameFix[] {
+  const [header, ...rows] = parseCsv(text);
+  if (header?.join(',') !== PACKAGED_NAME_FIXES_HEADER.join(',')) {
+    throw new FoodListError(`The packaged name fixes' header must be: ${PACKAGED_NAME_FIXES_HEADER.join(',')}`);
+  }
+  const seen = new Set<string>();
+  return rows.map((row, index): PackagedNameFix => {
+    const line = `Packaged name fixes, line ${index + 2}`;
+    if (row.length !== PACKAGED_NAME_FIXES_HEADER.length) throw new FoodListError(`${line}: ${row.length} fields`);
+    const [barcode = '', , , action = '', newName = '', newBrand = '', reason = ''] = row.map((cell) => cell.trim());
+    if (!validBarcode(barcode) || seen.has(barcode)) throw new FoodListError(`${line}: the barcode is not valid, or appears twice`);
+    seen.add(barcode);
+    if (!(PACKAGED_NAME_ACTIONS as readonly string[]).includes(action)) throw new FoodListError(`${line}: the action must be keep, rename or remove`);
+    if ((action === 'rename') !== (newName !== '')) throw new FoodListError(`${line}: a new name is given with rename, and only then`);
+    if (newBrand !== '' && action !== 'rename') throw new FoodListError(`${line}: a new brand is given only with rename`);
+    if (newName.length > NAME_MAX || /^\d+$/.test(newName)) throw new FoodListError(`${line}: the new name`);
+    if (newBrand.length > BRAND_MAX) throw new FoodListError(`${line}: the new brand`);
+    if (!reason) throw new FoodListError(`${line}: the reason must be given`);
+    return { barcode, action: action as PackagedNameFix['action'], newName: newName || null, newBrand: newBrand || null };
+  });
+}
+
+/**
+ * The packaged foods with the reviewed names applied (D-80): a renamed food takes its new name (and its
+ * new brand when one is given), a removed one is left out of the list (its barcode still scans: a scan
+ * asks Open Food Facts through the server, not this list). A fix for a barcode no longer in the list is
+ * counted, not applied.
+ */
+export function withNameFixes(
+  foods: readonly PackagedFood[],
+  fixes: readonly PackagedNameFix[],
+): { foods: PackagedFood[]; renamed: number; removed: number; notFound: number } {
+  const byBarcode = new Map(fixes.map((fix) => [fix.barcode, fix]));
+  const listed = new Set(foods.map((food) => food.barcode));
+  let renamed = 0;
+  let removed = 0;
+  const fixed = foods.flatMap((food): PackagedFood[] => {
+    const fix = byBarcode.get(food.barcode);
+    if (fix?.action === 'remove') {
+      removed += 1;
+      return [];
+    }
+    if (fix?.action === 'rename' && fix.newName) {
+      renamed += 1;
+      return [{ ...food, name: fix.newName, brand: fix.newBrand ?? food.brand }];
+    }
+    return [food];
+  });
+  return { foods: fixed, renamed, removed, notFound: fixes.filter((fix) => !listed.has(fix.barcode)).length };
+}
+
 /** Parses and checks the whole file; any problem refuses all of it, naming the line. */
 export function readPackagedCsv(text: string): PackagedFood[] {
   const [header, ...rows] = parseCsv(text);
