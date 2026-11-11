@@ -2511,8 +2511,6 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-002; Q-019's row in `docs/product/mvp-scope.md`; D-34 answer 3's
   amendment; the redesign plan's 2.3; CLAUDE.md.
 
----
-
 ## D-80 The packaged foods named only by their brand: kept, renamed or left out
 - Status: **Accepted** (owner, in chat, 2026-11-11: "When I Search for the English oven the first row
   shows the English Oven. and when I seaarch foe the Amul first row shows the AMUL. Check whether it
@@ -2567,6 +2565,123 @@ checksum), and the configuration template was left as it is.*
   `fitsphere-dev`: `foods:import` again; only when the owner says so.**
 - Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (More foods);
   `docs/data/food-list-sources.md` (Open Food Facts).
+
+## D-81 The exercise library's details: muscles, equipment, tags, how-to steps, what to watch for
+- Status: **Accepted** (owner, in chat, 2026-11-11: "Create a New Branch/Folder So the Exisitng work
+  does not get hamper. there is file in D:/fitsphere-data named Gym_Exercise_Library (1). I want thta
+  you should dumped the Rest of the rows from the excel corresponding to the each category, subgroup,
+  excesicese name. Column to be dumped in the DB Primary Muscle Muscles Worked Equipment Tags (card
+  chips) How To – Step 1 How To – Step 2 How To – Step 3 Watch For Video URL"). Numbered D-81 because
+  D-78 and D-80 (Search foods' products once, the brand-only names) were taken by work done at the
+  same time. Built on branch `feat/exercise-details`, in its own folder `D:\fitsphere-exercise-details`.
+- The file: `D:\fitsphere-data\Gym_Exercise_Library (1).xlsx` (447,234 bytes; from the owner's AI
+  tool, as D-67's): the same 2,090 rows as D-67's file, in the same order, on its tab "All Exercises",
+  with nine more columns. Every row has each of them filled except Video URL, which is blank in every
+  row (the file: "a blank Video URL column … to fill in").
+- Answer (REQ-TRN-003):
+  - Each row's **primary muscle, muscles worked, equipment, tags, how-to steps 1 to 3, what to watch
+    for and video address** go into a new server table, `app.exercise_details` (migration
+    `0028_exercise_details.sql`): **one row per row of the library, 2,090**, keyed by the library's row
+    number, with its category and sub-group and the exercise the review sheet gives that row.
+  - The file's values go through `docs/data/exercise-library-details.csv`, made from the file by
+    `npm run exercise-details:convert -w @fitsphere/api -- "<file>"`, which checks every row against
+    the review sheet's row of that number (category, sub-group, name; D-67's seven renames allowed),
+    and loaded by `exercises:import` with the list, in the same transaction. When the owner fills in
+    video addresses, the same two commands load them.
+  - Muscles worked and tags are kept as lists (the file separates them with " · "), the steps as a
+    list of one to three.
+- MVP defaults:
+  - **Each place keeps its own details.** 22 exercises listed in two or three places have different
+    details in each (Devil Press's equipment is Dumbbell under Dumbbell, Bodyweight under Plyometrics,
+    Barbell under CrossFit); each row keeps the file's, and two rows of one place stay two (rows 1,555
+    and 1,556, both our Treadmill Running).
+  - **Kept as the file writes them; nothing is corrected.** For the owner to check in the file: Kegel /
+    Pelvic Floor Contraction's equipment is "Keg"; eleven barbell bench presses' (rows 4 to 20) is
+    "Bench", Bench Press with Bands' and Squat with Bands' "Resistance band", Box Squat's "Plyo box";
+    Devil Press's, above. The tags are always the muscles worked and then the equipment.
+  - **On the server only**, read by nothing yet: `GET /v1/exercises` does not send them and the phone
+    does not keep them (as D-52's flag). Showing them (an exercise card) is its own decision, designed
+    on the canvas first. They are an AI tool's text, not checked by a trainer: before users read the
+    steps and cues, the owner decides whether someone qualified checks them; Legal's review (Q-049)
+    covers the file with the tool's others (D-53).
+  - A video address is blank, or starts with `https://` or `http://` (at most 500 characters); a step,
+    or what to watch for, is at most 300 characters; a muscle, the equipment or a tag at most 40; at
+    most 12 muscles and 12 tags. Anything else refuses the whole file, naming its line.
+- No phone change, no phone schema version, no new build. **On `fitsphere-dev`: migration 0028 before
+  `exercises:import` from this branch; only when the owner says so.** An API without this branch runs
+  as before with 0028 applied; `exercises:import` from such a branch empties the details (they leave
+  with their exercises), and one from this branch brings them back.
+- Doc changes: REQ-TRN-003; the data model (`exercise_details`);
+  `docs/data/exercise-list-sources.md`; the MVP defaults in
+  `docs/architecture/constraints-and-assumptions.md`; CLAUDE.md.
+
+---
+
+## D-82 An exercise's page: Progress, History and How to
+- Status: **Accepted** (owner, in chat, 2026-11-11, with four pictures of a "Dumbbell Shrug" page:
+  "Refer the images. I want to add the one more implementations to each Excercise in the Fitsphere
+  that HOw to Perform this Excecise. and Video to perform. See the Data that has already been provided
+  for each Excercise. Hisotry of the Excercise performed by the User. and the Best Time of the User.
+  And Progress taab as well see the images. You can add your point to these 3 tabs aswell. come up with
+  the plan and canva design . Wait for my approval. Once I approve start building it"; on the plan's
+  five questions: "1. add the ICON and keep the ICOn Vertically Align 2. show the message as you
+  suggest 3 If the video link is not available by default show this link and open on you tube:
+  https://www.youtube.com/watch?v=IT94xC35u6k 4 show first category detail 5 keep it hoold Remide me
+  later"; on the canvas's version 77: "lets show me icon Horizontally. and the icon of the top out of
+  three should be other"; on version 78: "lock it", the icon left to FitSphere: the chart, the board's
+  default; locked in version 79; then, after a phone test: "on the workout screen for each excercise
+  the Icon of Edit, chart and Delete does not look on the current posisiotn. Come up with the different
+  canval design to set up. Never change coode before my approval", and of the canvas's four layouts
+  (version 80): "c", a bar with words). Built on branch `feat/exercise-details` with D-81, in the folder
+  `D:\fitsphere-exercise-details`.
+- Answer (REQ-TRN-008; plan [`docs/plans/exercise-details-page.md`](../plans/exercise-details-page.md),
+  Accepted; the redesign's 4.4):
+  - **Each exercise has a page** with three tabs, **Progress**, **History** and **How to**, opened from
+    **Progress** in a workout: each exercise's card ends in a bar of three buttons with words,
+    **Progress**, **Edit** and **Remove**, each a third of its width (the owner's C); or from **How
+    to do it** in Add exercise once an exercise of the list is picked. It is a whole page over the
+    workout or Add exercise with a back arrow, as the exercise page (D-67), and opens on Progress for
+    an exercise logged before, otherwise on How to. Under the name, the muscles it works.
+  - **Progress:** three record cards, each with the day it was made, for the exercise's kind: a lift's
+    Estimated 1RM, Best set and Best session (the most weight moved in one workout); a bodyweight
+    exercise's Most reps, Best session and Workouts; running's Longest distance, Fastest pace and
+    Workouts; and so for the other kinds (the plan's table). A line, "6 workouts · first on Mon 14 Sep
+    · last on Fri 30 Oct". The graph, with 4W, 12W and All, a dot per workout, the latest value and the
+    change since the range's first ("up 22.0 kg since Mon 14 Sep"); for a lift, Est. 1RM, Heaviest or
+    Volume. Never done: "Log this exercise in a workout to see your progress."
+  - **History:** a card per workout, newest first, every set as the workout page shows them, the
+    workout's best set in full colour, with its volume and 1RM, or for cardio its speed and pace;
+    **BEST** on the best ever (the user's best time for a timed or cardio exercise); a card opens its
+    workout; **Load older** reads older workouts online, as Training does.
+  - **How to:** the video, the exercise's own address or else **the owner's default video**
+    (`https://www.youtube.com/watch?v=IT94xC35u6k`, answer 3), opened in YouTube or the browser; the
+    steps; **Watch for**; the muscles worked, the primary first and filled, and the equipment; its place
+    in the library; and the note **"General guidance, not personal advice. Stop if anything hurts."**
+    (answer 2). An exercise the library does not list, such as Running: "No how-to yet", with the
+    default video. A name of the user's own: no how-to and no video.
+  - An exercise in several places shows **its first place's details** (answer 4).
+- MVP defaults:
+  - Estimated 1RM = weight × (1 + reps ÷ 30) (the Epley formula), from sets of 1 to 12 reps (a set of
+    1 rep is its own weight), rounded once to 0.5 kg or 1 lb. Volume = weight × reps added up over the
+    workout's sets. On a tie the record is the earlier workout's; the longest run, the faster one's.
+  - A workout's exercise belongs to the page when its name is the exercise's name or one of its other
+    names, as the exercise sheet matches them, so a workout saved under a name it had before counts.
+  - Only the workouts on the phone count (the last 90 days), and older ones loaded on History while
+    the page is open; Progress says "Your last 90 days. Load older in History adds earlier workouts."
+  - Nothing is loaded from the video site until the card is tapped: no picture of the video.
+  - From Add exercise, History's cards do not open their workouts, which would lose the form.
+- Data: `GET /v1/exercises` sends each exercise's `details` (D-81's first row for it, the video from
+  its first row that has one), null when the library has none; the phone keeps them (schema version
+  20, `exercises.details`), downloading the list once more (about 0.5 MB). No migration (D-81's
+  0028 holds them), no new build.
+- Before real users: a qualified person checks the how-to text (answer 2; backlog RB-05; risk R-015).
+- On hold: the "Workout in progress" bar of the owner's pictures (answer 5; backlog E-29); the owner
+  is reminded once this page is merged.
+- **On `fitsphere-dev`:** D-81's migration 0028 and `exercises:import`, then the API and the phone of
+  this branch together; only when the owner says so.
+- Doc changes: REQ-TRN-008; the plan; the data model; the API conventions; the redesign's 4.4; the
+  backlog (RB-05, E-29); R-015 and the MVP defaults in `docs/architecture/constraints-and-assumptions.md`;
+  `docs/data/exercise-list-sources.md`; CLAUDE.md.
 
 ---
 

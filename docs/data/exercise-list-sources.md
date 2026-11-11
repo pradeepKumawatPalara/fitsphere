@@ -2,13 +2,17 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (D-67: the exercise library). 2026-11-05 (D-50)
+- Last updated: 2026-11-11 (D-82: the details shown on each exercise's page). Earlier the same day (D-81: the library's details). 2026-11-10 (D-67: the exercise library).
+  2026-11-05 (D-50)
 - Data: [`data/exercises/exercise-list.csv`](../../data/exercises/exercise-list.csv), 287 exercises
   (334 until D-67, when the library replaced 47 of them), and the exercise library's review sheet
-  [`docs/data/exercise-library-sheet.csv`](exercise-library-sheet.csv), 1,832 more: 2,119 in all
+  [`docs/data/exercise-library-sheet.csv`](exercise-library-sheet.csv), 1,832 more: 2,119 in all; the
+  library's details, [`docs/data/exercise-library-details.csv`](exercise-library-details.csv), one row
+  for each of its 2,090 rows (D-81)
 - Loaded by: `npm run exercises:import -w @fitsphere/api` into `app.exercises` (migrations 0016 and
   0022), with [`data/exercises/speed-mets.csv`](../../data/exercises/speed-mets.csv) into
-  `app.exercise_speed_mets` (migration 0017); served by `GET /v1/exercises`
+  `app.exercise_speed_mets` (migration 0017) and the details into `app.exercise_details` (migration
+  0028, server only); served by `GET /v1/exercises` (not the details)
 
 ## The list
 FitSphere's own list, written for FitSphere on 2026-11-05 at the owner's request (D-50) from the
@@ -65,6 +69,29 @@ name; the import refuses the whole file otherwise.
 - **Categories and sub-groups** are `EXERCISE_SUB_GROUPS` in `packages/shared/src/contracts.ts`, in
   the file's order: 39 categories, 20 of them without sub-groups. The import refuses any other.
 - Legal's review (Q-049) covers it with the AI tool's other files (D-53).
+
+## The library's details (D-81)
+- **Source:** the owner's second copy of the file, `D:\fitsphere-data\Gym_Exercise_Library (1).xlsx`
+  (2026-11-11, 447,234 bytes, from the same AI tool): the same 2,090 rows in the same order, with nine
+  more columns on "All Exercises": Primary Muscle, Muscles Worked, Equipment, Tags (card chips), How To
+  – Step 1 to 3, Watch For and Video URL. Every row fills each of them but Video URL, blank in every
+  row. Like the names, they are the tool's own words, not read from any app, website or exercise
+  database that we know of, and not checked by a trainer.
+- **Made by** `npm run exercise-details:convert -w @fitsphere/api -- "<file>"`, which reads the tab
+  "All Exercises" and writes [`docs/data/exercise-library-details.csv`](exercise-library-details.csv):
+  each row with the review sheet's category, sub-group and name for that row number (the file's
+  sub-group "All" is the sheet's none; D-67's seven renames are allowed), the nine values as the file
+  writes them. A row the review sheet has otherwise is refused. Run it again, then `exercises:import`,
+  when the file changes (video addresses filled in).
+- **Kept as written, row by row:** an exercise in several places keeps each place's details, which
+  differ for 22 exercises; nothing is corrected. Noticed for the owner: Kegel / Pelvic Floor
+  Contraction's equipment is "Keg"; eleven barbell bench presses' is "Bench"; Box Squat's "Plyo box";
+  Devil Press's differs in each of its three places. The tags are always the muscles worked, then the
+  equipment.
+- **Shown since D-82** on each exercise's page, How to: the details of the exercise's first place
+  (`app.exercise_details`, sent with `GET /v1/exercises`), with the note "General guidance, not
+  personal advice. Stop if anything hurts."; a qualified person checks them before real users (backlog
+  RB-05, risk R-015). With no video address of its own, an exercise opens the owner's default video.
 
 ## The METs: the 2024 Adult Compendium of Physical Activities
 Calories burned are estimated as MET × the user's latest weight in kg × the time in hours (D-50).

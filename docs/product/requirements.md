@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -639,6 +639,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - D-65 (replacing D-43's chip): the date strip at the top of Training picks the date, as Home's and Nutrition's; the button names it, "Log workout for today" or "Log workout for Sat 31 Oct", and logs to it.
 - D-50 (replacing D-29's "typed freely" and "the same for every set"): the name searches FitSphere's exercise list (334 exercises, kept on the phone, offline) or is typed. Each list exercise has one of eight types that decides its fields: weight and reps (a weight on every set), reps (no weight: bodyweight), time, weight and time, distance and time (the average speed and pace shown), treadmill (speed, incline), cardio machine (level), time only. A name of the user's own asks "Log as": sets and reps, time, or cardio. Each set has its own reps, weight and time, 1 to 20 sets. Exercises saved before read as identical sets. Each exercise may have calories burned (a Compendium MET estimate, by speed for running, walking and cycling, or typed in its place) and an average and highest heart rate; calories show on the Training tab only, never on Home.
 - D-67: the exercise library joins the list: the owner's 2,090 exercises by category and sub-group (1,832 new, 47 of them replacing ours with our names kept as other names; 2,119 in all), each logged as FitSphere decided, with a Compendium MET where one fits and typed calories where none does. Above the name, Category and Sub-group narrow the search: Sub-group follows the category; with either chosen its exercises show before a word is typed; "Search all categories" clears both. The name can still be searched with neither chosen.
+- D-81: each row of the library (an exercise in one category and sub-group) keeps the file's primary muscle, muscles worked, equipment, tags, how-to steps 1 to 3, what to watch for and video address (blank for now), on the server only: nothing in the app shows them yet.
+- D-82: each exercise of a workout ends in a bar with Progress, Edit and Remove (replacing D-42's edit and remove icons); Progress opens its page: Progress, History and How to (REQ-TRN-008).
 - D-71: the workout timer. A workout of today has **Start workout** in a bar at its foot; the bar then shows the time counted in minutes and seconds ("12:34", "1:05:12"), "Running" or "Paused", **Pause** or **Resume**, and **Mark done**, which stops it and shows "Done · total time" with the total, pauses left out (with Resume, on a workout of today). A workout of another date has no Start workout. A timer already started can be paused, resumed and marked done whatever the date. The time comes from the clock, so leaving the screen or closing the app does not stop it; 24 hours at most. Mark done is not required (D-29); a workout whose timer has started is listed before its first exercise, and counts toward the week only once it has one (D-41). Each step is saved on the phone at once and synced; it works offline.
 
 ### REQ-TRN-004 — Workout history
@@ -667,6 +669,31 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Acceptance criteria:
   - When a trainee finishes a planned workout, then it appears in workout history (REQ-TRN-004) and counts toward the weekly target (REQ-HOME-007).
   - Weights are entered and shown in the lifting-weight unit (REQ-TRN-005).
+
+### REQ-TRN-008 — Exercise details: progress, history and how to
+- Requirement (D-82, the owner, 2026-11-11): each exercise has a page with three tabs: **Progress**
+  (the user's records with it and a graph over time), **History** (every workout with it, the best
+  marked) and **How to** (how to do it, from the exercise library, and a video). Opened from a
+  workout exercise's Progress button and from Add exercise's How to do it. Plan: `docs/plans/exercise-details-page.md`.
+- Acceptance criteria:
+  - Given a workout, when the user taps an exercise's Progress, then its page opens on Progress if
+    the exercise was logged before, otherwise on How to; the back arrow returns to the workout.
+  - Given an exercise of the list picked in Add exercise, when the user taps How to do it, then its
+    page opens on How to, and the back arrow returns to the form as it was.
+  - Progress shows three records for the exercise's kind, each with the day it was made (a lift:
+    Estimated 1RM, Best set, Best session; running: Longest distance, Fastest pace, Workouts), the
+    number of workouts with their first and last days, and a graph for 4W, 12W or All that needs two
+    workouts in the range; a lift's graph shows Est. 1RM, Heaviest or Volume.
+  - History lists each workout with the exercise, newest first, its sets as the workout page shows
+    them; BEST marks the best ever; a workout on the phone opens from its card; Load older reads older
+    workouts online, which are shown, not opened.
+  - How to shows the library's steps, what to watch for, the muscles worked (the primary first) and
+    the equipment, with "General guidance, not personal advice. Stop if anything hurts."; and a video
+    card opening the exercise's own video, or the owner's default one, outside the app. With no
+    details: "No how-to yet". A name the user typed has no video.
+  - Workouts count when their exercise's name is the exercise's name or one of its other names,
+    ignoring case, hyphens, spaces and doubled letters. Weights are in the lifting-weight unit
+    (REQ-TRN-005). Records and All count the phone's 90 days and any older workouts loaded.
 
 ---
 
