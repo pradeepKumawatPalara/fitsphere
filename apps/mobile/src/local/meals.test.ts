@@ -406,17 +406,18 @@ describe('D-48 the cached packaged foods', () => {
     expect((await searchPackaged(db, 'test factory bar')).map((found) => found.barcode)).toEqual([BAR.barcode]);
   });
 
-  it('shows a product listed under several barcodes with the same values once, taking a copy’s serving (D-56)', async () => {
-    // Synthetic: one paneer in three pack sizes (two name it with the brand), and a different one.
+  it('returns every barcode of a product, each with its own serving; Search foods shows it once (D-78)', async () => {
+    // Synthetic: one paneer under three barcodes (one names it with the brand), only one with a serving.
     const PANEER = { barcode: '8901234500001', name: 'Paneer', brand: 'Test Dairy', kcal: 283, proteinG: 16.1, carbsG: 5.1, fatG: 22, fibreG: null, servingGrams: null };
     const PANEER_1KG = { ...PANEER, barcode: '8901234500002', name: 'Test Dairy Paneer', servingGrams: 50 };
     const PANEER_COPY = { ...PANEER, barcode: '8901234500003', name: 'paneer', brand: 'TEST DAIRY' };
-    const HIGH_PROTEIN = { ...PANEER, barcode: '8901234500004', kcal: 189.8, proteinG: 25, carbsG: 6.7, fatG: 7 };
-    await replaceFoods(db, 'v1', [], [], [PANEER, PANEER_1KG, PANEER_COPY, HIGH_PROTEIN]);
+    await replaceFoods(db, 'v1', [], [], [PANEER, PANEER_1KG, PANEER_COPY]);
 
     const found = await searchPackaged(db, 'paneer');
-    expect(found.map((food) => food.barcode).sort()).toEqual(['8901234500001', '8901234500004']);
-    expect(found.find((food) => food.barcode === PANEER.barcode)?.servingGrams).toBe(50);
+    expect(found.map((food) => food.barcode).sort()).toEqual(['8901234500001', '8901234500002', '8901234500003']);
+    // D-56 once gave the first copy another barcode's serving, which the server refused when a meal used it.
+    expect(found.find((food) => food.barcode === PANEER.barcode)?.servingGrams).toBeNull();
+    expect(found.find((food) => food.barcode === PANEER_1KG.barcode)?.servingGrams).toBe(50);
     expect(await searchPackaged(db, 'paneer', 1)).toHaveLength(1);
   });
 });

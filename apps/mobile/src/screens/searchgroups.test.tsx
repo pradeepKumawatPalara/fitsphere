@@ -1,6 +1,6 @@
 import type { Food, PackagedFood } from '@fitsphere/shared';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { brandOf, groupBrands } from '../components/FoodSearchSheet';
+import { brandOf, groupBrands, onePerProduct } from '../components/FoodSearchSheet';
 import type { FoodResult } from '../components/FoodDetail';
 import { replaceFoods } from '../local/store';
 import type { SqlDb } from '../local/sql';
@@ -105,11 +105,12 @@ describe('D-61 brands and names', () => {
     ]);
   });
 
-  it('keeps a row for each when one brand’s product comes from two sources', () => {
+  it('leaves one brand’s product from two sources to D-78, which shows it once before the rows are made', () => {
     const asLabel = label('gamma-foods-bread', 'Gamma Foods', 'Bread', 244);
-    const rows = groupBrands([{ kind: 'packaged', food: PACKAGED[0]! }, result(asLabel)]);
+    const both: FoodResult[] = [{ kind: 'packaged', food: PACKAGED[0]! }, result(asLabel)];
 
-    expect(rows.map((row) => row.kind)).toEqual(['one', 'one']);
+    expect(groupBrands(both).map((row) => row.kind)).toEqual(['one', 'one']);
+    expect(groupBrands(onePerProduct(both))).toEqual([{ kind: 'one', result: result(asLabel) }]);
   });
 });
 
