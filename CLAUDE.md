@@ -12,6 +12,17 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Each product once, and names that were only the brand — built on branch
+`fix/search-one-per-product` (D-78 and D-80, 2026-11-11), in `D:\fitsphere`.** D-78 (phone only):
+Search foods shows each branded product once, its brand label, its Open Food Facts barcodes and its
+copies saved with no brand together (`onePerProduct` in `FoodSearchSheet.tsx`); the copy shown keeps
+its own serving (D-56 could borrow another barcode's, which the server refused). D-80 (server data):
+the packaged foods named only by their brand (131), then 8 more at the owner's word (a name and
+brand swapped, "Maggi" under Nestlé, two colas at 0 kcal), are kept, renamed or left out as
+`docs/data/packaged-name-fixes.csv` says (86, 7, 46 of 139), applied by `foods:import`. No migration, no
+phone schema change, no new build. **On `fitsphere-dev`: `foods:import` again; only when the owner
+says so.**
+
 **Date strip, Monday to Sunday — built on branch `fix/week-strip-mon-sun` (D-79, 2026-11-11), in its
 own folder `D:\fitsphere-weekstrip` (removed once merged).** Canvas boards `WeekStripMonSun*` locked
 (version 75). The strip on Home, Nutrition and Training shows a week, Monday to Sunday (was 7 days

@@ -1570,7 +1570,8 @@ checksum), and the configuration template was left as it is.*
   same values. The first copy stays, taking a copy's serving when it has none. Products whose name
   or values differ stay apart. Every barcode stays on the phone and on the server, so any pack still
   scans. Search reads up to four times more matches before keeping 30, so copies do not crowd out
-  other products.
+  other products. (Changed by D-78: each branded product shows once whatever its values, its brand
+  label and barcodes together, and the copy shown keeps its own serving.)
 - Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (the More foods row). Phone app only:
   no server change, no migration, no new build.
 
@@ -1722,6 +1723,7 @@ checksum), and the configuration template was left as it is.*
     tap away; the credits behind the i are unchanged ("Foods marked INDB …" refers to that tag).
   - "N brands" counts different brands; a name only one brand has, even from two sources (a brand
     label and a packaged food of the same brand and name), stays a row for each, its brand under it.
+    (Changed by D-78: one brand's product is one row, the brand label when there is one.)
 - For Legal (Q-049): the attribution of Open Food Facts (L-13), INDB (L-15) and the brand labels
   (L-16, R-010, R-012) no longer shows on each result, only on the food's page and behind the i.
 - Doc changes: REQ-LOG-007; `docs/architecture/constraints-and-assumptions.md` (More foods);
@@ -2420,6 +2422,72 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-78 Search foods shows each branded product once
+- Status: **Accepted** (owner, in chat, 2026-11-11: "In the Search functionality I have Search for the
+  Amul. there are three result with the same label and nutritions 55% Dard Chocolate. Which is wrong.
+  Same as for Butter, Cow Ghee, Fresh Cream. Find ou the root cause across the whole database"; then,
+  on the proposal: "Show a product once when the brand, the name and the kcal match ... Also ignore a
+  pack size in the name ... Fix these for now on the frontend. We shall decide later over the server
+  side."; and for one brand's name with different kcal: "I allow you to take decision to pick one value
+  for each similar item"; then, on the phone, "milk bikis" listing Britannia's Milk Bikis and three
+  "Milk Bikis" with no brand: "Why there is the 3 rows. I only want the 1 row. confirm this is bug. Or
+  fix the similar issue across the whole food items if there is any"). Changes D-56, and D-61's MVP
+  default for one brand's product from two sources.
+- Root cause (the whole food list, main 9626ed4):
+  - The same product came from two sources, a brand label (D-49) and Open Food Facts' packaged foods
+    (D-48), and nothing joined them: D-61's MVP default kept one brand's product from two sources as a
+    row for each.
+  - Open Food Facts lists one product under several barcodes (pack sizes, a product added twice, a
+    barcode typed wrong), and D-56 joined copies only when every value was the same, so a fibre left
+    blank in one and 0 in another, or 11.78 against 11.79, kept them apart.
+  - A pack size in the name ("Pure Ghee 500ml") made it another name.
+  - 619 of Open Food Facts' products were saved with no brand, so nothing tied them to their brand's
+    product: three Britannia "Milk Bikis" (barcodes 8901063…, Britannia's) listed apart from it.
+  - 160 sets of rows looked the same (the same name, brand and kcal), 176 rows too many; 30 more
+    products differed only by a pack size in the name (44 rows); 357 names of one brand had rows with
+    different kcal (884 rows). The foods without a brand (IFCT, INDB, home-style foods, estimated
+    dishes) had none.
+- Answer:
+  - Search foods shows each **branded product once**, its brand label and its Open Food Facts barcodes
+    together, whatever their values: the same brand and the same name, the brand in front of the name
+    left out, ignoring case, spaces, marks and a pack size ("500ml", "1 ltr", "(200 g)"). Its row is
+    where its first copy was.
+  - A packaged food saved **with no brand** joins its brand's product, found with it, when that can be
+    told: the one brand whose product of the same name has a barcode of the **same company** (its first 7
+    digits) and an energy within a tenth of it ("Milk Bikis", 8901063…, as Britannia's); else the
+    **brand written at the front of its name**, when that brand has the rest as a product ("BRITANNIA
+    Milk Bikis"). One company's products with no brand and the same name are one row. Never by the name
+    alone: a "Mayonnaise" with no brand may be any maker's.
+  - The copy shown is the **brand label** when there is one; otherwise a copy that names its brand,
+    then the energy **most copies give** (in whole kcal), then the copy with the **most values** (its
+    fibre, its serving), then one whose name has no pack size, then the first. It shows its own values
+    and serving.
+  - Every barcode stays on the phone and on the server: any pack still scans (a scan asks the server,
+    not this list), and a meal logged from any copy keeps its values.
+  - A name several brands have is still one row with its brands (D-61).
+- Also fixed: D-56 kept the first copy and gave it another copy's serving when it had none (28
+  products, such as a ghee showing a 905 g serving). The server checks a serving against its barcode, so
+  a meal logged by that serving was refused and stayed "not saved". The copy shown now always has its
+  own serving.
+- On the whole food list: 15,936 rows where there were 16,805, all 630 brand labels still listed; no
+  rows alike (the same name, brand and energy) and no name of one brand listed with two energies; 70 of
+  the 619 products with no brand joined their brand's row, the other 549 stay as they are.
+- MVP defaults: a product with no brand that its company number and name do not tie to a brand
+  (the energy more than a tenth away, as a "CHOCOLATE" at 551 kcal from a 5 Star at 444, or a
+  barcode shorter than 13 digits) and that does not name its brand stays a row of its own. Names that
+  differ by a word ("Milk bikis biscuits") or a misspelling ("Milk Bikis Cassic") are other names
+  and stay apart. The brand label is shown even where
+  it is a shop's listing (D-52) or an AI tool's estimate (D-53), as the phone cannot tell them apart
+  (the flag stays on the server); in 18 products the brand label's energy is not one Open Food Facts'
+  copies give. "Most copies" counts each barcode.
+- The server side is left as it is for now; the owner decides later whether the food list itself keeps
+  one copy. Deleting copies in the database would not last: the next `foods:import` puts them back, and
+  a meal using a deleted barcode's serving would be refused.
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (More foods); notes in D-56 and D-61.
+  Phone app only: no server change, no migration, no phone schema change, no new build.
+
+---
+
 ## D-79 The date strip shows Monday to Sunday; the days after today are greyed
 - Status: **Accepted** (owner, in chat, 2026-11-11: "In the whole Fitsphere app the top calender
   Strip show the 7 days from today to last 7 days. I want that this calender strip shoould show the
@@ -2442,6 +2510,63 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build.
 - Doc changes: REQ-HOME-002; Q-019's row in `docs/product/mvp-scope.md`; D-34 answer 3's
   amendment; the redesign plan's 2.3; CLAUDE.md.
+
+---
+
+## D-80 The packaged foods named only by their brand: kept, renamed or left out
+- Status: **Accepted** (owner, in chat, 2026-11-11: "When I Search for the English oven the first row
+  shows the English Oven. and when I seaarch foe the Amul first row shows the AMUL. Check whether it
+  is bug or not. Think like a end USer"; of the three ways offered, "Fix the data on the server: rename
+  or remove those 131 products in the food list itself ... -> fix this Only check the 131 only. And
+  whatever you delete just also tell me as well"; then "continue now"; then, for the three things left
+  out of the 131 (a "BRITANNIA" whose brand reads "GOOD DAY", "Maggi" under Nestlé, a Coca-Cola at
+  0 kcal and a Gatorade at 1 kcal): "Fix this").
+- Root cause: 131 of Open Food Facts' packaged foods (130 of the export's, 1 of the extra file, D-62)
+  are named only by their brand, a pack size aside ("Amul", "English oven", "Maggi 280g"). Search
+  foods lists a name exactly as typed first (D-51), so a search for the brand began with a product
+  nobody could tell; in 69 of the 89 brands' searches it was the first row. Not a mistake in the code:
+  in the data.
+- Answer: each of the 131 was reviewed against Open Food Facts' own fields (the export of
+  2026-11-04: generic name, category, quantity), and then the three things left out, in
+  `docs/data/packaged-name-fixes.csv`: 139 products, one row each with the reason, which
+  `foods:import` applies.
+  - **keep, 86:** the brand is the product's own name: Coca-Cola, Sprite, Thums Up, Pepsi, Nutella,
+    KitKat, Oreo, Horlicks, Bournvita, Boost, Kurkure, Lay's, Bisleri, Aquafina, Yakult, Parle-G, the
+    waters and teas, and brands of one product. A search for "nutella" still begins with Nutella.
+  - **rename, 7:** to the generic name Open Food Facts gives it: Knorr "Tomato Soup", Kissan "Tomato
+    Ketchup", Kurkure "Green Chutney Style", "B Natural Mango", Namaste India "Pasteurized Toned
+    Milk", Weikfield "Custard Powder" (Open Food Facts writes "Custurd"); and one whose name and brand
+    Open Food Facts has the wrong way round, "BRITANNIA" with brand "GOOD DAY" (its barcode is
+    Britannia's, 8901063…), now "Good Day" by Britannia (the sheet's `new_brand`).
+  - **remove, 46:**
+    - 38 of the 131: a brand of many products, with nothing to tell which this is (no generic name, at
+      most a category such as "Biscuits", "Noodles" or "Chocolate candies"): Amul, Britannia,
+      Cadbury, Bingo, Del Monte (2), English Oven, Haldiram's, Hershey's (2), Kellogg's (2), Knorr
+      (2), Maggi (9), M.O.M, MuscleBlaze, Nilon's, Nissin, Parle (2), Prabhat, Sumeru, Sunfeast,
+      Supply 360, Too Yumm, Tropicana, Veeba, Yoga Bar and Master Chow;
+    - 6 more named only "Maggi" (or "Maggie") under another brand (Nestlé, Nestle, Neslé, "Fassi",
+      and "Maggie" under Maggi), the same: Maggi noodles, nothing saying which;
+    - 2 colas whose values say 0 kcal although Open Food Facts files them as ordinary colas, not
+      sugar-free ones: a Coca-Cola (8901764061189; the other copies give 44 kcal) and a Thums Up
+      (8901764971020, 0 kcal and 3.3 g protein; the others 39 to 42 kcal).
+    They leave the food list on the server and, at the next download, the phone.
+  - The Gatorades at about 1 kcal are kept: Open Food Facts files their series (barcodes
+    8902080002320 to …2375) as sugar-free drinks ("without sugar and with artificial sweeteners"),
+    two of them named "Zero Sugar"; 1 kcal is right for those.
+  - No name is made up: a new name or brand is Open Food Facts' own.
+- After it, on the whole food list: the searches for "amul", "english oven", "britannia", "maggi",
+  "parle", "haldirams" and "knorr" begin with a named product ("Amul 55% Dark Chocolate", "English
+  Oven Multigrain Bread", "Britannia 50-50 Golmaal Butter Garlic", "Maggi 2-Minute Masala Noodles").
+- MVP defaults: a removed product still scans (a scan asks Open Food Facts through the server, not
+  this list) and a meal already logged keeps its values; but a meal holding "1 Serving" of a removed
+  one cannot be changed and saved again (the server checks a serving against the list). Only the
+  owner's test accounts have meals now. Values were not reviewed beyond the two colas. A fix whose
+  barcode a later export no longer has is counted, not applied.
+- Server: `readPackagedNameFixes` and `withNameFixes` (`apps/api/src/foods/offIndia.ts`), applied by
+  `foods:import` after the two files are read; no migration, no phone change, no new build. **On
+  `fitsphere-dev`: `foods:import` again; only when the owner says so.**
+- Doc changes: REQ-LOG-007; `constraints-and-assumptions.md` (More foods);
+  `docs/data/food-list-sources.md` (Open Food Facts).
 
 ---
 
