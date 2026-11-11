@@ -7,7 +7,9 @@ import {
   errorBodySchema,
   exerciseMet,
   EXERCISE_CATEGORIES,
+  EXERCISE_DEFAULT_VIDEO_URL,
   EXERCISE_SUB_GROUPS,
+  exerciseVideoUrl,
   exerciseNameKey,
   exercisesResponseSchema,
   foodsResponseSchema,
@@ -367,10 +369,10 @@ describe('D-50 the exercise list', () => {
   it('lists each exercise with its group, how it is logged, and its Compendium MET or none', () => {
     const running = { code: 'running', name: 'Running', group: 'cardio', logType: 'distance_time', aliases: ['run'], compendiumCode: '12145', met: 10.5 };
     const kabaddi = { ...running, code: 'kabaddi', name: 'Kabaddi', group: 'sport', logType: 'time_only', aliases: [], compendiumCode: null, met: null };
-    // A list from before D-67 reads with no places.
+    // A list from before D-67 reads with no places, and from before D-82 with no details.
     expect(exercisesResponseSchema.parse({ version: 'v1', items: [running, kabaddi] }).items).toEqual([
-      { ...running, speedMets: [], places: [] },
-      { ...kabaddi, speedMets: [], places: [] },
+      { ...running, speedMets: [], places: [], details: null },
+      { ...kabaddi, speedMets: [], places: [], details: null },
     ]);
     expect(exercisesResponseSchema.parse({ version: 'v1', items: null }).items).toBeNull();
     expect(exercisesResponseSchema.safeParse({ version: 'v1', items: [{ ...running, logType: 'laps' }] }).success).toBe(false);
@@ -387,6 +389,26 @@ describe('D-50 the exercise list', () => {
     expect(EXERCISE_CATEGORIES).toHaveLength(39);
     expect(EXERCISE_SUB_GROUPS.Barbell).toEqual(['Chest', 'Shoulders', 'Back', 'Legs', 'Glutes', 'Arms', 'Core', 'Full Body']);
     expect(EXERCISE_SUB_GROUPS['Smith Machine']).toEqual([]);
+  });
+
+  it('D-82 gives an exercise how to do it, or none, and its video or the default one', () => {
+    const shrug = { code: 'dumbbell-shrug', name: 'Dumbbell shrug', group: 'dumbbell', logType: 'weight_reps', aliases: [], compendiumCode: '02054', met: 3.5 };
+    const details = {
+      place: { category: 'Dumbbell', subGroup: 'Shoulders' },
+      primaryMuscle: 'Traps',
+      musclesWorked: ['Traps', 'Upper back', 'Forearms'],
+      equipment: 'Dumbbell',
+      tags: ['Traps', 'Upper back', 'Forearms', 'Dumbbell'],
+      howTo: ['Stand tall.', 'Shrug.', 'Lower.'],
+      watchFor: 'Rolling the shoulders.',
+      videoUrl: null,
+    };
+    const [item] = exercisesResponseSchema.parse({ version: 'v1', items: [{ ...shrug, details }] }).items ?? [];
+    expect(item?.details).toEqual(details);
+    expect(exerciseVideoUrl(item!)).toBe(EXERCISE_DEFAULT_VIDEO_URL);
+    expect(exerciseVideoUrl({ details: { ...details, videoUrl: 'https://www.youtube.com/watch?v=own' } })).toBe('https://www.youtube.com/watch?v=own');
+    expect(exerciseVideoUrl({ details: null })).toBe('https://www.youtube.com/watch?v=IT94xC35u6k');
+    expect(exercisesResponseSchema.safeParse({ version: 'v1', items: [{ ...shrug, details: { ...details, howTo: 'Stand tall.' } }] }).success).toBe(false);
   });
 
   it('estimates with the speed band starting at the highest speed at or below the speed, or the exercise\u2019s own MET', () => {

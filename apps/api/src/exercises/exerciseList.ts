@@ -4,9 +4,10 @@
 // other names to search by; data/exercises/speed-mets.csv, the Compendium's activities by speed for
 // running, walking and cycling; and the exercise library's review sheet (D-67),
 // docs/data/exercise-library-sheet.csv: the owner's file of exercises by category and sub-group, which
-// adds exercises and gives exercises their places. Each file is checked whole first; any problem refuses
-// all of it, naming the line. The import replaces app.exercises and app.exercise_speed_mets whole, in
-// one transaction.
+// adds exercises and gives exercises their places; and the library's details, each row's muscles,
+// equipment, how-to steps and more (D-81, ./exerciseDetails.ts). Each file is checked whole first; any
+// problem refuses all of it, naming the line. The import replaces app.exercises, app.exercise_speed_mets
+// and app.exercise_details whole, in one transaction.
 import {
   EXERCISE_GROUPS,
   EXERCISE_LOG_TYPES,
@@ -20,6 +21,7 @@ import {
 } from '@fitsphere/shared';
 import type pg from 'pg';
 import { parseCsv } from '../foods/csv.ts';
+import type { ExerciseDetail } from './exerciseDetails.ts';
 
 export const EXERCISE_LIST_HEADER: readonly string[] = ['code', 'name', 'group', 'log_type', 'compendium_code', 'met', 'aliases'];
 export const SPEED_METS_HEADER: readonly string[] = ['exercise_code', 'from_kmh', 'compendium_code', 'met'];
@@ -105,6 +107,7 @@ function checkedExercise(
     met: met === '' ? null : Number(met),
     speedMets: [],
     places: [],
+    details: null,
   };
 }
 
@@ -213,8 +216,15 @@ export function readSpeedMets(text: string, exercises: readonly ListedExercise[]
   return exercises.map((exercise) => ({ ...exercise, speedMets: bands.get(exercise.code) ?? [] }));
 }
 
-/** Replaces app.exercises with the list and app.exercise_speed_mets with its bands, in one transaction; returns how many exercises were imported. */
-export async function importExercises(client: pg.ClientBase, exercises: readonly ListedExercise[]): Promise<number> {
+/**
+ * Replaces app.exercises with the list, app.exercise_speed_mets with its bands and app.exercise_details
+ * with the library's details (D-81), in one transaction; returns how many exercises were imported.
+ */
+export async function importExercises(
+  client: pg.ClientBase,
+  exercises: readonly ListedExercise[],
+  details: readonly ExerciseDetail[] = [],
+): Promise<number> {
   await client.query('begin');
   try {
     await client.query('delete from app.exercises');
@@ -252,6 +262,30 @@ export async function importExercises(client: pg.ClientBase, exercises: readonly
               met: band.met,
             })),
           ),
+        ),
+      ],
+    );
+    await client.query(
+      `insert into app.exercise_details (library_row, exercise_code, category, sub_group, primary_muscle, muscles_worked, equipment,
+         tags, how_to, watch_for, video_url)
+       select library_row, exercise_code, category, sub_group, primary_muscle, muscles_worked, equipment, tags, how_to, watch_for, video_url
+       from jsonb_to_recordset($1::jsonb) as row (library_row integer, exercise_code text, category text, sub_group text,
+         primary_muscle text, muscles_worked text[], equipment text, tags text[], how_to text[], watch_for text, video_url text)`,
+      [
+        JSON.stringify(
+          details.map((detail) => ({
+            library_row: detail.row,
+            exercise_code: detail.exerciseCode,
+            category: detail.category,
+            sub_group: detail.subGroup,
+            primary_muscle: detail.primaryMuscle,
+            muscles_worked: detail.musclesWorked,
+            equipment: detail.equipment,
+            tags: detail.tags,
+            how_to: detail.howTo,
+            watch_for: detail.watchFor,
+            video_url: detail.videoUrl,
+          })),
         ),
       ],
     );

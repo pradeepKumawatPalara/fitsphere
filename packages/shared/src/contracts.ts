@@ -1183,6 +1183,27 @@ export const speedMetSchema = z.object({ fromKmh: z.number(), compendiumCode: z.
 export type SpeedMet = z.infer<typeof speedMetSchema>;
 
 /**
+ * How to do an exercise (D-81, D-82): the library's details from the exercise's first place, as the
+ * owner's file writes them: the primary muscle, the muscles worked (the primary first), the
+ * equipment, the tags for its card, one to three steps, what to watch for, and a video's address, or
+ * null when its places give none.
+ */
+export const exerciseDetailsSchema = z.object({
+  place: exercisePlaceSchema,
+  primaryMuscle: z.string(),
+  musclesWorked: z.array(z.string()),
+  equipment: z.string(),
+  tags: z.array(z.string()),
+  howTo: z.array(z.string()),
+  watchFor: z.string(),
+  videoUrl: z.string().nullable(),
+});
+export type ExerciseDetails = z.infer<typeof exerciseDetailsSchema>;
+
+/** The owner's video for every exercise of the list whose places give none (D-82, 2026-11-11). */
+export const EXERCISE_DEFAULT_VIDEO_URL = 'https://www.youtube.com/watch?v=IT94xC35u6k';
+
+/**
  * One exercise of FitSphere's list. `met` is the 2024 Adult Compendium of Physical Activities' value
  * for its activity `compendiumCode`, unchanged; both are null when the Compendium lists no such
  * activity, and then no calories are estimated. Running, walking and cycling also have `speedMets`,
@@ -1200,8 +1221,15 @@ export const listedExerciseSchema = z.object({
   speedMets: z.array(speedMetSchema).default([]),
   /** Every category and sub-group the library lists it under (D-67); none for most of FitSphere's own. */
   places: z.array(exercisePlaceSchema).default([]),
+  /** How to do it (D-82), from its first place in the library; null when the library has none. */
+  details: exerciseDetailsSchema.nullable().default(null),
 });
 export type ListedExercise = z.infer<typeof listedExerciseSchema>;
+
+/** The video an exercise of the list opens (D-82): its own, or the owner's default. */
+export function exerciseVideoUrl(exercise: Pick<ListedExercise, 'details'>): string {
+  return exercise.details?.videoUrl ?? EXERCISE_DEFAULT_VIDEO_URL;
+}
 
 /**
  * The Compendium activity and MET an exercise is estimated with at `speedKmh` (D-50): the speed band

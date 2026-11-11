@@ -1,5 +1,6 @@
-// Reads the first sheet of an Excel workbook (.xlsx) as rows of text, with Node's own zlib: enough
-// for INDB's files (D-46), so no spreadsheet library is added. An .xlsx is a zip of XML files; this
+// Reads one sheet of an Excel workbook (.xlsx) as rows of text, with Node's own zlib: enough for
+// INDB's file (D-46) and the exercise library's (D-81), so no spreadsheet library is added. The first
+// sheet, or one found by name. An .xlsx is a zip of XML files; this
 // reads the zip's directory, its stored or deflated entries, the shared strings and the sheet's
 // cells (shared strings, inline strings and numbers; a formula gives its saved value). Zip64 and
 // encrypted workbooks are not read.
@@ -63,11 +64,31 @@ function column(reference: string): number {
   return index - 1;
 }
 
-/** The first sheet's rows, each as long as its last filled cell; an empty cell is "". */
-export function readXlsxRows(workbook: Buffer): string[][] {
+/** The path in the zip of the sheet named `name`, through the workbook's list of sheets and its links. */
+function sheetPath(files: Map<string, Buffer>, name: string): string {
+  const workbook = files.get('xl/workbook.xml')?.toString('utf8') ?? '';
+  const links = files.get('xl/_rels/workbook.xml.rels')?.toString('utf8') ?? '';
+  for (const sheet of workbook.matchAll(/<sheet\b([^>]*?)\/?>/g)) {
+    const attributes = sheet[1] ?? '';
+    if (decode(/\bname="([^"]*)"/.exec(attributes)?.[1] ?? '') !== name) continue;
+    const id = /\br:id="([^"]*)"/.exec(attributes)?.[1];
+    for (const link of links.matchAll(/<Relationship\b([^>]*?)\/?>/g)) {
+      if (/\bId="([^"]*)"/.exec(link[1] ?? '')?.[1] !== id) continue;
+      const target = /\bTarget="([^"]*)"/.exec(link[1] ?? '')?.[1] ?? '';
+      return target.startsWith('/') ? target.slice(1) : `xl/${target}`;
+    }
+  }
+  throw new FoodListError(`The .xlsx file has no sheet named "${name}"`);
+}
+
+/**
+ * A sheet's rows, each as long as its last filled cell; an empty cell is "": the first sheet's, or
+ * those of the sheet named `sheetName` (the exercise library's "All Exercises", D-81).
+ */
+export function readXlsxRows(workbook: Buffer, sheetName?: string): string[][] {
   const files = unzip(workbook);
-  const sheet = files.get('xl/worksheets/sheet1.xml');
-  if (!sheet) throw new FoodListError('The .xlsx file has no first sheet');
+  const sheet = files.get(sheetName === undefined ? 'xl/worksheets/sheet1.xml' : sheetPath(files, sheetName));
+  if (!sheet) throw new FoodListError(sheetName === undefined ? 'The .xlsx file has no first sheet' : `The .xlsx file has no sheet "${sheetName}"`);
   const sharedXml = files.get('xl/sharedStrings.xml')?.toString('utf8') ?? '';
   const shared = [...sharedXml.matchAll(/<si>([\s\S]*?)<\/si>/g)].map((match) => texts(match[1] ?? ''));
   const rows: string[][] = [];

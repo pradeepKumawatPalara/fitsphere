@@ -58,6 +58,26 @@ describe('D-46 reading an .xlsx sheet', () => {
     expect(readXlsxRows(workbook)).toEqual([['food_name', 'energy_kcal', '', 'Bowl'], ['Dal & rice (Dal chawal)', '1.5E2', '', '300'], []]);
   });
 
+  it('D-81 reads a sheet by its name, through the workbook and its links', () => {
+    const workbook = zip({
+      'xl/workbook.xml': {
+        text: `<workbook><sheets><sheet name="Summary" sheetId="1" r:id="rId1"/><sheet name="All &amp; more" sheetId="2" r:id="rId2"/></sheets></workbook>`,
+        deflate: false,
+      },
+      'xl/_rels/workbook.xml.rels': {
+        text: `<Relationships><Relationship Id="rId1" Type="w" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="w" Target="/xl/worksheets/sheet2.xml"/></Relationships>`,
+        deflate: true,
+      },
+      'xl/sharedStrings.xml': { text: SHARED, deflate: false },
+      'xl/worksheets/sheet1.xml': { text: '<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>2</v></c></row></sheetData></worksheet>', deflate: false },
+      'xl/worksheets/sheet2.xml': { text: SHEET, deflate: true },
+    });
+
+    expect(readXlsxRows(workbook)).toEqual([['Bowl']]);
+    expect(readXlsxRows(workbook, 'All & more')[1]).toEqual(['Dal & rice (Dal chawal)', '1.5E2', '', '300']);
+    expect(() => readXlsxRows(workbook, 'Barbell')).toThrow('no sheet named "Barbell"');
+  });
+
   it('refuses a file that is not a workbook', () => {
     expect(() => readXlsxRows(Buffer.from('food_code,name\n'))).toThrow(FoodListError);
     expect(() => readXlsxRows(zip({ 'xl/workbook.xml': { text: '<workbook/>', deflate: false } }))).toThrow('no first sheet');
