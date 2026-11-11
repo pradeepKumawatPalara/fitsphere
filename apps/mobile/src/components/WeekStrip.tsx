@@ -13,7 +13,7 @@ type Props = {
   /** The earliest day that can be picked (the phone's 90 days; MVP default, D-23). */
   firstDay: IstDay;
   selected: IstDay;
-  /** The first of the 7 days shown. */
+  /** The Monday of the week shown. */
   start: IstDay;
   /** Days with something logged: their status box is filled. Home and Nutrition mark meals (REQ-HOME-002;
    * Q-019), Training workouts (D-65). */
@@ -21,18 +21,19 @@ type Props = {
   /** What screen readers hear on a marked day: "meal logged" (the default) or "workout logged". */
   loggedLabel?: string;
   onSelect(day: IstDay): void;
-  /** Shows the 7 days from `start`. */
+  /** Shows the week from its Monday, `start`. */
   onShow(start: IstDay): void;
 };
 
-// The date strip (REQ-HOME-002, D-34): 7 days ending today, so no day in it lies ahead; today in blue
-// (REQ-DATE-003), past days selectable back to `firstDay` (REQ-DATE-001), and a status box per day,
-// filled when a meal is logged that day (Q-019), or on Training a workout (D-65). The selected day, which every card below follows,
-// is the filled pill; today keeps blue text and a bar under its date.
+// The date strip (REQ-HOME-002, D-79): a week, Monday to Sunday; this week's days after today are
+// greyed and cannot be picked (Q-017), as are days before `firstDay` (REQ-DATE-001), and screen
+// readers hear them as "not available", as in the calendar (D-34). Today is outlined (REQ-DATE-003),
+// and each day has a status box, filled when a meal is logged that day (Q-019), or on Training a
+// workout (D-65). The selected day, which every card below follows, is the filled pill.
 //
-// Earlier days are pages to swipe through, 7 a page, as "Earlier days" and "Later days" move: no
-// further back than the 7 holding `firstDay`. A swipe shows days without choosing one. Only the 7
-// shown are there for screen readers; the arrows move them.
+// Earlier weeks are pages to swipe through, a week a page, as "Earlier days" and "Later days" move: no
+// further back than the week holding `firstDay`, no further on than this week. A swipe shows days
+// without choosing one. Only the week shown is there for screen readers; the arrows move it.
 export function WeekStrip({ today, firstDay, selected, start, loggedDays, loggedLabel = 'meal logged', onSelect, onShow }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -66,7 +67,7 @@ export function WeekStrip({ today, firstDay, selected, start, loggedDays, logged
         <Pressable
           key={day}
           accessibilityRole="button"
-          accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}${logged ? `, ${loggedLabel}` : ''}`}
+          accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}${logged ? `, ${loggedLabel}` : ''}${outOfRange ? ', not available' : ''}`}
           accessibilityState={{ selected: isSelected, disabled: outOfRange }}
           disabled={outOfRange}
           onPress={() => onSelect(day)}
@@ -110,7 +111,7 @@ export function WeekStrip({ today, firstDay, selected, start, loggedDays, logged
       </Pressable>
       <View testID="week-pages" style={styles.pages} onLayout={(event) => setPageWidth(event.nativeEvent.layout.width)}>
         {pageWidth === 0 ? (
-          // Until its width is known, the 7 days shown alone.
+          // Until its width is known, the week shown alone.
           <View style={styles.week}>{days(start)}</View>
         ) : (
           <ScrollView
@@ -151,8 +152,9 @@ export function WeekStrip({ today, firstDay, selected, start, loggedDays, logged
   );
 }
 
-// The redesign's 2.3 (locked by the owner, 2026-11-03): square days 64 tall and 4 apart, today outlined
-// in caramel, the selected day filled; a day with a meal (on Training, a workout) has a green mark under its date.
+// The redesign's 2.3 (locked by the owner, 2026-11-03; Monday to Sunday since D-79, locked 2026-11-11): square
+// days 64 tall and 4 apart, today outlined in caramel, the selected day filled, days that cannot be picked
+// greyed; a day with a meal (on Training, a workout) has a green mark under its date.
 const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   arrow: { width: 28, height: 64, alignItems: 'center', justifyContent: 'center' },

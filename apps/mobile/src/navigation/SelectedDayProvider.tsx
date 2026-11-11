@@ -1,4 +1,4 @@
-import { addDays, istToday, syncWindowStart, type IstDay } from '@fitsphere/shared';
+import { addDays, istToday, istWeekStart, syncWindowStart, type IstDay } from '@fitsphere/shared';
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 
 type SelectedDayValue = {
@@ -8,29 +8,25 @@ type SelectedDayValue = {
   /** The earliest day that can be selected: the 90 IST days the phone holds (ADR-0007 rule 1;
    * MVP default, D-23). Older days are viewed in Progress. */
   firstDay: IstDay;
-  /** The first of the 7 days the date strip shows; the newest 7 end today (REQ-HOME-002, D-34). */
+  /** The Monday of the Monday-to-Sunday week the date strip shows (REQ-HOME-002, D-79). */
   stripStart: IstDay;
-  /** Selects a day from today back to `firstDay`, and shows the 7 days holding it; other days are ignored. */
+  /** Selects a day from today back to `firstDay`, and shows the week holding it; other days are ignored. */
   select(day: IstDay): void;
-  /** Shows the 7 days from `start`. */
+  /** Shows the week from its Monday, `start`. */
   showDays(start: IstDay): void;
 };
 
 const SelectedDayContext = createContext<SelectedDayValue | null>(null);
 
-/**
- * The first of the strip's 7 days holding `day`: the newest 7 end today, and each earlier 7 end the
- * day before the next (D-34).
- */
-export function stripStartFor(today: IstDay, day: IstDay): IstDay {
-  const back = Math.round((Date.parse(today) - Date.parse(day)) / 86_400_000);
-  return addDays(today, -6 - 7 * Math.floor(Math.max(0, back) / 7));
+/** The Monday of the week, Monday to Sunday, the strip shows for `day` (D-79). */
+export function stripStartFor(day: IstDay): IstDay {
+  return istWeekStart(day);
 }
 
-/** The first days of every 7 the strip can show, oldest first: back to the 7 holding `firstDay`. */
+/** The Mondays of every week the strip can show, oldest first: from the week holding `firstDay` to this week. */
 export function stripStarts(firstDay: IstDay, today: IstDay): IstDay[] {
   const starts: IstDay[] = [];
-  for (let start = addDays(today, -6); addDays(start, 6) >= firstDay; start = addDays(start, -7)) starts.unshift(start);
+  for (let start = istWeekStart(firstDay); start <= today; start = addDays(start, 7)) starts.push(start);
   return starts;
 }
 
@@ -42,13 +38,13 @@ export function SelectedDayProvider({ children, now = defaultNow }: { children: 
   const today = istToday(now());
   const firstDay = syncWindowStart(today);
   const [selected, setSelected] = useState(today);
-  const [stripStart, setStripStart] = useState(() => addDays(today, -6));
+  const [stripStart, setStripStart] = useState(() => stripStartFor(today));
 
   const select = useCallback(
     (day: IstDay) => {
       if (day > today || day < firstDay) return;
       setSelected(day);
-      setStripStart(stripStartFor(today, day));
+      setStripStart(stripStartFor(day));
     },
     [today, firstDay],
   );
