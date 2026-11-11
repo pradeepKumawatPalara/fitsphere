@@ -496,6 +496,12 @@ export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'brand_label
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
 /** The servings of a USDA or INDB food, in halves, as household units (more-foods plan; D-46). */
 export const MEAL_ITEM_SERVINGS_MAX = 10;
+/**
+ * oz, a weight, for every listed and packaged food (D-76): logged as a serving with this name, of
+ * OZ_GRAMS each, counted in halves as other servings. No food's own serving may have this name.
+ */
+export const OZ_SERVING_LABEL = 'oz';
+export const OZ_GRAMS = 28.35;
 export const SERVING_LABEL_MAX = 80;
 /**
  * The units of a food the user enters (more-foods plan, the owner's addition, 2026-11-04), besides
@@ -565,12 +571,20 @@ export const mealItemSchema = z
   })
   // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); an IFCT food
   // may also be logged in a household unit (D-36), a USDA food in its servings, and your own food in
-  // its unit (more-foods plan); an INDB recipe in grams or its serving (D-46).
+  // its unit (more-foods plan); an INDB recipe in grams or its serving (D-46). Since D-76 every listed
+  // and packaged food may also be logged in oz, as a serving named "oz".
   .refine((item) => ALLOWED_AMOUNTS[item.source].includes(item.amount.unit), { path: ['amount'] })
+  // An IFCT food has no servings of its own: only oz (D-76).
+  .refine((item) => item.source !== 'ifct2017' || item.amount.unit !== 'serving' || item.amount.label === OZ_SERVING_LABEL, { path: ['amount'] })
+  // oz is a weight: 28.35 g each, allowing for rounding to two decimals (D-76).
+  .refine((item) => item.amount.unit !== 'serving' || item.amount.label !== OZ_SERVING_LABEL || Math.abs(item.amount.grams - item.amount.value * OZ_GRAMS) <= 0.02, {
+    path: ['amount', 'grams'],
+  })
   .refine((item) => item.amount.unit !== 'own' || isOwnQuantity(item.amount.name, item.amount.value), { path: ['amount', 'value'] });
 
 const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
-  ifct2017: ['g', 'measure'],
+  // An IFCT food in grams, a household unit (D-36), or oz (D-76).
+  ifct2017: ['g', 'measure', 'serving'],
   usda_fndds: ['g', 'serving'],
   indb: ['g', 'serving'],
   // A brand label in grams or its label's serving (D-49).

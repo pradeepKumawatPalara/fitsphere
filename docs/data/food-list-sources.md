@@ -600,6 +600,15 @@ weighing: no published table is used (NIN's household-measure tables are not a s
   vegetables by the piece; egg; paneer. Never fill in or approve a row without the owner's
   measurements.
 
+### More measures from the servings already approved (D-76)
+No new data: `foods:import` divides a serving that holds several things into one of them ("2 slices"
+of 56 g also gives "Slice", 28 g; "Plate (4 pc)" of 60 g gives "Piece", 15 g), from the brand-labels,
+home-foods and estimated-dishes sheets and INDB's servings as approved. 244 foods on 2026-11-11 (212
+estimated dishes, 20 home-style foods, 12 brand labels; none of INDB's, each of one thing). oz (28.35
+g) is a fixed weight for every listed and packaged food, not a source's value. Counted the same day
+and not used: the owner's dish workbook gives one serving per dish; Open Food Facts' export names a
+unit (scoop, piece, cup…) in 505 of the 6,263 packaged servings kept, some wrongly.
+
 ### Cooked-dish and portion sources considered and not used
 
 Searched and read on 2026-10-29 and 2026-10-30. Page numbers are the printed ones. The NIN

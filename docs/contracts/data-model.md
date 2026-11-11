@@ -344,7 +344,7 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
 | `meal_type` | `text` | `breakfast`, `lunch`, `snack` or `dinner`; required (REQ-LOG-003). Null once deleted |
 | `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
-| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `usda_fndds`, `indb`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000; portions 0.5–10 in halves; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000; or, D-39, a USDA serving with its label, 0.5–10 in halves with the grams they came to; or your own food's unit, `ml` 1–2,000 whole or another of its units 0.1–100 with one decimal), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that an IFCT food may be in a unit it has on `food_measures` (D-36), a USDA food in a serving it has on `food_portions` with its grams, and your own food in its unit (D-39). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
+| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `usda_fndds`, `indb`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000; portions 0.5–10 in halves; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000; or, D-39, a USDA serving with its label, 0.5–10 in halves with the grams they came to (since D-46 to D-62 also an INDB, brand-label, home-style, estimated-dish or packaged food's serving; since D-76 also `oz`, 28.35 g each, for every listed and packaged food); or your own food's unit, `ml` 1–2,000 whole or another of its units 0.1–100 with one decimal), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that an IFCT food may be in a unit it has on `food_measures` (D-36), a USDA food in a serving it has on `food_portions` with its grams, and your own food in its unit (D-39); and a listed or packaged food in oz, its grams 28.35 × the count within 0.02 g (D-76; an IFCT food has no other serving). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
 | `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
 | `photo` | `jsonb` | **Health.** The meal's one photo, `{"kind": "photo", "mediaId": …}` (see `media`), or one public image link, `{"kind": "link", "url": "https://…"}` (REQ-LOG-010), or null (MVP default, D-26). A link is https only, with a host name, no user name or password, and at most 2,000 characters; FitSphere never fetches it. Null once deleted |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
@@ -481,7 +481,15 @@ personal data, so no `user_id` and no `change_seq`; the phone fetches it with th
 An INDB recipe's one serving (D-46), with the grams INDB's own per-serving values give (not
 measured by the owner, unlike `food_measures`). Loaded from `data/foods/indb-portions.csv` by
 `foods:import`, replaced whole. Migration 0011; USDA's servings, held here from D-39, moved to
-`usda_food_portions` with migration 0013 (D-47).
+`usda_food_portions` with migration 0013 (D-47). Brand labels (D-49), home-style foods (D-59) and
+estimated dishes (D-62) keep their one serving here too.
+
+Since D-76, `foods:import` also adds, after a food's own serving (the next `seq`), the single unit a
+serving holds several of, its grams divided to two decimals: "2 slices" of 56 g gives "Slice", 28 g;
+"Plate (4 pc)" of 60 g gives "Piece", 15 g; "1/4 cup" of 30 g gives "Cup", 120 g. Not added when the
+food already has a serving of that name (in any case). No serving may be named "oz" (the import
+refuses the sheet): oz is the weight every listed and packaged food may be logged in, not a row here.
+A serving's name is never changed, since a meal logged with it is checked by that name.
 
 ### `packaged_foods` — reference data
 Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009): loaded from

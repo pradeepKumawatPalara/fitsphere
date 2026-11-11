@@ -286,7 +286,7 @@ describe('D-59 home-style foods: foods:import and GET /v1/foods', () => {
     const home = readHomeFoodsSheet(readFileSync(new URL('../../../../docs/data/home-foods-sheet.csv', import.meta.url), 'utf8'));
     try {
       expect((await importFoods(client, home.foods, HOME_FOOD_SOURCE)).total).toBe(92);
-      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toBe(92);
+      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toEqual({ servings: 92, units: 20 });
       expect(await homeFlags()).toEqual([{ flag: 'llm', n: 92 }]);
     } finally {
       await importFoods(client, [], HOME_FOOD_SOURCE);
@@ -315,7 +315,11 @@ describe('D-59 home-style foods: foods:import and GET /v1/foods', () => {
         kcal: 365.2,
         kcalEstimated: false,
         measures: [],
-        portions: [{ label: '2 slices', grams: 56 }],
+        // D-76: the serving of two slices also gives one slice.
+        portions: [
+          { label: '2 slices', grams: 56 },
+          { label: 'Slice', grams: 28 },
+        ],
       });
       expect(response.body).not.toContain('llm');
     } finally {
@@ -339,7 +343,7 @@ describe('D-62 estimated dishes: foods:import and GET /v1/foods', () => {
   it('imports the approved rows of the committed sheet whole, each with its serving, flagged llm; the held rows stay out', async () => {
     try {
       expect((await importFoods(client, ESTIMATES.foods, DISH_ESTIMATE_SOURCE)).total).toBe(5_025);
-      expect(await importPortions(client, DISH_ESTIMATE_SOURCE, ESTIMATES.portions)).toBe(5_025);
+      expect(await importPortions(client, DISH_ESTIMATE_SOURCE, ESTIMATES.portions)).toEqual({ servings: 5_025, units: 212 });
       expect(
         (await client.query(`select flag, estimated, count(*)::int as n from app.foods where source = 'dish_estimate' group by flag, estimated`)).rows,
       ).toEqual([{ flag: 'llm', estimated: true, n: 5_025 }]);
@@ -395,7 +399,7 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
     const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
     try {
       expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(630);
-      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toBe(115);
+      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toEqual({ servings: 115, units: 12 });
       expect(await flags()).toEqual([
         { flag: null, n: 23 },
         { flag: 'llm', n: 408 },
@@ -571,7 +575,7 @@ describe('D-46 INDB recipes: foods:import and GET /v1/foods', () => {
     const indb = readIndbCsv(read('indb-foods.csv'), read('indb-portions.csv'));
     try {
       expect((await importFoods(client, indb.foods, INDB_SOURCE)).total).toBe(1_014);
-      expect(await importPortions(client, INDB_SOURCE, indb.portions)).toBe(917);
+      expect(await importPortions(client, INDB_SOURCE, indb.portions)).toEqual({ servings: 917, units: 0 });
       const { rows } = await client.query(`select count(*)::int as n, bool_and(estimated) as estimated from app.foods where source = 'indb'`);
       expect(rows).toEqual([{ n: 1_014, estimated: true }]);
     } finally {

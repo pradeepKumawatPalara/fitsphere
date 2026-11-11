@@ -9,6 +9,7 @@ import type pg from 'pg';
 import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
 import type { ImportedMeasure } from './measures.ts';
+import { withSingleUnits } from './servingUnits.ts';
 import type { ImportedPortion } from './usda.ts';
 
 export type ImportResult = { total: number; hidden: number; estimated: number };
@@ -192,12 +193,20 @@ export async function importPackagedFoods(client: pg.ClientBase, foods: readonly
   return foods.length;
 }
 
-/** Makes app.food_portions hold exactly a source's servings. Run after importFoods for that source. */
-export async function importPortions(client: pg.ClientBase, source: string, portions: ImportedPortion[]): Promise<number> {
+/**
+ * Makes app.food_portions hold exactly a source's servings, and after them the single unit a serving
+ * holds several of ("2 slices" also gives "Slice", D-76). Run after importFoods for that source.
+ */
+export async function importPortions(
+  client: pg.ClientBase,
+  source: string,
+  portions: ImportedPortion[],
+): Promise<{ servings: number; units: number }> {
+  const rows = withSingleUnits(portions);
   await client.query('begin');
   try {
     await client.query('delete from app.food_portions where source = $1', [source]);
-    for (const batch of batches(portions)) {
+    for (const batch of batches(rows)) {
       await client.query(
         `insert into app.food_portions (source, code, seq, label, grams)
          select $1, code, seq, label, grams from jsonb_to_recordset($2::jsonb) as row (code text, seq integer, label text, grams numeric)`,
@@ -209,7 +218,7 @@ export async function importPortions(client: pg.ClientBase, source: string, port
     await client.query('rollback').catch(() => undefined);
     throw error;
   }
-  return portions.length;
+  return { servings: portions.length, units: rows.length - portions.length };
 }
 
 /**

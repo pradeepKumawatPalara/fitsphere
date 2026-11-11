@@ -1,4 +1,5 @@
 import {
+  OZ_SERVING_LABEL,
   SAVED_MEAL_NAME_MAX,
   type DishPortionUnit,
   type FoodMeasure,
@@ -44,8 +45,9 @@ export function formatAmount(amount: MealItem['amount']): string {
   return formatPortions(amount.value);
 }
 
-/** USDA servings (D-39), named as USDA names them: e.g. "2 × medium or regular slice". */
+/** Servings, named as their source names them: e.g. "2 × medium or regular slice"; oz as "2 oz" (D-76). */
 export function formatServings(count: number, label: string): string {
+  if (label === OZ_SERVING_LABEL) return `${count} oz`;
   return `${count} × ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 }
 
@@ -96,6 +98,12 @@ export const MEASURE_NAMES: Record<FoodMeasure, { one: string; many: string; siz
 export function formatMeasures(count: number, measure: FoodMeasure): string {
   const names = MEASURE_NAMES[measure];
   return `${count} ${count === 1 ? names.one : names.many}`;
+}
+
+/** The grams one measure holds, to two decimals at most (D-76): "28 g", "28.35 g", "210.5 g". */
+export function formatMeasureGrams(grams: number): string {
+  const hundredths = Math.round(grams * 100) / 100;
+  return `${Number.isInteger(hundredths) ? formatInteger(hundredths) : String(hundredths)} g`;
 }
 
 /** The grams units came to, e.g. "258 g" or "9.2 g". */

@@ -1,4 +1,4 @@
-import type { MealItem } from '@fitsphere/shared';
+import { OZ_SERVING_LABEL, type MealItem } from '@fitsphere/shared';
 import { ChevronDown, ChevronLeft, SquarePen, Trash } from 'lucide-react-native';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -14,13 +14,27 @@ import {
   itemFromPackagedServings,
   itemFromServings,
   ownQuantityRule,
+  OZ_SERVING,
+  packagedServing,
   parseGrams,
   parseOwnQuantity,
   PORTIONS_MAX,
   servingsMax,
   unitsMax,
+  type FoodServing,
+  type FoodUnit,
 } from '../mealItems';
-import { formatAmount, formatGrams, formatKcal, formatUnitGrams, MEASURE_NAMES, OWN_UNIT_NAMES, ownQuantityLabel, PORTION_UNIT_LABELS } from '../meals';
+import {
+  formatAmount,
+  formatGrams,
+  formatKcal,
+  formatMeasureGrams,
+  formatUnitGrams,
+  MEASURE_NAMES,
+  OWN_UNIT_NAMES,
+  ownQuantityLabel,
+  PORTION_UNIT_LABELS,
+} from '../meals';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { NUTRIENTS } from './EatenSummary';
@@ -42,11 +56,32 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 // A food already in the meal (D-64) opens from Log meal's review on its amount there, "In this meal
 // now: 100 g", with Save change, and Remove from meal centred under it; any of its measures can be
 // chosen, so 100 g can become 1 paratha.
+//
+// More measures (D-76; the redesign's 3.6b "more measures", locked 2026-11-11): a serving that holds
+// several things also gives one of them ("2 slices" gives Slice; the food list brings it as one more
+// serving), every listed and packaged food can be logged in oz, and each measure shows its grams
+// beside its name. The food's own measures come first, smallest first, then Grams, then oz.
 
 export type FoodResult = ListedFood;
 
-/** One way to measure the food: typed, or counted in halves up to `max`. */
-type Measure = { key: string; label: string; counted: boolean; max: number };
+/**
+ * One way to measure the food: typed, or counted in halves up to `max`; with the grams one holds,
+ * shown beside its name, and the serving or household unit it counts.
+ */
+type Measure = { key: string; name: string; grams: number | null; counted: boolean; max: number; serving?: FoodServing; unit?: FoodUnit };
+
+/** What a measure is called when read out, and in tests: "Slice (28 g)", "Grams". */
+function measureLabel(measure: Pick<Measure, 'name' | 'grams'>): string {
+  return measure.grams === null ? measure.name : `${measure.name} (${formatMeasureGrams(measure.grams)})`;
+}
+
+const GRAMS: Measure = { key: 'g', name: 'Grams', grams: null, counted: false, max: 0 };
+
+function servingMeasure(key: string, serving: FoodServing): Measure {
+  return { key, name: serving.label, grams: serving.grams, counted: true, max: servingsMax(serving.grams), serving };
+}
+
+const OZ: Measure = servingMeasure('oz', OZ_SERVING);
 
 /** One row of the picker's wheels. */
 const ROW = 52;
@@ -61,37 +96,35 @@ function capital(text: string): string {
 }
 
 /**
- * A listed food's are Grams, its household units, then its servings; a dish's, its portion; a My
- * food's, its unit; a packaged food's, Grams and the serving its label gives in grams (D-48).
+ * A listed food's are its household units and servings, smallest first, then Grams and oz (D-76); a
+ * dish's, its portion; a My food's, its unit; a packaged food's, the serving its label gives in
+ * grams (D-48), then Grams and oz.
  */
 function measuresOf(result: FoodResult): Measure[] {
   if (result.kind === 'packaged') {
-    const grams = result.food.servingGrams;
-    return [
-      { key: 'g', label: 'Grams', counted: false, max: 0 },
-      ...(grams === null ? [] : [{ key: 'serving', label: `Serving (${formatUnitGrams(grams)})`, counted: true, max: servingsMax(grams) }]),
-    ];
+    const serving = packagedServing(result.food);
+    return [...(serving ? [servingMeasure('serving', serving)] : []), GRAMS, OZ];
   }
-  if (result.kind === 'dish') return [{ key: 'portion', label: capital(PORTION_UNIT_LABELS[result.dish.portionUnit]), counted: true, max: PORTIONS_MAX }];
+  if (result.kind === 'dish') {
+    return [{ key: 'portion', name: capital(PORTION_UNIT_LABELS[result.dish.portionUnit]), grams: null, counted: true, max: PORTIONS_MAX }];
+  }
   if (result.kind === 'mine') {
     const unit = result.food.unit;
-    return [{ key: 'own', label: unit === 'g' ? 'Grams' : unit === 'ml' ? 'ml' : capital(OWN_UNIT_NAMES[unit].many), counted: false, max: 0 }];
+    return [{ key: 'own', name: unit === 'g' ? 'Grams' : unit === 'ml' ? 'ml' : capital(OWN_UNIT_NAMES[unit].many), grams: null, counted: false, max: 0 }];
   }
-  return [
-    { key: 'g', label: 'Grams', counted: false, max: 0 },
-    ...result.food.measures.map((entry) => ({
-      key: entry.measure,
-      label: `${capital(MEASURE_NAMES[entry.measure].one)} (${formatUnitGrams(entry.grams)})`,
+  const own: Measure[] = [
+    ...result.food.measures.map((unit) => ({
+      key: unit.measure,
+      name: capital(MEASURE_NAMES[unit.measure].one),
+      grams: unit.grams,
       counted: true,
-      max: unitsMax(entry.grams),
+      max: unitsMax(unit.grams),
+      unit,
     })),
-    ...result.food.portions.map((entry, index) => ({
-      key: `serving ${index}`,
-      label: `${entry.label} (${formatUnitGrams(entry.grams)})`,
-      counted: true,
-      max: servingsMax(entry.grams),
-    })),
+    ...result.food.portions.map((serving, index) => servingMeasure(`serving ${index}`, serving)),
   ];
+  // Smallest first: "Slice" before the "2 slices" it comes from. The sort keeps equal grams in order.
+  return [...own.sort((a, b) => (a.grams ?? 0) - (b.grams ?? 0)), GRAMS, OZ];
 }
 
 /** What the amount adds, or null when the typed quantity can't be added. */
@@ -102,21 +135,14 @@ function itemOf(result: FoodResult, measure: Measure, count: number, typed: stri
     return quantity === null ? null : itemFromMyFood(result.food, quantity);
   }
   if (result.kind === 'packaged') {
-    const servingGrams = result.food.servingGrams;
-    if (measure.key === 'serving' && servingGrams !== null) return itemFromPackagedServings({ ...result.food, servingGrams }, count);
+    if (measure.serving) return itemFromPackagedServings(result.food, measure.serving, count);
     const grams = parseGrams(typed);
     return grams === null ? null : itemFromPackaged(result.food, grams);
   }
-  if (measure.key === 'g') {
-    const grams = parseGrams(typed);
-    return grams === null ? null : itemFromFood(result.food, grams);
-  }
-  if (measure.key.startsWith('serving ')) {
-    const serving = result.food.portions[Number(measure.key.slice('serving '.length))];
-    return serving ? itemFromServings(result.food, serving, count) : null;
-  }
-  const unit = result.food.measures.find((entry) => entry.measure === measure.key);
-  return unit ? itemFromFoodUnits(result.food, unit, count) : null;
+  if (measure.serving) return itemFromServings(result.food, measure.serving, count);
+  if (measure.unit) return itemFromFoodUnits(result.food, measure.unit, count);
+  const grams = parseGrams(typed);
+  return grams === null ? null : itemFromFood(result.food, grams);
 }
 
 /**
@@ -137,10 +163,11 @@ function startOf(result: FoodResult, measures: Measure[], from: MealItem['amount
     case 'measure':
       return counted(at(from.measure), from.value);
     case 'serving':
+      if (from.label === OZ_SERVING_LABEL) return counted(at('oz'), from.value);
       if (result.kind === 'packaged') return counted(at('serving'), from.value);
       if (result.kind !== 'food') return null;
       return counted(
-        measures.findIndex((measure) => measure.key.startsWith('serving ') && result.food.portions[Number(measure.key.slice('serving '.length))]?.label === from.label),
+        measures.findIndex((measure) => measure.key.startsWith('serving ') && measure.serving?.label === from.label),
         from.value,
       );
   }
@@ -185,7 +212,10 @@ export function FoodDetail({
   // when it still has it (D-60).
   const servingFirst =
     result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
-  const [measureIndex, setMeasureIndex] = useState(start?.measureIndex ?? (servingFirst ? 1 : 0));
+  // Otherwise on Grams (D-76: the food's own measures come before it).
+  const [measureIndex, setMeasureIndex] = useState(
+    () => start?.measureIndex ?? Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g'))),
+  );
   const [count, setCount] = useState(start?.count ?? 1);
   const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
   const [picking, setPicking] = useState(false);
@@ -275,20 +305,16 @@ export function FoodDetail({
               {measures.length > 1 ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`Measure: ${measure.label}`}
+                  accessibilityLabel={`Measure: ${measureLabel(measure)}`}
                   onPress={() => setPicking(true)}
                   style={({ pressed }) => [styles.box, pressed && styles.pressed]}
                 >
-                  <Text numberOfLines={1} style={styles.measureText}>
-                    {measure.label}
-                  </Text>
+                  <MeasureName measure={measure} />
                   <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
                 </Pressable>
               ) : (
-                <View accessible accessibilityLabel={`Measure: ${measure.label}`} style={styles.box}>
-                  <Text numberOfLines={1} style={styles.measureText}>
-                    {measure.label}
-                  </Text>
+                <View accessible accessibilityLabel={`Measure: ${measureLabel(measure)}`} style={styles.box}>
+                  <MeasureName measure={measure} />
                 </View>
               )}
             </View>
@@ -384,7 +410,7 @@ function AmountPicker({
             <Wheel
               key={measure.key}
               label="Quantity"
-              options={counts.map(String)}
+              options={counts.map((value) => ({ name: String(value) }))}
               index={Math.max(0, counts.indexOf(chosen))}
               onChange={(row) => setChosen(counts[row] ?? 1)}
             />
@@ -397,7 +423,8 @@ function AmountPicker({
         <View style={styles.measure}>
           <Wheel
             label="Measure"
-            options={measures.map((entry) => entry.label)}
+            words
+            options={measures.map((entry) => ({ name: entry.name, detail: entry.grams === null ? undefined : formatMeasureGrams(entry.grams) }))}
             index={index}
             onChange={(row) => {
               setIndex(row);
@@ -411,8 +438,37 @@ function AmountPicker({
   );
 }
 
-/** A column of rows that snaps to the band; a row can also be tapped. */
-function Wheel({ label, options, index, onChange }: { label: string; options: string[]; index: number; onChange(row: number): void }) {
+/** A measure's name, and the grams one holds in the muted ink beside it (D-76). */
+function MeasureName({ measure }: { measure: Pick<Measure, 'name' | 'grams'> }) {
+  const styles = useStyles();
+  return (
+    <Text numberOfLines={1} style={styles.measureName}>
+      <Text style={styles.measureText}>{measure.name}</Text>
+      {measure.grams === null ? null : <Text style={styles.measureGrams}>{`  ${formatMeasureGrams(measure.grams)}`}</Text>}
+    </Text>
+  );
+}
+
+/** One row of a wheel: a name, and for a measure the grams it holds beside it (D-76). */
+type WheelOption = { name: string; detail?: string };
+
+/**
+ * A column of rows that snaps to the band; a row can also be tapped. Numbers in the condensed
+ * figures; `words` (the measures) in Barlow as written, so "oz" stays "oz" (D-76).
+ */
+function Wheel({
+  label,
+  options,
+  index,
+  words = false,
+  onChange,
+}: {
+  label: string;
+  options: WheelOption[];
+  index: number;
+  words?: boolean;
+  onChange(row: number): void;
+}) {
   const styles = useStyles();
   const ref = useRef<ComponentRef<typeof ScrollView>>(null);
 
@@ -440,9 +496,9 @@ function Wheel({ label, options, index, onChange }: { label: string; options: st
     >
       {options.map((option, row) => (
         <Pressable
-          key={option}
+          key={`${option.name} ${option.detail ?? ''}`}
           accessibilityRole="button"
-          accessibilityLabel={option}
+          accessibilityLabel={option.detail ? `${option.name} (${option.detail})` : option.name}
           accessibilityState={{ selected: row === index }}
           onPress={() => {
             onChange(row);
@@ -450,8 +506,12 @@ function Wheel({ label, options, index, onChange }: { label: string; options: st
           }}
           style={styles.wheelRow}
         >
-          <Text numberOfLines={1} style={[styles.wheelText, row === index && styles.wheelChosen]}>
-            {option}
+          <Text
+            numberOfLines={1}
+            style={words ? [styles.wheelWord, row === index && styles.wheelWordChosen] : [styles.wheelText, row === index && styles.wheelChosen]}
+          >
+            {option.name}
+            {option.detail ? <Text style={[styles.wheelDetail, row === index && styles.wheelDetailChosen]}>{`  ${option.detail}`}</Text> : null}
           </Text>
         </Pressable>
       ))}
@@ -507,7 +567,9 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   count: { ...TYPE.metric, fontSize: 24, lineHeight: 26 },
   typed: { ...TYPE.metric, flex: 1, fontSize: 24, lineHeight: 28, paddingVertical: 8 },
-  measureText: { flexShrink: 1, fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  measureName: { flexShrink: 1 },
+  measureText: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  measureGrams: { fontSize: 14, lineHeight: 20, fontWeight: '400', color: c.inkMuted },
   heading: { ...TYPE.label, marginTop: 4, color: c.inkMuted },
   tight: { marginBottom: 2 },
   energyRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 },
@@ -531,6 +593,12 @@ const useStyles = themedStyles((c) => ({
   wheelRow: { height: ROW, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   wheelText: { ...TYPE.metric, fontSize: 18, color: c.inkSubtle },
   wheelChosen: { fontSize: 22, color: c.ink },
+  // The measures in Barlow as written (the locked "more measures" design, D-76): the name 16, the
+  // chosen one 18 semibold in the ink; its grams beside it, smaller and muted.
+  wheelWord: { fontSize: 16, lineHeight: 22, fontWeight: '400', color: c.inkSubtle },
+  wheelWordChosen: { fontSize: 18, lineHeight: 24, fontWeight: '600', color: c.ink },
+  wheelDetail: { fontSize: 13, fontWeight: '400', color: c.inkSubtle },
+  wheelDetailChosen: { fontSize: 14, color: c.inkMuted },
   typeHere: { height: ROW * 5, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   hint: { fontSize: 14, lineHeight: 20, color: c.inkMuted, textAlign: 'center' },
 }));
