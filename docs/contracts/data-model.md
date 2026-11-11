@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
+- Last updated: 2026-11-11 (targets by date, D-77: migration 0027, phone schema version 19).
+  2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
   Earlier the same day (the exercise library's places, D-67: migration 0022, phone schema version 16).
   Earlier the same day (Search foods' ready-made search text, D-66: phone schema version 15).
   2026-11-05 (the exercise list and the exercise's new shape, D-50: migration 0016,
@@ -254,23 +255,28 @@ may hold several workouts, and each with at least one exercise counts toward the
   Progress"). In the MVP only the owner reads or writes it (D-20).
 
 ### `targets` — Health
-The user's own targets (REQ-ROLE-007, D-20): one current value per kind (Q-014 MVP default,
-D-23). They include a target body weight, so the values are treated as **Health** data.
+The user's own targets (REQ-ROLE-007, D-20), by date (D-77, answering Q-014): each value holds from
+its IST `day` until the next value of that kind, so a change never rewrites the days before it, and
+the values kept are the user's target history (REQ-ROLE-018). They include a target body weight, so
+the values are treated as **Health** data.
 
 | Column | Type | Rules |
 |---|---|---|
 | `id` | `uuid` | Primary key |
 | `user_id` | `uuid` | References `users`, deleted with the user. Whose target it is |
 | `kind` | `text` | `calories`, `protein`, `carbs`, `fat`, `fibre` (D-70), `steps`, `weekly_workouts` or `body_weight` (check `targets_kind`, migration 0024) |
+| `day` | `date` | Not null. The IST day the value starts (D-77): the day it was set on the phone, kept as its own field (invariant 5), never later than today. Migration 0027 gave the rows already there the IST day their user's account was created |
 | `value` | `integer` | Not null. kcal 500–10,000; protein in grams 10–500; steps 1–100,000; workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028); carbs in grams 10–1,000, fat 5–500, fibre 5–100 (D-70) (check `targets_value`) |
 | `set_by_user_id` | `uuid` | References `users`, `on delete set null`. Who set it: always the caller, from the sign-in token, never from the request. Null only once that person's account is deleted (backlog E-02) |
 | `set_at` | `timestamptz` | Not null. When it was set, on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
 
-- Unique (`user_id`, `kind`): a new value replaces the old, and the change the server receives
-  last wins (Q-075). No history in the MVP; a target applies to every day shown, past days
-  included (Q-014 MVP default, D-23).
+- Unique (`user_id`, `kind`, `day`) (`targets_user_kind_day`, migration 0027): a second value the
+  same day replaces that day's, and the change the server receives last wins (Q-075); a value for
+  another day is kept beside the others. The target on a date is the value of that kind with the
+  latest `day` on or before it; none means no target that day. Home's workout tracker reads a week's
+  on its Sunday (D-77). Replaces D-23's one value per kind, applying to every day shown.
 - In the MVP every target is set by its user (D-20), labelled "Set by you". Recording who set it
   lets coach-set targets follow without rework (invariant #2): post-MVP, the API refuses a
   trainee's change while an active coach's target applies (backlog B-21).
@@ -627,7 +633,7 @@ searches. The setting lasts as long as the connection and is set at each start.
 | `steps` | `day` (key), `steps`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `sleep` | `day` (key), `sleep_minutes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
 | `measurements` | `day` (key), the six lengths in millimetres, `notes`, `recorded_at`, `sync_state` | As `weigh_ins`. Schema version 2 |
-| `targets` | `kind` (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | `set_by_user_id` is empty until the server's pull fills it. Schema version 2 |
+| `targets` | (`kind`, `day`) (key), `value`, `set_at`, `set_by_user_id`, `sync_state` | One value per kind and the IST day it starts (D-77); never pruned. `set_by_user_id` is empty until the server's pull fills it. Schema version 2; keyed by kind and day since version 19 |
 | `meals` | `id` (key), `day`, `meal_type`, `tags`, `items` and `photo` (JSON), `recorded_at`, the totals, `sync_state` | Totals worked out on the phone with the server's rule (`mealTotals`, shared). A deleted meal leaves the table at once; its deletion waits in the outbox. Schema version 3; `photo` version 4 |
 | `saved_meals` | `id` (key), `name`, `tags`, `items`, `saved_at`, the totals, `sync_state` | As `meals`, with no day and no meal. Schema version 3; made again without `meal_type` in version 17 (D-69) |
 | `foods` | (`source`, `code`) (key), name, group, aliases, values per 100 g, `measures` (JSON) | A copy of `GET /v1/foods`, replaced whole when the server's version changes; its version is `sync_meta.food_list_version`. Not personal data. Schema version 3; `measures` version 8 |
@@ -642,7 +648,7 @@ searches. The setting lasts as long as the connection and is set at each start.
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version`, `exercise_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
 
 - **What is kept:** the user's own weigh-ins, steps, sleep, measurements and workouts for the last
-  90 IST days, and their current targets and settings (ADR-0007 rule 1). Synced day entries older
+  90 IST days, and every target value (D-77) and their settings (ADR-0007 rule 1). Synced day entries older
   than that are deleted from the phone at each sync; targets and settings are never pruned. Older history is read from the
   server when viewed online.
 - **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
@@ -650,7 +656,7 @@ searches. The setting lasts as long as the connection and is set at each start.
   `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor
   so the next sync pulls the new kinds.
 - **Matching a change to its entry:** an outbox change is matched by its kind's change types and
-  its key (`day`, `kind` for targets, `name` for settings, `id` for meals, saved meals and
+  its key (`day`, `kind` and `day` for targets (D-77), `name` for settings, `id` for meals, saved meals and
   workouts, whose saves and deletions both count), so a waiting weight never holds back the server's steps for the same
   day, and a waiting deletion is never undone by the pull.
 - **Deletions in the pull:** a meal, saved meal or workout the server marks `deleted` is removed
@@ -694,6 +700,10 @@ searches. The setting lasts as long as the connection and is set at each start.
   statement.
 - **Version 17** (saved meals keep no meal, D-69) makes `saved_meals` again without `meal_type` and
   copies every saved meal into it, those waiting to sync too.
+- **Version 19** (targets by date, D-77) makes `targets` again keyed by kind and day. A target
+  waiting to sync (or refused) keeps its value, from the IST day it was set, and its change in the
+  outbox gets that `day`; the synced ones are dropped and the sync cursor cleared, so the next sync
+  pulls every target value with its day.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

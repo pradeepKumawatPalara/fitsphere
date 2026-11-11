@@ -82,7 +82,7 @@ type Options = { now: Date; pageSize: number };
 
 /**
  * Applies the changes in the order sent, each once, then returns the user's own data changed after
- * the cursor: the last 90 IST days of day data, and the current targets and settings. One
+ * the cursor: the last 90 IST days of day data, every target value (D-77) and the settings. One
  * transaction that first locks the user's row, so the user's change numbers commit in order and the
  * pull misses nothing (data-model "Ordering rule"). Every change is checked when it arrives, never
  * when it was queued (invariant #1).
@@ -281,20 +281,19 @@ const HANDLERS = new Map<string, Handler>([
   ],
   [
     TARGET_SET,
-    // The user's own target (REQ-ROLE-007). Who set it is the caller, from the token, never from
-    // the change. Post-MVP (backlog B-21): refuse it while an active coach's target applies
-    // (invariant #2).
-    async (client, account, input) => {
-      const data = targetSetDataSchema.safeParse(input);
-      if (!data.success) return 'VALIDATION_FAILED';
-      await client.query(
-        `insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, $2, $3, $1, $4)
-         on conflict (user_id, kind) do update
+    // The user's own target (REQ-ROLE-007), from its IST day on, until the next value of that kind
+    // (D-77): a value for another day is kept beside the others, so the days before it keep theirs;
+    // a second one for the same day replaces that day's (the change received last wins, Q-075). Who
+    // set it is the caller, from the token, never from the change. Post-MVP (backlog B-21): refuse
+    // it while an active coach's target applies (invariant #2).
+    dayChange(targetSetDataSchema, (client, userId, data) =>
+      client.query(
+        `insert into app.targets (user_id, kind, day, value, set_by_user_id, set_at) values ($1, $2, $3, $4, $1, $5)
+         on conflict (user_id, kind, day) do update
            set value = excluded.value, set_by_user_id = excluded.set_by_user_id, set_at = excluded.set_at`,
-        [account.id, data.data.kind, data.data.value, data.data.setAt],
-      );
-      return null;
-    },
+        [userId, data.kind, data.day, data.value, data.setAt],
+      ),
+    ),
   ],
   [
     SETTING_SET,
@@ -647,8 +646,8 @@ type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises:
 /**
  * The user's rows changed after `afterSeq`, oldest change first, from every synced table. They
  * share `app.change_seq`, so one cursor covers them all. Day data, meals and workouts included, is
- * limited to the 90-day window; targets, settings, the profile, saved meals and My foods are always
- * included.
+ * limited to the 90-day window; targets (every value, each with its day, D-77), settings, the
+ * profile, saved meals and My foods are always included.
  */
 async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigint, windowStart: IstDay, limit: number) {
   const { rows } = await client.query<ChangedRow>(
@@ -681,7 +680,7 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
        from app.workouts where user_id = $1 and change_seq > $2 and day >= $3
        union all
        select 'target', change_seq,
-         json_build_object('kind', kind, 'value', value, 'setByUserId', set_by_user_id,
+         json_build_object('kind', kind, 'day', day::text, 'value', value, 'setByUserId', set_by_user_id,
            'setAt', set_at, 'updatedAt', updated_at)
        from app.targets where user_id = $1 and change_seq > $2
        union all

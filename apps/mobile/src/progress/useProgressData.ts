@@ -2,7 +2,7 @@ import { syncWindowStart, type IstDay, type LengthUnit, type TargetKind } from '
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { dailyNutrition, getMeta, listEntries, listTargets, type LocalMeasurements } from '../local/store';
+import { dailyNutrition, getMeta, listEntries, targetsOn, type LocalMeasurements } from '../local/store';
 import { useSync } from '../sync/SyncProvider';
 import { accountStartDay } from './account';
 import type { DayNutrition, WeighInPoint } from './calculations';
@@ -15,7 +15,7 @@ export type ProgressData = {
   steps: { day: IstDay; steps: number }[];
   /** Newest first. */
   measurements: LocalMeasurements[];
-  /** One current value per target, applying to every day shown (Q-014, E-11). */
+  /** The targets that hold today (D-77): Progress shows the user's targets now (the owner's answer). */
   targets: Partial<Record<TargetKind, number>>;
   /** The cm/in choice last made on this phone (D-23). */
   lengthUnit: LengthUnit;
@@ -45,7 +45,7 @@ export function useProgressData(today: IstDay, refresh: unknown): ProgressData |
       dailyNutrition(db, from, today),
       listEntries(db, 'steps', from, today),
       listEntries(db, 'measurements', from, today),
-      listTargets(db),
+      targetsOn(db, today),
       getMeta(db, 'measurement_unit'),
       getMeta(db, 'account_created_day'),
     ]).then(([weighIns, nutrition, steps, measurements, targets, unit, accountStart]) => {

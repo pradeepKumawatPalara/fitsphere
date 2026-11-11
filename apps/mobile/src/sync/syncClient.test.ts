@@ -164,7 +164,7 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
       changeId: '00000000-0000-4000-8000-0000000000a3',
       data: { day: '2026-10-28', upperWaistMm: 812, lowerWaistMm: 845, chestMm: null, hipsMm: null, armMm: null, thighMm: null, notes: null, recordedAt: at },
     });
-    await saveEntry(db, 'target', { changeId: '00000000-0000-4000-8000-0000000000a4', data: { kind: 'calories', value: 2_000, setAt: at } });
+    await saveEntry(db, 'target', { changeId: '00000000-0000-4000-8000-0000000000a4', data: { kind: 'calories', value: 2_000, day: '2026-10-28', setAt: at } });
 
     expect(await syncNow(db, auth(server), clock)).toBe('synced');
 
@@ -173,7 +173,7 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
     expect(await getEntry(db, 'sleep', '2026-10-28')).toMatchObject({ sleepMinutes: 450, syncState: 'synced' });
     expect(await getEntry(db, 'measurements', '2026-10-28')).toMatchObject({ upperWaistMm: 812, syncState: 'synced' });
     // The pull brings back who set the target: the user (D-20).
-    expect(await getEntry(db, 'target', 'calories')).toMatchObject({ value: 2_000, setByUserId: expect.any(String), syncState: 'synced' });
+    expect(await getEntry(db, 'target', 'calories|2026-10-28')).toMatchObject({ value: 2_000, setByUserId: expect.any(String), syncState: 'synced' });
     expect(server.entries('steps').get('2026-10-28')).toMatchObject({ steps: 8_432 });
   });
 
@@ -185,7 +185,7 @@ describe('ADR-0007 sync client: steps, sleep, measurements and targets', () => {
     await syncNow(db, auth(server), clock);
 
     expect(await getEntry(db, 'steps', '2026-10-25')).toMatchObject({ steps: 6_000, syncState: 'synced' });
-    expect(await getEntry(db, 'target', 'weekly_workouts')).toMatchObject({ value: 4, syncState: 'synced' });
+    expect(await getEntry(db, 'target', 'weekly_workouts|2026-10-28')).toMatchObject({ value: 4, day: '2026-10-28', syncState: 'synced' });
   });
 
   it('REQ-TRN-003 a workout saved, edited and deleted on the phone reaches the server in order', async () => {

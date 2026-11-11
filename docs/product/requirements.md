@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-11 (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -136,7 +136,7 @@ B-22).
   - When a Coach sends a training plan, then the trainee's Training tab shows it instead of the empty state.
   - When a Coach or Head Coach changes a target or plan, then the trainee, the coach and (while allowed) the Head Coach see who made the latest change and when (D-13), and the label reads "Set by <name>" with that person's name (D-14).
 - MVP default (D-18): the change the server receives last wins (Q-075, ADR-0007). The target body weight and daily steps target appear in the Progress Target row (Q-013, REQ-PRG-005).
-- Open: do target changes apply from a date or retroactively (Q-014)?
+- Q-014 is answered for the user's own targets (D-77): a change applies from the day it is made, and the days before keep theirs (REQ-ROLE-007).
 
 ### REQ-ROLE-007 — Self-directed users
 - Requirement: A Personal Training User without a coach can still log and view all personal data; target-dependent displays show a no-target state. They can set their own daily calorie, protein, carbs, fat, fibre (D-70) and steps targets, weekly workout target and target body weight, labelled "Set by you" (D-20, extending the Q-016 MVP default, which covered calorie and protein only). Your targets groups them under Food and Activity and body (D-70); carbs 10–1,000 g, fat 5–500 g and fibre 5–100 g, in whole grams. These are new entries by the user; targets set by a former coach are not edited (invariant 2). Once they accept a coach, coach-set targets apply and are read-only (REQ-PLAN-001; post-MVP).
@@ -145,8 +145,11 @@ B-22).
   - Given no coach, when the user sets a calorie target, then the calories card shows the percentage and kcal remaining against it.
   - Given no coach, when the user sets a weekly workout target, then the Home workout tracker counts against it (REQ-HOME-007); the target body weight and daily steps target appear in the Progress Target row (REQ-PRG-005).
   - Each target records who set it and when, so coach-set targets can be added later without changing the user's own (D-20).
+  - Given a calorie target of 1,800 kcal set before today, when the user sets 2,000 kcal today, then today and the days after show 2,000 kcal and the days before still show 1,800 kcal (D-77).
+  - Given a past date before the first target, then its calories and protein cards (and Insight) say "No target on this day" and offer no "Set a target"; a past week with no workout target says "No target that week" (D-77).
 - MVP (D-20): every user is without a coach, so this requirement covers every account.
-- MVP default (D-23, Home and daily tracking slice): the user sets their targets on a "Your targets" screen, opened from Account (the profile avatar) and from "Set a target" on the calories, protein and workout cards when no target is set. One current value per target, applying to every day shown (Q-014); ranges, and who set it, are in the data model (`targets`).
+- MVP default (D-23, Home and daily tracking slice): the user sets their targets on a "Your targets" screen, opened from Account (the profile avatar) and from "Set a target" on the calories, protein and workout cards when no target is set. Ranges, and who set it, are in the data model (`targets`).
+- Targets by date (D-77, answering Q-014; replaces D-23's "one current value per target, applying to every day shown"): a change starts on the IST day it is made and holds until the next change of that target; the days before keep the value they had. Each date shows the targets it had (Home, Insight); Home's workout tracker uses the target that holds on its week's Sunday; Progress shows the targets that hold today. Your targets shows today's values, each with since when ("since 8 Nov", "from today"), and its entry sheet says the change starts today. The targets set before D-77 hold from the day the account was created (their older values were never kept). One value per target and day: a second change the same day replaces it; the value that already holds saves nothing.
 
 ### REQ-ROLE-008 — Invite a new email address
 - **Post-MVP** (D-20, backlog B-18).
@@ -260,6 +263,16 @@ B-22).
   - When the inviter cancels an invitation, then its email link or in-app invitation can no longer be accepted.
   - When the inviter resends an invitation, then the person gets a new one, the earlier one can no longer be accepted, and the resend counts toward the 20-a-day limit.
   - Given an invitation that was declined, then the inviter sees it as pending until it expires.
+
+### REQ-ROLE-018 — Target history
+- Requirement: A user can see their own targets by date (D-77): every change under its day, newest first (a target's first value, then each change from the old value to the new), and for one target, its value now and since when, each earlier value with its dates and its number of days, and the days before its first value, which had no target. Read-only: a target is changed on Your targets, from today on (REQ-ROLE-007). Opened from Your targets. Read from the phone, so it works offline.
+- Type: Functional
+- Acceptance criteria:
+  - Given calories set to 1,800 kcal on 6 Nov, 2,000 on 8 Nov and 2,200 on 11 Nov, then All lists "Set to 1,800 kcal" under 6 Nov, "1,800 → 2,000" under 8 Nov and "2,000 → 2,200" under 11 Nov, the newest first, and Calories shows 2,200 kcal now, "Sun 8 Nov – Tue 10 Nov · 3 days · 2,000 kcal", "Fri 6 Nov – Sat 7 Nov · 2 days · 1,800 kcal" and "Before Fri 6 Nov · No target".
+  - The target body weight is shown in the body-weight unit setting (REQ-ACC-003).
+  - A change the server refused is not listed; a target never set reads "Not set" with "Set a target".
+  - Given no targets, then the page says that each change will show there with its date.
+- MVP (D-20): only the user sees their own history; it is deleted with the account (REQ-ACC-009).
 
 ---
 

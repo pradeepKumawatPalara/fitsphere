@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import { formatInteger } from '../format';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { NoTargetNote } from './NoTargetNote';
 import { Text, TextButton } from './ui';
 
 type Props = {
@@ -9,9 +10,10 @@ type Props = {
   unit: string;
   /** Eaten on the selected day, in `unit`. */
   eaten: number;
-  /** The user's target, or null when none is set (REQ-ROLE-007). */
+  /** The user's target on the day shown, or null when none held (REQ-ROLE-007, D-77). */
   target: number | null;
-  onSetTarget(): void;
+  /** Null on a past date with no target: one set now starts today (D-77). */
+  onSetTarget: (() => void) | null;
   /** The screen's one hero number: what is left (or over, or eaten) in big italic. */
   hero?: boolean;
 };
@@ -34,9 +36,13 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, he
             {formatInteger(eaten)} {unit} eaten
           </Text>
         )}
-        <View style={styles.setTarget}>
-          <TextButton title="Set a target" outlined onPress={onSetTarget} />
-        </View>
+        {onSetTarget ? (
+          <View style={styles.setTarget}>
+            <TextButton title="Set a target" outlined onPress={onSetTarget} />
+          </View>
+        ) : (
+          <NoTargetNote />
+        )}
       </View>
     );
   }

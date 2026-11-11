@@ -146,10 +146,45 @@ describe('Migration runner (data model, "Changes")', () => {
       '0024_nutrient_targets.sql',
       '0025_workout_timer.sql',
       '0026_workout_timer_count.sql',
+      '0027_target_history.sql',
     ]);
     for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods', 'exercises', 'exercise_speed_mets']) {
       expect(await tableExists(table)).toBe(true);
     }
+  });
+});
+
+describe('Migration 0027, targets by date (D-77)', () => {
+  it('D-77 gives each target already kept the IST day its account was created, then holds one value per user, kind and day', async () => {
+    const all = await readMigrations();
+    const upTo = (name: string) => all.slice(0, all.findIndex((migration) => migration.name === name) + 1);
+    await migrate(client, upTo('0026_workout_timer_count.sql'));
+    // Created at 20:00 UTC on 27 Oct: 01:30 on 28 Oct in India.
+    const { rows } = await client.query<{ id: string }>(
+      `insert into app.users (auth_subject, email, age_confirmed_at, age_confirmation_text_version, created_at)
+       values ('synthetic-subject', 'synthetic@example.test', now(), 'v1', '2026-10-27T20:00:00Z') returning id`,
+    );
+    const user = rows[0]!.id;
+    await client.query(
+      `insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'calories', 2000, $1, '2026-11-09T10:00:00Z')`,
+      [user],
+    );
+
+    expect(await migrate(client, all)).toEqual(['0027_target_history.sql']);
+
+    const kept = await client.query(`select kind, day::text, value from app.targets where user_id = $1`, [user]);
+    expect(kept.rows).toEqual([{ kind: 'calories', day: '2026-10-28', value: 2_000 }]);
+    const insert = (day: string, value: number) =>
+      client.query(`insert into app.targets (user_id, kind, day, value, set_by_user_id, set_at) values ($1, 'calories', $2, $3, $1, now())`, [
+        user,
+        day,
+        value,
+      ]);
+    await insert('2026-11-11', 2_200);
+    await expect(insert('2026-11-11', 2_100)).rejects.toSatisfy((error: unknown) => (error as { code?: string }).code === '23505');
+    await expect(
+      client.query(`insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'protein', 100, $1, now())`, [user]),
+    ).rejects.toSatisfy((error: unknown) => (error as { code?: string }).code === '23502');
   });
 });
 

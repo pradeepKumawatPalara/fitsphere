@@ -96,7 +96,7 @@ describe('REQ-PRG-002 and REQ-PRG-003 the last 4 weeks of eating', () => {
         meal('2026-10-27', 1000, 50),
         meal('2026-10-28', 1700, 90),
       ]);
-      await applyServerEntries(db, 'target', [{ kind: 'calories', value: 2000, setAt: AT, setByUserId: null }]);
+      await applyServerEntries(db, 'target', [{ kind: 'calories', day: '2026-10-20', value: 2000, setAt: AT, setByUserId: null }]);
     });
 
     expect(await screen.findByText('1,733 kcal a day')).toBeOnTheScreen();
@@ -127,9 +127,9 @@ describe('REQ-PRG-005 week by week', () => {
         { day: '2026-10-28', steps: 10_000, recordedAt: AT },
       ]);
       await applyServerEntries(db, 'target', [
-        { kind: 'calories', value: 2000, setAt: AT, setByUserId: null },
-        { kind: 'protein', value: 120, setAt: AT, setByUserId: null },
-        { kind: 'body_weight', value: 75_000, setAt: AT, setByUserId: null },
+        { kind: 'calories', day: '2026-10-20', value: 2000, setAt: AT, setByUserId: null },
+        { kind: 'protein', day: '2026-10-20', value: 120, setAt: AT, setByUserId: null },
+        { kind: 'body_weight', day: '2026-10-20', value: 75_000, setAt: AT, setByUserId: null },
       ]);
     });
 

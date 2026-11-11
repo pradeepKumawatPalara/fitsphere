@@ -37,8 +37,9 @@ const measurements = (day: string, waistMm: number, extra: Record<string, unknow
     { day, upperWaistMm: waistMm, lowerWaistMm: waistMm + 30, ...NO_OPTIONAL, ...extra, recordedAt: RECORDED_AT },
     changeId,
   );
+// A target from today on, unless another day is given (D-77).
 const target = (kind: string, value: number, extra: Record<string, unknown> = {}, changeId?: string) =>
-  change('target.set', { kind, value, setAt: RECORDED_AT, ...extra }, changeId);
+  change('target.set', { kind, value, day: TODAY, setAt: RECORDED_AT, ...extra }, changeId);
 
 async function syncOk(user: TestUser, changes: unknown[], cursor: string | null = null): Promise<SyncResponse> {
   const response = await api.app.inject({
@@ -187,17 +188,56 @@ describe('REQ-ROLE-007 own targets', () => {
       { kind: 'fibre', value: 30, setByUserId: user.id },
     ]);
     expect(reply.pull.targets[0]).toEqual(
-      expect.objectContaining({ setAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) }),
+      expect.objectContaining({ day: TODAY, setAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) }),
     );
   });
 
-  it('Q-014 one current value per kind: a new value replaces the old', async () => {
+  it('D-77 a value from another day is kept beside the earlier one, so the days before keep theirs', async () => {
+    const user = await api.signUpWithAccount();
+    const yesterday = addDays(TODAY, -1);
+    const first = await syncOk(user, [target('calories', 2_000, { day: yesterday })]);
+
+    const reply = await syncOk(user, [target('calories', 2_200)], first.cursor);
+
+    expect(reply.results[0]?.status).toBe('accepted');
+    expect(await rowsOf('targets', user.id, `day::text, value`)).toEqual([
+      { day: yesterday, value: 2_000 },
+      { day: TODAY, value: 2_200 },
+    ]);
+    expect(reply.pull.targets.map(({ kind, day, value }) => ({ kind, day, value }))).toEqual([{ kind: 'calories', day: TODAY, value: 2_200 }]);
+    const all = await syncOk(user, []);
+    expect(all.pull.targets.map(({ day, value }) => [day, value])).toEqual([
+      [yesterday, 2_000],
+      [TODAY, 2_200],
+    ]);
+  });
+
+  it('D-77 a second value on the same day replaces that day’s; the change received last wins (Q-075)', async () => {
     const user = await api.signUpWithAccount();
     await syncOk(user, [target('calories', 2_000)]);
 
     await syncOk(user, [target('calories', 1_800)]);
 
-    expect(await rowsOf('targets', user.id, 'kind, value')).toEqual([{ kind: 'calories', value: 1_800 }]);
+    expect(await rowsOf('targets', user.id, 'kind, day::text, value')).toEqual([{ kind: 'calories', day: TODAY, value: 1_800 }]);
+  });
+
+  it('D-77 a value set offline keeps the day it was set; a day after today is refused', async () => {
+    const user = await api.signUpWithAccount();
+    const lastWeek = addDays(TODAY, -7);
+
+    const reply = await syncOk(user, [target('protein', 110, { day: lastWeek }), target('protein', 120, { day: addDays(TODAY, 1) })]);
+
+    expect(reply.results.map((result) => result.error?.code ?? result.status)).toEqual(['accepted', 'DAY_IN_FUTURE']);
+    expect(await rowsOf('targets', user.id, 'day::text, value')).toEqual([{ day: lastWeek, value: 110 }]);
+  });
+
+  it('D-77 a change without its day is refused', async () => {
+    const user = await api.signUpWithAccount();
+
+    const reply = await syncOk(user, [change('target.set', { kind: 'calories', value: 2_000, setAt: RECORDED_AT })]);
+
+    expect(reply.results[0]?.error?.code).toBe('VALIDATION_FAILED');
+    expect(await rowsOf('targets', user.id, 'kind')).toEqual([]);
   });
 
   it('D-23 a value outside its kind’s range, or an unknown kind, is rejected', async () => {
@@ -282,11 +322,11 @@ describe('REQ-NFR-001 self-access for daily data (D-20)', () => {
 });
 
 describe('ADR-0007 rule 1 the pull across kinds', () => {
-  it('ADR-0007 rule 1 applies the 90-day window to day data, but always returns targets', async () => {
+  it('ADR-0007 rule 1 applies the 90-day window to day data, but always returns targets, older ones too (D-77)', async () => {
     const user = await api.signUpWithAccount();
     const tooOld = addDays(TODAY, -90);
     const firstDay = addDays(TODAY, -89);
-    await syncOk(user, [target('steps', 8_000)]);
+    await syncOk(user, [target('steps', 8_000, { day: tooOld })]);
     await syncOk(user, [
       steps(tooOld, 1),
       steps(firstDay, 2),

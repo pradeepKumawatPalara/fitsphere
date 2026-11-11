@@ -410,36 +410,47 @@ describe('D-50 the exercise list', () => {
 });
 
 describe('REQ-ROLE-007 target.set data', () => {
+  // The IST day the value starts (D-77).
+  const DAY = '2026-10-27';
+
   it('D-23 accepts each kind at both ends of its range and refuses one step outside', () => {
     for (const kind of TARGET_KINDS) {
       const { min, max } = TARGET_RANGES[kind];
       for (const value of [min, max]) {
-        expect(targetSetDataSchema.safeParse({ kind, value, setAt: RECORDED_AT }).success).toBe(true);
+        expect(targetSetDataSchema.safeParse({ kind, value, day: DAY, setAt: RECORDED_AT }).success).toBe(true);
       }
       for (const value of [min - 1, max + 1]) {
-        expect(targetSetDataSchema.safeParse({ kind, value, setAt: RECORDED_AT }).success).toBe(false);
+        expect(targetSetDataSchema.safeParse({ kind, value, day: DAY, setAt: RECORDED_AT }).success).toBe(false);
       }
     }
   });
 
   it('D-23 checks the range of the kind given', () => {
-    expect(targetSetDataSchema.safeParse({ kind: 'weekly_workouts', value: 2_000, setAt: RECORDED_AT }).success).toBe(false);
-    expect(targetSetDataSchema.safeParse({ kind: 'calories', value: 2_000, setAt: RECORDED_AT }).success).toBe(true);
+    expect(targetSetDataSchema.safeParse({ kind: 'weekly_workouts', value: 2_000, day: DAY, setAt: RECORDED_AT }).success).toBe(false);
+    expect(targetSetDataSchema.safeParse({ kind: 'calories', value: 2_000, day: DAY, setAt: RECORDED_AT }).success).toBe(true);
   });
 
   it('invariant #2 refuses a change that names who set the target, and an unknown kind', () => {
     expect(
-      detailsFor(targetSetDataSchema, { kind: 'calories', value: 2_000, setAt: RECORDED_AT, setByUserId: CHANGE_ID }),
+      detailsFor(targetSetDataSchema, { kind: 'calories', value: 2_000, day: DAY, setAt: RECORDED_AT, setByUserId: CHANGE_ID }),
     ).toEqual([{ field: 'setByUserId', issue: 'unknown_field' }]);
-    expect(targetSetDataSchema.safeParse({ kind: 'sugar', value: 200, setAt: RECORDED_AT }).success).toBe(false);
+    expect(targetSetDataSchema.safeParse({ kind: 'sugar', value: 200, day: DAY, setAt: RECORDED_AT }).success).toBe(false);
   });
 
   it('D-70 daily carbs, fat and fibre in whole grams, in the ranges the owner approved', () => {
     expect(TARGET_RANGES.carbs).toEqual({ min: 10, max: 1_000 });
     expect(TARGET_RANGES.fat).toEqual({ min: 5, max: 500 });
     expect(TARGET_RANGES.fibre).toEqual({ min: 5, max: 100 });
-    expect(targetSetDataSchema.safeParse({ kind: 'fibre', value: 30, setAt: RECORDED_AT }).success).toBe(true);
-    expect(targetSetDataSchema.safeParse({ kind: 'fat', value: 60.5, setAt: RECORDED_AT }).success).toBe(false);
+    expect(targetSetDataSchema.safeParse({ kind: 'fibre', value: 30, day: DAY, setAt: RECORDED_AT }).success).toBe(true);
+    expect(targetSetDataSchema.safeParse({ kind: 'fat', value: 60.5, day: DAY, setAt: RECORDED_AT }).success).toBe(false);
+  });
+
+  it('D-77 needs the IST day the value starts, as a day', () => {
+    expect(detailsFor(targetSetDataSchema, { kind: 'calories', value: 2_000, setAt: RECORDED_AT })).toEqual([
+      { field: 'day', issue: 'required' },
+    ]);
+    expect(targetSetDataSchema.safeParse({ kind: 'calories', value: 2_000, day: '2026-02-30', setAt: RECORDED_AT }).success).toBe(false);
+    expect(targetSetDataSchema.safeParse({ kind: 'calories', value: 2_000, day: RECORDED_AT, setAt: RECORDED_AT }).success).toBe(false);
   });
 });
 

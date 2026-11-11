@@ -460,13 +460,17 @@ describe('Local schema version 8', () => {
           fat_g REAL, fibre_g REAL, sync_state TEXT NOT NULL);
         CREATE TABLE workouts (id TEXT PRIMARY KEY, day TEXT NOT NULL, exercises TEXT NOT NULL, recorded_at TEXT NOT NULL,
           sync_state TEXT NOT NULL);
+        CREATE TABLE targets (kind TEXT PRIMARY KEY, value INTEGER NOT NULL, set_at TEXT NOT NULL, set_by_user_id TEXT,
+          sync_state TEXT NOT NULL);
+        CREATE TABLE outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, change_id TEXT NOT NULL UNIQUE, type TEXT NOT NULL,
+          data TEXT NOT NULL, created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error_code TEXT);
         PRAGMA user_version = 7;`);
       await old.runAsync(`INSERT INTO foods VALUES ('ifct2017', 'L002', 'Milk, whole, Cow', 'Synthetic group', '[]', 1, 0, 1, 1, 10, 0)`, []);
       await setMeta(old, 'food_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'milk')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -488,6 +492,10 @@ describe('Local schema version 5', () => {
         CREATE TABLE saved_meals (id TEXT PRIMARY KEY, name TEXT NOT NULL, meal_type TEXT NOT NULL, tags TEXT NOT NULL,
           items TEXT NOT NULL, saved_at TEXT NOT NULL, kcal REAL NOT NULL, protein_g REAL NOT NULL, carbs_g REAL,
           fat_g REAL, fibre_g REAL, sync_state TEXT NOT NULL);
+        CREATE TABLE targets (kind TEXT PRIMARY KEY, value INTEGER NOT NULL, set_at TEXT NOT NULL, set_by_user_id TEXT,
+          sync_state TEXT NOT NULL);
+        CREATE TABLE outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, change_id TEXT NOT NULL UNIQUE, type TEXT NOT NULL,
+          data TEXT NOT NULL, created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error_code TEXT);
         PRAGMA user_version = 4;`);
       await old.runAsync(`INSERT INTO foods VALUES ('ifct2017', 'A019', 'Wheat flour, atta', 'Synthetic group', '[]', 1, 1, 1, 1, 10, 0)`, []);
       await setMeta(old, 'food_list_version', 'v1');
@@ -495,7 +503,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchDishes(old, 'atta')).toEqual([]);
@@ -515,13 +523,17 @@ describe('Local schema version 3', () => {
       await old.execAsync(`
         CREATE TABLE sync_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE steps (day TEXT PRIMARY KEY, steps INTEGER NOT NULL, recorded_at TEXT NOT NULL, sync_state TEXT NOT NULL);
+        CREATE TABLE targets (kind TEXT PRIMARY KEY, value INTEGER NOT NULL, set_at TEXT NOT NULL, set_by_user_id TEXT,
+          sync_state TEXT NOT NULL);
+        CREATE TABLE outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, change_id TEXT NOT NULL UNIQUE, type TEXT NOT NULL,
+          data TEXT NOT NULL, created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL, error_code TEXT);
         PRAGMA user_version = 2;`);
       await old.runAsync(`INSERT INTO steps VALUES ('2026-10-20', 5000, ?, 'synced')`, [AT]);
       await setMeta(old, 'cursor', '42');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
@@ -541,7 +553,7 @@ describe('Local schema version 12', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // A brand label that gives no fibre (synthetic values).
       const label: Food = {
@@ -578,10 +590,11 @@ describe('Local schema version 11', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect(await searchPackaged(old, 'butter')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
-      expect(await getMeta(old, 'cursor')).toBe('99');
+      // Version 11 keeps the cursor; version 19 (targets by date, D-77) then clears it.
+      expect(await getMeta(old, 'cursor')).toBeNull();
     } finally {
       await old.closeAsync();
     }
@@ -605,7 +618,7 @@ describe('Local schema version 10', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchMyFoods(old, 'bread')).toEqual([]);
@@ -711,7 +724,7 @@ describe('Local schema version 15', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect((await searchFoods(old, 'bread')).map((found) => found.code)).toEqual(['home-test-toast']);
       expect((await searchPackaged(old, 'testirams')).map((found) => found.barcode)).toEqual(['8901234500021']);
       expect(await getMeta(old, 'food_list_version')).toBe('v1');
@@ -751,7 +764,7 @@ describe('Local schema version 17', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       const saved = await listSavedMeals(old);
       expect(saved).toEqual([
         { id: synced, name: 'Synthetic breakfast', tags: [], items: [ATTA], savedAt: AT, kcal: 192, proteinG: 6.34, carbsG: 38.5, fatG: 0.92, fibreG: 6.82, syncState: 'synced' },

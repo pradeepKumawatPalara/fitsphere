@@ -61,8 +61,9 @@ export type OutboxEntry = {
 // --- The kinds of entry the phone keeps ---
 
 /**
- * One entry per IST day for the day kinds, one per target kind for targets, one per name for
- * settings, one per ID for meals, saved meals and workouts (any number a day), and one profile.
+ * One entry per IST day for the day kinds, one per target kind and IST day it starts for targets
+ * (D-77), one per name for settings, one per ID for meals, saved meals and workouts (any number a
+ * day), and one profile.
  */
 export type EntryKind =
   | 'weighIn'
@@ -106,7 +107,7 @@ export type LocalEntries = {
   sleep: SleepSetData & { syncState: SyncState };
   measurements: MeasurementsSetData & { syncState: SyncState };
   workout: WorkoutData & { syncState: SyncState };
-  target: { kind: TargetKind; value: number; setAt: string; setByUserId: string | null; syncState: SyncState };
+  target: { kind: TargetKind; day: IstDay; value: number; setAt: string; setByUserId: string | null; syncState: SyncState };
   setting: { name: SettingName; value: string; setAt: string; syncState: SyncState };
   meal: MealSetData & MealTotals & { syncState: SyncState };
   savedMeal: Omit<SavedMealSetData, 'mealType'> & MealTotals & { syncState: SyncState };
@@ -135,6 +136,8 @@ type KindSpec = {
   table: string;
   /** The field that identifies an entry: its column, and its path in a change's data. */
   key: 'day' | 'kind' | 'name' | 'id';
+  /** A second field that identifies an entry with `key`: a target's start day (D-77). */
+  key2?: 'day';
   /** A kind with one entry (the profile): its key, always; the change's data does not carry it. */
   onlyKey?: string;
   /** Local columns and the field each holds, key first; `json` columns hold JSON text (null when absent). */
@@ -229,12 +232,16 @@ const KINDS: Record<EntryKind, KindSpec> = {
     pullColumns: [],
     dayData: true,
   },
+  // The user's targets (REQ-ROLE-007): each value from its IST day on, until the next of its kind
+  // (D-77), so one entry per kind and day.
   target: {
     changeType: TARGET_SET,
     table: 'targets',
     key: 'kind',
+    key2: 'day',
     columns: [
       ['kind', 'kind'],
+      ['day', 'day'],
       ['value', 'value'],
       ['set_at', 'setAt'],
     ],
@@ -337,14 +344,22 @@ const KINDS: Record<EntryKind, KindSpec> = {
   },
 };
 
-/** An entry's key from its fields (or a change's data). */
+/** An entry's key from its fields (or a change's data); a target's is "<kind>|<day>" (D-77). */
 function keyOf(spec: KindSpec, fields: Record<string, unknown>): unknown {
-  return spec.onlyKey ?? fields[spec.key];
+  if (spec.onlyKey) return spec.onlyKey;
+  return spec.key2 ? `${String(fields[spec.key])}|${String(fields[spec.key2])}` : fields[spec.key];
 }
 
 /** SQL for the key of the entry an outbox row is for, compared with `= ?`. */
 function outboxKey(spec: KindSpec): string {
-  return spec.onlyKey ? `'${spec.onlyKey}'` : `json_extract(data, '$.${spec.key}')`;
+  if (spec.onlyKey) return `'${spec.onlyKey}'`;
+  const field = (name: string) => `json_extract(data, '$.${name}')`;
+  return spec.key2 ? `${field(spec.key)} || '|' || ${field(spec.key2)}` : field(spec.key);
+}
+
+/** SQL for an entry's key in its table, compared with `= ?`, as `keyOf` makes it. */
+function tableKey(spec: KindSpec): string {
+  return spec.key2 ? `${spec.key} || '|' || ${spec.key2}` : spec.key;
 }
 
 function deriveTotals(fields: Record<string, unknown>): Record<string, BindValue> {
@@ -639,6 +654,25 @@ const MIGRATIONS = [
   // The workout timer (D-71): each workout's timer as JSON, null until "Start workout"; the workouts
   // already on the phone have none.
   `ALTER TABLE workouts ADD COLUMN timer TEXT;`,
+  // Targets by date (D-77): one value per kind and IST day it starts. The synced ones are fetched
+  // again with their days (the cursor is cleared); one waiting to sync keeps its value, from the IST
+  // day it was set, and so does its change in the outbox.
+  `CREATE TABLE targets_by_day (
+     kind TEXT NOT NULL,
+     day TEXT NOT NULL,
+     value INTEGER NOT NULL,
+     set_at TEXT NOT NULL,
+     set_by_user_id TEXT,
+     ${SYNC_STATE},
+     PRIMARY KEY (kind, day)
+   );
+   INSERT INTO targets_by_day (kind, day, value, set_at, set_by_user_id, sync_state)
+     SELECT kind, date(set_at, '+330 minutes'), value, set_at, set_by_user_id, sync_state FROM targets WHERE sync_state <> 'synced';
+   DROP TABLE targets;
+   ALTER TABLE targets_by_day RENAME TO targets;
+   UPDATE outbox SET data = json_set(data, '$.day', date(json_extract(data, '$.setAt'), '+330 minutes'))
+     WHERE type = '${TARGET_SET}' AND json_extract(data, '$.day') IS NULL;
+   DELETE FROM sync_meta WHERE key = 'cursor';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -714,7 +748,7 @@ export async function saveEntry<K extends EntryKind>(
 
 export async function getEntry<K extends EntryKind>(db: SqlDb, kind: K, key: string): Promise<LocalEntries[K] | null> {
   const spec = KINDS[kind];
-  const row = await db.getFirstAsync<Record<string, BindValue>>(`SELECT * FROM ${spec.table} WHERE ${spec.key} = ?`, [key]);
+  const row = await db.getFirstAsync<Record<string, BindValue>>(`SELECT * FROM ${spec.table} WHERE ${tableKey(spec)} = ?`, [key]);
   return row ? (toEntry(spec, row) as LocalEntries[K]) : null;
 }
 
@@ -758,9 +792,22 @@ export async function listEntries<K extends Exclude<EntryKind, 'target' | 'setti
   return rows.map((row) => toEntry(spec, row) as LocalEntries[K]);
 }
 
-/** The user's current targets (REQ-ROLE-007). */
+/** Every target value on the phone, each with the IST day it starts, oldest first (D-77, REQ-ROLE-018). */
 export async function listTargets(db: SqlDb): Promise<LocalTarget[]> {
-  const rows = await db.getAllAsync<Record<string, BindValue>>(`SELECT * FROM targets ORDER BY kind`, []);
+  const rows = await db.getAllAsync<Record<string, BindValue>>(`SELECT * FROM targets ORDER BY day, kind`, []);
+  return rows.map((row) => toEntry(KINDS.target, row) as LocalTarget);
+}
+
+/**
+ * The targets that hold on an IST day (REQ-ROLE-007, D-77): of each kind, the value with the latest
+ * start day on or before it. A kind with none had no target that day.
+ */
+export async function targetsOn(db: SqlDb, day: IstDay): Promise<LocalTarget[]> {
+  const rows = await db.getAllAsync<Record<string, BindValue>>(
+    `SELECT * FROM targets WHERE day = (SELECT max(day) FROM targets AS later WHERE later.kind = targets.kind AND later.day <= ?)
+     ORDER BY kind`,
+    [day],
+  );
   return rows.map((row) => toEntry(KINDS.target, row) as LocalTarget);
 }
 
@@ -788,7 +835,7 @@ export async function applyServerEntries<K extends EntryKind>(
       const key = keyOf(spec, fields) as string;
       if (await hasOutboxEntry(db, spec, key)) continue;
       // A meal or saved meal deleted on another phone leaves this one too.
-      if (fields.deleted === true) await db.runAsync(`DELETE FROM ${spec.table} WHERE ${spec.key} = ?`, [key]);
+      if (fields.deleted === true) await db.runAsync(`DELETE FROM ${spec.table} WHERE ${tableKey(spec)} = ?`, [key]);
       else await upsert(db, spec, columns, fields, 'synced');
     }
     if (kind === 'meal' || kind === 'profile') await removeUnusedPhotos(db);
@@ -866,7 +913,7 @@ export async function discardRejected(db: SqlDb, changeId: string): Promise<void
   await db.withTransactionAsync(async () => {
     await db.runAsync(`DELETE FROM outbox WHERE change_id = ? AND status = 'rejected'`, [changeId]);
     if (target && !(await hasOutboxEntry(db, target.spec, target.key))) {
-      await db.runAsync(`DELETE FROM ${target.spec.table} WHERE ${target.spec.key} = ?`, [target.key]);
+      await db.runAsync(`DELETE FROM ${target.spec.table} WHERE ${tableKey(target.spec)} = ?`, [target.key]);
     }
     await removeUnusedPhotos(db);
     await setMeta(db, 'cursor', null);
@@ -943,10 +990,11 @@ async function upsert(
 ): Promise<void> {
   const fields = { ...given, ...spec.derive?.(given) };
   const names = columns.map(([column]) => column);
-  const updates = names.filter((name) => name !== spec.key).map((name) => `${name} = excluded.${name}`);
+  const keys: string[] = spec.key2 ? [spec.key, spec.key2] : [spec.key];
+  const updates = names.filter((name) => !keys.includes(name)).map((name) => `${name} = excluded.${name}`);
   await db.runAsync(
     `INSERT INTO ${spec.table} (${names.join(', ')}, sync_state) VALUES (${names.map(() => '?').join(', ')}, ?)
-     ON CONFLICT (${spec.key}) DO UPDATE SET ${[...updates, 'sync_state = excluded.sync_state'].join(', ')}`,
+     ON CONFLICT (${keys.join(', ')}) DO UPDATE SET ${[...updates, 'sync_state = excluded.sync_state'].join(', ')}`,
     [
       ...columns.map(([, field, json]) => (json ? JSON.stringify(fields[field] ?? null) : ((fields[field] as BindValue) ?? null))),
       state,
@@ -1011,7 +1059,7 @@ async function settle(db: SqlDb, changeId: string, change: () => Promise<void>):
       [...typesOf(spec), key],
     );
     const state: SyncState = (row?.pending ?? 0) > 0 ? 'pending' : (row?.rejected ?? 0) > 0 ? 'rejected' : 'synced';
-    await db.runAsync(`UPDATE ${spec.table} SET sync_state = ? WHERE ${spec.key} = ?`, [state, key]);
+    await db.runAsync(`UPDATE ${spec.table} SET sync_state = ? WHERE ${tableKey(spec)} = ?`, [state, key]);
   });
 }
 

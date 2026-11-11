@@ -41,7 +41,7 @@ import {
   getEntry,
   getMeta,
   listEntries,
-  listTargets,
+  targetsOn,
   mealCounts,
   rejectedChanges,
   type LocalMeasurements,
@@ -52,6 +52,7 @@ import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
+import { targetValues, weekTargetDay } from '../targets';
 import { listedWorkouts } from '../workouts';
 import { LogOut } from './LogOut';
 
@@ -107,13 +108,15 @@ export function HomeScreen() {
     void Promise.all([
       Promise.all(DAY_VALUE_ORDER.map((kind) => getEntry(db, kind, selected))),
       rejectedChanges(db),
-      listTargets(db),
+      targetsOn(db, selected),
+      // The week's workout target is its Sunday's: this week's is today's (D-77).
+      targetsOn(db, weekTargetDay(selected)),
       getEntry(db, 'measurements', selected),
       getMeta(db, 'measurement_unit'),
       dayNutrition(db, selected),
       mealCounts(db, stripStart, addDays(stripStart, 6)),
       listEntries(db, 'workout', monday, addDays(monday, 6)),
-    ]).then(([entries, waiting, current, dayMeasurements, unit, nutrition, counts, workouts]) => {
+    ]).then(([entries, waiting, onDay, onSunday, dayMeasurements, unit, nutrition, counts, workouts]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -124,8 +127,8 @@ export function HomeScreen() {
         ),
       );
       setRejected(waiting);
-      // A target applies to every day shown, past days included (Q-014 MVP default, D-23).
-      setTargets(Object.fromEntries(current.map((target) => [target.kind, target.value])));
+      // Each date shows the targets it had (D-77); the workout tracker, its week's Sunday's.
+      setTargets({ ...targetValues(onDay), ...targetValues(onSunday.filter((target) => target.kind === 'weekly_workouts')) });
       setMeasurements(dayMeasurements);
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
       setEaten(nutrition);
@@ -226,7 +229,7 @@ export function HomeScreen() {
             unit="kcal"
             eaten={Math.round(eaten?.kcal ?? 0)}
             target={targets.calories ?? null}
-            onSetTarget={openTargets}
+            onSetTarget={selected === today ? openTargets : null}
             hero
           />
           <View style={styles.rule} />
@@ -235,7 +238,7 @@ export function HomeScreen() {
             unit="g"
             eaten={Math.round(eaten?.proteinG ?? 0)}
             target={targets.protein ?? null}
-            onSetTarget={openTargets}
+            onSetTarget={selected === today ? openTargets : null}
           />
           <View style={styles.panelFoot}>
             <TextButton title="By meal" arrow end onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
@@ -262,7 +265,7 @@ export function HomeScreen() {
           dayCounts={workoutCounts}
           count={counted.length}
           target={targets.weekly_workouts ?? null}
-          onSetTarget={openTargets}
+          onSetTarget={istWeekStart(selected) === istWeekStart(today) ? openTargets : null}
           onDay={openWorkoutDay}
         />
         <MeasurementsCard

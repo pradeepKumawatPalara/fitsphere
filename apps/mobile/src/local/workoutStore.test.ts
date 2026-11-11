@@ -191,7 +191,7 @@ describe('Local schema version 6', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
@@ -236,7 +236,7 @@ describe('Local schema version 18', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 18 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
       expect(await getEntry(old, 'workout', ID_A)).toEqual({ ...workout(ID_A), syncState: 'synced' });
       expect(await getEntry(old, 'workout', ID_B)).toEqual({ ...workout(ID_B, { exercises: [], recordedAt: LATER }), syncState: 'pending' });
     } finally {

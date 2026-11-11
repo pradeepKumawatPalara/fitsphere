@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as Network from 'expo-network';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { istToday } from '@fitsphere/shared';
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -25,11 +26,14 @@ const expoNetwork: NetworkWatcher = {
 };
 
 /**
- * What the user enters for each kind; the time it was saved is added when it is saved. A workout
- * keeps the ID and start time it was given by `startWorkout`.
+ * What the user enters for each kind; the time it was saved is added when it is saved, and a
+ * target's start day, the IST day it is saved on (D-77). A workout keeps the ID and start time it
+ * was given by `startWorkout`.
  */
 export type EntryInput = {
-  [K in EntryKind]: K extends 'target' | 'setting' | 'profile'
+  [K in EntryKind]: K extends 'target'
+    ? Omit<ChangeData[K], 'setAt' | 'day'>
+    : K extends 'setting' | 'profile'
     ? Omit<ChangeData[K], 'setAt'>
     : K extends 'savedMeal' | 'myFood'
       ? Omit<ChangeData[K], 'savedAt'>
@@ -126,8 +130,9 @@ export function SyncProvider({
       const savedAt = now().toISOString();
       const stamp =
         kind === 'target' || kind === 'setting' || kind === 'profile' ? 'setAt' : kind === 'savedMeal' || kind === 'myFood' ? 'savedAt' : 'recordedAt';
-      // A workout keeps the start time `startWorkout` gave it.
-      const data = (kind === 'workout' ? input : { ...input, [stamp]: savedAt }) as unknown as ChangeData[K];
+      // A workout keeps the start time `startWorkout` gave it; a target starts on the day it is set (D-77).
+      const day = kind === 'target' ? { day: istToday(new Date(savedAt)) } : {};
+      const data = (kind === 'workout' ? input : { ...input, ...day, [stamp]: savedAt }) as unknown as ChangeData[K];
       // The photo belongs to the meal, or to the profile.
       const mealId = kind === 'profile' ? PROFILE_KEY : (input as { id?: string }).id;
       await saveEntry(

@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
+- Last updated: 2026-11-11 (D-77: E-11 done; the target checks S6-10 to S6-13). 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
   to S5-07 and S6-01 to S6-09; the slice 5 and 6 IDs made final). 2026-10-30 (Settings slice,
   steps 2 and 5, D-31: RB-04 and E-21 to E-23). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
@@ -85,6 +85,10 @@ and "Owner's actions and checks at the end of the slice" in
 | S6-07 | Change password: a wrong current password is refused; the new password works after logging out and signing in | 7 |
 | S6-08 | Delete a throwaway test account that has a meal photo: the sign-in screen shows the notice; the old password no longer signs in; in the Supabase dashboard the test user is gone, and so are its photo files | 8 (ADR-0004 step 7, phone part) |
 | S6-09 | Weight, steps, sleep, meals and workouts still save | 9 |
+| S6-10 | Targets by date (D-77): change the calorie target today; Home and Insight show the new value today, and yesterday still shows the old one | D-77 |
+| S6-11 | Your targets: the changed tile says "from today", the others "since <date>"; the entry sheet says the change starts today. Saving the same value again changes nothing | D-77 |
+| S6-12 | Target history: All lists the change under today; Calories shows the value now, the earlier one with its dates, and "Before … · No target" | D-77 |
+| S6-13 | Offline (airplane mode): change a target; it shows at once, syncs after reconnecting and keeps the day it was made. The workouts card of this week and of last week shows each week's target | D-77 |
 
 ## Post-MVP features
 From `mvp-scope.md` section 3, plus items the D-18, D-20 and D-26 answers moved out of the MVP.
@@ -136,7 +140,7 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-08 | The phone's database belongs to another user when the app starts, e.g. after an interrupted log out | REQ-ACC-008 | It is deleted with its key and a new one is created; anything unsynced in it is lost (Skeleton step 8) |
 | E-09 | Removing a target, rather than changing it | REQ-ROLE-007 | A target can be changed but not removed (D-23) |
 | E-10 | Showing and editing Home for days older than the 90 days the phone holds, online | REQ-DATE-001, ADR-0007 rule 1 | The calendar and the week strip stop at 90 days; older history is viewed in Progress (D-23) |
-| E-11 | Target history: a target that applies from the day it was set, so past days keep the target they had (Q-014) | REQ-ROLE-007, REQ-PRG-005 | One current value per target, applying to every day shown (D-23) |
+| E-11 | Target history: a target that applies from the day it was set, so past days keep the target they had (Q-014) | REQ-ROLE-007, REQ-PRG-005 | **Done (D-77, 2026-11-11):** a change starts today; Target history (REQ-ROLE-018). Still open: Progress's weeks with their own targets (the owner kept Progress on today's targets) |
 | E-12 | Changing the measurements sheet's date after typing values | REQ-MEAS-002 | The fields show the new day's entry, or empty fields, so values typed for the old day are cleared (D-23) |
 | E-13 | A dish removed from the list (no longer approved) while a phone still has a meal or saved meal naming it waiting to sync, or one is re-logged later | REQ-LOG-007, D-28 | The change is refused (`VALIDATION_FAILED`) and shown as rejected; meals already on the server keep their snapshot. Keep a withdrawn dish on the list, hidden from search, if this happens in practice |
 | E-14 | The other workout fields Q-042 listed: RPE and rest (per-set reps and weights, and times, came with D-50) | REQ-TRN-003, Q-042 | Each set has its own reps, weight and time; cardio its time; no RPE or rest (D-50) |

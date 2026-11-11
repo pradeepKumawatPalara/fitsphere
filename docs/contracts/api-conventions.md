@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-11 (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -226,8 +226,11 @@ Request:
 - The four types with a `day` set the user's value for that IST day. The day must be a valid day
   not later than today in IST (`DAY_IN_FUTURE` otherwise), and a value already stored for the day
   is replaced (Q-030 MVP default); for measurements the whole entry is replaced.
-- `target.set` sets the user's current target of that kind, replacing the old one (Q-014 MVP
-  default, D-23).
+- `target.set` sets the user's target of that kind from `day`, the IST day it starts (D-77): the
+  day it was set on the phone, not later than today (`DAY_IN_FUTURE` otherwise). A value already
+  stored for that kind and day is replaced (the change received last wins, Q-075); a value for another
+  day is kept beside the others, so the days before it keep theirs. The pull sends every value with its
+  day.
 - `setting.set` sets the user's current value of that setting, replacing the old one; the change
   received last wins, as for targets (MVP default, D-31).
 - `profile.set` replaces the user's whole profile; the change received last wins, as for settings.
