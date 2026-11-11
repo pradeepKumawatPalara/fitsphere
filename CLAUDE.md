@@ -12,8 +12,20 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Targets by date — built on branch `feat/target-history` (D-77, 2026-11-11), in its own folder
+`D:\fitsphere-targets` (removed once merged).** Plan: `docs/plans/target-history.md` (Accepted),
+REQ-ROLE-007, REQ-ROLE-018; canvas boards `TargetsDated*`, `TargetHistory*` and `HomeTargetsByDate*`
+locked (version 73). A target change starts today and holds until the next; the days before keep
+theirs (Home and Insight show each date's; the workout tracker its week's Sunday's; Progress today's).
+Your targets says since when each value holds and opens Target history (`TargetHistoryScreen.tsx`,
+route `target-history`): every change by day, or one target's values with their dates. The targets
+set before hold from the day the account was created. Migration `0027_target_history.sql`
+(`app.targets.day`, one row per user, kind and day); phone schema version 19 (`targets` keyed by kind
+and day). No new build. **On `fitsphere-dev`: migration 0027 before the updated API; only when the
+owner says so.**
+
 **More measures for a food — built on branch `feat/food-measures` (D-76, 2026-11-11), in its own
-folder `D:itsphere-measures` (removed once merged).** Plan: `docs/plans/food-measures.md`
+folder `D:\fitsphere-measures` (removed once merged).** Plan: `docs/plans/food-measures.md`
 (Accepted), REQ-LOG-007; canvas boards `FoodMeasures*` locked (version 71). The food page's Measure
 wheel: a serving that holds several things also gives one of them ("2 slices" gives Slice, "Plate (4
 pc)" gives Piece; 244 foods, added to `app.food_portions` by `foods:import`), and oz (28.35 g, a

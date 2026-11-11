@@ -2364,6 +2364,59 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-77 Targets by date: a change starts today, past days keep theirs, and Target history
+- Status: **Accepted** (owner, in chat, 2026-11-11: "If the User changes his target Regarding Any point
+  like Calories, Daily Protein, carbs and So on. that latest value is alos refected to the old dates as
+  well. which is wrong. ... So Whenever the Target value is change these value is should should only bbe
+  reflected to today and Future dates until user changes again the Target. for the Past dates targets
+  should be those only whcih were on that date. I also want to maintian the history of Each target by
+  date wise so the User can see theri own past Targets as welll."; the plan
+  `docs/plans/target-history.md` and the canvas's "6.2 Targets by date · PROPOSED (D-77)", version 72,
+  approved with "as recommended" and "lock it", locked in version 73). Numbered D-77 because D-76 (food
+  measures) was taken by work done at the same time. Answers Q-014, replacing its MVP default (D-23: one
+  value per target, shown on every day); closes backlog E-11.
+- Answer:
+  - A target change **starts today** (the day in India, invariant 5) and holds for every later day,
+    until the next change of that target; the days before it keep the value they had.
+  - **Your targets** shows the values that hold today; under "Set by you" each says since when ("since
+    8 Nov", or "from today"). The entry sheet says "From today, <date>. Earlier days keep the target
+    they had." A **Target history** row under the targets opens the new page.
+  - **Target history** (new page, REQ-ROLE-018): **All** lists each change under its day, newest first
+    ("Daily calories 2,000 → 2,200 kcal"; a first value, "Set to 1,800 kcal"); choosing one target shows
+    its value now and since when, each earlier value with its dates and days, and "Before <its first
+    day> · No target".
+  - **Home** and **Insight** use the targets of the date shown; Home's workout tracker uses its week's,
+    the one that holds on the week's Sunday (so a change counts for its whole week, and this week's is
+    today's). On a past date with no target, "No target on this day" takes the place of Set a target
+    (the workouts card of a past week: "No target that week"), as a target set now starts today.
+- The owner's answers ("as recommended"):
+  1. The days before the first target have **no target**.
+  2. The targets already set are **kept for every past day**, from the day the account was created:
+     the app never kept their older values, so nothing shown changes; the history starts with the next
+     change.
+  3. **Progress is unchanged**: its Target row and its 4-week card show the targets that hold today.
+- MVP defaults: one value per target and day (a second change the same day replaces that day's);
+  saving the value that already holds changes nothing; in the history, a value the same as the one
+  before it is no change; a change made offline keeps the day it was made, even when it syncs later;
+  two phones changing a target the same day: the change the server receives last wins (Q-075); a change
+  not saved (refused) is left out of the history. A target still can't be removed (D-23), and the
+  history is read-only. Not in this change: choosing a start date (tomorrow, Monday), editing or
+  removing a past value, a chart of a target over time, Progress's weeks with their own targets.
+- Server: `target.set` takes `day`, the IST day the value starts, not later than today
+  (`DAY_IN_FUTURE`); the same user, kind and day replaces its value, another day adds one. The pull
+  sends every target value with its day (not limited to the 90 days). Migration
+  `0027_target_history.sql`: `app.targets.day`, the rows already there given the IST day their
+  account was created, and one row per user, kind and day. Any database needs migration 0027 before
+  this API runs.
+- Phone: schema version 19, `targets` keyed by kind and day; the synced ones are fetched again (the
+  cursor is cleared), and one waiting to sync keeps its value, from the IST day it was set, as does its
+  waiting change. A target is saved with the IST day it is saved on. JavaScript only: no new build.
+- Doc changes: REQ-ROLE-006's open question, REQ-ROLE-007, new REQ-ROLE-018; Q-014 in
+  `constraints-and-assumptions.md`; backlog E-11, and phone checks S6-10 to S6-13; the data model and
+  `api-conventions.md`; the redesign plan (2.3, 3.10, 6.2, new 6.7); CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants
