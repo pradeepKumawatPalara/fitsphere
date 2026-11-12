@@ -20,8 +20,8 @@ import { Text } from './ui';
 // greeting on the left; the calendar shortcut and the profile avatar on the right. The redesign's
 // 2.1 (locked by the owner, 2026-11-03): the date in condensed capitals, caramel when it is today;
 // the greeting under it in display capitals. The greeting uses the profile's first name, and the
-// avatar its photo (REQ-ACC-011), when there are. The calendar marks the days with a meal and the days
-// with a workout, and counts the month's workouts (D-84).
+// avatar its photo (REQ-ACC-011), when there are. The calendar marks the days with a meal (an apple)
+// and the days with a workout (a dumbbell), and counts the month's workouts (D-84).
 
 export function HeaderTitle() {
   const styles = useStyles();

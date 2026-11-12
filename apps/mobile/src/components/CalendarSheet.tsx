@@ -1,6 +1,6 @@
 import type { IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, CircleAlert, Dumbbell } from 'lucide-react-native';
+import { Apple, ChevronLeft, ChevronRight, CircleAlert, Dumbbell } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { addMonths, formatLongDay, formatMonth, monthWeeks } from '../format';
 import { themedStyles, useTheme } from '../theme';
@@ -24,8 +24,8 @@ type Props = {
   /** Meals logged per day (Log meal): a dot under each day with a meal, and each day's status. */
   counts?: Readonly<Record<IstDay, number>>;
   /**
-   * The header's calendar (D-84): a day with a meal is tinted green, a day with a workout has a
-   * dumbbell under its date, the month's workouts are counted under its name, and a key sits under the
+   * The header's calendar (D-84): a day with a meal has a green apple (the Nutrition tab's icon) under
+   * its date, a day with a workout a green dumbbell, the month's workouts are counted under its name, and a key sits under the
    * days. `null` while they load: the same layout, nothing marked yet.
    */
   activity?: CalendarActivity | null;
@@ -66,8 +66,8 @@ export const OLDER_DAY = 'Only the last 90 days are on this phone. Choose a late
 // ahead (D-34). Future days (Q-017) and days before `firstDay` are greyed and cannot be picked:
 // tapping one says why, and screen readers hear "not available". With `counts` (Log meal), each day
 // with a meal has a dot, and each day's status (Q-037) is read out. With `activity` (the header's,
-// D-84, canvas "2.2 Calendar · workout days", C locked), a day with a meal is tinted green and a day
-// with a workout has a dumbbell; the month's workouts are counted under its name, with a key below.
+// D-84, canvas "2.2 Calendar · an apple for meals", B locked), a day with a meal has a green apple and
+// a day with a workout a green dumbbell, side by side under the date; the month's workouts are counted under its name, with a key below.
 export function CalendarSheet({ title, today, firstDay, selected, counts, activity, onSelect, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -183,7 +183,6 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
                   style={({ pressed }) => [
                     styles.cell,
                     styles.day,
-                    meals > 0 && !isSelected && styles.loggedDay,
                     isToday && !isSelected && styles.today,
                     isSelected && styles.selected,
                     disabled && styles.dimmed,
@@ -195,8 +194,17 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
                   </Text>
                   {counts ? <View style={[styles.dot, count > 0 && styles.dotShown, count > 0 && isSelected && styles.dotOnSelected]} /> : null}
                   {marking ? (
-                    <View testID={workouts > 0 ? `workout-${day}` : undefined} style={styles.marks}>
-                      {workouts > 0 ? <Dumbbell size={12} strokeWidth={2.6} color={isSelected ? colors.onPrimary : colors.success} /> : null}
+                    <View style={styles.marks}>
+                      {meals > 0 ? (
+                        <View testID={`meals-${day}`}>
+                          <Apple size={12} strokeWidth={2.6} color={isSelected ? colors.onPrimary : colors.success} />
+                        </View>
+                      ) : null}
+                      {workouts > 0 ? (
+                        <View testID={`workout-${day}`}>
+                          <Dumbbell size={12} strokeWidth={2.6} color={isSelected ? colors.onPrimary : colors.success} />
+                        </View>
+                      ) : null}
                     </View>
                   ) : null}
                 </Pressable>
@@ -206,9 +214,9 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
         ))}
       </View>
       {marking ? (
-        <View accessible accessibilityLabel="Key: a green day has meals logged; a dumbbell marks a workout" style={styles.key}>
+        <View accessible accessibilityLabel="Key: an apple marks meals logged; a dumbbell marks a workout" style={styles.key}>
           <View style={styles.keyItem}>
-            <View style={styles.keyMeals} />
+            <Apple size={14} strokeWidth={2.4} color={colors.success} />
             <Text style={styles.keyText}>Meals logged</Text>
           </View>
           <View style={styles.keyItem}>
@@ -268,10 +276,9 @@ const useStyles = themedStyles((c) => ({
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'transparent' },
   dotShown: { backgroundColor: c.success },
   dotOnSelected: { backgroundColor: c.onPrimary },
-  // The header's calendar (D-84): a day with a meal tinted green; the dumbbell's row 12 tall on every
-  // day, so the dates line up; the key under a rule.
-  loggedDay: { backgroundColor: c.loggedDayTint },
-  marks: { height: 12, alignItems: 'center', justifyContent: 'center' },
+  // The header's calendar (D-84): the apple's and the dumbbell's row 12 tall on every day, so the dates
+  // line up; the key under a rule.
+  marks: { height: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   key: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -283,6 +290,5 @@ const useStyles = themedStyles((c) => ({
     borderTopColor: c.border,
   },
   keyItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  keyMeals: { width: 14, height: 14, borderRadius: 3, backgroundColor: c.loggedDayTint },
   keyText: { ...TYPE.small, color: c.inkMuted },
 }));
