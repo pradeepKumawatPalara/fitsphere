@@ -1,5 +1,5 @@
 import type { MealItem } from '@fitsphere/shared';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { FUTURE_DAY, OLDER_DAY } from '../components/CalendarSheet';
 import { HeaderActions, HeaderTitle } from '../components/AppHeader';
 import { saveEntry } from '../local/store';
@@ -100,7 +100,7 @@ describe('REQ-NAV-002 calendar', () => {
 });
 
 // The header's calendar marks each day's meals and workouts (D-84; canvas "2.2 Calendar · workout
-// days", C locked). Synthetic: meals on Mon 26 Oct (two) and Tue 27 Oct; a workout on Mon 26 Oct, two
+// days", C locked, then "2.2 Calendar · an apple for meals", B locked). Synthetic: meals on Mon 26 Oct (two) and Tue 27 Oct; a workout on Mon 26 Oct, two
 // on Wed 21 Oct and one on Thu 10 Sep; on Thu 22 Oct a workout with no exercise, which no list shows (D-65).
 const SQUAT = sameSets('Squat', 3, 10, 40_000);
 const FOOD: MealItem = { source: 'own', ref: null, name: 'Synthetic food', amount: { unit: 'g', value: 100 }, kcal: 100, proteinG: 5, carbsG: null, fatG: null, fibreG: null, estimated: false };
@@ -135,7 +135,7 @@ async function renderWithDays() {
 }
 
 describe('D-84 the header calendar marks meals and workouts', () => {
-  it('D-84 a day with a meal is green, a day with a workout has a dumbbell; each day says what was logged', async () => {
+  it('D-84 a day with a meal has an apple, a day with a workout a dumbbell, no day is tinted; each day says what was logged', async () => {
     await renderWithDays();
     await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
 
@@ -143,17 +143,19 @@ describe('D-84 the header calendar marks meals and workouts', () => {
     const tuesday = screen.getByRole('button', { name: 'Tuesday 27 October 2026, 1 meal logged' });
     const wednesday = screen.getByRole('button', { name: 'Wednesday 21 October 2026, 2 workouts logged' });
     const empty = screen.getByRole('button', { name: 'Thursday 22 October 2026, Nothing logged' });
-    expect(monday).toHaveStyle({ backgroundColor: LIGHT_COLORS.loggedDayTint });
-    expect(tuesday).toHaveStyle({ backgroundColor: LIGHT_COLORS.loggedDayTint });
-    expect(wednesday).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.loggedDayTint });
+    expect(screen.getByTestId('meals-2026-10-26')).toBeOnTheScreen();
+    expect(screen.getByTestId('meals-2026-10-27')).toBeOnTheScreen();
+    expect(screen.queryByTestId('meals-2026-10-21')).toBeNull();
     expect(screen.getByTestId('workout-2026-10-26')).toBeOnTheScreen();
     expect(screen.getByTestId('workout-2026-10-21')).toBeOnTheScreen();
     expect(screen.queryByTestId('workout-2026-10-27')).toBeNull();
+    // No green days (the owner, 2026-11-12): a day with meals keeps the plain background.
+    for (const day of [monday, tuesday, wednesday]) expect(day).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.successTint });
     // A workout with no exercise is not marked (D-65).
-    expect(empty).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.loggedDayTint });
-    expect(screen.queryByTestId('workout-2026-10-22')).toBeNull();
+    expect(within(empty).queryByTestId('workout-2026-10-22')).toBeNull();
+    expect(screen.queryByTestId('meals-2026-10-22')).toBeNull();
     // The key under the days.
-    expect(screen.getByLabelText('Key: a green day has meals logged; a dumbbell marks a workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Key: an apple marks meals logged; a dumbbell marks a workout')).toBeOnTheScreen();
     expect(screen.getByText('Meals logged')).toBeOnTheScreen();
     expect(screen.getByText('Workout')).toBeOnTheScreen();
   });

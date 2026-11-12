@@ -46,8 +46,6 @@ export type ThemeColors = {
   /** Done, a target met, a logged day. */
   success: string;
   successTint: string;
-  /** A day with a meal in the header's month calendar (D-84): a soft green fill, a little stronger than `successTint`. */
-  loggedDayTint: string;
   /** Over a target (Q-022): gold, never red. */
   warning: string;
   /** A quiet fill of `warning`'s gold: an icon tile (Log meal's Saved meals, D-58). */
@@ -88,7 +86,6 @@ export const LIGHT_COLORS: ThemeColors = {
   fiber: '#6F8D9B',
   success: '#3F7A5C',
   successTint: 'rgba(63,122,92,0.10)',
-  loggedDayTint: 'rgba(63,122,92,0.14)',
   warning: '#96650F',
   warningTint: 'rgba(150,101,15,0.10)',
   danger: '#B0463A',
@@ -122,7 +119,6 @@ export const DARK_COLORS: ThemeColors = {
   fiber: '#6D8592',
   success: '#7FB89A',
   successTint: 'rgba(127,184,154,0.14)',
-  loggedDayTint: 'rgba(127,184,154,0.17)',
   warning: '#E8C37C',
   warningTint: 'rgba(232,195,124,0.14)',
   danger: '#E5806F',

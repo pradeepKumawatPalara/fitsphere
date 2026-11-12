@@ -46,11 +46,11 @@ Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN
 - Each tab shows an icon over its label (D-34, amending D-23's text labels). Since the redesign's 2.1 (D-35, locked by the owner 2026-11-03): Lucide outline icons, labels in condensed capitals, and the tab shown in caramel with a bar along its top edge, the others muted; read out as selected.
 
 ### REQ-NAV-002 — Common header
-- Requirement: Every main screen shows the selected date, a calendar shortcut and a profile avatar that opens Account settings. The calendar marks each day with a meal (tinted green) and each day with a workout (a dumbbell under the date), and counts the month's workouts under its name (D-84).
+- Requirement: Every main screen shows the selected date, a calendar shortcut and a profile avatar that opens Account settings. The calendar marks each day with a meal (an apple under the date) and each day with a workout (a dumbbell), and counts the month's workouts under its name (D-84).
 - Acceptance criteria:
   - Given any main screen, then the selected date, a calendar icon and the profile avatar are visible.
   - When the avatar is tapped, then Account settings opens.
-  - Given meals and workouts on the phone, when the calendar opens, then each day with a meal is tinted green, each day with a workout Training lists (D-65) has a dumbbell, the month's workouts are counted under its name ("No workouts", "1 workout", "3 workouts"), a key explains the green and the dumbbell, and screen readers hear each day's meals and workouts ("2 meals logged, 1 workout logged", "Nothing logged") (D-84).
+  - Given meals and workouts on the phone, when the calendar opens, then each day with a meal has an apple and each day with a workout Training lists (D-65) a dumbbell under its date, no day tinted, the month's workouts are counted under its name ("No workouts", "1 workout", "3 workouts"), a key explains the apple and the dumbbell, and screen readers hear each day's meals and workouts ("2 meals logged, 1 workout logged", "Nothing logged") (D-84).
 
 ### REQ-NAV-003 — Quick-log button
 - Requirement: A floating "+" button on Home and Nutrition opens the Log meal screen (REQ-LOG-001).
