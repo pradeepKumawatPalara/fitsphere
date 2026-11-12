@@ -2897,6 +2897,38 @@ checksum), and the configuration template was left as it is.*
   build. The approved rows reach phones with the next `foods:import` and food list download.
 - Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; CLAUDE.md.
 
+## D-91 Search foods lists the plain food first
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-04 of the search QA report (the plain food
+  listed late: raw potato 191st under chips, banana 86th under a protein powder named "Banana",
+  chicken breast 296th; "watermelon pop", "Ginger Ale", "Lemon Pickle" and a baby cereal first), of
+  the three ways proposed (the plain food first; every brand and packaged food after the other
+  sources; two sections, Foods and Products), "GO with A"). Numbered D-91 because D-90 is
+  fitsphere-af's. Built with D-86, D-88 and D-89 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; amends D-51 and D-54):
+  - **The plain food the search names comes first**, before an exact match (D-51) and every source
+    (D-54): a food that is not a brand's (brand labels) or a packaged product, named as typed, or as
+    typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)", "Peanut (raw)"), or one
+    of IFCT's named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast,
+    skinless": IFCT's way of naming a food's kinds). Other sources' commas list a dish's foods
+    ("Carrot, Radish & Peanut Salad"), so those names are not plain.
+  - Among the plain foods, your own (My foods) first, then IFCT's, measured, then the rest in the
+    order by source; each group as before. Marks, case and accents are ignored as everywhere (D-86,
+    D-88).
+  - Everything else keeps its order: the exact matches (D-51), then the best matches first (D-66),
+    each group by source (D-54). A search with no plain food lists as before: brand searches
+    ("amul", "maggi", "bread", "oats") are unchanged.
+- Checked on the dev database's food list (read only), 578 searches: 93 changed, none of the brand
+  searches. The plain food now comes first for banana (was 86th), apple (53rd), potato (191st),
+  onion (195th), tomato (237th), chicken (296th), milk (318th), rice (262nd), egg (37th), garlic,
+  lemon, coconut, carrot, ginger, watermelon, prawns, groundnut (IFCT's "Ground nut") and others.
+- Not changed, the data's doing: searches with no plain food in the list ("tea", "coffee", "fish",
+  "mutton", "dal"; QA-05); "rice" lists IFCT's raw rice first, the cooked one being "Boiled rice
+  (Uble chawal)" (QA-08). Two plain foods now first that the data names or values poorly: "eggs"
+  finds IFCT's "Eggs, Cat fish" (a fish's eggs) first, and "green tea" the estimated "Green Tea" at
+  55 kcal, its type of dish's typical value.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
+
 ---
 
 ---

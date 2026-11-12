@@ -12,9 +12,12 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
-**Marks, accents and brand rows in a search — built on branch `fix/search-marks` (D-86, D-88 and D-89,
-2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed once merged).** From the search QA
-report (QA-09 to QA-12): Search foods reads any mark typed as a space ("paneer!", "#biryani",
+**Marks, accents, brand rows and plain foods in a search — built on branch `fix/search-marks` (D-86,
+D-88, D-89 and D-91, 2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed once
+merged).** From the search QA report (QA-04, QA-09 to QA-12): D-91 lists the plain food the search
+names first ("potato" finds IFCT's "Potato, brown skin, big" first: not a brand's or packaged, named as
+typed, or with a part in brackets, or IFCT's with a comma; `plainFor` in `FoodSearchSheet.tsx`). Search
+foods reads any mark typed as a space ("paneer!", "#biryani",
 "egg+white" find what the words find), leaves out a word of marks alone ("aloo & gobi" as "aloo
 gobi") and does not count marks towards D-72's three characters ("on!" as "on"); only % counts
 ("55%"). D-88: accents are ignored, typed or in names and brands ("nestle" finds Nestlé), in the exact
