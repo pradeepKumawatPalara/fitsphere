@@ -2,8 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema
-  version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
+- Last updated: 2026-11-12 (Search foods ignores accents, D-88: phone schema version 21). 2026-11-11
+  (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
   Earlier the same day (targets by date, D-77: migration 0027, phone schema version 19).
   2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
   Earlier the same day (the exercise library's places, D-67: migration 0022, phone schema version 16).
@@ -719,6 +719,7 @@ searches. The setting lasts as long as the connection and is set at each start.
   food. The update fills them from the rows already on the phone and keeps `food_list_version`, so
   search keeps working offline and nothing is downloaded again. The packaged foods are written 90
   rows a statement. My foods and dishes, a few rows each, are read the same way at search time.
+  Since D-86 and D-88 the search text has accents taken off and every mark but % read as a space.
 - **Version 16** (the exercise library, D-67) adds `exercises.places` (JSON) and `exercises.place_keys`
   and clears `exercise_list_version`, so the next download brings them. The list is written 80 rows a
   statement.
@@ -730,6 +731,9 @@ searches. The setting lasts as long as the connection and is set at each start.
   pulls every target value with its day.
 - **Version 20** (an exercise's page, D-82) adds `exercises.details` (JSON, null when the library has
   none) and clears `exercise_list_version`, so the next download brings them.
+- **Version 21** (accents ignored, D-88) clears `food_list_version`, so the next download writes every
+  food's and packaged food's search text again, accents taken off. The foods stay on the phone and are
+  searched with their old search text until then.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

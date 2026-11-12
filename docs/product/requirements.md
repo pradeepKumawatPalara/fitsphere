@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (D-85: REQ-HOME-008, when measurements were last logged and "Due" after 7 days; D-84: REQ-NAV-002, the header's calendar marks meal days and workout days; D-83: REQ-TRN-003, the Workout in progress pill; D-82: REQ-TRN-008, the graph touched, History's three bests). 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-12 (D-89: REQ-LOG-007, a name's brands alike in energy, each brand once; D-88: REQ-LOG-007, Search foods ignores accents; D-86: REQ-LOG-007, Search foods ignores any mark typed; D-85: REQ-HOME-008, when measurements were last logged and "Due" after 7 days; D-84: REQ-NAV-002, the header's calendar marks meal days and workout days; D-83: REQ-TRN-003, the Workout in progress pill; D-82: REQ-TRN-008, the graph touched, History's three bests). 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -563,19 +563,28 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   estimated dishes (typical values for each type of dish, from the owner's dish database) come after
   the dishes, before IFCT's foods, marked "estimated", found by their base food too, logged in grams
   or by their serving; and the search ignores marks and finds words typed together ("haldirams"
-  finds Haldiram's, "dalmakhani" finds Dal Makhani, never a word's end and the next one's start). Since
+  finds Haldiram's, "dalmakhani" finds Dal Makhani, never a word's end and the next one's start); since
+  D-86 any other mark typed reads as a space and a word of marks alone is left out ("paneer!" finds what
+  "paneer" finds, "aloo & gobi" what "aloo gobi" finds), only % counting, as names use it ("55%"); and
+  since D-88 accents are ignored, typed or in a name or brand ("nestle" finds Nestlé, "jalapeno" finds
+  Jalapeño; Devanagari is read as it is). Since
   D-66 every match is listed, with no cap on any source, the best matches first: names with the
   words whole, then words starting with them, then inside a word, then foods found only by hidden
   search words, each group in the order above. The results follow the text typed or erased;
-  since D-72 the phone searches once typing pauses, one search at a time, and one or two characters
-  find only the foods whose name, brand or other name is all of them ("on" finds the brand ON),
+  since D-72 the phone searches once typing pauses, one search at a time, and one or two characters,
+  marks not counted (D-86: "on!" as "on"), find only the foods whose name, brand or other name is all of
+  them ("on" finds the brand ON),
   under "Type 3 letters or more to search all foods."; since D-73 the list shows the results 200 at a
   time, adding the next 200 from those already found as its end comes near, and a food's servings
   and units are read when its page opens;
   since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
   source tag (the marks above stay on each food's page): a branded food shows its brand under its
   name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·
-  220–274 kcal per 100 g") that opens to list them, a brand each. Your own food can be in any of several units and saved to My foods
+  220–274 kcal per 100 g") that opens to list them, a brand each; since D-89 only foods alike in
+  energy share a row (no more than twice the one before, or 20 kcal apart: "Gold" is a coffee, a tea,
+  a milk and an oil, four rows), and a brand counts once however it is written (case, marks, accents,
+  "The", a company's words), its spellings and makers made one in the food list as the owner approves
+  them (`docs/data/brand-names-sheet.csv`). Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods
