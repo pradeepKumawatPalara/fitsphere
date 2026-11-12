@@ -44,6 +44,7 @@ Theme follows the phone setting (System) by default; Dark is the hero theme for 
 | `fiber` | `#6D8592` | `#6F8D9B` | Fiber |
 | `success` | `#7FB89A` | `#3F7A5C` | Done states, password rules met |
 | `successTint` | `rgba(127,184,154,.14)` | `rgba(63,122,92,.10)` | Success banners |
+| `loggedDayTint` | `rgba(127,184,154,.17)` | `rgba(63,122,92,.14)` | A day with a meal in the header's month calendar (D-84) |
 | `warning` | `#E8C37C` | `#96650F` | Over target |
 | `warningTint` | `rgba(232,195,124,.14)` | `rgba(150,101,15,.10)` | Icon tile (Log meal's Saved meals, D-58) |
 | `danger` | `#E5806F` | `#B0463A` | Errors, destructive |

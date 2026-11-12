@@ -12,6 +12,13 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Workout days in the header's calendar — built on branch `feat/calendar-workouts` (D-84,
+2026-11-12), in `D:\fitsphere`.** Canvas boards `CalendarWorkouts*` C locked (version 89). The
+header's month calendar tints each day with a meal green (`loggedDayTint`), puts a dumbbell under each
+day with a workout Training lists, counts the month's workouts under its name ("3 workouts") and has a
+key under the days; screen readers hear each day's meals and workouts. Log meal's calendar keeps its
+dots. Phone app only: no server change, no migration, no phone schema change, no new build.
+
 **An exercise's page: Progress, History and How to — built on branch `feat/exercise-details` (D-82,
 2026-11-11), with D-81, in `D:\fitsphere-exercise-details`.** Plan: `docs/plans/exercise-details-page.md`
 (Accepted), REQ-TRN-008; canvas boards `ExerciseDetail*` locked (version 79), `WorkoutIcons*` C chosen
