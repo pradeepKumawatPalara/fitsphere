@@ -99,7 +99,7 @@ describe('Local schema version 13', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       expect(await searchExercises(old, 'run')).toEqual([]);
     } finally {
@@ -165,7 +165,7 @@ describe('Local schema version 16', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       await replaceExercises(old, 'v2', TEST_EXERCISE_LIST);
       expect(names(await searchExercises(old, '', 100, { category: 'Barbell', subGroup: 'Chest' }))).toEqual(['Barbell bench press']);
@@ -190,7 +190,7 @@ describe('D-82 how to do each exercise on the phone', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       await replaceExercises(old, 'v2', TEST_EXERCISE_LIST);
       expect((await findListedExercise(old, 'Dumbbell bench press'))?.details?.howTo).toHaveLength(3);

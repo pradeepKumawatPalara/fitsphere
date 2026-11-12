@@ -380,13 +380,25 @@ function typesOf(spec: KindSpec): [string, string] {
 // --- The local schema ---
 
 /**
- * How a food search reads names, brands, aliases and the words typed (D-62): the marks ' ’ . are
- * dropped ("haldirams" finds "Haldiram's", "mr. makhana" finds "Mr. Makhana"), and - & , / ( ) are
- * read as spaces ("dal-makhani" reads "dal makhani"), as are the double quotes that keep a food's
- * aliases apart. % and _ stay plain characters.
+ * How a food search reads names, brands, aliases and the words typed (D-62, D-86): the marks ' ’ ‘ ` ´
+ * . are dropped ("haldirams" finds "Haldiram's", "mr. makhana" finds "Mr. Makhana"), and every other
+ * mark is read as a space ("dal-makhani" reads "dal makhani", "paneer!" reads "paneer"), as are the
+ * double quotes that keep a food's aliases apart. Only % stays, as names use it ("55% Dark
+ * Chocolate"). The phone's own code reads any character that is not a letter, a digit or % as a space
+ * (`readName`); SQL cannot, so it reads the marks below, those a phone's keyboard types (D-86).
  */
-const DROPPED_MARKS = ["'", '’', '.'] as const;
-const SPACE_MARKS = ['-', '&', ',', '/', '(', ')', '"'] as const;
+const DROPPED_MARKS = ["'", '’', '‘', '`', '´', '.'] as const;
+/**
+ * The letters SQL reads without their accents (D-88), as `withoutAccents` does: SQL's lower() leaves
+ * them as they are, capitals too, so both are listed.
+ */
+const ACCENTED_LETTERS = Object.entries({ a: 'àáâãäåā', c: 'çč', e: 'èéêëē', i: 'ìíîïī', n: 'ñ', o: 'òóôõöøō', u: 'ùúûüū', y: 'ýÿ', l: 'ł', s: 'š', z: 'ž', d: 'đ', ss: 'ß', ae: 'æ', oe: 'œ' }).flatMap(
+  ([plain, letters]) => [...letters].flatMap((letter) => [letter, letter.toUpperCase()].filter((form, at, forms) => form.length === 1 && forms.indexOf(form) === at).map((form) => [form, plain] as const)),
+);
+const SPACE_MARKS = [
+  ...['-', '&', ',', '/', '(', ')', '"', '!', '?', ':', ';', '[', ']', '{', '}', '*', '#', '+', '_', '@', '=', '|', '~', '^', '<', '>', '$', '\\'],
+  ...['“', '”', '„', '–', '—', '…', '•', '·', '°', '™', '®', '©', '₹'],
+] as const;
 
 const SYNC_STATE = `sync_state TEXT NOT NULL CHECK (sync_state IN ('synced', 'pending', 'rejected'))`;
 
@@ -677,6 +689,9 @@ const MIGRATIONS = [
   // version is cleared, so the next download brings them.
   `ALTER TABLE exercises ADD COLUMN details TEXT;
    DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
+  // Accents (D-88): a search reads "é" as "e", so the food list's version is cleared and the next
+  // download writes each food's search text again; the foods stay, and are searched as before till then.
+  `DELETE FROM sync_meta WHERE key = 'food_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1304,11 +1319,8 @@ const PACKAGED_ROWS_PER_INSERT = 90;
 export async function searchPackaged(db: SqlDb, query: string, limit?: number): Promise<PackagedFood[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const columns = [
-    { raw: 'name', read: 'search_name' },
-    { raw: "coalesce(brand, '')", read: 'search_brand' },
-  ];
-  const match = isShortSearch(query) ? wholeMatch(query, ['search_name', 'search_brand']) : wordsMatch(words, columns);
+  const columns = ['search_name', 'search_brand'];
+  const match = isShortSearch(query) ? wholeMatch(query, columns) : wordsMatch(words, columns);
   const first = firstWordFirst(words[0]!, columns);
   const rows = await db.getAllAsync<PackagedRow>(
     `SELECT * FROM packaged_foods WHERE ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
@@ -1398,9 +1410,8 @@ export async function getFood(db: SqlDb, source: string, code: string): Promise<
 async function foodMatches<T>(db: SqlDb, query: string, columns: string, limit: number | undefined): Promise<T[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
-  const name = { raw: 'name', read: 'search_name' };
-  const match = isShortSearch(query) ? wholeMatch(query, ['search_name'], true) : wordsMatch(words, [name, { raw: 'aliases', read: 'search_aliases' }]);
-  const first = firstWordFirst(words[0]!, [name]);
+  const match = isShortSearch(query) ? wholeMatch(query, ['search_name'], true) : wordsMatch(words, ['search_name', 'search_aliases']);
+  const first = firstWordFirst(words[0]!, ['search_name']);
   const rows: T[] = [];
   for (const source of SEARCH_ORDER) {
     rows.push(
@@ -1691,23 +1702,29 @@ export async function findListedExercise(db: SqlDb, name: string): Promise<Liste
   return row ? toListedExercise(row) : null;
 }
 
+/**
+ * The words of a food search, up to five, each read as a search reads it (D-62): a mark inside a word
+ * reads as a space there ("dal-makhani" reads "dal makhani"), and a word of marks alone is left out
+ * (D-86: "aloo & gobi" searches as "aloo gobi").
+ */
 function searchWords(query: string): string[] {
   return query
-    .toLowerCase()
     .split(/[\s,]+/)
+    .map(readName)
     .filter((word) => word.length > 0)
     .slice(0, 5);
 }
 
-/** The fewest characters, spaces not counted, a search needs to find foods by part of their name (D-72). */
+/** The fewest characters, spaces and marks not counted, a search needs to find foods by part of their name (D-72). */
 export const SEARCH_MIN_CHARACTERS = 3;
 
 /**
- * Whether a food search is short (D-72): fewer than SEARCH_MIN_CHARACTERS, spaces not counted. One or
- * two letters match thousands of foods; a short search finds only those named by all of it.
+ * Whether a food search is short (D-72): fewer than SEARCH_MIN_CHARACTERS, spaces and marks not
+ * counted (D-86: "on!" is as short as "on"). One or two letters match thousands of foods; a short
+ * search finds only those named by all of it.
  */
 export function isShortSearch(query: string): boolean {
-  return query.replace(/\s/g, '').length < SEARCH_MIN_CHARACTERS;
+  return readName(query).replace(/ /g, '').length < SEARCH_MIN_CHARACTERS;
 }
 
 /**
@@ -1739,12 +1756,16 @@ const sqlLimit = (limit: number | undefined) => limit ?? -1;
 /** A piece of SQL and the values for its `?`s. */
 type SqlPart = { sql: string; params: string[] };
 
-/** `lower(column)` read as a search reads it in SQL, after a space, so every word starts after one. */
+/**
+ * `lower(column)` read as a search reads it in SQL, after a space, so every word starts after one: as
+ * `readName` reads it, for every mark a keyboard types (D-86).
+ */
 function searched(column: string): string {
-  const dropped = DROPPED_MARKS.reduce((sql, mark) => `replace(${sql}, '${mark.replace(/'/g, "''")}', '')`, `lower(${column})`);
+  const plain = ACCENTED_LETTERS.reduce((sql, [letter, without]) => `replace(${sql}, '${letter}', '${without}')`, `lower(${column})`);
+  const dropped = DROPPED_MARKS.reduce((sql, mark) => `replace(${sql}, '${mark.replace(/'/g, "''")}', '')`, plain);
   const spaced = SPACE_MARKS.reduce((sql, mark) => `replace(${sql}, '${mark}', ' ')`, dropped);
-  // Up to four spaces in a row read as one: "dal (makhani)" reads "dal makhani ".
-  return `' ' || replace(replace(${spaced}, '  ', ' '), '  ', ' ')`;
+  // Up to four spaces in a row read as one, and none at the ends: "dal (makhani)" reads "dal makhani".
+  return `' ' || trim(replace(replace(${spaced}, '  ', ' '), '  ', ' '))`;
 }
 
 /**
@@ -1766,17 +1787,8 @@ export function searchText(text: string): string {
   return ` ${readName(text)}`;
 }
 
-/** A searched column: as stored (`raw`), for a word that is nothing but marks, and as a search reads it (`read`). */
-type SearchColumn = { raw: string; read: string };
-
-/** The name of a small table read by `searchedTable`. */
-const READ_NAME: readonly SearchColumn[] = [{ raw: 'name', read: 's0' }];
-
-/** A word typed, read as a search reads it, or as typed when it is nothing but marks. */
-function searchedWord(typed: string): { word: string; read: boolean } {
-  const word = readName(typed);
-  return word ? { word, read: true } : { word: typed, read: false };
-}
+/** The name of a small table, as `searchedTable` reads it. */
+const READ_NAME: readonly string[] = ['s0'];
 
 /** The longest word typed that is also tried as two words typed together. */
 const JOINED_WORD_MAX = 24;
@@ -1793,17 +1805,15 @@ function joinedForms(word: string): [string, string][] {
 }
 
 /**
- * Whether the column, as a search reads it, has the word (D-62): anywhere, or typed as
+ * Whether the column, read as a search reads it, has the word (D-62): anywhere, or typed as
  * two words run together where the column has them apart, the first starting a word
  * ("healthfactory" finds "The Health Factory", "dalmakhani" finds "Dal Makhani"); or, for ordering,
- * at its start. A word that is nothing but marks is looked for in the column as it is.
+ * at its start. The word is one of `searchWords`, so never marks alone (D-86).
  */
-function columnHas(column: SearchColumn, typed: string, at: 'anywhere' | 'start'): SqlPart {
-  const { word, read } = searchedWord(typed);
-  if (!read) return { sql: `lower(${column.raw}) LIKE ? ESCAPE '\\'`, params: [at === 'anywhere' ? like(word) : startsWith(word)] };
+function columnHas(column: string, word: string, at: 'anywhere' | 'start'): SqlPart {
   const forms = joinedForms(word).map(([first, second]) => ` ${escapeLike(first)} ${escapeLike(second)}%`);
   const params = [at === 'anywhere' ? like(word) : ` ${escapeLike(word)}%`, ...forms.map((form) => (at === 'anywhere' ? `%${form}` : form))];
-  return { sql: params.map(() => `${column.read} LIKE ? ESCAPE '\\'`).join(' OR '), params };
+  return { sql: params.map(() => `${column} LIKE ? ESCAPE '\\'`).join(' OR '), params };
 }
 
 /**
@@ -1815,10 +1825,7 @@ function columnHas(column: SearchColumn, typed: string, at: 'anywhere' | 'start'
  * hidden search words ("Baati", by "dal baati"). The worst of the words counts.
  */
 export function nameMatcher(query: string): (name: string) => 0 | 1 | 2 | 3 {
-  const words = searchWords(query).map((typed) => {
-    const { word, read } = searchedWord(typed);
-    return { word, forms: [word, ...(read ? joinedForms(word).map(([first, second]) => `${first} ${second}`) : [])] };
-  });
+  const words = searchWords(query).map((word) => ({ word, forms: [word, ...joinedForms(word).map(([first, second]) => `${first} ${second}`)] }));
   return (name) => {
     const text = ` ${readName(name)} `;
     let worst: 0 | 1 | 2 | 3 = 0;
@@ -1830,22 +1837,44 @@ export function nameMatcher(query: string): (name: string) => 0 | 1 | 2 | 3 {
   };
 }
 
-/** A name read as a search reads it (D-62): lowercase, ' ’ . dropped, the other marks read as spaces. */
-function readName(name: string): string {
-  return name.toLowerCase().replace(/['’.]/g, '').replace(/[-&,/()"]/g, ' ').replace(/\s+/g, ' ').trim();
+/** Letters with no accent to take off, read as the plain letters they stand for (D-88). */
+const PLAIN_LETTERS: Readonly<Record<string, string>> = { ø: 'o', ł: 'l', đ: 'd', ß: 'ss', æ: 'ae', œ: 'oe' };
+
+/**
+ * A lowercase text without its letters' accents (D-88): "nestlé" reads "nestle", "jalapeño"
+ * "jalapeno", "ø" "o". Only Latin letters' accents go: Devanagari's vowel signs stay.
+ */
+export function withoutAccents(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .normalize('NFC')
+    .replace(/[øłđßæœ]/g, (letter) => PLAIN_LETTERS[letter]!);
 }
 
-/** Every word in one of the columns (D-62). */
-function wordsMatch(words: readonly string[], columns: readonly SearchColumn[]): SqlPart {
-  const parts = words.map((typed): SqlPart => {
-    const each = columns.map((column) => columnHas(column, typed, 'anywhere'));
+/**
+ * A name, or a search, read as a search reads it (D-62, D-86, D-88): lowercase, without accents; ' ’ ‘
+ * ` ´ . dropped; and any other character that is not a letter, a digit or % read as a space, one space
+ * between words, none at the ends. So no mark typed can keep a search from finding a food.
+ */
+function readName(name: string): string {
+  return withoutAccents(name.toLowerCase())
+    .replace(/['’‘`´.]/g, '')
+    .replace(/[^\p{L}\p{M}\p{N}%]+/gu, ' ')
+    .trim();
+}
+
+/** Every word in one of the columns, each column as a search reads it (D-62). */
+function wordsMatch(words: readonly string[], columns: readonly string[]): SqlPart {
+  const parts = words.map((word): SqlPart => {
+    const each = columns.map((column) => columnHas(column, word, 'anywhere'));
     return { sql: `(${each.map((part) => part.sql).join(' OR ')})`, params: each.flatMap((part) => part.params) };
   });
   return { sql: parts.map((part) => part.sql).join(' AND '), params: parts.flatMap((part) => part.params) };
 }
 
 /** Whether one of the columns starts with the word, for ordering (D-62). */
-function firstWordFirst(typed: string, columns: readonly SearchColumn[]): SqlPart {
-  const each = columns.map((column) => columnHas(column, typed, 'start'));
+function firstWordFirst(word: string, columns: readonly string[]): SqlPart {
+  const each = columns.map((column) => columnHas(column, word, 'start'));
   return { sql: `(${each.map((part) => part.sql).join(' OR ')})`, params: each.flatMap((part) => part.params) };
 }

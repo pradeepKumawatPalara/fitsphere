@@ -298,7 +298,7 @@ describe('Local schema version 19 (D-77)', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await listTargets(old)).toEqual([
         { kind: 'calories', day: '2026-11-11', value: 2_200, setAt, setByUserId: null, syncState: 'pending' },
       ]);

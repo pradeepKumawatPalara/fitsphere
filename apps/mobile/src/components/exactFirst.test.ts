@@ -90,4 +90,20 @@ describe('D-66 the best matches first (the owner, 2026-11-10)', () => {
     expect(nameMatcher('dal')('Chicken Vindaloo')).toBe(2);
     expect(nameMatcher('dal')('Baati (baked)')).toBe(3);
   });
+
+  it('D-86 reads any mark typed as a space, and leaves out a word of marks alone', () => {
+    expect(nameMatcher('paneer!')('Paneer tikka')).toBe(0);
+    expect(nameMatcher('#biryani')('Veg biryani')).toBe(0);
+    expect(nameMatcher('aloo & gobi')('Aloo gobi')).toBe(0);
+    expect(nameMatcher('egg+white')('Egg white, boiled')).toBe(0);
+    expect(nameMatcher('oatsalmonds')('Oats + Almonds!')).toBe(0);
+    // An exact match ignores the marks too (D-51).
+    expect(names(inSearchOrder('paneer!', [food('Paneer tikka'), food('Paneer')]))).toEqual(['Paneer', 'Paneer tikka']);
+  });
+
+  it('D-88 ignores accents, in the words and the exact match', () => {
+    expect(nameMatcher('cafe')('Café latte')).toBe(0);
+    expect(nameMatcher('jalapeño')('Jalapeno chips')).toBe(0);
+    expect(names(inSearchOrder('testle koko krunch', [food('Koko Krunch cereal'), packaged('Koko Krunch', 'Testlé')]))).toEqual(['Koko Krunch', 'Koko Krunch cereal']);
+  });
 });
