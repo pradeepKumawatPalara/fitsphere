@@ -19,7 +19,8 @@ off `main`. Data-loss and sync bugs first.
 and How to do it in Add exercise, open the exercise's page
 (`components/ExerciseDetailsPage.tsx`, a whole page over the screen; the numbers in
 `src/exerciseStats.ts`): Progress (three records with their days, the workouts, a graph for 4W, 12W or
-All; a lift's Est. 1RM, Heaviest or Volume), History (a card per workout, BEST on the best, Load older)
+All; a lift's Est. 1RM, Heaviest or Volume), History (the bests on top, a lift's Best 1RM, Heaviest and Best volume, and as tags on each card's
+date line; Load older)
 and How to (the video, else the owner's default `EXERCISE_DEFAULT_VIDEO_URL`, opened outside the app;
 the first place's steps, Watch for, muscles and equipment; "General guidance, not personal advice. Stop
 if anything hurts."). `GET /v1/exercises` sends `details`; phone schema version 20. No migration beyond

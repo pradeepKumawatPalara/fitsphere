@@ -681,12 +681,14 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given an exercise of the list picked in Add exercise, when the user taps How to do it, then its
     page opens on How to, and the back arrow returns to the form as it was.
   - Progress shows three records for the exercise's kind, each with the day it was made (a lift:
-    Estimated 1RM, Best set, Best session; running: Longest distance, Fastest pace, Workouts), the
+    Estimated 1RM, Heaviest, Best volume; running: Longest distance, Fastest pace, Workouts), the
     number of workouts with their first and last days, and a graph for 4W, 12W or All that needs two
     workouts in the range; a lift's graph shows Est. 1RM, Heaviest or Volume.
   - History lists each workout with the exercise, newest first, its sets as the workout page shows
-    them; BEST marks the best ever; a workout on the phone opens from its card; Load older reads older
-    workouts online, which are shown, not opened.
+    them; the exercise's bests (a lift: Best 1RM, Heaviest, Best volume; running: Longest, Fastest)
+    show as tiles at the top, each with its value and day, scrolling to its workout when tapped, and
+    as tags at the top right of the card holding each, on its date's line; a workout on the phone opens
+    from its card; Load older reads older workouts online, which are shown, not opened.
   - How to shows the library's steps, what to watch for, the muscles worked (the primary first) and
     the equipment, with "General guidance, not personal advice. Stop if anything hurts."; and a video
     card opening the exercise's own video, or the owner's default one, outside the app. With no

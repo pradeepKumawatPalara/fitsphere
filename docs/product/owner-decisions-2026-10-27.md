@@ -2632,7 +2632,11 @@ checksum), and the configuration template was left as it is.*
   default; locked in version 79; then, after a phone test: "on the workout screen for each excercise
   the Icon of Edit, chart and Delete does not look on the current posisiotn. Come up with the different
   canval design to set up. Never change coode before my approval", and of the canvas's four layouts
-  (version 80): "c", a bar with words). Built on branch `feat/exercise-details` with D-81, in the folder
+  (version 80): "c", a bar with words; then, 2026-11-12: "in the History tab I want that Best should be
+  shows as pr the 3 crateria. 1 RM Heaviest Volumn. Come up with the UI Desing for this"; of the
+  canvas's four layouts: "I would prefer C> but the tag should be on the top right conver. and the date
+  and tag can be in the one line"; asked whether Progress's three cards should match: "Yes", "lock it",
+  canvas version 85). Built on branch `feat/exercise-details` with D-81, in the folder
   `D:\fitsphere-exercise-details`.
 - Answer (REQ-TRN-008; plan [`docs/plans/exercise-details-page.md`](../plans/exercise-details-page.md),
   Accepted; the redesign's 4.4):
@@ -2643,7 +2647,8 @@ checksum), and the configuration template was left as it is.*
     workout or Add exercise with a back arrow, as the exercise page (D-67), and opens on Progress for
     an exercise logged before, otherwise on How to. Under the name, the muscles it works.
   - **Progress:** three record cards, each with the day it was made, for the exercise's kind: a lift's
-    Estimated 1RM, Best set and Best session (the most weight moved in one workout); a bodyweight
+    Estimated 1RM, Heaviest and Best volume (the most weight moved in one workout), History's three
+    bests (the owner, 2026-11-12); a bodyweight
     exercise's Most reps, Best session and Workouts; running's Longest distance, Fastest pace and
     Workouts; and so for the other kinds (the plan's table). A line, "6 workouts · first on Mon 14 Sep
     · last on Fri 30 Oct". The graph, with 4W, 12W and All, a dot per workout, the latest value and the
@@ -2651,8 +2656,12 @@ checksum), and the configuration template was left as it is.*
     Volume. Never done: "Log this exercise in a workout to see your progress."
   - **History:** a card per workout, newest first, every set as the workout page shows them, the
     workout's best set in full colour, with its volume and 1RM, or for cardio its speed and pace;
-    **BEST** on the best ever (the user's best time for a timed or cardio exercise); a card opens its
-    workout; **Load older** reads older workouts online, as Training does.
+    a card opens its workout; **Load older** reads older workouts online, as Training does. **The
+    bests** (the owner's C, 2026-11-12): a lift's three, **Best 1RM**, **Heaviest** and **Best
+    volume**, as tiles at the top, each with its value and day, tapping one scrolling to its workout;
+    and on each workout's card, the bests it holds as tags at its top right, on the date's line, in the
+    owner's words: **1RM**, **Heaviest**, **Volume**. Running's are **Longest** and **Fastest**; the
+    other kinds keep their own (the plan's table).
   - **How to:** the video, the exercise's own address or else **the owner's default video**
     (`https://www.youtube.com/watch?v=IT94xC35u6k`, answer 3), opened in YouTube or the browser; the
     steps; **Watch for**; the muscles worked, the primary first and filled, and the equipment; its place

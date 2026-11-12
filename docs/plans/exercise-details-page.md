@@ -39,8 +39,9 @@ The exercise's name, and under it the muscles it works ("Traps · Upper back · 
 details, its category and sub-group, or its group ("Cardio").
 
 ### Progress tab
-- **Three record cards**, each with the date it was made. For a lift: **Estimated 1RM**, **Best set**
-  ("70.0 × 8") and **Best session** (the most weight moved in one workout, "560 kg"). Other kinds have
+- **Three record cards**, each with the date it was made. For a lift: **Estimated 1RM**, **Heaviest**
+  and **Best volume** (the most weight moved in one workout, "560 kg"), History's three bests (the
+  owner, 2026-11-12; first built as Best set and Best session). Other kinds have
   their own (the table below): a bodyweight exercise shows Most reps, Best session (reps) and
   Workouts; running shows Longest distance, Fastest pace and Workouts.
 - **A line under them:** "6 workouts · first on Mon 14 Sep · last on Fri 30 Oct".
@@ -57,8 +58,11 @@ details, its category and sub-group, or its group ("Cardio").
   several), every set as the workout page shows them ("Set 1  10 × 60.0 kg", D-63), the workout's
   best set in bold, and a line for a lift: "Volume 1,620 kg · Est. 1RM 88.5 kg"; for running, "6:00
   /km · 10.0 km/h".
-- **BEST** marks the workout that holds the best set ever (the user's "best time" for a timed or
-  cardio exercise: the longest hold, the longest run).
+- **The bests** (the owner's C, canvas version 85; first built as one BEST): a lift's three, **Best
+  1RM**, **Heaviest** and **Best volume**, as tiles at the top with their values and days, tapping one
+  scrolling to its workout; and on each card, the bests it holds as tags at the top right, on the
+  date's line (**1RM**, **Heaviest**, **Volume**). Running: Longest and Fastest; the other kinds, the
+  table's.
 - Tapping a card opens that workout.
 - **Load older** at the foot, as on Training: the phone keeps the last 90 days; older workouts are
   read online and kept only while the page is open.
@@ -86,16 +90,16 @@ workout's exercise belongs to the page when its name, ignoring case, hyphens and
 is the exercise's name or one of its other names (so a workout saved as "Barbell bench press"
 before D-67 counts for "Barbell Flat Bench Press"); for a name the user typed, that name.
 
-| Kind (from the sets saved) | Record cards | Graph | Best set (BEST) |
+| Kind (from the sets saved) | Record cards | Graph | History's bests (tags) |
 |---|---|---|---|
-| Weight and reps | Estimated 1RM, Best set, Best session (volume) | Est. 1RM, Heaviest or Volume | The highest estimated 1RM |
-| Reps only (bodyweight) | Most reps, Best session (total reps), Workouts | Most reps | The most reps |
-| Time only (a hold) | Longest, Best session (total time), Workouts | Longest | The longest |
-| Weight and time (a carry) | Heaviest, Longest, Workouts | Heaviest | The heaviest, then the longest |
-| Distance and time (running) | Longest distance, Fastest pace, Workouts | Distance | The longest distance |
-| Treadmill (speed) | Longest time, Fastest speed, Workouts | Time | The longest time |
-| Machine (level) | Longest time, Highest level, Workouts | Time | The longest time |
-| Time only (a class) | Longest, Total time, Workouts | Time | The longest |
+| Weight and reps | Estimated 1RM, Heaviest, Best volume | Est. 1RM, Heaviest or Volume | 1RM, Heaviest, Volume |
+| Reps only (bodyweight) | Most reps, Best session (total reps), Workouts | Most reps | Most reps, Session |
+| Time only (a hold) | Longest, Best session (total time), Workouts | Longest | Longest, Session |
+| Weight and time (a carry) | Heaviest, Longest, Workouts | Heaviest | Heaviest, Longest |
+| Distance and time (running) | Longest distance, Fastest pace, Workouts | Distance | Longest (the faster on a tie), Fastest |
+| Treadmill (speed) | Longest time, Fastest speed, Workouts | Time | Longest, Fastest |
+| Machine (level) | Longest time, Highest level, Workouts | Time | Longest, Level |
+| Time only (a class) | Longest, Total time, Workouts | Time | Longest |
 
 - **Estimated 1RM** = weight × (1 + reps ÷ 30) (the Epley formula), from sets of 1 to 12 reps (a set
   of 1 rep is its own weight), rounded to 0.5 kg or 1 lb. The picture's 70 kg × 8 gives 88.5 kg.
