@@ -50,6 +50,11 @@ details, its category and sub-group, or its group ("Cardio").
   fewer than two workouts in the range: "A graph needs two workouts with this exercise in this range."
 - Under the 1RM graph: "An estimate from your best set each workout (weight × reps). It is a guide
   to the trend, not a lift to attempt."
+- **Touching the graph** (the owner's C, canvas version 87): pressing it and sliding picks the
+  nearest workout; its dot ringed, a dashed line down from a bubble at the top with its value and day,
+  and under the graph that workout's numbers (a lift's Est. 1RM, Heaviest and Volume). It stays after
+  the finger lifts, until a touch elsewhere on the tab or another measure or range. A screen reader
+  steps through the workouts by swiping up or down.
 - **Never done:** "Log this exercise in a workout to see your progress." and **How to do it**.
 - Weights in the user's lifting unit, kg or lb (REQ-TRN-005).
 
@@ -88,7 +93,9 @@ details, its category and sub-group, or its group ("Cardio").
 Only workouts the phone holds count (the last 90 days), plus older ones loaded on the page. A
 workout's exercise belongs to the page when its name, ignoring case, hyphens and doubled letters,
 is the exercise's name or one of its other names (so a workout saved as "Barbell bench press"
-before D-67 counts for "Barbell Flat Bench Press"); for a name the user typed, that name.
+before D-67 counts for "Barbell Flat Bench Press"); for a name the user typed, that name. Logged more
+than once on a day, in one workout or several, it is one session for that day: its sets one after
+another, cardio's times and distances added up (the owner, 2026-11-12).
 
 | Kind (from the sets saved) | Record cards | Graph | History's bests (tags) |
 |---|---|---|---|
@@ -136,8 +143,8 @@ before D-67 counts for "Barbell Flat Bench Press"); for a name the user typed, t
    reminded when this page is merged.
 
 ## Not in this plan (later)
-The workout-in-progress bar (on hold, answer 5); a list of "your exercises" on the Progress tab; the
-video inside the app; choosing which place's details to show.
+A list of "your exercises" on the Progress tab; the video inside the app; choosing which place's
+details to show. (The workout-in-progress bar, on hold at answer 5, became D-83: a pill above the tabs.)
 
 ## Risks
 - **The AI-written steps** shown to users may be wrong or unsafe for some people (proposed R-015).

@@ -2636,7 +2636,10 @@ checksum), and the configuration template was left as it is.*
   shows as pr the 3 crateria. 1 RM Heaviest Volumn. Come up with the UI Desing for this"; of the
   canvas's four layouts: "I would prefer C> but the tag should be on the top right conver. and the date
   and tag can be in the one line"; asked whether Progress's three cards should match: "Yes", "lock it",
-  canvas version 85). Built on branch `feat/exercise-details` with D-81, in the folder
+  canvas version 85; then: "In the Progress Tab where is chart when I touch the mid point of the chart
+  across the Heaviest, volumn , 1rm. I should be able to see the value at that point. Because the there
+  is large number of pint I can not seee at the side bar", and of the canvas's three ways (version 86):
+  "1c ... lock it", version 87). Built on branch `feat/exercise-details` with D-81, in the folder
   `D:\fitsphere-exercise-details`.
 - Answer (REQ-TRN-008; plan [`docs/plans/exercise-details-page.md`](../plans/exercise-details-page.md),
   Accepted; the redesign's 4.4):
@@ -2654,6 +2657,11 @@ checksum), and the configuration template was left as it is.*
     · last on Fri 30 Oct". The graph, with 4W, 12W and All, a dot per workout, the latest value and the
     change since the range's first ("up 22.0 kg since Mon 14 Sep"); for a lift, Est. 1RM, Heaviest or
     Volume. Never done: "Log this exercise in a workout to see your progress."
+    **Touching the graph** and sliding picks the nearest workout (the owner's C, 2026-11-12): its dot
+    ringed, a dashed line down from a bubble at the top with its value and day, and under the graph that
+    workout's three numbers (a lift's Est. 1RM, Heaviest and Volume; running's distance, time and pace);
+    it stays after the finger lifts, until a touch elsewhere on the tab or another measure or range. A
+    screen reader moves from workout to workout by swiping up or down on the graph.
   - **History:** a card per workout, newest first, every set as the workout page shows them, the
     workout's best set in full colour, with its volume and 1RM, or for cardio its speed and pace;
     a card opens its workout; **Load older** reads older workouts online, as Training does. **The
@@ -2675,6 +2683,12 @@ checksum), and the configuration template was left as it is.*
     workout's sets. On a tie the record is the earlier workout's; the longest run, the faster one's.
   - A workout's exercise belongs to the page when its name is the exercise's name or one of its other
     names, as the exercise sheet matches them, so a workout saved under a name it had before counts.
+  - **An exercise logged more than once on a day is one** (the owner, 2026-11-12, after a phone test:
+    "if you see data of 1.5 -re squat excercise. I add it twice on the 12 nov so it shows twice ... you
+    need merge these twice into one. the stes account added to as a next set"): one History card, one
+    dot on the graph and one set of numbers for the day, its sets one after another (Set 3 after Set
+    2), cardio's times and distances added up; in two workouts of the day, the card says "2 workouts"
+    and opens the first.
   - Only the workouts on the phone count (the last 90 days), and older ones loaded on History while
     the page is open; Progress says "Your last 90 days. Load older in History adds earlier workouts."
   - Nothing is loaded from the video site until the card is tapped: no picture of the video.
@@ -2691,6 +2705,37 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-TRN-008; the plan; the data model; the API conventions; the redesign's 4.4; the
   backlog (RB-05, E-29); R-015 and the MVP defaults in `docs/architecture/constraints-and-assumptions.md`;
   `docs/data/exercise-list-sources.md`; CLAUDE.md.
+
+## D-83 Workout in progress: a pill above the tabs while a workout's timer runs
+- Status: **Accepted** (owner, in chat: with D-82's pictures, 2026-11-11, which show a "Workout in
+  progress" bar; on D-82's question 5: "keep it hoold Remide me later" (backlog E-29); 2026-11-12:
+  "Workout in progress -> Lets draw the desing over the canva and wait for my approval"; of the
+  canvas's three ways, version 86: "2B lock it"; locked in version 87; then, after a phone test:
+  "Currently I can start a workout timer for the 2 different workout. Idealy if the one wrkout timer is
+  running user should not be able to start a New work work. SO when user start a new timer there should
+  be disable button of start woerkout timer shows amessge an existing working tomer is running"). Built
+  with D-81 and D-82 on branch `feat/exercise-details`.
+- Answer (REQ-TRN-003; backlog E-29 closed):
+  - While a workout's timer runs or is paused (D-71), a **pill floats above the tab bar, at the
+    right**, on Home, Nutrition, Training and Progress, and over an exercise's page (D-82): a green dot
+    (or the pause sign, in gold), the time counted, ticking while it runs, and the workout's name,
+    "Workout 2". Tapping it **opens the workout**; on an exercise's page opened from that workout it
+    goes back to it, and from Add exercise's How to do it, back to the form.
+  - The workout's own page shows none: its timer is there (D-71).
+  - **One workout timer at a time** (amending D-71): while another workout's timer runs or is paused,
+    a workout's **Start workout** is greyed, and so is **Resume** after Mark done, with why: "Another
+    workout's timer is running: Workout 1 · Wed 11 Nov. Mark it done to start this one." and **Open
+    Workout 1**. Timers already going stay as they are.
+- MVP defaults:
+  - Only today's and yesterday's workouts (a timer can run past midnight, D-71): one left paused for
+    days and never marked done does not stay.
+  - With several, a running one before a paused one, then the latest started.
+  - Only the four tabs and an exercise's page show it, not the other pages (Log meal, Settings, …).
+  - It floats over the screen, so it can cover the corner of a screen's last row; the exercise page
+    leaves room for it at its foot.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003; backlog E-29; the MVP defaults in
+  `docs/architecture/constraints-and-assumptions.md`; the redesign's 4.5; CLAUDE.md.
 
 ---
 

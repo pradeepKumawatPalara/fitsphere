@@ -24,8 +24,13 @@ date line; Load older)
 and How to (the video, else the owner's default `EXERCISE_DEFAULT_VIDEO_URL`, opened outside the app;
 the first place's steps, Watch for, muscles and equipment; "General guidance, not personal advice. Stop
 if anything hurts."). `GET /v1/exercises` sends `details`; phone schema version 20. No migration beyond
-D-81's 0028, no new build. The "Workout in progress" bar is on hold (backlog E-29): **remind the owner
-once this is merged.**
+D-81's 0028, no new build. Touching Progress's graph shows a workout's value in a bubble and its
+numbers under the graph (canvas `ProgressTouch*`, C locked in version 87). **D-83, Workout in
+progress** (backlog E-29; canvas `WorkoutRunningBar*`, B locked in version 87): while a workout's timer
+runs or is paused, a pill above the tabs at the right, and over an exercise's page, shows it and opens
+it (`components/WorkoutInProgress.tsx`, in `app/(tabs)/_layout.tsx`); one timer at a time: meanwhile
+another workout's Start workout and Resume are greyed, saying why. An exercise logged twice on a day is
+one card and one dot, its sets one after another.
 
 **The exercise library's details — built on branch `feat/exercise-details` (D-81, 2026-11-11), in its
 own folder `D:\fitsphere-exercise-details` (removed once merged).** The owner's
