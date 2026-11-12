@@ -2797,6 +2797,174 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-008; `docs/design/design-system.md` (the strong button); the MVP defaults in
   `docs/architecture/constraints-and-assumptions.md`; the redesign's 2.3; CLAUDE.md.
 
+## D-86 Search foods ignores any mark typed
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-09 of the search QA report ("paneer!",
+  "dal?", "chicken:", "idli;", "[upma]", "samosa*", "#biryani", "egg+white", "egg_white" and
+  "aloo+gobi" all found nothing), "I need to fix this bug for first come up with the multiple and your
+  Recommanded once. when I approve it start fixing it"; of the three ways, "Option B: only letters and
+  digits count (recommended) fix this"). Numbered D-86 because D-83 to D-85 were taken by other work
+  the same day. Built on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; amends D-62 and D-72):
+  - A search reads only letters and digits: apostrophes (' ’ ‘ ´ and the grave accent) and full stops
+    are dropped, as before, and **any other mark reads as a space**, where D-62 did so only for the
+    marks - & , / ( ) ". So "paneer!", "dal?", "chicken:", "idli;", "[upma]", "samosa*" and
+    "#biryani" find what the word alone finds, and
+    "egg+white", "egg_white" and "aloo+gobi" what "egg-white" and "aloo-gobi" find; so do the phone
+    keyboard's curly quotes, long dashes and "…".
+  - **% still counts**, as names use it ("55% Dark Chocolate"): "55%" finds those, as before.
+  - **A word of marks alone is left out**: "aloo & gobi" searches as "aloo gobi" (QA-10: D-62 looked
+    for such a word as typed, so "aloo & gobi" found only the one name with an "&").
+  - **Marks do not count towards D-72's three characters**: "on!" finds what "on" finds, the brand
+    ON; marks alone find nothing.
+  - The same rule reads the foods' names, other names and brands: a word stuck to a mark in a name
+    ("Oats+ Dark Chocolate", "Muesli+ Almond+Quinoa") is a whole word, so it is listed with the best
+    matches (D-66).
+  - Your own foods and dishes are read by SQL (D-66), which cannot use that rule; it reads the marks
+    a phone's keyboard types, the same way.
+  - Unchanged: words joined by a mark with no space are looked for together ("egg-white" as "egg
+    white", D-62); the exact match (D-51) ignored every mark already.
+- Checked on the dev database's food list (read only), 554 searches from the QA report with the old
+  and the new code: 524 the same; QA-09's and QA-10's searches now find what the words alone find;
+  "on!" and "go?" find the brands ON and Go; 4 searches list the same foods in a better order (the
+  names above); "m&m", with two letters, is now a short search, where it listed 96 foods with "m m"
+  inside a word ("Garam Masala").
+- Phone app only: no server change, no migration, no phone schema change, no new build. The search
+  text kept with each food (D-66) follows the new rule when the food list is next stored; until then
+  a name with such a mark is still found by its words.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
+
+## D-88 Search foods ignores accents
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-11 of the search QA report ("nestle" found
+  31 foods, "nestlé" 69 others, none of the first ten the same; so did cafe and café, creme and crème,
+  jalapeno and jalapeño), of the two ways proposed, "QA-11 ->A"). Numbered D-88 because D-87 was
+  kept for other work. Built with D-86 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-62 and D-86):
+  - A search reads a letter **without its accent**, in the words typed and in the foods' names, other
+    names and brands: "nestle" finds "Nestlé", "jalapeno chips" finds "Jalapeño Chips", "café" finds
+    "Cafe Blend"; ø, ł, đ, ß, æ and œ read as o, l, d, ss, ae and oe. Only Latin letters' accents go:
+    Devanagari is read as it is ("दाल" finds "दाल मखनी").
+  - The exact match (D-51) and the telling apart of brands and products (D-61, D-78) ignore accents
+    too: "Munch" under the brands "nestle" and "Nestlé" is one product, shown once.
+  - Your own foods and dishes are read by SQL (D-66), which takes the accents off the letters listed
+    in `store.ts` (á to ž and their capitals), as the phone's own code does.
+  - Phone schema version 21 clears the food list's version, so each phone downloads the food list
+    once after the update and its search text is written again; the foods stay on the phone and are
+    searched as before until it comes.
+- Checked on the dev database's food list (read only), 565 searches, D-86 alone against D-86 with
+  D-88: 536 the same; "nestle" and "nestlé" now find the same 87 foods, as do cafe and café (24),
+  creme and crème (38), jalapeno and jalapeño (19), nescafe and nescafé (14), agapi and agápi (5);
+  "jalapeno chips" and "provencal" find what they found nothing for; a few rows fewer where copies
+  of one product under one brand written with and without an accent are now shown once ("KitKat · 3
+  brands" is 2, "Munch · 2 brands" one Munch).
+- Phone app only: no server change, no migration; phone schema version 21; no new build.
+- Doc changes: REQ-LOG-007; `docs/contracts/data-model.md` (version 21); CLAUDE.md.
+
+## D-89 A name's brands: alike in energy, each brand once
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-12 of the search QA report ("Maaza · 6
+  brands" was Coca-Cola written six ways; "Gold · 6 brands" held Bru's coffee, Tata Tea, two milks and
+  an oil), of the two ways proposed, "Q-12 -> B": the phone counting a brand once and splitting rows
+  by energy, and a brand-names sheet for the owner to approve, applied by `foods:import`; then, on the
+  sheet's 747 proposed rows, "approve all"). Built with D-86 and D-88 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-61 and D-78):
+  - **Only foods alike in energy share a "N brands" row** (D-61): in order of energy, a food more than
+    twice the one before it, and more than 20 kcal above it, starts another row of the same name. So
+    "Gold" is four rows (a tea, two milks together, a coffee, an oil), "Rajma Masala" the spice mixes
+    and a ready meal apart, "Nimbu Pani" the powders and a drink apart; foods spread evenly stay
+    together ("Paneer · 21 brands", 150 to 330 kcal).
+  - **A brand counts once however it is written**: its letters and digits only, without accents,
+    without "The" at its start or a company's words at its end (company, co, ltd, limited, pvt,
+    private, inc, llp, llc, corp, corporation, industries, india). "Nestlé", "Nestle India" and
+    "NESTLE" are one brand; so are "Britannia" and "Britannia Industries Ltd". D-78 tells products
+    apart the same way, so their copies are shown once.
+  - **`docs/data/brand-names-sheet.csv`** (`docs/data/food-list-sources.md`): for what letters cannot
+    tell, each of Open Food Facts' brands as written takes one spelling (`spelling`: misspellings as
+    "Britania" and "Horlics", company names as "COCA-COLA SERVICES SA/NV", "Coke") or its maker's
+    name (`maker`: "KitKat" under Nestlé, the line kept at the front of the product's name). Proposed
+    from the data, 747 rows (735 spelling, of which 101 misspellings checked one by one; 12 maker),
+    all approved by the owner on 2026-11-12; `foods:import` applies the approved rows only, after
+    D-80's fixes: 1,410 of the 9,729 products take another brand, 7 of them with their line put at the
+    front of the name.
+  - Not changed: "Pepsi" (Pepsi, PepsiCo, Pepsi Cola), "Horlicks" (Horlicks and two names of
+    Hindustan Unilever) and "Oreo" have more than one maker or line among their copies, so the sheet
+    proposes none for them: left to the owner.
+- Checked on the dev database's food list (read only), 578 searches: with the phone's part, 500 the
+  same as D-88 alone and 71 changed ("Gold", "Black", "Rajma Masala", "Nimbu Pani" split by energy;
+  "Maaza · 6 brands" 4, "Coca Cola · 4" 3); with every row of the sheet as if approved, 96 more
+  changed: "Maaza", "KitKat" and "Sprite" one product each under their maker, "Coca Cola" one brand.
+  Two foods with wrong values (QA-07) now show on their own just under their name's row, no longer
+  hidden in it: a ghee at 45 kcal and a honey at 0 kcal.
+- Phone app and food data: no migration, no phone schema change (D-88's version 21 stays), no new
+  build. The approved rows reach phones with the next `foods:import` and food list download.
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; CLAUDE.md.
+
+## D-91 Search foods lists the plain food first
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-04 of the search QA report (the plain food
+  listed late: raw potato 191st under chips, banana 86th under a protein powder named "Banana",
+  chicken breast 296th; "watermelon pop", "Ginger Ale", "Lemon Pickle" and a baby cereal first), of
+  the three ways proposed (the plain food first; every brand and packaged food after the other
+  sources; two sections, Foods and Products), "GO with A"). Numbered D-91 because D-90 is
+  fitsphere-af's. Built with D-86, D-88 and D-89 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; amends D-51 and D-54):
+  - **The plain food the search names comes first**, before an exact match (D-51) and every source
+    (D-54): a food that is not a brand's (brand labels) or a packaged product, named as typed, or as
+    typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)", "Peanut (raw)"), or one
+    of IFCT's named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast,
+    skinless": IFCT's way of naming a food's kinds). Other sources' commas list a dish's foods
+    ("Carrot, Radish & Peanut Salad"), so those names are not plain.
+  - Among the plain foods, your own (My foods) first, then IFCT's, measured, then the rest in the
+    order by source; each group as before. Marks, case and accents are ignored as everywhere (D-86,
+    D-88).
+  - Everything else keeps its order: the exact matches (D-51), then the best matches first (D-66),
+    each group by source (D-54). A search with no plain food lists as before: brand searches
+    ("amul", "maggi", "bread", "oats") are unchanged.
+- Checked on the dev database's food list (read only), 578 searches: 93 changed, none of the brand
+  searches. The plain food now comes first for banana (was 86th), apple (53rd), potato (191st),
+  onion (195th), tomato (237th), chicken (296th), milk (318th), rice (262nd), egg (37th), garlic,
+  lemon, coconut, carrot, ginger, watermelon, prawns, groundnut (IFCT's "Ground nut") and others.
+- Not changed, the data's doing: searches with no plain food in the list ("tea", "coffee", "fish",
+  "mutton", "dal"; QA-05); "rice" lists IFCT's raw rice first, the cooked one being "Boiled rice
+  (Uble chawal)" (QA-08). Two plain foods now first that the data names or values poorly: "eggs"
+  finds IFCT's "Eggs, Cat fish" (a fish's eggs) first, and "green tea" the estimated "Green Tea" at
+  55 kcal, its type of dish's typical value.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
+
+## D-92 Search foods: the everyday food first, dry packs last
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-08 of the search QA report (raw, dry or
+  premix packs before the food as eaten: "dal" listed raw dal packs, the first cooked dal 51st;
+  "dosa" batters, flours and mixes; "chai" premixes at 436 kcal; "tea" tea leaves; "khichdi" dry
+  mixes), "now fix QA8", then, of the four ways proposed (dry packs by the words of their names;
+  by energy; an everyday-foods sheet chosen by the owner; the first and the third together), "D";
+  then, on the sheet's 16 proposed rows, "approval all"). Built with D-86 to D-91 on branch
+  `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-51, D-54 and D-91):
+  - **Dry packs last.** A packaged food or a brand label whose name has batter, mix, premix, powder,
+    podi, ready to cook (rtc), leaves or leaf comes after every other match, unless the search has
+    that word too ("dosa batter") or names its brand ("mtr", whose packs are mixes). Flour and atta
+    are not among the words: a search for besan or ragi wants the flour.
+  - **The everyday food first.** `docs/data/everyday-foods-sheet.csv` gives, for an everyday word,
+    the food as eaten that Search foods lists before all others, as the owner approves each row:
+    a food of IFCT, INDB, the home-style foods or the estimated dishes, never a brand's.
+    `foods:import` puts each approved word among the food's other names marked "@" ("@rice"), so the
+    phone finds the food by it ("tea" finds "Masala Chai") and lists it first. Other names are never
+    shown. A row whose food is now named otherwise refuses the import, so the sheet is checked again.
+  - 16 rows, all approved by the owner on 2026-11-12: rice (Boiled rice), dal (Dal Tadka), roti and chapati (Chapati/Roti), chai
+    and tea (Masala Chai), coffee (Filter Coffee), dosa (Masala dosa; INDB's Plain dosa at 381 kcal
+    looks too high to choose), khichdi (Moong Dal Khichdi), rajma (Punjabi Rajma Masala), chole
+    (Chana Masala), paratha (Tawa Paratha), biryani (Chicken Biryani), pulao (Veg Pulao), omelette
+    (IFCT's Egg, poultry, omlet) and soup (Vegetable soup); each row says why and the other choice.
+    Most are estimated dishes, with their type of dish's typical values (D-62).
+  - Also: a short search (D-72) finds a food by its last other name again; D-86 had left no space
+    after it.
+- Checked on the dev database's food list (read only), 578 searches: the dry packs' rule changed
+  130, the first row of only 8 (all for a dry form: "dosa" a flour, no longer a batter, first), and
+  no brand search; with every row of the sheet as if approved, 23 more, the 16 words each listing
+  their food first.
+- Phone app and food data: no migration, no phone schema change, no new build. The everyday words
+  reach phones with `foods:import` once rows are approved.
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
+  CLAUDE.md.
+
 ---
 
 ---

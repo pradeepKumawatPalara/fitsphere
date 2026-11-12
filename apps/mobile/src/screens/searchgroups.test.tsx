@@ -114,6 +114,42 @@ describe('D-61 brands and names', () => {
   });
 });
 
+describe('D-89 a name’s brands, alike in energy, each brand once', () => {
+  const pk = (barcode: string, name: string, brand: string, kcal: number): FoodResult => ({ kind: 'packaged', food: packaged(barcode, name, brand, kcal) });
+  const shown = (rows: ReturnType<typeof groupBrands>) =>
+    rows.map((row) =>
+      row.kind === 'one' ? `one:${row.result.kind === 'dish' ? row.result.dish.name : `${row.result.food.name} ${row.result.food.kcal}`}` : `${row.key}:${row.members.map((member) => (member.kind === 'dish' ? 0 : member.food.kcal)).join('/')}`,
+    );
+
+  it('makes a row of each set of foods alike in energy, the sets where their first food was', () => {
+    // Synthetic: one name, a coffee, a tea, two milks and an oil.
+    const rows = groupBrands([pk('8900000000101', 'Gold', 'Test Coffee', 352), pk('8900000000102', 'Gold', 'Test Tea', 1), pk('8900000000103', 'Gold', 'Test Dairy', 87), pk('8900000000104', 'Gold', 'Other Dairy', 88), pk('8900000000105', 'Gold', 'Test Oils', 900)]);
+
+    expect(shown(rows)).toEqual(['one:Gold 352', 'one:Gold 1', 'gold 3:87/88', 'one:Gold 900']);
+  });
+
+  it('keeps foods within twice of each other, or 20 kcal apart, in one row', () => {
+    const rows = groupBrands([pk('8900000000111', 'Test cola', 'Alpha', 0), pk('8900000000112', 'Test cola', 'Beta', 1), pk('8900000000113', 'Test bread', 'Alpha', 220), pk('8900000000114', 'Test bread', 'Beta', 274), pk('8900000000115', 'Test bread', 'Gamma', 440)]);
+
+    expect(shown(rows)).toEqual(['test cola:0/1', 'test bread:220/274/440']);
+  });
+
+  it('keeps foods spread evenly in one row, splitting only where the energy jumps', () => {
+    // Synthetic paneers from 150 to 330 kcal, each near the one before.
+    const paneers = [150, 200, 260, 330].map((kcal, at) => pk(`890000000013${at}`, 'Test paneer', ['Alpha', 'Beta', 'Gamma', 'Delta'][at]!, kcal));
+
+    expect(shown(groupBrands(paneers))).toEqual(['test paneer:150/200/260/330']);
+  });
+
+  it('counts a brand once however it is written: case, marks, accents, “The” and a company’s words', () => {
+    const rows = groupBrands([pk('8900000000121', 'Test wafers', 'Testlé', 500), pk('8900000000122', 'Test wafers', 'TESTLE INDIA', 505), pk('8900000000123', 'Test wafers', 'The Testle Company', 510)]);
+
+    expect(shown(rows)).toEqual(['one:Test wafers 500', 'one:Test wafers 505', 'one:Test wafers 510']);
+    // As D-78 then sees it, one product: shown once.
+    expect(onePerProduct([pk('8900000000121', 'Test wafers', 'Testlé', 500), pk('8900000000122', 'Test wafers', 'TESTLE INDIA', 505)])).toHaveLength(1);
+  });
+});
+
 describe('D-61 Search foods without tags', () => {
   it('shows a name’s brands as one row, its brand count and energy range, no source tags', async () => {
     await search('bread');

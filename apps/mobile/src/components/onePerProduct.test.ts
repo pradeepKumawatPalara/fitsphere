@@ -50,19 +50,27 @@ describe('D-78 each branded product once', () => {
       ['(TEST CO) Rich Tomato Sauce 485Gram', 'Test Co', 'Rich tomato sauce', 'Test-Co'],
       ['Masti Spiced Buttermilk 200ml', 'Test Co', 'Masti Spiced Buttermilk', 'Test Co'],
       ['Pure Ghee 1 ltr', 'Test Co', 'Pure ghee (500 ml)', 'Test Co'],
+      // D-88: accents too.
+      ['Munch', 'Testlé', 'Munch', 'testle'],
+      ['Crème Wafers', 'Test Co', 'Creme wafers', 'Test Co'],
+      // D-89: a company's words, and "The".
+      ['Marie Gold', 'Testannia Industries Ltd', 'Marie Gold', 'Testannia'],
+      ['Testannia Marie Gold', 'Testannia Industries Ltd', 'Marie gold', 'TESTANNIA'],
+      ['Test Cola', 'The Test-Cola Company', 'Test Cola 750ml', 'Test Cola'],
+      ['The Test Truth Protein Bar', 'The Test Truth', 'Protein bar', 'Test Truth'],
     ];
     for (const [a, aBrand, b, bBrand] of same) expect(key(a!, aBrand!)).toBe(key(b!, bBrand!));
 
     // Another brand, or another name, is another product.
     expect(key('Butter', 'Test Dairy')).not.toBe(key('Butter', 'Other Dairy'));
     expect(key('Butter', 'Test Dairy')).not.toBe(key('Butter Cookies', 'Test Dairy'));
-    // Numbers that are not a pack size stay part of the name.
-    expect(key('5 Star', 'Test Co')).toBe('testco|5star');
-    expect(key('20-20 Cookies', 'Test Co')).toBe('testco|2020cookies');
-    expect(key('Wafers 3 layers', 'Test Co')).toBe('testco|wafers3layers');
-    expect(key('Classic Malt 1.5kg', 'Test Co')).toBe('testco|classicmalt');
+    // Numbers that are not a pack size stay part of the name (the brand without its company's "Co", D-89).
+    expect(key('5 Star', 'Test Co')).toBe('test|5star');
+    expect(key('20-20 Cookies', 'Test Co')).toBe('test|2020cookies');
+    expect(key('Wafers 3 layers', 'Test Co')).toBe('test|wafers3layers');
+    expect(key('Classic Malt 1.5kg', 'Test Co')).toBe('test|classicmalt');
     // A brand label's brand is its food group.
-    expect(productKey(label('Test Co', 'Pure Ghee'))).toBe('testco|pureghee');
+    expect(productKey(label('Test Co', 'Pure Ghee'))).toBe('test|pureghee');
     // No brand: not a branded product.
     expect(key('Lassi', null)).toBeNull();
     expect(productKey(listed('Butter, salted', 'ifct2017'))).toBeNull();

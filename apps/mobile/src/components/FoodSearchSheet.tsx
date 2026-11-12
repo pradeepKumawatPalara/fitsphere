@@ -21,6 +21,7 @@ import {
   searchPackaged,
   type FoodSummary,
   type LocalMyFood,
+  withoutAccents,
 } from '../local/store';
 import { formatAmount, formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
 import { useSync } from '../sync/SyncProvider';
@@ -92,10 +93,13 @@ function nameOf(result: Result): string {
   return result.kind === 'dish' ? result.dish.name : result.food.name;
 }
 
-/** A name or a search as compared for an exact match: lowercase, its letters and digits only, one space between words. */
+/**
+ * A name or a search as compared for an exact match, and a brand or a product as told apart (D-61,
+ * D-78): lowercase, without accents (D-88: "Nestlé" is "nestle"), its letters and digits only, one
+ * space between words.
+ */
 function matchKey(text: string): string {
-  return text
-    .toLowerCase()
+  return withoutAccents(text.toLowerCase())
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }
@@ -108,13 +112,66 @@ function namesOf(result: Result): string[] {
 }
 
 /**
+ * Whether a result is the plain food the search names (D-91; the owner, 2026-11-12, after "potato"
+ * listed the raw potato 191st, under the chips): not a brand's or a packaged product, and named exactly
+ * as typed, or as typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)"), or, for IFCT's
+ * foods, named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast"). Other
+ * sources' commas list a dish's foods ("Carrot, Radish & Peanut Salad"): not plain.
+ */
+function plainFor(query: string): (result: Result) => boolean {
+  const typed = matchKey(query).replace(/ /g, '');
+  const named = (part: string) => matchKey(part).replace(/ /g, '') === typed;
+  return (result) => {
+    if (!typed || result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label')) return false;
+    const name = nameOf(result).trim();
+    if (named(name)) return true;
+    const bracket = name.indexOf(' (');
+    if (bracket > 0 && name.endsWith(')') && named(name.slice(0, bracket))) return true;
+    const comma = name.indexOf(',');
+    return result.kind === 'food' && result.food.source === 'ifct2017' && comma > 0 && named(name.slice(0, comma));
+  };
+}
+
+/**
+ * The words that name a food's dry or ready-to-cook form rather than the food eaten (D-92): "Dosa Idli
+ * Batter", "Rava Upma Mix", "Chai Premix", "Sambar Powder", "Curry leaves". Flour and atta are left
+ * out: they are what a search for besan or ragi wants.
+ */
+const DRY_FORM = /(^| )(batter|mix|premix|pre mix|powder|podi|ready to cook|rtc|leaves|leaf)( |$)/;
+
+/**
+ * Whether a result is a pack of a dry or ready-to-cook form the search did not ask for (D-92; the
+ * owner, 2026-11-12, after "dosa" listed batters, flours and mixes before any dosa): a packaged
+ * food's or a brand label's name with one of DRY_FORM's words, unless the search has that word too
+ * ("dosa batter") or is a search for its brand ("mtr", whose packs are mixes).
+ */
+function dryFor(query: string): (result: Result) => boolean {
+  const key = matchKey(query);
+  const typed = key.replace(/ /g, '');
+  const asked = DRY_FORM.test(key);
+  return (result) => {
+    if (asked || !typed || !(result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label'))) return false;
+    const branded = brandOf(result);
+    if (branded && matchKey(branded.brand).replace(/ /g, '').includes(typed)) return false;
+    return DRY_FORM.test(matchKey(nameOf(result)));
+  };
+}
+
+/**
  * The results in the order Search foods lists them, given in the order by source (D-54, D-59, D-62):
- * - those named exactly as the search first ("bread" finds "Bread" above "Bread, white" and "Brown
+ * - the everyday food the search names first (D-92: the owner's choice for an everyday word, "rice"
+ *   finding "Boiled rice (Uble chawal)" first; `searchFoodSummaries` marks it);
+ * - then the plain foods the search names (D-91): your own first, then IFCT's measured foods, then
+ *   the rest ("banana" finds "Banana, ripe, robusta" above a protein powder named "Banana" and "Banana
+ *   chips");
+ * - then those named exactly as the search ("bread" finds "Bread" above "Bread, white" and "Brown
  *   bread"), ignoring case, spaces and punctuation (D-51);
  * - before and after them alike, the best matches first (D-66; the owner, 2026-11-10, after "dal"
  *   listed Baati and Dalda oil near the top): foods whose name has every word whole, then those where
  *   a word only starts a word of the name, then those where it is inside a word, then those found
  *   only by their hidden search words.
+ * - the packs of a dry or ready-to-cook form the search did not ask for last (D-92: "dosa" lists the
+ *   dosas before the batters and mixes).
  * Each group keeps the order by source. A packaged food's brand counts as part of its name. Worked out
  * in one pass, each name read once for each test (D-75), where the exact match and the best match
  * used to be two passes reading every name three times.
@@ -122,16 +179,32 @@ function namesOf(result: Result): string[] {
 export function inSearchOrder(query: string, results: readonly Result[]): Result[] {
   const key = matchKey(query);
   const match = nameMatcher(query);
-  // Exact matches in groups 0 to 3, the rest in 4 to 7, each by how well the name matches.
-  const groups: Result[][] = [[], [], [], [], [], [], [], []];
+  const plain = plainFor(query);
+  const dry = dryFor(query);
+  // The everyday foods the search names in group 0 (D-92); the plain foods in groups 1 to 3 (your own,
+  // IFCT's, the rest); then the exact matches in groups 4 to 7 and the rest in 8 to 11, each by how well
+  // the name matches; the dry forms last, in 12.
+  const groups: Result[][] = Array.from({ length: 13 }, () => []);
   for (const result of results) {
+    if (result.kind === 'food' && result.food.everyday) {
+      groups[0]!.push(result);
+      continue;
+    }
+    if (dry(result)) {
+      groups[12]!.push(result);
+      continue;
+    }
+    if (plain(result)) {
+      groups[result.kind === 'mine' ? 1 : result.kind === 'food' && result.food.source === 'ifct2017' ? 2 : 3]!.push(result);
+      continue;
+    }
     let best = 3;
     let exact = false;
     for (const name of namesOf(result)) {
       best = Math.min(best, match(name));
       if (key && !exact && matchKey(name) === key) exact = true;
     }
-    groups[(exact ? 0 : 4) + best]!.push(result);
+    groups[(exact ? 4 : 8) + best]!.push(result);
   }
   return groups.flat();
 }
@@ -156,9 +229,39 @@ export function brandOf(result: Result): { brand: string; product: string } | nu
 export type ResultRow = { kind: 'one'; result: Result } | { kind: 'brands'; key: string; name: string; members: Result[] };
 
 /**
+ * Whether two foods' energies are alike enough to be one product under several brands (D-89): the
+ * higher at most twice the lower, or 20 kcal apart at most (drinks, sauces: 0 and 1 kcal are alike).
+ */
+const ENERGY_RATIO_MAX = 2;
+const ENERGY_GAP_ALIKE = 20;
+const alikeEnergy = (low: number, high: number) => high <= ENERGY_RATIO_MAX * low || high - low <= ENERGY_GAP_ALIKE;
+
+/**
+ * A name's branded foods split by energy (D-89; the owner, 2026-11-12, after "Gold · 6 brands" held
+ * Bru's coffee, Tata Tea, a milk and an oil): in order of energy, a food whose energy jumps from the
+ * one before it (not alike) starts another set, so foods spread evenly stay together ("Paneer", 150 to
+ * 330 kcal). Each set keeps the order the foods came in; the sets come in the order of their first food.
+ */
+function byEnergy(members: readonly Result[]): Result[][] {
+  const sorted = [...members].sort((a, b) => energyOf(a) - energyOf(b));
+  const sets: Result[][] = [];
+  for (const member of sorted) {
+    const last = sets[sets.length - 1];
+    if (last && alikeEnergy(energyOf(last[last.length - 1]!), energyOf(member))) last.push(member);
+    else sets.push([member]);
+  }
+  const at = new Map(members.map((member, index) => [member, index]));
+  return sets.map((set) => set.sort((a, b) => at.get(a)! - at.get(b)!)).sort((a, b) => at.get(a[0]!)! - at.get(b[0]!)!);
+}
+
+const energyOf = (result: Result) => (result.kind === 'dish' ? result.dish.kcal : result.food.kcal);
+
+/**
  * The results as rows (D-61): branded foods (brand labels and packaged foods) with the same name,
  * their brands left out and ignoring case and punctuation, are one row where the first of them was;
- * a name only one brand has stays a row of its own. Every other food, and the order, are unchanged.
+ * a name only one brand has stays a row of its own. Since D-89 only foods of alike energy share a row
+ * ("Gold" is a coffee, a tea, a milk and an oil: four rows), and a brand counts once however it is
+ * written. Every other food, and the order, are unchanged.
  */
 export function groupBrands(results: readonly Result[]): ResultRow[] {
   const rows: ResultRow[] = [];
@@ -179,13 +282,37 @@ export function groupBrands(results: readonly Result[]): ResultRow[] {
     groups.set(key, created);
     rows.push(created);
   }
-  // A name only one brand has, even under two sources, stays a row for each.
-  return rows.flatMap((row): ResultRow[] => (row.kind === 'brands' && brandCount(row.members) < 2 ? row.members.map((result) => ({ kind: 'one', result })) : [row]));
+  return rows.flatMap((row): ResultRow[] => {
+    if (row.kind === 'one') return [row];
+    // Foods of far apart energy are other products (D-89); each set keeps the row's place, and a key of its own.
+    return byEnergy(row.members).flatMap((members, index): ResultRow[] =>
+      // A name only one brand has, even under two sources, stays a row for each.
+      brandCount(members) < 2 ? members.map((result) => ({ kind: 'one', result })) : [{ ...row, key: index === 0 ? row.key : `${row.key} ${index + 1}`, members }],
+    );
+  });
 }
 
-/** How many different brands a name's foods have, ignoring case. */
+/** How many different brands a name's foods have, however each is written (D-88, D-89: "Nestlé" and "Nestle India" are one). */
 export function brandCount(members: readonly Result[]): number {
-  return new Set(members.map((member) => brandOf(member)?.brand.toLowerCase())).size;
+  return new Set(members.map((member) => brandKey(brandOf(member)?.brand ?? ''))).size;
+}
+
+/**
+ * Words a company's name adds to its brand at its end ("Britannia Industries Ltd"), as `brandKey`
+ * leaves them out (D-89), with "The" at its start.
+ */
+const COMPANY_WORDS = new Set(['company', 'co', 'ltd', 'limited', 'pvt', 'private', 'inc', 'llp', 'llc', 'corp', 'corporation', 'industries', 'india']);
+
+/**
+ * A brand as told apart from others (D-78, D-89): its letters and digits only, without accents, and
+ * without the company's words: "The Coca-Cola Company", "Coca Cola" and "Coca-Cola" are "cocacola",
+ * "Britannia Industries Ltd" is "britannia", "Nestlé" and "Nestle India" "nestle".
+ */
+export function brandKey(brand: string): string {
+  const words = matchKey(brand).split(' ').filter(Boolean);
+  while (words.length > 1 && COMPANY_WORDS.has(words[words.length - 1]!)) words.pop();
+  if (words.length > 1 && words[0] === 'the') words.shift();
+  return words.join('');
 }
 
 /**
@@ -206,19 +333,26 @@ function nameWords(name: string): string[] {
     .filter(Boolean);
 }
 
-/** The product a branded food is (D-78): its brand, and its name without the brand at its front (written with or without spaces) or a pack size. */
+/**
+ * The product a branded food is (D-78): its brand, as `brandKey` tells it apart (D-89), and its name
+ * without a pack size or the brand at its front, written with or without spaces, in full ("The Whole
+ * Truth Protein Bar") or as told apart ("Britannia Marie" under "Britannia Industries Ltd").
+ */
 function productOf(result: Result): Product | null {
   const branded = brandOf(result);
   if (!branded) return null;
-  const brand = matchKey(branded.brand).replace(/ /g, '');
+  const brand = brandKey(branded.brand);
   if (!brand) return null;
+  const full = matchKey(branded.brand).replace(/ /g, '');
   const words = nameWords(nameOf(result));
+  // The longest of the two at the front goes: "(TEST CO) Rich Tomato Sauce" under "Test Co" is "rich tomato sauce".
   let joined = '';
-  for (let at = 0; at < words.length && joined.length < brand.length; at++) {
+  let cut = 0;
+  for (let at = 0; at < words.length && joined.length < Math.max(brand.length, full.length); at++) {
     joined += words[at];
-    if (joined === brand) return { brand, words: words.slice(at + 1) };
+    if (joined === brand || joined === full) cut = at + 1;
   }
-  return { brand, words };
+  return { brand, words: words.slice(cut) };
 }
 
 /**

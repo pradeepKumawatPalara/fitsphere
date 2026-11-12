@@ -297,8 +297,9 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect((await searchFoods(db, 'gooseberry')).map((found) => found.name)).toEqual(['Goosberry']);
   });
 
-  it('treats % and _ as plain characters, and an empty search finds nothing', async () => {
+  it('treats % as a plain character and _ as a mark (D-86), and an empty search finds nothing', async () => {
     expect((await searchFoods(db, '50%')).map((found) => found.code)).toEqual(['X001']);
+    expect((await searchFoods(db, 'fat_50%')).map((found) => found.code)).toEqual(['X001']);
     expect(await searchFoods(db, '_')).toEqual([]);
     expect(await searchFoods(db, '   ')).toEqual([]);
   });
@@ -350,14 +351,115 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect((await searchFoods(db, 'dalmakhani')).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, "maker's dal-makhani")).map((found) => found.code)).toEqual(['T001']);
     expect((await searchFoods(db, 'testbread')).map((found) => found.code)).toEqual(['T002']);
-    // A word of marks alone is looked for as typed; with one character only, the search is short (D-72).
-    expect((await searchFoods(db, "' dal")).map((found) => found.code)).toEqual(['T001']);
+    // A word of marks alone is left out (D-86; D-62 looked for it as typed); one character alone is a
+    // short search (D-72).
+    expect((await searchFoods(db, "' dal")).map((found) => found.code)).toEqual(['T005', 'T001']);
     expect(await searchFoods(db, "'")).toEqual([]);
     // Never one word's end and the next one's start: "stuffed aloo" and "soaked almonds" have no "dal".
     expect((await searchFoods(db, 'dal')).map((found) => found.code)).toEqual(['T005', 'T001']);
     expect((await searchFoods(db, 'daltadka')).map((found) => found.code)).toEqual(['T005']);
     expect((await searchFoods(db, 'dal-tadka')).map((found) => found.code)).toEqual(['T005']);
     expect((await searchFoods(db, 'stuffedaloo')).map((found) => found.code)).toEqual(['T003']);
+  });
+
+  it('D-86 ignores any mark typed, before, after or inside a word, or as a word of its own', async () => {
+    await replaceFoods(db, 'v2', [
+      food('P001', 'Test paneer tikka'),
+      food('P002', 'Test egg white, boiled'),
+      food('P003', 'Test aloo gobi'),
+      food('P004', 'Test oats + almonds!'),
+      food('P005', 'Test 55% dark chocolate'),
+      food('P006', 'Qz'),
+      food('P007', 'Test chicken: masala'),
+    ]);
+    const codes = async (query: string) => (await searchFoods(db, query)).map((found) => found.code);
+
+    // QA-09's searches (2026-11-12) find what the words alone find.
+    for (const [typed, plain] of [
+      ['paneer!', 'paneer'],
+      ['paneer?', 'paneer'],
+      ['[paneer]', 'paneer'],
+      ['paneer*', 'paneer'],
+      ['#paneer', 'paneer'],
+      ['“paneer”', 'paneer'],
+      ['paneer…', 'paneer'],
+      ['chicken:', 'chicken'],
+      ['chicken;', 'chicken'],
+      ['egg+white', 'egg-white'],
+      ['egg_white', 'egg-white'],
+      ['egg–white', 'egg-white'],
+      ['aloo+gobi', 'aloo-gobi'],
+      ['aloo & gobi', 'aloo gobi'],
+      ['aloo – gobi !', 'aloo gobi'],
+    ]) {
+      expect([typed, await codes(typed!)]).toEqual([typed, await codes(plain!)]);
+    }
+    expect(await codes('paneer')).toEqual(['P001']);
+    expect(await codes('chicken')).toEqual(['P007']);
+    expect(await codes('egg-white')).toEqual(['P002']);
+    expect(await codes('aloo gobi')).toEqual(['P003']);
+    // A name's own marks read as spaces too: its words find it, typed apart or together.
+    expect(await codes('oats almonds')).toEqual(['P004']);
+    expect(await codes('oatsalmonds')).toEqual(['P004']);
+    expect(await codes('chicken masala')).toEqual(['P007']);
+    // % stays: names use it.
+    expect(await codes('55%')).toEqual(['P005']);
+    expect(await codes('55% dark')).toEqual(['P005']);
+    // Marks alone find nothing, and do not make a short search long (D-72).
+    expect(await codes('!?!')).toEqual([]);
+    expect(await codes('& -')).toEqual([]);
+    expect(await codes('qz')).toEqual(['P006']);
+    expect(await codes('qz!')).toEqual(['P006']);
+  });
+
+  it('D-92 finds an everyday food by its word and marks it, wherever the word is in its other names', async () => {
+    await replaceFoods(db, 'v2', [
+      { ...food('E001', 'Test boiled rice (Uble chawal)', ['@rice']), source: 'indb' },
+      food('E002', 'Test masala chai', ['chai', '@tea', '@chai']),
+      food('E003', 'Test rice, raw, milled'),
+      food('E004', 'Test tea leaves'),
+    ]);
+    const marked = async (query: string) => (await searchFoodSummaries(db, query)).map((found) => `${found.code}${found.everyday ? '*' : ''}`);
+
+    expect(await marked('rice')).toEqual(['E001*', 'E003']);
+    expect(await marked('RICE!')).toEqual(['E001*', 'E003']);
+    // Found by its word alone ("tea" is not in the name), the word the last of its other names or not.
+    expect(await marked('tea')).toEqual(['E002*', 'E004']);
+    expect(await marked('chai')).toEqual(['E002*']);
+    // Another word, or the word inside another, is no everyday food's.
+    expect(await marked('masala')).toEqual(['E002']);
+    expect(await marked('boiled rice')).toEqual(['E001']);
+    // The full food keeps its other names as the list gives them.
+    expect((await searchFoods(db, 'tea')).map((found) => found.aliases)).toEqual([['chai', '@tea', '@chai'], []]);
+  });
+
+  it('D-72 finds with one or two characters a food whose last other name is the search (D-86 put no space after it)', async () => {
+    await replaceFoods(db, 'v2', [food('S010', 'Test protein shake', ['protein', 'On']), food('S011', 'Test onion soup')]);
+
+    expect((await searchFoods(db, 'on')).map((found) => found.code)).toEqual(['S010']);
+  });
+
+  it('D-88 ignores accents, typed or in the name; Devanagari stays as it is', async () => {
+    await replaceFoods(db, 'v2', [
+      food('I001', 'Test Nescafé latte'),
+      food('I002', 'Test crème brûlée'),
+      food('I003', 'Test jalapeño chips', ['Jalapeño']),
+      food('I004', 'Test cafe frappe'),
+      food('I005', 'दाल मखनी (test)'),
+      food('I006', 'Test smørrebrød'),
+    ]);
+    const codes = async (query: string) => (await searchFoods(db, query)).map((found) => found.code);
+
+    expect(await codes('nescafe')).toEqual(['I001']);
+    expect(await codes('NESCAFÉ')).toEqual(['I001']);
+    expect(await codes('creme brulee')).toEqual(['I002']);
+    expect(await codes('crème')).toEqual(['I002']);
+    expect(await codes('jalapeno')).toEqual(['I003']);
+    expect(await codes('cafe')).toEqual(['I004', 'I001']);
+    expect(await codes('café')).toEqual(['I004', 'I001']);
+    expect(await codes('smorrebrod')).toEqual(['I006']);
+    expect(await codes('दाल')).toEqual(['I005']);
+    expect(await codes('मखनी')).toEqual(['I005']);
   });
 });
 
@@ -471,7 +573,7 @@ describe('Local schema version 8', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'milk')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
@@ -504,7 +606,7 @@ describe('Local schema version 5', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchDishes(old, 'atta')).toEqual([]);
@@ -534,7 +636,7 @@ describe('Local schema version 3', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await old.getFirstAsync('SELECT steps FROM steps', [])).toEqual({ steps: 5000 });
       expect(await getMeta(old, 'cursor')).toBeNull();
       expect(await listSavedMeals(old)).toEqual([]);
@@ -554,7 +656,7 @@ describe('Local schema version 12', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // A brand label that gives no fibre (synthetic values).
       const label: Food = {
@@ -591,7 +693,7 @@ describe('Local schema version 11', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect(await searchPackaged(old, 'butter')).toEqual([]);
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // Version 11 keeps the cursor; version 19 (targets by date, D-77) then clears it.
@@ -619,7 +721,7 @@ describe('Local schema version 10', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       // Since version 12 (D-49) the cached list is made again and downloaded anew.
       expect(await searchFoods(old, 'atta')).toEqual([]);
       expect(await searchMyFoods(old, 'bread')).toEqual([]);
@@ -671,9 +773,9 @@ describe('D-66 Search foods without a cap', () => {
 });
 
 describe('D-72 a search of one or two characters', () => {
-  it('is short below three characters, spaces not counted', () => {
-    expect(['a', 'ab', ' ab ', 'a b', '-', '米菓'].map(isShortSearch)).toEqual([true, true, true, true, true, true]);
-    expect(['abc', 'a bc', '50%', 'दाल'].map(isShortSearch)).toEqual([false, false, false, false]);
+  it('is short below three characters, spaces and marks (but %) not counted (D-86)', () => {
+    expect(['a', 'ab', ' ab ', 'a b', '-', '米菓', 'on!', '!?', '“ab”', 'a.b'].filter((query) => !isShortSearch(query))).toEqual([]);
+    expect(['abc', 'a bc', '50%', 'दाल', 'on!x'].filter(isShortSearch)).toEqual([]);
   });
 
   it('finds the packaged foods named by it, or of a brand named by it, the dishes and My foods named by it', async () => {
@@ -702,6 +804,89 @@ describe('D-72 a search of one or two characters', () => {
   });
 });
 
+describe('D-86 marks in a search', () => {
+  it('finds packaged foods, dishes and My foods as the words alone do, the marks typed or in the name', async () => {
+    // Synthetic products, dishes and My foods: made-up names and values.
+    const marked = { ...BUTTER, barcode: '8901234500011', name: 'Test paneer + peas!', brand: 'Test “Dairy”' };
+    const dish: Dish = { code: 'test_dal_tadka', name: 'Test dal: tadka!', portionUnit: 'katori', kcal: 150, proteinG: 4, carbsG: 15, fatG: 6, fibreG: 2 };
+    const short: Dish = { code: 'test_qa', name: 'Qa!', portionUnit: 'piece', kcal: 100, proteinG: 3, carbsG: 15, fatG: 3, fibreG: 1 };
+    await replaceFoods(db, 'v1', [], [dish, short], [marked, BISCUIT]);
+    for (const [i, name] of ['Test paneer + peas!', 'Qz?'].entries()) {
+      await saveEntry(db, 'myFood', {
+        changeId: `c-marks-${i}`,
+        data: { id: `00000000-0000-4000-d200-${String(i).padStart(12, '0')}`, name, unit: 'g', kcal: 100, proteinG: 5, carbsG: 10, fatG: 2, fibreG: null, savedAt: AT },
+      });
+    }
+    const barcodes = async (query: string) => (await searchPackaged(db, query)).map((found) => found.barcode);
+    const dishCodes = async (query: string) => (await searchDishes(db, query)).map((found) => found.code);
+    const mine = async (query: string) => (await searchMyFoods(db, query)).map((found) => found.name);
+
+    for (const query of ['paneer!', '#paneer', 'paneer + peas', 'paneerpeas', '“test dairy”', 'dairy?']) {
+      expect([query, await barcodes(query)]).toEqual([query, ['8901234500011']]);
+    }
+    // Dishes and My foods are read by SQL (D-66), which reads the same marks as spaces.
+    for (const query of ['dal!', 'tadka;', '[dal tadka]', 'daltadka', 'dal: tadka']) {
+      expect([query, await dishCodes(query)]).toEqual([query, ['test_dal_tadka']]);
+    }
+    for (const query of ['paneer!', 'paneer & peas', 'paneerpeas']) {
+      expect([query, await mine(query)]).toEqual([query, ['Test paneer + peas!']]);
+    }
+    // A short search: a name with a mark at its end is still named by it, typed with a mark or not.
+    expect(await dishCodes('qa')).toEqual(['test_qa']);
+    expect(await dishCodes('qa!')).toEqual(['test_qa']);
+    expect(await mine('qz')).toEqual(['Qz?']);
+    // Marks alone find nothing.
+    expect(await barcodes('!!!')).toEqual([]);
+    expect(await dishCodes('?!')).toEqual([]);
+    expect(await mine('& ?')).toEqual([]);
+  });
+});
+
+describe('D-88 accents in a search', () => {
+  it('finds packaged foods by a brand with accents, and dishes and My foods, capitals too, without them', async () => {
+    // Synthetic products, dishes and My foods: made-up names and values.
+    const krunch = { ...BUTTER, barcode: '8901234500031', name: 'Test Koko Krunch', brand: 'Testlé' };
+    const dish: Dish = { code: 'test_creme', name: 'Test crème caramel', portionUnit: 'piece', kcal: 200, proteinG: 4, carbsG: 30, fatG: 6, fibreG: 0 };
+    await replaceFoods(db, 'v1', [], [dish], [krunch, BISCUIT]);
+    for (const [i, name] of ['Test CAFÉ MOCHA', 'Test café latté'].entries()) {
+      await saveEntry(db, 'myFood', {
+        changeId: `c-accents-${i}`,
+        data: { id: `00000000-0000-4000-d300-${String(i).padStart(12, '0')}`, name, unit: 'g', kcal: 100, proteinG: 5, carbsG: 10, fatG: 2, fibreG: null, savedAt: AT },
+      });
+    }
+
+    expect((await searchPackaged(db, 'testle koko')).map((found) => found.barcode)).toEqual(['8901234500031']);
+    expect((await searchPackaged(db, 'TESTLÉ')).map((found) => found.barcode)).toEqual(['8901234500031']);
+    // Dishes and My foods are read by SQL (D-66), which takes the accents off capitals too.
+    expect((await searchDishes(db, 'creme')).map((found) => found.code)).toEqual(['test_creme']);
+    expect((await searchMyFoods(db, 'cafe')).map((found) => found.name)).toEqual(['Test CAFÉ MOCHA', 'Test café latté']);
+    expect((await searchMyFoods(db, 'café mocha')).map((found) => found.name)).toEqual(['Test CAFÉ MOCHA']);
+    expect((await searchMyFoods(db, 'cafelatte')).map((found) => found.name)).toEqual(['Test café latté']);
+  });
+});
+
+describe('Local schema version 21', () => {
+  it('D-88 the update from version 20 asks for the food list again, the foods searched as before till it comes', async () => {
+    const old = memoryDb();
+    try {
+      // Version 20 as phones have it: version 21 only clears the list's version.
+      await migrateLocal(old);
+      await replaceFoods(old, 'v9', [
+        { source: 'ifct2017', code: 'T501', name: 'Test Nescafé', foodGroup: 'Test', aliases: [], proteinG: 1, fibreG: null, fatG: 1, carbsG: 1, kcal: 2, kcalEstimated: false, measures: [], portions: [] },
+      ]);
+      await old.execAsync('PRAGMA user_version = 20;');
+
+      await migrateLocal(old);
+
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
+      expect(await getMeta(old, 'food_list_version')).toBeNull();
+      expect((await searchFoods(old, 'nescafe')).map((found) => found.code)).toEqual(['T501']);
+    } finally {
+      await old.closeAsync();
+    }
+  });
+});
+
 describe('Local schema version 15', () => {
   it('D-66 the update from version 14 makes the search text from the foods on the phone, without downloading them again', async () => {
     const old = memoryDb();
@@ -725,10 +910,11 @@ describe('Local schema version 15', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       expect((await searchFoods(old, 'bread')).map((found) => found.code)).toEqual(['home-test-toast']);
       expect((await searchPackaged(old, 'testirams')).map((found) => found.barcode)).toEqual(['8901234500021']);
-      expect(await getMeta(old, 'food_list_version')).toBe('v1');
+      // Version 15 kept the list's version; version 21 (D-88) then asks for the list again.
+      expect(await getMeta(old, 'food_list_version')).toBeNull();
     } finally {
       await old.closeAsync();
     }
@@ -765,7 +951,7 @@ describe('Local schema version 17', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
       const saved = await listSavedMeals(old);
       expect(saved).toEqual([
         { id: synced, name: 'Synthetic breakfast', tags: [], items: [ATTA], savedAt: AT, kcal: 192, proteinG: 6.34, carbsG: 38.5, fatG: 0.92, fibreG: 6.82, syncState: 'synced' },

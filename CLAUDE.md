@@ -12,6 +12,29 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Marks, accents, brand rows, plain and everyday foods in a search — built on branch `fix/search-marks`
+(D-86, D-88, D-89, D-91 and D-92, 2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed
+once merged).** From the search QA report (QA-04, QA-08 to QA-12): D-92 lists, for an everyday word,
+the food as eaten the owner chose first (`docs/data/everyday-foods-sheet.csv`, 16 rows, all approved;
+`foods:import` puts each approved word among the food's other names as "@rice"; never approve a row
+without the owner's word), and packs of a dry or ready-to-cook form last (`dryFor`). D-91 lists the
+plain food the search names first ("potato" finds IFCT's "Potato, brown skin, big" first: not a brand's
+or packaged, named as typed, or with a part in brackets, or IFCT's with a comma; `plainFor` in
+`FoodSearchSheet.tsx`). Search
+foods reads any mark typed as a space ("paneer!", "#biryani",
+"egg+white" find what the words find), leaves out a word of marks alone ("aloo & gobi" as "aloo
+gobi") and does not count marks towards D-72's three characters ("on!" as "on"); only % counts
+("55%"). D-88: accents are ignored, typed or in names and brands ("nestle" finds Nestlé), in the exact
+match and in telling brands apart too (D-78); phone schema version 21 clears the food list's version,
+so each phone downloads the list once. D-89: a "N brands" row holds only foods alike in energy ("Gold"
+is four rows) and counts a brand once however it is written (`brandKey` in `FoodSearchSheet.tsx`);
+`docs/data/brand-names-sheet.csv` (747 rows, all approved by the owner on 2026-11-12) gives Open Food Facts' brands one
+spelling or their maker, applied by `foods:import` (`apps/api/src/foods/brandNames.ts`) to approved
+rows only. Never approve a row without the owner's word. The rule is `readName` and `withoutAccents`
+in `apps/mobile/src/local/store.ts`; SQL (My foods, dishes) reads a keyboard's marks and the accented
+letters the same way. No migration, no new build. **On `fitsphere-dev`: `foods:import` once rows are
+approved; only when the owner says so.**
+
 **Workout days in the header's calendar — built on branch `feat/calendar-workouts` (D-84,
 2026-11-12), in `D:\fitsphere`.** Canvas boards `CalendarWorkouts*` C locked (version 89), then
 `CalendarMealIcon*` B locked (version 93): no green days. The header's month calendar puts a green
