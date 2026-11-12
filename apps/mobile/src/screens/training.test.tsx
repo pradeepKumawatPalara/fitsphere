@@ -127,7 +127,8 @@ describe('D-65 the Training tab', () => {
     expect(screen.getByRole('tab', { name: 'All workouts' })).toBeSelected();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Calendar' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 20 October 2026' }));
+    // The calendar marks the day's workout (D-84).
+    await fireEvent.press(await screen.findByRole('button', { name: 'Tuesday 20 October 2026, 1 workout logged' }));
 
     expect(screen.getByRole('tab', { name: 'By day' })).toBeSelected();
     expect(screen.getByRole('button', { name: 'Log workout for Tue 20 Oct' })).toBeOnTheScreen();

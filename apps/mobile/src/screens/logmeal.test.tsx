@@ -331,6 +331,9 @@ describe('REQ-LOG-001 and REQ-LOG-002 the date', () => {
     expect(screen.getByRole('button', { name: 'Wednesday 28 October 2026, today, 1 meal logged' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Tuesday 27 October 2026, 2 meals logged' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Thursday 22 October 2026, Nothing logged' })).toBeOnTheScreen();
+    // Log meal's calendar keeps its dots: no green days, workouts or key, which are the header's (D-84).
+    expect(screen.queryByText('Meals logged')).toBeNull();
+    expect(screen.queryByText(/workouts?$/)).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 October 2026, 2 meals logged' }));
     expect(screen.getByRole('button', { name: 'Date: Tue 27 Oct' })).toBeOnTheScreen();
   });

@@ -601,6 +601,18 @@ export function listedWorkouts<T extends { id: string; exercises: readonly unkno
   return workouts.filter((workout) => workout.exercises.length > 0 || Boolean(workout.timer) || workout.id === keep);
 }
 
+/**
+ * How many listed workouts (D-65) each day has: the header's calendar puts a dumbbell on those days
+ * and counts the month's (D-84). Days with none are left out.
+ */
+export function workoutsPerDay(
+  workouts: readonly { id: string; day: IstDay; exercises: readonly unknown[]; timer?: WorkoutTimer | null }[],
+): Record<IstDay, number> {
+  const counts: Record<IstDay, number> = {};
+  for (const workout of listedWorkouts(workouts)) counts[workout.day] = (counts[workout.day] ?? 0) + 1;
+  return counts;
+}
+
 // The workout timer (D-71). "Start workout" starts it on a workout of today; it counts from the
 // clock, so leaving the screen or closing the app does not stop it; "Pause" stops it and "Resume"
 // counts on; "Mark done" stops it for good, and its total is the time counted, pauses left out.

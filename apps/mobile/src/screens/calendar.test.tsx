@@ -1,7 +1,11 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import type { MealItem } from '@fitsphere/shared';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { FUTURE_DAY, OLDER_DAY } from '../components/CalendarSheet';
 import { HeaderActions, HeaderTitle } from '../components/AppHeader';
-import { renderInApp } from '../testing/appHarness';
+import { saveEntry } from '../local/store';
+import { NOW, renderInApp } from '../testing/appHarness';
+import { sameSets } from '../testing/exercises';
+import { LIGHT_COLORS } from '../theme';
 import { AccountScreen } from './AccountScreen';
 import { HomeScreen } from './HomeScreen';
 
@@ -33,7 +37,8 @@ describe('REQ-NAV-002 calendar', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
 
     expect(screen.getByText('October 2026')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Wednesday 28 October 2026, today' })).toBeSelected();
+    // Each day says what was logged on it (D-84), once the calendar has read the phone's days.
+    expect(await screen.findByRole('button', { name: 'Wednesday 28 October 2026, today, Nothing logged' })).toBeSelected();
     const tomorrow = screen.getByRole('button', { name: 'Thursday 29 October 2026, not available' });
     expect(tomorrow).toBeDisabled();
     await fireEvent.press(tomorrow);
@@ -60,7 +65,7 @@ describe('REQ-NAV-002 calendar', () => {
     for (let month = 0; month < 3; month += 1) await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
 
     expect(screen.getByText('July 2026')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Friday 31 July 2026' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Friday 31 July 2026, Nothing logged' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Previous month' })).toBeDisabled();
     // An older day is greyed too, and says why (D-34).
     const older = screen.getByRole('button', { name: 'Thursday 30 July 2026, not available' });
@@ -73,7 +78,7 @@ describe('REQ-NAV-002 calendar', () => {
     await renderHome();
     await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Monday 5 October 2026' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 5 October 2026, Nothing logged' }));
 
     await waitFor(() => expect(screen.queryByText('October 2026')).toBeNull());
     expect(screen.getByLabelText('Selected date: Mon 5 Oct')).toBeOnTheScreen();
@@ -91,6 +96,82 @@ describe('REQ-NAV-002 calendar', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Account' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith('/account');
+  });
+});
+
+// The header's calendar marks each day's meals and workouts (D-84; canvas "2.2 Calendar · workout
+// days", C locked, then "2.2 Calendar · an apple for meals", B locked). Synthetic: meals on Mon 26 Oct (two) and Tue 27 Oct; a workout on Mon 26 Oct, two
+// on Wed 21 Oct and one on Thu 10 Sep; on Thu 22 Oct a workout with no exercise, which no list shows (D-65).
+const SQUAT = sameSets('Squat', 3, 10, 40_000);
+const FOOD: MealItem = { source: 'own', ref: null, name: 'Synthetic food', amount: { unit: 'g', value: 100 }, kcal: 100, proteinG: 5, carbsG: null, fatG: null, fibreG: null, estimated: false };
+
+async function renderWithDays() {
+  return renderInApp(
+    <>
+      <HeaderTitle />
+      <HeaderActions />
+      <HomeScreen />
+    </>,
+    undefined,
+    async (db, server) => {
+      for (const [index, day] of ['2026-10-26', '2026-10-26', '2026-10-27'].entries()) {
+        await saveEntry(db, 'meal', {
+          changeId: `00000000-0000-4000-b000-0000000c000${index}`,
+          data: { id: `00000000-0000-4000-8000-0000000c000${index}`, day, mealType: index === 0 ? 'breakfast' : 'lunch', tags: [], items: [FOOD], recordedAt: NOW.toISOString() },
+        });
+      }
+      const workouts: [day: string, exercises: (typeof SQUAT)[]][] = [
+        ['2026-10-26', [SQUAT]],
+        ['2026-10-21', [SQUAT]],
+        ['2026-10-21', [SQUAT]],
+        ['2026-10-22', []],
+        ['2026-09-10', [SQUAT]],
+      ];
+      for (const [index, [day, exercises]] of workouts.entries()) {
+        server.storeWorkoutFromElsewhere(`00000000-0000-4000-a000-0000000c000${index}`, day, exercises);
+      }
+    },
+  );
+}
+
+describe('D-84 the header calendar marks meals and workouts', () => {
+  it('D-84 a day with a meal has an apple, a day with a workout a dumbbell, no day is tinted; each day says what was logged', async () => {
+    await renderWithDays();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
+
+    const monday = await screen.findByRole('button', { name: 'Monday 26 October 2026, 2 meals logged, 1 workout logged' });
+    const tuesday = screen.getByRole('button', { name: 'Tuesday 27 October 2026, 1 meal logged' });
+    const wednesday = screen.getByRole('button', { name: 'Wednesday 21 October 2026, 2 workouts logged' });
+    const empty = screen.getByRole('button', { name: 'Thursday 22 October 2026, Nothing logged' });
+    expect(screen.getByTestId('meals-2026-10-26')).toBeOnTheScreen();
+    expect(screen.getByTestId('meals-2026-10-27')).toBeOnTheScreen();
+    expect(screen.queryByTestId('meals-2026-10-21')).toBeNull();
+    expect(screen.getByTestId('workout-2026-10-26')).toBeOnTheScreen();
+    expect(screen.getByTestId('workout-2026-10-21')).toBeOnTheScreen();
+    expect(screen.queryByTestId('workout-2026-10-27')).toBeNull();
+    // No green days (the owner, 2026-11-12): a day with meals keeps the plain background.
+    for (const day of [monday, tuesday, wednesday]) expect(day).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.successTint });
+    // A workout with no exercise is not marked (D-65).
+    expect(within(empty).queryByTestId('workout-2026-10-22')).toBeNull();
+    expect(screen.queryByTestId('meals-2026-10-22')).toBeNull();
+    // The key under the days.
+    expect(screen.getByLabelText('Key: an apple marks meals logged; a dumbbell marks a workout')).toBeOnTheScreen();
+    expect(screen.getByText('Meals logged')).toBeOnTheScreen();
+    expect(screen.getByText('Workout')).toBeOnTheScreen();
+  });
+
+  it('D-84 counts the month’s workouts under its name: the shown month’s only, a workout with no exercise left out', async () => {
+    await renderWithDays();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Calendar' }));
+
+    expect(await screen.findByText('3 workouts')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    expect(screen.getByText('September 2026')).toBeOnTheScreen();
+    expect(screen.getByText('1 workout')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Next month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Next month' }));
+    expect(screen.getByText('November 2026')).toBeOnTheScreen();
+    expect(screen.getByText('No workouts')).toBeOnTheScreen();
   });
 });
 

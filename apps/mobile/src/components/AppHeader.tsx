@@ -1,14 +1,18 @@
 import { useRouter } from 'expo-router';
 import { Calendar } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { formatDay } from '../format';
+import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import { listEntries, mealCounts } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { greetingName } from '../profile';
+import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
-import { CalendarSheet } from './CalendarSheet';
+import { workoutsPerDay } from '../workouts';
+import { CalendarSheet, type CalendarActivity } from './CalendarSheet';
 import { ProfilePhoto, useProfile } from './ProfilePhoto';
 import { Text } from './ui';
 
@@ -16,7 +20,8 @@ import { Text } from './ui';
 // greeting on the left; the calendar shortcut and the profile avatar on the right. The redesign's
 // 2.1 (locked by the owner, 2026-11-03): the date in condensed capitals, caramel when it is today;
 // the greeting under it in display capitals. The greeting uses the profile's first name, and the
-// avatar its photo (REQ-ACC-011), when there are.
+// avatar its photo (REQ-ACC-011), when there are. The calendar marks the days with a meal (an apple)
+// and the days with a workout (a dumbbell), and counts the month's workouts (D-84).
 
 export function HeaderTitle() {
   const styles = useStyles();
@@ -44,6 +49,22 @@ export function HeaderActions() {
   const { today, selected, firstDay, select } = useSelectedDay();
   const router = useRouter();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const local = useLocalDatabase();
+  const sync = useSync();
+  // The 90 days' meals and listed workouts (D-84), read when the calendar opens; null until then.
+  const [activity, setActivity] = useState<CalendarActivity | null>(null);
+
+  useEffect(() => {
+    if (!calendarOpen || local.state.status !== 'ready') return;
+    const db = local.state.db;
+    let active = true;
+    void Promise.all([mealCounts(db, firstDay, today), listEntries(db, 'workout', firstDay, today)]).then(([meals, workouts]) => {
+      if (active) setActivity({ meals, workouts: workoutsPerDay(workouts) });
+    });
+    return () => {
+      active = false;
+    };
+  }, [calendarOpen, local.state, firstDay, today, sync.version]);
   return (
     <View style={styles.actions}>
       <Pressable
@@ -69,6 +90,7 @@ export function HeaderActions() {
           today={today}
           firstDay={firstDay}
           selected={selected}
+          activity={activity}
           onSelect={select}
           onClose={() => setCalendarOpen(false)}
         />
