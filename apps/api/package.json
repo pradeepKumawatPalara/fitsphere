@@ -19,7 +19,8 @@
     "usda:convert": "node scripts/usda-convert.ts",
     "indb:convert": "node scripts/indb-convert.ts",
     "off:convert": "node scripts/off-convert.ts",
-    "exercise-details:convert": "node scripts/exercise-details-convert.ts"
+    "exercise-details:convert": "node scripts/exercise-details-convert.ts",
+    "consolidated:convert": "node scripts/consolidated-convert.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1159.0",

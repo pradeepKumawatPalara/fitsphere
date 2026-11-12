@@ -157,17 +157,20 @@ export async function importUsdaArchive(client: pg.ClientBase, foods: ImportedFo
   return foods.length;
 }
 
-/** Makes app.packaged_foods hold exactly the file's packaged foods (D-48), in one transaction. */
+/**
+ * Makes app.packaged_foods hold exactly the file's packaged foods (D-48), with their other names (D-94),
+ * in one transaction.
+ */
 export async function importPackagedFoods(client: pg.ClientBase, foods: readonly PackagedFood[]): Promise<number> {
   await client.query('begin');
   try {
     await client.query('delete from app.packaged_foods');
     for (const batch of batches(foods)) {
       await client.query(
-        `insert into app.packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams)
-         select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams
+        `insert into app.packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases)
+         select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases
          from jsonb_to_recordset($1::jsonb) as row (barcode text, name text, brand text, kcal numeric, protein_g numeric,
-           carbs_g numeric, fat_g numeric, fibre_g numeric, serving_grams numeric)`,
+           carbs_g numeric, fat_g numeric, fibre_g numeric, serving_grams numeric, aliases text[])`,
         [
           JSON.stringify(
             batch.map((food) => ({
@@ -180,6 +183,7 @@ export async function importPackagedFoods(client: pg.ClientBase, foods: readonly
               fat_g: food.fatG,
               fibre_g: food.fibreG,
               serving_grams: food.servingGrams,
+              aliases: food.aliases ?? [],
             })),
           ),
         ],

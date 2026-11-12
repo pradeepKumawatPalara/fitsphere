@@ -93,13 +93,13 @@ describe('Local schema version 13', () => {
     try {
       await migrateLocal(old);
       await old.execAsync(
-        'DROP TABLE exercises; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 12;',
+        'ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; DROP TABLE exercises; ALTER TABLE foods DROP COLUMN search_name; ALTER TABLE foods DROP COLUMN search_aliases; ALTER TABLE packaged_foods DROP COLUMN search_name; ALTER TABLE packaged_foods DROP COLUMN search_brand; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 12;',
       );
       await setMeta(old, 'exercise_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 22 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       expect(await searchExercises(old, 'run')).toEqual([]);
     } finally {
@@ -160,12 +160,12 @@ describe('Local schema version 16', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('ALTER TABLE exercises DROP COLUMN details; ALTER TABLE exercises DROP COLUMN places; ALTER TABLE exercises DROP COLUMN place_keys; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 15;');
+      await old.execAsync('ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; ALTER TABLE exercises DROP COLUMN details; ALTER TABLE exercises DROP COLUMN places; ALTER TABLE exercises DROP COLUMN place_keys; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 15;');
       await setMeta(old, 'exercise_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 22 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       await replaceExercises(old, 'v2', TEST_EXERCISE_LIST);
       expect(names(await searchExercises(old, '', 100, { category: 'Barbell', subGroup: 'Chest' }))).toEqual(['Barbell bench press']);
@@ -185,12 +185,12 @@ describe('D-82 how to do each exercise on the phone', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('ALTER TABLE exercises DROP COLUMN details; PRAGMA user_version = 19;');
+      await old.execAsync('ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; ALTER TABLE exercises DROP COLUMN details; PRAGMA user_version = 19;');
       await setMeta(old, 'exercise_list_version', 'v1');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 21 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 22 });
       expect(await getMeta(old, 'exercise_list_version')).toBeNull();
       await replaceExercises(old, 'v2', TEST_EXERCISE_LIST);
       expect((await findListedExercise(old, 'Dumbbell bench press'))?.details?.howTo).toHaveLength(3);

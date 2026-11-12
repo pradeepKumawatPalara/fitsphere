@@ -27,15 +27,29 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-62 the committed estimated-dishes sheet', () => {
-  it('passes every check: 5,025 dishes approved, 1,778 held back with their problem', () => {
+  it('passes every check: 6,848 dishes approved, 150 held back with their problem', () => {
+    // D-62's 5,025; D-94's 1,634 held rows the owner's consolidated file rates C with values that fit, and
+    // 189 dishes FitSphere lacked. Held: D-62's 1,778 less those, and 6 dishes the file only rates D.
     const { foods, portions, held } = readDishEstimatesSheet(COMMITTED);
-    expect(foods).toHaveLength(5_025);
-    expect(portions).toHaveLength(5_025);
-    expect(held).toBe(1_778);
+    expect(foods).toHaveLength(6_848);
+    expect(portions).toHaveLength(6_848);
+    expect(held).toBe(150);
     expect(foods.every((food) => food.flag === 'llm' && food.estimated && food.code.startsWith('est-'))).toBe(true);
   });
 
-  it('loads Bhindi Masala with its base food words, and holds back Rava Idli given a lassi’s values', () => {
+  it('D-94 loads Rava Idli with an idli’s values, once held back with a lassi’s', () => {
+    const { foods, portions } = readDishEstimatesSheet(COMMITTED);
+    expect(foods.find((food) => food.code === 'est-classic-south-indian-rava-idli')).toMatchObject({ kcal: '130', proteinG: '4', carbsG: '27', fatG: '0.5' });
+    expect(portions.find((portion) => portion.code === 'est-classic-south-indian-rava-idli')).toEqual({ code: 'est-classic-south-indian-rava-idli', seq: 1, label: 'Idli', grams: 45 });
+  });
+
+  it('D-94 still holds back a dish the file gives the same values that did not fit it', () => {
+    const { foods } = readDishEstimatesSheet(COMMITTED);
+    expect(foods.find((food) => food.code === 'est-heart-shaped-tea-sandwiches')).toBeUndefined();
+    expect(COMMITTED).toMatch(/^est-heart-shaped-tea-sandwiches,Heart Shaped Tea Sandwiches,[^,]*,held,"""sandwiches"" given the values of chai"/m);
+  });
+
+  it('loads Bhindi Masala with its base food words', () => {
     const { foods, portions } = readDishEstimatesSheet(COMMITTED);
     expect(foods.find((food) => food.code === 'est-bhindi-masala')).toMatchObject({
       name: 'Bhindi Masala',
@@ -44,8 +58,6 @@ describe('D-62 the committed estimated-dishes sheet', () => {
       aliases: ['okra', 'bhindi'],
     });
     expect(portions.find((portion) => portion.code === 'est-bhindi-masala')).toEqual({ code: 'est-bhindi-masala', seq: 1, label: 'Katori', grams: 150 });
-    expect(foods.find((food) => food.code === 'est-classic-south-indian-rava-idli')).toBeUndefined();
-    expect(COMMITTED).toContain('est-classic-south-indian-rava-idli,Classic South Indian Rava Idli,Rice,held,"""idli"" given the values of lassi sweet"');
   });
 });
 

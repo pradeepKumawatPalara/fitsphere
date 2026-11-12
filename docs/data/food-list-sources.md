@@ -2,7 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (D-92: the everyday foods, `docs/data/everyday-foods-sheet.csv`, 16 rows
+- Last updated: 2026-11-12 (D-94: the owner's consolidated food database: other names,
+  `docs/data/food-aliases-sheet.csv`; 1,823 more estimated dishes; 53 generic foods as home-style
+  foods; a proposed everyday row for bread). Earlier the same day (D-92: the everyday foods, `docs/data/everyday-foods-sheet.csv`, 16 rows
   approved by the owner). Earlier the same day (D-89: Open Food Facts' brands written one way,
   `docs/data/brand-names-sheet.csv`, all 747 rows approved by the owner). 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
   columns, the starter set, and how a recipe goes live). Earlier the same day (poultry checked
@@ -628,7 +630,47 @@ marked "@" ("@rice"), which the phone reads to list it first and to find it by (
 Proposed and approved by the owner on 2026-11-12, 16 rows, each saying why and the other choice: rice, dal, roti, chapati, chai,
 tea, coffee, dosa, khichdi, rajma, chole, paratha, biryani, pulao, omelette and soup. Most are estimated
 dishes, so their values are their type of dish's typical values (D-62); none of INDB's values that
-look wrong (QA-01, QA-02) was chosen.
+look wrong (QA-01, QA-02) was chosen. A 17th row, bread (the white bread slice), is `proposed` (D-94).
+
+## The owner's consolidated food database (D-94)
+
+`Indian_Food_Database_CONSOLIDATED.xlsx` (built on 12 November 2026, kept outside the repository, in
+`D:itsphere-data`) is the owner's dish database (D-62) made again with its packaged and generic
+sheets. `npm run consolidated:convert -w @fitsphere/api -- <the file>` reads its sheets "Dishes",
+"Branded packaged" and "Generic unbranded" and writes FitSphere's sheets from them; `foods:import`
+loads them. Running it again on the same file changes nothing more.
+
+- **Other names**, `docs/data/food-aliases-sheet.csv` (`source`, `code`, `name`, `aliases`): the file's
+  Aliases for the FitSphere food each row is. An IFCT food by its code (and the same name): each
+  regional name, then the Aliases' other words. A dish by its name, or its name without the part in
+  brackets, among INDB's recipes, the estimated dishes and the home-style foods; a name two of them
+  share gets none; a dish the file lists under several base foods gets each one's words. A packaged
+  food by its barcode. The Aliases run a food's other names together, one space between them
+  ("chana chana dal besan chickpea"), so its words are kept once each, in order, as one name. 7,409
+  rows: IFCT 483, INDB 494, home-style 52, estimated dishes 3,043, packaged 3,337. `foods:import` adds
+  the names a food lacks after its own (not its name, brand or another name, ignoring case, accents
+  and marks) and refuses the import when a food of the list is now named otherwise. They are often
+  the base food's names in Indian languages, so a dish is also found by them ("doodh" finds a toned
+  milk, "chawal" a rice dish), listed after the foods found by their name. Plurals are not taken from
+  the file's Search Text: Search foods tries a word's other number itself (D-94).
+- **Estimated dishes**, `docs/data/dish-estimates-sheet.csv` (D-62's sheet and rules): a held row the
+  file now rates C is approved with the file's values for it (1,634), unless it was held as another
+  food already listed (12) or because its values did not fit the dish and the file gives the same
+  values again (125); a dish not in the sheet is added (189 approved; 6 rated D only, held as weak
+  matches). Of a dish's several rows in the file, the one rated C is taken, re-checked first, of the
+  held row's base food or one the name has. Each row passes the sheet's own checks.
+- **Generic foods**, `docs/data/home-foods-sheet.csv` (D-59's sheet): the file's rows "GEN-001" to
+  "GEN-083", generic foods not in IFCT 2017, the file's estimates (rated C), flagged `llm`: 53 added,
+  each with its serving and the file's group as its item. Not added: 28 FitSphere has as the same
+  food in the same form with energy within 20 kcal or 15% (`GENERIC_SAME_AS` in
+  `apps/api/src/foods/consolidated.ts`), and 2 named exactly as a food listed (Hung Curd, Mozzarella
+  Cheese); their other names go to that food. Four were added beside a food of the same name but for
+  its brackets, with other values: Greek Yogurt (plain) 97 kcal beside Greek Yogurt 60, Fresh Cream
+  (25% fat) 255 beside Fresh Cream 300, Tomato Ketchup (generic) 102 beside INDB's Tomato ketchup 33,
+  Coconut Chutney (generic) 120 beside INDB's 266.
+- **Not used**: the file's values for INDB's recipes (342 rated "B - corrected", INDB's values
+  rejected) and for the dishes FitSphere has: they keep their values. Its Search Text, and its
+  "Search index (preview)" sheet.
 
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,

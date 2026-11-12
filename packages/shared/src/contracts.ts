@@ -1096,8 +1096,13 @@ export const packagedFoodSchema = z.object({
   fibreG: z.number().nullable(),
   /** One serving's grams, when its label gives the serving in grams. */
   servingGrams: z.number().nullable(),
+  /**
+   * Other names it is found by, never shown (D-94: from the owner's food database); absent when it has
+   * none.
+   */
+  aliases: z.array(z.string()).optional(),
 });
-export type PackagedFood = z.infer<typeof packagedFoodSchema>;
+export type PackagedFood =z.infer<typeof packagedFoodSchema>;
 
 /** The name a packaged food's serving is logged under (D-48). */
 export const PACKAGED_SERVING_LABEL = 'Serving';

@@ -26,14 +26,29 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-59 the committed home-foods sheet', () => {
-  it('passes every check: the owner approved 31 bread, 30 roti and 31 naan, kulcha and paratha foods on 2026-11-06, each an AI estimate with its serving', () => {
+  it('passes every check: the owner approved 31 bread, 30 roti and 31 naan, kulcha and paratha foods on 2026-11-06, and 53 generic foods on 2026-11-12, each an AI estimate with its serving', () => {
     const { foods, portions, proposed } = readHomeFoodsSheet(COMMITTED);
-    expect(foods).toHaveLength(92);
+    expect(foods).toHaveLength(145);
     expect(proposed).toBe(0);
-    expect(portions).toHaveLength(92);
+    expect(portions).toHaveLength(145);
     const items = new Map<string, number>();
     for (const food of foods) items.set(food.aliases[0]!, (items.get(food.aliases[0]!) ?? 0) + 1);
-    expect(Object.fromEntries(items)).toEqual({ bread: 31, roti: 30, naan: 14, kulcha: 6, paratha: 11 });
+    expect(Object.fromEntries(items)).toEqual({
+      bread: 31,
+      roti: 30,
+      naan: 14,
+      kulcha: 6,
+      paratha: 11,
+      // D-94: the owner's consolidated food database's generic foods, by its group.
+      dairy: 10,
+      'cooked staple': 10,
+      flour: 12,
+      bakery: 5,
+      'sugar & sweetener': 3,
+      beverage: 4,
+      pantry: 8,
+      'spice & condiment': 1,
+    });
     expect(foods.every((food) => food.flag === 'llm' && food.code.startsWith('home-'))).toBe(true);
   });
 

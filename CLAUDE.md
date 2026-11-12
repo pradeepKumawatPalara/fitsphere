@@ -12,6 +12,21 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**The owner's consolidated food database: other names, plurals, more dishes and generic foods — built
+on branch `feat/consolidated-foods` (D-94, 2026-11-12), in `D:itsphere-search-marks`.** From the
+owner's `Indian_Food_Database_CONSOLIDATED.xlsx` (kept outside the repository, in `D:itsphere-data`),
+`npm run consolidated:convert` (`apps/api/src/foods/consolidated.ts`) writes
+`docs/data/food-aliases-sheet.csv` (other names for 7,409 foods: IFCT by code, dishes by name, packaged
+foods by barcode; `foods:import` adds those a food lacks), approves 1,634 held rows and adds 195 to
+`docs/data/dish-estimates-sheet.csv`, and adds 53 generic foods to `docs/data/home-foods-sheet.csv`
+(28 FitSphere already has, `GENERIC_SAME_AS`, give their names to it instead). Packaged foods keep
+other names (migration `0030_packaged_aliases.sql`, phone schema version 22). Search foods tries a
+word's other number as a whole word ("bananas" finds Banana, "curry" Curries; `otherNumber` in
+`apps/mobile/src/local/store.ts`) and ranks it as the word itself. A 17th everyday row, bread (the
+white bread slice), is `proposed`: never approve it without the owner's word. No new build. **On
+`fitsphere-dev`: migration 0030 before the updated API, then `foods:import`; only when the owner says
+so.**
+
 **Marks, accents, brand rows, plain and everyday foods in a search — built on branch `fix/search-marks`
 (D-86, D-88, D-89, D-91 and D-92, 2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed
 once merged).** From the search QA report (QA-04, QA-08 to QA-12): D-92 lists, for an everyday word,
