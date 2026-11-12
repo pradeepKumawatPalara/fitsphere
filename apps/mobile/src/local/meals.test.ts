@@ -412,6 +412,33 @@ describe('ADR-0006 rule 1 the cached food list', () => {
     expect(await codes('qz!')).toEqual(['P006']);
   });
 
+  it('D-92 finds an everyday food by its word and marks it, wherever the word is in its other names', async () => {
+    await replaceFoods(db, 'v2', [
+      { ...food('E001', 'Test boiled rice (Uble chawal)', ['@rice']), source: 'indb' },
+      food('E002', 'Test masala chai', ['chai', '@tea', '@chai']),
+      food('E003', 'Test rice, raw, milled'),
+      food('E004', 'Test tea leaves'),
+    ]);
+    const marked = async (query: string) => (await searchFoodSummaries(db, query)).map((found) => `${found.code}${found.everyday ? '*' : ''}`);
+
+    expect(await marked('rice')).toEqual(['E001*', 'E003']);
+    expect(await marked('RICE!')).toEqual(['E001*', 'E003']);
+    // Found by its word alone ("tea" is not in the name), the word the last of its other names or not.
+    expect(await marked('tea')).toEqual(['E002*', 'E004']);
+    expect(await marked('chai')).toEqual(['E002*']);
+    // Another word, or the word inside another, is no everyday food's.
+    expect(await marked('masala')).toEqual(['E002']);
+    expect(await marked('boiled rice')).toEqual(['E001']);
+    // The full food keeps its other names as the list gives them.
+    expect((await searchFoods(db, 'tea')).map((found) => found.aliases)).toEqual([['chai', '@tea', '@chai'], []]);
+  });
+
+  it('D-72 finds with one or two characters a food whose last other name is the search (D-86 put no space after it)', async () => {
+    await replaceFoods(db, 'v2', [food('S010', 'Test protein shake', ['protein', 'On']), food('S011', 'Test onion soup')]);
+
+    expect((await searchFoods(db, 'on')).map((found) => found.code)).toEqual(['S010']);
+  });
+
   it('D-88 ignores accents, typed or in the name; Devanagari stays as it is', async () => {
     await replaceFoods(db, 'v2', [
       food('I001', 'Test Nescafé latte'),

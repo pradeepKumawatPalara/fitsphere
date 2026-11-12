@@ -1377,15 +1377,34 @@ export async function searchFoods(db: SqlDb, query: string, limit?: number): Pro
  * its row. The rest (its other names, servings and household units) is read when it is opened
  * (`getFood`), so a search reads less for each of its matches.
  */
-export type FoodSummary = Pick<Food, 'source' | 'code' | 'name' | 'foodGroup' | 'kcal' | 'kcalEstimated'>;
+export type FoodSummary = Pick<Food, 'source' | 'code' | 'name' | 'foodGroup' | 'kcal' | 'kcalEstimated'> & {
+  /** The everyday food the search names (D-92): listed first. Absent for the others. */
+  everyday?: true;
+};
 
-/** `searchFoods`' matches, in the same order, each as its summary (D-73). */
+/**
+ * The mark an everyday word carries among a food's other names (D-92): "@rice" on "Boiled rice (Uble
+ * chawal)", as `foods:import` puts it from the approved rows of docs/data/everyday-foods-sheet.csv. A
+ * search reads it as the word, so the food is found by it ("tea" finds "Masala Chai").
+ */
+export const EVERYDAY_MARK = '@';
+
+/** `searchFoods`' matches, in the same order, each as its summary (D-73), the everyday foods the search names marked (D-92). */
 export async function searchFoodSummaries(db: SqlDb, query: string, limit?: number): Promise<FoodSummary[]> {
-  const rows = await foodMatches<Pick<FoodRow, 'source' | 'code' | 'name' | 'food_group' | 'kcal' | 'kcal_estimated'>>(
+  const text = readName(query);
+  const everyday: SqlPart = text
+    ? {
+        // The other names are read only where the ready-made search text has the search as a word.
+        sql: `((' ' || search_aliases || ' ') LIKE ? ESCAPE '\\' AND EXISTS (SELECT 1 FROM json_each(aliases) WHERE value = ?)) AS everyday`,
+        params: [`% ${escapeLike(text)} %`, `${EVERYDAY_MARK}${text}`],
+      }
+    : { sql: '0 AS everyday', params: [] };
+  const rows = await foodMatches<Pick<FoodRow, 'source' | 'code' | 'name' | 'food_group' | 'kcal' | 'kcal_estimated'> & { everyday: number }>(
     db,
     query,
     'source, code, name, food_group, kcal, kcal_estimated',
     limit,
+    everyday,
   );
   return rows.map((row) => ({
     source: row.source,
@@ -1394,6 +1413,7 @@ export async function searchFoodSummaries(db: SqlDb, query: string, limit?: numb
     foodGroup: row.food_group,
     kcal: row.kcal,
     kcalEstimated: row.kcal_estimated === 1,
+    ...(row.everyday === 1 ? { everyday: true as const } : {}),
   }));
 }
 
@@ -1406,8 +1426,8 @@ export async function getFood(db: SqlDb, source: string, code: string): Promise<
   return row ? toFood(row) : null;
 }
 
-/** The rows `searchFoods` finds, with only `columns` read. */
-async function foodMatches<T>(db: SqlDb, query: string, columns: string, limit: number | undefined): Promise<T[]> {
+/** The rows `searchFoods` finds, with only `columns` read, and `extra` (a column worked out for each). */
+async function foodMatches<T>(db: SqlDb, query: string, columns: string, limit: number | undefined, extra?: SqlPart): Promise<T[]> {
   const words = searchWords(query);
   if (words.length === 0) return [];
   const match = isShortSearch(query) ? wholeMatch(query, ['search_name'], true) : wordsMatch(words, ['search_name', 'search_aliases']);
@@ -1416,8 +1436,8 @@ async function foodMatches<T>(db: SqlDb, query: string, columns: string, limit: 
   for (const source of SEARCH_ORDER) {
     rows.push(
       ...(await db.getAllAsync<T>(
-        `SELECT ${columns} FROM foods WHERE source = ? AND ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
-        [source, ...match.params, ...first.params, sqlLimit(limit)],
+        `SELECT ${columns}${extra ? `, ${extra.sql}` : ''} FROM foods WHERE source = ? AND ${match.sql} ORDER BY ${first.sql} DESC, name COLLATE NOCASE LIMIT ?`,
+        [...(extra?.params ?? []), source, ...match.params, ...first.params, sqlLimit(limit)],
       )),
     );
   }
@@ -1738,8 +1758,9 @@ function wholeMatch(query: string, columns: readonly string[], aliases = false):
   if (aliases) {
     parts.push({
       // Each other name is read only where the ready-made search text has the search as a word, so
-      // the thousands of foods without it are passed over quickly.
-      sql: `(search_aliases LIKE ? ESCAPE '\\' AND EXISTS (SELECT 1 FROM json_each(aliases) WHERE ${searched('value')} = ?))`,
+      // the thousands of foods without it are passed over quickly. The text has no space at its end
+      // since D-86 (the list's closing mark is one), so one is put there for the last name.
+      sql: `((' ' || search_aliases || ' ') LIKE ? ESCAPE '\\' AND EXISTS (SELECT 1 FROM json_each(aliases) WHERE ${searched('value')} = ?))`,
       params: [`% ${escapeLike(text)} %`, ` ${text}`],
     });
   }

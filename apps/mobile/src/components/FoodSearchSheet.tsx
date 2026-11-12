@@ -133,8 +133,35 @@ function plainFor(query: string): (result: Result) => boolean {
 }
 
 /**
+ * The words that name a food's dry or ready-to-cook form rather than the food eaten (D-92): "Dosa Idli
+ * Batter", "Rava Upma Mix", "Chai Premix", "Sambar Powder", "Curry leaves". Flour and atta are left
+ * out: they are what a search for besan or ragi wants.
+ */
+const DRY_FORM = /(^| )(batter|mix|premix|pre mix|powder|podi|ready to cook|rtc|leaves|leaf)( |$)/;
+
+/**
+ * Whether a result is a pack of a dry or ready-to-cook form the search did not ask for (D-92; the
+ * owner, 2026-11-12, after "dosa" listed batters, flours and mixes before any dosa): a packaged
+ * food's or a brand label's name with one of DRY_FORM's words, unless the search has that word too
+ * ("dosa batter") or is a search for its brand ("mtr", whose packs are mixes).
+ */
+function dryFor(query: string): (result: Result) => boolean {
+  const key = matchKey(query);
+  const typed = key.replace(/ /g, '');
+  const asked = DRY_FORM.test(key);
+  return (result) => {
+    if (asked || !typed || !(result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label'))) return false;
+    const branded = brandOf(result);
+    if (branded && matchKey(branded.brand).replace(/ /g, '').includes(typed)) return false;
+    return DRY_FORM.test(matchKey(nameOf(result)));
+  };
+}
+
+/**
  * The results in the order Search foods lists them, given in the order by source (D-54, D-59, D-62):
- * - the plain foods the search names first (D-91): your own first, then IFCT's measured foods, then
+ * - the everyday food the search names first (D-92: the owner's choice for an everyday word, "rice"
+ *   finding "Boiled rice (Uble chawal)" first; `searchFoodSummaries` marks it);
+ * - then the plain foods the search names (D-91): your own first, then IFCT's measured foods, then
  *   the rest ("banana" finds "Banana, ripe, robusta" above a protein powder named "Banana" and "Banana
  *   chips");
  * - then those named exactly as the search ("bread" finds "Bread" above "Bread, white" and "Brown
@@ -143,6 +170,8 @@ function plainFor(query: string): (result: Result) => boolean {
  *   listed Baati and Dalda oil near the top): foods whose name has every word whole, then those where
  *   a word only starts a word of the name, then those where it is inside a word, then those found
  *   only by their hidden search words.
+ * - the packs of a dry or ready-to-cook form the search did not ask for last (D-92: "dosa" lists the
+ *   dosas before the batters and mixes).
  * Each group keeps the order by source. A packaged food's brand counts as part of its name. Worked out
  * in one pass, each name read once for each test (D-75), where the exact match and the best match
  * used to be two passes reading every name three times.
@@ -151,12 +180,22 @@ export function inSearchOrder(query: string, results: readonly Result[]): Result
   const key = matchKey(query);
   const match = nameMatcher(query);
   const plain = plainFor(query);
-  // The plain foods in groups 0 to 2 (your own, IFCT's, the rest); then the exact matches in groups 3 to
-  // 6 and the rest in 7 to 10, each by how well the name matches.
-  const groups: Result[][] = Array.from({ length: 11 }, () => []);
+  const dry = dryFor(query);
+  // The everyday foods the search names in group 0 (D-92); the plain foods in groups 1 to 3 (your own,
+  // IFCT's, the rest); then the exact matches in groups 4 to 7 and the rest in 8 to 11, each by how well
+  // the name matches; the dry forms last, in 12.
+  const groups: Result[][] = Array.from({ length: 13 }, () => []);
   for (const result of results) {
+    if (result.kind === 'food' && result.food.everyday) {
+      groups[0]!.push(result);
+      continue;
+    }
+    if (dry(result)) {
+      groups[12]!.push(result);
+      continue;
+    }
     if (plain(result)) {
-      groups[result.kind === 'mine' ? 0 : result.kind === 'food' && result.food.source === 'ifct2017' ? 1 : 2]!.push(result);
+      groups[result.kind === 'mine' ? 1 : result.kind === 'food' && result.food.source === 'ifct2017' ? 2 : 3]!.push(result);
       continue;
     }
     let best = 3;
@@ -165,7 +204,7 @@ export function inSearchOrder(query: string, results: readonly Result[]): Result
       best = Math.min(best, match(name));
       if (key && !exact && matchKey(name) === key) exact = true;
     }
-    groups[(exact ? 3 : 7) + best]!.push(result);
+    groups[(exact ? 4 : 8) + best]!.push(result);
   }
   return groups.flat();
 }

@@ -133,6 +133,45 @@ describe('D-66 the best matches first (the owner, 2026-11-10)', () => {
     expect(names(inSearchOrder('banana chips', results))[0]).toBe('Banana chips');
   });
 
+  it('D-92 lists the everyday food the search names before all, the plain foods next', () => {
+    const everyday = (name: string, source: Food['source']) => {
+      const result = food(name, source);
+      return { ...result, food: { ...result.food, everyday: true as const } };
+    };
+    // Synthetic foods in the order by source.
+    const results = [packaged('Rice', 'Test Mills'), food('Rice, raw, milled'), everyday('Boiled rice (Uble chawal)', 'indb'), food('Rice kheer', 'indb')];
+
+    expect(names(inSearchOrder('rice', results))).toEqual(['Boiled rice (Uble chawal)', 'Rice, raw, milled', 'Rice', 'Rice kheer']);
+  });
+
+  it('D-92 lists the packs of a dry or ready-to-cook form last, unless the search asks for one or names their brand', () => {
+    // Synthetic foods in the order by source.
+    const results = [
+      packaged('Dosa Idli Batter', 'Test Dairy'),
+      packaged('Rice Dosa Mix', 'Test Mills'),
+      packaged('Dosa Flour', 'Test Mills'),
+      packaged('Masala Dosa', 'Test Foods'),
+      food('Mix veg dosa', 'home'),
+      food('Masala dosa', 'indb'),
+      food('Plain dosa', 'dish_estimate'),
+    ];
+
+    expect(names(inSearchOrder('dosa', results))).toEqual([
+      'Dosa Flour',
+      'Masala Dosa',
+      'Mix veg dosa',
+      'Masala dosa',
+      'Plain dosa',
+      // The batter and the mix last; a home-style food named "Mix veg" is no pack.
+      'Dosa Idli Batter',
+      'Rice Dosa Mix',
+    ]);
+    // Asked for: in their places.
+    expect(names(inSearchOrder('dosa batter', results))[0]).toBe('Dosa Idli Batter');
+    // A search for the brand lists its packs as they come.
+    expect(names(inSearchOrder('test mills', results)).slice(0, 2)).toEqual(['Rice Dosa Mix', 'Dosa Flour']);
+  });
+
   it('D-88 ignores accents, in the words and the exact match', () => {
     expect(nameMatcher('cafe')('Café latte')).toBe(0);
     expect(nameMatcher('jalapeño')('Jalapeno chips')).toBe(0);
