@@ -184,6 +184,12 @@ describe('D-50 picking from the exercise list', () => {
       expect(screen.getByText(label)).toBeOnTheScreen();
       expect(screen.getByText(value)).toBeOnTheScreen();
     }
+    // D-93: the name stands out in bold; the sets are plain running text, not condensed capitals.
+    expect(screen.getByText('Dumbbell bench press')).toHaveStyle({ fontFamily: 'Barlow_700Bold' });
+    expect(screen.getByText('Set 1')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
+    expect(screen.getByText('Set 1')).not.toHaveStyle({ textTransform: 'uppercase' });
+    expect(screen.getByText('10 × 20.0 kg')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
+    expect(screen.getByText('10 × 20.0 kg')).not.toHaveStyle({ textTransform: 'uppercase' });
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         {
@@ -289,6 +295,8 @@ describe('D-50 picking from the exercise list', () => {
     await save();
 
     expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km' })).toBeOnTheScreen();
+    // D-93: the cardio line is plain running text too.
+    expect(screen.getByText('30:00 · 5.00 km')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         { kind: 'cardio', name: 'Running', ...NONE, ...CARDIO, durationSeconds: 1_800, distanceMetres: 5_000 },
