@@ -25,6 +25,7 @@ import {
   withoutAccents,
 } from '../local/store';
 import { formatAmount, formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
+import { readSearch, type ReadSearch, type SearchAmount } from '../searchAmount';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -177,10 +178,11 @@ function dryFor(query: string): (result: Result) => boolean {
  *   dosas before the batters and mixes).
  * Each group keeps the order by source. A packaged food's brand counts as part of its name. Worked out
  * in one pass, each name read once for each test (D-75), where the exact match and the best match
- * used to be two passes reading every name three times.
+ * used to be two passes reading every name three times. `typed` is the search as typed when `query`
+ * left its amount out (D-96): a food named as typed is an exact match too ("5 star" finds "5 Star").
  */
-export function inSearchOrder(query: string, results: readonly Result[]): Result[] {
-  const keys = new Set([query, ...searchesInOtherNumber(query)].map(matchKey).filter(Boolean));
+export function inSearchOrder(query: string, results: readonly Result[], typed: string = query): Result[] {
+  const keys = new Set([query, typed, ...searchesInOtherNumber(query)].map(matchKey).filter(Boolean));
   const match = nameMatcher(query);
   const plain = plainFor(query);
   const dry = dryFor(query);
@@ -534,12 +536,14 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
   const [query, setQuery] = useState('');
   // D-72: the text searched for, once typing pauses; and the results, with the text they are for.
   const [searched, setSearched] = useState('');
-  const [found, setFound] = useState<{ query: string; results: Result[] }>({ query: '', results: [] });
+  // D-96: with the amount typed with the search, and the foods it names when it joins several.
+  const [found, setFound] = useState<{ query: string; results: Result[] } & Pick<ReadSearch, 'amount' | 'foods'>>({ query: '', results: [], amount: null, foods: [] });
   const results = found.results;
   const [runLatest] = useState(latestOnly);
   const [listCached, setListCached] = useState(true);
-  // The food whose page is open, and the amount it was last logged in when opened from Recent foods.
-  const [chosen, setChosen] = useState<{ result: FoodResult; from?: MealItem['amount'] } | null>(null);
+  // The food whose page is open, and the amount it was last logged in when opened from Recent foods,
+  // or the amount typed with the search (D-96).
+  const [chosen, setChosen] = useState<{ result: FoodResult; from?: MealItem['amount']; amount?: SearchAmount | null } | null>(null);
   const [editing, setEditing] = useState<LocalMyFood | null>(null);
   // The food sources' sheet, behind the i (D-44).
   const [sources, setSources] = useState(false);
@@ -578,13 +582,15 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
 
   /** A food's page from the results: a food of the list is read whole first (D-73); one no longer listed does not open. */
   async function choose(result: Result) {
+    // D-96: the page opens on the amount typed with the search ("2 roti"), when it fits the food.
+    const amount = found.amount;
     if (result.kind !== 'food') {
-      setChosen({ result });
+      setChosen({ result, amount });
       return;
     }
     if (local.state.status !== 'ready') return;
     const food = await getFood(local.state.db, result.food.source, result.food.code);
-    if (food) setChosen({ result: { kind: 'food', food } });
+    if (food) setChosen({ result: { kind: 'food', food }, amount });
   }
 
   /** A recent food's page, on its last amount; a food no longer listed has no page, and its name ticks it (MVP default, D-60). */
@@ -605,7 +611,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     setQuery(text);
     if (text.trim() === '') {
       setSearched('');
-      setFound({ query: '', results: [] });
+      setFound({ query: '', results: [], amount: null, foods: [] });
     }
   }
 
@@ -623,22 +629,33 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     // D-72: one search at a time; a newer text replaces one still waiting to start.
     runLatest(async () => {
       if (!active) return;
-      const [dishes, foods, mine, packaged, listVersion] = await Promise.all([
-        searchDishes(db, searched),
-        searchFoodSummaries(db, searched),
-        searchMyFoods(db, searched),
-        searchPackaged(db, searched),
-        getMeta(db, 'food_list_version'),
-      ]);
+      // D-96: the amount typed with the food and words like "of" and "with" are not searched for ("2 roti"
+      // searches "roti"); a search that is only an amount is searched as typed.
+      const reading = readSearch(searched);
+      const searchAll = (text: string) => Promise.all([searchDishes(db, text), searchFoodSummaries(db, text), searchMyFoods(db, text), searchPackaged(db, text)]);
+      let words = reading.search || searched;
+      let amount = reading.amount;
+      let [dishes, foods, mine, packaged] = await searchAll(words);
+      // A number that is part of a name ("7 up", "50 50"): nothing found without it, so searched as typed.
+      if (words !== searched && amount !== null && dishes.length + foods.length + mine.length + packaged.length === 0) {
+        if (!active) return;
+        [dishes, foods, mine, packaged] = await searchAll(searched);
+        words = searched;
+        amount = null;
+      }
+      const listVersion = await getMeta(db, 'food_list_version');
       if (!active) return;
       const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
       setFound({
         query: searched,
+        amount,
+        foods: reading.foods,
         // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
         // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
-        // D-51: those named exactly as the search first; D-66: in four groups, the best matches first,
-        // each group in that order. D-78: each branded product once, where its first copy was.
-        results: onePerProduct(inSearchOrder(searched, [
+        // D-51: those named exactly as the search first (or as typed, D-96: "5 star"); D-66: in four
+        // groups, the best matches first, each group in that order. D-78: each branded product once,
+        // where its first copy was.
+        results: onePerProduct(inSearchOrder(words, [
           ...listed('home'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
           ...listed('brand_label'),
@@ -647,7 +664,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
           ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
           ...listed('dish_estimate'),
           ...listed('ifct2017'),
-        ])),
+        ], searched)),
       });
       setListCached(listVersion !== null);
     });
@@ -726,9 +743,19 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
             </View>
             {!listCached ? (
               <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
-            ) : query.trim() !== '' && isShortSearch(query) ? (
+            ) : query.trim() !== '' && isShortSearch(readSearch(query).search || query) ? (
               // D-72: one or two characters list only the foods named by them, under this line.
               <Text style={styles.empty}>Type {SEARCH_MIN_CHARACTERS} letters or more to search all foods.</Text>
+            ) : query.trim() !== '' && found.query === query && results.length === 0 && found.foods.length > 1 ? (
+              // D-96: a search naming several foods ("chicken biryani with raita and salad") offers each.
+              <View style={styles.eachFood}>
+                <Text style={styles.empty}>No one food has all of these. Search each:</Text>
+                <View style={styles.eachFoodButtons}>
+                  {found.foods.map((food) => (
+                    <TextButton key={food} title={food} outlined onPress={() => changeQuery(food)} />
+                  ))}
+                </View>
+              </View>
             ) : query.trim() !== '' && found.query === query && results.length === 0 ? (
               // Only once the search for this text is done, not while it waits for the pause (D-72).
               <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
@@ -873,6 +900,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
         <FoodDetail
           result={chosen.result}
           from={chosen.from}
+          amount={chosen.amount}
           addTitle={withPage.length > 0 ? `Add ${withPage.length + 1} foods` : 'Add'}
           addNote={withPage.length > 0 ? `Your ${withPage.length === 1 ? '1 ticked food goes' : `${withPage.length} ticked foods go`} in with it.` : undefined}
           onBack={() => setChosen(null)}
@@ -909,6 +937,8 @@ const useStyles = themedStyles((c) => ({
   // text (Yoga's flex basis is 0), which hid the search text.
   searchInput: { ...TYPE.input, flex: 1, paddingVertical: 12 },
   empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center' },
+  eachFood: { gap: 10 },
+  eachFoodButtons: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   // As tall as its results, and no taller than the room above the keyboard.
   list: { flexGrow: 0, marginHorizontal: 16 },
   listCard: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },

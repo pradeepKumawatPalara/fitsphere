@@ -630,7 +630,7 @@ marked "@" ("@rice"), which the phone reads to list it first and to find it by (
 Proposed and approved by the owner on 2026-11-12, 16 rows, each saying why and the other choice: rice, dal, roti, chapati, chai,
 tea, coffee, dosa, khichdi, rajma, chole, paratha, biryani, pulao, omelette and soup. Most are estimated
 dishes, so their values are their type of dish's typical values (D-62); none of INDB's values that
-look wrong (QA-01, QA-02) was chosen. A 17th row, bread (the white bread slice), is `proposed` (D-94).
+look wrong (QA-01, QA-02) was chosen. A 17th row, bread (the white bread slice, D-94), was approved by the owner on 2026-11-12 ("approve bread").
 
 ## The owner's consolidated food database (D-94)
 

@@ -12,6 +12,14 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**An amount typed with a food in Search foods — built on branch `feat/search-amounts` (D-96,
+2026-11-12), on top of `feat/consolidated-foods`, in `D:itsphere-search-marks`.** QA-18: "2 roti",
+"1 cup rice", "half plate biryani" search the food (`readSearch` in `apps/mobile/src/searchAmount.ts`
+leaves out the amount, its measure and words like "with"), and the food's page opens on the amount when
+the food has that measure (`startFromSearch` in `FoodDetail.tsx`); a search joining several foods that
+nothing matches offers a button for each ("chicken biryani with raita and salad"). D-95 is left for
+another session. Phone app only: no server change, no migration, no new build.
+
 **The owner's consolidated food database: other names, plurals, more dishes and generic foods — built
 on branch `feat/consolidated-foods` (D-94, 2026-11-12), in `D:itsphere-search-marks`.** From the
 owner's `Indian_Food_Database_CONSOLIDATED.xlsx` (kept outside the repository, in `D:itsphere-data`),
@@ -23,7 +31,7 @@ foods by barcode; `foods:import` adds those a food lacks), approves 1,634 held r
 other names (migration `0030_packaged_aliases.sql`, phone schema version 22). Search foods tries a
 word's other number as a whole word ("bananas" finds Banana, "curry" Curries; `otherNumber` in
 `apps/mobile/src/local/store.ts`) and ranks it as the word itself. A 17th everyday row, bread (the
-white bread slice), is `proposed`: never approve it without the owner's word. No new build. **On
+white bread slice), approved by the owner on 2026-11-12 ("approve bread"; on the D-96 branch). No new build. **On
 `fitsphere-dev`: migration 0030 before the updated API, then `foods:import`; only when the owner says
 so.**
 
