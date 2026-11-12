@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (everyday foods, D-92: "@" words among `app.foods.aliases`). Earlier the same
+- Last updated: 2026-11-12 (the owner's consolidated food database, D-94: migration 0030,
+  `packaged_foods.aliases`, phone schema version 22). Earlier the same day (everyday foods, D-92: "@" words among `app.foods.aliases`). Earlier the same
   day (Search foods ignores accents, D-88: phone schema version 21). 2026-11-11
   (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
   Earlier the same day (targets by date, D-77: migration 0027, phone schema version 19).
@@ -451,7 +452,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | `estimated` | `boolean` | True when `kcal` is estimated |
 | `needs_review`, `note` | `boolean`, `text` | The source PDF's review flag and its reason |
 | `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
-| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62); and, after them, the everyday words the food is listed first for, each marked with "@" ("@rice", D-92, from the approved rows of `docs/data/everyday-foods-sheet.csv`). Never shown; the phone reads them only to search and order |
+| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62); and, after them, the everyday words the food is listed first for, each marked with "@" ("@rice", D-92, from the approved rows of `docs/data/everyday-foods-sheet.csv`); then the other names the owner's food database gives it, those it lacks (D-94, `docs/data/food-aliases-sheet.csv`). Never shown; the phone reads them only to search and order |
 | `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06; since migration 0019 (D-53) also `llm` on those holding an AI tool's estimates. Server only: never in `GET /v1/foods`; nothing reads it yet |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 
@@ -502,7 +503,7 @@ A serving's name is never changed, since a meal logged with it is checked by tha
 
 ### `packaged_foods` — reference data
 Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009): loaded from
-`data/foods/off-india-products.csv` by `foods:import`, replaced whole. Migration 0014. Kept apart from
+`data/foods/off-india-products.csv` by `foods:import`, replaced whole. Migrations 0014 and 0030. Kept apart from
 `foods` and from `barcode_products` (ADR-0006 rule 2). Not personal data; row level security on, no
 policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 
@@ -515,6 +516,7 @@ policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 | `protein_g`, `carbs_g`, `fat_g` | `numeric(6,2)` | 0 to 100, per 100 g |
 | `fibre_g` | `numeric(6,2)` | Null, or 0 to 100, per 100 g |
 | `serving_grams` | `numeric(7,2)` | Null, or more than 0 and at most 2,000: one serving, when the label gives it in grams |
+| `aliases` | `text[]` | Other names to search by, never shown (D-94): from `docs/data/food-aliases-sheet.csv`, the owner's food database's; empty for most. Sent only when not empty |
 
 ### `exercises` — reference data
 FitSphere's exercise list (D-50; `docs/data/exercise-list-sources.md`): loaded from
@@ -735,6 +737,10 @@ searches. The setting lasts as long as the connection and is set at each start.
 - **Version 21** (accents ignored, D-88) clears `food_list_version`, so the next download writes every
   food's and packaged food's search text again, accents taken off. The foods stay on the phone and are
   searched with their old search text until then.
+- **Version 22** (other names for packaged foods, D-94) adds `packaged_foods.aliases` (JSON, `[]` until
+  the list comes) and `packaged_foods.search_aliases` (as a search reads them) and clears
+  `food_list_version`, so the next download brings them. The products stay, searched by name and brand
+  until then.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

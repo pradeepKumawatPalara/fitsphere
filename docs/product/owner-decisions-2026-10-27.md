@@ -2967,6 +2967,85 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-94 The owner's consolidated food database: other names, plurals, more dishes and generic foods
+- Status: **Accepted** (owner, in chat, 2026-11-12: "There is sheet at the location d:/fitsphere-data
+  named: Indian_Food_Database_CONSOLIDATED. check the Sheet Dishes, Branded packed in the both the
+  Sheet there is column Aliases. So When I Search the word with their Aliases the Respective food
+  should also appear ... Strict rule dumped the alieas value to the corresponding food item value. If
+  the Aleases column is empty than Leave corresponding food item aliases column with the exisitng
+  value in the fitsphere. or the Fitshphere db has already some value to the aliases column than
+  append the New value base on your logic. In the Excel sheet name Generic unbranded. There are some
+  Unbranded food items also available. Let say Bread whenever I search for the Bread there should Be
+  unbraded Bread also apear as the search result along with the Branded. So dumped this sheet data as
+  well and their aliases value as well"; on the five-point plan, "point from 1 to 4 -> go. Regarding
+  point 4 that if the user type only the single and its prual presents in the db. so instead of
+  showing nothing shows the plurels food item as well. point 5 also dumped this data as well"). For
+  QA-05 (other names missing) and QA-06 (plurals) of the search QA report. Built on branch
+  `feat/consolidated-foods`. The file's Aliases hold a food's other names (often its base food's names
+  in Indian languages: "doodh dudh milk paal haalu"), not plurals: those are only in its Search Text,
+  which is not used.
+- Answer (REQ-LOG-007; with D-51, D-55, D-59, D-62, D-91 and D-92):
+  - **Other names.** `docs/data/food-aliases-sheet.csv`, made from the file by
+    `npm run consolidated:convert`, gives 7,409 foods the other names the file gives them: IFCT's
+    foods by their code (483; each regional name, then the file's other words), INDB's recipes, the
+    estimated dishes and the home-style foods by their name or their name without the part in
+    brackets (494, 3,043 and 52; a dish listed under several base foods gets each one's names), and
+    packaged foods by their barcode (3,337). `foods:import` adds them after the food's own; a name the
+    food already has, as its name, its brand or another name, is not added again (ignoring case,
+    accents and marks); a food the sheet does not name keeps its other names as they are: 11,404
+    names on 7,408 foods. Other names are never shown; a food found only by them is listed after
+    those found by their name (D-66).
+  - **Packaged foods' other names** are kept with them (migration `0030_packaged_aliases.sql`,
+    `app.packaged_foods.aliases`), sent with the food list only for those that have some, and kept on
+    the phone (schema version 22, which asks for the food list again).
+  - **Plurals, both ways.** A word typed in its other number finds the food too, as a whole word
+    only: "bananas" finds Banana, "rotis" Roti, "potatoes" Potato, "sandwiches" Sandwich, "curries"
+    Curry, "leaves" Leaf; and back: "curry" finds Curries, "leaf" Leaves; a few irregular ones
+    ("geese", "teeth"). A plural made by adding s or es needed nothing: "banana" already found
+    "Bananas". It ranks as the word itself: "bananas" lists like "banana" (the plain food first,
+    D-91; the exact name, D-51; the everyday food, D-92). In every part of Search foods: the food
+    list, packaged foods, dishes and My foods.
+  - **More estimated dishes** (`docs/data/dish-estimates-sheet.csv`, flagged `llm`, D-62's rules):
+    1,634 rows held back in D-62 are approved with the file's values, which it now rates C (most
+    "re-checked"; Classic South Indian Rava Idli now has an idli's values, not a lassi's); 189 dishes
+    FitSphere lacked are added; 6 the file only rates D are added held. Still held: 125 whose values
+    did not fit the dish (D-62's checks) and which the file gives the same values again ("Heart Shaped
+    Tea Sandwiches" with tea's values), 12 that are another food already listed, and 7 not in the
+    file. 6,848 estimated dishes in all, 150 held.
+  - **Generic foods** (the file's "GEN" rows, not in IFCT 2017, rated C): 53 added as home-style
+    foods (D-59, flagged `llm`, `docs/data/home-foods-sheet.csv`), each with its serving and its group
+    as its item ("Sugar, white (granulated)", "Toor Dal, cooked", "Greek Yogurt (plain)"). Not added,
+    their other names going to the food FitSphere has instead: 28 that are the same food in the same
+    form with energy within 20 kcal or 15% (`GENERIC_SAME_AS` in `apps/api/src/foods/consolidated.ts`:
+    the white, brown and multigrain bread slices, butter, honey, IFCT's atta, maida, semolina, poha and
+    boiled egg, and others), and 2 named exactly as a food listed (Hung Curd, Mozzarella Cheese).
+  - **"Bread".** The generic white bread is FitSphere's "White bread slice (Double roti)" (265 kcal),
+    which now has the file's other names ("bread double roti pav slice"). "bread" lists the brands' row
+    "Bread · 6 brands" first and the home-style breads after it; the plain slice is 22nd. A row of the
+    everyday-foods sheet (D-92), **proposed**, would list it first: it waits for the owner's word.
+- MVP defaults (D-18):
+  - A dish name two of FitSphere's foods share gets no other names (4: Cheese and tomato sandwich,
+    Paneer Matar Butter Masala, Cabbage rolls, Stuffed bittergourd).
+  - Of a dish's several rows in the file, the one loaded is rated C, re-checked first, of the held
+    row's base food or one the name has.
+  - The 342 INDB recipes the file rates "B - corrected" (INDB's values rejected: frying oil counted as
+    absorbed, cooking water counted) keep INDB's values: they get only their other names here.
+- Checked on the food list built from the repository's files (no database), 592 searches through the
+  phone's own search and ordering, against `main`: 20 searches that found nothing now find foods
+  ("bananas", "rotis", "idlis", "samosas", "curries", "egg fried rice", "alsi", "papita"); the first
+  row changed for 88, plurals now opening on the plain food ("mangoes": Mango, green, raw, not Mango
+  Lassi) and new dishes on themselves ("aloo gobi", "palak paneer", "medu vada" at 290 kcal, not
+  INDB's 746); rows found 32,631 → 52,635. As fast as before (the fastest of four passes 22.9 ms a
+  search, against 23.2). Odd ones left: "cake" opens on the generic "Instant Noodles, dry cake";
+  "haldirams" on a packaged product named only "Haldiram" (a name of D-80's kind).
+- Server, food data and phone: migration 0030; phone schema version 22; no new build. **On
+  `fitsphere-dev`: migration 0030 before the updated API, then `foods:import`; only when the owner
+  says so.**
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
+  CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants
