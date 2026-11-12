@@ -73,6 +73,12 @@ logged 8 days ago, on Tue 20 Oct."); once more than 7 days have passed, or with 
 badge beside the title and Add measurements filled (`TextButton` `strong`). Past dates and Progress
 unchanged. Phone app only: no server change, no migration, no phone schema change, no new build.
 
+**The exercise's name in bold — built on branch `fix/exercise-name-bold` (D-93, 2026-11-12), in
+`D:\fitsphere`.** Canvas boards `ExerciseName*` A locked (version 95). On a workout, each exercise's
+name is bold (Barlow Bold 17) and its sets, or its cardio or timed line, plain text (Barlow 15, not
+condensed capitals); the rest of the card unchanged. Phone app only: no server change, no migration,
+no phone schema change, no new build.
+
 **An exercise's page: Progress, History and How to — built on branch `feat/exercise-details` (D-82,
 2026-11-11), with D-81, in `D:\fitsphere-exercise-details`.** Plan: `docs/plans/exercise-details-page.md`
 (Accepted), REQ-TRN-008; canvas boards `ExerciseDetail*` locked (version 79), `WorkoutIcons*` C chosen

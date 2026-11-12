@@ -2965,6 +2965,24 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
   CLAUDE.md.
 
+## D-93 A workout: the exercise's name in bold, its sets in plain text
+- Status: **Accepted** (owner, in chat, 2026-11-12: with a screenshot of a workout, "I want that
+  excercise name should be higlighted. and the Sets number can be in the normal text. ... come up
+  with the updated canva design and wait for my approval"; of the canvas's three ways beside the app
+  as built, version 94: "lock it A"; locked in version 95). Built on branch `fix/exercise-name-bold`.
+- Answer (REQ-TRN-003):
+  - On a workout (4.2), each exercise's **name** is in bold (Barlow Bold, 17), the card's most
+    visible line.
+  - Its **sets** are plain running text (Barlow Regular, 15, not condensed capitals): "Set 1
+    10 × 20.0 kg", "3 sets  15 reps", the set's label muted as before; so is a cardio or timed
+    exercise's line ("30:00 · 5.00 km", "5:00").
+  - Everything else on the card is unchanged: the number box, the speed and pace line, the note, and
+    Progress, Edit and Remove in the bar at its foot (D-82).
+- MVP default: the workout screen only; Training's rows, Home's day sheet and an exercise's page keep
+  their look.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: the redesign's 4.2; CLAUDE.md.
+
 ---
 
 ## D-94 The owner's consolidated food database: other names, plurals, more dishes and generic foods
