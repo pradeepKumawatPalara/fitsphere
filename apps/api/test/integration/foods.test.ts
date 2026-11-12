@@ -285,9 +285,10 @@ describe('D-59 home-style foods: foods:import and GET /v1/foods', () => {
   it('imports the approved rows of the committed sheet whole, each with its serving, flagged llm', async () => {
     const home = readHomeFoodsSheet(readFileSync(new URL('../../../../docs/data/home-foods-sheet.csv', import.meta.url), 'utf8'));
     try {
-      expect((await importFoods(client, home.foods, HOME_FOOD_SOURCE)).total).toBe(92);
-      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toEqual({ servings: 92, units: 20 });
-      expect(await homeFlags()).toEqual([{ flag: 'llm', n: 92 }]);
+      // D-59's 92 and D-94's 53 generic foods.
+      expect((await importFoods(client, home.foods, HOME_FOOD_SOURCE)).total).toBe(145);
+      expect(await importPortions(client, HOME_FOOD_SOURCE, home.portions)).toEqual({ servings: 145, units: 24 });
+      expect(await homeFlags()).toEqual([{ flag: 'llm', n: 145 }]);
     } finally {
       await importFoods(client, [], HOME_FOOD_SOURCE);
     }
@@ -342,12 +343,14 @@ describe('D-62 estimated dishes: foods:import and GET /v1/foods', () => {
 
   it('imports the approved rows of the committed sheet whole, each with its serving, flagged llm; the held rows stay out', async () => {
     try {
-      expect((await importFoods(client, ESTIMATES.foods, DISH_ESTIMATE_SOURCE)).total).toBe(5_025);
-      expect(await importPortions(client, DISH_ESTIMATE_SOURCE, ESTIMATES.portions)).toEqual({ servings: 5_025, units: 212 });
+      // D-62's 5,025 and D-94's 1,823.
+      expect((await importFoods(client, ESTIMATES.foods, DISH_ESTIMATE_SOURCE)).total).toBe(6_848);
+      expect(await importPortions(client, DISH_ESTIMATE_SOURCE, ESTIMATES.portions)).toEqual({ servings: 6_848, units: 288 });
       expect(
         (await client.query(`select flag, estimated, count(*)::int as n from app.foods where source = 'dish_estimate' group by flag, estimated`)).rows,
-      ).toEqual([{ flag: 'llm', estimated: true, n: 5_025 }]);
-      expect((await client.query(`select count(*)::int as n from app.foods where code = 'est-classic-south-indian-rava-idli'`)).rows).toEqual([{ n: 0 }]);
+      ).toEqual([{ flag: 'llm', estimated: true, n: 6_848 }]);
+      // A held row stays out (D-94 still holds back one given the same values that did not fit it).
+      expect((await client.query(`select count(*)::int as n from app.foods where code = 'est-heart-shaped-tea-sandwiches'`)).rows).toEqual([{ n: 0 }]);
     } finally {
       await importFoods(client, [], DISH_ESTIMATE_SOURCE);
     }
