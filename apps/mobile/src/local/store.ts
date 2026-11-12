@@ -1114,6 +1114,12 @@ export async function mealCounts(db: SqlDb, fromDay: IstDay, toDay: IstDay): Pro
   return Object.fromEntries(rows.map((row) => [row.day, row.n]));
 }
 
+/** The latest IST day on or before `toDay` with measurements on the phone, or null (D-85). */
+export async function latestMeasurementsDay(db: SqlDb, toDay: IstDay): Promise<IstDay | null> {
+  const row = await db.getFirstAsync<{ day: string | null }>('SELECT max(day) AS day FROM measurements WHERE day <= ?', [toDay]);
+  return row?.day ?? null;
+}
+
 /** Each day's kcal and protein between two IST days, for days with at least one meal (REQ-PRG-002, REQ-PRG-005). */
 export async function dailyNutrition(
   db: SqlDb,

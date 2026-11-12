@@ -1,6 +1,8 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { applyServerEntries } from '../local/store';
+import { applyServerEntries, setMeta } from '../local/store';
+import type { SqlDb } from '../local/sql';
 import { renderInApp } from '../testing/appHarness';
+import { LIGHT_COLORS } from '../theme';
 import { HomeScreen } from './HomeScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
@@ -104,6 +106,85 @@ describe('REQ-HOME-008 measurements card', () => {
 
     expect(await screen.findByLabelText('Upper waist: 81.2 cm')).toBeOnTheScreen();
     expect(await screen.findByText('Waiting to sync')).toBeOnTheScreen();
+  });
+});
+
+// Today's card says when measurements were last logged, and "Due" once more than 7 days have passed
+// (D-85; canvas "2.3 Home · Measurements due", C locked). Today is Wed 28 Oct; the phone's 90 days
+// start on Fri 31 Jul.
+
+/** Home, with measurements on these days already on the phone, and the account's first day when known. */
+function renderHomeWith(days: string[], accountDay?: string) {
+  return renderInApp(<HomeScreen />, undefined, async (db: SqlDb) => {
+    await applyServerEntries(
+      db,
+      'measurements',
+      days.map((day) => ({ day, upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: RECORDED_AT })),
+    );
+    if (accountDay) await setMeta(db, 'account_created_day', accountDay);
+  });
+}
+
+describe('D-85 measurements due on today', () => {
+  it('D-85 more than 7 days since the last: when, the "Due" badge and "Add measurements" filled', async () => {
+    await renderHomeWith(['2026-10-12', '2026-10-20']);
+
+    expect(await screen.findByText('Last logged 8 days ago, on Tue 20 Oct.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Due')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add measurements' })).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
+    expect(screen.queryByText('No measurements for Wed 28 Oct.')).toBeNull();
+  });
+
+  it('D-85 exactly 7 days since the last: when, and not due', async () => {
+    await renderHomeWith(['2026-10-21']);
+
+    expect(await screen.findByText('Last logged 7 days ago, on Wed 21 Oct.')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Due')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add measurements' })).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
+  });
+
+  it('D-85 measured yesterday says "yesterday"', async () => {
+    await renderHomeWith(['2026-10-27']);
+
+    expect(await screen.findByText('Last logged yesterday, on Tue 27 Oct.')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Due')).toBeNull();
+  });
+
+  it('D-85 none yet on an account younger than the 90 days: "No measurements logged yet." and due', async () => {
+    await renderHomeWith([], '2026-10-01');
+
+    expect(await screen.findByText('No measurements logged yet.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Due')).toBeOnTheScreen();
+  });
+
+  it('D-85 none on the phone and an older account, or one not known yet: "None in the last 90 days." and due', async () => {
+    await renderHomeWith([], '2026-05-01');
+
+    expect(await screen.findByText('None in the last 90 days.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Due')).toBeOnTheScreen();
+  });
+
+  it('D-85 a past date keeps "No measurements for <date>", with no badge', async () => {
+    await renderHomeWith(['2026-10-12']);
+    expect(await screen.findByLabelText('Due')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 Oct' }));
+
+    expect(await screen.findByText('No measurements for Tue 27 Oct.')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Due')).toBeNull();
+  });
+
+  it('D-85 saving today’s measurements shows them, and the badge goes', async () => {
+    await renderHomeWith(['2026-10-12']);
+    expect(await screen.findByLabelText('Due')).toBeOnTheScreen();
+    await openSheet();
+    await type('Upper waist (cm)', '81.2');
+    await type('Lower waist (cm)', '84.5');
+
+    await fireEvent.press(save());
+
+    expect(await screen.findByLabelText('Upper waist: 81.2 cm')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Due')).toBeNull();
   });
 });
 

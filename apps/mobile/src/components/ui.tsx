@@ -214,7 +214,8 @@ export function useChoiceStyles() {
  * An action (D-35), its title in condensed capitals. `filled` for the screen's main action: 56 tall,
  * caramel, with an arrow after the title when `arrow`; `busy` swaps the title for a spinner at the
  * same width. `outlined` for a secondary action; plain for a link, in caramel, at the right with
- * `end`. `destructive` (Log out, Delete) turns it red; such an action is outlined or a link, never
+ * `end`. `strong` fills an outlined action caramel, at the outlined size, so it stands out among the
+ * card's (Home's "Add measurements" when they are due, D-85). `destructive` (Log out, Delete) turns it red; such an action is outlined or a link, never
  * filled. `wide` makes it full width and centred: Cancel under a main action, and each half of a
  * confirmation. An `icon` goes before the title, in caramel (on a filled button, in the button's
  * text colour). Disabled, it fades and cannot be pressed.
@@ -224,6 +225,7 @@ export function TextButton({
   onPress,
   outlined = false,
   filled = false,
+  strong = false,
   destructive = false,
   wide = false,
   arrow = false,
@@ -236,6 +238,7 @@ export function TextButton({
   onPress(): void;
   outlined?: boolean;
   filled?: boolean;
+  strong?: boolean;
   destructive?: boolean;
   wide?: boolean;
   arrow?: boolean;
@@ -256,10 +259,11 @@ export function TextButton({
       hitSlop={8}
       style={({ pressed }) => [
         filled ? styles.filled : outlined ? styles.outlined : styles.link,
+        strong && styles.strong,
         wide && styles.wide,
         end && styles.end,
         destructive && styles.destructiveEdge,
-        pressed && (filled ? styles.filledPressed : styles.pressed),
+        pressed && (filled || strong ? styles.filledPressed : styles.pressed),
         disabled && styles.disabled,
       ]}
     >
@@ -267,10 +271,11 @@ export function TextButton({
         <ActivityIndicator color={colors.onPrimary} />
       ) : (
         <>
-          {Icon ? <Icon size={filled ? 22 : 18} strokeWidth={2.25} color={filled ? colors.onPrimary : destructive ? colors.danger : colors.accent} /> : null}
+          {Icon ? <Icon size={filled ? 22 : 18} strokeWidth={2.25} color={filled || strong ? colors.onPrimary : destructive ? colors.danger : colors.accent} /> : null}
           <Text
             style={[
               filled ? styles.filledText : outlined ? styles.outlinedText : styles.linkText,
+              strong && styles.strongText,
               wide && styles.wideText,
               destructive && styles.destructiveText,
             ]}
@@ -281,7 +286,7 @@ export function TextButton({
             <ArrowRight
               size={filled ? 22 : 18}
               strokeWidth={2.25}
-              color={filled ? colors.onPrimary : destructive ? colors.danger : outlined ? colors.ink : colors.accent}
+              color={filled || strong ? colors.onPrimary : destructive ? colors.danger : outlined ? colors.ink : colors.accent}
             />
           ) : null}
         </>
@@ -413,6 +418,8 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 4,
   },
   outlinedText: { ...TYPE.buttonSecondary, color: c.ink },
+  strong: { backgroundColor: c.primary, borderColor: c.primary },
+  strongText: { color: c.onPrimary },
   link: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6 },
   linkText: { ...TYPE.link, color: c.accent },
   wide: { alignSelf: 'stretch', minHeight: 52, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },

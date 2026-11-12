@@ -20,6 +20,13 @@ workout Training lists, counts the month's workouts under its name ("3 workouts"
 the days; screen readers hear each day's meals and workouts. Log meal's calendar keeps its
 dots. Phone app only: no server change, no migration, no phone schema change, no new build.
 
+**Measurements due on Home — built on branch `feat/measurements-due` (D-85, 2026-11-12), on top of
+`feat/calendar-workouts`, in `D:\fitsphere`.** Canvas boards `MeasurementsDue*` C locked (version 91).
+On today, with none for today, Home's Measurements card says when measurements were last logged ("Last
+logged 8 days ago, on Tue 20 Oct."); once more than 7 days have passed, or with none, a caramel "Due"
+badge beside the title and Add measurements filled (`TextButton` `strong`). Past dates and Progress
+unchanged. Phone app only: no server change, no migration, no phone schema change, no new build.
+
 **An exercise's page: Progress, History and How to — built on branch `feat/exercise-details` (D-82,
 2026-11-11), with D-81, in `D:\fitsphere-exercise-details`.** Plan: `docs/plans/exercise-details-page.md`
 (Accepted), REQ-TRN-008; canvas boards `ExerciseDetail*` locked (version 79), `WorkoutIcons*` C chosen

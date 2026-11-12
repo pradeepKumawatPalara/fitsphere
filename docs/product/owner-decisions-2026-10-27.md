@@ -2768,6 +2768,35 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-NAV-002; the MVP defaults in `docs/architecture/constraints-and-assumptions.md`;
   the redesign's 2.2; CLAUDE.md.
 
+## D-85 Home's Measurements card: when they were last logged, and "Due" after 7 days
+- Status: **Accepted** (owner, in chat, 2026-11-12: with a screenshot of another app's Measurements
+  row, "ON THE home tab add Measurements when there is more than 7 days pending since no new
+  Measurements added. It should show the Due Button. Design the UI on the canva and wait for my
+  approval"; of the canvas's three ways, version 90: "c"; locked in version 91). Built on branch
+  `feat/measurements-due`, on top of D-84's branch.
+- Answer (REQ-HOME-008):
+  - On today, with no measurements for today, Home's Measurements card says **when they were last
+    logged**: "Last logged 14 days ago, on Thu 29 Oct." ("yesterday" for one day), in place of "No
+    measurements for <date>.".
+  - Once **more than 7 days** have passed since the last measurements, or there are none, a caramel
+    **"Due"** badge (a clock and the word) sits at the title's right, and **Add measurements** is
+    filled caramel, at its usual size.
+  - With no measurements on the phone: "No measurements logged yet." when the account is younger than
+    the phone's 90 days, otherwise "None in the last 90 days.".
+  - A past date's card is unchanged ("No measurements for <date>."), with no badge; a date with
+    measurements shows them, as before. Progress's card is unchanged.
+- MVP defaults:
+  - "More than 7 days": due from the 8th day after the last measurements; 7 days ago is not due.
+  - The phone keeps 90 days (ADR-0007 rule 1), so the account's first day (read on Progress and kept
+    on the phone) decides between "No measurements logged yet." and "None in the last 90 days."; until
+    it is known, the second.
+  - "Due" is a label, not a button: Add measurements opens the sheet. Any measurements on the phone
+    count, those waiting to sync or not saved too, as the card shows them.
+  - The filled Add uses a new button option, `strong`: the outlined button's size, filled caramel.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-HOME-008; `docs/design/design-system.md` (the strong button); the MVP defaults in
+  `docs/architecture/constraints-and-assumptions.md`; the redesign's 2.3; CLAUDE.md.
+
 ---
 
 ---
