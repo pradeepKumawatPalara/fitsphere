@@ -88,7 +88,7 @@ Use tabular figures for numbers. Support the phone's text-size setting.
 ## Components (used by F01)
 - **Input:** `surfaceSunken`, 1.5 px `border`, radius 4, 54 high, 14 px left padding. Label above (`label`). Focus: border `accent`. Error: border `danger` and message below (icon + `small` in `danger`). Password fields have a show/hide eye button (44×44).
 - **Primary button:** full width, 56 high, radius 4, `primary` fill, `onPrimary` text, `button` style, optional → arrow icon. Disabled: 40 % opacity, not pressable. Loading: a spinner replaces the label and the width stays the same.
-- **Secondary button:** 52 high, transparent, 1.5 px `border`, `ink` text.
+- **Secondary button:** 52 high, transparent, 1.5 px `border`, `ink` text. *Strong* (D-85): the same size filled `primary`, `onPrimary` text, to make a card's action stand out (Home's Add measurements once due).
 - **Text link:** `link` style in `accent`, no underline.
 - **Banner:** radius 4, 12/14 padding, icon + `small` text. Variants: info (`accentTint`), success (`successTint` + `success` border), error (`dangerTint` + `danger` border).
 - **Password strength:** 3 segments (4 high, radius 2, 4 gap) plus a rule checklist. A met rule is `success` with a tick; unmet is `inkMuted` with a dot.
