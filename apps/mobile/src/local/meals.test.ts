@@ -928,7 +928,7 @@ describe('Local schema version 17', () => {
       // Version 16 (the exercise library's, D-67) as phones have it: build it with the current
       // migrations, then put meal_type back.
       await migrateLocal(old);
-      await old.execAsync(`ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; 
+      await old.execAsync(`ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases;
         DROP TABLE saved_meals;
         CREATE TABLE saved_meals (id TEXT PRIMARY KEY, name TEXT NOT NULL, meal_type TEXT NOT NULL, tags TEXT NOT NULL,
           items TEXT NOT NULL, saved_at TEXT NOT NULL, kcal REAL NOT NULL, protein_g REAL NOT NULL, carbs_g REAL,
