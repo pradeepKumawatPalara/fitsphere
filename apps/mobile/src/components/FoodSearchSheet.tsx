@@ -112,8 +112,32 @@ function namesOf(result: Result): string[] {
 }
 
 /**
+ * Whether a result is the plain food the search names (D-91; the owner, 2026-11-12, after "potato"
+ * listed the raw potato 191st, under the chips): not a brand's or a packaged product, and named exactly
+ * as typed, or as typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)"), or, for IFCT's
+ * foods, named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast"). Other
+ * sources' commas list a dish's foods ("Carrot, Radish & Peanut Salad"): not plain.
+ */
+function plainFor(query: string): (result: Result) => boolean {
+  const typed = matchKey(query).replace(/ /g, '');
+  const named = (part: string) => matchKey(part).replace(/ /g, '') === typed;
+  return (result) => {
+    if (!typed || result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label')) return false;
+    const name = nameOf(result).trim();
+    if (named(name)) return true;
+    const bracket = name.indexOf(' (');
+    if (bracket > 0 && name.endsWith(')') && named(name.slice(0, bracket))) return true;
+    const comma = name.indexOf(',');
+    return result.kind === 'food' && result.food.source === 'ifct2017' && comma > 0 && named(name.slice(0, comma));
+  };
+}
+
+/**
  * The results in the order Search foods lists them, given in the order by source (D-54, D-59, D-62):
- * - those named exactly as the search first ("bread" finds "Bread" above "Bread, white" and "Brown
+ * - the plain foods the search names first (D-91): your own first, then IFCT's measured foods, then
+ *   the rest ("banana" finds "Banana, ripe, robusta" above a protein powder named "Banana" and "Banana
+ *   chips");
+ * - then those named exactly as the search ("bread" finds "Bread" above "Bread, white" and "Brown
  *   bread"), ignoring case, spaces and punctuation (D-51);
  * - before and after them alike, the best matches first (D-66; the owner, 2026-11-10, after "dal"
  *   listed Baati and Dalda oil near the top): foods whose name has every word whole, then those where
@@ -126,16 +150,22 @@ function namesOf(result: Result): string[] {
 export function inSearchOrder(query: string, results: readonly Result[]): Result[] {
   const key = matchKey(query);
   const match = nameMatcher(query);
-  // Exact matches in groups 0 to 3, the rest in 4 to 7, each by how well the name matches.
-  const groups: Result[][] = [[], [], [], [], [], [], [], []];
+  const plain = plainFor(query);
+  // The plain foods in groups 0 to 2 (your own, IFCT's, the rest); then the exact matches in groups 3 to
+  // 6 and the rest in 7 to 10, each by how well the name matches.
+  const groups: Result[][] = Array.from({ length: 11 }, () => []);
   for (const result of results) {
+    if (plain(result)) {
+      groups[result.kind === 'mine' ? 0 : result.kind === 'food' && result.food.source === 'ifct2017' ? 1 : 2]!.push(result);
+      continue;
+    }
     let best = 3;
     let exact = false;
     for (const name of namesOf(result)) {
       best = Math.min(best, match(name));
       if (key && !exact && matchKey(name) === key) exact = true;
     }
-    groups[(exact ? 0 : 4) + best]!.push(result);
+    groups[(exact ? 3 : 7) + best]!.push(result);
   }
   return groups.flat();
 }

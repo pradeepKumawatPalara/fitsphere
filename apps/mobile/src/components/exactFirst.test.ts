@@ -21,7 +21,8 @@ const names = (results: ReturnType<typeof inSearchOrder>) => results.map((result
 
 describe('D-51 an exact match first', () => {
   it('moves the foods named exactly as the search to the top, keeping the rest in order', () => {
-    const results = [food('Bread, white'), food('Brown bread', 'indb'), packaged('Bread', 'Test Bakers'), food('Bread pakora', 'indb')];
+    // An INDB name with a comma is not a plain food (D-91), so the exact match comes first.
+    const results = [food('Bread, white', 'indb'), food('Brown bread', 'indb'), packaged('Bread', 'Test Bakers'), food('Bread pakora', 'indb')];
 
     expect(names(inSearchOrder('bread', results))).toEqual(['Bread', 'Bread, white', 'Brown bread', 'Bread pakora']);
   });
@@ -99,6 +100,37 @@ describe('D-66 the best matches first (the owner, 2026-11-10)', () => {
     expect(nameMatcher('oatsalmonds')('Oats + Almonds!')).toBe(0);
     // An exact match ignores the marks too (D-51).
     expect(names(inSearchOrder('paneer!', [food('Paneer tikka'), food('Paneer')]))).toEqual(['Paneer', 'Paneer tikka']);
+  });
+
+  it('D-91 lists the plain food first: IFCT’s, then the others; never a brand’s or a packaged product', () => {
+    // Synthetic foods in the order by source.
+    const results = [
+      food('Banana', 'brand_label'),
+      packaged('Banana', 'Test Protein'),
+      packaged('Banana chips', null),
+      food('Banana shake', 'indb'),
+      food('Banana (1 medium)', 'dish_estimate'),
+      food('Banana, Apple Mash', 'dish_estimate'),
+      food('Banana, ripe, robusta'),
+      food('Bananas'),
+    ];
+
+    expect(names(inSearchOrder('banana', results))).toEqual([
+      // Plain: IFCT's "Banana, …" first, then the estimate's "Banana (…)".
+      'Banana, ripe, robusta',
+      'Banana (1 medium)',
+      // Then the exact matches, a brand's or a packaged one (D-51), then the rest (D-66).
+      'Banana',
+      'Banana',
+      'Banana chips',
+      'Banana shake',
+      'Banana, Apple Mash',
+      'Bananas',
+    ]);
+    // Typed with marks or in capitals, the same.
+    expect(names(inSearchOrder('BANANA!', results))[0]).toBe('Banana, ripe, robusta');
+    // Nothing plain: the order as before.
+    expect(names(inSearchOrder('banana chips', results))[0]).toBe('Banana chips');
   });
 
   it('D-88 ignores accents, in the words and the exact match', () => {
