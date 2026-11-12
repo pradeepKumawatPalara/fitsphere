@@ -12,6 +12,19 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**The Coach view, built by another team; gym members — built on branch `feat/users-gym-member`
+(D-90, 2026-11-12), in `D:\fitsphere`.** Another team builds the Coach view on this same Supabase
+database. The tables it shares stay in schema `app`: when it needs a change there or in this
+repository, it asks, and the change is made here, with its decision, migration, tests and
+documents; the MVP here stays D-20's. Its own tables are in its own schema, `coach`, made by that
+team, not here; a `coach` table pointing at `app.users` must be deleted with it (`on delete
+cascade`), and nothing in `app` is changed from outside this repository. First request:
+`app.users.is_gym_member` (`isGymMember` in TypeScript; boolean, not null, false until set;
+migration `0029_users_gym_member.sql`), read or written by nothing here yet. **Waiting for the
+owner:** how the Coach application reaches the `app` tables; ADR-0002 makes this API the only path
+(Data API off), so any other path needs a replacement ADR. No phone change, no new build. **On
+`fitsphere-dev`: migration 0029; only when the owner says so.**
+
 **Workout days in the header's calendar — built on branch `feat/calendar-workouts` (D-84,
 2026-11-12), in `D:\fitsphere`.** Canvas boards `CalendarWorkouts*` C locked (version 89), then
 `CalendarMealIcon*` B locked (version 93): no green days. The header's month calendar puts a green
@@ -341,7 +354,8 @@ while testing, with test data only, closed after use; **never commit the tunnel'
 **Personal Training User only (D-20).** No Coach or Head Coach roles, invitations, links, Head
 Coach permission, Notifications list or push in the MVP; the role selector is hidden. Keep the
 data model able to add links later without rework, but build no link or permission features or
-screens. Authorization tests cover self-access and "no other user's data". Slices, in order:
+screens. The Coach view is built by another team (D-90): make here the schema changes it asks for,
+nothing more. Authorization tests cover self-access and "no other user's data". Slices, in order:
 Skeleton; Home and daily tracking; Meal logging (no AI); Training; Progress; Settings and
 account; AI meal reading; Release (`mvp-scope.md` section 5).
 
