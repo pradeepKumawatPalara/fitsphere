@@ -2,8 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (D-89: Open Food Facts' brands written one way, `docs/data/brand-names-sheet.csv`,
-  all 747 rows approved by the owner). 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
+- Last updated: 2026-11-12 (D-92: the everyday foods, `docs/data/everyday-foods-sheet.csv`, 16 rows
+  approved by the owner). Earlier the same day (D-89: Open Food Facts' brands written one way,
+  `docs/data/brand-names-sheet.csv`, all 747 rows approved by the owner). 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
   columns, the starter set, and how a recipe goes live). Earlier the same day (poultry checked
   again: still not confirmed raw; other recipe sources searched: none can replace weighing).
   Earlier the same day (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
@@ -613,6 +614,21 @@ product or a file the owner made with another AI tool, and approved by the owner
   `foods:import` applies the approved rows only, after D-80's fixes (1,410 products take another
   brand, 7 of them with their line at the front of the name). The phone (D-89) already counts a brand once however its letters are written, so the
   sheet is for what letters cannot tell: misspellings, company names and makers.
+
+## Everyday foods: FitSphere's everyday-foods sheet (D-92)
+
+`docs/data/everyday-foods-sheet.csv` gives, for an everyday word, the food as eaten that Search foods
+lists first: one row a word and a food (`word`, `source`, `code`, `name`, `kcal`, `status`, `reason`),
+from IFCT, INDB, the home-style foods or the estimated dishes, never a brand's. A word may have more
+than one food; they are then listed in the order by source. The `name` and `kcal` are there to read the
+sheet by; `foods:import` checks the name is still the food's and refuses the import if not. Each row is
+`proposed` until the owner approves it; an approved row's word goes among the food's other names
+marked "@" ("@rice"), which the phone reads to list it first and to find it by (never shown).
+
+Proposed and approved by the owner on 2026-11-12, 16 rows, each saying why and the other choice: rice, dal, roti, chapati, chai,
+tea, coffee, dosa, khichdi, rajma, chole, paratha, biryani, pulao, omelette and soup. Most are estimated
+dishes, so their values are their type of dish's typical values (D-62); none of INDB's values that
+look wrong (QA-01, QA-02) was chosen.
 
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,

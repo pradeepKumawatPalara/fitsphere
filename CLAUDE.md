@@ -12,11 +12,15 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
-**Marks, accents, brand rows and plain foods in a search — built on branch `fix/search-marks` (D-86,
-D-88, D-89 and D-91, 2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed once
-merged).** From the search QA report (QA-04, QA-09 to QA-12): D-91 lists the plain food the search
-names first ("potato" finds IFCT's "Potato, brown skin, big" first: not a brand's or packaged, named as
-typed, or with a part in brackets, or IFCT's with a comma; `plainFor` in `FoodSearchSheet.tsx`). Search
+**Marks, accents, brand rows, plain and everyday foods in a search — built on branch `fix/search-marks`
+(D-86, D-88, D-89, D-91 and D-92, 2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed
+once merged).** From the search QA report (QA-04, QA-08 to QA-12): D-92 lists, for an everyday word,
+the food as eaten the owner chose first (`docs/data/everyday-foods-sheet.csv`, 16 rows, all approved;
+`foods:import` puts each approved word among the food's other names as "@rice"; never approve a row
+without the owner's word), and packs of a dry or ready-to-cook form last (`dryFor`). D-91 lists the
+plain food the search names first ("potato" finds IFCT's "Potato, brown skin, big" first: not a brand's
+or packaged, named as typed, or with a part in brackets, or IFCT's with a comma; `plainFor` in
+`FoodSearchSheet.tsx`). Search
 foods reads any mark typed as a space ("paneer!", "#biryani",
 "egg+white" find what the words find), leaves out a word of marks alone ("aloo & gobi" as "aloo
 gobi") and does not count marks towards D-72's three characters ("on!" as "on"); only % counts

@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (Search foods ignores accents, D-88: phone schema version 21). 2026-11-11
+- Last updated: 2026-11-12 (everyday foods, D-92: "@" words among `app.foods.aliases`). Earlier the same
+  day (Search foods ignores accents, D-88: phone schema version 21). 2026-11-11
   (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
   Earlier the same day (targets by date, D-77: migration 0027, phone schema version 19).
   2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
@@ -450,7 +451,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | `estimated` | `boolean` | True when `kcal` is estimated |
 | `needs_review`, `note` | `boolean`, `text` | The source PDF's review flag and its reason |
 | `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
-| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62) |
+| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62); and, after them, the everyday words the food is listed first for, each marked with "@" ("@rice", D-92, from the approved rows of `docs/data/everyday-foods-sheet.csv`). Never shown; the phone reads them only to search and order |
 | `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06; since migration 0019 (D-53) also `llm` on those holding an AI tool's estimates. Server only: never in `GET /v1/foods`; nothing reads it yet |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 

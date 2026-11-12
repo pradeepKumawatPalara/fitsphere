@@ -2929,6 +2929,42 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build.
 - Doc changes: REQ-LOG-007; CLAUDE.md.
 
+## D-92 Search foods: the everyday food first, dry packs last
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-08 of the search QA report (raw, dry or
+  premix packs before the food as eaten: "dal" listed raw dal packs, the first cooked dal 51st;
+  "dosa" batters, flours and mixes; "chai" premixes at 436 kcal; "tea" tea leaves; "khichdi" dry
+  mixes), "now fix QA8", then, of the four ways proposed (dry packs by the words of their names;
+  by energy; an everyday-foods sheet chosen by the owner; the first and the third together), "D";
+  then, on the sheet's 16 proposed rows, "approval all"). Built with D-86 to D-91 on branch
+  `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-51, D-54 and D-91):
+  - **Dry packs last.** A packaged food or a brand label whose name has batter, mix, premix, powder,
+    podi, ready to cook (rtc), leaves or leaf comes after every other match, unless the search has
+    that word too ("dosa batter") or names its brand ("mtr", whose packs are mixes). Flour and atta
+    are not among the words: a search for besan or ragi wants the flour.
+  - **The everyday food first.** `docs/data/everyday-foods-sheet.csv` gives, for an everyday word,
+    the food as eaten that Search foods lists before all others, as the owner approves each row:
+    a food of IFCT, INDB, the home-style foods or the estimated dishes, never a brand's.
+    `foods:import` puts each approved word among the food's other names marked "@" ("@rice"), so the
+    phone finds the food by it ("tea" finds "Masala Chai") and lists it first. Other names are never
+    shown. A row whose food is now named otherwise refuses the import, so the sheet is checked again.
+  - 16 rows, all approved by the owner on 2026-11-12: rice (Boiled rice), dal (Dal Tadka), roti and chapati (Chapati/Roti), chai
+    and tea (Masala Chai), coffee (Filter Coffee), dosa (Masala dosa; INDB's Plain dosa at 381 kcal
+    looks too high to choose), khichdi (Moong Dal Khichdi), rajma (Punjabi Rajma Masala), chole
+    (Chana Masala), paratha (Tawa Paratha), biryani (Chicken Biryani), pulao (Veg Pulao), omelette
+    (IFCT's Egg, poultry, omlet) and soup (Vegetable soup); each row says why and the other choice.
+    Most are estimated dishes, with their type of dish's typical values (D-62).
+  - Also: a short search (D-72) finds a food by its last other name again; D-86 had left no space
+    after it.
+- Checked on the dev database's food list (read only), 578 searches: the dry packs' rule changed
+  130, the first row of only 8 (all for a dry form: "dosa" a flour, no longer a batter, first), and
+  no brand search; with every row of the sheet as if approved, 23 more, the 16 words each listing
+  their food first.
+- Phone app and food data: no migration, no phone schema change, no new build. The everyday words
+  reach phones with `foods:import` once rows are approved.
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
+  CLAUDE.md.
+
 ---
 
 ---
