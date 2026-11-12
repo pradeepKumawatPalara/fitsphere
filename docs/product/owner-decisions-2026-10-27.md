@@ -3022,7 +3022,8 @@ checksum), and the configuration template was left as it is.*
   - **"Bread".** The generic white bread is FitSphere's "White bread slice (Double roti)" (265 kcal),
     which now has the file's other names ("bread double roti pav slice"). "bread" lists the brands' row
     "Bread · 6 brands" first and the home-style breads after it; the plain slice is 22nd. A row of the
-    everyday-foods sheet (D-92), **proposed**, would list it first: it waits for the owner's word.
+    everyday-foods sheet (D-92) lists it first: proposed, then approved by the owner on 2026-11-12
+    ("approve bread"), on the D-96 branch.
 - MVP defaults (D-18):
   - A dish name two of FitSphere's foods share gets no other names (4: Cheese and tomato sandwich,
     Paneer Matar Butter Masala, Cabbage rolls, Stuffed bittergourd).
@@ -3043,6 +3044,49 @@ checksum), and the configuration template was left as it is.*
   says so.**
 - Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
   CLAUDE.md.
+
+---
+
+## D-96 Search foods: an amount typed with a food, and a search naming several foods
+- Status: **Accepted** (owner, in chat, 2026-11-12, on QA-18 of the search QA report ("2 roti", "1 cup
+  rice", "half plate biryani" and "chicken biryani with raita and salad" found nothing): "I do not want
+  to dumped the new data instead I want the roti in the Search result. and in the measurement tab I
+  can increase the quantity"; of the three ways proposed (A: leave the amount and filler words out of
+  the search; B: A, and the food's page opens on the amount typed; C: B, and a search naming several
+  foods offers each), "B+C"). D-95 is left for another session. Built on branch
+  `feat/search-amounts`, on top of D-94's.
+- Answer (REQ-LOG-007; with D-45, D-51, D-60, D-72 and D-94):
+  - **The amount is not searched for.** A number (2, 1.5, ½, 1/2, two), and after it a size (small,
+    medium, large), a measure (cup, katori, bowl, plate, glass, piece, pc, slice, teaspoon, tsp,
+    tablespoon, tbsp, spoon, serving, scoop, handful; g, kg, ml, litre), pack words (pack, packet,
+    pouch, tin, bottle, jar, box) and "of", are left out of the search; so are "with", "and", "of",
+    "the", "a" and "some" anywhere. "2 roti" searches "roti", "1 cup rice" "rice", "half plate biryani"
+    "biryani", "amul pure ghee 1 litre tin pack" "amul pure ghee", "100g paneer" "paneer". A number is
+    an amount only first in the search or before a measure, size or pack word ("chicken 65" is a
+    dish); "half" only before a measure ("half boiled egg" is a way of cooking); a + or & inside a word
+    stays in it (D-86). A search that is only an amount ("2", "100 g") is searched as typed, and so is
+    one that finds nothing without its number ("7 up", "50 50").
+  - **The food's page opens on the amount** (B), when the food has that measure and the count fits it
+    (in halves, D-45): "2 roti" opens Chapati/Roti on 2 rotis, "half plate biryani" on half a plate,
+    "1 katori rajma" on a katori, "150 g paneer" on 150 grams. A bare count goes to the measure the
+    page opens on, or else the food's first counted one ("2 maggi": 2 servings). A measure the food
+    does not have leaves the page as usual; so does a number in the food's own name ("5 star" opens
+    Cadbury's 5 Star as usual, and lists it first: a food named as typed is an exact match, D-51).
+    Everything stays changeable on the page before Add.
+  - **A search naming several foods** (C): when no one food has every word of a search joining foods
+    with "with", "and", "plus", "&", "+" or a comma, the list says "No one food has all of these. Search
+    each:" and offers a button for each ("chicken biryani", "raita", "salad"), which searches it; each
+    keeps its own amount ("2 roti, dal and rice": "2 roti", "dal", "rice"). The buttons are the app's
+    outlined buttons; the screen (3.6) is otherwise as locked.
+- Checked on the food list built from the repository's files (no database), the 592 searches of
+  D-94's check and 16 more with amounts, against D-94: of the 592, 8 changed. "2 roti" now opens on
+  Chapati/Roti (before: "21 Grain Bread"), "1 cup rice" on Boiled rice, "half plate biryani" on
+  Chicken Biryani, "100 g paneer" on IFCT's Paneer (before: a paneer masala mix "100G"), "amul pure
+  ghee 1 litre tin pack" on Amul's Pure Ghee; "5 star" still lists 5 Star first; "paneer butter masala
+  with butter naan" offers each food (before: one wrong dish). One for the worse: "protein 20g" lists
+  the bars named "20g Protein" 6th and 7th, not first (the 20 g read as an amount).
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
 
 ---
 
