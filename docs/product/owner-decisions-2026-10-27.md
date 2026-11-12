@@ -2742,13 +2742,18 @@ checksum), and the configuration template was left as it is.*
   the Fitssphere app when the monthly calender is open it shows that Icon that a workout has been done
   on this date or not. See the image. So First Design the Canva design and wait for my approval"; of
   the canvas's three ways, version 88: "C: meal days tinted green, with a dumbbell on workout days";
-  locked in version 89). Built on branch `feat/calendar-workouts`.
+  locked in version 89; then, the same day, before the merge: "I want to redesgn the Calender month that
+  on the calender month I want that of the Nurtriton value I want to show the Icon of apple the same we
+  show for the nutritions tab. Remove the Green color that shows for the nutritions value"; of the
+  canvas's three ways, version 92: "B: the apple and the dumbbell in green, without the tinted days";
+  locked in version 93). Built on branch `feat/calendar-workouts`.
 - Answer (REQ-NAV-002):
-  - The header's calendar (Home, Nutrition, Training, Progress) marks each day: a day with a meal is
-    **tinted green**, a day with a workout has a **dumbbell** under its date (on the selected day, in
-    the selected day's text colour).
+  - The header's calendar (Home, Nutrition, Training, Progress) marks each day under its date: a day
+    with a meal has a green **apple** (the Nutrition tab's icon), a day with a workout a green
+    **dumbbell**, side by side (on the selected day, in the selected day's text colour). No day is
+    tinted: the first design's green days (version 89) were replaced before the merge.
   - Under the month's name, **the month's workouts**: "No workouts", "1 workout", "6 workouts".
-  - Under the days, a **key**: a green square, "Meals logged", and the dumbbell, "Workout".
+  - Under the days, a **key**: the apple, "Meals logged", and the dumbbell, "Workout".
   - Screen readers hear each day's meals and workouts: "Monday 26 October 2026, 2 meals logged, 1
     workout logged"; "Nothing logged" when there is neither.
   - Log meal's calendar is unchanged: a dot under each day with a meal, no workouts, no key.
@@ -2758,12 +2763,10 @@ checksum), and the configuration template was left as it is.*
     count two), as Home's workout tracker does.
   - Only the 90 days on the phone (D-23) are marked and counted, so the earliest month shown can count
     fewer workouts than were logged in it.
-  - The green is a new colour token, `loggedDayTint` (dark `rgba(127,184,154,.17)`, light
-    `rgba(63,122,92,.14)`), a little stronger than `successTint`, as on the canvas.
   - Whether Log meal's calendar should show workouts too was asked, not answered: unchanged.
 - Phone app only: no server change, no migration, no phone schema change, no new build.
-- Doc changes: REQ-NAV-002; `docs/design/design-system.md` (`loggedDayTint`); the MVP defaults in
-  `docs/architecture/constraints-and-assumptions.md`; the redesign's 2.2; CLAUDE.md.
+- Doc changes: REQ-NAV-002; the MVP defaults in `docs/architecture/constraints-and-assumptions.md`;
+  the redesign's 2.2; CLAUDE.md.
 
 ---
 
