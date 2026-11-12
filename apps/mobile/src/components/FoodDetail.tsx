@@ -35,6 +35,7 @@ import {
   ownQuantityLabel,
   PORTION_UNIT_LABELS,
 } from '../meals';
+import { measureWord, nameHasNumber, type SearchAmount } from '../searchAmount';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { NUTRIENTS } from './EatenSummary';
@@ -173,9 +174,40 @@ function startOf(result: FoodResult, measures: Measure[], from: MealItem['amount
   }
 }
 
+/**
+ * The measure, count and typed quantity of an amount typed with the search (D-96: "2 roti", "1 cup
+ * rice", "half plate biryani", "100g paneer"), when the food has that measure and the count fits it;
+ * otherwise null, and the page opens as usual. A bare count goes to the measure the page opens on, or
+ * else the food's first counted one ("2 maggi": 2 servings); grams to Grams. A number that is in the
+ * food's name ("5 Star") is not an amount.
+ */
+function startFromSearch(result: FoodResult, measures: Measure[], opening: number, amount: SearchAmount): { measureIndex: number; count: number; typed: string } | null {
+  const { count, unit } = amount;
+  if (!(count > 0) || nameHasNumber(result.kind === 'dish' ? result.dish.name : result.food.name, amount)) return null;
+  if (result.kind === 'mine') {
+    const weighed = result.food.unit === 'g' || result.food.unit === 'ml';
+    const fits = weighed ? unit === 'g' : unit === null || measureWord(OWN_UNIT_NAMES[result.food.unit].one) === unit;
+    return fits ? { measureIndex: 0, count: 1, typed: String(count) } : null;
+  }
+  if (unit === 'g') {
+    const grams = measures.findIndex((measure) => measure.key === 'g');
+    return grams < 0 ? null : { measureIndex: grams, count: 1, typed: String(count) };
+  }
+  const counted = (measure: Measure) => measure.counted && measure.key !== 'oz';
+  const fits = (index: number) => index >= 0 && counted(measures[index]!) && Number.isInteger(count * 2) && count <= measures[index]!.max;
+  const index =
+    unit === null
+      ? fits(opening)
+        ? opening
+        : measures.findIndex(counted)
+      : measures.findIndex((measure) => counted(measure) && measureWord(measure.name) === unit);
+  return fits(index) ? { measureIndex: index, count, typed: '100' } : null;
+}
+
 export function FoodDetail({
   result,
   from,
+  amount,
   fromLabel = 'Last time',
   backLabel = 'Back to search',
   addTitle = 'Add',
@@ -188,6 +220,8 @@ export function FoodDetail({
   result: FoodResult;
   /** The amount a recent food was last logged in (D-60), or a food in the meal has now (D-64). */
   from?: MealItem['amount'];
+  /** The amount typed with the search the food was found by (D-96): the page opens on it when it fits. */
+  amount?: SearchAmount | null;
   /** What `from` is called under the boxes: "Last time", or "In this meal now" (D-64). */
   fromLabel?: string;
   backLabel?: string;
@@ -204,18 +238,17 @@ export function FoodDetail({
   const styles = useStyles();
   const { colors } = useTheme();
   const measures = measuresOf(result);
-  const [start] = useState(() => (from ? startOf(result, measures, from) : null));
   // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
   // so its serving, not grams of the cooked dish, gives INDB's own figures. A home-style food opens on
   // its serving too, as it is eaten: a slice, two slices, a plate (D-59), and so does an estimated
   // dish: a katori, a plate, a piece (D-62). A recent food opens on the amount it was last logged in,
-  // when it still has it (D-60).
+  // when it still has it (D-60); a food found by a search with an amount, on that amount (D-96).
   const servingFirst =
     result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
   // Otherwise on Grams (D-76: the food's own measures come before it).
-  const [measureIndex, setMeasureIndex] = useState(
-    () => start?.measureIndex ?? Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g'))),
-  );
+  const opening = Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g')));
+  const [start] = useState(() => (from ? startOf(result, measures, from) : amount ? startFromSearch(result, measures, opening, amount) : null));
+  const [measureIndex, setMeasureIndex] = useState(() => start?.measureIndex ?? opening);
   const [count, setCount] = useState(start?.count ?? 1);
   const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
   const [picking, setPicking] = useState(false);
