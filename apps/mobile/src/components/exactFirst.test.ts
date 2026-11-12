@@ -178,3 +178,19 @@ describe('D-66 the best matches first (the owner, 2026-11-10)', () => {
     expect(names(inSearchOrder('testle koko krunch', [food('Koko Krunch cereal'), packaged('Koko Krunch', 'Testlé')]))).toEqual(['Koko Krunch', 'Koko Krunch cereal']);
   });
 });
+
+describe('D-94 a word typed in its other number', () => {
+  it('lists as the word itself would: the plain food, the exact name, then the best matches', () => {
+    const results = [packaged('Banana Chips', 'Test Snacks'), food('Banana shake', 'indb'), food('Banana, ripe, robusta')];
+    expect(names(inSearchOrder('bananas', results))).toEqual(names(inSearchOrder('banana', results)));
+    expect(names(inSearchOrder('bananas', results))[0]).toBe('Banana, ripe, robusta');
+
+    const samosas = [packaged('Mini Samosa', 'Test Snacks'), food('Samosa', 'dish_estimate')];
+    expect(names(inSearchOrder('samosas', samosas))).toEqual(['Samosa', 'Mini Samosa']);
+    expect(names(inSearchOrder('curry leaf', [food('Curry leaves chutney', 'indb'), food('Curry leaves', 'indb')]))).toEqual(['Curry leaves', 'Curry leaves chutney']);
+  });
+
+  it('keeps an apostrophe’s s for an exact name as typed', () => {
+    expect(names(inSearchOrder("testiram's", [food('Bhujia', 'indb'), packaged("Testiram's", null)]))[0]).toBe("Testiram's");
+  });
+});

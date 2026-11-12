@@ -19,6 +19,7 @@ import {
   searchFoodSummaries,
   searchMyFoods,
   searchPackaged,
+  searchesInOtherNumber,
   type FoodSummary,
   type LocalMyFood,
   withoutAccents,
@@ -116,13 +117,14 @@ function namesOf(result: Result): string[] {
  * listed the raw potato 191st, under the chips): not a brand's or a packaged product, and named exactly
  * as typed, or as typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)"), or, for IFCT's
  * foods, named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast"). Other
- * sources' commas list a dish's foods ("Carrot, Radish & Peanut Salad"): not plain.
+ * sources' commas list a dish's foods ("Carrot, Radish & Peanut Salad"): not plain. A word typed in its
+ * other number counts as typed (D-94: "bananas" names "Banana, ripe, robusta" too).
  */
 function plainFor(query: string): (result: Result) => boolean {
-  const typed = matchKey(query).replace(/ /g, '');
-  const named = (part: string) => matchKey(part).replace(/ /g, '') === typed;
+  const typed = new Set([query, ...searchesInOtherNumber(query)].map((search) => matchKey(search).replace(/ /g, '')).filter(Boolean));
+  const named = (part: string) => typed.has(matchKey(part).replace(/ /g, ''));
   return (result) => {
-    if (!typed || result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label')) return false;
+    if (typed.size === 0 || result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label')) return false;
     const name = nameOf(result).trim();
     if (named(name)) return true;
     const bracket = name.indexOf(' (');
@@ -165,7 +167,8 @@ function dryFor(query: string): (result: Result) => boolean {
  *   the rest ("banana" finds "Banana, ripe, robusta" above a protein powder named "Banana" and "Banana
  *   chips");
  * - then those named exactly as the search ("bread" finds "Bread" above "Bread, white" and "Brown
- *   bread"), ignoring case, spaces and punctuation (D-51);
+ *   bread"), ignoring case, spaces and punctuation (D-51), or a word of it in its other number (D-94:
+ *   "samosas" finds "Samosa");
  * - before and after them alike, the best matches first (D-66; the owner, 2026-11-10, after "dal"
  *   listed Baati and Dalda oil near the top): foods whose name has every word whole, then those where
  *   a word only starts a word of the name, then those where it is inside a word, then those found
@@ -177,7 +180,7 @@ function dryFor(query: string): (result: Result) => boolean {
  * used to be two passes reading every name three times.
  */
 export function inSearchOrder(query: string, results: readonly Result[]): Result[] {
-  const key = matchKey(query);
+  const keys = new Set([query, ...searchesInOtherNumber(query)].map(matchKey).filter(Boolean));
   const match = nameMatcher(query);
   const plain = plainFor(query);
   const dry = dryFor(query);
@@ -202,7 +205,7 @@ export function inSearchOrder(query: string, results: readonly Result[]): Result
     let exact = false;
     for (const name of namesOf(result)) {
       best = Math.min(best, match(name));
-      if (key && !exact && matchKey(name) === key) exact = true;
+      if (!exact && keys.has(matchKey(name))) exact = true;
     }
     groups[(exact ? 4 : 8) + best]!.push(result);
   }
