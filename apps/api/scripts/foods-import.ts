@@ -10,7 +10,8 @@
 // data/foods/off-india-extra.csv added to Open Food Facts' (ADR-0006 rule 1; D-28; D-36; D-39; D-46;
 // D-47; D-48; D-49; D-59; D-62; ADR-0009; D-76: each serving that holds several things also gives one of them;
 // D-80: the packaged foods named only by their brand renamed or left out as
-// docs/data/packaged-name-fixes.csv says; docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
+// docs/data/packaged-name-fixes.csv says; D-89: their brands each written one way, as the approved rows
+// of docs/data/brand-names-sheet.csv say; docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
 // any row is wrong. Running it again gives the same tables.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -19,6 +20,7 @@ import { readRecipeSheet } from '../src/foods/dishes.ts';
 import { DISH_ESTIMATE_SOURCE, readDishEstimatesSheet } from '../src/foods/dishEstimates.ts';
 import { HOME_FOOD_SOURCE, readHomeFoodsSheet } from '../src/foods/homeFoods.ts';
 import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../src/foods/brandLabels.ts';
+import { readBrandNames, withBrandNames } from '../src/foods/brandNames.ts';
 import { readIfctCsv } from '../src/foods/ifct.ts';
 import { INDB_SOURCE, readIndbCsv } from '../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../src/foods/importFoods.ts';
@@ -52,7 +54,9 @@ const nameFixes = withNameFixes(
   ),
   readPackagedNameFixes(readFileSync(path.join(root, 'docs/data/packaged-name-fixes.csv'), 'utf8')),
 );
-const packaged = nameFixes.foods;
+// D-89: each brand written one way, as the approved rows of docs/data/brand-names-sheet.csv say.
+const brandNames = withBrandNames(nameFixes.foods, readBrandNames(readFileSync(path.join(root, 'docs/data/brand-names-sheet.csv'), 'utf8')));
+const packaged = brandNames.foods;
 const indb = readIndbCsv(
   readFileSync(path.join(root, 'data/foods/indb-foods.csv'), 'utf8'),
   readFileSync(path.join(root, 'data/foods/indb-portions.csv'), 'utf8'),
@@ -80,7 +84,7 @@ try {
   console.log(`Kept ${archived} USDA foods in their archive, not in the food list.`);
   const packagedFoods = await importPackagedFoods(client, packaged);
   console.log(
-    `Imported ${packagedFoods} packaged foods sold in India, from Open Food Facts. Names reviewed (D-80): ${nameFixes.renamed} renamed, ${nameFixes.removed} left out, ${nameFixes.notFound} no longer listed.`,
+    `Imported ${packagedFoods} packaged foods sold in India, from Open Food Facts. Names reviewed (D-80): ${nameFixes.renamed} renamed, ${nameFixes.removed} left out, ${nameFixes.notFound} no longer listed. Brands written one way (D-89): ${brandNames.rebranded} foods' brand changed (${brandNames.named} given their line at the front of the name), ${brandNames.notFound} approved brands no longer listed.`,
   );
   const labelled = await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
   const labelServings = await importPortions(client, BRAND_LABEL_SOURCE, labels.portions);
