@@ -23,7 +23,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
 import { CutCorner } from '../components/CutCorner';
 import { LogMealButton } from '../components/LogMealButton';
-import { MeasurementsCard } from '../components/MeasurementsCard';
+import { MeasurementsCard, measurementsSince } from '../components/MeasurementsCard';
 import { MeasurementsSheet } from '../components/MeasurementsSheet';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { QuickTile } from '../components/QuickTile';
@@ -40,6 +40,7 @@ import {
   dayNutrition,
   getEntry,
   getMeta,
+  latestMeasurementsDay,
   listEntries,
   targetsOn,
   mealCounts,
@@ -79,6 +80,8 @@ export function HomeScreen() {
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [measurements, setMeasurements] = useState<LocalMeasurements | null>(null);
   const [lengthUnit, setLengthUnit] = useState<LengthUnit>('cm');
+  // The latest day with measurements up to today, and the day the account was created, once read (D-85).
+  const [lastMeasured, setLastMeasured] = useState<{ day: IstDay | null; accountDay: string | null } | null>(null);
   const [measurementsSheet, setMeasurementsSheet] = useState<{ mode: 'add' | 'edit'; day: IstDay } | null>(null);
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
@@ -116,7 +119,9 @@ export function HomeScreen() {
       dayNutrition(db, selected),
       mealCounts(db, stripStart, addDays(stripStart, 6)),
       listEntries(db, 'workout', monday, addDays(monday, 6)),
-    ]).then(([entries, waiting, onDay, onSunday, dayMeasurements, unit, nutrition, counts, workouts]) => {
+      latestMeasurementsDay(db, today),
+      getMeta(db, 'account_created_day'),
+    ]).then(([entries, waiting, onDay, onSunday, dayMeasurements, unit, nutrition, counts, workouts, lastDay, accountDay]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -130,6 +135,7 @@ export function HomeScreen() {
       // Each date shows the targets it had (D-77); the workout tracker, its week's Sunday's.
       setTargets({ ...targetValues(onDay), ...targetValues(onSunday.filter((target) => target.kind === 'weekly_workouts')) });
       setMeasurements(dayMeasurements);
+      setLastMeasured({ day: lastDay, accountDay });
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
       setEaten(nutrition);
       setMealDays(new Set(Object.keys(counts)));
@@ -145,9 +151,15 @@ export function HomeScreen() {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
-  }, [local.state, selected, stripStart, sync.version, measurementsOpen, texts]);
+  }, [local.state, selected, today, stripStart, sync.version, measurementsOpen, texts]);
 
   const counted = weekWorkouts.filter((workout) => workout.exercises.length > 0);
+  // Today's card says when measurements were last logged, and whether they are due (D-85). All the
+  // account's days are on the phone when it was created within the 90 days.
+  const since =
+    selected === today && lastMeasured
+      ? measurementsSince(lastMeasured.day, today, lastMeasured.accountDay !== null && lastMeasured.accountDay >= firstDay)
+      : null;
   const workoutCounts: Record<IstDay, number> = {};
   for (const workout of counted) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
 
@@ -272,6 +284,7 @@ export function HomeScreen() {
           day={selected}
           entry={measurements}
           unit={lengthUnit}
+          since={since}
           onAdd={() => setMeasurementsSheet({ mode: 'add', day: selected })}
           onEdit={() => setMeasurementsSheet({ mode: 'edit', day: selected })}
         />
