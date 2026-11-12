@@ -3,6 +3,7 @@ import {
   exerciseNameKey,
   fromGrams,
   type BodyWeightUnit,
+  type CardioExercise,
   type ExerciseLogType,
   type ExerciseSet,
   type IstDay,
@@ -48,38 +49,89 @@ export function effortKindOf(exercise: WorkoutExercise): EffortKind {
 /** A workout as the page reads it: one on the phone, or an older one read from the server. */
 export type ExerciseWorkout = { id: string; day: IstDay; recordedAt: string; exercises: readonly WorkoutExercise[] };
 
-/** One time the exercise was done: an exercise of a workout with its name. */
+/**
+ * One day's doing of the exercise: every time it was logged that day as one (the owner, 2026-11-12:
+ * "I add it twice on the 12 nov so it shows twice ... merge these twice into one. the sets added to as
+ * a next set"), in one workout or several.
+ */
 export type Session = {
+  /** The first workout holding it that day, which its History card opens. */
   workoutId: string;
+  /** Every workout holding it that day, in the order started. */
+  workoutIds: string[];
   day: IstDay;
-  /** "Workout 2" when its day has several workouts with an exercise (D-34, D-65), else null. */
+  /** "Workout 2" when it is in one workout and its day has several with an exercise (D-34, D-65), else null. */
   workoutNumber: number | null;
+  /** The day's entries as one: the sets one after another; cardio's times and distances added up. */
   exercise: WorkoutExercise;
 };
 
 /**
- * Every time the exercise was done, newest first: each exercise of `workouts` whose name, ignoring
- * case, hyphens, spaces and doubled letters, is one of `names` (a list exercise's name and other
- * names, so a workout saved under a name it had before counts; or the name the user typed).
+ * The day's entries of one kind as one exercise: a set exercise's sets in the order logged; cardio's
+ * time and distance added up, a treadmill's speed, its incline and a machine's level the highest;
+ * calories added up; the highest heart rate the highest, the average left out.
+ */
+function mergedEntries(entries: readonly WorkoutExercise[]): WorkoutExercise {
+  const [first, ...rest] = entries as [WorkoutExercise, ...WorkoutExercise[]];
+  if (rest.length === 0) return first;
+  const kcal = sum(entries.map((entry) => entry.calories?.kcal ?? null));
+  const shared = {
+    calories: kcal === null ? null : { kcal, estimated: entries.some((entry) => entry.calories?.estimated === true) },
+    averageHeartRateBpm: null,
+    highestHeartRateBpm: max(entries.map((entry) => entry.highestHeartRateBpm)),
+    note: null,
+  };
+  if (first.kind === 'sets') {
+    const sets = entries.flatMap((entry) => (entry.kind === 'sets' ? entry.sets : []));
+    return { ...first, ...shared, sets, durationSeconds: sum(entries.map((entry) => (entry.kind === 'sets' ? entry.durationSeconds : null))) };
+  }
+  const cardio = entries.filter((entry): entry is CardioExercise => entry.kind === 'cardio');
+  const distance = sum(cardio.map((entry) => entry.distanceMetres));
+  return {
+    ...first,
+    ...shared,
+    durationSeconds: cardio.reduce((total, entry) => total + entry.durationSeconds, 0),
+    distanceMetres: distance,
+    speedMetresPerHour: distance === null ? max(cardio.map((entry) => entry.speedMetresPerHour)) : null,
+    inclinePermille: max(cardio.map((entry) => entry.inclinePermille)),
+    level: max(cardio.map((entry) => entry.level)),
+  };
+}
+
+/**
+ * Every day the exercise was done, newest first, each as one session: the exercises of `workouts`
+ * whose name, ignoring case, hyphens, spaces and doubled letters, is one of `names` (a list exercise's
+ * name and other names, so a workout saved under a name it had before counts; or the name the user
+ * typed). Logged twice on a day, in one workout or two, its sets follow one another (2026-11-12); done
+ * once in sets and once as cardio, the two stay apart.
  */
 export function exerciseSessions(workouts: readonly ExerciseWorkout[], names: readonly string[]): Session[] {
   const keys = new Set(names.map(exerciseNameKey).filter((key) => key !== ''));
   const unique = [...new Map(workouts.filter((workout) => workout.exercises.length > 0).map((workout) => [workout.id, workout])).values()];
   const byDay = new Map<IstDay, ExerciseWorkout[]>();
   for (const workout of unique) byDay.set(workout.day, [...(byDay.get(workout.day) ?? []), workout]);
-  const sessions: (Session & { recordedAt: string; position: number })[] = [];
+  const sessions: Session[] = [];
   for (const [day, list] of byDay) {
     const ordered = [...list].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
-    ordered.forEach((workout, index) => {
-      workout.exercises.forEach((exercise, position) => {
-        if (!keys.has(exerciseNameKey(exercise.name))) return;
-        const workoutNumber = ordered.length > 1 ? index + 1 : null;
-        sessions.push({ workoutId: workout.id, day, workoutNumber, exercise, recordedAt: workout.recordedAt, position });
+    for (const kind of ['sets', 'cardio'] as const) {
+      const found = ordered.flatMap((workout, index) =>
+        workout.exercises
+          .filter((exercise) => exercise.kind === kind && keys.has(exerciseNameKey(exercise.name)))
+          .map((exercise) => ({ workout, index, exercise })),
+      );
+      const firstFound = found[0];
+      if (!firstFound) continue;
+      const workoutIds = [...new Set(found.map((entry) => entry.workout.id))];
+      sessions.push({
+        workoutId: firstFound.workout.id,
+        workoutIds,
+        day,
+        workoutNumber: workoutIds.length === 1 && ordered.length > 1 ? firstFound.index + 1 : null,
+        exercise: mergedEntries(found.map((entry) => entry.exercise)),
       });
-    });
+    }
   }
-  sessions.sort((a, b) => b.day.localeCompare(a.day) || b.recordedAt.localeCompare(a.recordedAt) || b.position - a.position);
-  return sessions.map(({ workoutId, day, workoutNumber, exercise }) => ({ workoutId, day, workoutNumber, exercise }));
+  return sessions.sort((a, b) => b.day.localeCompare(a.day));
 }
 
 /** The heaviest reps an estimate counts: above 12 the Epley formula guesses too high. */
@@ -358,7 +410,7 @@ export type RecordCard = { label: string; value: string; unit: string; day: stri
  * History's three bests (the owner, 2026-11-12), Estimated 1RM, Heaviest and Best volume.
  */
 export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit): RecordCard[] {
-  const workouts = new Set(sessions.map((session) => session.workoutId)).size;
+  const workouts = new Set(sessions.flatMap((session) => session.workoutIds)).size;
   const first = sessions.at(-1);
   const count: RecordCard = { label: 'Workouts', value: String(workouts), unit: '', day: first ? `since ${formatDay(first.day)}` : '' };
   const bests = exerciseBests(sessions, kind, unit);
@@ -394,11 +446,11 @@ export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, 
 
 /** "6 workouts · first on Mon 14 Sep · last on Fri 30 Oct", or "1 workout · Fri 30 Oct". */
 export function sessionsSummary(sessions: readonly Session[]): string {
-  const workouts = new Set(sessions.map((session) => session.workoutId)).size;
+  const workouts = new Set(sessions.flatMap((session) => session.workoutIds)).size;
   const newest = sessions[0];
   const oldest = sessions.at(-1);
   if (!newest || !oldest) return '';
-  if (workouts === 1) return `1 workout · ${formatDay(newest.day)}`;
+  if (newest.day === oldest.day) return `${workouts === 1 ? '1 workout' : `${workouts} workouts`} · ${formatDay(newest.day)}`;
   return `${workouts} workouts · first on ${formatDay(oldest.day)} · last on ${formatDay(newest.day)}`;
 }
 
@@ -437,7 +489,7 @@ export function rangeStart(range: GraphRange, today: IstDay): IstDay | null {
 }
 
 /** A point of the graph, in the unit shown (kg or lb, reps, seconds, km). */
-export type GraphPoint = { day: IstDay; value: number };
+export type GraphPoint = { day: IstDay; value: number; session: Session };
 
 /** A metric's value as the graph shows it: a 1RM to its step, other weights to 0.1, km to 0.01. */
 function shownValue(metric: GraphMetric, metrics: SessionMetrics, unit: BodyWeightUnit): number | null {
@@ -466,7 +518,7 @@ export function graphPoints(sessions: readonly Session[], kind: EffortKind, metr
     .filter((session) => from === null || session.day >= from)
     .flatMap((session) => {
       const value = shownValue(metric, sessionMetrics(session.exercise, kind), unit);
-      return value === null ? [] : [{ day: session.day, value }];
+      return value === null ? [] : [{ day: session.day, value, session }];
     });
 }
 
@@ -489,7 +541,7 @@ export function graphValueText(metric: GraphMetric, value: number, unit: BodyWei
 }
 
 /** "up 22.0 kg since Mon 14 Sep", "down 1:00 since…", or "the same as on…": from the range's first point to its last. */
-export function graphChange(points: readonly GraphPoint[], metric: GraphMetric, unit: BodyWeightUnit): string {
+export function graphChange(points: readonly Pick<GraphPoint, 'day' | 'value'>[], metric: GraphMetric, unit: BodyWeightUnit): string {
   const first = points[0];
   const last = points.at(-1);
   if (!first || !last) return '';
@@ -509,7 +561,9 @@ export type HistoryCard = { title: string; tags: ExerciseBest[]; rows: HistoryRo
 
 /** A session's card on the History tab, with the bests of `bests` it holds. */
 export function historyCard(session: Session, kind: EffortKind, unit: BodyWeightUnit, bests: readonly ExerciseBest[]): HistoryCard {
-  const title = formatDay(session.day) + (session.workoutNumber === null ? '' : ` · Workout ${session.workoutNumber}`);
+  const title =
+    formatDay(session.day) +
+    (session.workoutIds.length > 1 ? ` · ${session.workoutIds.length} workouts` : session.workoutNumber === null ? '' : ` · Workout ${session.workoutNumber}`);
   const { exercise } = session;
   const metrics = sessionMetrics(exercise, kind);
   const lines = exerciseLines(exercise, unit);
@@ -535,4 +589,57 @@ export function historyCard(session: Session, kind: EffortKind, unit: BodyWeight
   const tags = bests.filter((best) => best.session === session);
   const held = tags.length === 0 ? '' : `, ${tags.map((tag) => tag.label).join(', ')}`;
   return { title, tags, rows, main: exercise.kind === 'cardio' ? lines.main : '', footer, aria: `${title}: ${what}${held}` };
+}
+
+/** One of a workout's numbers under the graph (D-82, the owner's C), and the graph measure it is, if any. */
+export type WorkoutNumber = { label: string; value: string; metric: GraphMetric | null };
+
+/**
+ * The numbers of the workout touched on the graph (the owner's C, 2026-11-12): a lift's Est. 1RM,
+ * Heaviest and Volume; running's distance, time and pace; and so for the other kinds.
+ */
+export function workoutNumbers(session: Session, kind: EffortKind, unit: BodyWeightUnit): WorkoutNumber[] {
+  const m = sessionMetrics(session.exercise, kind);
+  const or = (value: number | null, text: (value: number) => string) => (value === null ? '–' : text(value));
+  switch (kind) {
+    case 'weight_reps':
+      return [
+        { label: 'Est. 1RM', value: or(m.oneRm, (v) => `${oneRmText(v, unit)} ${unit}`), metric: 'oneRm' },
+        { label: 'Heaviest', value: or(m.heaviest, (v) => `${weightNumber(v, unit)} ${unit}`), metric: 'heaviest' },
+        { label: 'Volume', value: or(m.volume, (v) => `${volumeNumber(v, unit)} ${unit}`), metric: 'volume' },
+      ];
+    case 'reps':
+      return [
+        { label: 'Most reps', value: or(m.mostReps, String), metric: 'mostReps' },
+        { label: 'Total reps', value: or(m.totalReps, String), metric: null },
+      ];
+    case 'time':
+      return [
+        { label: 'Longest', value: or(m.longest, formatDuration), metric: 'longest' },
+        { label: 'Total', value: or(m.totalSeconds, formatDuration), metric: null },
+      ];
+    case 'weight_time':
+      return [
+        { label: 'Heaviest', value: or(m.heaviest, (v) => `${weightNumber(v, unit)} ${unit}`), metric: 'heaviest' },
+        { label: 'Longest', value: or(m.longest, formatDuration), metric: null },
+      ];
+    case 'distance':
+      return [
+        { label: 'Distance', value: or(m.distance, (v) => `${(v / 1000).toFixed(2)} km`), metric: 'distance' },
+        { label: 'Time', value: or(m.duration, formatDuration), metric: null },
+        { label: 'Pace', value: or(m.pace, (v) => `${paceText(v)} /km`), metric: null },
+      ];
+    case 'speed':
+      return [
+        { label: 'Time', value: or(m.duration, formatDuration), metric: 'duration' },
+        { label: 'Speed', value: or(m.speed, (v) => `${(v / 1000).toFixed(1)} km/h`), metric: null },
+      ];
+    case 'level':
+      return [
+        { label: 'Time', value: or(m.duration, formatDuration), metric: 'duration' },
+        { label: 'Level', value: or(m.level, String), metric: null },
+      ];
+    case 'duration':
+      return [{ label: 'Time', value: or(m.duration, formatDuration), metric: 'duration' }];
+  }
 }

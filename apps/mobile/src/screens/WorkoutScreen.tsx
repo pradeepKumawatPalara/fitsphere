@@ -1,4 +1,4 @@
-import { istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
+import { addDays, istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash, TrendingUp, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -8,7 +8,8 @@ import { ExerciseDetailsPage } from '../components/ExerciseDetailsPage';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
-import { WorkoutTimerBar } from '../components/WorkoutTimerBar';
+import { runningWorkout, type RunningWorkout } from '../components/WorkoutInProgress';
+import { OtherTimerNote, WorkoutTimerBar, type OtherTimer } from '../components/WorkoutTimerBar';
 import { Text, TextButton } from '../components/ui';
 import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -60,6 +61,8 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   // Its place among its day's workouts, in the order they were started.
   const [place, setPlace] = useState(1);
+  // Another workout's timer running or paused, which keeps this one from starting (D-83).
+  const [other, setOther] = useState<RunningWorkout | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
@@ -71,13 +74,17 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   // The screen draws again each second only while the timer runs.
   const clock = useNow(now, typeof workout === 'object' && workout !== null && timerState(workout.timer) === 'running');
 
+  // Today, for the other workouts whose timer may be going (D-83).
+  const loadDay = istToday(now());
+
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([getEntry(db, 'workout', id), rejectedChanges(db)]).then(async ([entry, waiting]) => {
+    void Promise.all([getEntry(db, 'workout', id), rejectedChanges(db), listEntries(db, 'workout', addDays(loadDay, -1), loadDay)]).then(async ([entry, waiting, recent]) => {
       const sameDay = entry ? await listEntries(db, 'workout', entry.day, entry.day) : [];
       if (!active) return;
+      setOther(runningWorkout(recent.filter((each) => each.id !== id), loadDay));
       setWorkout(entry);
       // Numbered among the day's listed workouts, as Training and Home number them (D-65).
       setPlace(listedWorkouts(sameDay, id).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).findIndex((other) => other.id === id) + 1 || 1);
@@ -86,7 +93,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [local.state, id, sync.version]);
+  }, [local.state, id, sync.version, loadDay]);
 
   if (workout === 'loading') return null;
   if (workout === null) {
@@ -107,6 +114,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const editing = sheet?.index === null || sheet?.index === undefined ? null : workout.exercises[sheet.index];
   const burned = caloriesBurned(workout.exercises);
   const today = istToday(clock);
+  const otherTimer: OtherTimer | null = other ? { name: other.name, day: other.day, running: timerState(other.timer) === 'running' } : null;
   const deleted = deleteWorkoutEffects(workout.exercises.length, workout.day, today);
   const timer = timerState(workout.timer);
   const seconds = timerSeconds(workout.timer, clock);
@@ -161,9 +169,17 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
               <Text style={styles.doneTime}>{formatDuration(seconds)}</Text>
             </View>
             {isToday ? (
-              <TextButton title="Resume" icon={Play} disabled={stepping} onPress={() => void step((current, at) => resumeTimer(current!, at))} />
+              <TextButton
+                title="Resume"
+                icon={Play}
+                disabled={stepping || otherTimer !== null}
+                onPress={() => void step((current, at) => resumeTimer(current!, at))}
+              />
             ) : null}
           </View>
+        ) : null}
+        {workout.timer && timer === 'done' && isToday && otherTimer ? (
+          <OtherTimerNote other={otherTimer} onOpen={() => router.push(`/workout/${other!.id}`)} />
         ) : null}
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
@@ -250,6 +266,8 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
       </ScrollView>
       {timer === 'running' || timer === 'paused' || (timer === 'none' && isToday) ? (
         <WorkoutTimerBar
+          other={otherTimer}
+          onOpenOther={() => other && router.push(`/workout/${other.id}`)}
           state={timer}
           seconds={seconds}
           busy={stepping}

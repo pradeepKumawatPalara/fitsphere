@@ -84,6 +84,33 @@ describe('D-82 an exercise’s page from a workout', () => {
     expect(screen.queryByText(/^An estimate from your best set each workout/)).toBeNull();
   });
 
+  it('shows a touched workout’s value in a bubble and its three numbers under the graph (the owner’s C)', async () => {
+    await renderWorkout();
+    await openPage('Dumbbell bench press');
+    const plot = screen.getByTestId('trend-chart-plot');
+    await fireEvent(plot, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 280, height: 200 } } });
+
+    // Wed 21 Oct sits in the middle of the three workouts.
+    await fireEvent(plot, 'responderGrant', { nativeEvent: { locationX: 140, locationY: 100 } });
+
+    // In the bubble, and as Est. 1RM under the graph.
+    expect(screen.getAllByText('26.5 kg')).toHaveLength(2);
+    expect(screen.getByText('Wed 21 Oct · this workout')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Heaviest 20.0 kg')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Volume 600 kg')).toBeOnTheScreen();
+
+    // Sliding to the right picks today's workout; a screen reader steps back to the one before.
+    await fireEvent(plot, 'responderMove', { nativeEvent: { locationX: 275, locationY: 100 } });
+    expect(screen.getByText('Wed 28 Oct · this workout')).toBeOnTheScreen();
+    const chart = screen.getByRole('adjustable');
+    await fireEvent(chart, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
+    expect(chart.props.accessibilityValue).toEqual({ text: 'Wed 21 Oct, 26.5 kg' });
+
+    // Another measure clears it.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Volume' }));
+    expect(screen.queryByText(/· this workout$/)).toBeNull();
+  });
+
   it('lists each workout on History, the three bests on top and as tags, a card opening its workout, and Load older', async () => {
     const { server } = await renderWorkout();
     await openPage('Dumbbell bench press');

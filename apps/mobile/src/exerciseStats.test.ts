@@ -11,6 +11,7 @@ import {
   oneRmText,
   rangeStart,
   sessionsSummary,
+  workoutNumbers,
   type ExerciseWorkout,
 } from './exerciseStats';
 
@@ -87,6 +88,57 @@ describe('D-82 an exercise’s workouts', () => {
   });
 });
 
+describe('D-82 an exercise logged twice on a day (the owner, 2026-11-12)', () => {
+  it('is one session, its sets one after another, in one workout', () => {
+    const sessions = exerciseSessions(
+      [
+        { id: 'm1', day: '2026-11-12', recordedAt: '2026-11-12T03:00:00.000Z', exercises: [lift('1.5-Rep Squat', [[10, 40], [10, 40]]), lift('Lunge', [[10, 20]]), lift('1.5-rep squat', [[8, 45]])] },
+        { id: 'm0', day: '2026-11-11', recordedAt: '2026-11-11T03:00:00.000Z', exercises: [lift('1.5-Rep Squat', [[10, 40]])] },
+      ],
+      ['1.5-Rep Squat'],
+    );
+    expect(sessions.map((session) => [session.day, session.workoutIds])).toEqual([
+      ['2026-11-12', ['m1']],
+      ['2026-11-11', ['m0']],
+    ]);
+    const card = historyCard(sessions[0]!, 'weight_reps', 'kg', []);
+    expect(card.title).toBe('Thu 12 Nov');
+    expect(card.rows.map((row) => `${row.label} ${row.value}`)).toEqual(['Set 1 10 × 40.0 kg', 'Set 2 10 × 40.0 kg', 'Set 3 8 × 45.0 kg']);
+    expect(card.footer).toBe('Volume 1,160 kg · Est. 1RM 57.0 kg');
+    expect(graphPoints(sessions, 'weight_reps', 'volume', null, 'kg').map((point) => point.value)).toEqual([400, 1160]);
+    expect(sessionsSummary(sessions)).toBe('2 workouts · first on Wed 11 Nov · last on Thu 12 Nov');
+  });
+
+  it('is one session in two workouts of a day, opening the first, named "2 workouts"', () => {
+    const sessions = exerciseSessions(
+      [
+        { id: 'w2', day: '2026-11-12', recordedAt: '2026-11-12T08:00:00.000Z', exercises: [lift('1.5-Rep Squat', [[6, 50]])] },
+        { id: 'w1', day: '2026-11-12', recordedAt: '2026-11-12T03:00:00.000Z', exercises: [lift('1.5-Rep Squat', [[10, 40]])] },
+      ],
+      ['1.5-Rep Squat'],
+    );
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({ workoutId: 'w1', workoutIds: ['w1', 'w2'], workoutNumber: null });
+    expect(historyCard(sessions[0]!, 'weight_reps', 'kg', []).title).toBe('Thu 12 Nov · 2 workouts');
+    expect(sessionsSummary(sessions)).toBe('2 workouts · Thu 12 Nov');
+    expect(exerciseRecords(sessions, 'weight_reps', 'kg')[2]).toMatchObject({ label: 'Best volume', value: '700' });
+  });
+
+  it('adds up two runs of a day, and keeps sets and cardio apart', () => {
+    const sessions = exerciseSessions(
+      [
+        { id: 'r1', day: '2026-11-12', recordedAt: '2026-11-12T03:00:00.000Z', exercises: [run(3, 1080), run(2, 720)] },
+        { id: 'r2', day: '2026-11-12', recordedAt: '2026-11-12T05:00:00.000Z', exercises: [{ ...lift('Running', [[10, 1]]) }] },
+      ],
+      ['Running'],
+    );
+    expect(sessions.map((session) => session.exercise.kind)).toEqual(['sets', 'cardio']);
+    const runs = sessions[1]!;
+    expect(runs.exercise).toMatchObject({ durationSeconds: 1800, distanceMetres: 5000 });
+    expect(historyCard(runs, 'distance', 'kg', [])).toMatchObject({ main: '30:00 · 5.00 km', footer: '10.0 km/h · 6:00 /km' });
+  });
+});
+
 describe('D-82 a lift’s numbers', () => {
   const sessions = exerciseSessions(SHRUGS, ['Dumbbell shrug', 'DB shrug', 'Dumbbell Shrugs']);
 
@@ -119,7 +171,7 @@ describe('D-82 a lift’s numbers', () => {
 
   it('draws the graph from the range’s first day, with the change since then', () => {
     const points = graphPoints(sessions, 'weight_reps', 'oneRm', rangeStart('12W', TODAY), 'kg');
-    expect(points).toEqual([
+    expect(points.map(({ day, value }) => ({ day, value }))).toEqual([
       { day: '2026-09-14', value: 66.5 },
       { day: '2026-09-21', value: 73.5 },
       { day: '2026-10-02', value: 76 },
@@ -129,8 +181,15 @@ describe('D-82 a lift’s numbers', () => {
     ]);
     expect(graphChange(points, 'oneRm', 'kg')).toBe('up 22.0 kg since Mon 14 Sep');
     expect(graphPoints(sessions, 'weight_reps', 'oneRm', rangeStart('4W', TODAY), 'kg').map((point) => point.day)).toEqual(['2026-10-16', '2026-10-30']);
-    expect(graphPoints(sessions, 'weight_reps', 'volume', null, 'kg').at(-1)).toEqual({ day: '2026-10-30', value: 1720 });
-    expect(graphPoints(sessions, 'weight_reps', 'heaviest', null, 'kg').at(-1)).toEqual({ day: '2026-10-30', value: 70 });
+    expect(graphPoints(sessions, 'weight_reps', 'volume', null, 'kg').at(-1)).toMatchObject({ day: '2026-10-30', value: 1720 });
+    expect(graphPoints(sessions, 'weight_reps', 'heaviest', null, 'kg').at(-1)).toMatchObject({ day: '2026-10-30', value: 70 });
+    // Each point keeps its workout, whose numbers show under the graph when it is touched (the owner's C).
+    const touched = points[3]!.session;
+    expect(workoutNumbers(touched, 'weight_reps', 'kg')).toEqual([
+      { label: 'Est. 1RM', value: '80.0 kg', metric: 'oneRm' },
+      { label: 'Heaviest', value: '60.0 kg', metric: 'heaviest' },
+      { label: 'Volume', value: '1,800 kg', metric: 'volume' },
+    ]);
     expect(graphChange([{ day: '2026-10-01', value: 50 }, { day: '2026-10-08', value: 50 }], 'heaviest', 'kg')).toBe('the same as on Thu 1 Oct');
   });
 
@@ -186,6 +245,11 @@ describe('D-82 running’s numbers', () => {
     expect(card.tags.map((tag) => tag.short)).toEqual(['Longest']);
     expect(graphPoints(sessions, 'distance', 'distance', null, 'kg').map((point) => point.value)).toEqual([5, 5, 8, 7.5, 8]);
     expect(graphChange(graphPoints(sessions, 'distance', 'distance', null, 'kg'), 'distance', 'kg')).toBe('up 3.00 km since Sun 13 Sep');
+    expect(workoutNumbers(sessions[0]!, 'distance', 'kg')).toEqual([
+      { label: 'Distance', value: '8.00 km', metric: 'distance' },
+      { label: 'Time', value: '45:20', metric: null },
+      { label: 'Pace', value: '5:40 /km', metric: null },
+    ]);
   });
 });
 

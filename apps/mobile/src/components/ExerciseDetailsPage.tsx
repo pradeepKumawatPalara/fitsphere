@@ -11,6 +11,7 @@ import {
   Info,
   Layers,
   Play,
+  Pointer,
   Repeat,
   Ruler,
   Timer,
@@ -41,6 +42,7 @@ import {
   historyCard,
   rangeStart,
   sessionsSummary,
+  workoutNumbers,
   type EffortKind,
   type ExerciseBest,
   type ExerciseWorkout,
@@ -60,6 +62,7 @@ import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { GROUP_LABELS } from '../workouts';
 import { FullScreen } from './FullScreen';
+import { WorkoutInProgress } from './WorkoutInProgress';
 import { Banner, IconButton, Text, TextButton, useChoiceStyles } from './ui';
 
 // An exercise's page (D-82; the redesign's 4.4, locked 2026-11-11): Progress, History and How to, a
@@ -229,6 +232,7 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
           {shown === 'howto' ? <HowToTab listed={listed} /> : null}
         </ScrollView>
       ) : null}
+      <WorkoutInProgress bottom={16} now={now} onOpen={(id) => (onOpenWorkout ? onOpenWorkout(id) : onClose())} />
     </FullScreen>
   );
 }
@@ -257,6 +261,15 @@ function ProgressTab({
   const styles = useStyles();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
+  // The workout touched on the graph (D-82, the owner's C): kept after the finger lifts, until a touch
+  // elsewhere on the tab or another measure or range.
+  const [touched, setTouched] = useState<number | null>(null);
+  const shownFor = `${metric}:${range}`;
+  const [touchedFor, setTouchedFor] = useState(shownFor);
+  if (touchedFor !== shownFor) {
+    setTouchedFor(shownFor);
+    setTouched(null);
+  }
   if (sessions.length === 0) {
     return (
       <View style={styles.none}>
@@ -275,8 +288,9 @@ function ProgressTab({
   const metrics = GRAPH_METRICS[kind];
   const points = graphPoints(sessions, kind, metric, rangeStart(range, today), unit);
   const last = points.at(-1);
+  const point = touched === null ? undefined : points[touched];
   return (
-    <>
+    <Pressable accessible={false} onPress={() => setTouched(null)} style={styles.progress}>
       <View style={styles.records}>
         {records.map((record) => (
           <View key={record.label} accessible accessibilityLabel={`${record.label} ${record.value} ${record.unit}, ${record.day}`} style={styles.record}>
@@ -340,7 +354,24 @@ function ProgressTab({
               <Text style={styles.latest}>{graphValueText(metric, last.value, unit)}</Text>
               <Text style={styles.change}>{graphChange(points, metric, unit)}</Text>
             </View>
-            <TrendChart points={points} metric={metric} unit={unit} />
+            <TrendChart points={points} metric={metric} unit={unit} touched={touched} onTouch={setTouched} />
+            {point ? (
+              <View accessibilityLiveRegion="polite" style={styles.touchedWorkout}>
+                <Text style={styles.label}>{`${formatDay(point.day)} · this workout`}</Text>
+                <View style={styles.touchedNumbers}>
+                  {workoutNumbers(point.session, kind, unit).map((number) => (
+                    <View key={number.label} accessible accessibilityLabel={`${number.label} ${number.value}`} style={styles.touchedNumber}>
+                      <Text style={[styles.recordLabel, number.metric === metric && styles.touchedLabelChosen]}>{number.label}</Text>
+                      <Text style={styles.touchedValue}>{number.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            <View style={styles.hint}>
+              <Pointer size={16} color={colors.accent} />
+              <Text style={styles.note}>Touch the graph and slide to see each workout&apos;s value.</Text>
+            </View>
           </>
         ) : (
           <Text style={styles.chartEmpty}>A graph needs two workouts with this exercise in this range.</Text>
@@ -350,37 +381,77 @@ function ProgressTab({
         ) : null}
       </View>
       <Text style={styles.note}>Your last 90 days. Load older in History adds earlier workouts.</Text>
-    </>
+    </Pressable>
   );
 }
 
 const CHART_HEIGHT = 160;
+/** Room above the graph for the touched workout's bubble (the owner's C). */
+const BUBBLE_ROOM = 40;
 const DOT = 3.5;
 const LATEST = 5;
+const TOUCHED = 7;
 
-/** The graph (D-82), drawn as the weight trend is (REQ-PRG-004): the highest and lowest values on the left, the first and last days below. */
-function TrendChart({ points, metric, unit }: { points: readonly GraphPoint[]; metric: GraphMetric; unit: BodyWeightUnit }) {
+/**
+ * The graph (D-82), drawn as the weight trend is (REQ-PRG-004): the highest and lowest values on the
+ * left, the first and last days below. Pressing it and sliding picks the nearest workout (the owner's
+ * C, 2026-11-12): its dot ringed, a dashed line down from a bubble with its value and day at the top.
+ * A screen reader moves from workout to workout by swiping up or down.
+ */
+function TrendChart({
+  points,
+  metric,
+  unit,
+  touched,
+  onTouch,
+}: {
+  points: readonly GraphPoint[];
+  metric: GraphMetric;
+  unit: BodyWeightUnit;
+  touched: number | null;
+  onTouch(index: number | null): void;
+}) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
+  const [bubbleWidth, setBubbleWidth] = useState(0);
   const geometry = chartGeometry(
     points.map((point) => ({ day: point.day, weightGrams: point.value })),
     width,
     CHART_HEIGHT,
-    LATEST + 2,
+    TOUCHED + 2,
   );
   const first = points[0]!;
   const last = points.at(-1)!;
   const line = geometry.dots.map((dot) => `${dot.x},${dot.y}`).join(' ');
   const firstDot = geometry.dots[0]!;
   const lastDot = geometry.dots.at(-1)!;
+  const point = touched === null ? undefined : points[touched];
+  const dot = touched === null ? undefined : geometry.dots[touched];
+  const said = (index: number) => `${formatDay(points[index]!.day)}, ${graphValueText(metric, points[index]!.value, unit)}`;
+  /** The workout whose dot is nearest across. */
+  function pick(x: number) {
+    let nearest = 0;
+    geometry.dots.forEach((each, index) => {
+      if (Math.abs(each.x - x) < Math.abs(geometry.dots[nearest]!.x - x)) nearest = index;
+    });
+    onTouch(nearest);
+  }
+  const bubbleLeft = dot ? Math.min(Math.max(dot.x - bubbleWidth / 2, 0), Math.max(width - bubbleWidth, 0)) : 0;
   return (
     <View
       accessible
-      accessibilityRole="image"
+      accessibilityRole="adjustable"
       accessibilityLabel={`${GRAPH_METRIC_LABELS[metric]}, ${points.length} workouts, ${graphValueText(metric, first.value, unit)} on ${formatDay(
         first.day,
       )} to ${graphValueText(metric, last.value, unit)} on ${formatDay(last.day)}`}
+      accessibilityValue={{ text: touched === null ? 'Swipe up or down to hear each workout' : said(touched) }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(event) => {
+        const step = event.nativeEvent.actionName === 'increment' ? 1 : -1;
+        const from = touched ?? (step > 0 ? -1 : points.length);
+        onTouch(Math.min(Math.max(from + step, 0), points.length - 1));
+      }}
       style={styles.chart}
     >
       <View style={styles.chartBody}>
@@ -388,26 +459,49 @@ function TrendChart({ points, metric, unit }: { points: readonly GraphPoint[]; m
           <Text style={styles.scaleText}>{graphValueText(metric, geometry.highest, unit)}</Text>
           <Text style={styles.scaleText}>{graphValueText(metric, geometry.lowest, unit)}</Text>
         </View>
-        <View style={styles.plot} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+        <View
+          testID="trend-chart-plot"
+          style={styles.plot}
+          onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+          onResponderGrant={(event) => pick(event.nativeEvent.locationX)}
+          onResponderMove={(event) => pick(event.nativeEvent.locationX)}
+        >
           {width > 0 ? (
-            <Svg width={width} height={CHART_HEIGHT}>
+            <Svg width={width} height={CHART_HEIGHT} style={styles.plotSvg}>
               <Line x1={0} y1={0.5} x2={width} y2={0.5} stroke={colors.track} strokeWidth={1} />
               <Line x1={0} y1={CHART_HEIGHT / 2} x2={width} y2={CHART_HEIGHT / 2} stroke={colors.track} strokeWidth={1} strokeDasharray="3 4" />
               <Line x1={0} y1={CHART_HEIGHT - 0.5} x2={width} y2={CHART_HEIGHT - 0.5} stroke={colors.track} strokeWidth={1} />
               <Polygon points={`${line} ${lastDot.x},${CHART_HEIGHT} ${firstDot.x},${CHART_HEIGHT}`} fill={colors.accentTint} opacity={0.7} />
               <Polyline points={line} fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-              {geometry.dots.map((dot, index) => (
-                <Circle
-                  key={index}
-                  cx={dot.x}
-                  cy={dot.y}
-                  r={index === geometry.dots.length - 1 ? LATEST : DOT}
-                  fill={colors.primary}
-                  stroke={colors.surface}
-                  strokeWidth={2}
-                />
-              ))}
+              {dot ? <Line x1={dot.x} y1={0} x2={dot.x} y2={CHART_HEIGHT} stroke={colors.ink} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.7} /> : null}
+              {geometry.dots.map((each, index) => {
+                const isTouched = index === touched;
+                return (
+                  <Circle
+                    key={index}
+                    cx={each.x}
+                    cy={each.y}
+                    r={isTouched ? TOUCHED : index === geometry.dots.length - 1 ? LATEST : DOT}
+                    fill={isTouched ? colors.bg : colors.primary}
+                    stroke={isTouched ? colors.primary : colors.surface}
+                    strokeWidth={isTouched ? 3.5 : 2}
+                  />
+                );
+              })}
             </Svg>
+          ) : null}
+          {point && dot ? (
+            <View
+              pointerEvents="none"
+              onLayout={(event) => setBubbleWidth(event.nativeEvent.layout.width)}
+              style={[styles.bubble, { left: bubbleLeft }]}
+            >
+              <Text style={styles.bubbleValue}>{graphValueText(metric, point.value, unit)}</Text>
+              <Text style={styles.bubbleDay}>{formatDay(point.day)}</Text>
+            </View>
           ) : null}
         </View>
       </View>
@@ -645,7 +739,8 @@ const useStyles = themedStyles((c) => ({
   subtitle: { fontSize: 15, lineHeight: 21, color: c.inkMuted },
   tabs: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: c.border },
   tab: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  content: { gap: 12, padding: 16, paddingBottom: 32 },
+  // Room at the foot for the Workout in progress pill (D-83).
+  content: { gap: 12, padding: 16, paddingBottom: 88 },
   empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center', paddingVertical: 24 },
   records: { flexDirection: 'row', gap: 8 },
   record: { flex: 1, minWidth: 0, gap: 4, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 4, backgroundColor: c.surface },
@@ -671,10 +766,22 @@ const useStyles = themedStyles((c) => ({
   latest: { ...TYPE.heroNumber, fontSize: 34, lineHeight: 36, color: c.ink },
   change: { fontSize: 14, lineHeight: 20, color: c.success },
   chart: { gap: 6 },
-  chartBody: { flexDirection: 'row', gap: 8, height: CHART_HEIGHT },
-  scale: { width: 60, justifyContent: 'space-between' },
+  chartBody: { flexDirection: 'row', gap: 8, height: CHART_HEIGHT + BUBBLE_ROOM },
+  scale: { width: 60, justifyContent: 'space-between', paddingTop: BUBBLE_ROOM },
   scaleText: { ...TYPE.label, fontSize: 13, letterSpacing: 0.5, color: c.inkMuted },
   plot: { flex: 1 },
+  plotSvg: { marginTop: BUBBLE_ROOM },
+  // D-82, the owner's C: the touched workout's bubble at the top, its numbers under the graph.
+  bubble: { position: 'absolute', top: 0, alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 4, backgroundColor: c.ink, elevation: 3 },
+  bubbleValue: { ...TYPE.metric, fontSize: 17, lineHeight: 19, color: c.bg },
+  bubbleDay: { fontSize: 12, lineHeight: 15, color: c.bg },
+  touchedWorkout: { gap: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 4, backgroundColor: c.surfaceSunken },
+  touchedNumbers: { flexDirection: 'row', gap: 6 },
+  touchedNumber: { flex: 1, minWidth: 0, gap: 1 },
+  touchedLabelChosen: { color: c.accent },
+  touchedValue: { ...TYPE.metric, fontSize: 19, lineHeight: 21, color: c.ink },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  progress: { gap: 12 },
   days: { flexDirection: 'row', justifyContent: 'space-between', paddingLeft: 68 },
   chartEmpty: {
     paddingVertical: 28,
