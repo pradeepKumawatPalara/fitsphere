@@ -148,6 +148,7 @@ describe('Migration runner (data model, "Changes")', () => {
       '0026_workout_timer_count.sql',
       '0027_target_history.sql',
       '0028_exercise_details.sql',
+      '0029_users_gym_member.sql',
     ]);
     for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods', 'exercises', 'exercise_speed_mets', 'exercise_details']) {
       expect(await tableExists(table)).toBe(true);
@@ -186,6 +187,35 @@ describe('Migration 0027, targets by date (D-77)', () => {
     await expect(
       client.query(`insert into app.targets (user_id, kind, value, set_by_user_id, set_at) values ($1, 'protein', 100, $1, now())`, [user]),
     ).rejects.toSatisfy((error: unknown) => (error as { code?: string }).code === '23502');
+  });
+});
+
+describe('Migration 0029, gym members (D-90)', () => {
+  it('D-90 gives every account is_gym_member, false until set and never null', async () => {
+    const all = await readMigrations();
+    const upTo = (name: string) => all.slice(0, all.findIndex((migration) => migration.name === name) + 1);
+    await migrate(client, upTo('0028_exercise_details.sql'));
+    const account = (subject: string) =>
+      client.query<{ id: string }>(
+        `insert into app.users (auth_subject, email, age_confirmed_at, age_confirmation_text_version)
+         values ($1, $2, now(), 'v1') returning id`,
+        [subject, `${subject}@example.test`],
+      );
+    const before = (await account('synthetic-before')).rows[0]!.id;
+
+    expect(await migrate(client, upTo('0029_users_gym_member.sql'))).toEqual(['0029_users_gym_member.sql']);
+
+    const member = async (id: string) =>
+      (await client.query<{ is_gym_member: boolean }>('select is_gym_member from app.users where id = $1', [id])).rows;
+    expect(await member(before)).toEqual([{ is_gym_member: false }]);
+    // An account made as the API makes one, which names no such column.
+    const after = (await account('synthetic-after')).rows[0]!.id;
+    expect(await member(after)).toEqual([{ is_gym_member: false }]);
+    await client.query('update app.users set is_gym_member = true where id = $1', [after]);
+    expect(await member(after)).toEqual([{ is_gym_member: true }]);
+    await expect(client.query('update app.users set is_gym_member = null where id = $1', [before])).rejects.toSatisfy(
+      (error: unknown) => (error as { code?: string }).code === '23502',
+    );
   });
 });
 
