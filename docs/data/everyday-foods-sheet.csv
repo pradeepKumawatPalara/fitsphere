@@ -15,3 +15,4 @@ biryani,dish_estimate,est-chicken-biryani,Chicken Biryani,200,approved,"chicken 
 pulao,dish_estimate,est-veg-pulao,Veg Pulao,165,approved,"veg pulao as eaten, its type of dish's typical values; ""pulao"" found ready meals first. Other choice: INDB's Plain pulao, 140"
 omelette,ifct2017,M007,"Egg, poultry, omlet",170,approved,"IFCT's measured omelette of a hen's egg; ""omelette"" listed Bread omelette first"
 soup,indb,ASC480,Vegetable soup,55,approved,"a vegetable soup as eaten; ""soup"" found soup powders first (343 kcal)"
+bread,home,home-white-bread-slice,White bread slice (Double roti),265,proposed,"a plain slice of white bread, unbranded (the owner, 2026-11-12: ""whenever I search for the Bread there should Be unbraded Bread also apear""); ""bread"" lists the brands' row first and the plain slice 22nd. Other choice: Brown bread slice, 245"

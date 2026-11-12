@@ -77,7 +77,8 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       fat_g: string;
       fibre_g: string | null;
       serving_grams: string | null;
-    }>('select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams from app.packaged_foods order by barcode');
+      aliases: string[];
+    }>('select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases from app.packaged_foods order by barcode');
     const version = foodListVersion({
       foods: rows,
       dishes: dishes.rows,
@@ -124,6 +125,8 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         fatG: Number(row.fat_g),
         fibreG: row.fibre_g === null ? null : Number(row.fibre_g),
         servingGrams: row.serving_grams === null ? null : Number(row.serving_grams),
+        // Its other names (D-94), only when it has some: most have none.
+        ...(row.aliases.length > 0 ? { aliases: row.aliases } : {}),
       })),
     };
     return body;

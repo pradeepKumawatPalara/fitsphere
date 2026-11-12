@@ -549,6 +549,21 @@ describe('D-48 packaged foods sold in India: foods:import and GET /v1/foods', ()
       await importPackagedFoods(client, []);
     }
   });
+
+  it('D-94 keeps and serves their other names, only for those that have some', async () => {
+    const user = await api.signUpWithAccount();
+    const named = { ...TEST_BREAD, barcode: '8901234567891', name: 'Test toned milk', aliases: ['test doodh dudh'] };
+    await importPackagedFoods(client, [TEST_BREAD, named]);
+    try {
+      expect((await client.query('select barcode, aliases from app.packaged_foods order by barcode')).rows).toEqual([
+        { barcode: TEST_BREAD.barcode, aliases: [] },
+        { barcode: named.barcode, aliases: ['test doodh dudh'] },
+      ]);
+      expect(((await getFoods(user.token)).json() as FoodsResponse).packaged).toEqual([TEST_BREAD, named]);
+    } finally {
+      await importPackagedFoods(client, []);
+    }
+  });
 });
 
 // A synthetic INDB recipe: made-up values, not INDB's.
