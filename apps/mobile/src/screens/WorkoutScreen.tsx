@@ -1,14 +1,16 @@
-import { istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
+import { addDays, istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash } from 'lucide-react-native';
+import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash, TrendingUp, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNow } from '../clock';
+import { ExerciseDetailsPage } from '../components/ExerciseDetailsPage';
 import { ExerciseSheet } from '../components/ExerciseSheet';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
-import { WorkoutTimerBar } from '../components/WorkoutTimerBar';
-import { IconButton, Text, TextButton } from '../components/ui';
+import { runningWorkout, type RunningWorkout } from '../components/WorkoutInProgress';
+import { OtherTimerNote, WorkoutTimerBar, type OtherTimer } from '../components/WorkoutTimerBar';
+import { Text, TextButton } from '../components/ui';
 import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listEntries, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
@@ -39,9 +41,10 @@ type Sheet = { index: number | null };
 // (D-50), with an optional note (Q-042).
 // Every change is saved on the phone at once and synced (ADR-0007); there is no draft and no
 // "Finish" step (MVP default, D-29), and no Done: Save in the exercise sheet saves, and the header's
-// back arrow leaves (D-42). Each exercise has edit and remove; removing asks first. Named by its
-// place among its day's workouts, "Workout 2 · Tue 3 Nov". The workout counts toward the week once it
-// has an exercise (D-41); deleting it says what goes with it (D-63).
+// back arrow leaves (D-42). Each exercise has a bar at its foot with Progress (its page: progress,
+// history and how to, D-82), Edit and Remove; removing asks first. Named by its place among its day's workouts,
+// "Workout 2 · Tue 3 Nov". The workout counts toward the week once it has an exercise (D-41);
+// deleting it says what goes with it (D-63).
 // The workout timer (D-71): a workout of today has "Start workout" in a bar at its foot; the bar
 // then shows the time counted, with Pause or Resume and "Mark done". A timer already started can be
 // paused, resumed and marked done whatever the date, so a workout that runs past midnight can be
@@ -58,22 +61,30 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   // Its place among its day's workouts, in the order they were started.
   const [place, setPlace] = useState(1);
+  // Another workout's timer running or paused, which keeps this one from starting (D-83).
+  const [other, setOther] = useState<RunningWorkout | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // The exercise whose page is open (D-82): its progress, history and how to.
+  const [detailsFor, setDetailsFor] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   // A timer step being saved: the bar's buttons wait for it.
   const [stepping, setStepping] = useState(false);
   // The screen draws again each second only while the timer runs.
   const clock = useNow(now, typeof workout === 'object' && workout !== null && timerState(workout.timer) === 'running');
 
+  // Today, for the other workouts whose timer may be going (D-83).
+  const loadDay = istToday(now());
+
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([getEntry(db, 'workout', id), rejectedChanges(db)]).then(async ([entry, waiting]) => {
+    void Promise.all([getEntry(db, 'workout', id), rejectedChanges(db), listEntries(db, 'workout', addDays(loadDay, -1), loadDay)]).then(async ([entry, waiting, recent]) => {
       const sameDay = entry ? await listEntries(db, 'workout', entry.day, entry.day) : [];
       if (!active) return;
+      setOther(runningWorkout(recent.filter((each) => each.id !== id), loadDay));
       setWorkout(entry);
       // Numbered among the day's listed workouts, as Training and Home number them (D-65).
       setPlace(listedWorkouts(sameDay, id).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).findIndex((other) => other.id === id) + 1 || 1);
@@ -82,7 +93,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [local.state, id, sync.version]);
+  }, [local.state, id, sync.version, loadDay]);
 
   if (workout === 'loading') return null;
   if (workout === null) {
@@ -103,6 +114,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const editing = sheet?.index === null || sheet?.index === undefined ? null : workout.exercises[sheet.index];
   const burned = caloriesBurned(workout.exercises);
   const today = istToday(clock);
+  const otherTimer: OtherTimer | null = other ? { name: other.name, day: other.day, running: timerState(other.timer) === 'running' } : null;
   const deleted = deleteWorkoutEffects(workout.exercises.length, workout.day, today);
   const timer = timerState(workout.timer);
   const seconds = timerSeconds(workout.timer, clock);
@@ -157,9 +169,17 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
               <Text style={styles.doneTime}>{formatDuration(seconds)}</Text>
             </View>
             {isToday ? (
-              <TextButton title="Resume" icon={Play} disabled={stepping} onPress={() => void step((current, at) => resumeTimer(current!, at))} />
+              <TextButton
+                title="Resume"
+                icon={Play}
+                disabled={stepping || otherTimer !== null}
+                onPress={() => void step((current, at) => resumeTimer(current!, at))}
+              />
             ) : null}
           </View>
+        ) : null}
+        {workout.timer && timer === 'done' && isToday && otherTimer ? (
+          <OtherTimerNote other={otherTimer} onOpen={() => router.push(`/workout/${other!.id}`)} />
         ) : null}
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
@@ -194,12 +214,24 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
                   {exercise.note ? <Text style={styles.note}>{exercise.note}</Text> : null}
                 </View>
               </Pressable>
-              <IconButton label={`Edit ${exercise.name}`} onPress={() => setSheet({ index })}>
-                <SquarePen size={20} color={colors.accent} />
-              </IconButton>
-              <IconButton label={`Remove ${exercise.name}`} onPress={() => setRemoving(index)}>
-                <Trash size={20} color={colors.danger} />
-              </IconButton>
+              <View style={styles.exerciseActions}>
+                <ExerciseAction
+                  icon={TrendingUp}
+                  title="Progress"
+                  label={`${exercise.name}: progress, history and how to`}
+                  color={colors.accent}
+                  onPress={() => setDetailsFor(exercise.name)}
+                />
+                <ExerciseAction
+                  icon={SquarePen}
+                  title="Edit"
+                  label={`Edit ${exercise.name}`}
+                  color={colors.accent}
+                  middle
+                  onPress={() => setSheet({ index })}
+                />
+                <ExerciseAction icon={Trash} title="Remove" label={`Remove ${exercise.name}`} color={colors.danger} onPress={() => setRemoving(index)} />
+              </View>
             </View>
           );
         })}
@@ -234,6 +266,8 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
       </ScrollView>
       {timer === 'running' || timer === 'paused' || (timer === 'none' && isToday) ? (
         <WorkoutTimerBar
+          other={otherTimer}
+          onOpenOther={() => other && router.push(`/workout/${other.id}`)}
           state={timer}
           seconds={seconds}
           busy={stepping}
@@ -251,6 +285,17 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           confirmLabel="Remove"
           onConfirm={() => void saveExercises(workout.exercises.filter((_, index) => index !== removing))}
           onClose={() => setRemoving(null)}
+        />
+      ) : null}
+      {detailsFor !== null ? (
+        <ExerciseDetailsPage
+          name={detailsFor}
+          now={now}
+          onClose={() => setDetailsFor(null)}
+          onOpenWorkout={(other) => {
+            setDetailsFor(null);
+            if (other !== workout.id) router.push(`/workout/${other}`);
+          }}
         />
       ) : null}
       {sheet ? (
@@ -272,6 +317,39 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * One of an exercise's actions in the bar at its card's foot (D-82, the owner's C on the canvas's 4.2
+ * "The exercise icons"): an icon and a word, a third of the card's width.
+ */
+function ExerciseAction({
+  icon: Icon,
+  title,
+  label,
+  color,
+  middle = false,
+  onPress,
+}: {
+  icon: LucideIcon;
+  title: string;
+  label: string;
+  color: string;
+  middle?: boolean;
+  onPress(): void;
+}) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [styles.exerciseAction, middle && styles.exerciseActionMiddle, pressed && styles.pressed]}
+    >
+      <Icon size={17} strokeWidth={2.25} color={color} />
+      <Text style={[styles.exerciseActionText, { color }]}>{title}</Text>
+    </Pressable>
   );
 }
 
@@ -311,17 +389,13 @@ const useStyles = themedStyles((c) => ({
     color: c.inkMuted,
     textAlign: 'center',
   },
-  exercise: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingVertical: 12,
-    paddingLeft: 12,
-    paddingRight: 2,
-    borderRadius: 4,
-    backgroundColor: c.surface,
-  },
-  exerciseMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  exercise: { borderRadius: 4, backgroundColor: c.surface, overflow: 'hidden' },
+  exerciseMain: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, paddingLeft: 12, paddingRight: 14 },
+  // D-82: Progress, Edit and Remove in a bar at the card's foot, each a third of its width.
+  exerciseActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.border },
+  exerciseAction: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  exerciseActionMiddle: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: c.border },
+  exerciseActionText: { ...TYPE.link },
   pressed: { opacity: 0.6 },
   number: { width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSunken },
   numberText: { ...TYPE.metric, fontSize: 16, lineHeight: 18, color: c.accent },

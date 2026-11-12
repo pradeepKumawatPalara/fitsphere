@@ -1,12 +1,9 @@
 import {
   addDays,
-  MAX_LIST_LIMIT,
   WORKOUT_DELETE,
   WORKOUT_SET,
   type IstDay,
-  type MeResponse,
   type Workout,
-  type WorkoutsPage,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import {
@@ -28,7 +25,6 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
-import { callApi } from '../api/client';
 import { useNow } from '../clock';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
@@ -40,12 +36,11 @@ import { formatDay, formatInteger, formatMonth } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { caloriesBurned, deleteWorkoutEffects, listedWorkouts, timerLine, timerState, workoutSummary } from '../workouts';
-
-const CHUNK_DAYS = 90;
 
 /** A workout of the history: one on the phone, or an older one read from the server. */
 type Row = {
@@ -192,7 +187,7 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     setLoadingOlder(true);
     setMessage(null);
     const to = addDays(oldestLoaded, -1);
-    const from = addDays(to, -(CHUNK_DAYS - 1));
+    const from = addDays(to, -(OLDER_CHUNK_DAYS - 1));
     const result = await fetchOlder(from, to);
     setLoadingOlder(false);
     if (result === 'offline') {
@@ -211,20 +206,9 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     else setMessage({ text: `No workouts from ${formatDay(from)} to ${formatDay(to)}.`, tone: 'info' });
   }
 
-  async function fetchOlder(from: string, to: string): Promise<Row[] | 'offline' | 'failed'> {
-    const session = (await deps.client.getSession()).data.session;
-    if (!session) return 'failed';
-    const options = { token: session.access_token, ...(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {}) };
-    const me = await callApi<MeResponse>(deps.apiUrl, '/me', options);
-    if (me.kind !== 'ok') return me.kind === 'offline' ? 'offline' : 'failed';
-    const page = await callApi<WorkoutsPage>(
-      deps.apiUrl,
-      `/users/${me.body.user.id}/workouts?from=${from}&to=${to}&limit=${MAX_LIST_LIMIT}`,
-      options,
-    );
-    if (page.kind !== 'ok') return page.kind === 'offline' ? 'offline' : 'failed';
-    // The server sends oldest first; the history shows newest first.
-    return [...page.body.items].reverse().map(({ id, day, exercises, timer, recordedAt }) => ({ id, day, exercises, timer, recordedAt, syncState: null }));
+  async function fetchOlder(from: IstDay, to: IstDay): Promise<Row[] | 'offline' | 'failed'> {
+    const result = await fetchOlderWorkouts(deps, from, to);
+    return typeof result === 'string' ? result : result.map((workout) => ({ ...workout, syncState: null }));
   }
 
   /**

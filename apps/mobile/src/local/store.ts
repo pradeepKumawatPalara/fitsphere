@@ -673,6 +673,10 @@ const MIGRATIONS = [
    UPDATE outbox SET data = json_set(data, '$.day', date(json_extract(data, '$.setAt'), '+330 minutes'))
      WHERE type = '${TARGET_SET}' AND json_extract(data, '$.day') IS NULL;
    DELETE FROM sync_meta WHERE key = 'cursor';`,
+  // How to do each exercise (D-82): the library's details as JSON, null when it has none. The list's
+  // version is cleared, so the next download brings them.
+  `ALTER TABLE exercises ADD COLUMN details TEXT;
+   DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1525,6 +1529,7 @@ type ExerciseRow = {
   met: number | null;
   speed_mets: string;
   places: string;
+  details: string | null;
 };
 
 function toListedExercise(row: ExerciseRow): ListedExercise {
@@ -1538,6 +1543,7 @@ function toListedExercise(row: ExerciseRow): ListedExercise {
     met: row.met,
     speedMets: JSON.parse(row.speed_mets) as ListedExercise['speedMets'],
     places: JSON.parse(row.places) as ListedExercise['places'],
+    details: row.details === null ? null : (JSON.parse(row.details) as ListedExercise['details']),
   };
 }
 
@@ -1574,8 +1580,8 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
     for (let start = 0; start < exercises.length; start += EXERCISE_ROWS_PER_INSERT) {
       const batch = exercises.slice(start, start + EXERCISE_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, places, place_keys, search_text, name_keys)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, places, details, place_keys, search_text, name_keys)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((exercise) => [
           exercise.code,
           exercise.name,
@@ -1586,6 +1592,7 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
           exercise.met,
           JSON.stringify(exercise.speedMets),
           JSON.stringify(exercise.places),
+          exercise.details === null ? null : JSON.stringify(exercise.details),
           placeKeys(exercise.places),
           exerciseSearchText(exercise),
           // " name other names ", so a whole key is found with LIKE '% key %' and the name's comes first.

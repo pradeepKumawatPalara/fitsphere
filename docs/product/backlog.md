@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (D-77: E-11 done; the target checks S6-10 to S6-13). 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
+- Last updated: 2026-11-12 (D-83: E-29 closed, the Workout in progress pill). 2026-11-11 (D-82: RB-05, the how-to text checked before real users; E-29 on hold). Earlier the same day (D-77: E-11 done; the target checks S6-10 to S6-13). 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
   to S5-07 and S6-01 to S6-09; the slice 5 and 6 IDs made final). 2026-10-30 (Settings slice,
   steps 2 and 5, D-31: RB-04 and E-21 to E-23). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
@@ -31,6 +31,7 @@ without NIN permission and accepted the risk (D-25, R-007).
 | RB-02 | Delete the Supabase test user that uses that password on `fitsphere-dev`, and its FitSphere account row (E-07) | Its password is in the branch of RB-01 |
 | RB-03 | Make sure **Confirm email** is on: Authentication → Sign In / Providers → Email | An unverified account must not sign in (Q-080); the test branch needed it off |
 | RB-04 | Build the owner's logged admin path for deleting an account on an emailed request: an owner-only API command that runs the same deletion as `DELETE /v1/me` and writes the admin access log (REQ-NFR-005). Then publish the deletion page (`docs/legal/account-deletion-page.md`) and give its address in the Google Play listing (D-31) | The page promises deletion by email (REQ-ACC-009, Google Play), and the owner may act only through the logged admin path (ADR-0004 rules 7 and 8, D-16) |
+| RB-05 | Have a qualified person (a trainer or physiotherapist) check the How to text an exercise's page shows: the steps and "Watch for" of the exercise library (D-81, D-82), correcting rows in the owner's file and loading them again | They are the owner's AI tool's text, not checked by anyone qualified (the owner: "show the message as you suggest", D-82; R-015) |
 
 ## Skeleton checks to run before release (D-22)
 Phone checks of the Skeleton slice still pending when its pull requests were merged on
@@ -158,3 +159,4 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-26 | *Closed by D-50 (2026-11-05): running, jogging, walking and cycling take the Compendium's activity for their speed.* A cardio exercise's MET chosen by the speed typed | REQ-TRN-003, D-50 | — |
 | E-27 | *On hold (the owner, 2026-11-05).* Calories for rep exercises (bench press, push-ups) as sets are added: a time on each set, or about 2 minutes a set when Time spent is empty. Open: whether the Compendium's weight-training MET (3.5, 02054) covers whole sessions with their rests; neither its website nor its 2024 paper says | REQ-TRN-003, D-50 | Estimated only from Time spent, the whole time on the exercise; adding a set does not change the estimate; with no Time spent there is none (D-50) |
 | E-28 | *On hold (the owner, 2026-11-06: "For now keep on hold the mic").* A microphone at the end of the Search foods box: what the user says is typed into the search. Only the phone's on-device speech recognition (ADR-0005, D-18), hidden on phones without it; needs a speech module, the microphone permission and a new development build | REQ-LOG-007, ADR-0005 | The user types, or uses the keyboard's own voice typing, which is outside FitSphere (ADR-0005) (D-57) |
+| E-29 | *Closed by D-83 (2026-11-12): a pill above the tabs, at the right, and over an exercise's page, while a workout's timer runs or is paused; tapping it opens the workout.* Was on hold (the owner, 2026-11-11: "keep it hoold Remide me later"). A "Workout in progress" bar on every page, above the tabs, as in the owner's pictures: a running workout's name and time, opening it when tapped | REQ-TRN-003, D-71, D-82 | The timer shows on the workout's page and on Training's rows (D-71) |

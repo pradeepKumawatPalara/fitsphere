@@ -2,7 +2,9 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (targets by date, D-77: migration 0027, phone schema version 19).
+- Last updated: 2026-11-11 (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema
+  version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
+  Earlier the same day (targets by date, D-77: migration 0027, phone schema version 19).
   2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
   Earlier the same day (the exercise library's places, D-67: migration 0022, phone schema version 16).
   Earlier the same day (Search foods' ready-made search text, D-66: phone schema version 15).
@@ -547,6 +549,28 @@ Migration 0017. Not personal data; row level security on, no policies. Sent with
 The phone estimates with the band starting at the highest speed at or below the exercise's speed
 (the slowest when below them all), and with the exercise's own MET when its speed is not known.
 
+### `exercise_details` — reference data
+The exercise library's details (D-81; `docs/data/exercise-list-sources.md`): for each row of the
+owner's library (an exercise in one category and sub-group), the details the file gives, loaded from
+`docs/data/exercise-library-details.csv` by `exercises:import` with the list, replaced whole.
+Migration 0028. Not personal data; row level security on, no policies. An exercise in several places
+has a row for each, with that place's own values (they differ for 22 exercises). Since D-82,
+`GET /v1/exercises` sends each exercise's first row (`details`), with the first video address any of
+its rows gives, for its page's How to; the other rows stay on the server.
+
+| Column | Type | Rules |
+|---|---|---|
+| `library_row` | `integer` | Primary key: the library's row number (the file's "#" and the review sheet's `row`) |
+| `exercise_code` | `text` | References `exercises` (deleted with it): the exercise the review sheet gives the row |
+| `category`, `sub_group` | `text`, `text` | The row's place, as the review sheet's; `sub_group` null for a category with none |
+| `primary_muscle` | `text` | 1 to 40 characters |
+| `muscles_worked` | `text[]` | 1 to 12, each 1 to 40 characters (the file's " · " list) |
+| `equipment` | `text` | 1 to 40 characters |
+| `tags` | `text[]` | 1 to 12, each 1 to 40 characters: the file's "card chips" |
+| `how_to` | `text[]` | 1 to 3 steps, in order, each 1 to 300 characters (checked by the import) |
+| `watch_for` | `text` | 1 to 300 characters |
+| `video_url` | `text` | Null (every row for now), or starting with `https://` or `http://`, at most 500 characters |
+
 ### `usda_foods`, `usda_food_portions` — archive
 USDA's FNDDS foods and their servings (D-39), archived, not served (D-47): the same columns as
 `foods` (code, name, food group, the five values per 100 g) and `food_portions` (code, seq, label,
@@ -642,7 +666,7 @@ searches. The setting lasts as long as the connection and is set at each start.
 | `workouts` | `id` (key, made on the phone), `day`, `exercises` (JSON), `recorded_at`, `timer` (JSON or null), `sync_state` | Any number a day; indexed by `day`. Deleting one removes its row at once and queues `workout.delete`. Schema version 6 (Training slice, D-29); `timer` version 18 (D-71), null for the workouts stored before |
 | `settings` | `name` (key), `value`, `set_at`, `sync_state` | The user's theme and units (REQ-ACC-001…003), one row per name chosen; a name with no row has its default. Never pruned. Schema version 7 (Settings slice, D-31) |
 | `my_foods` | `id` (key), `name`, `unit`, the values, `saved_at`, `sync_state` | **Health.** My foods (REQ-LOG-011), never pruned. Schema version 10 (D-39) |
-| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `speed_mets` (JSON), `places` (JSON), `place_keys`, `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, and `place_keys` its places as the exercise sheet's Category and Sub-group narrow a search ("<Barbell>Chest<" each, D-67), written on the phone. Not personal data. Schema version 13 |
+| `exercises` | `code` (key), `name`, `exercise_group`, `log_type`, `aliases` (JSON), `compendium_code`, `met`, `speed_mets` (JSON), `places` (JSON), `details` (JSON or null, D-82), `place_keys`, `search_text`, `name_keys` | A copy of `GET /v1/exercises` (D-50), replaced whole when the server's version changes; its version is `sync_meta.exercise_list_version`. `search_text` and `name_keys` are the words and whole names it is searched and matched by, and `place_keys` its places as the exercise sheet's Category and Sub-group narrow a search ("<Barbell>Chest<" each, D-67), written on the phone. Not personal data. Schema version 13 |
 | `profile` | `id` (key, always `profile`), `name`, `date_of_birth`, `sex`, `height_mm`, `phone`, `address` (JSON), `photo_media_id`, `set_at`, `sync_state` | **Health and contact.** The user's profile (REQ-ACC-011), at most one row. Never pruned. Its photo is a row of `photos` whose `meal_id` is `profile`. Schema version 9 (D-38) |
 | `outbox` | `seq`, `change_id`, `type`, `data` (JSON), `created_at`, `attempts`, `status`, `error_code` | `status` is `pending` or `rejected`. `seq` keeps the order changes were made in; they are sent oldest first |
 | `sync_meta` | key–value: `cursor`, `last_synced_at`, `user_id`, `account_id`, `measurement_unit`, `food_list_version`, `exercise_list_version` | One signed-in user per local database. `user_id` is the sign-in ID; `account_id` the FitSphere ID the API's paths use, read once from `GET /v1/me` |
@@ -704,6 +728,8 @@ searches. The setting lasts as long as the connection and is set at each start.
   waiting to sync (or refused) keeps its value, from the IST day it was set, and its change in the
   outbox gets that `day`; the synced ones are dropped and the sync cursor cleared, so the next sync
   pulls every target value with its day.
+- **Version 20** (an exercise's page, D-82) adds `exercises.details` (JSON, null when the library has
+  none) and clears `exercise_list_version`, so the next download brings them.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

@@ -12,6 +12,37 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**An exercise's page: Progress, History and How to — built on branch `feat/exercise-details` (D-82,
+2026-11-11), with D-81, in `D:\fitsphere-exercise-details`.** Plan: `docs/plans/exercise-details-page.md`
+(Accepted), REQ-TRN-008; canvas boards `ExerciseDetail*` locked (version 79), `WorkoutIcons*` C chosen
+(version 81). Progress in the bar at each workout exercise's foot (Progress, Edit, Remove, with words),
+and How to do it in Add exercise, open the exercise's page
+(`components/ExerciseDetailsPage.tsx`, a whole page over the screen; the numbers in
+`src/exerciseStats.ts`): Progress (three records with their days, the workouts, a graph for 4W, 12W or
+All; a lift's Est. 1RM, Heaviest or Volume), History (the bests on top, a lift's Best 1RM, Heaviest and Best volume, and as tags on each card's
+date line; Load older)
+and How to (the video, else the owner's default `EXERCISE_DEFAULT_VIDEO_URL`, opened outside the app;
+the first place's steps, Watch for, muscles and equipment; "General guidance, not personal advice. Stop
+if anything hurts."). `GET /v1/exercises` sends `details`; phone schema version 20. No migration beyond
+D-81's 0028, no new build. Touching Progress's graph shows a workout's value in a bubble and its
+numbers under the graph (canvas `ProgressTouch*`, C locked in version 87). **D-83, Workout in
+progress** (backlog E-29; canvas `WorkoutRunningBar*`, B locked in version 87): while a workout's timer
+runs or is paused, a pill above the tabs at the right, and over an exercise's page, shows it and opens
+it (`components/WorkoutInProgress.tsx`, in `app/(tabs)/_layout.tsx`); one timer at a time: meanwhile
+another workout's Start workout and Resume are greyed, saying why. An exercise logged twice on a day is
+one card and one dot, its sets one after another.
+
+**The exercise library's details — built on branch `feat/exercise-details` (D-81, 2026-11-11), in its
+own folder `D:\fitsphere-exercise-details` (removed once merged).** The owner's
+`Gym_Exercise_Library (1).xlsx` (kept outside the repository) gives each of the library's 2,090 rows
+its primary muscle, muscles worked, equipment, tags, how-to steps 1 to 3, what to watch for and video
+address (blank for now): `docs/data/exercise-library-details.csv`, made by
+`npm run exercise-details:convert` and checked row by row against the review sheet, loaded by
+`exercises:import` into `app.exercise_details` (migration `0028_exercise_details.sql`), one row per
+library row, each place of an exercise with its own values, as the file writes them. Since D-82 the
+first place's are sent to the phone for an exercise's How to. **On `fitsphere-dev`:
+migration 0028 before `exercises:import`; only when the owner says so.**
+
 **Each product once, and names that were only the brand — built on branch
 `fix/search-one-per-product` (D-78 and D-80, 2026-11-11), in `D:\fitsphere`.** D-78 (phone only):
 Search foods shows each branded product once, its brand label, its Open Food Facts barcodes and its
@@ -338,6 +369,8 @@ owner says so:
 - RB-03: make sure Supabase **Confirm email** is on.
 - RB-04 (D-31): the owner's logged admin path for deleting an account on an emailed
   request, then publishing the deletion page (`docs/legal/account-deletion-page.md`).
+- RB-05 (D-82): a qualified person checks the exercises' How to text (the AI tool's steps and
+  "Watch for", R-015).
 
 Also before the release: the Skeleton checks SC-01 to SC-13 (R-006); the Progress and Settings
 checks S5-01 to S5-07 and S6-01 to S6-09 (D-32, R-006); Legal's review (Q-049); and email through

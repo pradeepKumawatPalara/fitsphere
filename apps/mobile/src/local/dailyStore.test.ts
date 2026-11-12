@@ -280,6 +280,7 @@ describe('Local schema version 19 (D-77)', () => {
       await old.execAsync(`DROP TABLE targets;
         CREATE TABLE targets (kind TEXT PRIMARY KEY, value INTEGER NOT NULL, set_at TEXT NOT NULL, set_by_user_id TEXT,
           sync_state TEXT NOT NULL CHECK (sync_state IN ('synced', 'pending', 'rejected')));
+        ALTER TABLE exercises DROP COLUMN details;
         PRAGMA user_version = 18;`);
       // Set at 20:00 UTC on 10 Nov: 01:30 on 11 Nov in India.
       const setAt = '2026-11-10T20:00:00.000Z';
@@ -297,7 +298,7 @@ describe('Local schema version 19 (D-77)', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 19 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 20 });
       expect(await listTargets(old)).toEqual([
         { kind: 'calories', day: '2026-11-11', value: 2_200, setAt, setByUserId: null, syncState: 'pending' },
       ]);

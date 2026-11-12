@@ -44,6 +44,7 @@ describe('D-50 the exercise list', () => {
       met: 10.5,
       speedMets: [],
       places: [],
+      details: null,
     });
     expect(list.find((exercise) => exercise.code === 'kabaddi')).toMatchObject({ compendiumCode: null, met: null, aliases: [] });
     expect(list.find((exercise) => exercise.code === 'dumbbell-incline-bench-press')).toMatchObject({ group: 'dumbbell', logType: 'weight_reps' });

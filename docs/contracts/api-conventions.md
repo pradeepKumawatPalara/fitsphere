@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-11 (`details` in `GET /v1/exercises`, D-82). Earlier the same day (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -405,7 +405,16 @@ Query: `version` (optional), the version of the list the phone already holds.
     { "code": "running", "name": "Running", "group": "cardio", "logType": "distance_time",
       "aliases": ["run", "outdoor run"], "compendiumCode": "12145", "met": 10.5,
       "speedMets": [{ "fromKmh": 4.2, "compendiumCode": "12026", "met": 3.3 },
-                    { "fromKmh": 6.4, "compendiumCode": "12028", "met": 6.5 }] }
+                    { "fromKmh": 6.4, "compendiumCode": "12028", "met": 6.5 }],
+      "places": [], "details": null },
+    { "code": "dumbbell-shrug", "name": "Dumbbell shrug", "group": "dumbbell", "logType": "weight_reps",
+      "aliases": [], "compendiumCode": "02054", "met": 3.5, "speedMets": [],
+      "places": [{ "category": "Dumbbell", "subGroup": "Shoulders" }],
+      "details": { "place": { "category": "Dumbbell", "subGroup": "Shoulders" }, "primaryMuscle": "Traps",
+        "musclesWorked": ["Traps", "Upper back", "Forearms"], "equipment": "Dumbbell",
+        "tags": ["Traps", "Upper back", "Forearms", "Dumbbell"],
+        "howTo": ["Stand tall holding the weight with straight arms.", "…", "…"],
+        "watchFor": "Rolling the shoulders in circles. …", "videoUrl": null } }
   ]
 }
 ```
@@ -417,6 +426,11 @@ Query: `version` (optional), the version of the list the phone already holds.
 - `speedMets`: for running, walking and cycling, the Compendium's activities by speed, slowest
   first (example shortened); empty for the others. The phone uses the band starting at the highest
   speed at or below the exercise's, and `met` when the speed is not known.
+- `places`: every category and sub-group the exercise library lists it under (D-67).
+- `details`: how to do it (D-82), from its first place in the library (D-81): the primary muscle,
+  the muscles worked, the equipment, the tags, one to three steps, what to watch for and a video's
+  address (the first any of its places gives, else null; the phone then opens the owner's default
+  video, `EXERCISE_DEFAULT_VIDEO_URL`). Null when the library does not list it.
 - `version` changes whenever any value changes; when the query's `version` is already current,
   `items` is `null`.
 - Reference data, not personal, the same for every signed-in user. A workout keeps each exercise's

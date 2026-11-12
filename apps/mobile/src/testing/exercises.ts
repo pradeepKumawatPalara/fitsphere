@@ -1,4 +1,4 @@
-import type { ListedExercise, SetsExercise, SpeedMet } from '@fitsphere/shared';
+import type { ExerciseDetails, ListedExercise, SetsExercise, SpeedMet } from '@fitsphere/shared';
 import type { SqlDb } from '../local/sql';
 import { replaceExercises } from '../local/store';
 import type { fakeServer } from './fakeServer';
@@ -45,8 +45,32 @@ const TREADMILL_WALKING_BANDS = bands([
   [6.4, '17361', 5.8],
 ]);
 
+/** How to do two of them (D-82), as the library's details read; the others have none. Synthetic text. */
+export const TEST_DETAILS: Record<string, ExerciseDetails> = {
+  'dumbbell-bench-press': {
+    place: { category: 'Dumbbell', subGroup: 'Chest' },
+    primaryMuscle: 'Chest',
+    musclesWorked: ['Chest', 'Front delts', 'Triceps'],
+    equipment: 'Dumbbell',
+    tags: ['Chest', 'Front delts', 'Triceps', 'Dumbbell'],
+    howTo: ['Lie on a flat bench, a dumbbell in each hand.', 'Lower them to your chest.', 'Press them back up.'],
+    watchFor: 'Arching the back. Bouncing at the bottom.',
+    videoUrl: null,
+  },
+  'push-up': {
+    place: { category: 'Bodyweight / Calisthenics', subGroup: 'Push' },
+    primaryMuscle: 'Chest',
+    musclesWorked: ['Chest', 'Triceps'],
+    equipment: 'Bodyweight',
+    tags: ['Chest', 'Triceps', 'Bodyweight'],
+    howTo: ['Start in a high plank.', 'Lower your chest.'],
+    watchFor: 'Hips sagging.',
+    videoUrl: 'https://www.youtube.com/watch?v=pushup',
+  },
+};
+
 /** One exercise of each type, a few more dumbbell ones to search among, and two of the library's (D-67), most with places. */
-export const TEST_EXERCISE_LIST: ListedExercise[] = [
+const LISTED: Omit<ListedExercise, 'details'>[] = [
   { code: 'dumbbell-bench-press', name: 'Dumbbell bench press', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell press'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Chest' }] },
   { code: 'dumbbell-curl', name: 'Dumbbell curl', group: 'dumbbell', logType: 'weight_reps', aliases: [], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Biceps' }] },
   { code: 'hammer-curl', name: 'Hammer curl', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell hammer curl'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Biceps' }] },
@@ -67,6 +91,9 @@ export const TEST_EXERCISE_LIST: ListedExercise[] = [
   { code: 'smith-machine-squat', name: 'Smith Machine Squat', group: 'machine', logType: 'weight_reps', aliases: [], compendiumCode: '02052', met: 5.0, speedMets: [], places: [{ category: 'Smith Machine', subGroup: null }] },
   { code: 'sled-drag-harness', name: 'Sled Drag (Harness)', group: 'other', logType: 'weight_time', aliases: [], compendiumCode: null, met: null, speedMets: [], places: [{ category: 'Sandbag / Strongman', subGroup: 'Strongman' }] },
 ];
+
+/** The test list, two of them with how to do them (D-82). */
+export const TEST_EXERCISE_LIST: ListedExercise[] = LISTED.map((exercise) => ({ ...exercise, details: TEST_DETAILS[exercise.code] ?? null }));
 
 /** A `renderInApp` step: the test list on the server, and already on the phone at the server's version. */
 export async function withExerciseList(db: SqlDb, server: ReturnType<typeof fakeServer>): Promise<void> {

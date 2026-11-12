@@ -147,8 +147,9 @@ describe('Migration runner (data model, "Changes")', () => {
       '0025_workout_timer.sql',
       '0026_workout_timer_count.sql',
       '0027_target_history.sql',
+      '0028_exercise_details.sql',
     ]);
-    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods', 'exercises', 'exercise_speed_mets']) {
+    for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods', 'exercises', 'exercise_speed_mets', 'exercise_details']) {
       expect(await tableExists(table)).toBe(true);
     }
   });
@@ -170,7 +171,7 @@ describe('Migration 0027, targets by date (D-77)', () => {
       [user],
     );
 
-    expect(await migrate(client, all)).toEqual(['0027_target_history.sql']);
+    expect(await migrate(client, upTo('0027_target_history.sql'))).toEqual(['0027_target_history.sql']);
 
     const kept = await client.query(`select kind, day::text, value from app.targets where user_id = $1`, [user]);
     expect(kept.rows).toEqual([{ kind: 'calories', day: '2026-10-28', value: 2_000 }]);
