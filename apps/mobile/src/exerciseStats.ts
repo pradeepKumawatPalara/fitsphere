@@ -221,31 +221,110 @@ function bestSession(
   return best;
 }
 
-/** What makes a session the best of a kind, the BEST on its History card. */
-function bestScore(kind: EffortKind): (metrics: SessionMetrics) => readonly number[] | null {
+/** One of an exercise's bests (D-82): a lift's three, the owner's 1RM, Heaviest and Volume; one or two for the other kinds. */
+export type BestKey = 'oneRm' | 'heaviest' | 'volume' | 'mostReps' | 'repsSession' | 'longest' | 'timeSession' | 'fastest' | 'level';
+
+/**
+ * A best: its name in full (History's tiles) and short (a card's tag, in the owner's words), its value
+ * as shown, the day it was made and the session holding it.
+ */
+export type ExerciseBest = { key: BestKey; label: string; short: string; value: string; unit: string; day: string; session: Session };
+
+type BestSpec = {
+  key: BestKey;
+  label: string;
+  short: string;
+  /** Its value, then what breaks a tie; the higher wins, and on the same score the earlier. */
+  score(metrics: SessionMetrics): readonly number[] | null;
+  text(metrics: SessionMetrics, unit: BodyWeightUnit): { value: string; unit: string };
+};
+
+/** A time held longest: a hold's longest set, cardio's longest time. */
+function longestSpec(value: (metrics: SessionMetrics) => number | null, tie: (metrics: SessionMetrics) => number = () => 0): BestSpec {
+  return {
+    key: 'longest',
+    label: 'Longest',
+    short: 'Longest',
+    score: (m) => (value(m) === null ? null : [value(m)!, tie(m)]),
+    text: (m) => ({ value: formatDuration(value(m)!), unit: '' }),
+  };
+}
+
+const HEAVIEST: BestSpec = {
+  key: 'heaviest',
+  label: 'Heaviest',
+  short: 'Heaviest',
+  score: (m) => (m.heaviest === null ? null : [m.heaviest, m.mostReps ?? m.longest ?? 0]),
+  text: (m, unit) => ({ value: weightNumber(m.heaviest!, unit), unit }),
+};
+
+/** The bests each kind keeps, in the order History's tiles show them. */
+function bestSpecs(kind: EffortKind): BestSpec[] {
   switch (kind) {
     case 'weight_reps':
-      return (m) => (m.oneRm !== null ? [1, m.oneRm, m.heaviest ?? 0] : m.heaviest !== null ? [0, m.heaviest, m.mostReps ?? 0] : null);
+      return [
+        {
+          key: 'oneRm',
+          label: 'Best 1RM',
+          short: '1RM',
+          score: (m) => (m.oneRm === null ? null : [m.oneRm, m.heaviest ?? 0]),
+          text: (m, unit) => ({ value: oneRmText(m.oneRm!, unit), unit }),
+        },
+        HEAVIEST,
+        {
+          key: 'volume',
+          label: 'Best volume',
+          short: 'Volume',
+          score: (m) => (m.volume === null ? null : [m.volume]),
+          text: (m, unit) => ({ value: volumeNumber(m.volume!, unit), unit }),
+        },
+      ];
     case 'reps':
-      return (m) => (m.mostReps === null ? null : [m.mostReps]);
+      return [
+        { key: 'mostReps', label: 'Most reps', short: 'Most reps', score: (m) => (m.mostReps === null ? null : [m.mostReps]), text: (m) => ({ value: String(m.mostReps), unit: 'reps' }) },
+        { key: 'repsSession', label: 'Best session', short: 'Session', score: (m) => (m.totalReps === null ? null : [m.totalReps]), text: (m) => ({ value: String(m.totalReps), unit: 'reps' }) },
+      ];
     case 'time':
-      return (m) => (m.longest === null ? null : [m.longest]);
+      return [
+        longestSpec((m) => m.longest),
+        { key: 'timeSession', label: 'Best session', short: 'Session', score: (m) => (m.totalSeconds === null ? null : [m.totalSeconds]), text: (m) => ({ value: formatDuration(m.totalSeconds!), unit: '' }) },
+      ];
     case 'weight_time':
-      return (m) => (m.heaviest === null ? null : [m.heaviest, m.longest ?? 0]);
+      return [HEAVIEST, longestSpec((m) => m.longest)];
     case 'distance':
-      return (m) => (m.distance === null ? null : [m.distance, -(m.pace ?? 0)]);
+      return [
+        {
+          key: 'longest',
+          label: 'Longest',
+          short: 'Longest',
+          score: (m) => (m.distance === null ? null : [m.distance, -(m.pace ?? 0)]),
+          text: (m) => ({ value: (m.distance! / 1000).toFixed(2), unit: 'km' }),
+        },
+        { key: 'fastest', label: 'Fastest', short: 'Fastest', score: (m) => (m.pace === null ? null : [-m.pace]), text: (m) => ({ value: paceText(m.pace!), unit: '/km' }) },
+      ];
     case 'speed':
-      return (m) => (m.duration === null ? null : [m.duration, m.speed ?? 0]);
+      return [
+        longestSpec((m) => m.duration, (m) => m.speed ?? 0),
+        { key: 'fastest', label: 'Fastest', short: 'Fastest', score: (m) => (m.speed === null ? null : [m.speed]), text: (m) => ({ value: (m.speed! / 1000).toFixed(1), unit: 'km/h' }) },
+      ];
     case 'level':
-      return (m) => (m.duration === null ? null : [m.duration, m.level ?? 0]);
+      return [
+        longestSpec((m) => m.duration, (m) => m.level ?? 0),
+        { key: 'level', label: 'Highest level', short: 'Level', score: (m) => (m.level === null ? null : [m.level]), text: (m) => ({ value: String(m.level), unit: '' }) },
+      ];
     case 'duration':
-      return (m) => (m.duration === null ? null : [m.duration]);
+      return [longestSpec((m) => m.duration)];
   }
 }
 
-/** The session holding the best effort ever, or null. */
-export function bestOfAll(sessions: readonly Session[], kind: EffortKind): Session | null {
-  return bestSession(sessions, kind, bestScore(kind))?.session ?? null;
+/** An exercise's bests ever (D-82): each with the session holding it, the earlier on a tie; none it has no value for. */
+export function exerciseBests(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit): ExerciseBest[] {
+  return bestSpecs(kind).flatMap((spec) => {
+    const found = bestSession(sessions, kind, spec.score);
+    if (!found) return [];
+    const { value, unit: shownUnit } = spec.text(found.metrics, unit);
+    return [{ key: spec.key, label: spec.label, short: spec.short, value, unit: shownUnit, day: formatDay(found.session.day), session: found.session }];
+  });
 }
 
 /** Grams in a pound, as the shared units convert. */
@@ -274,69 +353,38 @@ function paceText(secondsPerKm: number): string {
 /** One of the three record cards. */
 export type RecordCard = { label: string; value: string; unit: string; day: string };
 
-/** The three record cards for a kind (the plan's table), each with the day it was made. */
+/**
+ * The three record cards for a kind (the plan's table), each with the day it was made: a lift's are
+ * History's three bests (the owner, 2026-11-12), Estimated 1RM, Heaviest and Best volume.
+ */
 export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit): RecordCard[] {
   const workouts = new Set(sessions.map((session) => session.workoutId)).size;
   const first = sessions.at(-1);
   const count: RecordCard = { label: 'Workouts', value: String(workouts), unit: '', day: first ? `since ${formatDay(first.day)}` : '' };
-  const card = (label: string, recordUnit: string, score: (m: SessionMetrics) => number | null, text: (value: number, m: SessionMetrics) => string, lowest = false): RecordCard => {
-    const found = bestSession(sessions, kind, (m) => {
-      const value = score(m);
-      return value === null ? null : [lowest ? -value : value];
-    });
-    if (!found) return { label, value: '–', unit: recordUnit, day: '' };
-    return { label, value: text(score(found.metrics)!, found.metrics), unit: recordUnit, day: formatDay(found.session.day) };
+  const bests = exerciseBests(sessions, kind, unit);
+  const card = (key: BestKey, label: string, emptyUnit: string): RecordCard => {
+    const best = bests.find((each) => each.key === key);
+    return best ? { label, value: best.value, unit: best.unit, day: best.day } : { label, value: '–', unit: emptyUnit, day: '' };
   };
   switch (kind) {
-    case 'weight_reps': {
-      const top = bestSession(sessions, kind, bestScore(kind));
-      const set = top && top.metrics.bestSetIndex !== null && top.session.exercise.kind === 'sets' ? top.session.exercise.sets[top.metrics.bestSetIndex] : undefined;
-      return [
-        card('Estimated 1RM', unit, (m) => m.oneRm, (value) => oneRmText(value, unit)),
-        {
-          label: 'Best set',
-          value: set && set.weightGrams !== null && set.reps !== null ? `${weightNumber(set.weightGrams, unit)} × ${set.reps}` : '–',
-          unit,
-          day: top ? formatDay(top.session.day) : '',
-        },
-        card('Best session', unit, (m) => m.volume, (value) => volumeNumber(value, unit)),
-      ];
-    }
+    case 'weight_reps':
+      return [card('oneRm', 'Estimated 1RM', unit), card('heaviest', 'Heaviest', unit), card('volume', 'Best volume', unit)];
     case 'reps':
-      return [
-        card('Most reps', 'reps', (m) => m.mostReps, String),
-        card('Best session', 'reps', (m) => m.totalReps, String),
-        count,
-      ];
+      return [card('mostReps', 'Most reps', 'reps'), card('repsSession', 'Best session', 'reps'), count];
     case 'time':
-      return [card('Longest', '', (m) => m.longest, formatDuration), card('Best session', '', (m) => m.totalSeconds, formatDuration), count];
+      return [card('longest', 'Longest', ''), card('timeSession', 'Best session', ''), count];
     case 'weight_time':
-      return [card('Heaviest', unit, (m) => m.heaviest, (value) => weightNumber(value, unit)), card('Longest', '', (m) => m.longest, formatDuration), count];
-    case 'distance': {
-      const longest = bestSession(sessions, kind, bestScore(kind));
-      return [
-        {
-          label: 'Longest distance',
-          value: longest?.metrics.distance != null ? (longest.metrics.distance / 1000).toFixed(2) : '–',
-          unit: 'km',
-          day: longest ? formatDay(longest.session.day) : '',
-        },
-        card('Fastest pace', '/km', (m) => m.pace, paceText, true),
-        count,
-      ];
-    }
+      return [card('heaviest', 'Heaviest', unit), card('longest', 'Longest', ''), count];
+    case 'distance':
+      return [card('longest', 'Longest distance', 'km'), card('fastest', 'Fastest pace', '/km'), count];
     case 'speed':
-      return [
-        card('Longest time', '', (m) => m.duration, formatDuration),
-        card('Fastest speed', 'km/h', (m) => m.speed, (value) => (value / 1000).toFixed(1)),
-        count,
-      ];
+      return [card('longest', 'Longest time', ''), card('fastest', 'Fastest speed', 'km/h'), count];
     case 'level':
-      return [card('Longest time', '', (m) => m.duration, formatDuration), card('Highest level', '', (m) => m.level, String), count];
+      return [card('longest', 'Longest time', ''), card('level', 'Highest level', ''), count];
     case 'duration': {
       const total = sum(sessions.map((session) => sessionMetrics(session.exercise, kind).duration));
       return [
-        card('Longest', '', (m) => m.duration, formatDuration),
+        card('longest', 'Longest', ''),
         { label: 'Total time', value: total === null ? '–' : formatDuration(total), unit: '', day: first ? `since ${formatDay(first.day)}` : '' },
         count,
       ];
@@ -453,11 +501,14 @@ export function graphChange(points: readonly GraphPoint[], metric: GraphMetric, 
 /** One row of a History card: a set, and whether it is the workout's best. */
 export type HistoryRow = { label: string; value: string; best: boolean };
 
-/** A History card: its title, its sets (or cardio's line), a line under them, and what a screen reader hears. */
-export type HistoryCard = { title: string; rows: HistoryRow[]; main: string; footer: string; aria: string };
+/**
+ * A History card: its title, the bests it holds as tags at its top right (D-82, the owner's C), its
+ * sets (or cardio's line), a line under them, and what a screen reader hears.
+ */
+export type HistoryCard = { title: string; tags: ExerciseBest[]; rows: HistoryRow[]; main: string; footer: string; aria: string };
 
-/** A session's card on the History tab. */
-export function historyCard(session: Session, kind: EffortKind, unit: BodyWeightUnit, best: boolean): HistoryCard {
+/** A session's card on the History tab, with the bests of `bests` it holds. */
+export function historyCard(session: Session, kind: EffortKind, unit: BodyWeightUnit, bests: readonly ExerciseBest[]): HistoryCard {
   const title = formatDay(session.day) + (session.workoutNumber === null ? '' : ` · Workout ${session.workoutNumber}`);
   const { exercise } = session;
   const metrics = sessionMetrics(exercise, kind);
@@ -481,5 +532,7 @@ export function historyCard(session: Session, kind: EffortKind, unit: BodyWeight
     footer = lines.detail;
   }
   const what = exercise.kind === 'sets' ? rows.map((row) => `${row.label}, ${row.value}`).join('; ') : lines.main;
-  return { title, rows, main: exercise.kind === 'cardio' ? lines.main : '', footer, aria: `${title}: ${what}${best ? ', your best' : ''}` };
+  const tags = bests.filter((best) => best.session === session);
+  const held = tags.length === 0 ? '' : `, ${tags.map((tag) => tag.label).join(', ')}`;
+  return { title, tags, rows, main: exercise.kind === 'cardio' ? lines.main : '', footer, aria: `${title}: ${what}${held}` };
 }

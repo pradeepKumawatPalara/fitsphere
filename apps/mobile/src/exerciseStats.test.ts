@@ -1,7 +1,7 @@
 import type { CardioExercise, ExerciseSet, SetsExercise } from '@fitsphere/shared';
 import {
-  bestOfAll,
   effortKindOf,
+  exerciseBests,
   exerciseRecords,
   exerciseSessions,
   graphChange,
@@ -101,15 +101,20 @@ describe('D-82 a lift’s numbers', () => {
 
   it('gives the records with the day each was made, and the workouts in a line', () => {
     expect(effortKindOf(sessions[0]!.exercise)).toBe('weight_reps');
+    // The owner, 2026-11-12: the cards are History's three bests.
     expect(exerciseRecords(sessions, 'weight_reps', 'kg')).toEqual([
       { label: 'Estimated 1RM', value: '88.5', unit: 'kg', day: 'Fri 30 Oct' },
-      { label: 'Best set', value: '70.0 × 8', unit: 'kg', day: 'Fri 30 Oct' },
-      { label: 'Best session', value: '1,800', unit: 'kg', day: 'Fri 9 Oct' },
+      { label: 'Heaviest', value: '70.0', unit: 'kg', day: 'Fri 30 Oct' },
+      { label: 'Best volume', value: '1,800', unit: 'kg', day: 'Fri 9 Oct' },
     ]);
-    expect(exerciseRecords(sessions, 'weight_reps', 'lb')[1]).toMatchObject({ value: '154.3 × 8', unit: 'lb' });
+    expect(exerciseRecords(sessions, 'weight_reps', 'lb')[1]).toMatchObject({ value: '154.3', unit: 'lb' });
     expect(sessionsSummary(sessions)).toBe('6 workouts · first on Mon 14 Sep · last on Fri 30 Oct');
     expect(sessionsSummary(sessions.slice(0, 1))).toBe('1 workout · Fri 30 Oct');
-    expect(bestOfAll(sessions, 'weight_reps')?.day).toBe('2026-10-30');
+    expect(exerciseBests(sessions, 'weight_reps', 'kg').map((best) => [best.label, best.short, best.value, best.day])).toEqual([
+      ['Best 1RM', '1RM', '88.5', 'Fri 30 Oct'],
+      ['Heaviest', 'Heaviest', '70.0', 'Fri 30 Oct'],
+      ['Best volume', 'Volume', '1,800', 'Fri 9 Oct'],
+    ]);
   });
 
   it('draws the graph from the range’s first day, with the change since then', () => {
@@ -129,9 +134,13 @@ describe('D-82 a lift’s numbers', () => {
     expect(graphChange([{ day: '2026-10-01', value: 50 }, { day: '2026-10-08', value: 50 }], 'heaviest', 'kg')).toBe('the same as on Thu 1 Oct');
   });
 
-  it('cards each workout with its sets, the best in full, its volume and 1RM, and BEST on the best ever', () => {
-    expect(historyCard(sessions[0]!, 'weight_reps', 'kg', true)).toEqual({
+  it('cards each workout with the bests it holds as tags, its sets, the best in full, its volume and 1RM', () => {
+    const bests = exerciseBests(sessions, 'weight_reps', 'kg');
+    const card = historyCard(sessions[0]!, 'weight_reps', 'kg', bests);
+    expect(card.tags.map((tag) => tag.short)).toEqual(['1RM', 'Heaviest']);
+    expect({ ...card, tags: [] }).toEqual({
       title: 'Fri 30 Oct',
+      tags: [],
       rows: [
         { label: 'Set 1', value: '10 × 60.0 kg', best: false },
         { label: 'Set 2', value: '8 × 70.0 kg', best: true },
@@ -139,9 +148,12 @@ describe('D-82 a lift’s numbers', () => {
       ],
       main: '',
       footer: 'Volume 1,720 kg · Est. 1RM 88.5 kg',
-      aria: 'Fri 30 Oct: Set 1, 10 × 60.0 kg; Set 2, 8 × 70.0 kg; Set 3, 8 × 70.0 kg, your best',
+      aria: 'Fri 30 Oct: Set 1, 10 × 60.0 kg; Set 2, 8 × 70.0 kg; Set 3, 8 × 70.0 kg, Best 1RM, Heaviest',
     });
-    expect(historyCard(sessions[2]!, 'weight_reps', 'kg', false).rows).toEqual([{ label: '3 sets', value: '10 × 60.0 kg', best: true }]);
+    const volume = historyCard(sessions[2]!, 'weight_reps', 'kg', bests);
+    expect(volume.rows).toEqual([{ label: '3 sets', value: '10 × 60.0 kg', best: true }]);
+    expect(volume.tags.map((tag) => tag.short)).toEqual(['Volume']);
+    expect(historyCard(sessions[1]!, 'weight_reps', 'kg', bests).tags).toEqual([]);
   });
 });
 
@@ -162,11 +174,16 @@ describe('D-82 running’s numbers', () => {
       { label: 'Fastest pace', value: '5:24', unit: '/km', day: 'Sun 18 Oct' },
       { label: 'Workouts', value: '5', unit: '', day: 'since Sun 13 Sep' },
     ]);
-    expect(bestOfAll(sessions, 'distance')?.day).toBe('2026-11-08');
+    expect(exerciseBests(sessions, 'distance', 'kg').map((best) => [best.short, best.value, best.unit, best.day])).toEqual([
+      ['Longest', '8.00', 'km', 'Sun 8 Nov'],
+      ['Fastest', '5:24', '/km', 'Sun 18 Oct'],
+    ]);
   });
 
   it('cards a run with its time and distance, its speed and pace under them', () => {
-    expect(historyCard(sessions[0]!, 'distance', 'kg', true)).toMatchObject({ rows: [], main: '45:20 · 8.00 km', footer: '10.6 km/h · 5:40 /km' });
+    const card = historyCard(sessions[0]!, 'distance', 'kg', exerciseBests(sessions, 'distance', 'kg'));
+    expect(card).toMatchObject({ rows: [], main: '45:20 · 8.00 km', footer: '10.6 km/h · 5:40 /km' });
+    expect(card.tags.map((tag) => tag.short)).toEqual(['Longest']);
     expect(graphPoints(sessions, 'distance', 'distance', null, 'kg').map((point) => point.value)).toEqual([5, 5, 8, 7.5, 8]);
     expect(graphChange(graphPoints(sessions, 'distance', 'distance', null, 'kg'), 'distance', 'kg')).toBe('up 3.00 km since Sun 13 Sep');
   });
@@ -183,7 +200,7 @@ describe('D-82 the other kinds', () => {
       { label: 'Most reps', value: '15', unit: 'reps', day: 'Mon 2 Nov' },
       { label: 'Best session', value: '27', unit: 'reps', day: 'Mon 2 Nov' },
     ]);
-    expect(historyCard(pushUps[0]!, 'reps', 'kg', false).footer).toBe('Total 27 reps');
+    expect(historyCard(pushUps[0]!, 'reps', 'kg', []).footer).toBe('Total 27 reps');
 
     const planks = exerciseSessions(
       [workout('2026-11-03', { ...lift('Plank', []), sets: [{ reps: null, weightGrams: null, seconds: 60 }, { reps: null, weightGrams: null, seconds: 45 }] })],
@@ -191,7 +208,7 @@ describe('D-82 the other kinds', () => {
     );
     expect(effortKindOf(planks[0]!.exercise)).toBe('time');
     expect(exerciseRecords(planks, 'time', 'kg')[0]).toEqual({ label: 'Longest', value: '1:00', unit: '', day: 'Tue 3 Nov' });
-    expect(historyCard(planks[0]!, 'time', 'kg', false).footer).toBe('Total 1:45');
+    expect(historyCard(planks[0]!, 'time', 'kg', []).footer).toBe('Total 1:45');
 
     const yoga = exerciseSessions([workout('2026-11-04', { ...run(1, 1), name: 'Yoga', distanceMetres: null, durationSeconds: 3600 })], ['Yoga']);
     expect(effortKindOf(yoga[0]!.exercise)).toBe('duration');

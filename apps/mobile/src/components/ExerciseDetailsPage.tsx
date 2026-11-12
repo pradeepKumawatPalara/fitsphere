@@ -6,22 +6,30 @@ import {
   ClockArrowDown,
   Dumbbell,
   ExternalLink,
+  Gauge,
   History,
   Info,
+  Layers,
   Play,
+  Repeat,
+  Ruler,
+  Timer,
   TrendingUp,
   TriangleAlert,
+  Trophy,
+  Weight,
+  Zap,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { Linking, Pressable, ScrollView, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Linking, Pressable, ScrollView, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, Polygon, Polyline } from 'react-native-svg';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import {
-  bestOfAll,
   effortKindOf,
   effortKindOfLogType,
+  exerciseBests,
   exerciseRecords,
   exerciseSessions,
   GRAPH_METRIC_LABELS,
@@ -34,6 +42,7 @@ import {
   rangeStart,
   sessionsSummary,
   type EffortKind,
+  type ExerciseBest,
   type ExerciseWorkout,
   type GraphMetric,
   type GraphPoint,
@@ -107,6 +116,7 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
   const [tab, setTab] = useState<ExerciseTab | null>(initialTab ?? null);
   const [range, setRange] = useState<GraphRange>('12W');
   const [metric, setMetric] = useState<GraphMetric | null>(null);
+  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -187,7 +197,7 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
         })}
       </View>
       {loaded ? (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroller} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {shown === 'progress' ? (
             <ProgressTab
               sessions={sessions}
@@ -204,7 +214,14 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
           {shown === 'history' ? (
             <>
               {sessions.length === 0 ? <Text style={styles.empty}>No workouts with this exercise yet.</Text> : null}
-              <HistoryCards sessions={sessions} kind={kind} unit={unit} onOpen={onOpenWorkout} phoneIds={phoneIds} />
+              <HistoryCards
+                sessions={sessions}
+                kind={kind}
+                unit={unit}
+                onOpen={onOpenWorkout}
+                phoneIds={phoneIds}
+                onGoTo={(y) => scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true })}
+              />
               {message ? <Banner text={message.text} tone={message.tone} /> : null}
               <TextButton title="Load older" outlined wide icon={ClockArrowDown} disabled={loadingOlder} onPress={() => void loadOlder()} />
             </>
@@ -402,33 +419,104 @@ function TrendChart({ points, metric, unit }: { points: readonly GraphPoint[]; m
   );
 }
 
+/** The icon of each best (D-82): a trophy for the 1RM, a weight, a stack for volume, a ruler or a timer, a bolt, a gauge. */
+function bestIcon(best: ExerciseBest): LucideIcon {
+  switch (best.key) {
+    case 'oneRm':
+      return Trophy;
+    case 'heaviest':
+      return Weight;
+    case 'volume':
+    case 'repsSession':
+    case 'timeSession':
+      return Layers;
+    case 'mostReps':
+      return Repeat;
+    case 'longest':
+      return best.unit === 'km' ? Ruler : Timer;
+    case 'fastest':
+      return Zap;
+    case 'level':
+      return Gauge;
+  }
+}
+
+/**
+ * History (D-82; the owner's C, locked 2026-11-12): the exercise's bests on top, each with its value
+ * and day, tapping one scrolling to its workout; then a card per workout, newest first, the bests it
+ * holds as tags at its top right, on the date's line.
+ */
 function HistoryCards({
   sessions,
   kind,
   unit,
   onOpen,
   phoneIds,
+  onGoTo,
 }: {
   sessions: readonly Session[];
   kind: EffortKind;
   unit: BodyWeightUnit;
   onOpen?: (id: string) => void;
   phoneIds: ReadonlySet<string>;
+  /** Scrolls to a workout's card, from where it was laid out. */
+  onGoTo(y: number): void;
 }) {
   const styles = useStyles();
-  const best = bestOfAll(sessions, kind);
+  const { colors } = useTheme();
+  const bests = exerciseBests(sessions, kind, unit);
+  const placed = useRef(new Map<Session, number>());
   return (
     <>
+      {bests.length > 0 ? (
+        <View style={styles.tiles}>
+          {bests.map((best) => {
+            const Icon = bestIcon(best);
+            return (
+              <Pressable
+                key={best.key}
+                accessibilityRole="button"
+                accessibilityLabel={`${best.label} ${best.value} ${best.unit}, ${best.day}`}
+                accessibilityHint="Shows that workout"
+                onPress={() => onGoTo(placed.current.get(best.session) ?? 0)}
+                style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
+              >
+                <View style={styles.tileLabelLine}>
+                  <Icon size={13} strokeWidth={2.25} color={colors.success} />
+                  <Text numberOfLines={1} style={styles.tileLabel}>
+                    {best.label}
+                  </Text>
+                </View>
+                <View style={styles.recordValueLine}>
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={styles.tileValue}>
+                    {best.value}
+                  </Text>
+                  {best.unit ? <Text style={styles.recordUnit}>{best.unit}</Text> : null}
+                </View>
+                <Text style={styles.recordDay}>{best.day}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
       {sessions.map((session, index) => {
-        const card = historyCard(session, kind, unit, session === best);
+        const card = historyCard(session, kind, unit, bests);
         const opens = onOpen && phoneIds.has(session.workoutId);
         const body = (
           <>
             <View style={styles.cardTop}>
-              <Text style={styles.label}>{card.title}</Text>
-              {session === best ? (
-                <View style={styles.best}>
-                  <Text style={styles.bestText}>Best</Text>
+              <Text style={[styles.label, styles.cardDate]}>{card.title}</Text>
+              {card.tags.length > 0 ? (
+                <View style={styles.tags}>
+                  {card.tags.map((tag) => {
+                    const Icon = bestIcon(tag);
+                    return (
+                      <View key={tag.key} style={styles.best}>
+                        <Icon size={13} strokeWidth={2.25} color={colors.success} />
+                        <Text style={styles.bestText}>{tag.short}</Text>
+                      </View>
+                    );
+                  })}
                 </View>
               ) : null}
             </View>
@@ -443,9 +531,11 @@ function HistoryCards({
           </>
         );
         const key = `${session.workoutId}:${index}`;
+        const place = (event: LayoutChangeEvent) => placed.current.set(session, event.nativeEvent.layout.y);
         return opens ? (
           <Pressable
             key={key}
+            onLayout={place}
             accessibilityRole="button"
             accessibilityLabel={card.aria}
             accessibilityHint="Opens the workout"
@@ -455,7 +545,7 @@ function HistoryCards({
             {body}
           </Pressable>
         ) : (
-          <View key={key} accessible accessibilityLabel={card.aria} style={[styles.card, styles.historyCard]}>
+          <View key={key} onLayout={place} accessible accessibilityLabel={card.aria} style={[styles.card, styles.historyCard]}>
             {body}
           </View>
         );
@@ -599,9 +689,17 @@ const useStyles = themedStyles((c) => ({
     textAlign: 'center',
   },
   note: { fontSize: 13, lineHeight: 19, color: c.inkMuted },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  best: { height: 24, justifyContent: 'center', paddingHorizontal: 8, borderRadius: 4, backgroundColor: c.successTint },
-  bestText: { ...TYPE.link, fontSize: 13, letterSpacing: 1.5, color: c.success },
+  // D-82, the owner's C: the date on the left, the bests it holds as tags at the top right, on its line.
+  cardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  cardDate: { paddingTop: 3 },
+  tags: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 },
+  best: { height: 24, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, borderRadius: 4, backgroundColor: c.successTint },
+  bestText: { ...TYPE.link, fontSize: 12, letterSpacing: 1.2, color: c.success },
+  tiles: { flexDirection: 'row', gap: 8 },
+  tile: { flex: 1, minWidth: 0, gap: 4, padding: 10, borderRadius: 4, borderTopWidth: 3, borderTopColor: c.success, backgroundColor: c.surface },
+  tileLabelLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  tileLabel: { ...TYPE.label, fontSize: 12, lineHeight: 15, letterSpacing: 1, color: c.success, flexShrink: 1 },
+  tileValue: { ...TYPE.metric, fontSize: 22, lineHeight: 24, color: c.ink, flexShrink: 1 },
   setRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   setLabel: { ...TYPE.label, fontSize: 14, lineHeight: 24, letterSpacing: 1, width: 54, color: c.inkMuted },
   setValue: { ...TYPE.metric, fontSize: 21, lineHeight: 24, textTransform: 'uppercase', color: c.ink },

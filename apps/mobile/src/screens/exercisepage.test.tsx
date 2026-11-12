@@ -70,8 +70,8 @@ describe('D-82 an exercise’s page from a workout', () => {
     expect(screen.getByText('Chest · Front delts · Triceps')).toBeOnTheScreen();
     expect(screen.getByRole('tab', { name: 'Progress' }).props.accessibilityState).toEqual({ selected: true });
     expect(screen.getByLabelText('Estimated 1RM 28.5 kg, Wed 28 Oct')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Best set 22.5 × 8 kg, Wed 28 Oct')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Best session 600 kg, Wed 21 Oct')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Heaviest 22.5 kg, Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Best volume 600 kg, Wed 21 Oct')).toBeOnTheScreen();
     expect(screen.getByText('3 workouts · first on Wed 14 Oct · last on Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.getByLabelText('Est. 1RM, 3 workouts, 23.5 kg on Wed 14 Oct to 28.5 kg on Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.getByText('up 5.0 kg since Wed 14 Oct')).toBeOnTheScreen();
@@ -84,13 +84,18 @@ describe('D-82 an exercise’s page from a workout', () => {
     expect(screen.queryByText(/^An estimate from your best set each workout/)).toBeNull();
   });
 
-  it('lists each workout on History, BEST on the best, a card opening its workout, and Load older', async () => {
+  it('lists each workout on History, the three bests on top and as tags, a card opening its workout, and Load older', async () => {
     const { server } = await renderWorkout();
     await openPage('Dumbbell bench press');
     await fireEvent.press(screen.getByRole('tab', { name: 'History' }));
 
-    expect(screen.getByRole('button', { name: 'Wed 28 Oct: Set 1, 10 × 20.0 kg; Set 2, 8 × 22.5 kg, your best' })).toBeOnTheScreen();
-    expect(screen.getByText('Best')).toBeOnTheScreen();
+    // The three bests on top (the owner's C), each scrolling to its workout; each card's tags on its date's line.
+    expect(screen.getByRole('button', { name: 'Best 1RM 28.5 kg, Wed 28 Oct' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Heaviest 22.5 kg, Wed 28 Oct' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Best volume 600 kg, Wed 21 Oct' }));
+    expect(screen.getByRole('button', { name: 'Wed 28 Oct: Set 1, 10 × 20.0 kg; Set 2, 8 × 22.5 kg, Best 1RM, Heaviest' })).toBeOnTheScreen();
+    expect(screen.getByText('1RM')).toBeOnTheScreen();
+    expect(screen.getByText('Volume')).toBeOnTheScreen();
     expect(screen.getByText('Volume 600 kg · Est. 1RM 26.5 kg')).toBeOnTheScreen();
 
     server.state.olderWorkouts = [
@@ -101,7 +106,7 @@ describe('D-82 an exercise’s page from a workout', () => {
     expect(await screen.findByLabelText('Wed 1 Jul: 3 sets, 10 × 15.0 kg')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Wed 1 Jul: 3 sets, 10 × 15.0 kg' })).toBeNull();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Wed 21 Oct: 3 sets, 10 × 20.0 kg' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Wed 21 Oct: 3 sets, 10 × 20.0 kg, Best volume' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${LAST_WEEK_ID}`);
     expect(screen.queryByRole('header', { name: 'Dumbbell bench press' })).toBeNull();
