@@ -3143,6 +3143,95 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-98 Measurements: notes over 500 characters say so at once
+- Status: **Accepted** (owner, in chat, 2026-11-13: asked how many characters the Notes field of Edit
+  measurements takes (500), then "So if the User has entered the more than 500 character there should
+  be validations message that appear instally"). Built on branch `fix/validation-timing`, with D-99
+  and D-100.
+- Answer (REQ-MEAS-005, REQ-MEAS-006; with D-33):
+  - The Notes box no longer stops at 500 characters (it used to cut typing and pasting off without a
+    word). The moment the notes pass 500, a red message under them says so and how many to remove:
+    "Notes can be up to 500 characters. Remove 12 characters." The box's edge turns red, and "Up to
+    500 characters." gives way to the message.
+  - **Save measurements** waits while the notes are too long, saying "Shorten the notes to save." under
+    it (after "Enter both waist values to save.", which comes first).
+  - Spaces at either end are not saved, so they do not count. The limit is unchanged: 500 characters,
+    on the phone, the server and the database.
+  - The same as an exercise's note already does (D-33), in the app's usual red message.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-MEAS-006; constraints' MVP defaults (measurement notes, the measurements sheet);
+  CLAUDE.md.
+
+---
+
+## D-99 Messages show three seconds after typing stops, never on a button
+- Status: **Accepted** (owner, in chat, 2026-11-13: "the validations message must appear when user stop
+  typing on the input fields instally not on when the user click on the button"; then, approving the
+  field list ("approval all"): "all the validations should shows when the User stop typing just after 5
+  second."; then, asked whether the wait is one number for every field: "so lets change it to 3
+  seconds than"). Built on branch `fix/validation-timing`, with D-98 and D-100.
+- Answer (REQ-ACC-007, REQ-ACC-010, REQ-ACC-011, REQ-HOME-006, REQ-MEAS-006, REQ-ROLE-007, REQ-LOG-007,
+  REQ-SAVED-001, REQ-TRN-003; with D-33):
+  - Every typed field is checked from what is typed now. Its message shows **three seconds after typing
+    in it stops, or as soon as the field is left**, and goes the moment the field is put right. This
+    holds on Sign in, Sign up, Forgot password, Set a new password, Change password, Profile, the
+    weight, steps, sleep and target sheets, Measurements, Log meal's food page, Enter your own food,
+    the amount sheet, the barcode sheet, the image link, Save to my meals and the exercise sheet.
+  - An empty field's message ("Enter …") shows only once the field has been left empty, not when the
+    screen opens.
+  - The **date of birth** and the **address**, each one message for several boxes, wait while they are
+    being typed in and not yet complete, and show once they are complete or left. The exercise name's
+    waits while the exercise list is open.
+  - **Buttons wait** (greyed) while a field has a problem, with a line under them saying what is missing
+    or to check ("Enter your email address and password to sign in.", "Check the address to save.",
+    "Fix the fields in red to save.", "Enter the time to save."); no message waits for a button. The
+    server's own answers still show after the button: "Email or password is incorrect." (D-11), a wrong
+    current password, the same password as now.
+  - Text is never cut off silently at its limit: past it, the field says so (D-98, D-100). Only the
+    search boxes stop at their limit.
+- MVP default: the three seconds are one number in the app (`CHECK_PAUSE_MS` in
+  `apps/mobile/src/fieldChecks.ts`); the tests see a problem at once.
+- Phone app only for the timing: no server change for it.
+- Doc changes: the requirements named above; constraints' MVP defaults; CLAUDE.md.
+
+## D-100 The ranges and text rules of every typed field
+- Status: **Accepted** (owner, in chat, 2026-11-13: "Person Heght can be from 50 CM to 300 cm."; then,
+  of the list of every field with its range and message, "approval all: just change these: steps range
+  should be: 1 to 200000; Keep the range same as of now Upper and lower waist, Chest, Hips, Arms, Thighs;
+  caloroies range 0 to 10000; Protein range o to 500g; carbs 0 to 1000; date [fat] 0 to 1000; fiber 0 to
+  200; steps 0 to 200000; for the Excercise sheet weight lifted rage 0.1 to 1000, Time spent range keep
+  the same"). "date" is read as fat, the target between carbs and fibre in the list.
+- Answer (changes D-38's height, Q-028's steps, D-23's and D-70's targets, D-29's and D-50's exercise
+  limits; the rest of each list is as it was):
+  - **Profile:** height 50 to 300 cm (19.7 to 118.1 in), was 100 to 250; a name of 2 to 60 letters of
+    any script, spaces and . ' - ("Enter a name of 2 to 60 letters."); address line 1 of 3 to 100
+    characters ("Enter line 1 in 3 to 100 characters."), line 2 up to 100; a city and a state of 2 to 60
+    letters, spaces, . and - ("Enter a city of 2 to 60 letters."); a PIN code of six digits, the first
+    not 0.
+  - **Daily steps:** 1 to 200,000, was 0 to 100,000. Measurements stay 10 to 250 cm.
+  - **Targets:** calories 0 to 10,000 kcal; protein 0 to 500 g; carbs 0 to 1,000 g; fat 0 to 1,000 g;
+    fibre 0 to 200 g; steps 0 to 200,000; workouts a week (1 to 14) and body weight (20 to 300 kg) as
+    they were. A target of 0 shows "–" for its percentage, and anything eaten is over it.
+  - **Exercise sheet:** weight lifted 0.1 to 1,000 kg, was 500; a timed set 1 second to an hour, was 24
+    hours; distance 0.01 to 200 km, was 500; calories burned 1 to 3,000 kcal, was 5,000 (an estimate
+    over it shows 3,000); heart rate 30 to 220, was 250; time spent (1 to 1,440 minutes), reps, speed,
+    incline, level and the cardio time as they were.
+  - **Sign in and sign up:** an email address of at most 254 characters ("Email can be up to 254
+    characters."); passwords 8 to 72 characters as before.
+  - **Meals:** your own food's name 2 to 120 characters ("Enter the food's name in 2 to 120
+    characters."); a saved meal's name over 60 characters says so ("Names can be up to 60
+    characters."), not cut off; the search box stops at 100 characters, with no message.
+- Phone, API and database: `packages/shared` (`units.ts`, `contracts.ts`), and migration
+  `0032_wider_ranges.sql` (the checks on `app.profiles.height_mm`, `app.step_counts.steps`, added
+  `not valid` so a day already saved with 0 steps stays, and `app.targets.value`; numbered 0032 as 0031
+  is kept for another branch). The database keeps its wider checks on names, the address and the PIN
+  code; the API applies the new rules. No phone schema change, no new build. **On `fitsphere-dev`:
+  migration 0032 before the updated API; only when the owner says so.**
+- Doc changes: REQ-HOME-006, REQ-ROLE-007, REQ-ACC-011, REQ-TRN-003; `docs/contracts/data-model.md`;
+  constraints' MVP defaults; CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

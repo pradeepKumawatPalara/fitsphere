@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-13 (D-97: REQ-NUT-003 and REQ-NUT-004, each food of an opened meal with its own Edit, Save and Remove). 2026-11-12 (D-93: REQ-TRN-003, an exercise's name in bold and its sets in plain text on a workout; D-96: REQ-LOG-007, an amount typed with a food, and a search naming several foods; D-94: REQ-LOG-007, plurals both ways, other names from the owner's food database, its dishes and generic foods; D-92: REQ-LOG-007, everyday foods first, dry packs last; D-91: REQ-LOG-007, the plain food first; D-89: REQ-LOG-007, a name's brands alike in energy, each brand once; D-88: REQ-LOG-007, Search foods ignores accents; D-86: REQ-LOG-007, Search foods ignores any mark typed; D-85: REQ-HOME-008, when measurements were last logged and "Due" after 7 days; D-84: REQ-NAV-002, the header's calendar marks meal days and workout days; D-83: REQ-TRN-003, the Workout in progress pill; D-82: REQ-TRN-008, the graph touched, History's three bests). 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-13 (D-100: REQ-HOME-006, REQ-ROLE-007, REQ-ACC-011 and REQ-TRN-003, the ranges and text rules of every typed field; D-99: every field's message three seconds after typing stops, never on a button; D-98: REQ-MEAS-006, notes over 500 characters say so at once; D-97: REQ-NUT-003 and REQ-NUT-004, each food of an opened meal with its own Edit, Save and Remove). 2026-11-12 (D-93: REQ-TRN-003, an exercise's name in bold and its sets in plain text on a workout; D-96: REQ-LOG-007, an amount typed with a food, and a search naming several foods; D-94: REQ-LOG-007, plurals both ways, other names from the owner's food database, its dishes and generic foods; D-92: REQ-LOG-007, everyday foods first, dry packs last; D-91: REQ-LOG-007, the plain food first; D-89: REQ-LOG-007, a name's brands alike in energy, each brand once; D-88: REQ-LOG-007, Search foods ignores accents; D-86: REQ-LOG-007, Search foods ignores any mark typed; D-85: REQ-HOME-008, when measurements were last logged and "Due" after 7 days; D-84: REQ-NAV-002, the header's calendar marks meal days and workout days; D-83: REQ-TRN-003, the Workout in progress pill; D-82: REQ-TRN-008, the graph touched, History's three bests). 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -148,6 +148,7 @@ B-22).
   - Each target records who set it and when, so coach-set targets can be added later without changing the user's own (D-20).
   - Given a calorie target of 1,800 kcal set before today, when the user sets 2,000 kcal today, then today and the days after show 2,000 kcal and the days before still show 1,800 kcal (D-77).
   - Given a past date before the first target, then its calories and protein cards (and Insight) say "No target on this day" and offer no "Set a target"; a past week with no workout target says "No target that week" (D-77).
+  - D-100: the daily targets are calories 0–10,000 kcal, protein 0–500 g, carbs 0–1,000 g, fat 0–1,000 g, fibre 0–200 g and steps 0–200,000; workouts a week 1–14 and body weight 20–300 kg as before. A target of 0 shows "–" for its percentage. D-99: each target's rule shows three seconds after typing stops or once the box is left; Save waits until the value can be saved.
 - MVP (D-20): every user is without a coach, so this requirement covers every account.
 - MVP default (D-23, Home and daily tracking slice): the user sets their targets on a "Your targets" screen, opened from Account (the profile avatar) and from "Set a target" on the calories, protein and workout cards when no target is set. Ranges, and who set it, are in the data model (`targets`).
 - Targets by date (D-77, answering Q-014; replaces D-23's "one current value per target, applying to every day shown"): a change starts on the IST day it is made and holds until the next change of that target; the days before keep the value they had. Each date shows the targets it had (Home, Insight); Home's workout tracker uses the target that holds on its week's Sunday; Progress shows the targets that hold today. Your targets shows today's values, each with since when ("since 8 Nov", "from today"), and its entry sheet says the change starts today. The targets set before D-77 hold from the day the account was created (their older values were never kept). One value per target and day: a second change the same day replaces it; the value that already holds saves nothing.
@@ -334,7 +335,8 @@ B-22).
 - Acceptance criteria:
   - Given no weight logged that day, then the tile shows "+ Add"; tapping it allows entry.
   - Weight displays in the body-weight unit setting (REQ-ACC-003; MVP default, Q-024 — the BRD says "Weight (kg)").
-  - Values outside weight 20–300 kg, steps 0–100,000 and sleep 0–24 h cannot be saved (MVP default, Q-028).
+  - Values outside weight 20–300 kg, steps 1–200,000 (D-100; was 0–100,000) and sleep 0–24 h cannot be saved (MVP default, Q-028).
+  - D-99: the rule shows three seconds after typing stops or once the box is left (an empty box only once left), never because Save was pressed; Save is greyed until the value can be saved.
   - Given a value already logged for that day, when a new one is saved, then it replaces the old one (MVP default, Q-030).
 - MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14). Weight is entered and shown with one decimal in the chosen unit and stored in whole grams (invariant #6). Sleep is stored in whole minutes (MVP default, D-23).
 
@@ -384,6 +386,7 @@ B-22).
   - Given only upper waist entered, then Save is disabled.
   - When X is tapped after entering values, then nothing is saved.
 - MVP default (D-18): valid values are 10–250 cm (Q-028); X closes without a warning (Q-029); a second entry for the same date replaces the first (Q-030).
+- D-98: notes are up to 500 characters. More can be typed or pasted, but the moment the notes pass 500 a red message under them says how many characters to remove, and Save waits ("Shorten the notes to save."). Spaces at either end do not count.
 
 ---
 
@@ -674,6 +677,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - D-83: while a workout's timer runs or is paused, a pill above the tabs, at the right, and over an exercise's page, shows it with its time and name; tapping it opens the workout (backlog E-29). One timer at a time: meanwhile another workout's Start workout, and Resume after Mark done, are greyed, saying which workout's timer is going, with a link to it.
 - D-82: each exercise of a workout ends in a bar with Progress, Edit and Remove (replacing D-42's edit and remove icons); Progress opens its page: Progress, History and How to (REQ-TRN-008).
 - D-93: on a workout, each exercise's name is in bold, and its sets (or its cardio or timed line) in plain text.
+- D-99: in the exercise sheet each field's problem shows three seconds after typing stops or once the field is left (an empty one only once left; the name's not while the exercise list is open), never because Save exercise was pressed; Save exercise waits while there is one, saying what to fix or what is missing.
+- D-100: weight lifted 0.1–1,000 kg (was 500), a timed set 1 second to an hour (was 24 hours), distance 0.01–200 km (was 500), calories burned 1–3,000 kcal (was 5,000), heart rate 30–220 (was 250); time spent, reps, speed, incline, level and the cardio time as before.
 - D-71: the workout timer. A workout of today has **Start workout** in a bar at its foot; the bar then shows the time counted in minutes and seconds ("12:34", "1:05:12"), "Running" or "Paused", **Pause** or **Resume**, and **Mark done**, which stops it and shows "Done · total time" with the total, pauses left out (with Resume, on a workout of today). A workout of another date has no Start workout. A timer already started can be paused, resumed and marked done whatever the date. The time comes from the clock, so leaving the screen or closing the app does not stop it; 24 hours at most. Mark done is not required (D-29); a workout whose timer has started is listed before its first exercise, and counts toward the week only once it has one (D-41). Each step is saved on the phone at once and synced; it works offline.
 
 ### REQ-TRN-004 — Workout history
@@ -833,7 +838,14 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given a date of birth that makes the user under 18, then it is refused with "Enter a date of
     birth for someone 18 or older." (REQ-ACC-010); the profile shows the age a date gives.
   - The height is kept in millimetres and shown in cm, or in inches when the measurements use
-    inches (invariant #6); 100 to 250 cm.
+    inches (invariant #6); 50 to 300 cm (D-100; was 100 to 250).
+  - D-99: each problem shows under its field three seconds after typing stops or once the field is
+    left, never because Save was pressed; the date of birth's and the address's once they are complete
+    or left. Save profile waits while there is one, saying what to check ("Check the address to
+    save.").
+  - D-100: a name of 2 to 60 letters of any script, spaces and . ' -; address line 1 of 3 to 100
+    characters; a city and a state of 2 to 60 letters, spaces, . and -; a PIN code not starting with
+    0.
   - The phone number is a 10-digit Indian mobile number, kept with +91 (invariant #5); not verified.
   - An address is empty, or has line 1, the city, the state and a 6-digit PIN code; line 2 is
     optional.
