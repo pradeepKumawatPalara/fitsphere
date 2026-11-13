@@ -2797,6 +2797,54 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-008; `docs/design/design-system.md` (the strong button); the MVP defaults in
   `docs/architecture/constraints-and-assumptions.md`; the redesign's 2.3; CLAUDE.md.
 
+## D-90 Gym members on `app.users`, for the Coach view built by another team
+- Status: **Accepted** (owner, in chat, 2026-11-12: "Add a new column as isGymMember in the table
+  app.users because we will use this same table in coach as as well. The Coach view Is Being build
+  from the Other Team so as soon as they need to change in the app schema and this repo they will
+  ask us to implement. so the Fitsphere client also have the context"; then: "coach use the same
+  schema over supabase for the shared db table. and coach schema for their applications
+  specific"). Built on branch `feat/users-gym-member`.
+- Answer:
+  - `app.users` gets **`is_gym_member`**: whether the user is a member of a gym; `boolean`, not
+    null, `false` for every account until something sets it (migration
+    `0029_users_gym_member.sql`).
+  - **The Coach view is built by another team**, on this same Supabase database:
+    - **Shared tables** (`app.users` and any other the Coach view uses) stay in schema **`app`**.
+      When the Coach view needs a change there, or in this repository, that team asks, and the
+      change is made here, with its decision, migration, tests and documents, so this repository
+      stays the one record of the shared schema and the FitSphere client app keeps the context.
+    - **The Coach application's own tables** live in its own schema, **`coach`**, made and changed
+      by that team, not in this repository.
+  - This repository's MVP stays the Personal Training User view (D-20). A change asked for the
+    Coach view keeps the invariants and the accepted ADRs, or goes to the owner first.
+- MVP defaults:
+  - The column is named in the schema's own style, `is_gym_member` (every column is lower case with
+    underscores); in TypeScript and JSON it is `isGymMember`.
+  - Not null, `false` by default: every account made before it, and every account the API makes,
+    is not a gym member until the Coach view's work sets it.
+  - Nothing in this repository reads or writes it yet: `GET /v1/me` does not send it, sync does not
+    take it, and the phone neither shows nor stores it (no phone schema change). Who sets it, and
+    how, comes with the Coach team's next request.
+  - Account data (threat model, "Assets"): deleted with the account (REQ-ACC-009, D-31); Legal's
+    review of the account data (Q-049) covers it.
+  - What this repository needs from the `coach` schema (*Not yet confirmed*): (1) nothing in `app`
+    is changed from outside this repository (no table, column, index, row level security policy or
+    grant, and no row in `app.schema_migrations`: the migration runner refuses a migration it does
+    not have); (2) a `coach` table that points at an `app` row (such as `app.users`) is deleted with
+    it (`on delete cascade`), or deleting an account here fails (REQ-ACC-009, D-31).
+- **Waiting for the owner: how the Coach application reaches the shared `app` tables.** ADR-0002
+  makes this repository's API the only path to the data: Supabase's Data API is off (checked on
+  `fitsphere-dev`, 2026-10-28, `npm run check:data-api`), and every `app` table has row level
+  security on with no policies. Reading or writing `app` tables "over Supabase" (the Data API, or
+  a direct connection from the Coach team's own server) is a second path that the API's access
+  module does not check (invariant 1: a coach sees a trainee's data only through an accepted link).
+  It needs a replacement ADR approved by the owner before the Coach application reaches `app`
+  data.
+- No phone change, no new build. **On `fitsphere-dev`: migration 0029; only when the owner says
+  so.**
+- Doc changes: `docs/contracts/data-model.md` (`users`); the MVP defaults in
+  `docs/architecture/constraints-and-assumptions.md`; CLAUDE.md.
+
 ## D-86 Search foods ignores any mark typed
 - Status: **Accepted** (owner, in chat, 2026-11-12: on QA-09 of the search QA report ("paneer!",
   "dal?", "chicken:", "idli;", "[upma]", "samosa*", "#biryani", "egg+white", "egg_white" and
