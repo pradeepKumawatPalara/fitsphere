@@ -114,7 +114,7 @@ export function ExercisePlacePickers({ filter, counts, open, onOpen, onChange }:
       </View>
       {open ? (
         <View accessibilityLabel={open === 'category' ? 'Categories' : 'Sub-groups'} style={[styles.list, styles.grow]}>
-          <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.scroll}>
+          <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.scroll} testID="exercise-place-list">
             {options.map((option, index) => {
               const isChosen = option.value === chosen;
               return (
