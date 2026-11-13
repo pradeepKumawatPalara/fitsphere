@@ -13,6 +13,8 @@ export function GramsBox({
   label = 'Grams eaten',
   unit = 'g',
   decimal = false,
+  onFocus,
+  onBlur,
 }: {
   value: string;
   onChangeText(text: string): void;
@@ -21,6 +23,8 @@ export function GramsBox({
   label?: string;
   unit?: string;
   decimal?: boolean;
+  onFocus?(): void;
+  onBlur?(): void;
 }) {
   const styles = useStyles();
   return (
@@ -31,6 +35,8 @@ export function GramsBox({
         onChangeText={onChangeText}
         keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
         autoFocus={autoFocus}
+        {...(onFocus ? { onFocus } : {})}
+        {...(onBlur ? { onBlur } : {})}
         style={styles.amount}
       />
       <Text style={styles.unit}>{unit}</Text>

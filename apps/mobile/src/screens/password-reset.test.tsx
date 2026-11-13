@@ -61,7 +61,10 @@ describe('REQ-ACC-010 Forgot password', () => {
     const client = fakeAuthClient();
     await renderWith(<ForgotPasswordScreen />, client);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Send reset link' }));
+    // D-99: the button waits, saying why; an empty email says so once the field is left.
+    expect(screen.getByRole('button', { name: 'Send reset link' })).toBeDisabled();
+    expect(screen.getByText('Enter your email address to get the link.')).toBeOnTheScreen();
+    await fireEvent(screen.getByLabelText('Email'), 'blur');
     const problem = screen.getByRole('alert');
     expect(problem).toHaveTextContent(TEXTS.emailRule);
     expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();

@@ -3,17 +3,19 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount, signIn } from '../auth/service';
-import { TEXTS } from '../auth/texts';
+import { emailProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
 import { DisplayHeading } from '../components/DisplayHeading';
-import { Banner, Field, Message, TextButton } from '../components/ui';
+import { Banner, ButtonHint, Field, Message, TextButton } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles } from '../theme';
 import { goAfterAccountCheck } from './navigation';
 
 // REQ-ACC-010: sign in, then GET /v1/me and account setup if needed. The redesign's screen 1.1
 // (locked by the owner, 2026-11-03): an empty field is named under that field; any other problem
-// shows above Sign in.
+// shows above Sign in. Since D-99 each field's problem shows once typing pauses or it is left, and Sign
+// in waits, saying what is missing; wrong details still show after it, from the server (D-11).
 export function SignInScreen() {
   const styles = useStyles();
   const { deps } = useAuth();
@@ -23,21 +25,15 @@ export function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [missing, setMissing] = useState<{ email?: string; password?: string }>({});
   const [message, setMessage] = useState<string | null>(null);
+  const checks = useFieldChecks({ email, password });
+  const emailIssue = emailProblem(email);
+  const passwordIssue = password ? null : TEXTS.passwordRequired;
 
   async function submit() {
-    // An empty field is named; wrong details stay one neutral text (D-11).
+    // Wrong details stay one neutral text (D-11).
     setMessage(null);
-    if (!email.trim()) {
-      setMissing({ email: TEXTS.emailRule });
-      return;
-    }
-    if (!password) {
-      setMissing({ password: TEXTS.passwordRequired });
-      return;
-    }
-    setMissing({});
+    if (emailIssue || passwordIssue) return;
     setBusy(true);
     const result = await signIn(deps, email, password);
     if (result === 'signedIn') {
@@ -58,7 +54,8 @@ export function SignInScreen() {
       footer={
         <>
           <Message text={message} offline={message === TEXTS.needsInternet('Signing in')} />
-          <TextButton title="Sign in" filled arrow busy={busy} onPress={() => void submit()} />
+          <TextButton title="Sign in" filled arrow busy={busy} disabled={!!emailIssue || !!passwordIssue} onPress={() => void submit()} />
+          {emailIssue || passwordIssue ? <ButtonHint text={signInHint(emailIssue, passwordIssue)} /> : null}
           <TextButton title="Create an account" outlined wide onPress={() => router.push('/sign-up')} />
         </>
       }
@@ -73,17 +70,21 @@ export function SignInScreen() {
       <View style={styles.fields}>
         <Field
           label="Email"
-          error={missing.email}
+          error={checks.shows('email') ? emailIssue : null}
           value={email}
           onChangeText={setEmail}
+          onFocus={() => checks.focus('email')}
+          onBlur={() => checks.blur('email')}
           keyboardType="email-address"
           autoComplete="email"
         />
         <Field
           label="Password"
-          error={missing.password}
+          error={checks.shows('password') ? passwordIssue : null}
           value={password}
           onChangeText={setPassword}
+          onFocus={() => checks.focus('password')}
+          onBlur={() => checks.blur('password')}
           secureTextEntry
           autoComplete="current-password"
         />
@@ -93,6 +94,13 @@ export function SignInScreen() {
       </View>
     </FormScreen>
   );
+}
+
+/** Under Sign in while it waits (D-99): what is missing. */
+function signInHint(emailIssue: string | null, passwordIssue: string | null): string {
+  if (emailIssue === TEXTS.emailRule) return passwordIssue ? 'Enter your email address and password to sign in.' : 'Enter your email address to sign in.';
+  if (emailIssue) return 'Check your email address to sign in.';
+  return 'Enter your password to sign in.';
 }
 
 // From the wordmark: 48 to the heading (32 to a notice first), 40 to the fields, 18 between them;

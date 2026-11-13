@@ -10,6 +10,7 @@ import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { ActionsSheet } from './MealSheets';
 import { Banner, Field, Problem, Text, TextButton } from './ui';
+import { useFieldChecks } from '../fieldChecks';
 
 /** The meal's photo while it is being logged: a new one with its files, the one it had, or a link. */
 export type PhotoDraft = { kind: 'photo'; mediaId: string; files: PhotoFiles | null } | { kind: 'link'; url: string } | null;
@@ -46,6 +47,8 @@ export function MealPhotoField({
   const [busy, setBusy] = useState(false);
   const [linkStep, setLinkStep] = useState<'enter' | 'confirm' | null>(null);
   const [linkText, setLinkText] = useState('');
+  // The link's rule shows once typing pauses or the box is left (D-99).
+  const checks = useFieldChecks({ link: linkText });
   const existing = value?.kind === 'photo' && !value.files ? { id: value.mediaId, mealId } : null;
   const loaded = usePhoto(existing, 'thumbnail');
   const thumbnail = value?.kind === 'photo' ? (value.files?.thumbnail ?? (loaded.kind === 'ready' ? loaded.base64 : null)) : null;
@@ -132,7 +135,9 @@ export function MealPhotoField({
             onChangeText={setLinkText}
             autoCorrect={false}
             keyboardType="url"
-            error={linkText.trim() !== '' && !linkValid ? 'Enter a link that starts with https://' : null}
+            error={linkText.trim() !== '' && !linkValid && checks.shows('link') ? 'Enter a link that starts with https://' : null}
+            onFocus={() => checks.focus('link')}
+            onBlur={() => checks.blur('link')}
           />
         </ActionsSheet>
       ) : null}

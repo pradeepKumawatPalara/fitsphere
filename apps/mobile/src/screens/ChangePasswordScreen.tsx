@@ -4,7 +4,8 @@ import { useAuth } from '../auth/AuthProvider';
 import { changePassword } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
-import { Banner, Field, Message, TextButton } from '../components/ui';
+import { Banner, ButtonHint, Field, Message, TextButton } from '../components/ui';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles } from '../theme';
 
 // Change password (REQ-ACC-007; MVP default, D-31): the current password, then a new one of 8–72
@@ -23,15 +24,18 @@ export function ChangePasswordScreen() {
   const [changed, setChanged] = useState(false);
   const offline = message === TEXTS.needsInternet('Changing your password');
   const ruleMet = passwordProblem(next) === null;
+  // Each problem shows once typing pauses or the field is left; Change password waits (D-99). The
+  // server's answers (a wrong current password, the same password) show after it.
+  const checks = useFieldChecks({ current, next });
+  const currentIssue = current ? null : TEXTS.currentPasswordRequired;
+  const hint = currentIssue ? 'Enter your current password to change it.' : !ruleMet ? 'Use 8 to 72 characters for the new password.' : null;
 
   async function submit() {
     setChanged(false);
     setMessage(null);
-    const currentIssue = current ? null : TEXTS.currentPasswordRequired;
-    const nextIssue = passwordProblem(next);
-    setCurrentError(currentIssue);
-    setNextError(nextIssue);
-    if (currentIssue || nextIssue) return;
+    setCurrentError(null);
+    setNextError(null);
+    if (hint) return;
     if (!email) {
       setMessage(TEXTS.tryLater);
       return;
@@ -61,26 +65,36 @@ export function ChangePasswordScreen() {
         <>
           <Message text={message} offline={offline} />
           {changed ? <Banner tone="success" text={TEXTS.passwordChanged} /> : null}
-          <TextButton title="Change password" filled busy={busy} onPress={() => void submit()} />
+          <TextButton title="Change password" filled busy={busy} disabled={hint !== null} onPress={() => void submit()} />
+          {hint ? <ButtonHint text={hint} /> : null}
         </>
       }
     >
       <View style={styles.fields}>
         <Field
           label="Current password"
-          error={currentError}
+          error={currentError ?? (checks.shows('current') ? currentIssue : null)}
           value={current}
-          onChangeText={setCurrent}
+          onChangeText={(text) => {
+            setCurrent(text);
+            setCurrentError(null);
+          }}
+          onFocus={() => checks.focus('current')}
+          onBlur={() => checks.blur('current')}
           secureTextEntry
           autoComplete="current-password"
         />
         <Field
           label="New password"
-          // A broken rule shows red only while it still is.
-          error={nextError === TEXTS.passwordRule && ruleMet ? null : nextError}
+          error={nextError ?? (checks.shows('next') && !ruleMet ? TEXTS.passwordRule : null)}
           rule={{ text: TEXTS.passwordRule, met: ruleMet }}
           value={next}
-          onChangeText={setNext}
+          onChangeText={(text) => {
+            setNext(text);
+            setNextError(null);
+          }}
+          onFocus={() => checks.focus('next')}
+          onBlur={() => checks.blur('next')}
           secureTextEntry
           autoComplete="new-password"
         />

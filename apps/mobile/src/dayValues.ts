@@ -63,7 +63,7 @@ const STEPS_VALUE: DayValueText = {
   changeType: STEPS_SET,
   label: 'Steps',
   field: 'steps',
-  format: (steps) => `${formatInteger(steps)} steps`,
+  format: (steps) => `${formatInteger(steps)} ${steps === 1 ? 'step' : 'steps'}`,
   inputLabel: 'Steps',
   unit: 'steps',
   toText: String,

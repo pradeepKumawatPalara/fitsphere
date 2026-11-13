@@ -2,6 +2,7 @@ import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, t
 import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
+import { useFieldChecks, type FieldChecks } from '../fieldChecks';
 import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
@@ -21,6 +22,7 @@ import {
   EMPTY_EXERCISE,
   estimateCalories,
   exerciseLayout,
+  exerciseRules,
   GROUP_LABELS,
   LOG_AS,
   LOG_AS_LABELS,
@@ -32,6 +34,7 @@ import {
   type CardioField,
   type ExerciseProblems,
   type ExerciseText,
+  type Layout,
   type SetColumn,
   type SetText,
 } from '../workouts';
@@ -134,7 +137,6 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const [typingName, setTypingName] = useState(editing === null);
   // Set when an exercise is picked, so the first field of its type takes the keyboard.
   const [picked, setPicked] = useState(false);
-  const [problems, setProblems] = useState<ExerciseProblems>({ refused: [] });
   const [busy, setBusy] = useState(false);
   // The weight calories are estimated with, and the i's explanation open (D-50).
   const [weightGrams, setWeightGrams] = useState<number | null>(null);
@@ -273,17 +275,33 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     onClose();
   }
 
+  // Each problem worked out from what is typed now; each shows once its field settles: typing in it
+  // has paused, or it was left (an empty one only once left). Save waits while there is one (D-99).
+  const parsed = parseExercise(text, layout, unit, estimated, editing);
+  const typed: ExerciseProblems = 'problems' in parsed ? parsed.problems : { refused: [] };
+  const checks = useFieldChecks(exerciseTexts(text, layout));
+  const problems = shownProblems(typed, checks, text, layout, unit, choosing);
+  const saveHint = 'problems' in parsed ? whatToFix(typed, problems) : null;
+  /** Focus and blur for a field, for its checks. */
+  const watch = (name: string) => ({ onFocus: () => checks.focus(name), onBlur: () => checks.blur(name) });
+
   function save() {
-    const parsed = parseExercise(text, layout, unit, estimated, editing);
-    if ('problems' in parsed) {
-      setProblems(parsed.problems);
-      return;
-    }
+    if ('problems' in parsed) return;
     void run(() => onSave(parsed.exercise));
   }
 
   return (
-    <FullScreen onClose={onClose} footer={listing ? undefined : <TextButton title="Save exercise" filled disabled={busy} onPress={save} />}>
+    <FullScreen
+      onClose={onClose}
+      footer={
+        listing ? undefined : (
+          <>
+            <TextButton title="Save exercise" filled disabled={busy || 'problems' in parsed} onPress={save} />
+            {saveHint ? <Text style={styles.saveHint}>{saveHint}</Text> : null}
+          </>
+        )
+      }
+    >
       <View style={styles.header}>
         <IconButton label="Back to the workout" onPress={onClose}>
           <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
@@ -323,8 +341,12 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             onFocus={() => {
               setTypingName(true);
               setListClosed(false);
+              checks.focus('name');
             }}
-            onBlur={() => setTypingName(false)}
+            onBlur={() => {
+              setTypingName(false);
+              checks.blur('name');
+            }}
             style={styles.value}
           />
           <Pressable
@@ -462,6 +484,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                   refused={problems.refused}
                   autoFocus={picked && index === 0}
                   onChange={changeSet}
+                  watch={watch}
                   {...(text.sets.length > 1 ? { onRemove: () => change({ sets: text.sets.filter((_, at) => at !== index) }) } : {})}
                 />
               ))}
@@ -488,6 +511,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                     refused={problems.time !== undefined}
                     autoFocus={picked}
                     compact
+                    {...watch('timeMinutes')}
                   />
                   <Box
                     accessibilityLabel="Time, seconds"
@@ -497,6 +521,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                     unit="sec"
                     refused={problems.time !== undefined}
                     compact
+                    {...watch('timeSeconds')}
                   />
                 </View>
                 {problems.time ? <Problem text={problems.time} /> : null}
@@ -511,6 +536,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                     keyboardType={CARDIO_FIELDS[field].keyboard}
                     unit={CARDIO_FIELDS[field].unit}
                     refused={problems[field] !== undefined}
+                    {...watch(field)}
                   />
                   {problems[field] ? (
                     <Problem text={problems[field]} />
@@ -533,6 +559,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                 keyboardType="number-pad"
                 unit="min"
                 refused={problems.spent !== undefined}
+                {...watch('spentMinutes')}
               />
               {problems.spent ? <Problem text={problems.spent} /> : <Text style={styles.help}>Used only to estimate the calories burned.</Text>}
             </View>
@@ -552,6 +579,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               unit="kcal"
               {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
               refused={problems.kcal !== undefined}
+              {...watch('kcal')}
             />
             {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.help}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
           </View>
@@ -566,6 +594,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                   keyboardType="number-pad"
                   unit="bpm"
                   refused={problems[key] !== undefined}
+                  {...watch(key)}
                 />
               </View>
             ))}
@@ -576,7 +605,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
 
       <View style={styles.field}>
         <Text style={labelStyle}>Note (optional)</Text>
-        <Box accessibilityLabel="Note (optional)" value={text.note} onChangeText={(note) => change({ note })} multiline note refused={problems.note !== undefined} />
+        <Box
+          accessibilityLabel="Note (optional)"
+          value={text.note}
+          onChangeText={(note) => change({ note })}
+          multiline
+          note
+          refused={problems.note !== undefined}
+          {...watch('note')}
+        />
         {problems.note ? <Problem text={problems.note} /> : null}
       </View>
       {onRemove ? <TextButton title="Remove exercise" destructive icon={Trash} disabled={busy} onPress={() => void run(onRemove)} /> : null}
@@ -609,6 +646,89 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   );
 }
 
+/** A set's field, by name, for its checks (D-99): "set:0:reps"; the problems name it "0:reps". */
+function setField(index: number, column: SetColumn): string {
+  return `set:${index}:${column}`;
+}
+
+/** Each typed field's text, by name, for its checks (D-99). */
+function exerciseTexts(text: ExerciseText, layout: Layout): Record<string, string> {
+  const texts: Record<string, string> = {
+    name: text.name,
+    timeMinutes: text.timeMinutes,
+    timeSeconds: text.timeSeconds,
+    distance: text.distance,
+    speed: text.speed,
+    incline: text.incline,
+    level: text.level,
+    spentMinutes: text.spentMinutes,
+    kcal: text.kcal ?? '',
+    averageHeartRate: text.averageHeartRate,
+    highestHeartRate: text.highestHeartRate,
+    note: text.note,
+  };
+  if (layout.kind === 'sets') {
+    text.sets.forEach((set, index) => {
+      for (const { column } of layout.columns) texts[setField(index, column)] = set[column];
+    });
+  }
+  return texts;
+}
+
+/**
+ * The problems that show now (D-99): each field's once its checks say so; the name's not while the
+ * exercise list is open; the time's, as one field of minutes and seconds, once neither is being typed
+ * in; the sets', the first shown set's problem, as "Set 2: enter reps from 1 to 200.".
+ */
+function shownProblems(
+  typed: ExerciseProblems,
+  checks: FieldChecks,
+  text: ExerciseText,
+  layout: Layout,
+  unit: BodyWeightUnit,
+  choosing: boolean,
+): ExerciseProblems {
+  const rules = exerciseRules(unit);
+  const shown = <K extends keyof ExerciseProblems>(key: K, field: string, also = true) =>
+    typed[key] !== undefined && also && checks.shows(field) ? { [key]: typed[key] } : {};
+  const timeFields = ['timeMinutes', 'timeSeconds'];
+  const timeTyped = text.timeMinutes.trim() !== '' || text.timeSeconds.trim() !== '';
+  const timeShows =
+    typed.time !== undefined &&
+    timeFields.every((field) => checks.isSettled(field)) &&
+    (timeTyped || (timeFields.some((field) => checks.wasLeft(field)) && !timeFields.includes(checks.focused ?? '')));
+  const refused = typed.refused.filter((cell) => checks.shows(`set:${cell}`));
+  const first = refused[0]?.split(':');
+  const column = first?.[1] as SetColumn | undefined;
+  const required = layout.kind === 'sets' && layout.columns.some((entry) => entry.column === column && entry.required);
+  const setRule = column === 'weight' ? (required ? rules.weight : rules.optionalWeight) : column ? rules[column] : null;
+  return {
+    refused,
+    ...(first && setRule ? { sets: `Set ${Number(first[0]) + 1}: ${setRule}` } : {}),
+    ...shown('name', 'name', !choosing),
+    ...(timeShows ? { time: typed.time } : {}),
+    ...shown('distance', 'distance'),
+    ...shown('speed', 'speed'),
+    ...shown('incline', 'incline'),
+    ...shown('level', 'level'),
+    ...shown('spent', 'spentMinutes'),
+    ...shown('kcal', 'kcal'),
+    ...shown('averageHeartRate', 'averageHeartRate'),
+    ...shown('highestHeartRate', 'highestHeartRate', checks.isSettled('averageHeartRate')),
+    ...shown('note', 'note'),
+  };
+}
+
+/** Under Save exercise while it waits (D-99): what to fix, or what is still missing. */
+function whatToFix(typed: ExerciseProblems, shown: ExerciseProblems): string {
+  const anyShown = Object.entries(shown).some(([key, value]) => (key === 'refused' ? (value as string[]).length > 0 : value !== undefined));
+  if (anyShown) return 'Fix the fields in red to save.';
+  if (typed.name) return "Enter the exercise's name to save.";
+  if (typed.time) return 'Enter the time to save.';
+  if (typed.refused.length > 0) return 'Fill in each set to save.';
+  return 'Fix the fields in red to save.';
+}
+
 /** One set: its number, a field for each of the type's columns, and a bin while there is another set. */
 function SetRow({
   index,
@@ -618,6 +738,7 @@ function SetRow({
   refused,
   autoFocus,
   onChange,
+  watch,
   onRemove,
 }: {
   index: number;
@@ -627,6 +748,8 @@ function SetRow({
   refused: readonly string[];
   autoFocus: boolean;
   onChange(index: number, column: SetColumn, value: string): void;
+  /** Focus and blur for a field, by its name, for its checks (D-99). */
+  watch(name: string): { onFocus(): void; onBlur(): void };
   onRemove?: () => void;
 }) {
   const styles = useStyles();
@@ -645,6 +768,7 @@ function SetRow({
           refused={refused.includes(`${index}:${column}`)}
           autoFocus={autoFocus && position === 0}
           compact
+          {...watch(setField(index, column))}
         />
       ))}
       {onRemove ? (
@@ -710,6 +834,7 @@ function Box({
 // with its group as a tag; the sets as rows of sunken boxes with a bin, Add set a caramel link; Remove
 // exercise a red link at the foot of the form, away from Save, the one filled action.
 const useStyles = themedStyles((c) => ({
+  saveHint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
   field: { gap: 8 },
   box: {
     minHeight: 54,

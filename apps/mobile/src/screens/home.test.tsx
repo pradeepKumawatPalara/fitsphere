@@ -78,12 +78,13 @@ describe('REQ-HOME-006 Weight tile and entry sheet', () => {
     await waitFor(() => expect(server.weighIns.get('2026-10-28')?.weightGrams).toBe(71_500));
   });
 
-  it.each(['19.9', '300.1', '70.25', 'abc', ''])('Q-028 refuses "%s" and saves nothing', async (text) => {
+  it.each(['19.9', '300.1', '70.25', 'abc'])('Q-028 refuses "%s" and saves nothing; D-99 the rule shows without Save, which waits', async (text) => {
     const { db } = await renderApp();
 
     await logWeight(text);
 
     expect(await screen.findByText(weightRule('kg'))).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
     expect(await db.getFirstAsync('SELECT * FROM weigh_ins', [])).toBeNull();
   });
 

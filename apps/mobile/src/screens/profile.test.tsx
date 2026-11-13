@@ -8,6 +8,7 @@ import { PROFILE_TEXTS } from '../profile';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { AccountScreen } from './AccountScreen';
 import { ProfileScreen } from './ProfileScreen';
+import { setCheckPause } from '../fieldChecks';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({}) }));
@@ -116,16 +117,68 @@ describe('REQ-ACC-011 the Profile screen', () => {
     ['a landline-like number', { 'Phone number': '2212345678' }, PROFILE_TEXTS.phone],
     ['an address without its city', { 'Address line 1': '12 Example Lane', State: 'Maharashtra', 'PIN code': '411001' }, PROFILE_TEXTS.addressIncomplete],
     ['a PIN code of 4 digits', { 'Address line 1': '12 Example Lane', City: 'Pune', State: 'Maharashtra', 'PIN code': '4110' }, PROFILE_TEXTS.pinCode],
-    ['a height of 99 cm', { 'Height in cm': '99' }, 'Enter a height from 100 to 250 cm.'],
+    ['a height of 49 cm', { 'Height in cm': '49' }, 'Enter a height from 50 to 300 cm.'],
+    // D-100.
+    ['a name with a digit', { 'Name (optional)': 'Asha 2' }, PROFILE_TEXTS.name],
+    ['a name of one letter', { 'Name (optional)': 'A' }, PROFILE_TEXTS.name],
+    ['a line 1 of two characters', { 'Address line 1': '12', City: 'Pune', State: 'Maharashtra', 'PIN code': '411001' }, PROFILE_TEXTS.line1],
+    ['a city with a digit', { 'Address line 1': '12 Example Lane', City: 'Pune 4', State: 'Maharashtra', 'PIN code': '411001' }, PROFILE_TEXTS.city],
+    ['a PIN code starting with 0', { 'Address line 1': '12 Example Lane', City: 'Pune', State: 'Maharashtra', 'PIN code': '011001' }, PROFILE_TEXTS.pinCode],
+    ['a height of 301 cm', { 'Height in cm': '301' }, 'Enter a height from 50 to 300 cm.'],
   ])('6.6 refuses %s, with the problem under its field, and saves nothing', async (_case, typed, problem) => {
     const { db } = await renderProfile();
     for (const [label, text] of Object.entries(typed)) await type(label, text);
-
-    await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
+    // D-99: the problem shows once the field is left, without Save, which waits and says what to check.
+    await fireEvent(screen.getByLabelText(Object.keys(typed).at(-1)!), 'blur');
 
     expect(await screen.findByRole('alert')).toHaveTextContent(problem);
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled();
+    expect(screen.getByText(/^Check the (name|date of birth|phone number|address|height) to save\.$/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
     expect(await getEntry(db, 'profile', PROFILE_KEY)).toBeNull();
     expect(mockRouter.back).not.toHaveBeenCalled();
+  });
+
+  it('D-99 a problem shows once typing pauses, and goes the moment it is put right', async () => {
+    // A short pause in place of the three seconds.
+    setCheckPause(300);
+    await renderProfile();
+
+    await type('Phone number', '98765');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(await screen.findByRole('alert')).toHaveTextContent(PROFILE_TEXTS.phone);
+
+    await type('Phone number', '98765 43210');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeEnabled();
+  });
+
+  it('D-99 the date of birth says nothing while it is being typed, and the address waits until it is left', async () => {
+    setCheckPause(300);
+    await renderProfile();
+
+    await fireEvent(screen.getByLabelText('Day of birth'), 'focus');
+    await type('Day of birth', '14');
+    await fireEvent(screen.getByLabelText('Day of birth'), 'blur');
+    await fireEvent(screen.getByLabelText('Month of birth'), 'focus');
+    await type('Month of birth', '06');
+    // Still in the date, and not whole yet: nothing shows, though Save waits for it.
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('Check the date of birth to save.')).toBeOnTheScreen();
+    await fireEvent(screen.getByLabelText('Month of birth'), 'blur');
+    expect(screen.getByRole('alert')).toHaveTextContent(PROFILE_TEXTS.dateOfBirthReal);
+    await type('Year of birth', '1994');
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await fireEvent(screen.getByLabelText('Address line 1'), 'focus');
+    await type('Address line 1', '12 Example Lane');
+    await fireEvent(screen.getByLabelText('Address line 1'), 'blur');
+    await fireEvent(screen.getByLabelText('City'), 'focus');
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(screen.queryByRole('alert')).toBeNull();
+    await fireEvent(screen.getByLabelText('City'), 'blur');
+    expect(screen.getByRole('alert')).toHaveTextContent(PROFILE_TEXTS.addressIncomplete);
   });
 
   it('invariant #6 the height is typed in inches when the measurements use inches, and kept in mm', async () => {

@@ -7,8 +7,9 @@ import { setNewPassword, startPasswordReset } from '../auth/service';
 import { passwordProblem, TEXTS } from '../auth/texts';
 import { DisplayHeading } from '../components/DisplayHeading';
 import { FormScreen } from '../components/FormScreen';
-import { Banner, Field, Message, TextButton } from '../components/ui';
+import { Banner, ButtonHint, Field, Message, TextButton } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles, useTheme } from '../theme';
 
 // "Set a new password", opened by the link in the reset email, fitsphere://reset-password
@@ -26,11 +27,11 @@ export function ResetPasswordScreen() {
   const [link, setLink] = useState<'checking' | 'ready' | 'invalid' | 'offline'>('checking');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  // Set password found the password breaking its rule; it shows red while it still does.
-  const [ruleBroken, setRuleBroken] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const ruleMet = passwordProblem(password) === null;
+  // The rule shows once typing pauses or the field is left; Set password waits (D-99).
+  const checks = useFieldChecks({ password });
 
   useEffect(() => {
     let active = true;
@@ -45,7 +46,6 @@ export function ResetPasswordScreen() {
   async function submit() {
     setMessage(null);
     setPasswordError(null);
-    setRuleBroken(!ruleMet);
     if (!ruleMet) return;
     setBusy(true);
     const result = await setNewPassword(deps, password);
@@ -68,7 +68,8 @@ export function ResetPasswordScreen() {
         ) : link === 'ready' ? (
           <>
             <Message text={message} offline={message === TEXTS.needsInternet('Setting a new password')} />
-            <TextButton title="Set password" filled arrow busy={busy} onPress={() => void submit()} />
+            <TextButton title="Set password" filled arrow busy={busy} disabled={!ruleMet} onPress={() => void submit()} />
+            {ruleMet ? null : <ButtonHint text="Use 8 to 72 characters for the new password." />}
           </>
         ) : null
       }
@@ -91,10 +92,15 @@ export function ResetPasswordScreen() {
         <View style={styles.below}>
           <Field
             label="New password"
-            error={passwordError ?? (ruleBroken && !ruleMet ? TEXTS.passwordRule : null)}
+            error={passwordError ?? (checks.shows('password') && !ruleMet ? TEXTS.passwordRule : null)}
             rule={{ text: TEXTS.passwordRule, met: ruleMet }}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              setPasswordError(null);
+            }}
+            onFocus={() => checks.focus('password')}
+            onBlur={() => checks.blur('password')}
             secureTextEntry
             autoComplete="new-password"
           />

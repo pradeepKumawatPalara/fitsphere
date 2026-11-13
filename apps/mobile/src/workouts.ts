@@ -8,6 +8,7 @@ import {
   EXERCISE_NOTE_MAX,
   EXERCISE_REPS_MAX,
   EXERCISE_SECONDS_MAX,
+  EXERCISE_SET_SECONDS_MAX,
   EXERCISE_SPEED_METRES_PER_HOUR_MAX,
   EXERCISE_SPEED_METRES_PER_HOUR_MIN,
   exerciseMet,
@@ -155,9 +156,9 @@ export function exerciseRules(unit: BodyWeightUnit) {
     reps: `enter reps from 1 to ${EXERCISE_REPS_MAX}.`,
     weight: `enter the weight you lifted, ${weights}.`,
     optionalWeight: `enter a weight ${weights}, with at most one decimal, or leave it empty.`,
-    seconds: `enter the time in seconds, from 1 to ${formatInteger(EXERCISE_SECONDS_MAX)}.`,
+    seconds: `enter the time in seconds, from 1 to ${formatInteger(EXERCISE_SET_SECONDS_MAX)}.`,
     time: 'Enter the time in minutes and seconds, up to 24 hours.',
-    distance: 'Enter a distance from 0.01 to 500.00 km, with at most two decimals, or leave it empty.',
+    distance: `Enter a distance from 0.01 to ${(EXERCISE_DISTANCE_METRES_MAX / 1000).toFixed(2)} km, with at most two decimals, or leave it empty.`,
     speed: 'Enter a speed from 0.1 to 40.0 km/h, with at most one decimal, or leave it empty.',
     incline: 'Enter an incline from 0.0 to 40.0 %, with at most one decimal, or leave it empty.',
     level: `Enter a level from 1 to ${EXERCISE_LEVEL_MAX}, or leave it empty.`,
@@ -297,7 +298,7 @@ export function effortOf(text: ExerciseText, layout: Layout): { seconds: number 
   const spent = text.spentMinutes.trim() === '' ? null : parseWholeNumber(text.spentMinutes, 1, EXERCISE_SECONDS_MAX / 60);
   if (spent !== null) return { seconds: spent * 60, speedKmh: null };
   if (!layout.columns.some(({ column }) => column === 'seconds')) return { seconds: null, speedKmh: null };
-  const times = text.sets.map((set) => parseWholeNumber(set.seconds, 1, EXERCISE_SECONDS_MAX));
+  const times = text.sets.map((set) => parseWholeNumber(set.seconds, 1, EXERCISE_SET_SECONDS_MAX));
   const total = times.reduce<number | null>((sum, time) => (sum === null || time === null ? null : sum + time), 0);
   return { seconds: total !== null && total <= EXERCISE_SECONDS_MAX ? total : null, speedKmh: null };
 }
@@ -379,7 +380,7 @@ export function parseExercise(
               ? parseWholeNumber(typedText, 1, EXERCISE_REPS_MAX)
               : column === 'weight'
                 ? liftWeightGrams(typedText, unit)
-                : parseWholeNumber(typedText, 1, EXERCISE_SECONDS_MAX);
+                : parseWholeNumber(typedText, 1, EXERCISE_SET_SECONDS_MAX);
         if (value === null && (typedText !== '' || required)) {
           problems.refused.push(`${index}:${column}`);
           const rule = column === 'weight' ? (required ? rules.weight : rules.optionalWeight) : rules[column];

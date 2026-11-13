@@ -400,6 +400,8 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     await fireEvent.press(await screen.findByRole('button', { name: /^Wheat flour, atta/ }));
 
     await fireEvent.changeText(screen.getByLabelText('Grams eaten'), grams);
+    // D-99: an empty box says so once it is left.
+    await fireEvent(screen.getByLabelText('Grams eaten'), 'blur');
 
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
     expect(screen.getByText('Enter whole grams from 1 to 2,000.')).toBeOnTheScreen();

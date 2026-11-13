@@ -3,6 +3,7 @@ import { CircleAlert, SquarePen } from 'lucide-react-native';
 import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { Pressable, View } from 'react-native';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import { useFieldChecks } from '../fieldChecks';
 import { listedFoodOf } from '../local/store';
 import {
   addAmount,
@@ -237,6 +238,9 @@ function ChangeAmountSheet({
   const newGrams = parseGrams(gramsText);
   // Your own food in its unit (D-39): its quantity is typed, as grams are.
   const newQuantity = item.amount.unit === 'own' ? parseOwnQuantity(gramsText, item.amount.name) : null;
+  // The rule shows once typing pauses or the box is left (D-99).
+  const checks = useFieldChecks({ amount: gramsText });
+  const shows = checks.shows('amount');
   const amount = item.amount;
   return (
     <ActionsSheet
@@ -264,11 +268,19 @@ function ChangeAmountSheet({
     >
       {amount.unit === 'g' ? (
         <View style={styles.change}>
-          <View style={[styles.gramsBox, newGrams === null && styles.gramsRefused]}>
-            <TextInput accessibilityLabel="New grams" value={gramsText} onChangeText={setGramsText} keyboardType="number-pad" style={styles.input} />
+          <View style={[styles.gramsBox, newGrams === null && shows && styles.gramsRefused]}>
+            <TextInput
+              accessibilityLabel="New grams"
+              value={gramsText}
+              onChangeText={setGramsText}
+              onFocus={() => checks.focus('amount')}
+              onBlur={() => checks.blur('amount')}
+              keyboardType="number-pad"
+              style={styles.input}
+            />
             <Text style={styles.unit}>g</Text>
           </View>
-          {newGrams === null ? (
+          {newGrams === null && shows ? (
             <View style={styles.problem}>
               <CircleAlert size={16} color={colors.danger} />
               <Text accessibilityRole="alert" style={styles.problemText}>
@@ -279,7 +291,7 @@ function ChangeAmountSheet({
         </View>
       ) : amount.unit === 'own' ? (
         <View style={styles.change}>
-          <View style={[styles.gramsBox, newQuantity === null && styles.gramsRefused]}>
+          <View style={[styles.gramsBox, newQuantity === null && shows && styles.gramsRefused]}>
             <TextInput
               accessibilityLabel={`New ${ownQuantityLabel(amount.name).toLowerCase()}`}
               value={gramsText}
@@ -289,7 +301,7 @@ function ChangeAmountSheet({
             />
             <Text style={styles.unit}>{amount.name === 'ml' ? 'ml' : OWN_UNIT_NAMES[amount.name].many}</Text>
           </View>
-          {newQuantity === null ? (
+          {newQuantity === null && shows ? (
             <View style={styles.problem}>
               <CircleAlert size={16} color={colors.danger} />
               <Text accessibilityRole="alert" style={styles.problemText}>

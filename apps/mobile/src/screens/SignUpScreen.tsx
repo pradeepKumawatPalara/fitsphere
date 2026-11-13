@@ -6,10 +6,10 @@ import { signUp } from '../auth/service';
 import { emailProblem, passwordProblem, TEXTS } from '../auth/texts';
 import { FormScreen } from '../components/FormScreen';
 import { DisplayHeading } from '../components/DisplayHeading';
-import { CheckBox, Field, Message, Text, TextButton } from '../components/ui';
+import { ButtonHint, CheckBox, Field, Message, TextButton } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles } from '../theme';
-import { TYPE } from '../typography';
 import { backToSignIn } from './navigation';
 
 // REQ-ACC-010, D-18: sign-up needs "I am 18 or older"; the result is always the neutral text. The
@@ -24,18 +24,24 @@ export function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [adult, setAdult] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  // Sign up found the password breaking its rule; it shows red while it still does.
-  const [ruleBroken, setRuleBroken] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const ruleMet = passwordProblem(password) === null;
+  // Each problem shows once typing pauses or the field is left; Sign up waits meanwhile (D-99).
+  const checks = useFieldChecks({ email, password });
+  const emailIssue = emailProblem(email);
+  const hint = emailIssue
+    ? emailIssue === TEXTS.emailRule
+      ? 'Enter your email address to sign up.'
+      : 'Check your email address to sign up.'
+    : !ruleMet
+      ? 'Use 8 to 72 characters for the password to sign up.'
+      : !adult
+        ? TEXTS.ageHint
+        : null;
 
   async function submit() {
     setMessage(null);
-    const emailIssue = emailProblem(email);
-    setEmailError(emailIssue);
-    setRuleBroken(!emailIssue && !ruleMet);
-    if (emailIssue || !ruleMet) return;
+    if (emailIssue || !ruleMet || !adult) return;
     setBusy(true);
     const result = await signUp(deps, email, password);
     setBusy(false);
@@ -52,8 +58,8 @@ export function SignUpScreen() {
         <>
           <Message text={message} offline={message === TEXTS.needsInternet('Signing up')} />
           <View style={styles.submit}>
-            <TextButton title="Sign up" filled arrow disabled={!adult} busy={busy} onPress={() => void submit()} />
-            {adult ? null : <Text style={styles.hint}>{TEXTS.ageHint}</Text>}
+            <TextButton title="Sign up" filled arrow disabled={hint !== null} busy={busy} onPress={() => void submit()} />
+            {hint ? <ButtonHint text={hint} /> : null}
           </View>
           <TextButton title="I already have an account" outlined wide onPress={() => backToSignIn(router)} />
         </>
@@ -64,18 +70,22 @@ export function SignUpScreen() {
       <View style={styles.fields}>
         <Field
           label="Email"
-          error={emailError}
+          error={checks.shows('email') ? emailIssue : null}
           value={email}
           onChangeText={setEmail}
+          onFocus={() => checks.focus('email')}
+          onBlur={() => checks.blur('email')}
           keyboardType="email-address"
           autoComplete="email"
         />
         <Field
           label="Password"
-          error={ruleBroken && !ruleMet ? TEXTS.passwordRule : null}
+          error={checks.shows('password') && !ruleMet ? TEXTS.passwordRule : null}
           rule={{ text: TEXTS.passwordRule, met: ruleMet }}
           value={password}
           onChangeText={setPassword}
+          onFocus={() => checks.focus('password')}
+          onBlur={() => checks.blur('password')}
           secureTextEntry
           autoComplete="new-password"
         />
@@ -89,12 +99,11 @@ export function SignUpScreen() {
 
 // As Sign in: from the wordmark, 48 to the heading and 40 to the fields, 18 between them, 24 to the
 // box; the hint close under Sign up.
-const useStyles = themedStyles((c) => ({
+const useStyles = themedStyles(() => ({
   content: { paddingTop: 24, gap: 0 },
   busy: { opacity: 0.6 },
   heading: { marginTop: 48 },
   fields: { marginTop: 40, gap: 18 },
   adult: { marginTop: 6 },
   submit: { gap: 8 },
-  hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
 }));
