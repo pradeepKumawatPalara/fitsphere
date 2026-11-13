@@ -44,17 +44,17 @@ export function weightRangeIn(unit: BodyWeightUnit, minGrams: number, maxGrams: 
 }
 
 // Lifting weight (invariant #6, REQ-TRN-005): stored and sent in whole grams like body weight, and
-// typed and shown with one decimal in the lifting unit. 0.1–500 kg (MVP default, D-29).
+// typed and shown with one decimal in the lifting unit. 0.1–1,000 kg (D-100; was 500 kg, D-29).
 export const LIFT_WEIGHT_GRAMS_MIN = 100;
-export const LIFT_WEIGHT_GRAMS_MAX = 500_000;
+export const LIFT_WEIGHT_GRAMS_MAX = 1_000_000;
 
 export function isLiftWeightGramsInRange(grams: number): boolean {
   return Number.isInteger(grams) && grams >= LIFT_WEIGHT_GRAMS_MIN && grams <= LIFT_WEIGHT_GRAMS_MAX;
 }
 
-// Steps (REQ-HOME-006): whole steps per day, 0–100,000 (Q-028 MVP default).
-export const STEPS_MIN = 0;
-export const STEPS_MAX = 100_000;
+// Steps (REQ-HOME-006): whole steps per day, 1–200,000 (D-100; was 0–100,000, Q-028 MVP default).
+export const STEPS_MIN = 1;
+export const STEPS_MAX = 200_000;
 
 // Sleep (REQ-HOME-006): typed in hours with one decimal (Q-015, Q-028), stored as whole minutes.
 export const SLEEP_MINUTES_MIN = 0;
@@ -86,9 +86,9 @@ export function isMeasurementMmInRange(mm: number): boolean {
   return Number.isInteger(mm) && mm >= MEASUREMENT_MM_MIN && mm <= MEASUREMENT_MM_MAX;
 }
 
-/** A person's height (REQ-ACC-011), in whole millimetres like a measurement: 100–250 cm. */
-export const HEIGHT_MM_MIN = 1_000;
-export const HEIGHT_MM_MAX = 2_500;
+/** A person's height (REQ-ACC-011), in whole millimetres like a measurement: 50–300 cm (D-100). */
+export const HEIGHT_MM_MIN = 500;
+export const HEIGHT_MM_MAX = 3_000;
 
 /** Converts a length entered in `unit` to whole millimetres. */
 export function toMillimetres(value: number, unit: LengthUnit): number {

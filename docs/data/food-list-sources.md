@@ -2,7 +2,11 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
+- Last updated: 2026-11-12 (D-94: the owner's consolidated food database: other names,
+  `docs/data/food-aliases-sheet.csv`; 1,823 more estimated dishes; 53 generic foods as home-style
+  foods; a proposed everyday row for bread). Earlier the same day (D-92: the everyday foods, `docs/data/everyday-foods-sheet.csv`, 16 rows
+  approved by the owner). Earlier the same day (D-89: Open Food Facts' brands written one way,
+  `docs/data/brand-names-sheet.csv`, all 747 rows approved by the owner). 2026-10-30 (Meal logging slice, step 8, D-28: the sheet's `code` and `status`
   columns, the starter set, and how a recipe goes live). Earlier the same day (poultry checked
   again: still not confirmed raw; other recipe sources searched: none can replace weighing).
   Earlier the same day (D-26 answer 3 amended: dishes come from FitSphere's standard-recipe
@@ -597,6 +601,76 @@ product or a file the owner made with another AI tool, and approved by the owner
   removed. The Gatorades at about 1 kcal are kept: Open Food Facts files their series as sugar-free.
   `foods:import` applies it after reading both files; a fix for a barcode no longer listed is counted,
   not applied. A removed product still scans (a scan asks Open Food Facts through the server).
+- **Brands written one way (D-89, 2026-11-12):** Open Food Facts' 9,729 products carry 3,169 brands
+  as written, 405 of them written several ways ("Haldiram's", "Haldirams", "Haldiram’s", "Haldiram s";
+  "Coca-Cola", "Coca Cola", "The Coca-Cola Company", "COCA-COLA SERVICES SA/NV"), with misspellings
+  ("Britania", "Horlics", "Mazza") and product lines sold under their maker's name too ("KitKat" and
+  "Nestlé"). `docs/data/brand-names-sheet.csv` gives each brand as written its one spelling
+  (`spelling`: the brand label's spelling when FitSphere has a label of that brand, else the one most
+  products use) or its maker (`maker`: the line is then kept at the front of the product's name,
+  "KitKat Chunky Caramel" under Nestlé). It was proposed from the data on 2026-11-12, 747 rows: 735
+  spelling (101 of them misspellings, each checked by hand; look-alike brands, as MaxProtein and
+  MyProtein or Milka and Milma, left apart) and 12 maker (KitKat, Nutella, Sprite, Maaza, Boost,
+  Mirinda, Frooti, Protinex, Taj Mahal: a product of the line is listed under the maker too). The
+  owner approved all 747 on 2026-11-12; a new row is `proposed` until the owner approves it, and
+  `foods:import` applies the approved rows only, after D-80's fixes (1,410 products take another
+  brand, 7 of them with their line at the front of the name). The phone (D-89) already counts a brand once however its letters are written, so the
+  sheet is for what letters cannot tell: misspellings, company names and makers.
+
+## Everyday foods: FitSphere's everyday-foods sheet (D-92)
+
+`docs/data/everyday-foods-sheet.csv` gives, for an everyday word, the food as eaten that Search foods
+lists first: one row a word and a food (`word`, `source`, `code`, `name`, `kcal`, `status`, `reason`),
+from IFCT, INDB, the home-style foods or the estimated dishes, never a brand's. A word may have more
+than one food; they are then listed in the order by source. The `name` and `kcal` are there to read the
+sheet by; `foods:import` checks the name is still the food's and refuses the import if not. Each row is
+`proposed` until the owner approves it; an approved row's word goes among the food's other names
+marked "@" ("@rice"), which the phone reads to list it first and to find it by (never shown).
+
+Proposed and approved by the owner on 2026-11-12, 16 rows, each saying why and the other choice: rice, dal, roti, chapati, chai,
+tea, coffee, dosa, khichdi, rajma, chole, paratha, biryani, pulao, omelette and soup. Most are estimated
+dishes, so their values are their type of dish's typical values (D-62); none of INDB's values that
+look wrong (QA-01, QA-02) was chosen. A 17th row, bread (the white bread slice, D-94), was approved by the owner on 2026-11-12 ("approve bread").
+
+## The owner's consolidated food database (D-94)
+
+`Indian_Food_Database_CONSOLIDATED.xlsx` (built on 12 November 2026, kept outside the repository, in
+`D:itsphere-data`) is the owner's dish database (D-62) made again with its packaged and generic
+sheets. `npm run consolidated:convert -w @fitsphere/api -- <the file>` reads its sheets "Dishes",
+"Branded packaged" and "Generic unbranded" and writes FitSphere's sheets from them; `foods:import`
+loads them. Running it again on the same file changes nothing more.
+
+- **Other names**, `docs/data/food-aliases-sheet.csv` (`source`, `code`, `name`, `aliases`): the file's
+  Aliases for the FitSphere food each row is. An IFCT food by its code (and the same name): each
+  regional name, then the Aliases' other words. A dish by its name, or its name without the part in
+  brackets, among INDB's recipes, the estimated dishes and the home-style foods; a name two of them
+  share gets none; a dish the file lists under several base foods gets each one's words. A packaged
+  food by its barcode. The Aliases run a food's other names together, one space between them
+  ("chana chana dal besan chickpea"), so its words are kept once each, in order, as one name. 7,409
+  rows: IFCT 483, INDB 494, home-style 52, estimated dishes 3,043, packaged 3,337. `foods:import` adds
+  the names a food lacks after its own (not its name, brand or another name, ignoring case, accents
+  and marks) and refuses the import when a food of the list is now named otherwise. They are often
+  the base food's names in Indian languages, so a dish is also found by them ("doodh" finds a toned
+  milk, "chawal" a rice dish), listed after the foods found by their name. Plurals are not taken from
+  the file's Search Text: Search foods tries a word's other number itself (D-94).
+- **Estimated dishes**, `docs/data/dish-estimates-sheet.csv` (D-62's sheet and rules): a held row the
+  file now rates C is approved with the file's values for it (1,634), unless it was held as another
+  food already listed (12) or because its values did not fit the dish and the file gives the same
+  values again (125); a dish not in the sheet is added (189 approved; 6 rated D only, held as weak
+  matches). Of a dish's several rows in the file, the one rated C is taken, re-checked first, of the
+  held row's base food or one the name has. Each row passes the sheet's own checks.
+- **Generic foods**, `docs/data/home-foods-sheet.csv` (D-59's sheet): the file's rows "GEN-001" to
+  "GEN-083", generic foods not in IFCT 2017, the file's estimates (rated C), flagged `llm`: 53 added,
+  each with its serving and the file's group as its item. Not added: 28 FitSphere has as the same
+  food in the same form with energy within 20 kcal or 15% (`GENERIC_SAME_AS` in
+  `apps/api/src/foods/consolidated.ts`), and 2 named exactly as a food listed (Hung Curd, Mozzarella
+  Cheese); their other names go to that food. Four were added beside a food of the same name but for
+  its brackets, with other values: Greek Yogurt (plain) 97 kcal beside Greek Yogurt 60, Fresh Cream
+  (25% fat) 255 beside Fresh Cream 300, Tomato Ketchup (generic) 102 beside INDB's Tomato ketchup 33,
+  Coconut Chutney (generic) 120 beside INDB's 266.
+- **Not used**: the file's values for INDB's recipes (342 rated "B - corrected", INDB's values
+  rejected) and for the dishes FitSphere has: they keep their values. Its Search Text, and its
+  "Search index (preview)" sheet.
 
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,

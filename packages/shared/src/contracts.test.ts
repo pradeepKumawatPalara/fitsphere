@@ -96,11 +96,11 @@ describe('REQ-HOME-006 weighIn.set data', () => {
 const RECORDED_AT = '2026-10-27T02:45:10.123Z';
 
 describe('REQ-HOME-006 steps.set and sleep.set data', () => {
-  it('Q-028 accepts 0–100,000 whole steps and refuses anything else', () => {
-    for (const steps of [0, 8_432, 100_000]) {
+  it('Q-028 accepts 1–200,000 whole steps (D-100) and refuses anything else', () => {
+    for (const steps of [1, 8_432, 200_000]) {
       expect(stepsSetDataSchema.safeParse({ day: '2026-10-27', steps, recordedAt: RECORDED_AT }).success).toBe(true);
     }
-    for (const steps of [-1, 100_001]) {
+    for (const steps of [0, 200_001]) {
       expect(detailsFor(stepsSetDataSchema, { day: '2026-10-27', steps, recordedAt: RECORDED_AT })).toEqual([
         { field: 'steps', issue: 'out_of_range' },
       ]);
@@ -226,13 +226,13 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
       atSet({ reps: 1 }),
       atSet({ reps: 200 }),
       atSet({ weightGrams: 100 }),
-      atSet({ weightGrams: 500_000 }),
+      atSet({ weightGrams: 1_000_000 }),
       atSet({ seconds: 1 }),
-      atSet({ seconds: 86_400 }),
+      atSet({ seconds: 3_600 }),
       atRun({ durationSeconds: 1 }),
       atRun({ durationSeconds: 86_400 }),
       atRun({ distanceMetres: 10 }),
-      atRun({ distanceMetres: 500_000 }),
+      atRun({ distanceMetres: 200_000 }),
       atRun({ speedMetresPerHour: 100 }),
       atRun({ speedMetresPerHour: 40_000 }),
       atRun({ inclinePermille: 0 }),
@@ -240,8 +240,8 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
       atRun({ level: 1 }),
       atRun({ level: 40 }),
       atRun({ calories: { kcal: 1, estimated: false } }),
-      atRun({ calories: { kcal: 5_000, estimated: true } }),
-      atRun({ averageHeartRateBpm: 30, highestHeartRateBpm: 250 }),
+      atRun({ calories: { kcal: 3_000, estimated: true } }),
+      atRun({ averageHeartRateBpm: 30, highestHeartRateBpm: 220 }),
     ]) {
       expect(workoutSetDataSchema.safeParse(accepted).success).toBe(true);
     }
@@ -249,12 +249,12 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
       [atSet({ reps: 0 }), 'sets[0].reps'],
       [atSet({ reps: 201 }), 'sets[0].reps'],
       [atSet({ weightGrams: 99 }), 'sets[0].weightGrams'],
-      [atSet({ weightGrams: 500_001 }), 'sets[0].weightGrams'],
+      [atSet({ weightGrams: 1_000_001 }), 'sets[0].weightGrams'],
       [atSet({ seconds: 0 }), 'sets[0].seconds'],
-      [atSet({ seconds: 86_401 }), 'sets[0].seconds'],
+      [atSet({ seconds: 3_601 }), 'sets[0].seconds'],
       [atRun({ durationSeconds: 0 }), 'durationSeconds'],
       [atRun({ distanceMetres: 9 }), 'distanceMetres'],
-      [atRun({ distanceMetres: 500_001 }), 'distanceMetres'],
+      [atRun({ distanceMetres: 200_001 }), 'distanceMetres'],
       [atRun({ speedMetresPerHour: 99 }), 'speedMetresPerHour'],
       [atRun({ speedMetresPerHour: 40_001 }), 'speedMetresPerHour'],
       [atRun({ inclinePermille: -1 }), 'inclinePermille'],
@@ -262,9 +262,9 @@ describe('REQ-TRN-003 workout.set and workout.delete data', () => {
       [atRun({ level: 0 }), 'level'],
       [atRun({ level: 41 }), 'level'],
       [atRun({ calories: { kcal: 0, estimated: false } }), 'calories.kcal'],
-      [atRun({ calories: { kcal: 5_001, estimated: true } }), 'calories.kcal'],
+      [atRun({ calories: { kcal: 3_001, estimated: true } }), 'calories.kcal'],
       [atRun({ averageHeartRateBpm: 29 }), 'averageHeartRateBpm'],
-      [atRun({ highestHeartRateBpm: 251 }), 'highestHeartRateBpm'],
+      [atRun({ highestHeartRateBpm: 221 }), 'highestHeartRateBpm'],
       [atRun({ name: 'x'.repeat(81) }), 'name'],
       [atRun({ note: 'x'.repeat(501) }), 'note'],
       [atRun({ note: '' }), 'note'],
@@ -459,10 +459,13 @@ describe('REQ-ROLE-007 target.set data', () => {
     expect(targetSetDataSchema.safeParse({ kind: 'sugar', value: 200, day: DAY, setAt: RECORDED_AT }).success).toBe(false);
   });
 
-  it('D-70 daily carbs, fat and fibre in whole grams, in the ranges the owner approved', () => {
-    expect(TARGET_RANGES.carbs).toEqual({ min: 10, max: 1_000 });
-    expect(TARGET_RANGES.fat).toEqual({ min: 5, max: 500 });
-    expect(TARGET_RANGES.fibre).toEqual({ min: 5, max: 100 });
+  it('D-70 daily carbs, fat and fibre in whole grams, in the ranges the owner approved (D-100)', () => {
+    expect(TARGET_RANGES.calories).toEqual({ min: 0, max: 10_000 });
+    expect(TARGET_RANGES.protein).toEqual({ min: 0, max: 500 });
+    expect(TARGET_RANGES.carbs).toEqual({ min: 0, max: 1_000 });
+    expect(TARGET_RANGES.fat).toEqual({ min: 0, max: 1_000 });
+    expect(TARGET_RANGES.fibre).toEqual({ min: 0, max: 200 });
+    expect(TARGET_RANGES.steps).toEqual({ min: 0, max: 200_000 });
     expect(targetSetDataSchema.safeParse({ kind: 'fibre', value: 30, day: DAY, setAt: RECORDED_AT }).success).toBe(true);
     expect(targetSetDataSchema.safeParse({ kind: 'fat', value: 60.5, day: DAY, setAt: RECORDED_AT }).success).toBe(false);
   });
@@ -617,6 +620,13 @@ describe('REQ-ACC-011 profile.set data', () => {
     expect(profileSetDataSchema.parse({ ...FULL, name: '  Synthetic  ' }).name).toBe('Synthetic');
     expect(profileSetDataSchema.safeParse({ ...FULL, name: '   ' }).success).toBe(false);
     expect(profileSetDataSchema.safeParse({ ...FULL, name: 'x'.repeat(61) }).success).toBe(false);
+    // D-100: 2 to 60 letters, of any script, with spaces and . ' - between them.
+    for (const name of ["Asha D'Souza", 'Ravi K. Sharma-Iyer', 'आशा शर्मा', 'Jo']) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, name }).success).toBe(true);
+    }
+    for (const name of ['A', 'Asha 2', 'asha@home', 'R2D2']) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, name }).success).toBe(false);
+    }
   });
 
   it('REQ-ACC-011 the sex is one of the four choices', () => {
@@ -626,11 +636,11 @@ describe('REQ-ACC-011 profile.set data', () => {
     expect(profileSetDataSchema.safeParse({ ...FULL, sex: 'unknown' }).success).toBe(false);
   });
 
-  it('invariant #6 the height is whole millimetres from 100 to 250 cm', () => {
-    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 1000 }).success).toBe(true);
-    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 2500 }).success).toBe(true);
-    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 999 }).success).toBe(false);
-    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 2501 }).success).toBe(false);
+  it('invariant #6 the height is whole millimetres from 50 to 300 cm (D-100)', () => {
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 500 }).success).toBe(true);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 3000 }).success).toBe(true);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 499 }).success).toBe(false);
+    expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 3001 }).success).toBe(false);
     expect(profileSetDataSchema.safeParse({ ...FULL, heightMm: 1620.5 }).success).toBe(false);
   });
 
@@ -651,8 +661,15 @@ describe('REQ-ACC-011 profile.set data', () => {
       delete partial[field];
       expect(profileSetDataSchema.safeParse({ ...FULL, address: partial }).success).toBe(false);
     }
-    for (const pinCode of ['41100', '4110011', '41100a']) {
+    for (const pinCode of ['41100', '4110011', '41100a', '011001']) {
       expect(profileSetDataSchema.safeParse({ ...FULL, address: { ...address, pinCode } }).success).toBe(false);
+    }
+    // D-100: line 1 of 3 to 100 characters; a city and a state of 2 to 60 letters, spaces, . and -.
+    for (const change of [{ line1: '12' }, { city: 'P' }, { city: 'Pune 4' }, { state: 'Maha@rashtra' }]) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, address: { ...address, ...change } }).success).toBe(false);
+    }
+    for (const change of [{ line1: '12A' }, { city: 'Navi Mumbai' }, { state: 'Jammu-Kashmir' }, { city: 'St. Thomas Mount' }]) {
+      expect(profileSetDataSchema.safeParse({ ...FULL, address: { ...address, ...change } }).success).toBe(true);
     }
   });
 

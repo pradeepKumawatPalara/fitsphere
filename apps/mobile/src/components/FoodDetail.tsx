@@ -3,6 +3,7 @@ import { ChevronDown, ChevronLeft, SquarePen, Trash } from 'lucide-react-native'
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { formatInteger } from '../format';
+import { useFieldChecks } from '../fieldChecks';
 import type { ListedFood, LocalMyFood } from '../local/store';
 import {
   GRAMS_RULE,
@@ -35,6 +36,7 @@ import {
   ownQuantityLabel,
   PORTION_UNIT_LABELS,
 } from '../meals';
+import { measureWord, nameHasNumber, type SearchAmount } from '../searchAmount';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { NUTRIENTS } from './EatenSummary';
@@ -55,7 +57,9 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 //
 // A food already in the meal (D-64) opens from Log meal's review on its amount there, "In this meal
 // now: 100 g", with Save change, and Remove from meal centred under it; any of its measures can be
-// chosen, so 100 g can become 1 paratha.
+// chosen, so 100 g can become 1 paratha. Opened from a food of a logged meal in Nutrition (D-97), it
+// names that meal and its date beside the back arrow, "Lunch · Thu 12 Nov", and Save change saves the
+// meal at once.
 //
 // More measures (D-76; the redesign's 3.6b "more measures", locked 2026-11-11): a serving that holds
 // several things also gives one of them ("2 slices" gives Slice; the food list brings it as one more
@@ -173,11 +177,43 @@ function startOf(result: FoodResult, measures: Measure[], from: MealItem['amount
   }
 }
 
+/**
+ * The measure, count and typed quantity of an amount typed with the search (D-96: "2 roti", "1 cup
+ * rice", "half plate biryani", "100g paneer"), when the food has that measure and the count fits it;
+ * otherwise null, and the page opens as usual. A bare count goes to the measure the page opens on, or
+ * else the food's first counted one ("2 maggi": 2 servings); grams to Grams. A number that is in the
+ * food's name ("5 Star") is not an amount.
+ */
+function startFromSearch(result: FoodResult, measures: Measure[], opening: number, amount: SearchAmount): { measureIndex: number; count: number; typed: string } | null {
+  const { count, unit } = amount;
+  if (!(count > 0) || nameHasNumber(result.kind === 'dish' ? result.dish.name : result.food.name, amount)) return null;
+  if (result.kind === 'mine') {
+    const weighed = result.food.unit === 'g' || result.food.unit === 'ml';
+    const fits = weighed ? unit === 'g' : unit === null || measureWord(OWN_UNIT_NAMES[result.food.unit].one) === unit;
+    return fits ? { measureIndex: 0, count: 1, typed: String(count) } : null;
+  }
+  if (unit === 'g') {
+    const grams = measures.findIndex((measure) => measure.key === 'g');
+    return grams < 0 ? null : { measureIndex: grams, count: 1, typed: String(count) };
+  }
+  const counted = (measure: Measure) => measure.counted && measure.key !== 'oz';
+  const fits = (index: number) => index >= 0 && counted(measures[index]!) && Number.isInteger(count * 2) && count <= measures[index]!.max;
+  const index =
+    unit === null
+      ? fits(opening)
+        ? opening
+        : measures.findIndex(counted)
+      : measures.findIndex((measure) => counted(measure) && measureWord(measure.name) === unit);
+  return fits(index) ? { measureIndex: index, count, typed: '100' } : null;
+}
+
 export function FoodDetail({
   result,
   from,
+  amount,
   fromLabel = 'Last time',
   backLabel = 'Back to search',
+  context,
   addTitle = 'Add',
   addNote,
   onBack,
@@ -188,9 +224,13 @@ export function FoodDetail({
   result: FoodResult;
   /** The amount a recent food was last logged in (D-60), or a food in the meal has now (D-64). */
   from?: MealItem['amount'];
+  /** The amount typed with the search the food was found by (D-96): the page opens on it when it fits. */
+  amount?: SearchAmount | null;
   /** What `from` is called under the boxes: "Last time", or "In this meal now" (D-64). */
   fromLabel?: string;
   backLabel?: string;
+  /** Beside the back arrow: the logged meal the food is in, and its date (D-97). */
+  context?: string;
   addTitle?: string;
   /** Said above Add: the ticked foods that go in with this one (D-60). */
   addNote?: string;
@@ -204,23 +244,25 @@ export function FoodDetail({
   const styles = useStyles();
   const { colors } = useTheme();
   const measures = measuresOf(result);
-  const [start] = useState(() => (from ? startOf(result, measures, from) : null));
   // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
   // so its serving, not grams of the cooked dish, gives INDB's own figures. A home-style food opens on
   // its serving too, as it is eaten: a slice, two slices, a plate (D-59), and so does an estimated
   // dish: a katori, a plate, a piece (D-62). A recent food opens on the amount it was last logged in,
-  // when it still has it (D-60).
+  // when it still has it (D-60); a food found by a search with an amount, on that amount (D-96).
   const servingFirst =
     result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
   // Otherwise on Grams (D-76: the food's own measures come before it).
-  const [measureIndex, setMeasureIndex] = useState(
-    () => start?.measureIndex ?? Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g'))),
-  );
+  const opening = Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g')));
+  const [start] = useState(() => (from ? startOf(result, measures, from) : amount ? startFromSearch(result, measures, opening, amount) : null));
+  const [measureIndex, setMeasureIndex] = useState(() => start?.measureIndex ?? opening);
   const [count, setCount] = useState(start?.count ?? 1);
   const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
   const [picking, setPicking] = useState(false);
   const measure = measures[measureIndex] ?? measures[0]!;
   const item = itemOf(result, measure, count, typed);
+  // The typed amount's rule shows once typing pauses or the box is left (D-99); Add waits meanwhile.
+  const checks = useFieldChecks({ typed });
+  const typedRefused = !item && !measure.counted && checks.shows('typed');
 
   const name = result.kind === 'dish' ? result.dish.name : result.food.name;
   const mark =
@@ -261,6 +303,7 @@ export function FoodDetail({
         <IconButton label={backLabel} onPress={onBack}>
           <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
         </IconButton>
+        {context ? <Text style={styles.context}>{context}</Text> : null}
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
@@ -288,11 +331,13 @@ export function FoodDetail({
                   <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
                 </Pressable>
               ) : (
-                <View style={[styles.box, !item && styles.refused]}>
+                <View style={[styles.box, typedRefused && styles.refused]}>
                   <TextInput
                     accessibilityLabel={result.kind === 'mine' ? ownQuantityLabel(result.food.unit) : 'Grams eaten'}
                     value={typed}
                     onChangeText={setTyped}
+                    onFocus={() => checks.focus('typed')}
+                    onBlur={() => checks.blur('typed')}
                     keyboardType={result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? 'decimal-pad' : 'number-pad'}
                     autoFocus
                     style={styles.typed}
@@ -319,7 +364,7 @@ export function FoodDetail({
               )}
             </View>
           </View>
-          {item ? null : <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} />}
+          {typedRefused ? <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} /> : null}
           {from ? <Text style={styles.per}>{`${fromLabel}: ${formatAmount(from)}`}</Text> : null}
           {result.kind === 'mine' && onEdit ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => onEdit(result.food)} /> : null}
         </View>
@@ -525,7 +570,8 @@ function Wheel({
 // chip, each nutrient on its own ruled row with its colour's square; Add filled at the foot. The
 // picker's wheels show five rows, the chosen ones on a caramel band.
 const useStyles = themedStyles((c) => ({
-  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingLeft: 6 },
+  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 6 },
+  context: { ...TYPE.label, flexShrink: 1, color: c.inkMuted },
   footer: { gap: 8 },
   addNote: { fontSize: 14, lineHeight: 20, color: c.inkMuted, textAlign: 'center' },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 14 },

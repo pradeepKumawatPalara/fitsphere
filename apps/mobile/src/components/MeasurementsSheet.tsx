@@ -10,6 +10,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, CircleAlert, X } from 'lucide-r
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { formatDay, measurementRange, parseLength } from '../format';
+import { useFieldChecks } from '../fieldChecks';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, getMeta, setMeta } from '../local/store';
 import { themedStyles, useTheme } from '../theme';
@@ -54,7 +55,9 @@ type Props = {
 // each, Q-027) and notes. "Save measurements" is enabled only once both waist values are valid and
 // every other value entered is valid (10–250 cm, Q-028). X closes without saving or a warning
 // (Q-029). A day's existing entry fills the sheet; saving replaces it (Q-030), so there is never
-// more than one entry for a date.
+// more than one entry for a date. Notes longer than 500 characters are not cut off: past 500, a red
+// message under them says how many to remove, and Save waits (D-98). Since D-99 each problem shows once
+// typing pauses or the field is left.
 export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -120,8 +123,13 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   const lengths = Object.fromEntries(
     (Object.keys(texts) as LengthKey[]).map((key) => [key, texts[key].trim() === '' ? 'empty' : (parseLength(texts[key], unit) ?? 'invalid')]),
   ) as Record<LengthKey, number | 'empty' | 'invalid'>;
+  // What is saved is trimmed, so spaces at either end do not count (D-98).
+  const notesOver = notes.trim().length - MEASUREMENT_NOTES_MAX;
+  // Each problem shows once typing pauses or the field is left (D-99).
+  const checks = useFieldChecks({ ...texts, notes });
+  const notesTooLong = notesOver > 0 && checks.shows('notes');
   const canSave =
-    REQUIRED.every(({ key }) => typeof lengths[key] === 'number') && OPTIONAL.every(({ key }) => lengths[key] !== 'invalid');
+    REQUIRED.every(({ key }) => typeof lengths[key] === 'number') && OPTIONAL.every(({ key }) => lengths[key] !== 'invalid') && notesOver <= 0;
   const range = measurementRange(unit);
   const rule = `Enter ${range.min.toFixed(1)} to ${range.max.toFixed(1)} ${unit}.`;
 
@@ -146,7 +154,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   }
 
   function lengthField(key: LengthKey, label: string, guidance?: string) {
-    const refused = lengths[key] === 'invalid';
+    const refused = lengths[key] === 'invalid' && checks.shows(key);
     return (
       <View key={key} style={[styles.field, !guidance && styles.half]}>
         <View style={styles.labelRow}>
@@ -158,8 +166,14 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             accessibilityLabel={`${label} (${unit})`}
             value={texts[key]}
             onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
-            onFocus={() => setFocused(key)}
-            onBlur={() => setFocused((current) => (current === key ? null : current))}
+            onFocus={() => {
+              setFocused(key);
+              checks.focus(key);
+            }}
+            onBlur={() => {
+              setFocused((current) => (current === key ? null : current));
+              checks.blur(key);
+            }}
             keyboardType="decimal-pad"
             style={styles.number}
           />
@@ -198,7 +212,11 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
       actions={
         <>
           <TextButton title="Save measurements" filled disabled={!canSave} busy={busy} onPress={() => void save()} />
-          {REQUIRED.some(({ key }) => lengths[key] === 'empty') ? <Text style={styles.hint}>Enter both waist values to save.</Text> : null}
+          {REQUIRED.some(({ key }) => lengths[key] === 'empty') ? (
+            <Text style={styles.hint}>Enter both waist values to save.</Text>
+          ) : notesOver > 0 ? (
+            <Text style={styles.hint}>Shorten the notes to save.</Text>
+          ) : null}
         </>
       }
     >
@@ -273,11 +291,21 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
               accessibilityLabel="Notes"
               value={notes}
               onChangeText={setNotes}
-              maxLength={MEASUREMENT_NOTES_MAX}
+              onFocus={() => checks.focus('notes')}
+              onBlur={() => checks.blur('notes')}
               multiline
-              style={[fieldInput, styles.notes]}
+              style={[fieldInput, styles.notes, notesTooLong && styles.notesRefused]}
             />
-            <Text style={styles.guidance}>Up to {MEASUREMENT_NOTES_MAX} characters.</Text>
+            {notesTooLong ? (
+              <View style={styles.problem}>
+                <CircleAlert size={16} color={colors.danger} />
+                <Text accessibilityRole="alert" style={styles.problemText}>
+                  Notes can be up to {MEASUREMENT_NOTES_MAX} characters. Remove {notesOver} {notesOver === 1 ? 'character' : 'characters'}.
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.guidance}>Up to {MEASUREMENT_NOTES_MAX} characters.</Text>
+            )}
           </View>
         </>
       ) : null}
@@ -330,6 +358,7 @@ const useStyles = themedStyles((c) => ({
   number: { ...TYPE.input, flex: 1, paddingVertical: 12, fontVariant: ['tabular-nums'] },
   unitText: { ...TYPE.label, fontSize: 14, color: c.inkMuted },
   notes: { minHeight: 72, textAlignVertical: 'top' },
+  notesRefused: { borderColor: c.danger },
   problem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   problemText: { ...TYPE.small, flexShrink: 1, color: c.danger },
   hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },

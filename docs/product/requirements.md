@@ -2,7 +2,7 @@
 
 - Status: Draft (every requirement below is **Draft** until the project owner accepts it)
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (D-85: REQ-HOME-008, when measurements were last logged and "Due" after 7 days; D-84: REQ-NAV-002, the header's calendar marks meal days and workout days; D-83: REQ-TRN-003, the Workout in progress pill; D-82: REQ-TRN-008, the graph touched, History's three bests). 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
+- Last updated: 2026-11-13 (D-100: REQ-HOME-006, REQ-ROLE-007, REQ-ACC-011 and REQ-TRN-003, the ranges and text rules of every typed field; D-99: every field's message three seconds after typing stops, never on a button; D-98: REQ-MEAS-006, notes over 500 characters say so at once; D-97: REQ-NUT-003 and REQ-NUT-004, each food of an opened meal with its own Edit, Save and Remove). 2026-11-12 (D-93: REQ-TRN-003, an exercise's name in bold and its sets in plain text on a workout; D-96: REQ-LOG-007, an amount typed with a food, and a search naming several foods; D-94: REQ-LOG-007, plurals both ways, other names from the owner's food database, its dishes and generic foods; D-92: REQ-LOG-007, everyday foods first, dry packs last; D-91: REQ-LOG-007, the plain food first; D-89: REQ-LOG-007, a name's brands alike in energy, each brand once; D-88: REQ-LOG-007, Search foods ignores accents; D-86: REQ-LOG-007, Search foods ignores any mark typed; D-85: REQ-HOME-008, when measurements were last logged and "Due" after 7 days; D-84: REQ-NAV-002, the header's calendar marks meal days and workout days; D-83: REQ-TRN-003, the Workout in progress pill; D-82: REQ-TRN-008, the graph touched, History's three bests). 2026-11-11 (D-82: the new REQ-TRN-008, an exercise's page, and REQ-TRN-003's Progress, Edit and Remove bar). Earlier the same day (D-81: REQ-TRN-003, the exercise library's details, on the server only). Earlier the same day (D-80: REQ-LOG-007, the packaged foods named only by their brand renamed or left out). Earlier the same day (D-78: REQ-LOG-007, Search foods shows each branded product once). Earlier the same day (D-79: REQ-HOME-002, the date strip shows Monday to Sunday). Earlier the same day (D-77: REQ-ROLE-007, targets by date, and the new REQ-ROLE-018, Target history). 2026-11-10 (D-71: REQ-TRN-003 and REQ-TRN-004, the workout timer). Earlier the same day (D-67: REQ-TRN-003, the exercise library and its Category and Sub-group). Earlier the same day (D-65: REQ-TRN-002 to REQ-TRN-004, Training's date strip, By day and All workouts). 2026-11-05 (D-50: REQ-TRN-003's exercise list, types and sets). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, D-31: REQ-ACC-004's switch and record come with slice
   6; REQ-ACC-006 shown as fixed text). Earlier the same day (Progress slice, D-30: MVP notes on
   REQ-PRG-001 to REQ-PRG-006, and the weekly rate refined; D-26 answer 3, amended: REQ-LOG-008's
   cooked-rice example flagged as unsupported). 2026-10-29 (Training slice, D-29: MVP notes on REQ-TRN-002 to REQ-TRN-005 and
@@ -148,6 +148,7 @@ B-22).
   - Each target records who set it and when, so coach-set targets can be added later without changing the user's own (D-20).
   - Given a calorie target of 1,800 kcal set before today, when the user sets 2,000 kcal today, then today and the days after show 2,000 kcal and the days before still show 1,800 kcal (D-77).
   - Given a past date before the first target, then its calories and protein cards (and Insight) say "No target on this day" and offer no "Set a target"; a past week with no workout target says "No target that week" (D-77).
+  - D-100: the daily targets are calories 0–10,000 kcal, protein 0–500 g, carbs 0–1,000 g, fat 0–1,000 g, fibre 0–200 g and steps 0–200,000; workouts a week 1–14 and body weight 20–300 kg as before. A target of 0 shows "–" for its percentage. D-99: each target's rule shows three seconds after typing stops or once the box is left; Save waits until the value can be saved.
 - MVP (D-20): every user is without a coach, so this requirement covers every account.
 - MVP default (D-23, Home and daily tracking slice): the user sets their targets on a "Your targets" screen, opened from Account (the profile avatar) and from "Set a target" on the calories, protein and workout cards when no target is set. Ranges, and who set it, are in the data model (`targets`).
 - Targets by date (D-77, answering Q-014; replaces D-23's "one current value per target, applying to every day shown"): a change starts on the IST day it is made and holds until the next change of that target; the days before keep the value they had. Each date shows the targets it had (Home, Insight); Home's workout tracker uses the target that holds on its week's Sunday; Progress shows the targets that hold today. Your targets shows today's values, each with since when ("since 8 Nov", "from today"), and its entry sheet says the change starts today. The targets set before D-77 hold from the day the account was created (their older values were never kept). One value per target and day: a second change the same day replaces it; the value that already holds saves nothing.
@@ -334,7 +335,8 @@ B-22).
 - Acceptance criteria:
   - Given no weight logged that day, then the tile shows "+ Add"; tapping it allows entry.
   - Weight displays in the body-weight unit setting (REQ-ACC-003; MVP default, Q-024 — the BRD says "Weight (kg)").
-  - Values outside weight 20–300 kg, steps 0–100,000 and sleep 0–24 h cannot be saved (MVP default, Q-028).
+  - Values outside weight 20–300 kg, steps 1–200,000 (D-100; was 0–100,000) and sleep 0–24 h cannot be saved (MVP default, Q-028).
+  - D-99: the rule shows three seconds after typing stops or once the box is left (an empty box only once left), never because Save was pressed; Save is greyed until the value can be saved.
   - Given a value already logged for that day, when a new one is saved, then it replaces the old one (MVP default, Q-030).
 - MVP default (D-18): steps and sleep are typed in; sleep is in hours with one decimal (Q-015, Q-028). Health-platform sync is post-MVP (backlog B-14). Weight is entered and shown with one decimal in the chosen unit and stored in whole grams (invariant #6). Sleep is stored in whole minutes (MVP default, D-23).
 
@@ -384,6 +386,7 @@ B-22).
   - Given only upper waist entered, then Save is disabled.
   - When X is tapped after entering values, then nothing is saved.
 - MVP default (D-18): valid values are 10–250 cm (Q-028); X closes without a warning (Q-029); a second entry for the same date replaces the first (Q-030).
+- D-98: notes are up to 500 characters. More can be typed or pasted, but the moment the notes pass 500 a red message under them says how many characters to remove, and Save waits ("Shorten the notes to save."). Spaces at either end do not count.
 
 ---
 
@@ -398,11 +401,12 @@ B-22).
 ### REQ-NUT-003 — Meal slots
 - Requirement: Breakfast, Lunch, Snack and Dinner slots each show "Tap to add what you ate" with a "+" that opens Log meal preset to that slot and date.
 - MVP default (D-18): tags attach to a meal, which keeps its meal type; a tagged meal shows a small label in its slot (Q-031).
-- A slot with meals is folded at first (D-34): its kcal and number of meals ("640 kcal · 3 meals") and its foods on up to two lines (five names, then "+ N more"). The chevron, or the slot's heading, opens it to each meal's card with the time it was last saved in India time ("Saved 8:15 am") and its Edit, Save to my meals and Delete icons (REQ-NUT-004). The chevron is named "Show Breakfast meals" or "Hide Breakfast meals" and is 44 dp to tap. Every slot folds again when the day changes. An empty slot shows "Tap to add what you ate" and its "+" as before.
+- A slot with meals is folded at first (D-34): its kcal and number of meals ("640 kcal · 3 meals") and its foods on up to two lines (five names, then "+ N more"). The chevron, or the slot's heading, opens it to each meal's card with the time it was last saved in India time ("Saved 8:15 am") and its Edit, Save to my meals and Delete icons (REQ-NUT-004); since D-97, a card for each of its foods, each with its own Edit, Save and Remove. The chevron is named "Show Breakfast meals" or "Hide Breakfast meals" and is 44 dp to tap. Every slot folds again when the day changes. An empty slot shows "Tap to add what you ate" and its "+" as before.
 
 ### REQ-NUT-004 — Meal menu: edit, delete, save to my meals
 - Requirement: Each logged meal offers Edit, Delete and "Save to my meals" (MVP default, Q-032), as icons on the meal, each named for screen readers and 44 dp to tap; Delete asks first (D-33, which replaced the first "•••" menu). A saved meal offers Delete the same way. "Save to my meals" adds it to the Saved tab. Deleting a meal also deletes its photo (MVP default, Q-032; REQ-LOG-006).
 - D-70: a logged meal's Insight icon comes first, before Edit (REQ-NUT-005).
+- D-97: each food of an opened meal has its own card with Edit (its page, or the sheet for its amount; the change is saved at once), Save (that food on its own to Saved, never twice) and Remove (asks first; the last food deletes the meal). The whole meal's Insight, Edit, Save to my meals and Delete sit in a row of their own under "Whole meal".
 
 ### REQ-NUT-005 — Insight: a meal's and the day's calories and nutrients
 - Requirement (D-70): each logged meal's Insight icon opens the Insight page on that meal's type (Breakfast, Lunch, Snack or Dinner) and date. Five tiles switch between the whole day and its four meals, without going back; a green tick marks each meal with food. The page shows:
@@ -554,7 +558,14 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   products; since D-53 a few are an AI tool's estimates) and approved by the owner, are listed before
   them, marked "Brand label", in grams or by their serving; a fibre the label does not give is
   shown as unknown. Since D-51, a food named exactly as the search (ignoring case and punctuation)
-  is listed first; since D-55 a brand label is also found by hidden search words, the everyday
+  is listed first; since D-91 the plain food the search names comes before it: a food that is not a
+  brand's or packaged, named as typed, or as typed and then a part in brackets ("Apple (1 medium)"),
+  or IFCT's named as typed and then a comma ("Banana, ripe, robusta"), IFCT's first ("potato" finds
+  "Potato, brown skin, big" first, not chips); since D-92, for an everyday word, the food as eaten
+  that the owner chose comes before all ("rice" finds "Boiled rice (Uble chawal)", "tea" finds "Masala
+  Chai"; `docs/data/everyday-foods-sheet.csv`), and packs of a dry or ready-to-cook form the search did
+  not ask for come last (batter, mix, premix, powder, podi, ready to cook, leaves: "dosa" lists the
+  dosas before the batters; "dosa batter" and a search for the brand list them as before); since D-55 a brand label is also found by hidden search words, the everyday
   names of what it is ("whole wheat atta" finds a pack called "Chakki Atta"). Since D-54 the rest
   come in this order: My foods, brand labels, packaged foods,
   INDB's recipes, then dishes and IFCT's foods. Since D-59, home-style forms of daily foods (a
@@ -563,19 +574,39 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   estimated dishes (typical values for each type of dish, from the owner's dish database) come after
   the dishes, before IFCT's foods, marked "estimated", found by their base food too, logged in grams
   or by their serving; and the search ignores marks and finds words typed together ("haldirams"
-  finds Haldiram's, "dalmakhani" finds Dal Makhani, never a word's end and the next one's start). Since
+  finds Haldiram's, "dalmakhani" finds Dal Makhani, never a word's end and the next one's start); since
+  D-86 any other mark typed reads as a space and a word of marks alone is left out ("paneer!" finds what
+  "paneer" finds, "aloo & gobi" what "aloo gobi" finds), only % counting, as names use it ("55%"); and
+  since D-88 accents are ignored, typed or in a name or brand ("nestle" finds Nestlé, "jalapeno" finds
+  Jalapeño; Devanagari is read as it is); since D-94 a word typed in its other number finds a food
+  too, as a whole word, and ranks as the word itself ("bananas" finds and lists Banana as "banana"
+  does, "rotis" Roti, "curry" finds Curries, "leaf" Curry leaves), and every kind of food is found by
+  the other names the owner's food database gives it (`docs/data/food-aliases-sheet.csv`; packaged
+  foods too: "doodh" finds a toned milk), a food found only by them listed after those found by their
+  name; the same file added 1,823 estimated dishes and 53 generic foods as home-style foods
+  ("Sugar, white (granulated)", "Toor Dal, cooked"); since D-96 an amount typed with a food is not
+  searched for, nor words like "with", "and" and "of" ("2 roti" finds the roti, "1 cup rice" the rice,
+  "half plate biryani" the biryani), and the food's page opens on that amount when the food has the
+  measure (2 rotis, half a plate, 150 grams), changeable before Add; a search joining several foods that
+  no one food matches offers each to search ("chicken biryani with raita and salad": chicken biryani,
+  raita, salad). Since
   D-66 every match is listed, with no cap on any source, the best matches first: names with the
   words whole, then words starting with them, then inside a word, then foods found only by hidden
   search words, each group in the order above. The results follow the text typed or erased;
-  since D-72 the phone searches once typing pauses, one search at a time, and one or two characters
-  find only the foods whose name, brand or other name is all of them ("on" finds the brand ON),
+  since D-72 the phone searches once typing pauses, one search at a time, and one or two characters,
+  marks not counted (D-86: "on!" as "on"), find only the foods whose name, brand or other name is all of
+  them ("on" finds the brand ON),
   under "Type 3 letters or more to search all foods."; since D-73 the list shows the results 200 at a
   time, adding the next 200 from those already found as its end comes near, and a food's servings
   and units are read when its page opens;
   since D-57 a cross at the end of the search box clears the search. Since D-61 the results carry no
   source tag (the marks above stay on each food's page): a branded food shows its brand under its
   name, a My food "Your food", and the branded foods of one name are one row ("Bread · 3 brands ·
-  220–274 kcal per 100 g") that opens to list them, a brand each. Your own food can be in any of several units and saved to My foods
+  220–274 kcal per 100 g") that opens to list them, a brand each; since D-89 only foods alike in
+  energy share a row (no more than twice the one before, or 20 kcal apart: "Gold" is a coffee, a tea,
+  a milk and an oil, four rows), and a brand counts once however it is written (case, marks, accents,
+  "The", a company's words), its spellings and makers made one in the food list as the owner approves
+  them (`docs/data/brand-names-sheet.csv`). Your own food can be in any of several units and saved to My foods
   (REQ-LOG-011).
 
 ### REQ-LOG-011 — My foods
@@ -645,6 +676,9 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - D-81: each row of the library (an exercise in one category and sub-group) keeps the file's primary muscle, muscles worked, equipment, tags, how-to steps 1 to 3, what to watch for and video address (blank for now), on the server only: nothing in the app shows them yet.
 - D-83: while a workout's timer runs or is paused, a pill above the tabs, at the right, and over an exercise's page, shows it with its time and name; tapping it opens the workout (backlog E-29). One timer at a time: meanwhile another workout's Start workout, and Resume after Mark done, are greyed, saying which workout's timer is going, with a link to it.
 - D-82: each exercise of a workout ends in a bar with Progress, Edit and Remove (replacing D-42's edit and remove icons); Progress opens its page: Progress, History and How to (REQ-TRN-008).
+- D-93: on a workout, each exercise's name is in bold, and its sets (or its cardio or timed line) in plain text.
+- D-99: in the exercise sheet each field's problem shows three seconds after typing stops or once the field is left (an empty one only once left; the name's not while the exercise list is open), never because Save exercise was pressed; Save exercise waits while there is one, saying what to fix or what is missing.
+- D-100: weight lifted 0.1–1,000 kg (was 500), a timed set 1 second to an hour (was 24 hours), distance 0.01–200 km (was 500), calories burned 1–3,000 kcal (was 5,000), heart rate 30–220 (was 250); time spent, reps, speed, incline, level and the cardio time as before.
 - D-71: the workout timer. A workout of today has **Start workout** in a bar at its foot; the bar then shows the time counted in minutes and seconds ("12:34", "1:05:12"), "Running" or "Paused", **Pause** or **Resume**, and **Mark done**, which stops it and shows "Done · total time" with the total, pauses left out (with Resume, on a workout of today). A workout of another date has no Start workout. A timer already started can be paused, resumed and marked done whatever the date. The time comes from the clock, so leaving the screen or closing the app does not stop it; 24 hours at most. Mark done is not required (D-29); a workout whose timer has started is listed before its first exercise, and counts toward the week only once it has one (D-41). Each step is saved on the phone at once and synced; it works offline.
 
 ### REQ-TRN-004 — Workout history
@@ -804,7 +838,14 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given a date of birth that makes the user under 18, then it is refused with "Enter a date of
     birth for someone 18 or older." (REQ-ACC-010); the profile shows the age a date gives.
   - The height is kept in millimetres and shown in cm, or in inches when the measurements use
-    inches (invariant #6); 100 to 250 cm.
+    inches (invariant #6); 50 to 300 cm (D-100; was 100 to 250).
+  - D-99: each problem shows under its field three seconds after typing stops or once the field is
+    left, never because Save was pressed; the date of birth's and the address's once they are complete
+    or left. Save profile waits while there is one, saying what to check ("Check the address to
+    save.").
+  - D-100: a name of 2 to 60 letters of any script, spaces and . ' -; address line 1 of 3 to 100
+    characters; a city and a state of 2 to 60 letters, spaces, . and -; a PIN code not starting with
+    0.
   - The phone number is a 10-digit Indian mobile number, kept with +91 (invariant #5); not verified.
   - An address is empty, or has line 1, the city, the state and a 6-digit PIN code; line 2 is
     optional.

@@ -3,6 +3,7 @@ import { Bookmark, Check, Cookie, Moon, Plus, SquarePen, Sun, Sunrise, Trash, ty
 import { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet, SheetHeading } from './Sheet';
@@ -110,11 +111,13 @@ export const SAVED_NAME_HINT = 'Give the meal a name, then add its foods.';
 
 /**
  * A saved meal's name. "Save to my meals" on a logged meal: filled in from its foods (MVP default,
- * D-26), an empty name an error. A new saved meal (D-69): asked first, empty, with a hint until it is
- * given, before its foods; and changing the name of one.
+ * D-26), an empty name an error; on one food of a logged meal (D-97), filled in with the food's name,
+ * a line above saying what is saved. A new saved meal (D-69): asked first, empty, with a hint until it
+ * is given, before its foods; and changing the name of one.
  */
 export function SaveMealSheet({
   initialName,
+  message,
   title = 'Save to my meals',
   actionLabel = 'Save',
   emptyHint,
@@ -122,6 +125,8 @@ export function SaveMealSheet({
   onClose,
 }: {
   initialName: string;
+  /** Above the name: what is saved, e.g. "Roti · 2 × roti (80 g) · 240 kcal, on its own" (D-97). */
+  message?: string;
   title?: string;
   actionLabel?: string;
   /** Shown under an empty name in place of the error, and the tile then sits beside the title. */
@@ -132,6 +137,16 @@ export function SaveMealSheet({
   const styles = useStyles();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
+  // The name's problem shows once typing pauses or the box is left (D-99); a name too long says so,
+  // not cut off (D-100).
+  const checks = useFieldChecks({ name });
+  const tooLong = trimmed.length > SAVED_MEAL_NAME_MAX;
+  const problem =
+    trimmed === '' && emptyHint === undefined && checks.shows('name')
+      ? 'Enter a name.'
+      : tooLong && checks.shows('name')
+        ? `Names can be up to ${SAVED_MEAL_NAME_MAX} characters.`
+        : null;
   return (
     <Sheet
       header={<SheetHeading icon={Bookmark} title={title} inline={emptyHint !== undefined} />}
@@ -141,7 +156,7 @@ export function SaveMealSheet({
           <TextButton
             title={actionLabel}
             filled
-            disabled={trimmed === ''}
+            disabled={trimmed === '' || tooLong}
             onPress={() => {
               onClose();
               onSave(trimmed);
@@ -151,14 +166,16 @@ export function SaveMealSheet({
         </>
       }
     >
+      {message ? <Text style={styles.message}>{message}</Text> : null}
       <Field
         label="Name"
         value={name}
         onChangeText={setName}
-        maxLength={SAVED_MEAL_NAME_MAX}
+        onFocus={() => checks.focus('name')}
+        onBlur={() => checks.blur('name')}
         autoCapitalize="sentences"
         placeholder={emptyHint === undefined ? undefined : 'For example, Monday breakfast'}
-        error={trimmed === '' && emptyHint === undefined ? 'Enter a name.' : null}
+        error={problem}
       />
       {trimmed === '' && emptyHint !== undefined ? <Text style={styles.hint}>{emptyHint}</Text> : null}
     </Sheet>

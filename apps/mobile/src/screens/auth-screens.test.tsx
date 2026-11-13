@@ -148,7 +148,11 @@ describe('REQ-ACC-010 Sign in, redesigned', () => {
     });
     await renderWith(<SignInScreen />, client);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    // D-99: Sign in waits, saying what is missing; an empty field says so once it is left.
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeDisabled();
+    expect(screen.getByText('Enter your email address and password to sign in.')).toBeOnTheScreen();
+    expect(screen.queryByRole('alert')).toBeNull();
+    await fireEvent(screen.getByLabelText('Email'), 'blur');
     const problem = screen.getByRole('alert');
     expect(problem).toHaveTextContent(TEXTS.emailRule);
     expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
@@ -196,12 +200,12 @@ describe('REQ-ACC-010 Sign up, redesigned', () => {
     const client = fakeAuthClient();
     await renderWith(<SignUpScreen />, client);
     await fillSignUp('someone@example.test', 'short');
-    expect(screen.getByText(TEXTS.passwordRule)).toBeOnTheScreen();
-    expect(screen.queryByRole('alert')).toBeNull();
-
     await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+
+    // D-99: the broken rule shows red once typing pauses (at once in tests), and Sign up waits.
     expect(screen.getByRole('alert')).toHaveTextContent(TEXTS.passwordRule);
+    expect(screen.getByRole('button', { name: 'Sign up' })).toBeDisabled();
+    expect(screen.getByText('Use 8 to 72 characters for the password to sign up.')).toBeOnTheScreen();
     expect(screen.getByLabelText('Password').parent).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
 
     await fireEvent.changeText(screen.getByLabelText('Password'), 'password1');
@@ -214,8 +218,8 @@ describe('REQ-ACC-010 Sign up, redesigned', () => {
     await renderWith(<SignUpScreen />, fakeAuthClient());
     await fillSignUp('someone@', 'password1');
     await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
 
+    expect(screen.getByRole('button', { name: 'Sign up' })).toBeDisabled();
     const problem = screen.getByRole('alert');
     expect(problem).toHaveTextContent(TEXTS.emailFormat);
     expect(within(problem.parent!.parent!).getByLabelText('Email')).toBeOnTheScreen();
@@ -278,12 +282,23 @@ describe('REQ-ACC-010 messages', () => {
     const client = fakeAuthClient();
     await renderWith(<SignInScreen />, client);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    await fireEvent(screen.getByLabelText('Email'), 'blur');
     expect(screen.getByRole('alert')).toHaveTextContent(TEXTS.emailRule);
     await fireEvent.changeText(screen.getByLabelText('Email'), 'someone@example.test');
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+    expect(screen.getByText('Enter your password to sign in.')).toBeOnTheScreen();
+    await fireEvent(screen.getByLabelText('Password'), 'blur');
     expect(screen.getByRole('alert')).toHaveTextContent('Enter your password.');
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     expect(client.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('D-100 an email address is at most 254 characters', async () => {
+    await renderWith(<SignInScreen />, fakeAuthClient());
+
+    await fireEvent.changeText(screen.getByLabelText('Email'), `${'x'.repeat(243)}@example.test`);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(TEXTS.emailLong);
+    expect(screen.getByText('Check your email address to sign in.')).toBeOnTheScreen();
   });
 
   it('Sign up shows what an email address looks like when the one typed isn’t one', async () => {
@@ -314,6 +329,8 @@ describe('REQ-ACC-010 messages', () => {
     ['Account setup', AccountSetupScreen, 'Continue'],
   ] as const)('D-18 %s says why its button waits until the 18+ box is ticked', async (_, Screen, title) => {
     await renderWith(<Screen />, fakeAuthClient(fakeSession({})));
+    // Sign up says first what its fields lack (D-99).
+    if (title === 'Sign up') await fillSignUp();
 
     expect(screen.getByRole('button', { name: title })).toBeDisabled();
     expect(screen.getByText('Tick "I am 18 or older" to continue.')).toBeOnTheScreen();

@@ -46,7 +46,8 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, he
       </View>
     );
   }
-  const percent = Math.round((eaten / target) * 100);
+  // A target of 0 (D-100): nothing eaten is all of it; anything eaten is over it.
+  const percent = target > 0 ? Math.round((eaten / target) * 100) : eaten > 0 ? 100 : 0;
   const over = eaten > target;
   const plates = hero ? 20 : 10;
   const filled = Math.min(plates, Math.round((percent / 100) * plates));
@@ -55,7 +56,7 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, he
     <View style={styles.card}>
       <View style={[styles.row, hero && styles.clearCorner]}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={[styles.title, over && styles.over]}>{percent}%</Text>
+        <Text style={[styles.title, over && styles.over]}>{target > 0 ? `${percent}%` : '–'}</Text>
       </View>
       {hero ? (
         <>

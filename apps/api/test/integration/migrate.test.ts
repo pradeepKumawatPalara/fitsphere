@@ -149,6 +149,8 @@ describe('Migration runner (data model, "Changes")', () => {
       '0027_target_history.sql',
       '0028_exercise_details.sql',
       '0029_users_gym_member.sql',
+      '0030_packaged_aliases.sql',
+      '0032_wider_ranges.sql',
     ]);
     for (const table of ['weigh_ins', 'step_counts', 'sleep_logs', 'measurements', 'targets', 'foods', 'barcode_products', 'media', 'dishes', 'workouts', 'settings', 'ai_consents', 'food_measures', 'profiles', 'food_portions', 'my_foods', 'usda_foods', 'usda_food_portions', 'packaged_foods', 'exercises', 'exercise_speed_mets', 'exercise_details']) {
       expect(await tableExists(table)).toBe(true);

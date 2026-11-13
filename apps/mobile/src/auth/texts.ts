@@ -16,6 +16,8 @@ export const TEXTS = {
   passwordRequired: 'Enter your password.',
   emailRule: 'Enter your email address.',
   emailFormat: 'Enter an email address like name@example.com.',
+  // D-100: an address is at most 254 characters.
+  emailLong: 'Email can be up to 254 characters.',
   // Under Sign up and Continue until the 18+ box is ticked (REQ-ACC-010, D-18).
   ageHint: 'Tick "I am 18 or older" to continue.',
   // MVP defaults (D-18) for "Set a new password".
@@ -34,6 +36,8 @@ export const TEXTS = {
 // at most 72 bytes; the app keeps to 72 characters.
 export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 72;
+/** The longest email address (D-100). */
+export const EMAIL_MAX = 254;
 
 export function passwordProblem(password: string): string | null {
   return password.length < PASSWORD_MIN || password.length > PASSWORD_MAX ? TEXTS.passwordRule : null;
@@ -42,5 +46,6 @@ export function passwordProblem(password: string): string | null {
 /** Nothing typed asks for the address; something that isn't one shows what one looks like. */
 export function emailProblem(email: string): string | null {
   if (email.trim() === '') return TEXTS.emailRule;
+  if (email.trim().length > EMAIL_MAX) return TEXTS.emailLong;
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? null : TEXTS.emailFormat;
 }

@@ -271,7 +271,7 @@ describe('D-54 the order of the results (the owner, 2026-11-06)', () => {
   // A synthetic IFCT food named like the others, so one search finds every source.
   const IFCT_BREAD: Food = { ...FOODS[0]!, code: 'A099', name: 'Bread, white (test)' };
 
-  it('lists My foods, then brand labels, packaged foods, INDB, and IFCT last (an exact match would still come first, D-51)', async () => {
+  it('lists My foods, then brand labels, packaged foods, INDB, and IFCT last (an exact match would still come first, D-51; the plain food before all, D-91)', async () => {
     await render(async (db, server) => {
       const foods = [...FOODS, IFCT_BREAD, LABEL_BREAD];
       server.state.foods = foods;
@@ -283,11 +283,12 @@ describe('D-54 the order of the results (the owner, 2026-11-06)', () => {
 
     const rows = await screen.findAllByRole('button', { name: /bread/i });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      // IFCT's "Bread, white" is the plain food "bread" names: first (D-91).
+      'Bread, white (test), 320 kcal per 100 g',
       'Peanut butter bread, your food, 180 kcal per slice',
       'White Bread, Test Bakers, 250 kcal per 100 g',
       'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
       'Test bread toast, 267 kcal per 100 g, estimated',
-      'Bread, white (test), 320 kcal per 100 g',
     ]);
   });
 });
@@ -467,12 +468,13 @@ describe('D-59 home-style foods (the owner, 2026-11-06)', () => {
 
     const rows = await screen.findAllByRole('button', { name: /kcal per/ });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      // The plain food first (D-91), then the exact match (D-51).
+      'Bread, white (test), 320 kcal per 100 g',
       'Bread, Other Bakers, 250 kcal per 100 g',
       'Peanut butter bread, your food, 180 kcal per slice',
       'White Bread, Test Bakers, 250 kcal per 100 g',
       'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
       'Test bread toast, 267 kcal per 100 g, estimated',
-      'Bread, white (test), 320 kcal per 100 g',
       // Its name has no "bread": found by its item, a hidden search word, so listed last (D-66).
       'Test butter toast, 365 kcal per 100 g',
     ]);
@@ -558,11 +560,12 @@ describe('D-62 estimated dishes (the owner, 2026-11-10)', () => {
 
     const rows = await screen.findAllByRole('button', { name: /kcal per/ });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      // IFCT's plain bread first (D-91); the others in the order by source.
+      'Bread, white (test), 320 kcal per 100 g',
       'White Bread, Test Bakers, 250 kcal per 100 g',
       'Test sandwich bread, Test Bakers, 250 kcal per 100 g',
       'Test bread toast, 267 kcal per 100 g, estimated',
       'Test bread pakora, 270 kcal per 100 g, estimated',
-      'Bread, white (test), 320 kcal per 100 g',
     ]);
     await fireEvent.press(screen.getByRole('button', { name: 'Food sources' }));
     expect(screen.getByText(/^Estimated dishes: typical values for each type of dish/)).toBeOnTheScreen();
@@ -604,6 +607,17 @@ describe('D-39 Enter your own food in any unit', () => {
   async function openOwnFood() {
     await fireEvent.press(await screen.findByRole('button', { name: 'Enter your own food' }));
   }
+
+  it('D-100 a food name of one character says it needs 2 to 120, and Add waits', async () => {
+    await render();
+    await openOwnFood();
+
+    await fireEvent.changeText(screen.getByLabelText('Food name'), 'X');
+
+    expect(screen.getByText("Enter the food's name in 2 to 120 characters.")).toBeOnTheScreen();
+    expect(screen.getByText("Check the food's name.")).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+  });
 
   it('by the slice: the values for one slice and the slices eaten; saved to My foods and synced', async () => {
     const { db, server } = await render();

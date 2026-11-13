@@ -6,6 +6,7 @@ import { lookUpBarcode } from '../api/barcodes';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { GRAMS_RULE, hasKcalAndProtein, itemFromBarcode, parseGrams, productName } from '../mealItems';
+import { useFieldChecks } from '../fieldChecks';
 import { formatGrams, formatKcal } from '../meals';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -59,7 +60,9 @@ export function BarcodeSheet({
   }
 
   const typedValid = barcodeSchema.safeParse(typed.trim()).success;
-  const typedRefused = typed.trim() !== '' && !typedValid;
+  // Each problem shows once typing pauses or the box is left (D-99).
+  const checks = useFieldChecks({ digits: typed, grams: gramsText });
+  const typedRefused = typed.trim() !== '' && !typedValid && checks.shows('digits');
   const grams = parseGrams(gramsText);
   const found = step.kind === 'found' ? step : null;
   const usable = found && hasKcalAndProtein(found.product) ? found.product : null;
@@ -112,8 +115,14 @@ export function BarcodeSheet({
             accessibilityLabel="Barcode digits"
             value={typed}
             onChangeText={setTyped}
-            onFocus={() => setTyping(true)}
-            onBlur={() => setTyping(false)}
+            onFocus={() => {
+              setTyping(true);
+              checks.focus('digits');
+            }}
+            onBlur={() => {
+              setTyping(false);
+              checks.blur('digits');
+            }}
             keyboardType="number-pad"
             maxLength={14}
             style={[fieldInput, styles.number, typing && styles.typing, typedRefused && styles.refused]}
@@ -138,14 +147,20 @@ export function BarcodeSheet({
               <Text style={styles.muted}>
                 Per 100 g: {formatKcal(usable.kcal)} · {formatGrams(usable.proteinG)} protein
               </Text>
-              <GramsBox value={gramsText} onChangeText={setGramsText} refused={!preview} />
+              <GramsBox
+                value={gramsText}
+                onChangeText={setGramsText}
+                refused={!preview && checks.shows('grams')}
+                onFocus={() => checks.focus('grams')}
+                onBlur={() => checks.blur('grams')}
+              />
               {preview ? (
                 <Text accessibilityLabel={`Adds ${formatKcal(preview.kcal)} and ${formatGrams(preview.proteinG)} protein`} style={styles.preview}>
                   = {formatKcal(preview.kcal)} · {formatGrams(preview.proteinG)} protein
                 </Text>
-              ) : (
+              ) : checks.shows('grams') ? (
                 <Problem text={GRAMS_RULE} />
-              )}
+              ) : null}
             </>
           ) : (
             <>

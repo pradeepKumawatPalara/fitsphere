@@ -19,10 +19,13 @@ import {
   searchFoodSummaries,
   searchMyFoods,
   searchPackaged,
+  searchesInOtherNumber,
   type FoodSummary,
   type LocalMyFood,
+  withoutAccents,
 } from '../local/store';
 import { formatAmount, formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
+import { readSearch, type ReadSearch, type SearchAmount } from '../searchAmount';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -92,10 +95,13 @@ function nameOf(result: Result): string {
   return result.kind === 'dish' ? result.dish.name : result.food.name;
 }
 
-/** A name or a search as compared for an exact match: lowercase, its letters and digits only, one space between words. */
+/**
+ * A name or a search as compared for an exact match, and a brand or a product as told apart (D-61,
+ * D-78): lowercase, without accents (D-88: "Nestlé" is "nestle"), its letters and digits only, one
+ * space between words.
+ */
 function matchKey(text: string): string {
-  return text
-    .toLowerCase()
+  return withoutAccents(text.toLowerCase())
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }
@@ -108,30 +114,102 @@ function namesOf(result: Result): string[] {
 }
 
 /**
+ * Whether a result is the plain food the search names (D-91; the owner, 2026-11-12, after "potato"
+ * listed the raw potato 191st, under the chips): not a brand's or a packaged product, and named exactly
+ * as typed, or as typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)"), or, for IFCT's
+ * foods, named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast"). Other
+ * sources' commas list a dish's foods ("Carrot, Radish & Peanut Salad"): not plain. A word typed in its
+ * other number counts as typed (D-94: "bananas" names "Banana, ripe, robusta" too).
+ */
+function plainFor(query: string): (result: Result) => boolean {
+  const typed = new Set([query, ...searchesInOtherNumber(query)].map((search) => matchKey(search).replace(/ /g, '')).filter(Boolean));
+  const named = (part: string) => typed.has(matchKey(part).replace(/ /g, ''));
+  return (result) => {
+    if (typed.size === 0 || result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label')) return false;
+    const name = nameOf(result).trim();
+    if (named(name)) return true;
+    const bracket = name.indexOf(' (');
+    if (bracket > 0 && name.endsWith(')') && named(name.slice(0, bracket))) return true;
+    const comma = name.indexOf(',');
+    return result.kind === 'food' && result.food.source === 'ifct2017' && comma > 0 && named(name.slice(0, comma));
+  };
+}
+
+/**
+ * The words that name a food's dry or ready-to-cook form rather than the food eaten (D-92): "Dosa Idli
+ * Batter", "Rava Upma Mix", "Chai Premix", "Sambar Powder", "Curry leaves". Flour and atta are left
+ * out: they are what a search for besan or ragi wants.
+ */
+const DRY_FORM = /(^| )(batter|mix|premix|pre mix|powder|podi|ready to cook|rtc|leaves|leaf)( |$)/;
+
+/**
+ * Whether a result is a pack of a dry or ready-to-cook form the search did not ask for (D-92; the
+ * owner, 2026-11-12, after "dosa" listed batters, flours and mixes before any dosa): a packaged
+ * food's or a brand label's name with one of DRY_FORM's words, unless the search has that word too
+ * ("dosa batter") or is a search for its brand ("mtr", whose packs are mixes).
+ */
+function dryFor(query: string): (result: Result) => boolean {
+  const key = matchKey(query);
+  const typed = key.replace(/ /g, '');
+  const asked = DRY_FORM.test(key);
+  return (result) => {
+    if (asked || !typed || !(result.kind === 'packaged' || (result.kind === 'food' && result.food.source === 'brand_label'))) return false;
+    const branded = brandOf(result);
+    if (branded && matchKey(branded.brand).replace(/ /g, '').includes(typed)) return false;
+    return DRY_FORM.test(matchKey(nameOf(result)));
+  };
+}
+
+/**
  * The results in the order Search foods lists them, given in the order by source (D-54, D-59, D-62):
- * - those named exactly as the search first ("bread" finds "Bread" above "Bread, white" and "Brown
- *   bread"), ignoring case, spaces and punctuation (D-51);
+ * - the everyday food the search names first (D-92: the owner's choice for an everyday word, "rice"
+ *   finding "Boiled rice (Uble chawal)" first; `searchFoodSummaries` marks it);
+ * - then the plain foods the search names (D-91): your own first, then IFCT's measured foods, then
+ *   the rest ("banana" finds "Banana, ripe, robusta" above a protein powder named "Banana" and "Banana
+ *   chips");
+ * - then those named exactly as the search ("bread" finds "Bread" above "Bread, white" and "Brown
+ *   bread"), ignoring case, spaces and punctuation (D-51), or a word of it in its other number (D-94:
+ *   "samosas" finds "Samosa");
  * - before and after them alike, the best matches first (D-66; the owner, 2026-11-10, after "dal"
  *   listed Baati and Dalda oil near the top): foods whose name has every word whole, then those where
  *   a word only starts a word of the name, then those where it is inside a word, then those found
  *   only by their hidden search words.
+ * - the packs of a dry or ready-to-cook form the search did not ask for last (D-92: "dosa" lists the
+ *   dosas before the batters and mixes).
  * Each group keeps the order by source. A packaged food's brand counts as part of its name. Worked out
  * in one pass, each name read once for each test (D-75), where the exact match and the best match
- * used to be two passes reading every name three times.
+ * used to be two passes reading every name three times. `typed` is the search as typed when `query`
+ * left its amount out (D-96): a food named as typed is an exact match too ("5 star" finds "5 Star").
  */
-export function inSearchOrder(query: string, results: readonly Result[]): Result[] {
-  const key = matchKey(query);
+export function inSearchOrder(query: string, results: readonly Result[], typed: string = query): Result[] {
+  const keys = new Set([query, typed, ...searchesInOtherNumber(query)].map(matchKey).filter(Boolean));
   const match = nameMatcher(query);
-  // Exact matches in groups 0 to 3, the rest in 4 to 7, each by how well the name matches.
-  const groups: Result[][] = [[], [], [], [], [], [], [], []];
+  const plain = plainFor(query);
+  const dry = dryFor(query);
+  // The everyday foods the search names in group 0 (D-92); the plain foods in groups 1 to 3 (your own,
+  // IFCT's, the rest); then the exact matches in groups 4 to 7 and the rest in 8 to 11, each by how well
+  // the name matches; the dry forms last, in 12.
+  const groups: Result[][] = Array.from({ length: 13 }, () => []);
   for (const result of results) {
+    if (result.kind === 'food' && result.food.everyday) {
+      groups[0]!.push(result);
+      continue;
+    }
+    if (dry(result)) {
+      groups[12]!.push(result);
+      continue;
+    }
+    if (plain(result)) {
+      groups[result.kind === 'mine' ? 1 : result.kind === 'food' && result.food.source === 'ifct2017' ? 2 : 3]!.push(result);
+      continue;
+    }
     let best = 3;
     let exact = false;
     for (const name of namesOf(result)) {
       best = Math.min(best, match(name));
-      if (key && !exact && matchKey(name) === key) exact = true;
+      if (!exact && keys.has(matchKey(name))) exact = true;
     }
-    groups[(exact ? 0 : 4) + best]!.push(result);
+    groups[(exact ? 4 : 8) + best]!.push(result);
   }
   return groups.flat();
 }
@@ -156,9 +234,39 @@ export function brandOf(result: Result): { brand: string; product: string } | nu
 export type ResultRow = { kind: 'one'; result: Result } | { kind: 'brands'; key: string; name: string; members: Result[] };
 
 /**
+ * Whether two foods' energies are alike enough to be one product under several brands (D-89): the
+ * higher at most twice the lower, or 20 kcal apart at most (drinks, sauces: 0 and 1 kcal are alike).
+ */
+const ENERGY_RATIO_MAX = 2;
+const ENERGY_GAP_ALIKE = 20;
+const alikeEnergy = (low: number, high: number) => high <= ENERGY_RATIO_MAX * low || high - low <= ENERGY_GAP_ALIKE;
+
+/**
+ * A name's branded foods split by energy (D-89; the owner, 2026-11-12, after "Gold · 6 brands" held
+ * Bru's coffee, Tata Tea, a milk and an oil): in order of energy, a food whose energy jumps from the
+ * one before it (not alike) starts another set, so foods spread evenly stay together ("Paneer", 150 to
+ * 330 kcal). Each set keeps the order the foods came in; the sets come in the order of their first food.
+ */
+function byEnergy(members: readonly Result[]): Result[][] {
+  const sorted = [...members].sort((a, b) => energyOf(a) - energyOf(b));
+  const sets: Result[][] = [];
+  for (const member of sorted) {
+    const last = sets[sets.length - 1];
+    if (last && alikeEnergy(energyOf(last[last.length - 1]!), energyOf(member))) last.push(member);
+    else sets.push([member]);
+  }
+  const at = new Map(members.map((member, index) => [member, index]));
+  return sets.map((set) => set.sort((a, b) => at.get(a)! - at.get(b)!)).sort((a, b) => at.get(a[0]!)! - at.get(b[0]!)!);
+}
+
+const energyOf = (result: Result) => (result.kind === 'dish' ? result.dish.kcal : result.food.kcal);
+
+/**
  * The results as rows (D-61): branded foods (brand labels and packaged foods) with the same name,
  * their brands left out and ignoring case and punctuation, are one row where the first of them was;
- * a name only one brand has stays a row of its own. Every other food, and the order, are unchanged.
+ * a name only one brand has stays a row of its own. Since D-89 only foods of alike energy share a row
+ * ("Gold" is a coffee, a tea, a milk and an oil: four rows), and a brand counts once however it is
+ * written. Every other food, and the order, are unchanged.
  */
 export function groupBrands(results: readonly Result[]): ResultRow[] {
   const rows: ResultRow[] = [];
@@ -179,13 +287,37 @@ export function groupBrands(results: readonly Result[]): ResultRow[] {
     groups.set(key, created);
     rows.push(created);
   }
-  // A name only one brand has, even under two sources, stays a row for each.
-  return rows.flatMap((row): ResultRow[] => (row.kind === 'brands' && brandCount(row.members) < 2 ? row.members.map((result) => ({ kind: 'one', result })) : [row]));
+  return rows.flatMap((row): ResultRow[] => {
+    if (row.kind === 'one') return [row];
+    // Foods of far apart energy are other products (D-89); each set keeps the row's place, and a key of its own.
+    return byEnergy(row.members).flatMap((members, index): ResultRow[] =>
+      // A name only one brand has, even under two sources, stays a row for each.
+      brandCount(members) < 2 ? members.map((result) => ({ kind: 'one', result })) : [{ ...row, key: index === 0 ? row.key : `${row.key} ${index + 1}`, members }],
+    );
+  });
 }
 
-/** How many different brands a name's foods have, ignoring case. */
+/** How many different brands a name's foods have, however each is written (D-88, D-89: "Nestlé" and "Nestle India" are one). */
 export function brandCount(members: readonly Result[]): number {
-  return new Set(members.map((member) => brandOf(member)?.brand.toLowerCase())).size;
+  return new Set(members.map((member) => brandKey(brandOf(member)?.brand ?? ''))).size;
+}
+
+/**
+ * Words a company's name adds to its brand at its end ("Britannia Industries Ltd"), as `brandKey`
+ * leaves them out (D-89), with "The" at its start.
+ */
+const COMPANY_WORDS = new Set(['company', 'co', 'ltd', 'limited', 'pvt', 'private', 'inc', 'llp', 'llc', 'corp', 'corporation', 'industries', 'india']);
+
+/**
+ * A brand as told apart from others (D-78, D-89): its letters and digits only, without accents, and
+ * without the company's words: "The Coca-Cola Company", "Coca Cola" and "Coca-Cola" are "cocacola",
+ * "Britannia Industries Ltd" is "britannia", "Nestlé" and "Nestle India" "nestle".
+ */
+export function brandKey(brand: string): string {
+  const words = matchKey(brand).split(' ').filter(Boolean);
+  while (words.length > 1 && COMPANY_WORDS.has(words[words.length - 1]!)) words.pop();
+  if (words.length > 1 && words[0] === 'the') words.shift();
+  return words.join('');
 }
 
 /**
@@ -206,19 +338,26 @@ function nameWords(name: string): string[] {
     .filter(Boolean);
 }
 
-/** The product a branded food is (D-78): its brand, and its name without the brand at its front (written with or without spaces) or a pack size. */
+/**
+ * The product a branded food is (D-78): its brand, as `brandKey` tells it apart (D-89), and its name
+ * without a pack size or the brand at its front, written with or without spaces, in full ("The Whole
+ * Truth Protein Bar") or as told apart ("Britannia Marie" under "Britannia Industries Ltd").
+ */
 function productOf(result: Result): Product | null {
   const branded = brandOf(result);
   if (!branded) return null;
-  const brand = matchKey(branded.brand).replace(/ /g, '');
+  const brand = brandKey(branded.brand);
   if (!brand) return null;
+  const full = matchKey(branded.brand).replace(/ /g, '');
   const words = nameWords(nameOf(result));
+  // The longest of the two at the front goes: "(TEST CO) Rich Tomato Sauce" under "Test Co" is "rich tomato sauce".
   let joined = '';
-  for (let at = 0; at < words.length && joined.length < brand.length; at++) {
+  let cut = 0;
+  for (let at = 0; at < words.length && joined.length < Math.max(brand.length, full.length); at++) {
     joined += words[at];
-    if (joined === brand) return { brand, words: words.slice(at + 1) };
+    if (joined === brand || joined === full) cut = at + 1;
   }
-  return { brand, words };
+  return { brand, words: words.slice(cut) };
 }
 
 /**
@@ -397,12 +536,14 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
   const [query, setQuery] = useState('');
   // D-72: the text searched for, once typing pauses; and the results, with the text they are for.
   const [searched, setSearched] = useState('');
-  const [found, setFound] = useState<{ query: string; results: Result[] }>({ query: '', results: [] });
+  // D-96: with the amount typed with the search, and the foods it names when it joins several.
+  const [found, setFound] = useState<{ query: string; results: Result[] } & Pick<ReadSearch, 'amount' | 'foods'>>({ query: '', results: [], amount: null, foods: [] });
   const results = found.results;
   const [runLatest] = useState(latestOnly);
   const [listCached, setListCached] = useState(true);
-  // The food whose page is open, and the amount it was last logged in when opened from Recent foods.
-  const [chosen, setChosen] = useState<{ result: FoodResult; from?: MealItem['amount'] } | null>(null);
+  // The food whose page is open, and the amount it was last logged in when opened from Recent foods,
+  // or the amount typed with the search (D-96).
+  const [chosen, setChosen] = useState<{ result: FoodResult; from?: MealItem['amount']; amount?: SearchAmount | null } | null>(null);
   const [editing, setEditing] = useState<LocalMyFood | null>(null);
   // The food sources' sheet, behind the i (D-44).
   const [sources, setSources] = useState(false);
@@ -441,13 +582,15 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
 
   /** A food's page from the results: a food of the list is read whole first (D-73); one no longer listed does not open. */
   async function choose(result: Result) {
+    // D-96: the page opens on the amount typed with the search ("2 roti"), when it fits the food.
+    const amount = found.amount;
     if (result.kind !== 'food') {
-      setChosen({ result });
+      setChosen({ result, amount });
       return;
     }
     if (local.state.status !== 'ready') return;
     const food = await getFood(local.state.db, result.food.source, result.food.code);
-    if (food) setChosen({ result: { kind: 'food', food } });
+    if (food) setChosen({ result: { kind: 'food', food }, amount });
   }
 
   /** A recent food's page, on its last amount; a food no longer listed has no page, and its name ticks it (MVP default, D-60). */
@@ -468,7 +611,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     setQuery(text);
     if (text.trim() === '') {
       setSearched('');
-      setFound({ query: '', results: [] });
+      setFound({ query: '', results: [], amount: null, foods: [] });
     }
   }
 
@@ -486,22 +629,33 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     // D-72: one search at a time; a newer text replaces one still waiting to start.
     runLatest(async () => {
       if (!active) return;
-      const [dishes, foods, mine, packaged, listVersion] = await Promise.all([
-        searchDishes(db, searched),
-        searchFoodSummaries(db, searched),
-        searchMyFoods(db, searched),
-        searchPackaged(db, searched),
-        getMeta(db, 'food_list_version'),
-      ]);
+      // D-96: the amount typed with the food and words like "of" and "with" are not searched for ("2 roti"
+      // searches "roti"); a search that is only an amount is searched as typed.
+      const reading = readSearch(searched);
+      const searchAll = (text: string) => Promise.all([searchDishes(db, text), searchFoodSummaries(db, text), searchMyFoods(db, text), searchPackaged(db, text)]);
+      let words = reading.search || searched;
+      let amount = reading.amount;
+      let [dishes, foods, mine, packaged] = await searchAll(words);
+      // A number that is part of a name ("7 up", "50 50"): nothing found without it, so searched as typed.
+      if (words !== searched && amount !== null && dishes.length + foods.length + mine.length + packaged.length === 0) {
+        if (!active) return;
+        [dishes, foods, mine, packaged] = await searchAll(searched);
+        words = searched;
+        amount = null;
+      }
+      const listVersion = await getMeta(db, 'food_list_version');
       if (!active) return;
       const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
       setFound({
         query: searched,
+        amount,
+        foods: reading.foods,
         // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
         // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
-        // D-51: those named exactly as the search first; D-66: in four groups, the best matches first,
-        // each group in that order. D-78: each branded product once, where its first copy was.
-        results: onePerProduct(inSearchOrder(searched, [
+        // D-51: those named exactly as the search first (or as typed, D-96: "5 star"); D-66: in four
+        // groups, the best matches first, each group in that order. D-78: each branded product once,
+        // where its first copy was.
+        results: onePerProduct(inSearchOrder(words, [
           ...listed('home'),
           ...mine.map((food): Result => ({ kind: 'mine', food })),
           ...listed('brand_label'),
@@ -510,7 +664,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
           ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
           ...listed('dish_estimate'),
           ...listed('ifct2017'),
-        ])),
+        ], searched)),
       });
       setListCached(listVersion !== null);
     });
@@ -578,6 +732,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
                 value={query}
                 onChangeText={changeQuery}
                 placeholder="e.g. atta, dal, paneer"
+                // A search stops at 100 characters, with no message (D-100).
+                maxLength={100}
                 autoFocus={recent !== null && recent.length === 0}
                 style={styles.searchInput}
               />
@@ -589,9 +745,19 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
             </View>
             {!listCached ? (
               <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
-            ) : query.trim() !== '' && isShortSearch(query) ? (
+            ) : query.trim() !== '' && isShortSearch(readSearch(query).search || query) ? (
               // D-72: one or two characters list only the foods named by them, under this line.
               <Text style={styles.empty}>Type {SEARCH_MIN_CHARACTERS} letters or more to search all foods.</Text>
+            ) : query.trim() !== '' && found.query === query && results.length === 0 && found.foods.length > 1 ? (
+              // D-96: a search naming several foods ("chicken biryani with raita and salad") offers each.
+              <View style={styles.eachFood}>
+                <Text style={styles.empty}>No one food has all of these. Search each:</Text>
+                <View style={styles.eachFoodButtons}>
+                  {found.foods.map((food) => (
+                    <TextButton key={food} title={food} outlined onPress={() => changeQuery(food)} />
+                  ))}
+                </View>
+              </View>
             ) : query.trim() !== '' && found.query === query && results.length === 0 ? (
               // Only once the search for this text is done, not while it waits for the pause (D-72).
               <Text style={styles.empty}>No foods found. Try another word, or enter your own food.</Text>
@@ -736,6 +902,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
         <FoodDetail
           result={chosen.result}
           from={chosen.from}
+          amount={chosen.amount}
           addTitle={withPage.length > 0 ? `Add ${withPage.length + 1} foods` : 'Add'}
           addNote={withPage.length > 0 ? `Your ${withPage.length === 1 ? '1 ticked food goes' : `${withPage.length} ticked foods go`} in with it.` : undefined}
           onBack={() => setChosen(null)}
@@ -772,6 +939,8 @@ const useStyles = themedStyles((c) => ({
   // text (Yoga's flex basis is 0), which hid the search text.
   searchInput: { ...TYPE.input, flex: 1, paddingVertical: 12 },
   empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center' },
+  eachFood: { gap: 10 },
+  eachFoodButtons: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   // As tall as its results, and no taller than the room above the keyboard.
   list: { flexGrow: 0, marginHorizontal: 16 },
   listCard: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },

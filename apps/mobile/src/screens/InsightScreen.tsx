@@ -279,8 +279,10 @@ function NutrientsCard({
         const eaten = amount ?? 0;
         const day = dayAmount ?? 0;
         const over = target !== null && day > target;
-        const mine = target === null ? 0 : Math.min(100, (eaten / target) * 100);
-        const rest = target === null || !meal ? 0 : Math.max(0, Math.min(100 - mine, ((day - eaten) / target) * 100));
+        // A target of 0 (D-100): any amount fills the bar.
+        const share = (part: number) => (target === null ? 0 : target > 0 ? (part / target) * 100 : part > 0 ? 100 : 0);
+        const mine = Math.min(100, share(eaten));
+        const rest = !meal ? 0 : Math.max(0, Math.min(100 - mine, share(day - eaten)));
         const of = target === null ? '' : ` of ${formatInsightGrams(target)}`;
         return (
           <View key={nutrient.key} testID={`nutrient-${nutrient.target}`} style={[styles.nutrient, index > 0 && styles.ruled]}>

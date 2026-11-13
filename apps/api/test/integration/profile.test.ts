@@ -127,7 +127,10 @@ describe('REQ-ACC-011 the profile through POST /v1/sync', () => {
     ['a date of birth over 120', { dateOfBirth: '1905-11-02' }],
     ['a phone that is not an Indian mobile number', { phone: '+915876543210' }],
     ['an address without its PIN code', { address: { line1: '12 Example Lane', line2: null, city: 'Pune', state: 'Maharashtra' } }],
-    ['a height under 100 cm', { heightMm: 999 }],
+    ['a height under 50 cm', { heightMm: 499 }],
+    ['a name with a digit (D-100)', { name: 'Asha 2' }],
+    ['a PIN code starting with 0 (D-100)', { address: { line1: '12 Example Lane', line2: null, city: 'Pune', state: 'Maharashtra', pinCode: '011001' } }],
+    ['a height over 300 cm', { heightMm: 3001 }],
     ['a field the profile does not have', { userId: randomUUID() }],
   ])('REQ-ACC-011 refuses %s and keeps the profile as it was', async (_case, change) => {
     const user = await api.signUpWithAccount();

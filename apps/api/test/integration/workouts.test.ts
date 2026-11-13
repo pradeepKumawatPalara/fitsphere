@@ -179,7 +179,7 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
   it('D-29 an unknown field, a value out of range or 31 exercises is rejected, without the values', async () => {
     const user = await api.signUpWithAccount();
     const unknownField = workout(randomUUID(), TODAY, [{ ...SQUAT, rpe: 8 }]);
-    const tooHeavy = workout(randomUUID(), TODAY, [{ ...SQUAT, sets: [{ ...SQUAT_SET, weightGrams: 500_001 }] }]);
+    const tooHeavy = workout(randomUUID(), TODAY, [{ ...SQUAT, sets: [{ ...SQUAT_SET, weightGrams: 1_000_001 }] }]);
     const tooMany = workout(randomUUID(), TODAY, Array.from({ length: 31 }, () => SQUAT));
     const named = workout(randomUUID(), TODAY);
     (named.data as Record<string, unknown>).userId = randomUUID();
@@ -192,7 +192,7 @@ describe('REQ-TRN-003 workouts through POST /v1/sync', () => {
       'VALIDATION_FAILED',
       'VALIDATION_FAILED',
     ]);
-    expect(JSON.stringify(reply.results)).not.toContain('500001');
+    expect(JSON.stringify(reply.results)).not.toContain('1000001');
     expect(await storedWorkouts(user.id)).toEqual([]);
   });
 

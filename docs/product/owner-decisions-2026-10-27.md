@@ -2845,6 +2845,439 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: `docs/contracts/data-model.md` (`users`); the MVP defaults in
   `docs/architecture/constraints-and-assumptions.md`; CLAUDE.md.
 
+## D-86 Search foods ignores any mark typed
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-09 of the search QA report ("paneer!",
+  "dal?", "chicken:", "idli;", "[upma]", "samosa*", "#biryani", "egg+white", "egg_white" and
+  "aloo+gobi" all found nothing), "I need to fix this bug for first come up with the multiple and your
+  Recommanded once. when I approve it start fixing it"; of the three ways, "Option B: only letters and
+  digits count (recommended) fix this"). Numbered D-86 because D-83 to D-85 were taken by other work
+  the same day. Built on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; amends D-62 and D-72):
+  - A search reads only letters and digits: apostrophes (' ’ ‘ ´ and the grave accent) and full stops
+    are dropped, as before, and **any other mark reads as a space**, where D-62 did so only for the
+    marks - & , / ( ) ". So "paneer!", "dal?", "chicken:", "idli;", "[upma]", "samosa*" and
+    "#biryani" find what the word alone finds, and
+    "egg+white", "egg_white" and "aloo+gobi" what "egg-white" and "aloo-gobi" find; so do the phone
+    keyboard's curly quotes, long dashes and "…".
+  - **% still counts**, as names use it ("55% Dark Chocolate"): "55%" finds those, as before.
+  - **A word of marks alone is left out**: "aloo & gobi" searches as "aloo gobi" (QA-10: D-62 looked
+    for such a word as typed, so "aloo & gobi" found only the one name with an "&").
+  - **Marks do not count towards D-72's three characters**: "on!" finds what "on" finds, the brand
+    ON; marks alone find nothing.
+  - The same rule reads the foods' names, other names and brands: a word stuck to a mark in a name
+    ("Oats+ Dark Chocolate", "Muesli+ Almond+Quinoa") is a whole word, so it is listed with the best
+    matches (D-66).
+  - Your own foods and dishes are read by SQL (D-66), which cannot use that rule; it reads the marks
+    a phone's keyboard types, the same way.
+  - Unchanged: words joined by a mark with no space are looked for together ("egg-white" as "egg
+    white", D-62); the exact match (D-51) ignored every mark already.
+- Checked on the dev database's food list (read only), 554 searches from the QA report with the old
+  and the new code: 524 the same; QA-09's and QA-10's searches now find what the words alone find;
+  "on!" and "go?" find the brands ON and Go; 4 searches list the same foods in a better order (the
+  names above); "m&m", with two letters, is now a short search, where it listed 96 foods with "m m"
+  inside a word ("Garam Masala").
+- Phone app only: no server change, no migration, no phone schema change, no new build. The search
+  text kept with each food (D-66) follows the new rule when the food list is next stored; until then
+  a name with such a mark is still found by its words.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
+
+## D-88 Search foods ignores accents
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-11 of the search QA report ("nestle" found
+  31 foods, "nestlé" 69 others, none of the first ten the same; so did cafe and café, creme and crème,
+  jalapeno and jalapeño), of the two ways proposed, "QA-11 ->A"). Numbered D-88 because D-87 was
+  kept for other work. Built with D-86 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-62 and D-86):
+  - A search reads a letter **without its accent**, in the words typed and in the foods' names, other
+    names and brands: "nestle" finds "Nestlé", "jalapeno chips" finds "Jalapeño Chips", "café" finds
+    "Cafe Blend"; ø, ł, đ, ß, æ and œ read as o, l, d, ss, ae and oe. Only Latin letters' accents go:
+    Devanagari is read as it is ("दाल" finds "दाल मखनी").
+  - The exact match (D-51) and the telling apart of brands and products (D-61, D-78) ignore accents
+    too: "Munch" under the brands "nestle" and "Nestlé" is one product, shown once.
+  - Your own foods and dishes are read by SQL (D-66), which takes the accents off the letters listed
+    in `store.ts` (á to ž and their capitals), as the phone's own code does.
+  - Phone schema version 21 clears the food list's version, so each phone downloads the food list
+    once after the update and its search text is written again; the foods stay on the phone and are
+    searched as before until it comes.
+- Checked on the dev database's food list (read only), 565 searches, D-86 alone against D-86 with
+  D-88: 536 the same; "nestle" and "nestlé" now find the same 87 foods, as do cafe and café (24),
+  creme and crème (38), jalapeno and jalapeño (19), nescafe and nescafé (14), agapi and agápi (5);
+  "jalapeno chips" and "provencal" find what they found nothing for; a few rows fewer where copies
+  of one product under one brand written with and without an accent are now shown once ("KitKat · 3
+  brands" is 2, "Munch · 2 brands" one Munch).
+- Phone app only: no server change, no migration; phone schema version 21; no new build.
+- Doc changes: REQ-LOG-007; `docs/contracts/data-model.md` (version 21); CLAUDE.md.
+
+## D-89 A name's brands: alike in energy, each brand once
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-12 of the search QA report ("Maaza · 6
+  brands" was Coca-Cola written six ways; "Gold · 6 brands" held Bru's coffee, Tata Tea, two milks and
+  an oil), of the two ways proposed, "Q-12 -> B": the phone counting a brand once and splitting rows
+  by energy, and a brand-names sheet for the owner to approve, applied by `foods:import`; then, on the
+  sheet's 747 proposed rows, "approve all"). Built with D-86 and D-88 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-61 and D-78):
+  - **Only foods alike in energy share a "N brands" row** (D-61): in order of energy, a food more than
+    twice the one before it, and more than 20 kcal above it, starts another row of the same name. So
+    "Gold" is four rows (a tea, two milks together, a coffee, an oil), "Rajma Masala" the spice mixes
+    and a ready meal apart, "Nimbu Pani" the powders and a drink apart; foods spread evenly stay
+    together ("Paneer · 21 brands", 150 to 330 kcal).
+  - **A brand counts once however it is written**: its letters and digits only, without accents,
+    without "The" at its start or a company's words at its end (company, co, ltd, limited, pvt,
+    private, inc, llp, llc, corp, corporation, industries, india). "Nestlé", "Nestle India" and
+    "NESTLE" are one brand; so are "Britannia" and "Britannia Industries Ltd". D-78 tells products
+    apart the same way, so their copies are shown once.
+  - **`docs/data/brand-names-sheet.csv`** (`docs/data/food-list-sources.md`): for what letters cannot
+    tell, each of Open Food Facts' brands as written takes one spelling (`spelling`: misspellings as
+    "Britania" and "Horlics", company names as "COCA-COLA SERVICES SA/NV", "Coke") or its maker's
+    name (`maker`: "KitKat" under Nestlé, the line kept at the front of the product's name). Proposed
+    from the data, 747 rows (735 spelling, of which 101 misspellings checked one by one; 12 maker),
+    all approved by the owner on 2026-11-12; `foods:import` applies the approved rows only, after
+    D-80's fixes: 1,410 of the 9,729 products take another brand, 7 of them with their line put at the
+    front of the name.
+  - Not changed: "Pepsi" (Pepsi, PepsiCo, Pepsi Cola), "Horlicks" (Horlicks and two names of
+    Hindustan Unilever) and "Oreo" have more than one maker or line among their copies, so the sheet
+    proposes none for them: left to the owner.
+- Checked on the dev database's food list (read only), 578 searches: with the phone's part, 500 the
+  same as D-88 alone and 71 changed ("Gold", "Black", "Rajma Masala", "Nimbu Pani" split by energy;
+  "Maaza · 6 brands" 4, "Coca Cola · 4" 3); with every row of the sheet as if approved, 96 more
+  changed: "Maaza", "KitKat" and "Sprite" one product each under their maker, "Coca Cola" one brand.
+  Two foods with wrong values (QA-07) now show on their own just under their name's row, no longer
+  hidden in it: a ghee at 45 kcal and a honey at 0 kcal.
+- Phone app and food data: no migration, no phone schema change (D-88's version 21 stays), no new
+  build. The approved rows reach phones with the next `foods:import` and food list download.
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; CLAUDE.md.
+
+## D-91 Search foods lists the plain food first
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-04 of the search QA report (the plain food
+  listed late: raw potato 191st under chips, banana 86th under a protein powder named "Banana",
+  chicken breast 296th; "watermelon pop", "Ginger Ale", "Lemon Pickle" and a baby cereal first), of
+  the three ways proposed (the plain food first; every brand and packaged food after the other
+  sources; two sections, Foods and Products), "GO with A"). Numbered D-91 because D-90 is
+  fitsphere-af's. Built with D-86, D-88 and D-89 on branch `fix/search-marks`.
+- Answer (REQ-LOG-007; amends D-51 and D-54):
+  - **The plain food the search names comes first**, before an exact match (D-51) and every source
+    (D-54): a food that is not a brand's (brand labels) or a packaged product, named as typed, or as
+    typed and then a part in brackets ("Apple (1 medium)", "Curd (plain)", "Peanut (raw)"), or one
+    of IFCT's named as typed and then a comma ("Banana, ripe, robusta", "Chicken, poultry, breast,
+    skinless": IFCT's way of naming a food's kinds). Other sources' commas list a dish's foods
+    ("Carrot, Radish & Peanut Salad"), so those names are not plain.
+  - Among the plain foods, your own (My foods) first, then IFCT's, measured, then the rest in the
+    order by source; each group as before. Marks, case and accents are ignored as everywhere (D-86,
+    D-88).
+  - Everything else keeps its order: the exact matches (D-51), then the best matches first (D-66),
+    each group by source (D-54). A search with no plain food lists as before: brand searches
+    ("amul", "maggi", "bread", "oats") are unchanged.
+- Checked on the dev database's food list (read only), 578 searches: 93 changed, none of the brand
+  searches. The plain food now comes first for banana (was 86th), apple (53rd), potato (191st),
+  onion (195th), tomato (237th), chicken (296th), milk (318th), rice (262nd), egg (37th), garlic,
+  lemon, coconut, carrot, ginger, watermelon, prawns, groundnut (IFCT's "Ground nut") and others.
+- Not changed, the data's doing: searches with no plain food in the list ("tea", "coffee", "fish",
+  "mutton", "dal"; QA-05); "rice" lists IFCT's raw rice first, the cooked one being "Boiled rice
+  (Uble chawal)" (QA-08). Two plain foods now first that the data names or values poorly: "eggs"
+  finds IFCT's "Eggs, Cat fish" (a fish's eggs) first, and "green tea" the estimated "Green Tea" at
+  55 kcal, its type of dish's typical value.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
+
+## D-92 Search foods: the everyday food first, dry packs last
+- Status: **Accepted** (owner, in chat, 2026-11-12: on QA-08 of the search QA report (raw, dry or
+  premix packs before the food as eaten: "dal" listed raw dal packs, the first cooked dal 51st;
+  "dosa" batters, flours and mixes; "chai" premixes at 436 kcal; "tea" tea leaves; "khichdi" dry
+  mixes), "now fix QA8", then, of the four ways proposed (dry packs by the words of their names;
+  by energy; an everyday-foods sheet chosen by the owner; the first and the third together), "D";
+  then, on the sheet's 16 proposed rows, "approval all"). Built with D-86 to D-91 on branch
+  `fix/search-marks`.
+- Answer (REQ-LOG-007; with D-51, D-54 and D-91):
+  - **Dry packs last.** A packaged food or a brand label whose name has batter, mix, premix, powder,
+    podi, ready to cook (rtc), leaves or leaf comes after every other match, unless the search has
+    that word too ("dosa batter") or names its brand ("mtr", whose packs are mixes). Flour and atta
+    are not among the words: a search for besan or ragi wants the flour.
+  - **The everyday food first.** `docs/data/everyday-foods-sheet.csv` gives, for an everyday word,
+    the food as eaten that Search foods lists before all others, as the owner approves each row:
+    a food of IFCT, INDB, the home-style foods or the estimated dishes, never a brand's.
+    `foods:import` puts each approved word among the food's other names marked "@" ("@rice"), so the
+    phone finds the food by it ("tea" finds "Masala Chai") and lists it first. Other names are never
+    shown. A row whose food is now named otherwise refuses the import, so the sheet is checked again.
+  - 16 rows, all approved by the owner on 2026-11-12: rice (Boiled rice), dal (Dal Tadka), roti and chapati (Chapati/Roti), chai
+    and tea (Masala Chai), coffee (Filter Coffee), dosa (Masala dosa; INDB's Plain dosa at 381 kcal
+    looks too high to choose), khichdi (Moong Dal Khichdi), rajma (Punjabi Rajma Masala), chole
+    (Chana Masala), paratha (Tawa Paratha), biryani (Chicken Biryani), pulao (Veg Pulao), omelette
+    (IFCT's Egg, poultry, omlet) and soup (Vegetable soup); each row says why and the other choice.
+    Most are estimated dishes, with their type of dish's typical values (D-62).
+  - Also: a short search (D-72) finds a food by its last other name again; D-86 had left no space
+    after it.
+- Checked on the dev database's food list (read only), 578 searches: the dry packs' rule changed
+  130, the first row of only 8 (all for a dry form: "dosa" a flour, no longer a batter, first), and
+  no brand search; with every row of the sheet as if approved, 23 more, the 16 words each listing
+  their food first.
+- Phone app and food data: no migration, no phone schema change, no new build. The everyday words
+  reach phones with `foods:import` once rows are approved.
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
+  CLAUDE.md.
+
+## D-93 A workout: the exercise's name in bold, its sets in plain text
+- Status: **Accepted** (owner, in chat, 2026-11-12: with a screenshot of a workout, "I want that
+  excercise name should be higlighted. and the Sets number can be in the normal text. ... come up
+  with the updated canva design and wait for my approval"; of the canvas's three ways beside the app
+  as built, version 94: "lock it A"; locked in version 95). Built on branch `fix/exercise-name-bold`.
+- Answer (REQ-TRN-003):
+  - On a workout (4.2), each exercise's **name** is in bold (Barlow Bold, 17), the card's most
+    visible line.
+  - Its **sets** are plain running text (Barlow Regular, 15, not condensed capitals): "Set 1
+    10 × 20.0 kg", "3 sets  15 reps", the set's label muted as before; so is a cardio or timed
+    exercise's line ("30:00 · 5.00 km", "5:00").
+  - Everything else on the card is unchanged: the number box, the speed and pace line, the note, and
+    Progress, Edit and Remove in the bar at its foot (D-82).
+- MVP default: the workout screen only; Training's rows, Home's day sheet and an exercise's page keep
+  their look.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: the redesign's 4.2; CLAUDE.md.
+
+---
+
+## D-94 The owner's consolidated food database: other names, plurals, more dishes and generic foods
+- Status: **Accepted** (owner, in chat, 2026-11-12: "There is sheet at the location d:/fitsphere-data
+  named: Indian_Food_Database_CONSOLIDATED. check the Sheet Dishes, Branded packed in the both the
+  Sheet there is column Aliases. So When I Search the word with their Aliases the Respective food
+  should also appear ... Strict rule dumped the alieas value to the corresponding food item value. If
+  the Aleases column is empty than Leave corresponding food item aliases column with the exisitng
+  value in the fitsphere. or the Fitshphere db has already some value to the aliases column than
+  append the New value base on your logic. In the Excel sheet name Generic unbranded. There are some
+  Unbranded food items also available. Let say Bread whenever I search for the Bread there should Be
+  unbraded Bread also apear as the search result along with the Branded. So dumped this sheet data as
+  well and their aliases value as well"; on the five-point plan, "point from 1 to 4 -> go. Regarding
+  point 4 that if the user type only the single and its prual presents in the db. so instead of
+  showing nothing shows the plurels food item as well. point 5 also dumped this data as well"). For
+  QA-05 (other names missing) and QA-06 (plurals) of the search QA report. Built on branch
+  `feat/consolidated-foods`. The file's Aliases hold a food's other names (often its base food's names
+  in Indian languages: "doodh dudh milk paal haalu"), not plurals: those are only in its Search Text,
+  which is not used.
+- Answer (REQ-LOG-007; with D-51, D-55, D-59, D-62, D-91 and D-92):
+  - **Other names.** `docs/data/food-aliases-sheet.csv`, made from the file by
+    `npm run consolidated:convert`, gives 7,409 foods the other names the file gives them: IFCT's
+    foods by their code (483; each regional name, then the file's other words), INDB's recipes, the
+    estimated dishes and the home-style foods by their name or their name without the part in
+    brackets (494, 3,043 and 52; a dish listed under several base foods gets each one's names), and
+    packaged foods by their barcode (3,337). `foods:import` adds them after the food's own; a name the
+    food already has, as its name, its brand or another name, is not added again (ignoring case,
+    accents and marks); a food the sheet does not name keeps its other names as they are: 11,404
+    names on 7,408 foods. Other names are never shown; a food found only by them is listed after
+    those found by their name (D-66).
+  - **Packaged foods' other names** are kept with them (migration `0030_packaged_aliases.sql`,
+    `app.packaged_foods.aliases`), sent with the food list only for those that have some, and kept on
+    the phone (schema version 22, which asks for the food list again).
+  - **Plurals, both ways.** A word typed in its other number finds the food too, as a whole word
+    only: "bananas" finds Banana, "rotis" Roti, "potatoes" Potato, "sandwiches" Sandwich, "curries"
+    Curry, "leaves" Leaf; and back: "curry" finds Curries, "leaf" Leaves; a few irregular ones
+    ("geese", "teeth"). A plural made by adding s or es needed nothing: "banana" already found
+    "Bananas". It ranks as the word itself: "bananas" lists like "banana" (the plain food first,
+    D-91; the exact name, D-51; the everyday food, D-92). In every part of Search foods: the food
+    list, packaged foods, dishes and My foods.
+  - **More estimated dishes** (`docs/data/dish-estimates-sheet.csv`, flagged `llm`, D-62's rules):
+    1,634 rows held back in D-62 are approved with the file's values, which it now rates C (most
+    "re-checked"; Classic South Indian Rava Idli now has an idli's values, not a lassi's); 189 dishes
+    FitSphere lacked are added; 6 the file only rates D are added held. Still held: 125 whose values
+    did not fit the dish (D-62's checks) and which the file gives the same values again ("Heart Shaped
+    Tea Sandwiches" with tea's values), 12 that are another food already listed, and 7 not in the
+    file. 6,848 estimated dishes in all, 150 held.
+  - **Generic foods** (the file's "GEN" rows, not in IFCT 2017, rated C): 53 added as home-style
+    foods (D-59, flagged `llm`, `docs/data/home-foods-sheet.csv`), each with its serving and its group
+    as its item ("Sugar, white (granulated)", "Toor Dal, cooked", "Greek Yogurt (plain)"). Not added,
+    their other names going to the food FitSphere has instead: 28 that are the same food in the same
+    form with energy within 20 kcal or 15% (`GENERIC_SAME_AS` in `apps/api/src/foods/consolidated.ts`:
+    the white, brown and multigrain bread slices, butter, honey, IFCT's atta, maida, semolina, poha and
+    boiled egg, and others), and 2 named exactly as a food listed (Hung Curd, Mozzarella Cheese).
+  - **"Bread".** The generic white bread is FitSphere's "White bread slice (Double roti)" (265 kcal),
+    which now has the file's other names ("bread double roti pav slice"). "bread" lists the brands' row
+    "Bread · 6 brands" first and the home-style breads after it; the plain slice is 22nd. A row of the
+    everyday-foods sheet (D-92) lists it first: proposed, then approved by the owner on 2026-11-12
+    ("approve bread"), on the D-96 branch.
+- MVP defaults (D-18):
+  - A dish name two of FitSphere's foods share gets no other names (4: Cheese and tomato sandwich,
+    Paneer Matar Butter Masala, Cabbage rolls, Stuffed bittergourd).
+  - Of a dish's several rows in the file, the one loaded is rated C, re-checked first, of the held
+    row's base food or one the name has.
+  - The 342 INDB recipes the file rates "B - corrected" (INDB's values rejected: frying oil counted as
+    absorbed, cooking water counted) keep INDB's values: they get only their other names here.
+- Checked on the food list built from the repository's files (no database), 592 searches through the
+  phone's own search and ordering, against `main`: 20 searches that found nothing now find foods
+  ("bananas", "rotis", "idlis", "samosas", "curries", "egg fried rice", "alsi", "papita"); the first
+  row changed for 88, plurals now opening on the plain food ("mangoes": Mango, green, raw, not Mango
+  Lassi) and new dishes on themselves ("aloo gobi", "palak paneer", "medu vada" at 290 kcal, not
+  INDB's 746); rows found 32,631 → 52,635. As fast as before (the fastest of four passes 22.9 ms a
+  search, against 23.2). Odd ones left: "cake" opens on the generic "Instant Noodles, dry cake";
+  "haldirams" on a packaged product named only "Haldiram" (a name of D-80's kind).
+- Server, food data and phone: migration 0030; phone schema version 22; no new build. **On
+  `fitsphere-dev`: migration 0030 before the updated API, then `foods:import`; only when the owner
+  says so.**
+- Doc changes: REQ-LOG-007; `docs/data/food-list-sources.md`; `docs/contracts/data-model.md`;
+  CLAUDE.md.
+
+---
+
+## D-96 Search foods: an amount typed with a food, and a search naming several foods
+- Status: **Accepted** (owner, in chat, 2026-11-12, on QA-18 of the search QA report ("2 roti", "1 cup
+  rice", "half plate biryani" and "chicken biryani with raita and salad" found nothing): "I do not want
+  to dumped the new data instead I want the roti in the Search result. and in the measurement tab I
+  can increase the quantity"; of the three ways proposed (A: leave the amount and filler words out of
+  the search; B: A, and the food's page opens on the amount typed; C: B, and a search naming several
+  foods offers each), "B+C"). D-95 is left for another session. Built on branch
+  `feat/search-amounts`, on top of D-94's.
+- Answer (REQ-LOG-007; with D-45, D-51, D-60, D-72 and D-94):
+  - **The amount is not searched for.** A number (2, 1.5, ½, 1/2, two), and after it a size (small,
+    medium, large), a measure (cup, katori, bowl, plate, glass, piece, pc, slice, teaspoon, tsp,
+    tablespoon, tbsp, spoon, serving, scoop, handful; g, kg, ml, litre), pack words (pack, packet,
+    pouch, tin, bottle, jar, box) and "of", are left out of the search; so are "with", "and", "of",
+    "the", "a" and "some" anywhere. "2 roti" searches "roti", "1 cup rice" "rice", "half plate biryani"
+    "biryani", "amul pure ghee 1 litre tin pack" "amul pure ghee", "100g paneer" "paneer". A number is
+    an amount only first in the search or before a measure, size or pack word ("chicken 65" is a
+    dish); "half" only before a measure ("half boiled egg" is a way of cooking); a + or & inside a word
+    stays in it (D-86). A search that is only an amount ("2", "100 g") is searched as typed, and so is
+    one that finds nothing without its number ("7 up", "50 50").
+  - **The food's page opens on the amount** (B), when the food has that measure and the count fits it
+    (in halves, D-45): "2 roti" opens Chapati/Roti on 2 rotis, "half plate biryani" on half a plate,
+    "1 katori rajma" on a katori, "150 g paneer" on 150 grams. A bare count goes to the measure the
+    page opens on, or else the food's first counted one ("2 maggi": 2 servings). A measure the food
+    does not have leaves the page as usual; so does a number in the food's own name ("5 star" opens
+    Cadbury's 5 Star as usual, and lists it first: a food named as typed is an exact match, D-51).
+    Everything stays changeable on the page before Add.
+  - **A search naming several foods** (C): when no one food has every word of a search joining foods
+    with "with", "and", "plus", "&", "+" or a comma, the list says "No one food has all of these. Search
+    each:" and offers a button for each ("chicken biryani", "raita", "salad"), which searches it; each
+    keeps its own amount ("2 roti, dal and rice": "2 roti", "dal", "rice"). The buttons are the app's
+    outlined buttons; the screen (3.6) is otherwise as locked.
+- Checked on the food list built from the repository's files (no database), the 592 searches of
+  D-94's check and 16 more with amounts, against D-94: of the 592, 8 changed. "2 roti" now opens on
+  Chapati/Roti (before: "21 Grain Bread"), "1 cup rice" on Boiled rice, "half plate biryani" on
+  Chicken Biryani, "100 g paneer" on IFCT's Paneer (before: a paneer masala mix "100G"), "amul pure
+  ghee 1 litre tin pack" on Amul's Pure Ghee; "5 star" still lists 5 Star first; "paneer butter masala
+  with butter naan" offers each food (before: one wrong dish). One for the worse: "protein 20g" lists
+  the bars named "20g Protein" 6th and 7th, not first (the 20 g read as an amount).
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-LOG-007; CLAUDE.md.
+
+---
+
+## D-97 Nutrition: each food of an opened meal with its own Edit, Save and Remove
+- Status: **Accepted** (owner, in chat, 2026-11-13: with a screenshot of Lunch opened, one card
+  "Mango & Banana … + 2 more": "In the expanded view I should be able to view the 2 card of each single
+  food ... come up with the updated canva desing and wait for my approval"; then "What is i want to
+  save, edit and Delete only one food item out of 2 than how will I add?"; of the canvas's three ways
+  beside the app as built, version 98 (A: icons on each food's card; B: a bar of words on each; C: tap
+  a food for its sheet), "Lock it A"; locked in version 99). Built on branch `feat/meal-food-actions`.
+- Answer (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001; with D-34, D-64, D-69 and D-70):
+  - An opened meal slot shows each meal's card (3.1): its kcal and protein and "Saved 1:20 pm" on top,
+    its tags, then **a card for each food**: its name and kcal, its amount and protein ("2 × roti
+    (80 g) · 7.4 g protein"), and its own **Edit**, **Save** and **Remove** icons along its foot, 44 dp
+    each, Remove in red.
+  - The whole meal's **Insight, Edit, Save to my meals and Delete** sit in a row of their own at the
+    card's foot, ruled off, under "Whole meal"; they work as before (D-33, D-70).
+  - **Edit** (one food) opens the food's page on its amount, as Log meal's review does (D-64): the
+    meal and its date beside the back arrow ("Lunch · Thu 12 Nov"), "In this meal now: 60 g", **Save
+    change** and **Remove from meal**; a food with no page (one typed once, a barcode product not in
+    the list) opens the sheet for its amount. Save change saves the meal at once, keeping its date,
+    meal, tags and photo; Back leaves it as it was.
+  - **Save** (one food) is "Save to my meals" for that food on its own: named after the food, with a
+    line saying what is saved ("Ghee · 5 g · 45 kcal, on its own"). It keeps the food's amount and is
+    logged later to the meal chosen (D-69). Once saved, its bookmark is filled, and pressing it says
+    "This food is saved as Ghee." with Go to Saved; it is never saved twice.
+  - **Remove** (one food), and Remove from meal on its page, asks first: "Remove Ghee?", "Lunch keeps
+    Wheat flour, atta." (Cancel, Remove). The last food takes the meal with it: "It is the only food
+    in this meal, so the meal is deleted." (Cancel, Delete meal).
+  - A folded slot, the Saved tab's cards, Log meal and Home are unchanged.
+- MVP defaults: a food saved on its own keeps no tags (a tag is about the meal); a meal's photo or
+  image link sits above the "Whole meal" row (the canvas showed none); Remove from meal on the food's
+  page asks first, as the icon does, since the change is saved at once.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-NUT-003, REQ-NUT-004; the redesign's 3.1; constraints' MVP defaults; CLAUDE.md.
+
+---
+
+## D-98 Measurements: notes over 500 characters say so at once
+- Status: **Accepted** (owner, in chat, 2026-11-13: asked how many characters the Notes field of Edit
+  measurements takes (500), then "So if the User has entered the more than 500 character there should
+  be validations message that appear instally"). Built on branch `fix/validation-timing`, with D-99
+  and D-100.
+- Answer (REQ-MEAS-005, REQ-MEAS-006; with D-33):
+  - The Notes box no longer stops at 500 characters (it used to cut typing and pasting off without a
+    word). The moment the notes pass 500, a red message under them says so and how many to remove:
+    "Notes can be up to 500 characters. Remove 12 characters." The box's edge turns red, and "Up to
+    500 characters." gives way to the message.
+  - **Save measurements** waits while the notes are too long, saying "Shorten the notes to save." under
+    it (after "Enter both waist values to save.", which comes first).
+  - Spaces at either end are not saved, so they do not count. The limit is unchanged: 500 characters,
+    on the phone, the server and the database.
+  - The same as an exercise's note already does (D-33), in the app's usual red message.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-MEAS-006; constraints' MVP defaults (measurement notes, the measurements sheet);
+  CLAUDE.md.
+
+---
+
+## D-99 Messages show three seconds after typing stops, never on a button
+- Status: **Accepted** (owner, in chat, 2026-11-13: "the validations message must appear when user stop
+  typing on the input fields instally not on when the user click on the button"; then, approving the
+  field list ("approval all"): "all the validations should shows when the User stop typing just after 5
+  second."; then, asked whether the wait is one number for every field: "so lets change it to 3
+  seconds than"). Built on branch `fix/validation-timing`, with D-98 and D-100.
+- Answer (REQ-ACC-007, REQ-ACC-010, REQ-ACC-011, REQ-HOME-006, REQ-MEAS-006, REQ-ROLE-007, REQ-LOG-007,
+  REQ-SAVED-001, REQ-TRN-003; with D-33):
+  - Every typed field is checked from what is typed now. Its message shows **three seconds after typing
+    in it stops, or as soon as the field is left**, and goes the moment the field is put right. This
+    holds on Sign in, Sign up, Forgot password, Set a new password, Change password, Profile, the
+    weight, steps, sleep and target sheets, Measurements, Log meal's food page, Enter your own food,
+    the amount sheet, the barcode sheet, the image link, Save to my meals and the exercise sheet.
+  - An empty field's message ("Enter …") shows only once the field has been left empty, not when the
+    screen opens.
+  - The **date of birth** and the **address**, each one message for several boxes, wait while they are
+    being typed in and not yet complete, and show once they are complete or left. The exercise name's
+    waits while the exercise list is open.
+  - **Buttons wait** (greyed) while a field has a problem, with a line under them saying what is missing
+    or to check ("Enter your email address and password to sign in.", "Check the address to save.",
+    "Fix the fields in red to save.", "Enter the time to save."); no message waits for a button. The
+    server's own answers still show after the button: "Email or password is incorrect." (D-11), a wrong
+    current password, the same password as now.
+  - Text is never cut off silently at its limit: past it, the field says so (D-98, D-100). Only the
+    search boxes stop at their limit.
+- MVP default: the three seconds are one number in the app (`CHECK_PAUSE_MS` in
+  `apps/mobile/src/fieldChecks.ts`); the tests see a problem at once.
+- Phone app only for the timing: no server change for it.
+- Doc changes: the requirements named above; constraints' MVP defaults; CLAUDE.md.
+
+## D-100 The ranges and text rules of every typed field
+- Status: **Accepted** (owner, in chat, 2026-11-13: "Person Heght can be from 50 CM to 300 cm."; then,
+  of the list of every field with its range and message, "approval all: just change these: steps range
+  should be: 1 to 200000; Keep the range same as of now Upper and lower waist, Chest, Hips, Arms, Thighs;
+  caloroies range 0 to 10000; Protein range o to 500g; carbs 0 to 1000; date [fat] 0 to 1000; fiber 0 to
+  200; steps 0 to 200000; for the Excercise sheet weight lifted rage 0.1 to 1000, Time spent range keep
+  the same"). "date" is read as fat, the target between carbs and fibre in the list.
+- Answer (changes D-38's height, Q-028's steps, D-23's and D-70's targets, D-29's and D-50's exercise
+  limits; the rest of each list is as it was):
+  - **Profile:** height 50 to 300 cm (19.7 to 118.1 in), was 100 to 250; a name of 2 to 60 letters of
+    any script, spaces and . ' - ("Enter a name of 2 to 60 letters."); address line 1 of 3 to 100
+    characters ("Enter line 1 in 3 to 100 characters."), line 2 up to 100; a city and a state of 2 to 60
+    letters, spaces, . and - ("Enter a city of 2 to 60 letters."); a PIN code of six digits, the first
+    not 0.
+  - **Daily steps:** 1 to 200,000, was 0 to 100,000. Measurements stay 10 to 250 cm.
+  - **Targets:** calories 0 to 10,000 kcal; protein 0 to 500 g; carbs 0 to 1,000 g; fat 0 to 1,000 g;
+    fibre 0 to 200 g; steps 0 to 200,000; workouts a week (1 to 14) and body weight (20 to 300 kg) as
+    they were. A target of 0 shows "–" for its percentage, and anything eaten is over it.
+  - **Exercise sheet:** weight lifted 0.1 to 1,000 kg, was 500; a timed set 1 second to an hour, was 24
+    hours; distance 0.01 to 200 km, was 500; calories burned 1 to 3,000 kcal, was 5,000 (an estimate
+    over it shows 3,000); heart rate 30 to 220, was 250; time spent (1 to 1,440 minutes), reps, speed,
+    incline, level and the cardio time as they were.
+  - **Sign in and sign up:** an email address of at most 254 characters ("Email can be up to 254
+    characters."); passwords 8 to 72 characters as before.
+  - **Meals:** your own food's name 2 to 120 characters ("Enter the food's name in 2 to 120
+    characters."); a saved meal's name over 60 characters says so ("Names can be up to 60
+    characters."), not cut off; the search box stops at 100 characters, with no message.
+- Phone, API and database: `packages/shared` (`units.ts`, `contracts.ts`), and migration
+  `0032_wider_ranges.sql` (the checks on `app.profiles.height_mm`, `app.step_counts.steps`, added
+  `not valid` so a day already saved with 0 steps stays, and `app.targets.value`; numbered 0032 as 0031
+  is kept for another branch). The database keeps its wider checks on names, the address and the PIN
+  code; the API applies the new rules. No phone schema change, no new build. **On `fitsphere-dev`:
+  migration 0032 before the updated API; only when the owner says so.**
+- Doc changes: REQ-HOME-006, REQ-ROLE-007, REQ-ACC-011, REQ-TRN-003; `docs/contracts/data-model.md`;
+  constraints' MVP defaults; CLAUDE.md.
+
 ---
 
 ---

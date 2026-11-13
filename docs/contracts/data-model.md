@@ -3,8 +3,10 @@
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-12 (gym members, D-90: `users.is_gym_member`, migration 0029, for the
-  Coach view built by another team). 2026-11-11 (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema
-  version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
+  Coach view built by another team). Earlier the same day (the owner's consolidated food database, D-94: migration 0030,
+  `packaged_foods.aliases`, phone schema version 22). Earlier the same day (everyday foods, D-92: "@" words among `app.foods.aliases`). Earlier the same
+  day (Search foods ignores accents, D-88: phone schema version 21). 2026-11-11
+  (an exercise's page, D-82: `details` in `GET /v1/exercises`, phone schema version 20). Earlier the same day (the exercise library's details, D-81: migration 0028).
   Earlier the same day (targets by date, D-77: migration 0027, phone schema version 19).
   2026-11-10 (the workout timer, D-71: migrations 0025 and 0026, phone schema version 18).
   Earlier the same day (the exercise library's places, D-67: migration 0022, phone schema version 16).
@@ -179,7 +181,7 @@ post-MVP (Q-015, backlog B-14).
 | `id` | `uuid` | Primary key |
 | `user_id` | `uuid` | References `users`, deleted with the user |
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
-| `steps` | `integer` | Not null, **Health**. 0 to 100,000 (Q-028 MVP default) |
+| `steps` | `integer` | Not null, **Health**. 1 to 200,000 (D-100; was 0 to 100,000, Q-028; the check is `not valid`, so a day saved with 0 before stays) |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
@@ -274,7 +276,7 @@ the values are treated as **Health** data.
 | `user_id` | `uuid` | References `users`, deleted with the user. Whose target it is |
 | `kind` | `text` | `calories`, `protein`, `carbs`, `fat`, `fibre` (D-70), `steps`, `weekly_workouts` or `body_weight` (check `targets_kind`, migration 0024) |
 | `day` | `date` | Not null. The IST day the value starts (D-77): the day it was set on the phone, kept as its own field (invariant 5), never later than today. Migration 0027 gave the rows already there the IST day their user's account was created |
-| `value` | `integer` | Not null. kcal 500–10,000; protein in grams 10–500; steps 1–100,000; workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028); carbs in grams 10–1,000, fat 5–500, fibre 5–100 (D-70) (check `targets_value`) |
+| `value` | `integer` | Not null. kcal 0–10,000; protein in grams 0–500; steps 0–200,000; carbs in grams 0–1,000, fat 0–1,000, fibre 0–200 (D-100; were 500, 10, 1, 10, 5–500 and 5–100, D-23 and D-70); workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028) (check `targets_value`) |
 | `set_by_user_id` | `uuid` | References `users`, `on delete set null`. Who set it: always the caller, from the sign-in token, never from the request. Null only once that person's account is deleted (backlog E-02) |
 | `set_at` | `timestamptz` | Not null. When it was set, on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
@@ -319,7 +321,7 @@ user: no coach or Head Coach sees it in the MVP (D-20). Migration 0010.
 | `name` | `text` | 1 to 60 characters, trimmed, or null |
 | `date_of_birth` | `date` | **Health.** Or null. The API refuses one that makes the user under 18 or over 120 on today's IST day (REQ-ACC-010) |
 | `sex` | `text` | **Health.** `female`, `male`, `other` or `prefer_not_to_say`, or null |
-| `height_mm` | `integer` | **Health.** Whole millimetres, 1,000 to 2,500 (100–250 cm; invariant #6), or null |
+| `height_mm` | `integer` | **Health.** Whole millimetres, 500 to 3,000 (50–300 cm, D-100; was 100–250 cm; invariant #6), or null |
 | `phone` | `text` | **Contact.** `+91` and a 10-digit Indian mobile number (first digit 6 to 9), or null. Not verified |
 | `address_line1`, `address_line2`, `city`, `state`, `pin_code` | `text` | **Contact.** All null, or line 1 (1–100 characters), the city and the state (1–60 each) and a 6-digit PIN code; line 2 (1–100) optional |
 | `photo_media_id` | `uuid` | The profile photo's row in `media` (kind `profile`), or null |
@@ -456,7 +458,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | `estimated` | `boolean` | True when `kcal` is estimated |
 | `needs_review`, `note` | `boolean`, `text` | The source PDF's review flag and its reason |
 | `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
-| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62) |
+| `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62); and, after them, the everyday words the food is listed first for, each marked with "@" ("@rice", D-92, from the approved rows of `docs/data/everyday-foods-sheet.csv`); then the other names the owner's food database gives it, those it lacks (D-94, `docs/data/food-aliases-sheet.csv`). Never shown; the phone reads them only to search and order |
 | `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06; since migration 0019 (D-53) also `llm` on those holding an AI tool's estimates. Server only: never in `GET /v1/foods`; nothing reads it yet |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 
@@ -507,7 +509,7 @@ A serving's name is never changed, since a meal logged with it is checked by tha
 
 ### `packaged_foods` — reference data
 Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009): loaded from
-`data/foods/off-india-products.csv` by `foods:import`, replaced whole. Migration 0014. Kept apart from
+`data/foods/off-india-products.csv` by `foods:import`, replaced whole. Migrations 0014 and 0030. Kept apart from
 `foods` and from `barcode_products` (ADR-0006 rule 2). Not personal data; row level security on, no
 policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 
@@ -520,6 +522,7 @@ policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 | `protein_g`, `carbs_g`, `fat_g` | `numeric(6,2)` | 0 to 100, per 100 g |
 | `fibre_g` | `numeric(6,2)` | Null, or 0 to 100, per 100 g |
 | `serving_grams` | `numeric(7,2)` | Null, or more than 0 and at most 2,000: one serving, when the label gives it in grams |
+| `aliases` | `text[]` | Other names to search by, never shown (D-94): from `docs/data/food-aliases-sheet.csv`, the owner's food database's; empty for most. Sent only when not empty |
 
 ### `exercises` — reference data
 FitSphere's exercise list (D-50; `docs/data/exercise-list-sources.md`): loaded from
@@ -725,6 +728,7 @@ searches. The setting lasts as long as the connection and is set at each start.
   food. The update fills them from the rows already on the phone and keeps `food_list_version`, so
   search keeps working offline and nothing is downloaded again. The packaged foods are written 90
   rows a statement. My foods and dishes, a few rows each, are read the same way at search time.
+  Since D-86 and D-88 the search text has accents taken off and every mark but % read as a space.
 - **Version 16** (the exercise library, D-67) adds `exercises.places` (JSON) and `exercises.place_keys`
   and clears `exercise_list_version`, so the next download brings them. The list is written 80 rows a
   statement.
@@ -736,6 +740,13 @@ searches. The setting lasts as long as the connection and is set at each start.
   pulls every target value with its day.
 - **Version 20** (an exercise's page, D-82) adds `exercises.details` (JSON, null when the library has
   none) and clears `exercise_list_version`, so the next download brings them.
+- **Version 21** (accents ignored, D-88) clears `food_list_version`, so the next download writes every
+  food's and packaged food's search text again, accents taken off. The foods stay on the phone and are
+  searched with their old search text until then.
+- **Version 22** (other names for packaged foods, D-94) adds `packaged_foods.aliases` (JSON, `[]` until
+  the list comes) and `packaged_foods.search_aliases` (as a search reads them) and clears
+  `food_list_version`, so the next download brings them. The products stay, searched by name and brand
+  until then.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.

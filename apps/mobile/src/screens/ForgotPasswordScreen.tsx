@@ -7,8 +7,9 @@ import { requestPasswordReset } from '../auth/service';
 import { emailProblem, TEXTS } from '../auth/texts';
 import { DisplayHeading } from '../components/DisplayHeading';
 import { FormScreen } from '../components/FormScreen';
-import { Banner, Field, Message, TextButton } from '../components/ui';
+import { Banner, ButtonHint, Field, Message, TextButton } from '../components/ui';
 import { Wordmark } from '../components/Wordmark';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles } from '../theme';
 import { backToSignIn } from './navigation';
 
@@ -22,13 +23,14 @@ export function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  // The address's problem shows once typing pauses or the field is left; the button waits (D-99).
+  const checks = useFieldChecks({ email });
+  const problem = emailProblem(email);
 
   async function submit() {
     setMessage(null);
-    const problem = emailProblem(email);
-    setEmailError(problem);
     if (problem) return;
     setBusy(true);
     const result = await requestPasswordReset(deps, email);
@@ -48,7 +50,10 @@ export function ForgotPasswordScreen() {
         ) : (
           <>
             <Message text={message} offline={message === TEXTS.needsInternet('Resetting a password')} />
-            <TextButton title="Send reset link" filled arrow busy={busy} onPress={() => void submit()} />
+            <TextButton title="Send reset link" filled arrow busy={busy} disabled={problem !== null} onPress={() => void submit()} />
+            {problem ? (
+              <ButtonHint text={problem === TEXTS.emailRule ? 'Enter your email address to get the link.' : 'Check your email address to get the link.'} />
+            ) : null}
             <TextButton title="Back to sign in" outlined wide onPress={() => backToSignIn(router)} />
           </>
         )
@@ -62,9 +67,11 @@ export function ForgotPasswordScreen() {
         ) : (
           <Field
             label="Email"
-            error={emailError}
+            error={checks.shows('email') ? problem : null}
             value={email}
             onChangeText={setEmail}
+            onFocus={() => checks.focus('email')}
+            onBlur={() => checks.blur('email')}
             keyboardType="email-address"
             autoComplete="email"
           />

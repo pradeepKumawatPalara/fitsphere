@@ -400,13 +400,14 @@ const useStyles = themedStyles((c) => ({
   number: { width: 36, height: 36, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSunken },
   numberText: { ...TYPE.metric, fontSize: 16, lineHeight: 18, color: c.accent },
   exerciseText: { flex: 1, gap: 2 },
-  name: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
-  sets: { ...TYPE.metric },
+  // D-93: the exercise's name stands out in bold; its sets and cardio line are plain running text.
+  name: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  sets: { fontSize: 15, lineHeight: 22, fontVariant: ['tabular-nums'] },
   // D-63: a row per set, its label ("Set 2", "3 sets") muted in a column of its own.
   setRows: { gap: 2 },
   setRow: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
-  setLabel: { ...TYPE.label, fontSize: 14, lineHeight: 24, letterSpacing: 1, minWidth: 54, color: c.inkMuted },
-  setValue: { ...TYPE.metric, flexShrink: 1, fontSize: 21 },
+  setLabel: { fontSize: 15, lineHeight: 22, minWidth: 54, color: c.inkMuted },
+  setValue: { flexShrink: 1, fontSize: 15, lineHeight: 22, fontVariant: ['tabular-nums'] },
   body: { flexShrink: 1, fontSize: 15, lineHeight: 22 },
   confirmWords: { flex: 1, gap: 6 },
   confirmTitle: { fontSize: 16, lineHeight: 22, fontWeight: '600' },

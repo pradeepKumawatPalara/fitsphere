@@ -7,6 +7,7 @@ import { sameSets, TEST_EXERCISE_LIST, withExerciseList } from '../testing/exerc
 import { exerciseRules, type SetText } from '../workouts';
 import { TrainingScreen } from './TrainingScreen';
 import { WorkoutScreen } from './WorkoutScreen';
+import { setCheckPause } from '../fieldChecks';
 
 const RULES = exerciseRules('kg');
 
@@ -86,6 +87,8 @@ async function fillSets(sets: Partial<SetText>[]) {
     for (const [column, value] of Object.entries(set)) {
       const label = new RegExp(`^Set ${index + 1}, ${COLUMNS[column as keyof SetText]}`);
       await fireEvent.changeText(await screen.findByLabelText(label), value);
+      // Moving on to the next field, as the user does (D-99: an empty field's problem shows once left).
+      await fireEvent(screen.getByLabelText(label), 'blur');
     }
   }
 }
@@ -184,6 +187,12 @@ describe('D-50 picking from the exercise list', () => {
       expect(screen.getByText(label)).toBeOnTheScreen();
       expect(screen.getByText(value)).toBeOnTheScreen();
     }
+    // D-93: the name stands out in bold; the sets are plain running text, not condensed capitals.
+    expect(screen.getByText('Dumbbell bench press')).toHaveStyle({ fontFamily: 'Barlow_700Bold' });
+    expect(screen.getByText('Set 1')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
+    expect(screen.getByText('Set 1')).not.toHaveStyle({ textTransform: 'uppercase' });
+    expect(screen.getByText('10 × 20.0 kg')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
+    expect(screen.getByText('10 × 20.0 kg')).not.toHaveStyle({ textTransform: 'uppercase' });
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         {
@@ -208,7 +217,7 @@ describe('D-50 picking from the exercise list', () => {
     await fillSets([{ reps: '10', weight: '20' }, { reps: '8', weight: '' }]);
     await save();
 
-    expect(await screen.findByText('Set 2: enter the weight you lifted, from 0.1 to 500.0 kg.')).toBeOnTheScreen();
+    expect(await screen.findByText('Set 2: enter the weight you lifted, from 0.1 to 1000.0 kg.')).toBeOnTheScreen();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
   });
 
@@ -289,6 +298,8 @@ describe('D-50 picking from the exercise list', () => {
     await save();
 
     expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km' })).toBeOnTheScreen();
+    // D-93: the cardio line is plain running text too.
+    expect(screen.getByText('30:00 · 5.00 km')).toHaveStyle({ fontFamily: 'Barlow_400Regular' });
     await waitFor(() =>
       expect(server.entries('workouts').get(id)?.exercises).toEqual([
         { kind: 'cardio', name: 'Running', ...NONE, ...CARDIO, durationSeconds: 1_800, distanceMetres: 5_000 },
@@ -332,8 +343,13 @@ describe('D-50 picking from the exercise list', () => {
     await openSheet();
 
     await pick('yoga', 'Yoga');
-    await save();
+    // D-99: Save waits, saying what is missing; the time's rule shows once its box is left empty.
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeDisabled();
+    expect(screen.getByText('Enter the time to save.')).toBeOnTheScreen();
+    expect(screen.queryByText(RULES.time)).toBeNull();
+    await fireEvent(screen.getByLabelText('Time, minutes'), 'blur');
     expect(await screen.findByText(RULES.time)).toBeOnTheScreen();
+    await save();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
 
     await fireEvent.changeText(screen.getByLabelText('Time, minutes'), '45');
@@ -421,7 +437,7 @@ describe('REQ-TRN-003 the rules of an exercise (Q-042; D-29, D-50)', () => {
     [{ reps: '2.5' }, `Set 1: ${RULES.reps}`],
     [{ reps: '' }, `Set 1: ${RULES.reps}`],
     [{ weight: '0' }, `Set 1: ${RULES.optionalWeight}`],
-    [{ weight: '500.1' }, `Set 1: ${RULES.optionalWeight}`],
+    [{ weight: '1000.1' }, `Set 1: ${RULES.optionalWeight}`],
     [{ weight: '40.25' }, `Set 1: ${RULES.optionalWeight}`],
     [{ weight: 'abc' }, `Set 1: ${RULES.optionalWeight}`],
     [{ note: 'x'.repeat(501) }, RULES.note],
@@ -432,6 +448,24 @@ describe('REQ-TRN-003 the rules of an exercise (Q-042; D-29, D-50)', () => {
 
     expect(await screen.findByText(rule)).toBeOnTheScreen();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
+  });
+
+  it('D-99 a set’s problem shows once typing pauses, without Save, which waits; put right, it goes at once', async () => {
+    // A short pause in place of the three seconds.
+    setCheckPause(300);
+    await startWorkout();
+    await openSheet();
+    await typeName('Squat');
+
+    await fireEvent.changeText(screen.getByLabelText(/^Set 1, Reps/), '0');
+    expect(screen.queryByText(`Set 1: ${RULES.reps}`)).toBeNull();
+    expect(await screen.findByText(`Set 1: ${RULES.reps}`)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeDisabled();
+    expect(screen.getByText('Fix the fields in red to save.')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText(/^Set 1, Reps/), '10');
+    expect(screen.queryByText(`Set 1: ${RULES.reps}`)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeEnabled();
   });
 
   it('shows every problem at once, each under its field', async () => {

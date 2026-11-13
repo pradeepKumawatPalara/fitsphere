@@ -67,7 +67,9 @@ describe('D-72 Search foods searches less often', () => {
     const searched: BindValue[] = [];
     const read = db.getAllAsync.bind(db);
     jest.spyOn(db, 'getAllAsync').mockImplementation((source, params) => {
-      if (source.includes('FROM foods WHERE source = ?')) searched.push(params[1] ?? null);
+      // The word looked for anywhere in a name ("%bread%"), wherever the query has it (D-92 put the
+      // everyday food's test, "% bread %" and "@bread", before it).
+      if (source.includes('FROM foods WHERE source = ?')) searched.push(params.find((param) => typeof param === 'string' && /^%[^ ].*[^ ]%$/.test(param)) ?? null);
       return read(source, params);
     });
 

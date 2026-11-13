@@ -55,8 +55,8 @@ export function validBarcode(barcode: string): boolean {
 export type Skipped = 'barcode' | 'name' | 'values' | 'energy';
 
 const BARCODE = /^\d{8,14}$/;
-const NAME_MAX = 120;
-const BRAND_MAX = 80;
+export const NAME_MAX = 120;
+export const BRAND_MAX = 80;
 const KCAL_PER_KJ = 1 / 4.184;
 
 /**

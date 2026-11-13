@@ -1,11 +1,13 @@
-import { addDays, type IstDay, type MealTotals, type MealType } from '@fitsphere/shared';
+import { addDays, type IstDay, type MealItem, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Bookmark, ChevronDown, ChevronUp, ClipboardList, History, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
 import { LogMealButton } from '../components/LogMealButton';
+import { LoggedMealCard } from '../components/LoggedMealCard';
 import { MealCard } from '../components/MealCard';
+import { andList, useFoodChange } from '../components/MealFoods';
 import { ActionsSheet, ConfirmSheet, RelogSheet, SAVED_NAME_HINT, SaveMealSheet } from '../components/MealSheets';
 import { WeekStrip } from '../components/WeekStrip';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
@@ -20,7 +22,7 @@ import {
   type LocalSavedMeal,
 } from '../local/store';
 import { sameFoods } from '../mealItems';
-import { describeItems, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
+import { describeItems, formatAmount, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
@@ -36,8 +38,12 @@ const TABS: { tab: Tab; label: string }[] = [
 type Sheet =
   | { kind: 'deleteMeal'; meal: LocalMeal }
   | { kind: 'saveMeal'; meal: LocalMeal }
-  // A meal whose foods are already a saved meal: its bookmark is filled, and it is not saved twice.
-  | { kind: 'alreadySaved'; saved: LocalSavedMeal }
+  // A meal, or one of its foods (D-97), whose foods are already a saved meal: its bookmark is filled,
+  // and it is not saved twice.
+  | { kind: 'alreadySaved'; saved: LocalSavedMeal; what: 'meal' | 'food' }
+  // One food of a logged meal (D-97): saved on its own, or taken out of the meal after asking.
+  | { kind: 'saveFood'; meal: LocalMeal; index: number }
+  | { kind: 'removeFood'; meal: LocalMeal; index: number }
   | { kind: 'deleteSaved'; saved: LocalSavedMeal }
   | { kind: 'relog'; saved: LocalSavedMeal }
   // "Create a saved meal" (D-69): its name first, then its foods on their own screen.
@@ -49,7 +55,8 @@ function asTab(value: string | undefined): Tab | null {
 
 // Nutrition (REQ-NUT-001…004, REQ-PLAN-007, REQ-SAVED-001…003): the selected day's meals by slot,
 // the Diet plan empty state (D-20) and the saved meals, made here or from a logged meal, each logged
-// to the meal the user chooses (D-69). Shares the selected date with Home.
+// to the meal the user chooses (D-69). Shares the selected date with Home. An opened meal shows each of
+// its foods with its own Edit, Save and Remove (D-97); a change to one food saves the meal at once.
 /** Food names shown in a closed slot, before "+ N more". */
 const FOODS_SHOWN = 5;
 
@@ -75,6 +82,8 @@ export function NutritionScreen() {
   const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // One food of a logged meal open on its own page, or in the sheet for its amount (D-97).
+  const food = useFoodChange({ backLabel: 'Back to Nutrition' });
   // The slots opened to show each meal (D-34): all closed again when the day changes.
   const [open, setOpen] = useState<ReadonlySet<MealType>>(new Set());
   const [openDay, setOpenDay] = useState(selected);
@@ -112,6 +121,33 @@ export function NutritionScreen() {
       active = false;
     };
   }, [local.state, selected, stripStart, sync.version]);
+
+  /** Saves a logged meal with its foods changed (D-97), keeping its date, meal, tags and photo. */
+  function saveFoods(meal: LocalMeal, items: MealItem[]) {
+    void sync.save('meal', { id: meal.id, day: meal.day, mealType: meal.mealType, tags: meal.tags, items, photo: meal.photo ?? null });
+  }
+
+  /** The saved meal that is this food alone, if any (D-97). */
+  function savedAlone(item: MealItem): LocalSavedMeal | null {
+    return saved.find((entry) => sameFoods(entry.items, [item])) ?? null;
+  }
+
+  function editFood(meal: LocalMeal, index: number) {
+    const item = meal.items[index];
+    if (!item) return;
+    void food.change(item, {
+      context: `${MEAL_TYPE_LABELS[meal.mealType]} · ${formatDay(meal.day)}`,
+      onChange: (changed) => saveFoods(meal, meal.items.map((current, at) => (at === index ? changed : current))),
+      onRemove: () => setSheet({ kind: 'removeFood', meal, index }),
+    });
+  }
+
+  function saveFood(meal: LocalMeal, index: number) {
+    const item = meal.items[index];
+    if (!item) return;
+    const savedAs = savedAlone(item);
+    setSheet(savedAs ? { kind: 'alreadySaved', saved: savedAs, what: 'food' } : { kind: 'saveFood', meal, index });
+  }
 
   function logMeal(slot?: MealType) {
     router.push({ pathname: '/log-meal', params: { day: selected, ...(slot ? { slot } : {}) } });
@@ -211,20 +247,25 @@ export function NutritionScreen() {
                     ? slotMeals.map((meal) => {
                         const savedAs = saved.find((entry) => sameFoods(entry.items, meal.items)) ?? null;
                         return (
-                          <MealCard
+                          <LoggedMealCard
                             key={meal.id}
                             title={`${label}: ${describeItems(meal.items)}`}
+                            slotLabel={label}
                             items={meal.items}
                             tags={meal.tags}
                             totals={meal}
                             syncState={meal.syncState}
                             photo={meal.photo ? { mealId: meal.id, photo: meal.photo } : null}
                             savedAt={meal.recordedAt}
+                            savedAs={savedAs?.name ?? null}
+                            foodsSavedAs={meal.items.map((item) => savedAlone(item)?.name ?? null)}
                             onInsight={() => router.push({ pathname: '/insight', params: { day: selected, scope: slot } })}
                             onEdit={() => router.push({ pathname: '/log-meal', params: { mealId: meal.id } })}
-                            onSave={() => setSheet(savedAs ? { kind: 'alreadySaved', saved: savedAs } : { kind: 'saveMeal', meal })}
-                            savedAs={savedAs?.name ?? null}
+                            onSave={() => setSheet(savedAs ? { kind: 'alreadySaved', saved: savedAs, what: 'meal' } : { kind: 'saveMeal', meal })}
                             onDelete={() => setSheet({ kind: 'deleteMeal', meal })}
+                            onEditFood={(index) => editFood(meal, index)}
+                            onSaveFood={(index) => saveFood(meal, index)}
+                            onRemoveFood={(index) => setSheet({ kind: 'removeFood', meal, index })}
                           />
                         );
                       })
@@ -260,7 +301,6 @@ export function NutritionScreen() {
                   key={entry.id}
                   title={entry.name}
                   name={entry.name}
-                  standalone
                   items={entry.items}
                   tags={entry.tags}
                   totals={entry}
@@ -306,9 +346,31 @@ export function NutritionScreen() {
           actions={[{ label: 'Go to Saved', onPress: () => setTab('saved') }]}
           onClose={() => setSheet(null)}
         >
-          <Text style={styles.sheetText}>This meal is saved as {sheet.saved.name}.</Text>
+          <Text style={styles.sheetText}>
+            This {sheet.what} is saved as {sheet.saved.name}.
+          </Text>
         </ActionsSheet>
       ) : null}
+      {sheet?.kind === 'saveFood' && sheet.meal.items[sheet.index] ? (
+        <SaveFoodSheet
+          item={sheet.meal.items[sheet.index]!}
+          onSave={(name, item) => {
+            // Never twice: the same food may have been saved on its own since the sheet opened.
+            if (savedAlone(item)) return;
+            void sync.save('savedMeal', { id: sync.newId(), name, tags: [], items: [item] });
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {sheet?.kind === 'removeFood' ? (
+        <RemoveFoodSheet
+          meal={sheet.meal}
+          index={sheet.index}
+          onRemove={(meal, items) => (items.length > 0 ? saveFoods(meal, items) : void sync.remove('meal', meal.id))}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {food.sheets}
       {sheet?.kind === 'deleteSaved' ? (
         <ConfirmSheet
           title="Delete this saved meal?"
@@ -347,6 +409,55 @@ export function NutritionScreen() {
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * "Save to my meals" for one food of a logged meal (D-97): named after the food, saying what is saved;
+ * the food keeps its amount, and no tags (MVP default: a tag is about the meal).
+ */
+function SaveFoodSheet({ item, onSave, onClose }: { item: MealItem; onSave(name: string, item: MealItem): void; onClose(): void }) {
+  return (
+    <SaveMealSheet
+      initialName={suggestedSavedName([item])}
+      message={`${item.name} · ${formatAmount(item.amount)} · ${formatKcal(item.kcal)}, on its own`}
+      onSave={(name) => onSave(name, item)}
+      onClose={onClose}
+    />
+  );
+}
+
+/**
+ * Asks before taking one food out of a logged meal (D-97): the meal keeps its other foods; the last
+ * food takes the meal with it, so the button says Delete meal.
+ */
+function RemoveFoodSheet({
+  meal,
+  index,
+  onRemove,
+  onClose,
+}: {
+  meal: LocalMeal;
+  index: number;
+  /** The meal's foods without this one; none left deletes the meal. */
+  onRemove(meal: LocalMeal, items: MealItem[]): void;
+  onClose(): void;
+}) {
+  const item = meal.items[index];
+  if (!item) return null;
+  const rest = meal.items.filter((_, at) => at !== index);
+  return (
+    <ConfirmSheet
+      title={`Remove ${item.name}?`}
+      message={
+        rest.length > 0
+          ? `${MEAL_TYPE_LABELS[meal.mealType]} keeps ${andList([...new Set(rest.map((other) => other.name))])}.`
+          : 'It is the only food in this meal, so the meal is deleted.'
+      }
+      confirmLabel={rest.length > 0 ? 'Remove' : 'Delete meal'}
+      onConfirm={() => onRemove(meal, rest)}
+      onClose={onClose}
+    />
   );
 }
 

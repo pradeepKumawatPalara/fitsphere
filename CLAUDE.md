@@ -12,6 +12,73 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Every field's message three seconds after typing stops, the approved ranges, measurement notes —
+built on branch `fix/validation-timing` (D-98, D-99, D-100, 2026-11-13), in `D:\fitsphere`.** D-99:
+every typed field's message shows three seconds after typing stops or once the field is left (an empty
+one only once left), never because a button was pressed; buttons are greyed meanwhile, with a line
+saying what is missing (`apps/mobile/src/fieldChecks.ts`, `CHECK_PAUSE_MS`; tests use 0). D-100: the
+owner's ranges and text rules for every field (height 50–300 cm; daily steps 1–200,000; targets from
+0, fat to 1,000 g, fibre to 200 g, steps to 200,000; weight lifted to 1,000 kg; profile name, address,
+PIN and email rules), on the phone, the API and the database (migration `0032_wider_ranges.sql`; 0031
+is kept for another branch). D-98: the measurement Notes box no longer cuts off at 500 characters.
+No phone schema change, no new build. **On `fitsphere-dev`: migration 0032 before the updated
+API; only when the owner says so.**
+
+**Each food of an opened meal with its own Edit, Save and Remove — built on branch
+`feat/meal-food-actions` (D-97, 2026-11-13), in `D:\fitsphere`.** Canvas boards `MealFoods*` A locked
+(version 99). In Nutrition › Consumed, an opened meal's card shows a card for each food (name, kcal,
+amount, protein) with its own Edit (the food's page, or the sheet for its amount; saved at once), Save
+(that food alone to Saved) and Remove (asks first; the last food deletes the meal); the whole meal's
+Insight, Edit, Save and Delete sit under "Whole meal" (`components/LoggedMealCard.tsx`; `useFoodChange`
+in `components/MealFoods.tsx`, shared with Log meal's review). Phone app only: no server change, no
+migration, no phone schema change, no new build.
+
+**An amount typed with a food in Search foods — built on branch `feat/search-amounts` (D-96,
+2026-11-12), on top of `feat/consolidated-foods`, in `D:itsphere-search-marks`.** QA-18: "2 roti",
+"1 cup rice", "half plate biryani" search the food (`readSearch` in `apps/mobile/src/searchAmount.ts`
+leaves out the amount, its measure and words like "with"), and the food's page opens on the amount when
+the food has that measure (`startFromSearch` in `FoodDetail.tsx`); a search joining several foods that
+nothing matches offers a button for each ("chicken biryani with raita and salad"). D-95 is left for
+another session. Phone app only: no server change, no migration, no new build.
+
+**The owner's consolidated food database: other names, plurals, more dishes and generic foods — built
+on branch `feat/consolidated-foods` (D-94, 2026-11-12), in `D:itsphere-search-marks`.** From the
+owner's `Indian_Food_Database_CONSOLIDATED.xlsx` (kept outside the repository, in `D:itsphere-data`),
+`npm run consolidated:convert` (`apps/api/src/foods/consolidated.ts`) writes
+`docs/data/food-aliases-sheet.csv` (other names for 7,409 foods: IFCT by code, dishes by name, packaged
+foods by barcode; `foods:import` adds those a food lacks), approves 1,634 held rows and adds 195 to
+`docs/data/dish-estimates-sheet.csv`, and adds 53 generic foods to `docs/data/home-foods-sheet.csv`
+(28 FitSphere already has, `GENERIC_SAME_AS`, give their names to it instead). Packaged foods keep
+other names (migration `0030_packaged_aliases.sql`, phone schema version 22). Search foods tries a
+word's other number as a whole word ("bananas" finds Banana, "curry" Curries; `otherNumber` in
+`apps/mobile/src/local/store.ts`) and ranks it as the word itself. A 17th everyday row, bread (the
+white bread slice), approved by the owner on 2026-11-12 ("approve bread"; on the D-96 branch). No new build. **On
+`fitsphere-dev`: migration 0030 before the updated API, then `foods:import`; only when the owner says
+so.**
+
+**Marks, accents, brand rows, plain and everyday foods in a search — built on branch `fix/search-marks`
+(D-86, D-88, D-89, D-91 and D-92, 2026-11-12), in its own folder `D:\fitsphere-search-marks` (removed
+once merged).** From the search QA report (QA-04, QA-08 to QA-12): D-92 lists, for an everyday word,
+the food as eaten the owner chose first (`docs/data/everyday-foods-sheet.csv`, 16 rows, all approved;
+`foods:import` puts each approved word among the food's other names as "@rice"; never approve a row
+without the owner's word), and packs of a dry or ready-to-cook form last (`dryFor`). D-91 lists the
+plain food the search names first ("potato" finds IFCT's "Potato, brown skin, big" first: not a brand's
+or packaged, named as typed, or with a part in brackets, or IFCT's with a comma; `plainFor` in
+`FoodSearchSheet.tsx`). Search
+foods reads any mark typed as a space ("paneer!", "#biryani",
+"egg+white" find what the words find), leaves out a word of marks alone ("aloo & gobi" as "aloo
+gobi") and does not count marks towards D-72's three characters ("on!" as "on"); only % counts
+("55%"). D-88: accents are ignored, typed or in names and brands ("nestle" finds Nestlé), in the exact
+match and in telling brands apart too (D-78); phone schema version 21 clears the food list's version,
+so each phone downloads the list once. D-89: a "N brands" row holds only foods alike in energy ("Gold"
+is four rows) and counts a brand once however it is written (`brandKey` in `FoodSearchSheet.tsx`);
+`docs/data/brand-names-sheet.csv` (747 rows, all approved by the owner on 2026-11-12) gives Open Food Facts' brands one
+spelling or their maker, applied by `foods:import` (`apps/api/src/foods/brandNames.ts`) to approved
+rows only. Never approve a row without the owner's word. The rule is `readName` and `withoutAccents`
+in `apps/mobile/src/local/store.ts`; SQL (My foods, dishes) reads a keyboard's marks and the accented
+letters the same way. No migration, no new build. **On `fitsphere-dev`: `foods:import` once rows are
+approved; only when the owner says so.**
+
 **The Coach view, built by another team; gym members — built on branch `feat/users-gym-member`
 (D-90, 2026-11-12), in `D:\fitsphere`.** Another team builds the Coach view on this same Supabase
 database. The tables it shares stay in schema `app`: when it needs a change there or in this
@@ -39,6 +106,12 @@ On today, with none for today, Home's Measurements card says when measurements w
 logged 8 days ago, on Tue 20 Oct."); once more than 7 days have passed, or with none, a caramel "Due"
 badge beside the title and Add measurements filled (`TextButton` `strong`). Past dates and Progress
 unchanged. Phone app only: no server change, no migration, no phone schema change, no new build.
+
+**The exercise's name in bold — built on branch `fix/exercise-name-bold` (D-93, 2026-11-12), in
+`D:\fitsphere`.** Canvas boards `ExerciseName*` A locked (version 95). On a workout, each exercise's
+name is bold (Barlow Bold 17) and its sets, or its cardio or timed line, plain text (Barlow 15, not
+condensed capitals); the rest of the card unchanged. Phone app only: no server change, no migration,
+no phone schema change, no new build.
 
 **An exercise's page: Progress, History and How to — built on branch `feat/exercise-details` (D-82,
 2026-11-11), with D-81, in `D:\fitsphere-exercise-details`.** Plan: `docs/plans/exercise-details-page.md`

@@ -161,12 +161,12 @@ describe('REQ-ACC-002 lifting weight in lb, independent of the body-weight unit'
     expect(screen.getByText('70.0 kg')).toBeOnTheScreen();
   });
 
-  it.each(['0.2', '1102.4'])('D-31 refuses "%s" lb with the rule in lb', async (text) => {
+  it.each(['0.2', '2204.7'])('D-31 refuses "%s" lb with the rule in lb (D-100: up to 1,000 kg)', async (text) => {
     await startWorkout();
     await addExercise(text);
 
     expect(await screen.findByText(`Set 1: ${exerciseRules('lb').optionalWeight}`)).toBeOnTheScreen();
-    expect(screen.getByText('Set 1: enter a weight from 0.3 to 1102.3 lb, with at most one decimal, or leave it empty.')).toBeOnTheScreen();
+    expect(screen.getByText('Set 1: enter a weight from 0.3 to 2204.6 lb, with at most one decimal, or leave it empty.')).toBeOnTheScreen();
   });
 });
 

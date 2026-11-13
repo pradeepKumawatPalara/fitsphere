@@ -1,7 +1,7 @@
-import type { MealItem } from '@fitsphere/shared';
+import type { Food, MealItem } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import { describeRejected } from '../components/RejectedChanges';
-import { listSavedMeals, saveEntry, type OutboxEntry } from '../local/store';
+import { getEntry, listSavedMeals, replaceFoods, saveEntry, type OutboxEntry } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
@@ -308,6 +308,201 @@ describe('REQ-SAVED-001 a meal is saved once (the owner’s phone test, 2026-11-
   });
 });
 
+// The redesign's 3.1, option A (locked by the owner, 2026-11-13): an opened meal shows each food on a
+// card with its own Edit, Save and Remove; the whole meal's icons sit under "Whole meal".
+describe('D-97 one food of a logged meal: Edit, Save and Remove', () => {
+  const ATTA_FOOD: Food = {
+    source: 'ifct2017',
+    code: 'A019',
+    name: 'Wheat flour, atta',
+    foodGroup: 'Cereals and Millets',
+    aliases: [],
+    proteinG: 10.57,
+    fibreG: 11.36,
+    fatG: 1.53,
+    carbsG: 64.17,
+    kcal: 320,
+    kcalEstimated: false,
+    measures: [],
+    portions: [],
+  };
+
+  async function mealRow(db: SqlDb, mealId: string) {
+    return getEntry(db, 'meal', mealId);
+  }
+
+  it('each food has its card, its name, kcal, amount and protein, and its own icons; the whole meal’s icons sit under "Whole meal"', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db, { items: [ATTA, GHEE] });
+    });
+
+    await open('Lunch');
+    const foods = await screen.findAllByTestId('meal-food');
+    expect(foods).toHaveLength(2);
+    expect(within(foods[0]!).getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
+    expect(within(foods[1]!).getByLabelText('Ghee: 5 g, 45 kcal, 0.0 g protein')).toBeOnTheScreen();
+    const names = (card: (typeof foods)[number]) => within(card).getAllByRole('button').map((button) => button.props.accessibilityLabel as string);
+    expect(names(foods[0]!)).toEqual(['Edit Wheat flour, atta', 'Save Wheat flour, atta to my meals', 'Remove Wheat flour, atta from Lunch']);
+    expect(names(foods[1]!)).toEqual(['Edit Ghee', 'Save Ghee to my meals', 'Remove Ghee from Lunch']);
+    // Each 44 to tap; Remove in red.
+    const remove = within(foods[1]!).getByRole('button', { name: 'Remove Ghee from Lunch' });
+    expect(remove).toHaveStyle({ width: 44, height: 44 });
+    expect(within(remove).getByTestId('icon', { includeHiddenElements: true })).toHaveProp('stroke', LIGHT_COLORS.danger);
+
+    const whole = screen.getByTestId('whole-meal');
+    expect(within(whole).getByText('Whole meal')).toBeOnTheScreen();
+    expect(names(whole)).toEqual([
+      'Insight: Lunch: Wheat flour, atta + 1 more',
+      'Edit Lunch: Wheat flour, atta + 1 more',
+      'Save Lunch: Wheat flour, atta + 1 more to my meals',
+      'Delete Lunch: Wheat flour, atta + 1 more',
+    ]);
+    expect(screen.getByText('Saved 9:00 am')).toBeOnTheScreen();
+  });
+
+  it('Remove asks first, then takes the one food out and syncs the meal with the rest', async () => {
+    let mealId = '';
+    const { db, server } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      mealId = await meal(seed, { items: [ATTA, GHEE] });
+    });
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove Ghee from Lunch' }));
+    expect(screen.getByText('Remove Ghee?')).toBeOnTheScreen();
+    expect(screen.getByText('Lunch keeps Wheat flour, atta.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
+
+    await waitFor(async () => expect((await mealRow(db, mealId))?.items).toEqual([ATTA]));
+    expect(await mealRow(db, mealId)).toMatchObject({ kcal: 192, mealType: 'lunch', day: TODAY });
+    await waitFor(() => expect(server.entries('meals').get(mealId)).toMatchObject({ deleted: false, items: [ATTA] }));
+    await waitFor(() => expect(screen.getAllByTestId('meal-food')).toHaveLength(1));
+    expect(screen.queryByLabelText('Ghee: 5 g, 45 kcal, 0.0 g protein')).toBeNull();
+  });
+
+  it('Cancel keeps the food', async () => {
+    let mealId = '';
+    const { db } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      mealId = await meal(seed, { items: [ATTA, GHEE] });
+    });
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove Ghee from Lunch' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByText('Remove Ghee?')).toBeNull();
+    expect(screen.getAllByTestId('meal-food')).toHaveLength(2);
+    expect((await mealRow(db, mealId))?.items).toEqual([ATTA, GHEE]);
+  });
+
+  it('the last food takes the meal with it: the sheet says so, and its button is Delete meal', async () => {
+    let mealId = '';
+    const { db, server } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      mealId = await meal(seed);
+    });
+    await waitFor(() => expect(server.entries('meals').get(mealId)).toMatchObject({ deleted: false }));
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove Wheat flour, atta from Lunch' }));
+    expect(screen.getByText('Remove Wheat flour, atta?')).toBeOnTheScreen();
+    expect(screen.getByText('It is the only food in this meal, so the meal is deleted.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete meal' }));
+
+    await waitFor(() => expect(server.entries('meals').get(mealId)).toMatchObject({ deleted: true }));
+    expect(await mealRow(db, mealId)).toBeNull();
+    expect(await screen.findAllByText('Tap to add what you ate')).toHaveLength(4);
+  });
+
+  it('Save keeps that one food, with its amount and no tags, in Saved; then its bookmark is filled and says where', async () => {
+    const { db } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      await meal(seed, { mealType: 'dinner', tags: ['before_training'], items: [ATTA, GHEE] });
+    });
+
+    await open('Dinner');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Save Ghee to my meals' }));
+    expect(screen.getByText('Ghee · 5 g · 45 kcal, on its own')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Name')).toHaveDisplayValue('Ghee');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(async () => expect(await listSavedMeals(db)).toHaveLength(1));
+    expect((await listSavedMeals(db))[0]).toMatchObject({ name: 'Ghee', tags: [], items: [GHEE], kcal: 45 });
+    const saved = await screen.findByRole('button', { name: 'Ghee: saved to my meals as Ghee' });
+    expect(saved).toBeSelected();
+    expect(within(saved).getByTestId('icon', { includeHiddenElements: true })).toHaveProp('fill', LIGHT_COLORS.accent);
+    // The whole meal is not saved: its bookmark stays empty.
+    expect(screen.getByRole('button', { name: 'Save Dinner: Wheat flour, atta + 1 more to my meals' })).not.toBeSelected();
+    await fireEvent.press(saved);
+
+    expect(screen.getByText('This food is saved as Ghee.')).toBeOnTheScreen();
+    expect(await listSavedMeals(db)).toHaveLength(1);
+  });
+
+  it('Edit opens a listed food’s page on its amount, naming the meal and date; Save change saves the meal at once', async () => {
+    let mealId = '';
+    const { db, server } = await renderInApp(<NutritionScreen />, undefined, async (seed, fake) => {
+      fake.state.foods = [ATTA_FOOD];
+      await replaceFoods(seed, fake.state.foodsVersion, [ATTA_FOOD]);
+      mealId = await meal(seed, { items: [ATTA, GHEE] });
+    });
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Edit Wheat flour, atta' }));
+    expect(await screen.findByText('In this meal now: 60 g')).toBeOnTheScreen();
+    expect(screen.getByText('Lunch · Wed 28 Oct')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '90');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save change' }));
+
+    await waitFor(async () => expect((await mealRow(db, mealId))?.items[0]).toMatchObject({ amount: { unit: 'g', value: 90 }, kcal: 288 }));
+    expect((await mealRow(db, mealId))?.items[1]).toEqual(GHEE);
+    expect(await mealRow(db, mealId)).toMatchObject({ kcal: 333, tags: [], mealType: 'lunch' });
+    await waitFor(() => expect(server.entries('meals').get(mealId)).toMatchObject({ deleted: false, items: [expect.objectContaining({ kcal: 288 }), GHEE] }));
+    expect(await screen.findByLabelText('Wheat flour, atta: 90 g, 288 kcal, 9.5 g protein')).toBeOnTheScreen();
+  });
+
+  it('the page’s Back leaves the meal as it was; its Remove from meal asks first', async () => {
+    let mealId = '';
+    const { db } = await renderInApp(<NutritionScreen />, undefined, async (seed, fake) => {
+      fake.state.foods = [ATTA_FOOD];
+      await replaceFoods(seed, fake.state.foodsVersion, [ATTA_FOOD]);
+      mealId = await meal(seed, { items: [ATTA, GHEE] });
+    });
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Edit Wheat flour, atta' }));
+    await fireEvent.changeText(await screen.findByLabelText('Grams eaten'), '90');
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to Nutrition' }));
+    expect(screen.queryByText('In this meal now: 60 g')).toBeNull();
+    expect((await mealRow(db, mealId))?.items).toEqual([ATTA, GHEE]);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Edit Wheat flour, atta' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Remove from meal' }));
+    expect(screen.getByText('Remove Wheat flour, atta?')).toBeOnTheScreen();
+    expect(screen.getByText('Lunch keeps Ghee.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
+
+    await waitFor(async () => expect((await mealRow(db, mealId))?.items).toEqual([GHEE]));
+  });
+
+  it('a food with no page changes in the sheet for its amount, and the meal keeps its photo or link', async () => {
+    const mealId = id();
+    const link = { kind: 'link' as const, url: 'https://images.example.com/meal.jpg' };
+    const { db } = await renderInApp(<NutritionScreen />, undefined, async (seed) => {
+      await saveEntry(seed, 'meal', {
+        changeId: id(),
+        data: { id: mealId, day: TODAY, mealType: 'snack', tags: ['dessert'], items: [BAR, GHEE], photo: link, recordedAt: AT },
+      });
+    });
+
+    await open('Snack');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Edit Synthetic bar' }));
+    await fireEvent.changeText(screen.getByLabelText('New grams'), '30');
+    await fireEvent.press(screen.getByRole('button', { name: 'Change to 30 g' }));
+
+    await waitFor(async () => expect((await mealRow(db, mealId))?.items[0]?.amount).toEqual({ unit: 'g', value: 30 }));
+    expect(await mealRow(db, mealId)).toMatchObject({ photo: link, tags: ['dessert'], mealType: 'snack', day: TODAY });
+    expect((await mealRow(db, mealId))?.items[1]).toEqual(GHEE);
+  });
+});
+
 describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
   async function seedSaved(db: SqlDb) {
     await saveEntry(db, 'savedMeal', {
@@ -417,8 +612,25 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     await open('Lunch');
     await fireEvent.press(await screen.findByRole('button', { name: 'Save Lunch: Wheat flour, atta to my meals' }));
     await fireEvent.changeText(screen.getByLabelText('Name'), '  ');
+    // D-99: an empty name says so once the box is left; Save waits meanwhile.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await fireEvent(screen.getByLabelText('Name'), 'blur');
 
     expect(screen.getByText('Enter a name.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('D-100 a name over 60 characters says so, not cut off, and Save waits', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db);
+    });
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Save Lunch: Wheat flour, atta to my meals' }));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'x'.repeat(61));
+
+    expect(screen.getByLabelText('Name')).toHaveDisplayValue('x'.repeat(61));
+    expect(screen.getByText('Names can be up to 60 characters.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 

@@ -10,7 +10,10 @@
 // data/foods/off-india-extra.csv added to Open Food Facts' (ADR-0006 rule 1; D-28; D-36; D-39; D-46;
 // D-47; D-48; D-49; D-59; D-62; ADR-0009; D-76: each serving that holds several things also gives one of them;
 // D-80: the packaged foods named only by their brand renamed or left out as
-// docs/data/packaged-name-fixes.csv says; docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
+// docs/data/packaged-name-fixes.csv says; D-89: their brands each written one way, as the approved rows
+// of docs/data/brand-names-sheet.csv say; D-92: the everyday words of docs/data/everyday-foods-sheet.csv
+// marked among the foods' other names; D-94: the other names of docs/data/food-aliases-sheet.csv added to
+// the foods' and packaged foods' own; docs/data/food-list-sources.md). Checks every file whole first and imports nothing if
 // any row is wrong. Running it again gives the same tables.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -19,7 +22,10 @@ import { readRecipeSheet } from '../src/foods/dishes.ts';
 import { DISH_ESTIMATE_SOURCE, readDishEstimatesSheet } from '../src/foods/dishEstimates.ts';
 import { HOME_FOOD_SOURCE, readHomeFoodsSheet } from '../src/foods/homeFoods.ts';
 import { BRAND_LABEL_SOURCE, readBrandLabelsSheet } from '../src/foods/brandLabels.ts';
-import { readIfctCsv } from '../src/foods/ifct.ts';
+import { readBrandNames, withBrandNames } from '../src/foods/brandNames.ts';
+import { readEverydayFoods, withEverydayWords } from '../src/foods/everydayFoods.ts';
+import { readFoodAliases, withAliases, withPackagedAliases } from '../src/foods/foodAliases.ts';
+import { IFCT_SOURCE, readIfctCsv } from '../src/foods/ifct.ts';
 import { INDB_SOURCE, readIndbCsv } from '../src/foods/indb.ts';
 import { importDishes, importFoods, importMeasures, importPackagedFoods, importPortions, importUsdaArchive } from '../src/foods/importFoods.ts';
 import { readMeasuresSheet } from '../src/foods/measures.ts';
@@ -52,47 +58,72 @@ const nameFixes = withNameFixes(
   ),
   readPackagedNameFixes(readFileSync(path.join(root, 'docs/data/packaged-name-fixes.csv'), 'utf8')),
 );
-const packaged = nameFixes.foods;
+// D-89: each brand written one way, as the approved rows of docs/data/brand-names-sheet.csv say.
+const brandNames = withBrandNames(nameFixes.foods, readBrandNames(readFileSync(path.join(root, 'docs/data/brand-names-sheet.csv'), 'utf8')));
+// D-94: the other names of docs/data/food-aliases-sheet.csv, from the owner's consolidated food database.
+const aliasRows = readFoodAliases(readFileSync(path.join(root, 'docs/data/food-aliases-sheet.csv'), 'utf8'));
+const packagedNamed = withPackagedAliases(brandNames.foods, aliasRows);
+const packaged = packagedNamed.foods;
 const indb = readIndbCsv(
   readFileSync(path.join(root, 'data/foods/indb-foods.csv'), 'utf8'),
   readFileSync(path.join(root, 'data/foods/indb-portions.csv'), 'utf8'),
 );
 // Every serving too, before anything is written: none may be named "oz" (D-76).
 for (const portions of [indb.portions, labels.portions, home.portions, estimates.portions]) withSingleUnits(portions);
+// D-92: the approved everyday words of docs/data/everyday-foods-sheet.csv, marked among the foods' other names.
+const everyday = readEverydayFoods(readFileSync(path.join(root, 'docs/data/everyday-foods-sheet.csv'), 'utf8'));
+const everydayOf = {
+  ifct: withEverydayWords(foods, IFCT_SOURCE, everyday),
+  indb: withEverydayWords(indb.foods, INDB_SOURCE, everyday),
+  home: withEverydayWords(home.foods, HOME_FOOD_SOURCE, everyday),
+  estimates: withEverydayWords(estimates.foods, DISH_ESTIMATE_SOURCE, everyday),
+};
+const everydayMarked = Object.values(everydayOf).reduce((sum, one) => sum + one.marked, 0);
+const everydayMissing = Object.values(everydayOf).reduce((sum, one) => sum + one.missing, 0);
+const namedOf = {
+  ifct: withAliases(everydayOf.ifct.foods, IFCT_SOURCE, aliasRows),
+  indb: withAliases(everydayOf.indb.foods, INDB_SOURCE, aliasRows),
+  home: withAliases(everydayOf.home.foods, HOME_FOOD_SOURCE, aliasRows),
+  estimates: withAliases(everydayOf.estimates.foods, DISH_ESTIMATE_SOURCE, aliasRows),
+};
+const aliasesNamed = Object.values(namedOf).reduce((sum, one) => sum + one.named, packagedNamed.named);
+const aliasesAdded = Object.values(namedOf).reduce((sum, one) => sum + one.added, packagedNamed.added);
+const aliasesMissing = Object.values(namedOf).reduce((sum, one) => sum + one.missing, packagedNamed.missing);
 
 const client = new pg.Client({ connectionString: url });
 await client.connect();
 try {
-  const result = await importFoods(client, foods);
+  const result = await importFoods(client, namedOf.ifct.foods);
   console.log(
-    `Imported ${result.total} foods: ${result.hidden} hidden until checked, ${result.estimated} with estimated kcal.`,
+    `Imported ${result.total} foods: ${result.hidden} hidden until checked, ${result.estimated} with estimated kcal. Everyday words (D-92): ${everydayMarked} marked, ${everydayMissing} whose food is not listed.`,
   );
+  console.log(`Other names (D-94): ${aliasesAdded} added to ${aliasesNamed} foods and packaged foods; ${aliasesMissing} rows whose food is not listed.`);
   const dishes = await importDishes(client, sheet.dishes);
   console.log(
     `Imported ${dishes} approved dishes. Not imported: ${sheet.pending.length} pending, ${sheet.blocked.length} blocked (${sheet.blocked.join(', ') || 'none'}).`,
   );
   const units = await importMeasures(client, measures.measures);
   console.log(`Imported ${units} approved household units. Not imported: ${measures.pending} pending.`);
-  const indbFoods = await importFoods(client, indb.foods, INDB_SOURCE);
+  const indbFoods = await importFoods(client, namedOf.indb.foods, INDB_SOURCE);
   const indbServings = await importPortions(client, INDB_SOURCE, indb.portions);
   console.log(`Imported ${indbFoods.total} INDB recipes with ${indbServings.servings} servings (${indbServings.units} single units), all estimated.`);
   const archived = await importUsdaArchive(client, usda.foods, usda.portions);
   console.log(`Kept ${archived} USDA foods in their archive, not in the food list.`);
   const packagedFoods = await importPackagedFoods(client, packaged);
   console.log(
-    `Imported ${packagedFoods} packaged foods sold in India, from Open Food Facts. Names reviewed (D-80): ${nameFixes.renamed} renamed, ${nameFixes.removed} left out, ${nameFixes.notFound} no longer listed.`,
+    `Imported ${packagedFoods} packaged foods sold in India, from Open Food Facts. Names reviewed (D-80): ${nameFixes.renamed} renamed, ${nameFixes.removed} left out, ${nameFixes.notFound} no longer listed. Brands written one way (D-89): ${brandNames.rebranded} foods' brand changed (${brandNames.named} given their line at the front of the name), ${brandNames.notFound} approved brands no longer listed.`,
   );
   const labelled = await importFoods(client, labels.foods, BRAND_LABEL_SOURCE);
   const labelServings = await importPortions(client, BRAND_LABEL_SOURCE, labels.portions);
   console.log(
     `Imported ${labelled.total} approved brand labels with ${labelServings.servings} servings (${labelServings.units} single units). Not imported: ${labels.proposed} proposed (waiting for the owner's OK).`,
   );
-  const homeFoods = await importFoods(client, home.foods, HOME_FOOD_SOURCE);
+  const homeFoods = await importFoods(client, namedOf.home.foods, HOME_FOOD_SOURCE);
   const homeServings = await importPortions(client, HOME_FOOD_SOURCE, home.portions);
   console.log(
     `Imported ${homeFoods.total} approved home-style foods with ${homeServings.servings} servings (${homeServings.units} single units). Not imported: ${home.proposed} proposed (waiting for the owner's OK).`,
   );
-  const estimated = await importFoods(client, estimates.foods, DISH_ESTIMATE_SOURCE);
+  const estimated = await importFoods(client, namedOf.estimates.foods, DISH_ESTIMATE_SOURCE);
   const estimatedServings = await importPortions(client, DISH_ESTIMATE_SOURCE, estimates.portions);
   console.log(
     `Imported ${estimated.total} estimated dishes with ${estimatedServings.servings} servings (${estimatedServings.units} single units). Not imported: ${estimates.held} held back with a problem.`,
