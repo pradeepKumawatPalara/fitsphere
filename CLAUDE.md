@@ -20,9 +20,11 @@ API listens on `HOST` (`127.0.0.1` when empty, so the PC and the tunnel are unch
 `0.0.0.0`) and `PORT` (`src/listenAddress.ts`), stops cleanly on SIGTERM, and survives a connection
 that drops while held (`src/db/pool.ts`). `Dockerfile`, `.dockerignore`, `.gcloudignore` at the root;
 `npm run check:pooler` checks the transaction pooler, read only; runbook, "The API on Cloud Run". No
-migration, no phone change. **The database steps, the secrets, the deploy and the APK's EAS profile
-`preview` (after the deploy, with the service's address) wait for the owner's word; tell the owner
-before the build (D-19).**
+migration, no phone change. Merged (pull request #104); deployed by the owner on 2026-11-13 at
+`https://fitsphere-api-163496400043.asia-southeast1.run.app`. The test APK's EAS profile `preview`
+(`apps/mobile/eas.json`, branch `feat/eas-preview`): an APK with that address and the Supabase
+project's address and publishable key; same app ID as the development build. **Tell the owner
+before every build (D-19).**
 
 **Home: every nutrient under Calories, the strip's apple and dumbbell, no workouts card — built on
 branch `feat/home-nutrients` (D-103, 2026-11-13), in its own folder `D:\fitsphere-home` (removed once

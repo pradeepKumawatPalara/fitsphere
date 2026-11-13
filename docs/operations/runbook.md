@@ -2,8 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-13 (D-101: the API on Cloud Run for the beta, `HOST`, the image, "The API
-  on Cloud Run"). 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
+- Last updated: 2026-11-13 (D-101: the first deploy, the test APK's EAS profile `preview`). Earlier
+  the same day (D-101: the API on Cloud Run for the beta, `HOST`, the image, "The API on Cloud Run"). 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
   same day (the dashboard paths still to confirm, with what Supabase's docs say).
   2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
 
@@ -427,7 +427,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `OFF_CONTACT` | API | A contact email address for the owner, sent to Open Food Facts in the User-Agent (`FitSphere/1.0 (<address>)`), as Open Food Facts asks. Without it, barcode lookups answer "not available right now" and nothing is sent | No, but kept in `.env` and never committed |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
-| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it. Never committed | No (built into the app's code served by the development server) |
+| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it; the tunnel's address is never committed. For the test APK, the Cloud Run service's address, in `apps/mobile/eas.json`'s `preview` profile (D-101) | No (built into the app's code) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
 Files with credentials, never committed. Both are for push, which is post-MVP (D-20, backlog
@@ -458,8 +458,12 @@ package files, `apps/api` and `packages/shared` in, never an `.env` file or a te
 passed through PgBouncer 1.26 in transaction mode with prepared statements off, standing in for
 Supabase's transaction pooler.
 
-**First deploy, not yet run** (the owner's handoff, D-101). Mark each step verified, with the date,
-the first time it works.
+**First deploy: done by the owner on 2026-11-13** (D-101), service address
+`https://fitsphere-api-163496400043.asia-southeast1.run.app`. Checked from the PC the same day:
+`GET /v1/health` answered 200 `{"status":"ok"}`; `POST /v1/sync` and `GET /v1/foods` with no
+sign-in token answered 401; an unknown path 404. Not recorded yet: which pooler `database-url`
+holds, the log check (step 7) and step 8. Before that deploy, on the owner's word: steps 2 (migrate:
+nothing to apply; both imports run from `main`). The steps:
 1. Install the Google Cloud CLI, then `gcloud auth login` and `gcloud config set project fitsphere-api`.
 2. The database, only at the owner's word, from the PC through the session pooler:
    `npm run migrate -w @fitsphere/api`, then `npm run foods:import -w @fitsphere/api` and
@@ -493,10 +497,17 @@ the first time it works.
 `gcloud run services update-traffic fitsphere-api --region asia-southeast1 --to-revisions <revision>=100`.
 It does not undo a migration: an older API must still work with the database as it is.
 
-**Android test build** (after the first deploy; tell the owner first, D-19): an EAS profile
-`preview` in `apps/mobile/eas.json` (an APK, internal distribution) with the service's address as
-`EXPO_PUBLIC_API_URL`, then `eas build -p android --profile preview`. The owner shares the APK
-through Firebase App Distribution.
+**Android test build** (D-101; tell the owner before every build, D-19): the EAS profile `preview`
+in `apps/mobile/eas.json` builds an APK for internal distribution with the service's address as
+`EXPO_PUBLIC_API_URL`, and the Supabase project's address and publishable key (both built into the
+app anyway). From `apps/mobile`: `npx eas-cli@26 build --platform android --profile preview`, then
+download the APK from the build's page; the owner shares it through Firebase App Distribution.
+- Its app ID is the development build's (`com.fitsphere.app`), so on a phone that has the
+  development build, installing the APK replaces it, and the other way round. If Android refuses
+  to install one over the other, uninstall the other first: anything logged on that phone and not
+  yet synced is then lost (synced data comes back after signing in).
+- EAS also loads its `preview` environment for this profile, which holds the phone-only test
+  build's `EXPO_PUBLIC_UAT_PASSWORDS`; nothing on `main` reads it, so it is not built into the APK.
 
 ## Monitoring
 *Not yet written.* The owner-review triggers for moving to Supabase Pro or adding backups
