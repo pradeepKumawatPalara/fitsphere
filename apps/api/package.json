@@ -14,6 +14,7 @@
     "check:data-api": "node --env-file-if-exists=.env scripts/check-data-api.ts",
     "check:signup": "node --env-file-if-exists=.env scripts/check-signup.ts",
     "check:storage": "node --env-file-if-exists=.env scripts/check-storage.ts",
+    "check:pooler": "node --env-file-if-exists=.env scripts/check-pooler.ts",
     "foods:import": "node --env-file-if-exists=.env scripts/foods-import.ts",
     "exercises:import": "node --env-file-if-exists=.env scripts/exercises-import.ts",
     "usda:convert": "node scripts/usda-convert.ts",

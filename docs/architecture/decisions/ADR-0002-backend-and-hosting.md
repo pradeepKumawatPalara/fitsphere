@@ -289,7 +289,7 @@ YouTube's API, with quotas and Google sign-in) is not in phase 1; evaluate it in
 | Q-064 | Are meal photos kept? | Partly answered (D-16) | Compressed ~200 KB copy plus thumbnail, or an external link; a user may delete their own photo or label image, and it is really removed (rule 5). Whether label images are kept by default, and whether deleting a meal deletes its photo, are data-model details that don't change hosting | No |
 | Q-082 | Email service and sender domain | Open | Sign-in emails are verified in ADR-0004 (SPF, DKIM, DMARC — D-13); the invitation email service is chosen before invitations are built | No |
 | Q-083 | Push notification service | Open | Expo push checked in the first slice (ADR-0001) | No |
-| Q-087 | Cloud Run billing account | Open (fact checked: a billing account is required for the free tier) | API runs on the developer's PC until the owner approves the billing account and a budget alert | No — blocks deploying to Cloud Run |
+| Q-087 | Cloud Run billing account | Answered for the API (D-101, 2026-11-13): billing on through the free trial, with a ₹500 a month budget alert | For the beta, the API runs on Cloud Run in `asia-southeast1`, beside the Supabase project in Singapore; both move to Mumbai before the release, as decided above. Paid AI use still needs the owner's sign-off (C-008) | No |
 | Q-088 | Backups before Pro | Answered (D-16) | Free plan, no backups, accepted risk R-005 with review triggers | No |
 | Q-089 | Media retention | Partly answered (D-16) | Rule 5; remaining periods with Legal and in ADR-0008 | No |
 | Q-092 | Which videos may use YouTube links | Answered (D-16) | "External links" above | No |

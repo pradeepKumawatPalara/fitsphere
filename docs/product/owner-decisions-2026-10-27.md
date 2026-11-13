@@ -3280,6 +3280,51 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-101 The beta: the API on Cloud Run in Singapore, and an Android test build (answers Q-087 for the API)
+- Status: **Accepted** (owner, 2026-11-13, in the handoff "FitSphere beta: server on Cloud Run and an
+  Android test build" to Developer 1: "Goal: testers outside our Wi-Fi can use the FitSphere app. The
+  server runs on Google Cloud Run, and an Android APK pointing at it is shared through Firebase App
+  Distribution."). Built on branch `feat/cloud-run`.
+- Already done by the owner: the Google Cloud project `fitsphere-api`, billing on (the free trial),
+  a budget alert of ₹500 a month; Supabase's **Confirm email** on (RB-03), sign-up emails through a
+  custom SMTP sender, and the redirect URLs `fitsphere://**` and `fitspherecoach://**`.
+- Answer (ADR-0002, Q-087; REQ-NFR-001 to REQ-NFR-004):
+  - **Q-087, for the API:** the billing account and its budget alert exist, so the API may run on
+    Cloud Run. Paid AI use still needs the owner's sign-off on billing and its monthly cap (C-008,
+    ADR-0005); this decision does not give it.
+  - **Region:** the Supabase project is in Singapore, so the API runs in **`asia-southeast1`**
+    (Singapore) beside it. Both move to Mumbai before the release, as ADR-0002 says.
+  - **Where the API listens:** a setting `HOST`, `127.0.0.1` when not set, so the PC and the tunnel
+    stay as they are (D-19); the image sets `HOST=0.0.0.0`, and Cloud Run sets `PORT`.
+  - **The image:** a `Dockerfile` at the root: `node:24-slim`; only the root package files,
+    `apps/api` and `packages/shared`; the API's production packages only; run as the `node` user;
+    `node apps/api/src/server.ts`. No setting or secret is built in, and none is committed.
+  - **Settings:** four secrets in Google Secret Manager (`database-url`, `supabase-secret-key`,
+    `storage-s3-access-key-id`, `storage-s3-secret-access-key`), read by the Cloud Run runtime's
+    service account; the others as plain variables. `DATABASE_URL` on Cloud Run is Supabase's
+    transaction pooler, or the session pooler if the API's queries fail through it.
+  - **Public service** (`--allow-unauthenticated`): the API checks every request's Supabase token
+    itself (the access module, REQ-NFR-001); only `GET /v1/health` is public.
+  - At most 2 old revisions kept; old images deleted from Artifact Registry. 1 CPU, 512 MiB, 0 to 2
+    instances. Later, perhaps, a GitHub Action that deploys after a merge to `main`.
+  - **Android test build:** an EAS profile `preview` (an APK, internal distribution) pointing at the
+    service, added once the service has its address; built only after telling the owner (D-19, one of
+    the month's free builds). The owner shares the APK through Firebase App Distribution.
+  - **Beta testers** use demo accounts and made-up data until Legal's review (Q-049).
+  - The free trial: the owner activates the full account before day 90 (about 1 February 2027), or
+    Cloud Run stops.
+- Before the first deploy, and only at the owner's word: every merged migration on the Supabase project,
+  then `foods:import` and `exercises:import`.
+- MVP defaults: the API stops cleanly on Cloud Run's stop signal (it finishes the requests in
+  progress and closes its connections); a connection that drops while a request holds it fails that
+  request instead of stopping the API (`src/db/pool.ts`); `npm run check:pooler` checks the API's
+  kinds of query through the transaction pooler, read only; a `.gcloudignore` keeps the phone app,
+  docs and data on the PC when `gcloud run deploy --source .` uploads the source.
+- Doc changes: the runbook (configuration names, "The API on Cloud Run"); ADR-0002's Q-087; the
+  constraints' Q-087; Legal's brief, "Where data is kept"; CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants
