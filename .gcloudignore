@@ -1,0 +1,20 @@
+# What `gcloud run deploy --source .` uploads to Cloud Build (D-101). Everything Git ignores, every
+# .env file among it, stays on the PC, and so do the folders the image does not need (the phone
+# app alone is about 80 MB). .dockerignore then decides what the image may read.
+# Check before a deploy: gcloud meta list-files-for-upload
+#!include:.gitignore
+.gcloudignore
+.git/
+.github/
+.claude/
+.dev-tools/
+.dev-phone/
+.expo/
+.idea/
+.vscode/
+apps/mobile/
+data/
+docs/
+*.docx
+*.md
+apps/api/test/

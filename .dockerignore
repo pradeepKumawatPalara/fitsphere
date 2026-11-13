@@ -1,0 +1,19 @@
+# What `docker build` (and Cloud Build, for `gcloud run deploy --source .`) may read: only what
+# the Dockerfile copies. Everything else is left out, so the phone app, the food data, the docs, the
+# Git history and any new file at the root never reach the image (D-101).
+*
+!package.json
+!package-lock.json
+!apps/api
+!packages/shared
+
+# Never in the image, even inside the folders above: settings and secrets (.env, .env.local,
+# .env.example too), keys, installed packages, and the tests.
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/node_modules
+**/coverage
+**/*.test.ts
+apps/api/test

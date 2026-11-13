@@ -1,24 +1,30 @@
-import pg from 'pg';
 import { buildApp } from './app.ts';
 import { createSupabaseAuth } from './auth.ts';
+import { createPool } from './db/pool.ts';
 import { createOpenFoodFacts } from './foods/openFoodFacts.ts';
+import { listenAddress, type ListenAddress } from './listenAddress.ts';
 import { mediaStorageFromEnv } from './storage/mediaStorage.ts';
 
-// Settings from apps/api/.env (runbook, "Configuration names").
+// Settings from apps/api/.env on the PC, and from the service's variables and secrets on Cloud Run
+// (runbook, "Configuration names"). Only the names are ever printed, never a value.
 const required = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY'] as const;
 const missing = required.filter((name) => !process.env[name]);
 if (missing.length > 0) {
-  console.error(`Missing in apps/api/.env: ${missing.join(', ')}`);
+  console.error(
+    `Missing settings: ${missing.join(', ')} (apps/api/.env on the PC; the service's variables on Cloud Run)`,
+  );
   process.exit(1);
 }
 
-const db = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 5,
-  connectionTimeoutMillis: 5000,
-});
-// An idle connection that drops (e.g. the Supabase project pauses) must not stop the API.
-db.on('error', () => {});
+let address: ListenAddress;
+try {
+  address = listenAddress(process.env);
+} catch (error) {
+  console.error((error as Error).message);
+  process.exit(1);
+}
+
+const db = createPool(process.env.DATABASE_URL!);
 
 const app = buildApp({
   db,
@@ -35,7 +41,15 @@ const app = buildApp({
   storage: mediaStorageFromEnv(process.env),
 });
 
-const port = Number(process.env.PORT ?? '3000');
-// Loopback only: the phone reaches it through the development tunnel (runbook step 8), and it
-// stays off the local network.
-await app.listen({ host: '127.0.0.1', port });
+// Cloud Run stops an instance with SIGTERM, and SIGKILL 10 seconds later. In a container the API
+// is process 1, which SIGTERM alone does not stop: finish the requests in progress, close the
+// database connections, then exit.
+process.once('SIGTERM', () => {
+  void app
+    .close()
+    .then(() => db.end())
+    .finally(() => process.exit(0));
+});
+
+// Loopback on the PC (HOST not set); every address in the Cloud Run image (listenAddress.ts).
+await app.listen(address);
