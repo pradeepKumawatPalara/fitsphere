@@ -40,6 +40,7 @@ import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { useWeekActivity } from '../weekActivity';
 import { caloriesBurned, deleteWorkoutEffects, listedWorkouts, timerLine, timerState, workoutSummary } from '../workouts';
 
 /** A workout of the history: one on the phone, or an older one read from the server. */
@@ -116,6 +117,8 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   const sync = useSync();
   const router = useRouter();
   const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
+  // The strip's week: an apple and a dumbbell under each day, as on Home (D-103; was a mark on workout days, D-65).
+  const activity = useWeekActivity(stripStart);
   const [recent, setRecent] = useState<Row[]>([]);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [older, setOlder] = useState<Row[]>([]);
@@ -154,7 +157,6 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   const listed = listedWorkouts(recent);
   const months = byMonth([...listed, ...listedWorkouts(older)]);
   const open = openMonths ?? new Set(months[0] ? [months[0].month] : []);
-  const workoutDays = new Set(listed.map((row) => row.day));
   const dayWorkouts = byDate(listed.filter((row) => row.day === selected))[0]?.workouts ?? [];
   // The rows draw again each second only while a timer runs (D-71).
   const clock = useNow(now, listed.some((row) => timerState(row.timer) === 'running'));
@@ -369,8 +371,7 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
               firstDay={firstDay}
               selected={selected}
               start={stripStart}
-              loggedDays={workoutDays}
-              loggedLabel="workout logged"
+              activity={activity}
               onSelect={pickDay}
               onShow={showDays}
             />

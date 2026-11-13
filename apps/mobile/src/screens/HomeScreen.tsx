@@ -1,5 +1,4 @@
 import {
-  addDays,
   istWeekStart,
   MEAL_SET,
   MEASUREMENTS_SET,
@@ -13,7 +12,6 @@ import {
   type LengthUnit,
   type MealTotals,
   type TargetKind,
-  type WorkoutExercise,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { History } from 'lucide-react-native';
@@ -26,12 +24,12 @@ import { LogMealButton } from '../components/LogMealButton';
 import { MeasurementsCard, measurementsSince } from '../components/MeasurementsCard';
 import { MeasurementsSheet } from '../components/MeasurementsSheet';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
+import { NutrientTargets } from '../components/NutrientTargets';
 import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
-import { WorkoutDaySheet } from '../components/WorkoutDaySheet';
-import { WorkoutTracker } from '../components/WorkoutTracker';
+import { WeekWorkouts } from '../components/WeekWorkouts';
 import { Text, TextButton } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
@@ -41,9 +39,7 @@ import {
   getEntry,
   getMeta,
   latestMeasurementsDay,
-  listEntries,
   targetsOn,
-  mealCounts,
   rejectedChanges,
   type LocalMeasurements,
   type OutboxEntry,
@@ -54,7 +50,7 @@ import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { targetValues, weekTargetDay } from '../targets';
-import { listedWorkouts } from '../workouts';
+import { useWeekActivity } from '../weekActivity';
 import { LogOut } from './LogOut';
 
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
@@ -85,10 +81,8 @@ export function HomeScreen() {
   const [measurementsSheet, setMeasurementsSheet] = useState<{ mode: 'add' | 'edit'; day: IstDay } | null>(null);
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
-  const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
-  const [weekWorkouts, setWeekWorkouts] = useState<{ id: string; day: IstDay; exercises: WorkoutExercise[] }[]>([]);
-  // The tracker's day whose workouts are being chosen from, or started (D-34).
-  const [workoutDay, setWorkoutDay] = useState<IstDay | null>(null);
+  // The strip's week: an apple and a dumbbell under each day, and its workouts counted under it (D-103).
+  const activity = useWeekActivity(stripStart);
 
   useEffect(() => {
     let active = true;
@@ -107,21 +101,18 @@ export function HomeScreen() {
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    const monday = istWeekStart(selected);
     void Promise.all([
       Promise.all(DAY_VALUE_ORDER.map((kind) => getEntry(db, kind, selected))),
       rejectedChanges(db),
       targetsOn(db, selected),
-      // The week's workout target is its Sunday's: this week's is today's (D-77).
-      targetsOn(db, weekTargetDay(selected)),
+      // The strip's week's workout target is its Sunday's: this week's is today's (D-77).
+      targetsOn(db, weekTargetDay(stripStart)),
       getEntry(db, 'measurements', selected),
       getMeta(db, 'measurement_unit'),
       dayNutrition(db, selected),
-      mealCounts(db, stripStart, addDays(stripStart, 6)),
-      listEntries(db, 'workout', monday, addDays(monday, 6)),
       latestMeasurementsDay(db, today),
       getMeta(db, 'account_created_day'),
-    ]).then(([entries, waiting, onDay, onSunday, dayMeasurements, unit, nutrition, counts, workouts, lastDay, accountDay]) => {
+    ]).then(([entries, waiting, onDay, onSunday, dayMeasurements, unit, nutrition, lastDay, accountDay]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -132,20 +123,12 @@ export function HomeScreen() {
         ),
       );
       setRejected(waiting);
-      // Each date shows the targets it had (D-77); the workout tracker, its week's Sunday's.
+      // Each date shows the targets it had (D-77); the strip's week's workouts, its Sunday's.
       setTargets({ ...targetValues(onDay), ...targetValues(onSunday.filter((target) => target.kind === 'weekly_workouts')) });
       setMeasurements(dayMeasurements);
       setLastMeasured({ day: lastDay, accountDay });
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
       setEaten(nutrition);
-      setMealDays(new Set(Object.keys(counts)));
-      // The selected date's week's workouts on the phone. Only those with an exercise count toward the
-      // week and show on their day (REQ-HOME-007; D-41, replacing Q-025's default); since D-65 a day's
-      // square no longer lists its empty ones, as Training doesn't.
-      // In the order they were started, so "Workout 1" is the day's first (D-42).
-      setWeekWorkouts(
-        workouts.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).map(({ id, day, exercises }) => ({ id, day, exercises })),
-      );
     });
     return () => {
       active = false;
@@ -153,26 +136,12 @@ export function HomeScreen() {
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
   }, [local.state, selected, today, stripStart, sync.version, measurementsOpen, texts]);
 
-  const counted = weekWorkouts.filter((workout) => workout.exercises.length > 0);
   // Today's card says when measurements were last logged, and whether they are due (D-85). All the
   // account's days are on the phone when it was created within the 90 days.
   const since =
     selected === today && lastMeasured
       ? measurementsSince(lastMeasured.day, today, lastMeasured.accountDay !== null && lastMeasured.accountDay >= firstDay)
       : null;
-  const workoutCounts: Record<IstDay, number> = {};
-  for (const workout of counted) workoutCounts[workout.day] = (workoutCounts[workout.day] ?? 0) + 1;
-
-  /** A tracker day opens the day's sheet: its workouts, and another to log (D-34, D-42). */
-  function openWorkoutDay(day: IstDay) {
-    setWorkoutDay(day);
-  }
-
-  /** A new workout on that day, saved at once and opened, as Training's "Log workout". */
-  async function startWorkout(day: IstDay) {
-    const id = await sync.startWorkout(day);
-    router.push(`/workout/${id}`);
-  }
 
   function openTargets() {
     router.push('/targets');
@@ -216,15 +185,22 @@ export function HomeScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <WeekStrip
-          today={today}
-          firstDay={firstDay}
-          selected={selected}
-          start={stripStart}
-          loggedDays={mealDays}
-          onSelect={select}
-          onShow={showDays}
-        />
+        <View style={styles.week}>
+          <WeekStrip
+            today={today}
+            firstDay={firstDay}
+            selected={selected}
+            start={stripStart}
+            activity={activity}
+            onSelect={select}
+            onShow={showDays}
+          />
+          <WeekWorkouts
+            count={activity?.counted ?? null}
+            target={targets.weekly_workouts ?? null}
+            thisWeek={stripStart === istWeekStart(today)}
+          />
+        </View>
         {selected !== today ? (
           <View style={styles.banner}>
             <History size={20} color={colors.accent} />
@@ -233,7 +209,8 @@ export function HomeScreen() {
           </View>
         ) : null}
         <RejectedChanges entries={rejected} onEdit={editRejected} onDiscard={(changeId) => void sync.discard(changeId)} />
-        {/* The day's food against its targets: the panel Home leads with. */}
+        {/* The day's food against its targets: the panel Home leads with; protein, carbs, fat and fibre
+            under the calories since D-103. */}
         <View style={styles.panel}>
           <CutCorner />
           <TargetProgressCard
@@ -242,16 +219,9 @@ export function HomeScreen() {
             eaten={Math.round(eaten?.kcal ?? 0)}
             target={targets.calories ?? null}
             onSetTarget={selected === today ? openTargets : null}
-            hero
           />
           <View style={styles.rule} />
-          <TargetProgressCard
-            title="Protein"
-            unit="g"
-            eaten={Math.round(eaten?.proteinG ?? 0)}
-            target={targets.protein ?? null}
-            onSetTarget={selected === today ? openTargets : null}
-          />
+          <NutrientTargets totals={eaten} targets={targets} />
           <View style={styles.panelFoot}>
             <TextButton title="By meal" arrow end onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
           </View>
@@ -271,15 +241,6 @@ export function HomeScreen() {
             );
           })}
         </View>
-        <WorkoutTracker
-          day={selected}
-          today={today}
-          dayCounts={workoutCounts}
-          count={counted.length}
-          target={targets.weekly_workouts ?? null}
-          onSetTarget={istWeekStart(selected) === istWeekStart(today) ? openTargets : null}
-          onDay={openWorkoutDay}
-        />
         <MeasurementsCard
           day={selected}
           entry={measurements}
@@ -296,15 +257,6 @@ export function HomeScreen() {
             firstDay={firstDay}
             onSave={(input) => sync.save('measurements', input)}
             onClose={() => setMeasurementsSheet(null)}
-          />
-        ) : null}
-        {workoutDay ? (
-          <WorkoutDaySheet
-            day={workoutDay}
-            workouts={listedWorkouts(weekWorkouts.filter((workout) => workout.day === workoutDay))}
-            onOpen={(id) => router.push(`/workout/${id}`)}
-            onStart={() => void startWorkout(workoutDay)}
-            onClose={() => setWorkoutDay(null)}
           />
         ) : null}
         {sheet && sheetText ? (
@@ -327,10 +279,12 @@ export function HomeScreen() {
 }
 
 // The redesign's 2.3 (locked by the owner, 2026-11-03): cards 12 apart in the 16 gutter, radius 4; the
-// food card with the cut corner; the three tiles one strip; room at the foot for + LOG.
+// food card with the cut corner; the three tiles one strip; room at the foot for + LOG. Since D-103 (B
+// locked 2026-11-13): the week's workouts line 6 under the strip, and no workouts card.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
+  week: { gap: 6 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

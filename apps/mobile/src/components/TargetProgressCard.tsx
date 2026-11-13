@@ -14,28 +14,21 @@ type Props = {
   target: number | null;
   /** Null on a past date with no target: one set now starts today (D-77). */
   onSetTarget: (() => void) | null;
-  /** The screen's one hero number: what is left (or over, or eaten) in big italic. */
-  hero?: boolean;
 };
 
-// The calories card (REQ-HOME-003) and the protein card (REQ-HOME-004). With no target, only the
-// amount eaten and "Set a target". Over the target, the bar is full in the warning gold with "X kcal
-// over" (Q-022). The redesign's 2.3 (locked by the owner, 2026-11-03): the bar is plates, 20 for the
-// hero, 10 otherwise, filled in caramel; the hero counts down what is left.
-export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, hero = false }: Props) {
+// The calories card (REQ-HOME-003), Home's hero. With no target, only the amount eaten and "Set a
+// target". Over the target, the bar is full in the warning gold with "X kcal over" (Q-022). The
+// redesign's 2.3 (locked by the owner, 2026-11-03): the bar is 20 plates filled in caramel, and the
+// hero counts down what is left. Since D-103 the protein card it also drew is gone: protein shows with
+// carbs, fat and fibre under it (NutrientTargets).
+export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   if (target === null) {
     return (
       <View style={styles.card}>
         <Text style={styles.title}>{title}</Text>
-        {hero ? (
-          <Hero value={formatInteger(eaten)} unit={unit} word="eaten" over={false} />
-        ) : (
-          <Text style={styles.metric}>
-            {formatInteger(eaten)} {unit} eaten
-          </Text>
-        )}
+        <Hero value={formatInteger(eaten)} unit={unit} word="eaten" over={false} />
         {onSetTarget ? (
           <View style={styles.setTarget}>
             <TextButton title="Set a target" outlined onPress={onSetTarget} />
@@ -49,43 +42,33 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, he
   // A target of 0 (D-100): nothing eaten is all of it; anything eaten is over it.
   const percent = target > 0 ? Math.round((eaten / target) * 100) : eaten > 0 ? 100 : 0;
   const over = eaten > target;
-  const plates = hero ? 20 : 10;
+  const plates = 20;
   const filled = Math.min(plates, Math.round((percent / 100) * plates));
-  const left = `${formatInteger(over ? eaten - target : target - eaten)} ${unit} ${over ? 'over' : 'remaining'}`;
   return (
     <View style={styles.card}>
-      <View style={[styles.row, hero && styles.clearCorner]}>
+      <View style={styles.row}>
         <Text style={styles.title}>{title}</Text>
         <Text style={[styles.title, over && styles.over]}>{target > 0 ? `${percent}%` : '–'}</Text>
       </View>
-      {hero ? (
-        <>
-          <Hero value={formatInteger(over ? eaten - target : target - eaten)} unit={unit} word={over ? 'over' : 'remaining'} over={over} />
-          <Text style={styles.line}>
-            <Text style={styles.reading}>{formatInteger(eaten)}</Text> of {formatInteger(target)} {unit}
-          </Text>
-        </>
-      ) : (
-        <Text style={styles.metric}>
-          {formatInteger(eaten)} of {formatInteger(target)} {unit}
-        </Text>
-      )}
+      <Hero value={formatInteger(over ? eaten - target : target - eaten)} unit={unit} word={over ? 'over' : 'remaining'} over={over} />
+      <Text style={styles.line}>
+        <Text style={styles.reading}>{formatInteger(eaten)}</Text> of {formatInteger(target)} {unit}
+      </Text>
       <View
         testID={`${title}-bar`}
         accessibilityRole="progressbar"
         accessibilityLabel={`${title} progress`}
         accessibilityValue={{ min: 0, max: 100, now: Math.min(percent, 100) }}
-        style={[styles.plates, hero && styles.heroPlates]}
+        style={styles.plates}
       >
         {Array.from({ length: plates }, (_, index) => (
           <View
             key={index}
             testID={`${title}-plate`}
-            style={[styles.plate, hero && styles.heroPlate, { backgroundColor: index < filled ? (over ? colors.warning : colors.primary) : colors.track }]}
+            style={[styles.plate, { backgroundColor: index < filled ? (over ? colors.warning : colors.primary) : colors.track }]}
           />
         ))}
       </View>
-      {hero ? null : <Text style={[styles.note, over && styles.over]}>{left}</Text>}
     </View>
   );
 }
@@ -105,12 +88,11 @@ function Hero({ value, unit, word, over }: { value: string; unit: string; word: 
   );
 }
 
-// Plates 3 apart, radius 2: the hero's 14 tall, the others 10.
+// Plates 14 tall, 3 apart, radius 2.
 const useStyles = themedStyles((c) => ({
   card: { gap: 6 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  // Clear of the hero card's cut corner.
-  clearCorner: { paddingRight: 30 },
+  // Clear of the card's cut corner.
+  row: { flexDirection: 'row', justifyContent: 'space-between', paddingRight: 30 },
   title: { ...TYPE.label, color: c.inkMuted },
   over: { color: c.warning },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
@@ -118,11 +100,7 @@ const useStyles = themedStyles((c) => ({
   heroWord: { ...TYPE.metric, fontSize: 18, lineHeight: 19, paddingBottom: 14, color: c.accent },
   line: { color: c.inkMuted, fontSize: 15, lineHeight: 22 },
   reading: { color: c.ink, fontWeight: '600' },
-  metric: { ...TYPE.metric, fontSize: 26, lineHeight: 28 },
-  plates: { flexDirection: 'row', gap: 3, marginTop: 4 },
-  heroPlates: { marginTop: 8 },
-  plate: { flex: 1, height: 10, borderRadius: 2 },
-  heroPlate: { height: 14 },
-  note: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
+  plates: { flexDirection: 'row', gap: 3, marginTop: 8 },
+  plate: { flex: 1, height: 14, borderRadius: 2 },
   setTarget: { marginTop: 6 },
 }));

@@ -62,7 +62,7 @@ describe('D-65 the Training tab', () => {
   it('the strip marks the days with a workout', async () => {
     await renderTraining([[ID_1, '2026-10-26', [SQUAT]]]);
 
-    expect(await screen.findByRole('button', { name: 'Monday 26 Oct, workout logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Monday 26 Oct, 1 workout logged' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Tuesday 27 Oct' })).toBeOnTheScreen();
   });
 
@@ -72,7 +72,7 @@ describe('D-65 the Training tab', () => {
       [ID_2, '2026-10-27', [PUSH_UP]],
     ]);
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct, workout logged' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct, 1 workout logged' }));
 
     expect(screen.getByLabelText('Selected date: Mon 26 Oct')).toBeOnTheScreen();
     expect(screen.getByText('Showing Mon 26 Oct')).toBeOnTheScreen();
@@ -94,9 +94,9 @@ describe('D-65 the Training tab', () => {
       [ID_3, '2026-10-27', []],
     ]);
 
-    expect(await screen.findByRole('button', { name: 'Monday 26 Oct, workout logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Monday 26 Oct, 1 workout logged' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Tuesday 27 Oct' })).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Monday 26 Oct, workout logged' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Monday 26 Oct, 1 workout logged' }));
     expect(screen.getByRole('header', { name: 'Mon 26 Oct · 1 workout' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Mon 26 Oct, Workout 1: 1 exercise · Squat' })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: /No exercises$/ })).toBeNull();
@@ -112,7 +112,7 @@ describe('D-65 the Training tab', () => {
 
   it('REQ-DATE-002 "Back to today" shows today again', async () => {
     await renderTraining([[ID_1, '2026-10-26', [SQUAT]]]);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct, workout logged' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct, 1 workout logged' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Back to today' }));
 
@@ -134,7 +134,7 @@ describe('D-65 the Training tab', () => {
     expect(screen.getByRole('button', { name: 'Log workout for Tue 20 Oct' })).toBeOnTheScreen();
     expect(await screen.findByRole('button', { name: 'Tue 20 Oct, Workout 1: 1 exercise · Squat' })).toBeOnTheScreen();
     // The strip shows the week holding it.
-    expect(screen.getByRole('button', { name: 'Tuesday 20 Oct, workout logged' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Tuesday 20 Oct, 1 workout logged' })).toBeSelected();
   });
 
   it('a day tapped on the strip while All workouts shows switches to By day', async () => {
@@ -149,7 +149,7 @@ describe('D-65 the Training tab', () => {
 
   it('D-42 By day: a workout’s pencil opens it; its bin asks first, and Delete removes it', async () => {
     const app = await renderTraining([[ID_1, '2026-10-26', [SQUAT]]]);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct, workout logged' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct, 1 workout logged' }));
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Edit Workout 1 on Mon 26 Oct' }));
     expect(mockRouter.push).toHaveBeenLastCalledWith(`/workout/${ID_1}`);

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
+import { NutrientTargets } from '../components/NutrientTargets';
 import { TargetProgressCard } from '../components/TargetProgressCard';
-import { WorkoutTracker } from '../components/WorkoutTracker';
+import { weekWorkoutsText } from '../components/WeekWorkouts';
 import { applyServerEntries, listTargets, pendingChanges } from '../local/store';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
@@ -11,9 +12,10 @@ import { TargetsScreen } from './TargetsScreen';
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
-// Own targets (REQ-ROLE-007, D-20), the calories and protein cards (REQ-HOME-003, REQ-HOME-004) and
-// the workout tracker (REQ-HOME-007). Nothing is eaten until slice 3 and no workout is logged until
-// slice 4, so the screens show 0; the card logic is tested with other amounts directly.
+// Own targets (REQ-ROLE-007, D-20), the calories card and the nutrients under it (REQ-HOME-003,
+// REQ-HOME-004, D-103) and the week's workouts under the strip (REQ-HOME-007, D-103). Nothing is eaten
+// and no workout is logged here, so the screens show 0; the cards' logic is tested with other amounts
+// directly.
 
 beforeEach(() => {
   mockRouter.replace.mockClear();
@@ -209,16 +211,21 @@ describe('D-77 Your targets by date', () => {
   });
 });
 
-describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
+describe('REQ-HOME-003 and REQ-HOME-004 the calories card and the nutrients under it', () => {
   it('REQ-ROLE-007 with no target, shows the amount eaten without a percentage, and "Set a target" opens the targets', async () => {
     await renderInApp(<HomeScreen />);
 
     // Calories is Home's hero: its number and words are read out as one.
     expect(await screen.findByLabelText('0 kcal eaten')).toBeOnTheScreen();
-    expect(screen.getByText('0 g eaten')).toBeOnTheScreen();
     expect(screen.queryByText(/%$/)).toBeNull();
+    // D-103: no protein card; the four nutrients, nothing logged, none with a target.
+    expect(screen.queryByText('0 g eaten')).toBeNull();
+    expect(screen.getByLabelText('Protein: none, no daily target')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Fibre: none, no daily target')).toBeOnTheScreen();
+    expect(screen.getAllByText('No target')).toHaveLength(4);
 
-    await fireEvent.press(screen.getAllByRole('button', { name: 'Set a target' })[0]!);
+    // One "Set a target", the calories': it opens Your targets, where every target is.
+    await fireEvent.press(screen.getByRole('button', { name: 'Set a target' }));
     expect(mockRouter.push).toHaveBeenCalledWith('/targets');
   });
 
@@ -236,9 +243,9 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
 
     expect(await screen.findByText('0 of 1,800 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('1,800 kcal remaining')).toBeOnTheScreen();
-    expect(screen.getByText('120 g remaining')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: none of 120 g')).toBeOnTheScreen();
     // The week of 26 Oct takes its Sunday's workout target, set on Wednesday: a change counts for its week.
-    expect(screen.getByText('0 of 4 · 4 left')).toBeOnTheScreen();
+    expect(screen.getByText('0 of 4 workouts this week')).toBeOnTheScreen();
 
     // Today: the new calorie target.
     await fireEvent.press(screen.getByRole('button', { name: 'Back to today' }));
@@ -257,98 +264,95 @@ describe('REQ-HOME-003 and REQ-HOME-004 calories and protein cards', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Monday 26 Oct' }));
 
     expect(await screen.findByLabelText('0 kcal eaten')).toBeOnTheScreen();
-    expect(screen.getAllByText('No target on this day')).toHaveLength(2);
+    expect(screen.getByText('No target on this day')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Protein: none, no daily target')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Set a target' })).toBeNull();
-    // This week has no workout target yet: one set today counts for it.
-    expect(screen.getByRole('button', { name: 'Set a weekly workout target' })).toBeOnTheScreen();
+    // This week has no workout target yet.
+    expect(screen.getByText('No workouts this week')).toBeOnTheScreen();
   });
 
-  it('REQ-HOME-003 target 2000 and 1500 eaten: 75% and 500 kcal remaining', async () => {
+  it('REQ-HOME-003 target 2000 and 1500 eaten: 75%, and 500 kcal remaining as the big number, with 20 plates', async () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={1_500} target={2_000} onSetTarget={jest.fn()} />);
 
     expect(screen.getByText('75%')).toBeOnTheScreen();
-    expect(screen.getByText('500 kcal remaining')).toBeOnTheScreen();
-    // Plates: 10 here, 8 of them caramel.
-    expect(screen.getByTestId('Calories-bar')).toHaveAccessibilityValue({ min: 0, max: 100, now: 75 });
-    const plates = screen.getAllByTestId('Calories-plate');
-    expect(plates).toHaveLength(10);
-    expect(plates.filter((plate) => StyleSheet.flatten(plate.props.style).backgroundColor === LIGHT_COLORS.primary)).toHaveLength(8);
-  });
-
-  it('D-35 as the hero, what is left is the big number, with 20 plates', async () => {
-    await render(<TargetProgressCard title="Calories" unit="kcal" eaten={1_500} target={2_000} onSetTarget={jest.fn()} hero />);
-
     expect(screen.getByLabelText('500 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('500')).toBeOnTheScreen();
     expect(screen.getByText('1,500 of 2,000 kcal')).toBeOnTheScreen();
-    expect(screen.getAllByTestId('Calories-plate')).toHaveLength(20);
+    // Plates: 20, 15 of them caramel.
+    expect(screen.getByTestId('Calories-bar')).toHaveAccessibilityValue({ min: 0, max: 100, now: 75 });
+    const plates = screen.getAllByTestId('Calories-plate');
+    expect(plates).toHaveLength(20);
+    expect(plates.filter((plate) => StyleSheet.flatten(plate.props.style).backgroundColor === LIGHT_COLORS.primary)).toHaveLength(15);
   });
 
   it('Q-022 over the target: the bar is full in the warning colour, with "X kcal over"', async () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={2_300} target={2_000} onSetTarget={jest.fn()} />);
 
-    expect(screen.getByText('300 kcal over')).toBeOnTheScreen();
+    expect(screen.getByLabelText('300 kcal over')).toBeOnTheScreen();
     expect(screen.getByTestId('Calories-bar')).toHaveAccessibilityValue({ now: 100 });
     for (const plate of screen.getAllByTestId('Calories-plate')) expect(plate).toHaveStyle({ backgroundColor: LIGHT_COLORS.warning });
   });
+});
 
-  it('REQ-HOME-004 protein over the target reads "X g over"', async () => {
-    await render(<TargetProgressCard title="Protein" unit="g" eaten={135} target={120} onSetTarget={jest.fn()} />);
+describe('D-103 REQ-HOME-004 protein, carbs, fat and fibre under the calories', () => {
+  const totals = { kcal: 1_320, proteinG: 86, carbsG: 150, fatG: 64, fibreG: null };
+  const targets = { protein: 120, carbs: 250, fat: 60 };
 
-    expect(screen.getByText('15 g over')).toBeOnTheScreen();
+  it('shows each amount as Nutrition does, with "of" its target and a bar in its colour', async () => {
+    await render(<NutrientTargets totals={totals} targets={targets} />);
+
+    expect(screen.getByLabelText('Protein: 86.0 g of 120 g')).toBeOnTheScreen();
+    expect(screen.getByText('86.0 g')).toBeOnTheScreen();
+    expect(screen.getByText('of 120 g')).toBeOnTheScreen();
+    // 150 of 250: the bar 60% across, in the carbs colour.
+    expect(screen.getByTestId('bar-carbs')).toHaveStyle({ width: '60%', backgroundColor: LIGHT_COLORS.carbs });
+    expect(screen.getByTestId('bar-protein')).toHaveStyle({ backgroundColor: LIGHT_COLORS.protein });
+  });
+
+  it('Q-022 over its target: the "of" line and a full bar in the warning gold, read out with how much over', async () => {
+    await render(<NutrientTargets totals={totals} targets={targets} />);
+
+    expect(screen.getByLabelText('Fat: 64.0 g of 60 g, 4.0 g over')).toBeOnTheScreen();
+    expect(screen.getByText('of 60 g')).toHaveStyle({ color: LIGHT_COLORS.warning });
+    expect(screen.getByTestId('bar-fat')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.warning });
+  });
+
+  it('a nutrient with no target says so, with no bar; one no food has a value for shows "–"', async () => {
+    await render(<NutrientTargets totals={totals} targets={targets} />);
+
+    expect(screen.getByLabelText('Fibre: none, no daily target')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('nutrient-fibre')).getByText('–')).toBeOnTheScreen();
+    expect(within(screen.getByTestId('nutrient-fibre')).getByText('No target')).toBeOnTheScreen();
+    expect(screen.queryByTestId('bar-fibre')).toBeNull();
+  });
+
+  it('nothing logged: every amount "–", the bars empty', async () => {
+    await render(<NutrientTargets totals={null} targets={{ ...targets, fibre: 30 }} />);
+
+    expect(screen.getAllByText('–')).toHaveLength(4);
+    expect(screen.getByLabelText('Fibre: none of 30 g')).toBeOnTheScreen();
+    expect(screen.getByTestId('bar-protein')).toHaveStyle({ width: '0%' });
+  });
+
+  it('D-100 a target of 0: anything eaten fills the bar and is over it', async () => {
+    await render(<NutrientTargets totals={totals} targets={{ carbs: 0 }} />);
+
+    expect(screen.getByLabelText('Carbs: 150.0 g of 0 g, 150.0 g over')).toBeOnTheScreen();
+    expect(screen.getByTestId('bar-carbs')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.warning });
   });
 });
 
-describe('REQ-HOME-007 workout tracker', () => {
-  it('REQ-HOME-007 counts against the weekly target, with Mon–Sun dots', async () => {
-    await render(
-      <WorkoutTracker
-        day="2026-10-28"
-        today="2026-10-28"
-        dayCounts={{ '2026-10-26': 1 }}
-        count={1}
-        target={5}
-        onSetTarget={jest.fn()}
-        onDay={jest.fn()}
-      />,
-    );
-
-    expect(screen.getByText('1 of 5 · 4 left')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Monday 26 Oct: 1 workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Tuesday 27 Oct: no workout')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Sunday 1 Nov: future')).toBeOnTheScreen();
-  });
-
-  it('D-41 reads "N workouts · target achieved" once the target is met or passed', async () => {
-    await render(
-      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={7} target={5} onSetTarget={jest.fn()} onDay={jest.fn()} />,
-    );
-    expect(screen.getByText('7 workouts · target achieved')).toBeOnTheScreen();
-
-    await render(
-      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={1} target={1} onSetTarget={jest.fn()} onDay={jest.fn()} />,
-    );
-    expect(screen.getByText('1 workout · target achieved')).toBeOnTheScreen();
-  });
-
-  it('D-77 a past week with no target says so, with nothing to set', async () => {
-    await render(
-      <WorkoutTracker day="2026-10-21" today="2026-10-28" dayCounts={{}} count={2} target={null} onSetTarget={null} onDay={jest.fn()} />,
-    );
-
-    expect(screen.getByText('2 workouts that week')).toBeOnTheScreen();
-    expect(screen.getByText('No target that week')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Set a weekly workout target' })).toBeNull();
-  });
-
-  it('REQ-ROLE-007 with no target, offers to set one', async () => {
-    const onSetTarget = jest.fn();
-    await render(
-      <WorkoutTracker day="2026-10-28" today="2026-10-28" dayCounts={{}} count={0} target={null} onSetTarget={onSetTarget} onDay={jest.fn()} />,
-    );
-
-    expect(screen.getByText('0 workouts this week')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Set a weekly workout target' }));
-    expect(onSetTarget).toHaveBeenCalled();
+describe('REQ-HOME-007 the workouts under the strip, against the week’s target (D-103)', () => {
+  it.each([
+    [1, 5, true, '1 of 5 workouts this week'],
+    [0, 1, true, '0 of 1 workout this week'],
+    [5, 5, true, '5 workouts this week · target achieved'],
+    [7, 5, false, '7 workouts that week · target achieved'],
+    [1, 1, true, '1 workout this week · target achieved'],
+    [2, null, false, '2 workouts that week'],
+    [1, null, true, '1 workout this week'],
+    [0, null, true, 'No workouts this week'],
+  ])('D-41 %i workouts against a target of %s (this week: %s) read "%s"', (count, target, thisWeek, text) => {
+    expect(weekWorkoutsText(count, target, thisWeek)).toBe(text);
   });
 });

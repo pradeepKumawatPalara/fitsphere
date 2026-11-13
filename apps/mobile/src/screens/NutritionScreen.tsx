@@ -1,4 +1,4 @@
-import { addDays, type IstDay, type MealItem, type MealTotals, type MealType } from '@fitsphere/shared';
+import { type MealItem, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Bookmark, ChevronDown, ChevronUp, ClipboardList, History, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -17,7 +17,6 @@ import {
   dayNutrition,
   listMealsOfDay,
   listSavedMeals,
-  mealCounts,
   type LocalMeal,
   type LocalSavedMeal,
 } from '../local/store';
@@ -25,6 +24,7 @@ import { sameFoods } from '../mealItems';
 import { describeItems, formatAmount, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useSync } from '../sync/SyncProvider';
+import { useWeekActivity } from '../weekActivity';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
@@ -79,7 +79,8 @@ export function NutritionScreen() {
   }
   const [meals, setMeals] = useState<LocalMeal[]>([]);
   const [totals, setTotals] = useState<MealTotals | null>(null);
-  const [mealDays, setMealDays] = useState<ReadonlySet<IstDay>>(new Set());
+  // The strip's week: an apple and a dumbbell under each day, as on Home (D-103).
+  const activity = useWeekActivity(stripStart);
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   // One food of a logged meal open on its own page, or in the sheet for its amount (D-97).
@@ -108,19 +109,17 @@ export function NutritionScreen() {
     void Promise.all([
       listMealsOfDay(db, selected),
       dayNutrition(db, selected),
-      mealCounts(db, stripStart, addDays(stripStart, 6)),
       listSavedMeals(db),
-    ]).then(([dayMeals, nutrition, counts, savedMeals]) => {
+    ]).then(([dayMeals, nutrition, savedMeals]) => {
       if (!active) return;
       setMeals(dayMeals);
       setTotals(nutrition);
-      setMealDays(new Set(Object.keys(counts)));
       setSaved(savedMeals);
     });
     return () => {
       active = false;
     };
-  }, [local.state, selected, stripStart, sync.version]);
+  }, [local.state, selected, sync.version]);
 
   /** Saves a logged meal with its foods changed (D-97), keeping its date, meal, tags and photo. */
   function saveFoods(meal: LocalMeal, items: MealItem[]) {
@@ -161,7 +160,7 @@ export function NutritionScreen() {
           firstDay={firstDay}
           selected={selected}
           start={stripStart}
-          loggedDays={mealDays}
+          activity={activity}
           onSelect={select}
           onShow={showDays}
         />
