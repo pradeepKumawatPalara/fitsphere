@@ -205,27 +205,31 @@ export const EXERCISE_NAME_MAX = 80;
 export const EXERCISE_SETS_MAX = 20;
 export const EXERCISE_REPS_MAX = 200;
 export const EXERCISE_NOTE_MAX = 500;
-/** A set's time, or an exercise's: up to 24 hours, in seconds. */
+/** An exercise's time: up to 24 hours, in seconds. */
 export const EXERCISE_SECONDS_MAX = 24 * 60 * 60;
-/** 0.01–500 km, in metres. */
+/** A set's time: up to an hour, in seconds (D-100; was 24 hours). */
+export const EXERCISE_SET_SECONDS_MAX = 60 * 60;
+/** 0.01–200 km, in metres (D-100; was 500 km). */
 export const EXERCISE_DISTANCE_METRES_MIN = 10;
-export const EXERCISE_DISTANCE_METRES_MAX = 500_000;
+export const EXERCISE_DISTANCE_METRES_MAX = 200_000;
 /** 0.1–40 km/h, in metres per hour. */
 export const EXERCISE_SPEED_METRES_PER_HOUR_MIN = 100;
 export const EXERCISE_SPEED_METRES_PER_HOUR_MAX = 40_000;
 /** 0–40 %, in tenths of a percent. */
 export const EXERCISE_INCLINE_PERMILLE_MAX = 400;
 export const EXERCISE_LEVEL_MAX = 40;
-export const EXERCISE_KCAL_MAX = 5_000;
+/** Calories burned by one exercise (D-100; was 5,000). */
+export const EXERCISE_KCAL_MAX = 3_000;
+/** Beats a minute (D-100; was up to 250). */
 export const HEART_RATE_BPM_MIN = 30;
-export const HEART_RATE_BPM_MAX = 250;
+export const HEART_RATE_BPM_MAX = 220;
 
 /** One set (D-50): its reps, its time, or both, with the weight lifted or carried, null for none. */
 export const exerciseSetSchema = z
   .strictObject({
     reps: z.int().min(1).max(EXERCISE_REPS_MAX).nullable(),
     weightGrams: z.int().min(LIFT_WEIGHT_GRAMS_MIN).max(LIFT_WEIGHT_GRAMS_MAX).nullable(),
-    seconds: z.int().min(1).max(EXERCISE_SECONDS_MAX).nullable(),
+    seconds: z.int().min(1).max(EXERCISE_SET_SECONDS_MAX).nullable(),
   })
   .refine((set) => set.reps !== null || set.seconds !== null);
 export type ExerciseSet = z.infer<typeof exerciseSetSchema>;
@@ -355,12 +359,14 @@ export type TargetKind = (typeof TARGET_KINDS)[number];
 /** Whole kcal, whole grams of protein, carbs, fat and fibre, steps, workouts a week, and body
  * weight in grams (D-23, D-70). */
 export const TARGET_RANGES: Record<TargetKind, { min: number; max: number }> = {
-  calories: { min: 500, max: 10_000 },
-  protein: { min: 10, max: 500 },
-  carbs: { min: 10, max: 1_000 },
-  fat: { min: 5, max: 500 },
-  fibre: { min: 5, max: 100 },
-  steps: { min: 1, max: STEPS_MAX },
+  // 100 to 10,000 kcal (D-100; it was 500, D-23).
+  // D-100: from 0; fat up to 1,000 g and fibre up to 200 g; steps up to 200,000.
+  calories: { min: 0, max: 10_000 },
+  protein: { min: 0, max: 500 },
+  carbs: { min: 0, max: 1_000 },
+  fat: { min: 0, max: 1_000 },
+  fibre: { min: 0, max: 200 },
+  steps: { min: 0, max: STEPS_MAX },
   weekly_workouts: { min: 1, max: 14 },
   body_weight: { min: WEIGHT_GRAMS_MIN, max: WEIGHT_GRAMS_MAX },
 };
@@ -423,18 +429,26 @@ export type SettingSetData = z.infer<typeof settingSetDataSchema>;
 // here, being the latest weigh-in. Private to the user (D-20) and never logged (invariant #7).
 
 export const PROFILE_SET = 'profile.set';
+/** A name of 2 to 60 letters (D-100): letters of any script, spaces, and . ' - between them. */
+export const PROFILE_NAME_MIN = 2;
 export const PROFILE_NAME_MAX = 60;
+export const PROFILE_NAME_PATTERN = /^[\p{L}\p{M} .'-]+$/u;
 /** The ages a date of birth may give: 18 or older, as at sign-up (REQ-ACC-010). */
 export const PROFILE_AGE_MIN = 18;
 export const PROFILE_AGE_MAX = 120;
 export const SEXES = ['female', 'male', 'other', 'prefer_not_to_say'] as const;
 export type Sex = (typeof SEXES)[number];
+/** Line 1 of an address: 3 to 100 characters (D-100); line 2, 1 to 100. */
+export const ADDRESS_LINE1_MIN = 3;
 export const ADDRESS_LINE_MAX = 100;
-/** A city's or a state's name. */
+/** A city's or a state's name: 2 to 60 letters, spaces, . and - (D-100). */
+export const ADDRESS_PLACE_MIN = 2;
 export const ADDRESS_PLACE_MAX = 60;
+export const ADDRESS_PLACE_PATTERN = /^[\p{L}\p{M} .-]+$/u;
 /** +91 and a 10-digit Indian mobile number (phase 1 serves India only, invariant #5); not verified. */
 export const PHONE_PATTERN = /^\+91[6-9]\d{9}$/;
-export const PIN_CODE_PATTERN = /^\d{6}$/;
+/** Six digits, the first not 0 (D-100). */
+export const PIN_CODE_PATTERN = /^[1-9]\d{5}$/;
 
 function profileTextSchema(max: number) {
   return z.string().trim().min(1).max(max);
@@ -442,10 +456,10 @@ function profileTextSchema(max: number) {
 
 /** An address: empty (null), or line 1, the city, the state and the PIN code all given. */
 export const addressSchema = z.strictObject({
-  line1: profileTextSchema(ADDRESS_LINE_MAX),
+  line1: z.string().trim().min(ADDRESS_LINE1_MIN).max(ADDRESS_LINE_MAX),
   line2: profileTextSchema(ADDRESS_LINE_MAX).nullable(),
-  city: profileTextSchema(ADDRESS_PLACE_MAX),
-  state: profileTextSchema(ADDRESS_PLACE_MAX),
+  city: z.string().trim().min(ADDRESS_PLACE_MIN).max(ADDRESS_PLACE_MAX).regex(ADDRESS_PLACE_PATTERN),
+  state: z.string().trim().min(ADDRESS_PLACE_MIN).max(ADDRESS_PLACE_MAX).regex(ADDRESS_PLACE_PATTERN),
   pinCode: z.string().regex(PIN_CODE_PATTERN),
 });
 export type Address = z.infer<typeof addressSchema>;
@@ -458,7 +472,7 @@ export function isAcceptedDateOfBirth(dateOfBirth: IstDay, today: IstDay): boole
 
 /** The whole profile: a field left empty is null. */
 export const profileSetDataSchema = z.strictObject({
-  name: profileTextSchema(PROFILE_NAME_MAX).nullable(),
+  name: z.string().trim().min(PROFILE_NAME_MIN).max(PROFILE_NAME_MAX).regex(PROFILE_NAME_PATTERN).nullable(),
   /** A calendar date, `YYYY-MM-DD`; the server also checks the age it gives (isAcceptedDateOfBirth). */
   dateOfBirth: istDaySchema.nullable(),
   sex: z.enum(SEXES).nullable(),
@@ -663,6 +677,8 @@ export type MealDeleteData = z.infer<typeof mealDeleteDataSchema>;
 
 export const MY_FOOD_SET = 'myFood.set';
 export const MY_FOOD_DELETE = 'myFood.delete';
+/** 2 to 120 characters (D-100; was from 1). */
+export const MY_FOOD_NAME_MIN = 2;
 export const MY_FOOD_NAME_MAX = 120;
 export const MY_FOOD_UNITS = ['g', ...OWN_UNITS] as const;
 export type MyFoodUnit = (typeof MY_FOOD_UNITS)[number];
@@ -677,7 +693,7 @@ export function myFoodValueMax(unit: MyFoodUnit, nutrient: 'kcal' | 'grams'): nu
 export const myFoodSetDataSchema = z
   .strictObject({
     id: idSchema,
-    name: z.string().trim().min(1).max(MY_FOOD_NAME_MAX),
+    name: z.string().trim().min(MY_FOOD_NAME_MIN).max(MY_FOOD_NAME_MAX),
     unit: z.enum(MY_FOOD_UNITS),
     kcal: z.number().min(0),
     proteinG: z.number().min(0),
