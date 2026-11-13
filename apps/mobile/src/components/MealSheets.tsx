@@ -110,11 +110,13 @@ export const SAVED_NAME_HINT = 'Give the meal a name, then add its foods.';
 
 /**
  * A saved meal's name. "Save to my meals" on a logged meal: filled in from its foods (MVP default,
- * D-26), an empty name an error. A new saved meal (D-69): asked first, empty, with a hint until it is
- * given, before its foods; and changing the name of one.
+ * D-26), an empty name an error; on one food of a logged meal (D-97), filled in with the food's name,
+ * a line above saying what is saved. A new saved meal (D-69): asked first, empty, with a hint until it
+ * is given, before its foods; and changing the name of one.
  */
 export function SaveMealSheet({
   initialName,
+  message,
   title = 'Save to my meals',
   actionLabel = 'Save',
   emptyHint,
@@ -122,6 +124,8 @@ export function SaveMealSheet({
   onClose,
 }: {
   initialName: string;
+  /** Above the name: what is saved, e.g. "Roti · 2 × roti (80 g) · 240 kcal, on its own" (D-97). */
+  message?: string;
   title?: string;
   actionLabel?: string;
   /** Shown under an empty name in place of the error, and the tile then sits beside the title. */
@@ -151,6 +155,7 @@ export function SaveMealSheet({
         </>
       }
     >
+      {message ? <Text style={styles.message}>{message}</Text> : null}
       <Field
         label="Name"
         value={name}

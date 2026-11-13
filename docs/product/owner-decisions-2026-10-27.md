@@ -3108,6 +3108,41 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-97 Nutrition: each food of an opened meal with its own Edit, Save and Remove
+- Status: **Accepted** (owner, in chat, 2026-11-13: with a screenshot of Lunch opened, one card
+  "Mango & Banana … + 2 more": "In the expanded view I should be able to view the 2 card of each single
+  food ... come up with the updated canva desing and wait for my approval"; then "What is i want to
+  save, edit and Delete only one food item out of 2 than how will I add?"; of the canvas's three ways
+  beside the app as built, version 98 (A: icons on each food's card; B: a bar of words on each; C: tap
+  a food for its sheet), "Lock it A"; locked in version 99). Built on branch `feat/meal-food-actions`.
+- Answer (REQ-NUT-003, REQ-NUT-004, REQ-SAVED-001; with D-34, D-64, D-69 and D-70):
+  - An opened meal slot shows each meal's card (3.1): its kcal and protein and "Saved 1:20 pm" on top,
+    its tags, then **a card for each food**: its name and kcal, its amount and protein ("2 × roti
+    (80 g) · 7.4 g protein"), and its own **Edit**, **Save** and **Remove** icons along its foot, 44 dp
+    each, Remove in red.
+  - The whole meal's **Insight, Edit, Save to my meals and Delete** sit in a row of their own at the
+    card's foot, ruled off, under "Whole meal"; they work as before (D-33, D-70).
+  - **Edit** (one food) opens the food's page on its amount, as Log meal's review does (D-64): the
+    meal and its date beside the back arrow ("Lunch · Thu 12 Nov"), "In this meal now: 60 g", **Save
+    change** and **Remove from meal**; a food with no page (one typed once, a barcode product not in
+    the list) opens the sheet for its amount. Save change saves the meal at once, keeping its date,
+    meal, tags and photo; Back leaves it as it was.
+  - **Save** (one food) is "Save to my meals" for that food on its own: named after the food, with a
+    line saying what is saved ("Ghee · 5 g · 45 kcal, on its own"). It keeps the food's amount and is
+    logged later to the meal chosen (D-69). Once saved, its bookmark is filled, and pressing it says
+    "This food is saved as Ghee." with Go to Saved; it is never saved twice.
+  - **Remove** (one food), and Remove from meal on its page, asks first: "Remove Ghee?", "Lunch keeps
+    Wheat flour, atta." (Cancel, Remove). The last food takes the meal with it: "It is the only food
+    in this meal, so the meal is deleted." (Cancel, Delete meal).
+  - A folded slot, the Saved tab's cards, Log meal and Home are unchanged.
+- MVP defaults: a food saved on its own keeps no tags (a tag is about the meal); a meal's photo or
+  image link sits above the "Whole meal" row (the canvas showed none); Remove from meal on the food's
+  page asks first, as the icon does, since the change is saved at once.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-NUT-003, REQ-NUT-004; the redesign's 3.1; constraints' MVP defaults; CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

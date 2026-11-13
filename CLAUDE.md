@@ -12,6 +12,15 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Each food of an opened meal with its own Edit, Save and Remove — built on branch
+`feat/meal-food-actions` (D-97, 2026-11-13), in `D:\fitsphere`.** Canvas boards `MealFoods*` A locked
+(version 99). In Nutrition › Consumed, an opened meal's card shows a card for each food (name, kcal,
+amount, protein) with its own Edit (the food's page, or the sheet for its amount; saved at once), Save
+(that food alone to Saved) and Remove (asks first; the last food deletes the meal); the whole meal's
+Insight, Edit, Save and Delete sit under "Whole meal" (`components/LoggedMealCard.tsx`; `useFoodChange`
+in `components/MealFoods.tsx`, shared with Log meal's review). Phone app only: no server change, no
+migration, no phone schema change, no new build.
+
 **An amount typed with a food in Search foods — built on branch `feat/search-amounts` (D-96,
 2026-11-12), on top of `feat/consolidated-foods`, in `D:itsphere-search-marks`.** QA-18: "2 roti",
 "1 cup rice", "half plate biryani" search the food (`readSearch` in `apps/mobile/src/searchAmount.ts`
