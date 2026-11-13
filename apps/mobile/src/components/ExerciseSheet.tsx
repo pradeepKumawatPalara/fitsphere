@@ -313,12 +313,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       {/* One scrolling page while the form shows, the fields at its top scrolling with it (the owner,
           2026-11-10: the time and calories had too little room); while a list shows it fills the page
           under the fields and scrolls on its own. The fields stay the same views, so typing keeps the
-          keyboard. */}
+          keyboard. While a list shows, the page's content is held to the page's height (`listing`):
+          inside a scroll view a list's `flex: 1` alone does not hold it, so the list grew to its full
+          length and nothing scrolled (the owner, 2026-11-13). */}
       <ScrollView
         style={styles.fill}
         contentContainerStyle={listing ? styles.listing : undefined}
         scrollEnabled={!listing}
         keyboardShouldPersistTaps="handled"
+        testID="exercise-page"
       >
       <View style={[styles.top, picking !== null && styles.fill]}>
         <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={chooseFilter} />
@@ -375,7 +378,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           {/* A plain list, not a FlatList: it sits in the page's scroll view, which may not hold a
               virtualized list; at most SHOWN_MAX rows are drawn. */}
           <View style={[styles.matches, styles.fill]}>
-            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fill} testID="exercise-matches">
               {matches.slice(0, SHOWN_MAX).map((exercise, index) => {
                 const tag = matchTag(exercise, filter);
                 return (
@@ -861,7 +864,9 @@ const useStyles = themedStyles((c) => ({
   // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
   top: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
   fill: { flex: 1 },
-  listing: { flexGrow: 1 },
+  // Exactly the page's height, not at least it (`flexGrow`): a scroll view's content has no height of its
+  // own, so only this gives the open list a height to scroll in.
+  listing: { flex: 1 },
   listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
   form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
   listed: { gap: 8 },

@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
-import { Button, Keyboard, type EmitterSubscription } from 'react-native';
+import { Button, Keyboard, StyleSheet, type EmitterSubscription } from 'react-native';
 import { getEntry, replaceExercises, saveEntry, saveWeighIn, type WorkoutData } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { NOW, renderInApp } from '../testing/appHarness';
@@ -917,6 +917,39 @@ describe('D-67 the exercise page', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
     expect(screen.queryByRole('header', { name: 'Add exercise' })).toBeNull();
+  });
+
+  // The owner, 2026-11-13: Category, Sub-group and the names did not scroll. Inside the page's scroll
+  // view a list's `flex: 1` holds nothing unless the page's content is exactly the page's height, so
+  // the lists grew to their full length. The layout itself is the phone's; this checks the styles it needs.
+  it('while a list shows, the page holds its content to its height, so Category, Sub-group and the names scroll', async () => {
+    await startWorkout();
+    await openSheet();
+    const page = () => screen.getByTestId('exercise-page');
+    const heldToThePage = () => {
+      expect(page().props.scrollEnabled).toBe(false);
+      expect(StyleSheet.flatten(page().props.contentContainerStyle)).toMatchObject({ flex: 1 });
+    };
+    expect(page().props.scrollEnabled).toBe(true);
+    expect(StyleSheet.flatten(page().props.contentContainerStyle) ?? {}).not.toHaveProperty('flex');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
+    heldToThePage();
+    expect(StyleSheet.flatten(screen.getByTestId('exercise-place-list').props.style)).toMatchObject({ flex: 1 });
+    await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sub-group: All sub-groups' }));
+    heldToThePage();
+    expect(StyleSheet.flatten(screen.getByTestId('exercise-place-list').props.style)).toMatchObject({ flex: 1 });
+    await fireEvent.press(screen.getByRole('button', { name: 'Biceps, 2 exercises' }));
+
+    expect(await screen.findByRole('button', { name: 'Hammer curl' })).toBeOnTheScreen();
+    heldToThePage();
+    expect(StyleSheet.flatten(screen.getByTestId('exercise-matches').props.style)).toMatchObject({ flex: 1 });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl' }));
+    expect(page().props.scrollEnabled).toBe(true);
+    expect(StyleSheet.flatten(page().props.contentContainerStyle) ?? {}).not.toHaveProperty('flex');
   });
 });
 
