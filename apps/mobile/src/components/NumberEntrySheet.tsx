@@ -1,6 +1,7 @@
 import { Calendar, CircleAlert } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
@@ -27,21 +28,21 @@ type Props = {
 // Nothing is saved until the value is valid; Cancel closes without saving. The redesign's 2.4 (locked
 // by the owner, 2026-11-03): the number large in a sunken box with its unit, the outline caramel
 // while typing and red with the rule under it when the value can't be saved; a spinner on Save.
+// Since D-99 the rule shows once typing pauses or the box is left (an empty box only once left), not
+// when Save is pressed: Save is greyed until the value can be saved.
 export function NumberEntrySheet({ title, label, unit, initialText, parse, rule, decimal, note, onSave, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [text, setText] = useState(initialText);
   // The field opens focused, the keyboard up.
   const [focused, setFocused] = useState(true);
-  const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const checks = useFieldChecks({ value: text });
+  const value = parse(text);
+  const problem = value === null && checks.shows('value') ? rule : null;
 
   async function save() {
-    const value = parse(text);
-    if (value === null) {
-      setProblem(rule);
-      return;
-    }
+    if (value === null) return;
     setBusy(true);
     await onSave(value);
     setBusy(false);
@@ -54,7 +55,7 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
       onClose={onClose}
       actions={
         <>
-          <TextButton title="Save" filled busy={busy} onPress={() => void save()} />
+          <TextButton title="Save" filled busy={busy} disabled={value === null} onPress={() => void save()} />
           <TextButton title="Cancel" wide onPress={onClose} />
         </>
       }
@@ -66,8 +67,14 @@ export function NumberEntrySheet({ title, label, unit, initialText, parse, rule,
           onChangeText={setText}
           keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
           autoFocus
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={() => {
+            setFocused(true);
+            checks.focus('value');
+          }}
+          onBlur={() => {
+            setFocused(false);
+            checks.blur('value');
+          }}
           style={styles.input}
         />
         <Text style={styles.unit}>{unit}</Text>

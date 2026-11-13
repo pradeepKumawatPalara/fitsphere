@@ -612,8 +612,25 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     await open('Lunch');
     await fireEvent.press(await screen.findByRole('button', { name: 'Save Lunch: Wheat flour, atta to my meals' }));
     await fireEvent.changeText(screen.getByLabelText('Name'), '  ');
+    // D-99: an empty name says so once the box is left; Save waits meanwhile.
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await fireEvent(screen.getByLabelText('Name'), 'blur');
 
     expect(screen.getByText('Enter a name.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('D-100 a name over 60 characters says so, not cut off, and Save waits', async () => {
+    await renderInApp(<NutritionScreen />, undefined, async (db) => {
+      await meal(db);
+    });
+
+    await open('Lunch');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Save Lunch: Wheat flour, atta to my meals' }));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'x'.repeat(61));
+
+    expect(screen.getByLabelText('Name')).toHaveDisplayValue('x'.repeat(61));
+    expect(screen.getByText('Names can be up to 60 characters.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 

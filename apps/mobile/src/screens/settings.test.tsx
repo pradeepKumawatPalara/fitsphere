@@ -121,7 +121,10 @@ describe('REQ-ACC-004 the AI meal-reading switch', () => {
 describe('REQ-ACC-007 change password', () => {
   async function fill(current: string, next: string) {
     await fireEvent.changeText(await screen.findByLabelText('Current password'), current);
+    // Leaving each field, as the user does: an empty one says so once left (D-99).
+    await fireEvent(screen.getByLabelText('Current password'), 'blur');
     await fireEvent.changeText(screen.getByLabelText('New password'), next);
+    await fireEvent(screen.getByLabelText('New password'), 'blur');
     await fireEvent.press(screen.getByRole('button', { name: 'Change password' }));
   }
 

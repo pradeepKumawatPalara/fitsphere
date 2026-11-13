@@ -1,10 +1,11 @@
-import { MY_FOOD_NAME_MAX, MY_FOOD_UNITS, myFoodValueMax, type MealItem, type MyFoodUnit } from '@fitsphere/shared';
+import { MY_FOOD_NAME_MAX, MY_FOOD_NAME_MIN, MY_FOOD_UNITS, myFoodValueMax, type MealItem, type MyFoodUnit } from '@fitsphere/shared';
 import { Trash } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View, type KeyboardTypeOptions } from 'react-native';
 import type { LocalMyFood } from '../local/store';
 import { itemFromOwn, ownQuantityRule, parseOwnQuantity, parseOwnValue, type LabelValues } from '../mealItems';
 import { formatGrams, formatKcal, OWN_UNIT_NAMES, ownQuantityLabel } from '../meals';
+import { useFieldChecks } from '../fieldChecks';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
@@ -79,12 +80,17 @@ export function OwnFoodSheet({
   ) as Record<Key, number | 'empty' | 'invalid'>;
   const quantity = parseOwnQuantity(quantityText, unit);
   const valuesValid = FIELDS.every(({ key, required }) => typeof values[key] === 'number' || (!required && values[key] === 'empty'));
-  const nameValid = name.trim().length > 0 && name.trim().length <= MY_FOOD_NAME_MAX;
+  const nameValid = name.trim().length >= MY_FOOD_NAME_MIN && name.trim().length <= MY_FOOD_NAME_MAX;
+  // Each problem shows once typing pauses or the field is left (D-99).
+  const checks = useFieldChecks({ name, quantity: quantityText, ...texts });
+  const nameProblem = !nameValid && name.trim() !== '' && checks.shows('name') ? `Enter the food's name in ${MY_FOOD_NAME_MIN} to ${MY_FOOD_NAME_MAX} characters.` : null;
   const valid = nameValid && valuesValid && (editing !== null || quantity !== null);
 
   // Why the main button waits, when no field says so already.
   const missing = !nameValid
-    ? "Enter the food's name."
+    ? name.trim() === ''
+      ? "Enter the food's name."
+      : "Check the food's name."
     : FIELDS.some(({ key, required }) => required && values[key] === 'empty')
       ? `Enter kcal, protein, carbs and fat to ${editing ? 'save' : 'add'}.`
       : editing === null && quantityText.trim() === ''
@@ -146,7 +152,15 @@ export function OwnFoodSheet({
         </>
       }
     >
-      <Field label="Food name" value={name} onChangeText={setName} maxLength={MY_FOOD_NAME_MAX} autoCapitalize="sentences" />
+      <Field
+        label="Food name"
+        value={name}
+        onChangeText={setName}
+        autoCapitalize="sentences"
+        error={nameProblem}
+        onFocus={() => checks.focus('name')}
+        onBlur={() => checks.blur('name')}
+      />
       <View style={styles.group}>
         <Text style={labelStyle}>Unit</Text>
         <View accessibilityRole="radiogroup" accessibilityLabel="Unit" style={styles.units}>
@@ -179,10 +193,12 @@ export function OwnFoodSheet({
             onChangeText={(text) => setTexts((current) => ({ ...current, [field.key]: text }))}
             keyboardType="decimal-pad"
             problem={
-              values[field.key] === 'invalid'
+              values[field.key] === 'invalid' && checks.shows(field.key)
                 ? `Enter 0 to ${myFoodValueMax(unit, field.nutrient).toLocaleString('en-US')}, with at most one decimal.`
                 : null
             }
+            onFocus={() => checks.focus(field.key)}
+            onBlur={() => checks.blur(field.key)}
             ruled={index > 0}
           />
         ))}
@@ -194,7 +210,9 @@ export function OwnFoodSheet({
             value={quantityText}
             onChangeText={setQuantityText}
             keyboardType={unit === 'g' || unit === 'ml' ? 'number-pad' : 'decimal-pad'}
-            problem={quantityText.trim() !== '' && quantity === null ? ownQuantityRule(unit) : null}
+            problem={quantityText.trim() !== '' && quantity === null && checks.shows('quantity') ? ownQuantityRule(unit) : null}
+            onFocus={() => checks.focus('quantity')}
+            onBlur={() => checks.blur('quantity')}
             unit={unit === 'g' || unit === 'ml' ? unit : OWN_UNIT_NAMES[unit].many}
           />
           {preview ? (
@@ -225,6 +243,8 @@ function ValueRow({
   problem,
   unit,
   ruled = false,
+  onFocus,
+  onBlur,
 }: {
   label: string;
   value: string;
@@ -233,6 +253,8 @@ function ValueRow({
   problem: string | null;
   unit?: string;
   ruled?: boolean;
+  onFocus(): void;
+  onBlur(): void;
 }) {
   const styles = useStyles();
   const fieldLabel = useFieldLabelStyle();
@@ -247,8 +269,14 @@ function ValueRow({
             value={value}
             onChangeText={onChangeText}
             keyboardType={keyboardType}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
+            onFocus={() => {
+              setFocused(true);
+              onFocus();
+            }}
+            onBlur={() => {
+              setFocused(false);
+              onBlur();
+            }}
             style={[styles.value, unit ? styles.valueLarge : null]}
           />
           {unit ? <Text style={styles.unit}>{unit}</Text> : null}

@@ -1,4 +1,9 @@
 import {
+  ADDRESS_LINE1_MIN,
+  ADDRESS_LINE_MAX,
+  ADDRESS_PLACE_MAX,
+  ADDRESS_PLACE_MIN,
+  ADDRESS_PLACE_PATTERN,
   fromMillimetres,
   HEIGHT_MM_MAX,
   HEIGHT_MM_MIN,
@@ -7,6 +12,9 @@ import {
   PHONE_PATTERN,
   PIN_CODE_PATTERN,
   PROFILE_AGE_MIN,
+  PROFILE_NAME_MAX,
+  PROFILE_NAME_MIN,
+  PROFILE_NAME_PATTERN,
   toMillimetres,
   yearsBetween,
   type IstDay,
@@ -28,6 +36,12 @@ export const SEX_LABELS: Record<Sex, string> = {
 };
 
 export const PROFILE_TEXTS = {
+  // D-100: letters of any script, spaces, and . ' -.
+  name: `Enter a name of ${PROFILE_NAME_MIN} to ${PROFILE_NAME_MAX} letters.`,
+  line1: `Enter line 1 in ${ADDRESS_LINE1_MIN} to ${ADDRESS_LINE_MAX} characters.`,
+  line2: `Enter line 2 in up to ${ADDRESS_LINE_MAX} characters.`,
+  city: `Enter a city of ${ADDRESS_PLACE_MIN} to ${ADDRESS_PLACE_MAX} letters.`,
+  state: `Enter a state of ${ADDRESS_PLACE_MIN} to ${ADDRESS_PLACE_MAX} letters.`,
   dateOfBirthAge: `Enter a date of birth for someone ${PROFILE_AGE_MIN} or older.`,
   dateOfBirthReal: 'Enter a real date of birth: day, month and year.',
   phone: 'Enter a 10-digit Indian mobile number.',
@@ -72,7 +86,7 @@ export type ProfileForm = {
   pinCode: string;
 };
 
-export type ProfileField = 'dateOfBirth' | 'height' | 'phone' | 'address';
+export type ProfileField = 'name' | 'dateOfBirth' | 'height' | 'phone' | 'address';
 export type ProfileProblems = Partial<Record<ProfileField, string>>;
 
 /** The form for a saved profile, or an empty one; the height in `unit`. */
@@ -105,6 +119,11 @@ export function readProfileForm(
   unit: LengthUnit,
 ): { kind: 'ok'; data: Omit<ProfileSetData, 'setAt' | 'photoMediaId'> } | { kind: 'problems'; problems: ProfileProblems } {
   const problems: ProfileProblems = {};
+
+  const name = form.name.trim();
+  if (name !== '' && (name.length < PROFILE_NAME_MIN || name.length > PROFILE_NAME_MAX || !PROFILE_NAME_PATTERN.test(name))) {
+    problems.name = PROFILE_TEXTS.name;
+  }
 
   let dateOfBirth: IstDay | null = null;
   if ([form.day, form.month, form.year].some((part) => part.trim() !== '')) {
@@ -140,7 +159,12 @@ export function readProfileForm(
   const pinCode = form.pinCode.trim();
   let address: ProfileSetData['address'] = null;
   if ([line1, line2, city, state, pinCode].some((part) => part !== '')) {
+    const place = (text: string) => text.length >= ADDRESS_PLACE_MIN && text.length <= ADDRESS_PLACE_MAX && ADDRESS_PLACE_PATTERN.test(text);
     if (!line1 || !city || !state || !pinCode) problems.address = PROFILE_TEXTS.addressIncomplete;
+    else if (line1.length < ADDRESS_LINE1_MIN || line1.length > ADDRESS_LINE_MAX) problems.address = PROFILE_TEXTS.line1;
+    else if (line2.length > ADDRESS_LINE_MAX) problems.address = PROFILE_TEXTS.line2;
+    else if (!place(city)) problems.address = PROFILE_TEXTS.city;
+    else if (!place(state)) problems.address = PROFILE_TEXTS.state;
     else if (!PIN_CODE_PATTERN.test(pinCode)) problems.address = PROFILE_TEXTS.pinCode;
     else address = { line1, line2: line2 || null, city, state, pinCode };
   }
@@ -148,7 +172,7 @@ export function readProfileForm(
   if (Object.keys(problems).length > 0) return { kind: 'problems', problems };
   return {
     kind: 'ok',
-    data: { name: form.name.trim() || null, dateOfBirth, sex: form.sex, heightMm, phone, address },
+    data: { name: name || null, dateOfBirth, sex: form.sex, heightMm, phone, address },
   };
 }
 

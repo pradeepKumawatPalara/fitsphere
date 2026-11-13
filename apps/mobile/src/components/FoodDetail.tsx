@@ -3,6 +3,7 @@ import { ChevronDown, ChevronLeft, SquarePen, Trash } from 'lucide-react-native'
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { formatInteger } from '../format';
+import { useFieldChecks } from '../fieldChecks';
 import type { ListedFood, LocalMyFood } from '../local/store';
 import {
   GRAMS_RULE,
@@ -259,6 +260,9 @@ export function FoodDetail({
   const [picking, setPicking] = useState(false);
   const measure = measures[measureIndex] ?? measures[0]!;
   const item = itemOf(result, measure, count, typed);
+  // The typed amount's rule shows once typing pauses or the box is left (D-99); Add waits meanwhile.
+  const checks = useFieldChecks({ typed });
+  const typedRefused = !item && !measure.counted && checks.shows('typed');
 
   const name = result.kind === 'dish' ? result.dish.name : result.food.name;
   const mark =
@@ -327,11 +331,13 @@ export function FoodDetail({
                   <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
                 </Pressable>
               ) : (
-                <View style={[styles.box, !item && styles.refused]}>
+                <View style={[styles.box, typedRefused && styles.refused]}>
                   <TextInput
                     accessibilityLabel={result.kind === 'mine' ? ownQuantityLabel(result.food.unit) : 'Grams eaten'}
                     value={typed}
                     onChangeText={setTyped}
+                    onFocus={() => checks.focus('typed')}
+                    onBlur={() => checks.blur('typed')}
                     keyboardType={result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? 'decimal-pad' : 'number-pad'}
                     autoFocus
                     style={styles.typed}
@@ -358,7 +364,7 @@ export function FoodDetail({
               )}
             </View>
           </View>
-          {item ? null : <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} />}
+          {typedRefused ? <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} /> : null}
           {from ? <Text style={styles.per}>{`${fromLabel}: ${formatAmount(from)}`}</Text> : null}
           {result.kind === 'mine' && onEdit ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => onEdit(result.food)} /> : null}
         </View>

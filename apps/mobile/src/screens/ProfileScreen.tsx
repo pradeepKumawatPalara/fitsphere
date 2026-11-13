@@ -7,7 +7,9 @@ import { useAuth } from '../auth/AuthProvider';
 import { FormScreen } from '../components/FormScreen';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { ProfilePhoto } from '../components/ProfilePhoto';
+import { andList } from '../components/MealFoods';
 import { Field, Problem, Text, TextButton, TextInput, useChoiceStyles } from '../components/ui';
+import { useFieldChecks } from '../fieldChecks';
 import { dayValues } from '../dayValues';
 import { formatDay, nameFromEmail } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -38,6 +40,9 @@ type PhotoDraft = { mediaId: string | null; files: PhotoFiles | null };
 // weigh-in, with today's opening the weight sheet); contact (a +91 mobile number, the address, and
 // the sign-in email, read-only). Every field is optional; each problem shows under its field. It is
 // saved on the phone and synced, so it works offline; the weight is a weigh-in, saved as on Home.
+// Since D-99 a problem shows once typing pauses or the field is left, not when Save is pressed; the
+// date of birth's and the address's wait until they are complete or left. Save waits while there is
+// one, saying what to check.
 export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -53,7 +58,6 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [unit, setUnit] = useState<LengthUnit>('cm');
   const [photo, setPhoto] = useState<PhotoDraft>({ mediaId: null, files: null });
-  const [problems, setProblems] = useState<ProfileProblems>({});
   const [photoProblem, setPhotoProblem] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -113,14 +117,27 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
     else if (outcome.kind === 'failed') setPhotoProblem('This photo could not be used. Try another one.');
   }
 
+  // Each problem worked out from what is typed now; each shows once its fields settle (D-99).
+  const checks = useFieldChecks(form ? fieldTexts(form) : {});
+  const result = form ? readProfileForm(form, today, unit) : null;
+  const typed: ProfileProblems = result?.kind === 'problems' ? result.problems : {};
+  /** A group's problem waits while it is being typed in and not complete; otherwise once it settles. */
+  const groupShows = (names: readonly string[], complete: boolean) =>
+    names.every((name) => checks.isSettled(name)) &&
+    (complete || (!names.includes(checks.focused ?? '') && names.some((name) => checks.wasLeft(name))));
+  const problems: ProfileProblems = {
+    ...(typed.name && checks.shows('name') ? { name: typed.name } : {}),
+    ...(typed.dateOfBirth && form && groupShows(DATE_FIELDS, dateComplete(form)) ? { dateOfBirth: typed.dateOfBirth } : {}),
+    ...(typed.height && checks.shows('height') ? { height: typed.height } : {}),
+    ...(typed.phone && checks.shows('phone') ? { phone: typed.phone } : {}),
+    ...(typed.address && form && groupShows(ADDRESS_FIELDS, addressComplete(form)) ? { address: typed.address } : {}),
+  };
+  const toCheck = (Object.keys(typed) as (keyof ProfileProblems)[]).map((field) => CHECK_NAMES[field]);
+  /** Focus and blur for a field, for its checks. */
+  const watch = (name: string) => ({ onFocus: () => checks.focus(name), onBlur: () => checks.blur(name) });
+
   async function save() {
-    if (!form) return;
-    const result = readProfileForm(form, today, unit);
-    if (result.kind === 'problems') {
-      setProblems(result.problems);
-      return;
-    }
-    setProblems({});
+    if (result?.kind !== 'ok') return;
     setSaving(true);
     try {
       const newPhoto = photo.mediaId && photo.files ? { id: photo.mediaId, files: photo.files } : undefined;
@@ -140,7 +157,12 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
   return (
     <FormScreen
       contentStyle={styles.content}
-      footer={<TextButton title="Save profile" filled busy={saving} disabled={!form || picking} onPress={() => void save()} />}
+      footer={
+        <>
+          <TextButton title="Save profile" filled busy={saving} disabled={!form || picking || toCheck.length > 0} onPress={() => void save()} />
+          {toCheck.length > 0 ? <Text style={styles.saveHint}>Check the {andList(toCheck)} to save.</Text> : null}
+        </>
+      }
     >
       <View style={styles.photoRow}>
         <ProfilePhoto mediaId={photo.files ? null : photo.mediaId} thumbnail={photo.files?.thumbnail ?? null} name={name} size={96} />
@@ -182,7 +204,8 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
               onChangeText={(text) => change({ name: text })}
               autoCapitalize="words"
               autoComplete="name"
-              maxLength={60}
+              error={problems.name ?? null}
+              {...watch('name')}
             />
             <View style={styles.field}>
               <View style={styles.labelRow}>
@@ -190,7 +213,15 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                 {age ? <Text style={styles.age}>{age}</Text> : null}
               </View>
               <View style={styles.dateRow}>
-                <DatePart label="Day" placeholder="DD" length={2} value={form.day} refused={!!problems.dateOfBirth} onChange={(day) => change({ day })} />
+                <DatePart
+                  label="Day"
+                  placeholder="DD"
+                  length={2}
+                  value={form.day}
+                  refused={!!problems.dateOfBirth}
+                  onChange={(day) => change({ day })}
+                  {...watch('day')}
+                />
                 <DatePart
                   label="Month"
                   placeholder="MM"
@@ -198,6 +229,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                   value={form.month}
                   refused={!!problems.dateOfBirth}
                   onChange={(month) => change({ month })}
+                  {...watch('month')}
                 />
                 <DatePart
                   label="Year"
@@ -206,6 +238,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                   value={form.year}
                   refused={!!problems.dateOfBirth}
                   onChange={(year) => change({ year })}
+                  {...watch('year')}
                   wide
                 />
               </View>
@@ -228,6 +261,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                   accessibilityLabel={unit === 'in' ? 'Height in inches' : 'Height in cm'}
                   value={form.height}
                   onChangeText={(height) => change({ height })}
+                  {...watch('height')}
                   keyboardType="decimal-pad"
                   style={styles.number}
                 />
@@ -263,6 +297,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                   accessibilityLabel="Phone number"
                   value={form.phone}
                   onChangeText={(phone) => change({ phone })}
+                  {...watch('phone')}
                   keyboardType="phone-pad"
                   autoComplete="tel"
                   maxLength={14}
@@ -273,17 +308,41 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
             </View>
             <View style={styles.field}>
               <Text style={styles.label}>Address (optional)</Text>
-              <AddressInput label="Address line 1" placeholder="Line 1" value={form.line1} refused={!!problems.address} onChange={(line1) => change({ line1 })} />
+              <AddressInput
+                label="Address line 1"
+                placeholder="Line 1"
+                value={form.line1}
+                refused={!!problems.address}
+                onChange={(line1) => change({ line1 })}
+                {...watch('line1')}
+              />
               <AddressInput
                 label="Address line 2 (optional)"
                 placeholder="Line 2 (optional)"
                 value={form.line2}
                 refused={false}
                 onChange={(line2) => change({ line2 })}
+                {...watch('line2')}
               />
               <View style={styles.pair}>
-                <AddressInput label="City" placeholder="City" value={form.city} refused={!!problems.address} onChange={(city) => change({ city })} half />
-                <AddressInput label="State" placeholder="State" value={form.state} refused={!!problems.address} onChange={(state) => change({ state })} half />
+                <AddressInput
+                  label="City"
+                  placeholder="City"
+                  value={form.city}
+                  refused={!!problems.address}
+                  onChange={(city) => change({ city })}
+                  {...watch('city')}
+                  half
+                />
+                <AddressInput
+                  label="State"
+                  placeholder="State"
+                  value={form.state}
+                  refused={!!problems.address}
+                  onChange={(state) => change({ state })}
+                  {...watch('state')}
+                  half
+                />
               </View>
               <View style={styles.pair}>
                 <AddressInput
@@ -292,6 +351,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                   value={form.pinCode}
                   refused={!!problems.address}
                   onChange={(pinCode) => change({ pinCode })}
+                  {...watch('pinCode')}
                   digits
                   half
                 />
@@ -330,6 +390,34 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
   );
 }
 
+const DATE_FIELDS = ['day', 'month', 'year'] as const;
+const ADDRESS_FIELDS = ['line1', 'line2', 'city', 'state', 'pinCode'] as const;
+
+/** What "Check the … to save." names for each field with a problem (D-99). */
+const CHECK_NAMES: Record<keyof ProfileProblems, string> = {
+  name: 'name',
+  dateOfBirth: 'date of birth',
+  height: 'height',
+  phone: 'phone number',
+  address: 'address',
+};
+
+/** Each typed field's text, by name, for its checks (D-99). */
+function fieldTexts(form: ProfileForm): Record<string, string> {
+  const { name, day, month, year, height, phone, line1, line2, city, state, pinCode } = form;
+  return { name, day, month, year, height, phone, line1, line2, city, state, pinCode };
+}
+
+/** The date of birth's three boxes all filled, the year in four digits. */
+function dateComplete(form: ProfileForm): boolean {
+  return form.day.trim() !== '' && form.month.trim() !== '' && /^\d{4}$/.test(form.year.trim());
+}
+
+/** The address's four required parts all filled. */
+function addressComplete(form: ProfileForm): boolean {
+  return [form.line1, form.city, form.state, form.pinCode].every((part) => part.trim() !== '');
+}
+
 /** One part of the date of birth: a sunken box of digits with its name under it. */
 function DatePart({
   label,
@@ -338,6 +426,8 @@ function DatePart({
   value,
   refused,
   onChange,
+  onFocus,
+  onBlur,
   wide = false,
 }: {
   label: string;
@@ -346,6 +436,8 @@ function DatePart({
   value: string;
   refused: boolean;
   onChange(text: string): void;
+  onFocus(): void;
+  onBlur(): void;
   wide?: boolean;
 }) {
   const styles = useStyles();
@@ -356,6 +448,8 @@ function DatePart({
         value={value}
         placeholder={placeholder}
         onChangeText={(text) => onChange(text.replace(/\D/g, ''))}
+        onFocus={onFocus}
+        onBlur={onBlur}
         keyboardType="number-pad"
         maxLength={length}
         style={[styles.box, styles.dateBox, refused && styles.boxRefused]}
@@ -372,6 +466,8 @@ function AddressInput({
   value,
   refused,
   onChange,
+  onFocus,
+  onBlur,
   digits = false,
   half = false,
 }: {
@@ -380,6 +476,8 @@ function AddressInput({
   value: string;
   refused: boolean;
   onChange(text: string): void;
+  onFocus(): void;
+  onBlur(): void;
   digits?: boolean;
   half?: boolean;
 }) {
@@ -390,9 +488,12 @@ function AddressInput({
       value={value}
       placeholder={placeholder}
       onChangeText={(text) => onChange(digits ? text.replace(/\D/g, '') : text)}
+      onFocus={onFocus}
+      onBlur={onBlur}
       keyboardType={digits ? 'number-pad' : 'default'}
       autoCapitalize={digits ? 'none' : 'words'}
-      maxLength={digits ? 6 : 100}
+      // A PIN code is six digits; a line, a city or a state too long says so (D-100), not cut off.
+      {...(digits ? { maxLength: 6 } : {})}
       style={[styles.box, styles.text, digits && styles.pin, half && styles.half, refused && styles.boxRefused]}
     />
   );
@@ -447,6 +548,7 @@ function PickButton({ title, icon: Icon, disabled, onPress }: { title: string; i
 
 // 24 between sections, 14 within one; boxes as Field's (54 tall, a 1.5 outline in the subtle ink).
 const useStyles = themedStyles((c) => ({
+  saveHint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
   content: { paddingHorizontal: 16, paddingTop: 20, gap: 24 },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   photoActions: { flex: 1, gap: 8 },

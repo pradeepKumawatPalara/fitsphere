@@ -134,6 +134,12 @@ export function Field({
 }
 
 /** A problem with a field's value, under it, read out as soon as it shows. */
+/** Under a button greyed while a field has a problem (D-99): what to fix, centred, in the muted ink. */
+export function ButtonHint({ text }: { text: string }) {
+  const styles = useStyles();
+  return <Text style={styles.buttonHint}>{text}</Text>;
+}
+
 export function Problem({ text }: { text: string }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -338,6 +344,7 @@ export function Message({ text, offline = false }: { text: string | null; offlin
 }
 
 const useStyles = themedStyles((c) => ({
+  buttonHint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
   // A message and its next step, centred (Check email, Verified, Account setup, a reset link that
   // failed); 24 between them.
   screen: { flex: 1, padding: 24, gap: 24, justifyContent: 'center' },

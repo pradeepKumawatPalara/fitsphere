@@ -12,6 +12,18 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Every field's message three seconds after typing stops, the approved ranges, measurement notes —
+built on branch `fix/validation-timing` (D-98, D-99, D-100, 2026-11-13), in `D:\fitsphere`.** D-99:
+every typed field's message shows three seconds after typing stops or once the field is left (an empty
+one only once left), never because a button was pressed; buttons are greyed meanwhile, with a line
+saying what is missing (`apps/mobile/src/fieldChecks.ts`, `CHECK_PAUSE_MS`; tests use 0). D-100: the
+owner's ranges and text rules for every field (height 50–300 cm; daily steps 1–200,000; targets from
+0, fat to 1,000 g, fibre to 200 g, steps to 200,000; weight lifted to 1,000 kg; profile name, address,
+PIN and email rules), on the phone, the API and the database (migration `0032_wider_ranges.sql`; 0031
+is kept for another branch). D-98: the measurement Notes box no longer cuts off at 500 characters.
+No phone schema change, no new build. **On `fitsphere-dev`: migration 0032 before the updated
+API; only when the owner says so.**
+
 **Each food of an opened meal with its own Edit, Save and Remove — built on branch
 `feat/meal-food-actions` (D-97, 2026-11-13), in `D:\fitsphere`.** Canvas boards `MealFoods*` A locked
 (version 99). In Nutrition › Consumed, an opened meal's card shows a card for each food (name, kcal,

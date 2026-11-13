@@ -123,9 +123,9 @@ describe('REQ-ACC-002 and REQ-ACC-003 limits in the chosen unit (MVP default, D-
     expect(weightRangeIn('lb', WEIGHT_GRAMS_MIN, WEIGHT_GRAMS_MAX)).toEqual({ min: 44.1, max: 661.3 });
   });
 
-  it('REQ-ACC-002 lifting weight is 0.1–500.0 kg or 0.3–1102.3 lb', () => {
-    expect(weightRangeIn('kg', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.1, max: 500 });
-    expect(weightRangeIn('lb', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.3, max: 1102.3 });
+  it('REQ-ACC-002 lifting weight is 0.1–1,000.0 kg or 0.3–2204.6 lb (D-100)', () => {
+    expect(weightRangeIn('kg', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.1, max: 1000 });
+    expect(weightRangeIn('lb', LIFT_WEIGHT_GRAMS_MIN, LIFT_WEIGHT_GRAMS_MAX)).toEqual({ min: 0.3, max: 2204.6 });
   });
 
   it('D-31 every limit is within the range in grams, and one step outside it is not', () => {

@@ -3,6 +3,7 @@ import { Bookmark, Check, Cookie, Moon, Plus, SquarePen, Sun, Sunrise, Trash, ty
 import { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
+import { useFieldChecks } from '../fieldChecks';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet, SheetHeading } from './Sheet';
@@ -136,6 +137,16 @@ export function SaveMealSheet({
   const styles = useStyles();
   const [name, setName] = useState(initialName);
   const trimmed = name.trim();
+  // The name's problem shows once typing pauses or the box is left (D-99); a name too long says so,
+  // not cut off (D-100).
+  const checks = useFieldChecks({ name });
+  const tooLong = trimmed.length > SAVED_MEAL_NAME_MAX;
+  const problem =
+    trimmed === '' && emptyHint === undefined && checks.shows('name')
+      ? 'Enter a name.'
+      : tooLong && checks.shows('name')
+        ? `Names can be up to ${SAVED_MEAL_NAME_MAX} characters.`
+        : null;
   return (
     <Sheet
       header={<SheetHeading icon={Bookmark} title={title} inline={emptyHint !== undefined} />}
@@ -145,7 +156,7 @@ export function SaveMealSheet({
           <TextButton
             title={actionLabel}
             filled
-            disabled={trimmed === ''}
+            disabled={trimmed === '' || tooLong}
             onPress={() => {
               onClose();
               onSave(trimmed);
@@ -160,10 +171,11 @@ export function SaveMealSheet({
         label="Name"
         value={name}
         onChangeText={setName}
-        maxLength={SAVED_MEAL_NAME_MAX}
+        onFocus={() => checks.focus('name')}
+        onBlur={() => checks.blur('name')}
         autoCapitalize="sentences"
         placeholder={emptyHint === undefined ? undefined : 'For example, Monday breakfast'}
-        error={trimmed === '' && emptyHint === undefined ? 'Enter a name.' : null}
+        error={problem}
       />
       {trimmed === '' && emptyHint !== undefined ? <Text style={styles.hint}>{emptyHint}</Text> : null}
     </Sheet>

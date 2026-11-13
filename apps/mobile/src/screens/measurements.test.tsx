@@ -404,4 +404,33 @@ describe('REQ-MEAS-001…006 what the sheet says', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'More measurements' }));
     expect(screen.getByText('Up to 500 characters.')).toBeOnTheScreen();
   });
+
+  it('D-98 notes over 500 characters say so at once, in red, and Save waits until they are shorter', async () => {
+    const { server } = await renderInApp(<HomeScreen />);
+    await openSheet();
+    await type('Upper waist (cm)', '81.0');
+    await type('Lower waist (cm)', '85.0');
+    await fireEvent.press(screen.getByRole('button', { name: 'More measurements' }));
+
+    // Nothing is cut off: the box takes the 501st character, and the message shows with it.
+    await type('Notes', 'x'.repeat(501));
+    expect(screen.getByLabelText('Notes')).toHaveDisplayValue('x'.repeat(501));
+    expect(screen.getByRole('alert')).toHaveTextContent('Notes can be up to 500 characters. Remove 1 character.');
+    expect(screen.getByLabelText('Notes')).toHaveStyle({ borderColor: LIGHT_COLORS.danger });
+    expect(screen.queryByText('Up to 500 characters.')).toBeNull();
+    expect(save()).toBeDisabled();
+    expect(screen.getByText('Shorten the notes to save.')).toBeOnTheScreen();
+    await type('Notes', 'x'.repeat(512));
+    expect(screen.getByRole('alert')).toHaveTextContent('Notes can be up to 500 characters. Remove 12 characters.');
+
+    // Spaces at either end are not saved, so they do not count.
+    await type('Notes', `  ${'x'.repeat(500)}  `);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('Up to 500 characters.')).toBeOnTheScreen();
+    expect(screen.queryByText('Shorten the notes to save.')).toBeNull();
+    expect(save()).toBeEnabled();
+    await fireEvent.press(save());
+
+    await waitFor(() => expect(server.entries('measurements').get('2026-10-28')).toMatchObject({ notes: 'x'.repeat(500) }));
+  });
 });

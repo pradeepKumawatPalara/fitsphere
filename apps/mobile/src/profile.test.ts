@@ -7,9 +7,9 @@ const TODAY = '2026-11-04';
 const EMPTY = formFromProfile(null, 'cm');
 
 describe('REQ-ACC-011 the profile on the phone', () => {
-  it('invariant #6 heights from 100 to 250 cm, or 39.4 to 98.4 inches', () => {
-    expect(heightRange('cm')).toEqual({ min: 100, max: 250 });
-    expect(heightRange('in')).toEqual({ min: 39.4, max: 98.4 });
+  it('invariant #6 heights from 50 to 300 cm, or 19.7 to 118.1 inches (D-100)', () => {
+    expect(heightRange('cm')).toEqual({ min: 50, max: 300 });
+    expect(heightRange('in')).toEqual({ min: 19.7, max: 118.1 });
   });
 
   it('invariant #5 reads a mobile number typed with spaces, +91, 91 or 0 in front', () => {
@@ -26,7 +26,7 @@ describe('REQ-ACC-011 the profile on the phone', () => {
   });
 
   it('names every field with a problem at once', () => {
-    const result = readProfileForm({ ...EMPTY, year: '2010', month: '1', day: '1', height: '300', phone: '123', city: 'Pune' }, TODAY, 'cm');
+    const result = readProfileForm({ ...EMPTY, year: '2010', month: '1', day: '1', height: '301', phone: '123', city: 'Pune' }, TODAY, 'cm');
 
     expect(result.kind === 'problems' && Object.keys(result.problems).sort()).toEqual(['address', 'dateOfBirth', 'height', 'phone']);
   });

@@ -109,18 +109,18 @@ describe('REQ-ROLE-007 Your targets', () => {
     expect(await screen.findByRole('button', { name: 'Daily calories: 1,800 kcal' })).toBeOnTheScreen();
   });
 
+  // D-100: calories, protein, carbs, fat, fibre and steps from 0; fat up to 1,000, fibre up to 200,
+  // steps up to 200,000.
   it.each([
-    ['Daily calories', '499'],
+    ['Daily calories', '-1'],
     ['Daily calories', '10001'],
-    ['Daily protein', '9'],
-    ['Daily carbs', '9'],
+    ['Daily protein', '501'],
     ['Daily carbs', '1001'],
-    ['Daily fat', '4'],
-    ['Daily fat', '501'],
-    ['Daily fibre', '4'],
-    ['Daily fibre', '101'],
+    ['Daily fat', '1001'],
+    ['Daily fibre', '201'],
     ['Daily fibre', '30.5'],
-    ['Daily steps', '0'],
+    ['Daily steps', '200001'],
+    ['Weekly workouts', '0'],
     ['Weekly workouts', '15'],
     ['Weekly workouts', '2.5'],
     ['Target body weight', '19.9'],
@@ -131,6 +131,21 @@ describe('REQ-ROLE-007 Your targets', () => {
 
     expect(await screen.findByRole('alert')).toBeOnTheScreen();
     expect(await db.getFirstAsync('SELECT * FROM targets', [])).toBeNull();
+  });
+});
+
+describe('D-100 the ranges the owner set', () => {
+  it.each([
+    ['Daily calories', '0', 'Daily calories: 0 kcal'],
+    ['Daily fat', '1000', 'Daily fat: 1,000 g'],
+    ['Daily fibre', '200', 'Daily fibre: 200 g'],
+    ['Daily steps', '200000', 'Daily steps: 200,000 steps'],
+  ])('accepts %s "%s"', async (label, text, shown) => {
+    await renderInApp(<TargetsScreen />);
+
+    await setTarget(label, text);
+
+    expect(await screen.findByRole('button', { name: shown })).toBeOnTheScreen();
   });
 });
 

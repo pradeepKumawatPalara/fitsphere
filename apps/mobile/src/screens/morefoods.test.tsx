@@ -608,6 +608,17 @@ describe('D-39 Enter your own food in any unit', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Enter your own food' }));
   }
 
+  it('D-100 a food name of one character says it needs 2 to 120, and Add waits', async () => {
+    await render();
+    await openOwnFood();
+
+    await fireEvent.changeText(screen.getByLabelText('Food name'), 'X');
+
+    expect(screen.getByText("Enter the food's name in 2 to 120 characters.")).toBeOnTheScreen();
+    expect(screen.getByText("Check the food's name.")).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+  });
+
   it('by the slice: the values for one slice and the slices eaten; saved to My foods and synced', async () => {
     const { db, server } = await render();
     await openOwnFood();

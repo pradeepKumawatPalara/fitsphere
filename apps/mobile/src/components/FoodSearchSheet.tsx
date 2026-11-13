@@ -732,6 +732,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
                 value={query}
                 onChangeText={changeQuery}
                 placeholder="e.g. atta, dal, paneer"
+                // A search stops at 100 characters, with no message (D-100).
+                maxLength={100}
                 autoFocus={recent !== null && recent.length === 0}
                 style={styles.searchInput}
               />

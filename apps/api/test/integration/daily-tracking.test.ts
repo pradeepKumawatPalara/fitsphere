@@ -95,14 +95,14 @@ describe('REQ-HOME-006 steps and sleep', () => {
   it('Q-028 out-of-range values are rejected per change, without the value', async () => {
     const user = await api.signUpWithAccount();
 
-    const reply = await syncOk(user, [steps(TODAY, 100_001), sleep(TODAY, 1_441), steps(TODAY, 12.5)]);
+    const reply = await syncOk(user, [steps(TODAY, 200_001), sleep(TODAY, 1_441), steps(TODAY, 12.5)]);
 
     expect(reply.results.map((result) => result.error?.code)).toEqual([
       'VALIDATION_FAILED',
       'VALIDATION_FAILED',
       'VALIDATION_FAILED',
     ]);
-    expect(JSON.stringify(reply)).not.toContain('100001');
+    expect(JSON.stringify(reply)).not.toContain('200001');
     expect(await rowsOf('step_counts', user.id, 'day')).toEqual([]);
   });
 });
@@ -245,10 +245,10 @@ describe('REQ-ROLE-007 own targets', () => {
 
     const reply = await syncOk(user, [
       target('weekly_workouts', 15),
-      target('calories', 499),
+      target('calories', 10_001),
       target('sugar', 200),
-      target('fibre', 101),
-      target('fat', 4),
+      target('fibre', 201),
+      target('fat', -1),
     ]);
 
     expect(reply.results.map((result) => result.error?.code)).toEqual([

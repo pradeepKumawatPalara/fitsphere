@@ -48,7 +48,7 @@ describe('REQ-HOME-006 Steps and Sleep tiles', () => {
     await waitFor(() => expect(server.entries('steps').get('2026-10-28')).toMatchObject({ steps: 2_500 }));
   });
 
-  it.each(['-1', '100001', '12.5', 'abc', ''])('Q-028 refuses steps "%s" and saves nothing', async (text) => {
+  it.each(['0', '-1', '200001', '12.5', 'abc'])('Q-028 refuses steps "%s" and saves nothing (D-100: 1 to 200,000)', async (text) => {
     const { db } = await renderInApp(<HomeScreen />);
 
     await log('Steps', text);
@@ -66,13 +66,13 @@ describe('REQ-HOME-006 Steps and Sleep tiles', () => {
     expect(await db.getFirstAsync('SELECT * FROM sleep', [])).toBeNull();
   });
 
-  it('Q-028 accepts the range ends: 0 and 100,000 steps; 0 and 24 h of sleep', async () => {
+  it('Q-028 accepts the range ends: 1 and 200,000 steps (D-100); 0 and 24 h of sleep', async () => {
     await renderInApp(<HomeScreen />);
 
-    await log('Steps', '0');
-    expect(await screen.findByRole('button', { name: 'Steps: 0 steps' })).toBeOnTheScreen();
-    await log('Steps', '100000');
-    expect(await screen.findByRole('button', { name: 'Steps: 100,000 steps' })).toBeOnTheScreen();
+    await log('Steps', '1');
+    expect(await screen.findByRole('button', { name: 'Steps: 1 step' })).toBeOnTheScreen();
+    await log('Steps', '200000');
+    expect(await screen.findByRole('button', { name: 'Steps: 200,000 steps' })).toBeOnTheScreen();
     await log('Sleep', '0');
     expect(await screen.findByRole('button', { name: 'Sleep: 0.0 h' })).toBeOnTheScreen();
     await log('Sleep', '24');

@@ -175,7 +175,7 @@ post-MVP (Q-015, backlog B-14).
 | `id` | `uuid` | Primary key |
 | `user_id` | `uuid` | References `users`, deleted with the user |
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
-| `steps` | `integer` | Not null, **Health**. 0 to 100,000 (Q-028 MVP default) |
+| `steps` | `integer` | Not null, **Health**. 1 to 200,000 (D-100; was 0 to 100,000, Q-028; the check is `not valid`, so a day saved with 0 before stays) |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
@@ -270,7 +270,7 @@ the values are treated as **Health** data.
 | `user_id` | `uuid` | References `users`, deleted with the user. Whose target it is |
 | `kind` | `text` | `calories`, `protein`, `carbs`, `fat`, `fibre` (D-70), `steps`, `weekly_workouts` or `body_weight` (check `targets_kind`, migration 0024) |
 | `day` | `date` | Not null. The IST day the value starts (D-77): the day it was set on the phone, kept as its own field (invariant 5), never later than today. Migration 0027 gave the rows already there the IST day their user's account was created |
-| `value` | `integer` | Not null. kcal 500–10,000; protein in grams 10–500; steps 1–100,000; workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028); carbs in grams 10–1,000, fat 5–500, fibre 5–100 (D-70) (check `targets_value`) |
+| `value` | `integer` | Not null. kcal 0–10,000; protein in grams 0–500; steps 0–200,000; carbs in grams 0–1,000, fat 0–1,000, fibre 0–200 (D-100; were 500, 10, 1, 10, 5–500 and 5–100, D-23 and D-70); workouts a week 1–14; body weight in grams 20,000–300,000 (MVP defaults, D-23; Q-028) (check `targets_value`) |
 | `set_by_user_id` | `uuid` | References `users`, `on delete set null`. Who set it: always the caller, from the sign-in token, never from the request. Null only once that person's account is deleted (backlog E-02) |
 | `set_at` | `timestamptz` | Not null. When it was set, on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
@@ -315,7 +315,7 @@ user: no coach or Head Coach sees it in the MVP (D-20). Migration 0010.
 | `name` | `text` | 1 to 60 characters, trimmed, or null |
 | `date_of_birth` | `date` | **Health.** Or null. The API refuses one that makes the user under 18 or over 120 on today's IST day (REQ-ACC-010) |
 | `sex` | `text` | **Health.** `female`, `male`, `other` or `prefer_not_to_say`, or null |
-| `height_mm` | `integer` | **Health.** Whole millimetres, 1,000 to 2,500 (100–250 cm; invariant #6), or null |
+| `height_mm` | `integer` | **Health.** Whole millimetres, 500 to 3,000 (50–300 cm, D-100; was 100–250 cm; invariant #6), or null |
 | `phone` | `text` | **Contact.** `+91` and a 10-digit Indian mobile number (first digit 6 to 9), or null. Not verified |
 | `address_line1`, `address_line2`, `city`, `state`, `pin_code` | `text` | **Contact.** All null, or line 1 (1–100 characters), the city and the state (1–60 each) and a 6-digit PIN code; line 2 (1–100) optional |
 | `photo_media_id` | `uuid` | The profile photo's row in `media` (kind `profile`), or null |

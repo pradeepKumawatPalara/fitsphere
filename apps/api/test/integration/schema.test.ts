@@ -191,14 +191,14 @@ describe('Home and daily tracking tables (migration 0002)', () => {
   const rejects = async (sql: string, params: unknown[], state: string) =>
     expect(client.query(sql, params)).rejects.toSatisfy((error) => sqlState(error) === state);
 
-  it('Q-028 refuses steps outside 0–100,000 and sleep outside 0–24 h', async () => {
+  it('Q-028 refuses steps outside 1–200,000 (D-100) and sleep outside 0–24 h', async () => {
     const user = await insertUser(client);
     const insertSteps = 'insert into app.step_counts (user_id, day, steps, recorded_at) values ($1, $2, $3, now())';
     const insertSleep = 'insert into app.sleep_logs (user_id, day, sleep_minutes, recorded_at) values ($1, $2, $3, now())';
-    await rejects(insertSteps, [user, '2026-10-01', -1], CHECK_VIOLATION);
-    await rejects(insertSteps, [user, '2026-10-01', 100_001], CHECK_VIOLATION);
+    await rejects(insertSteps, [user, '2026-10-01', 0], CHECK_VIOLATION);
+    await rejects(insertSteps, [user, '2026-10-01', 200_001], CHECK_VIOLATION);
     await rejects(insertSleep, [user, '2026-10-01', 1_441], CHECK_VIOLATION);
-    await client.query(insertSteps, [user, '2026-10-01', 100_000]);
+    await client.query(insertSteps, [user, '2026-10-01', 200_000]);
     await client.query(insertSleep, [user, '2026-10-01', 1_440]);
   });
 
@@ -239,15 +239,16 @@ describe('Home and daily tracking tables (migration 0002)', () => {
         [user, kind, day, value],
       );
     for (const [kind, low, high] of [
-      ['calories', 500, 10_000],
-      ['protein', 10, 500],
-      ['steps', 1, 100_000],
+      // D-100: calories, protein, steps, carbs, fat and fibre from 0.
+      ['calories', 0, 10_000],
+      ['protein', 0, 500],
+      ['steps', 0, 200_000],
       ['weekly_workouts', 1, 14],
       ['body_weight', 20_000, 300_000],
       // D-70.
-      ['carbs', 10, 1_000],
-      ['fat', 5, 500],
-      ['fibre', 5, 100],
+      ['carbs', 0, 1_000],
+      ['fat', 0, 1_000],
+      ['fibre', 0, 200],
     ] as const) {
       await expect(insert(kind, low - 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
       await expect(insert(kind, high + 1)).rejects.toSatisfy((error) => sqlState(error) === CHECK_VIOLATION);
