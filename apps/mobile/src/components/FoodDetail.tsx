@@ -56,7 +56,9 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 //
 // A food already in the meal (D-64) opens from Log meal's review on its amount there, "In this meal
 // now: 100 g", with Save change, and Remove from meal centred under it; any of its measures can be
-// chosen, so 100 g can become 1 paratha.
+// chosen, so 100 g can become 1 paratha. Opened from a food of a logged meal in Nutrition (D-97), it
+// names that meal and its date beside the back arrow, "Lunch · Thu 12 Nov", and Save change saves the
+// meal at once.
 //
 // More measures (D-76; the redesign's 3.6b "more measures", locked 2026-11-11): a serving that holds
 // several things also gives one of them ("2 slices" gives Slice; the food list brings it as one more
@@ -210,6 +212,7 @@ export function FoodDetail({
   amount,
   fromLabel = 'Last time',
   backLabel = 'Back to search',
+  context,
   addTitle = 'Add',
   addNote,
   onBack,
@@ -225,6 +228,8 @@ export function FoodDetail({
   /** What `from` is called under the boxes: "Last time", or "In this meal now" (D-64). */
   fromLabel?: string;
   backLabel?: string;
+  /** Beside the back arrow: the logged meal the food is in, and its date (D-97). */
+  context?: string;
   addTitle?: string;
   /** Said above Add: the ticked foods that go in with this one (D-60). */
   addNote?: string;
@@ -294,6 +299,7 @@ export function FoodDetail({
         <IconButton label={backLabel} onPress={onBack}>
           <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
         </IconButton>
+        {context ? <Text style={styles.context}>{context}</Text> : null}
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
@@ -558,7 +564,8 @@ function Wheel({
 // chip, each nutrient on its own ruled row with its colour's square; Add filled at the foot. The
 // picker's wheels show five rows, the chosen ones on a caramel band.
 const useStyles = themedStyles((c) => ({
-  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingLeft: 6 },
+  header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 6 },
+  context: { ...TYPE.label, flexShrink: 1, color: c.inkMuted },
   footer: { gap: 8 },
   addNote: { fontSize: 14, lineHeight: 20, color: c.inkMuted, textAlign: 'center' },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 14 },

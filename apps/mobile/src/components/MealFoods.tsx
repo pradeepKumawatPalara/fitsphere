@@ -44,7 +44,8 @@ import { Text, TextInput } from './ui';
 // (REQ-SAVED-003, D-69): adding foods, with "Already in this meal" for a listed food added again
 // (D-34), and changing one. A food the phone lists opens its own page on its amount, where any of its
 // measures can be chosen (D-64); a food with no page (one typed once, or a barcode product not in the
-// list) opens a sheet for its amount, its buttons centred.
+// list) opens a sheet for its amount, its buttons centred. A logged meal's food in Nutrition (D-97) opens
+// the same way, and what it says is saved at once.
 
 /**
  * The foods and what changes them. `items` may also be replaced from outside with `setItems`; adding
@@ -57,14 +58,11 @@ export function useMealFoods(initial: readonly MealItem[] = []): {
   change(index: number): Promise<void>;
   sheets: ReactNode;
 } {
-  const local = useLocalDatabase();
   const [items, setItems] = useState<MealItem[]>(() => [...initial]);
   // Foods being added that the meal already has, while "Already in this meal" asks (D-34).
   const [duplicate, setDuplicate] = useState<MealItem[] | null>(null);
-  // A food open on its own page (D-64): its place in the meal, and the food.
-  const [page, setPage] = useState<{ index: number; result: FoodResult } | null>(null);
-  // A food with no page, open in the sheet for its amount.
-  const [changing, setChanging] = useState<number | null>(null);
+  // A food open on its own page (D-64), or in the sheet for its amount.
+  const food = useFoodChange({ backLabel: 'Back to the meal' });
 
   function addItems(added: MealItem[]) {
     // A listed food already in the meal: ask whether to put the amounts together (D-34).
@@ -95,9 +93,7 @@ export function useMealFoods(initial: readonly MealItem[] = []): {
   async function change(index: number) {
     const item = items[index];
     if (!item) return;
-    const result = local.state.status === 'ready' ? await listedFoodOf(local.state.db, item) : null;
-    if (result) setPage({ index, result });
-    else setChanging(index);
+    await food.change(item, { onChange: (changed) => replace(index, changed), onRemove: () => remove(index) });
   }
 
   function replace(index: number, changed: MealItem) {
@@ -108,7 +104,6 @@ export function useMealFoods(initial: readonly MealItem[] = []): {
     setItems((current) => current.filter((_, at) => at !== index));
   }
 
-  const changingItem = changing === null ? undefined : items[changing];
   const sheets = (
     <>
       {duplicate ? (
@@ -124,36 +119,59 @@ export function useMealFoods(initial: readonly MealItem[] = []): {
           }}
         />
       ) : null}
-      {page && items[page.index] ? (
-        <FoodDetail
-          result={page.result}
-          from={items[page.index]!.amount}
-          fromLabel="In this meal now"
-          backLabel="Back to the meal"
-          addTitle="Save change"
-          onBack={() => setPage(null)}
-          onAdd={(changed) => {
-            replace(page.index, changed);
-            setPage(null);
-          }}
-          onRemove={() => {
-            remove(page.index);
-            setPage(null);
-          }}
-        />
-      ) : null}
-      {changing !== null && changingItem ? (
-        <ChangeAmountSheet
-          key={changing}
-          item={changingItem}
-          onChange={(changed) => replace(changing, changed)}
-          onRemove={() => remove(changing)}
-          onClose={() => setChanging(null)}
-        />
-      ) : null}
+      {food.sheets}
     </>
   );
   return { items, setItems, addItems, change, sheets };
+}
+
+/** What becomes of a food being changed: its new amount, or out of the meal. */
+type FoodChange = {
+  onChange(changed: MealItem): void;
+  onRemove(): void;
+  /** Said beside the page's back arrow: the logged meal and its date (D-97). */
+  context?: string;
+};
+
+/**
+ * Changing one food of a meal: its own page on its amount when the phone lists it (D-64), with Save
+ * change and Remove from meal; else the sheet for its amount, with "Change to …" and Remove. Log meal's
+ * review and a logged meal's food in Nutrition (D-97) both use it. `sheets` is rendered by the screen.
+ */
+export function useFoodChange({ backLabel }: { backLabel: string }): {
+  change(item: MealItem, then: FoodChange): Promise<void>;
+  sheets: ReactNode;
+} {
+  const local = useLocalDatabase();
+  const [open, setOpen] = useState<(FoodChange & { item: MealItem; result: FoodResult | null }) | null>(null);
+
+  async function change(item: MealItem, then: FoodChange) {
+    const result = local.state.status === 'ready' ? await listedFoodOf(local.state.db, item) : null;
+    setOpen({ ...then, item, result });
+  }
+
+  const sheets = !open ? null : open.result ? (
+    <FoodDetail
+      result={open.result}
+      from={open.item.amount}
+      fromLabel="In this meal now"
+      backLabel={backLabel}
+      {...(open.context ? { context: open.context } : {})}
+      addTitle="Save change"
+      onBack={() => setOpen(null)}
+      onAdd={(changed) => {
+        setOpen(null);
+        open.onChange(changed);
+      }}
+      onRemove={() => {
+        setOpen(null);
+        open.onRemove();
+      }}
+    />
+  ) : (
+    <ChangeAmountSheet item={open.item} onChange={open.onChange} onRemove={open.onRemove} onClose={() => setOpen(null)} />
+  );
+  return { change, sheets };
 }
 
 /**
@@ -298,7 +316,7 @@ function ChangeAmountSheet({
 }
 
 /** "A", "A and B", "A, B and C". */
-function list(names: readonly string[]): string {
+export function andList(names: readonly string[]): string {
   return names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
@@ -315,7 +333,7 @@ function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[])
       ? { message: `${already} Add ${formatAmount(item.amount)} to it, for ${formatAmount(together.amount)} in all?`, canAdd: true }
       : { message: `${already} Together that would be over ${amountLimit(existing)}, the most for one food, so it's added on its own.`, canAdd: false };
   }
-  const names = list(matches.map((match) => match.item.name));
+  const names = andList(matches.map((match) => match.item.name));
   const over = matches.filter((match) => !match.together).map((match) => match.item.name);
   if (over.length === matches.length) {
     return {
@@ -323,7 +341,7 @@ function duplicatePrompt(added: readonly MealItem[], items: readonly MealItem[])
       canAdd: false,
     };
   }
-  const passing = over.length === 0 ? '' : ` ${list(over)} would be over the most for one food, so ${over.length === 1 ? "it's" : "they're"} added on ${over.length === 1 ? 'its' : 'their'} own.`;
+  const passing = over.length === 0 ? '' : ` ${andList(over)} would be over the most for one food, so ${over.length === 1 ? "it's" : "they're"} added on ${over.length === 1 ? 'its' : 'their'} own.`;
   return { message: `${matches.length} foods are already in this meal: ${names}. Add the amounts to them?${passing}`, canAdd: true };
 }
 
