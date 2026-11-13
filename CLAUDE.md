@@ -12,6 +12,18 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**The beta: the API on Cloud Run, an Android test build — built on branch `feat/cloud-run` (D-101,
+2026-11-13), in its own folder `D:\fitsphere-cloudrun` (removed once merged).** Q-087 answered for the
+API: the Google Cloud project `fitsphere-api` (free trial, ₹500 a month budget alert), region
+`asia-southeast1` beside the Singapore Supabase project; both move to Mumbai before the release. The
+API listens on `HOST` (`127.0.0.1` when empty, so the PC and the tunnel are unchanged; the image sets
+`0.0.0.0`) and `PORT` (`src/listenAddress.ts`), stops cleanly on SIGTERM, and survives a connection
+that drops while held (`src/db/pool.ts`). `Dockerfile`, `.dockerignore`, `.gcloudignore` at the root;
+`npm run check:pooler` checks the transaction pooler, read only; runbook, "The API on Cloud Run". No
+migration, no phone change. **The database steps, the secrets, the deploy and the APK's EAS profile
+`preview` (after the deploy, with the service's address) wait for the owner's word; tell the owner
+before the build (D-19).**
+
 **Every field's message three seconds after typing stops, the approved ranges, measurement notes —
 built on branch `fix/validation-timing` (D-98, D-99, D-100, 2026-11-13), in `D:\fitsphere`.** D-99:
 every typed field's message shows three seconds after typing stops or once the field is left (an empty
@@ -446,6 +458,7 @@ Approved stack:
 - Database and file storage: Supabase PostgreSQL and Supabase Storage in Mumbai, on the Free
   plan in phase 1 with no backups (ADR-0002, ADR-0003, Accepted — D-17; D-16, R-005).
 - API host: Google Cloud Run in Mumbai once Q-087 is settled; until then the API runs locally.
+  For the beta, Cloud Run in Singapore (`asia-southeast1`), beside the Supabase project (D-101).
 - Sign-in and authorization: Supabase Auth, with every request authorized by one access module
   in the Node API; email through Resend from a domain FitSphere owns (still required at the MVP
   release, D-20); Expo push, post-MVP (ADR-0004, Accepted — D-18).

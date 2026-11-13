@@ -4,7 +4,8 @@
   is open and blocks real users ([`mvp-scope.md`](../product/mvp-scope.md) slice 8; ADR-0002 to
   ADR-0005).
 - Owner: Project owner (D-01). Answers: Legal.
-- Last updated: 2026-11-05 (D-50: L-17, the Compendium of Physical Activities; E-20). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30
+- Last updated: 2026-11-13 (D-101: the beta's API on Cloud Run in Singapore, demo data only).
+  2026-11-05 (D-50: L-17, the Compendium of Physical Activities; E-20). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30
 - Record: [Q-049](../architecture/constraints-and-assumptions.md#account-security-and-quality)
 
 This brief collects, in one place, what FitSphere needs Legal to answer before real users, and
@@ -33,7 +34,7 @@ the owner's choice, not Legal's approval.
 | Place | What it holds | Location |
 |---|---|---|
 | Supabase (database, file storage, sign-in) | Accounts, all logged data, meal photos | Mumbai (ADR-0002, ADR-0003). Free plan, no backups (D-16, accepted risk R-005) |
-| The API (FitSphere's server code) | Nothing stored; it is the only path to the data (ADR-0002) | The owner's PC during development; Google Cloud Run in Mumbai once Q-087 is settled |
+| The API (FitSphere's server code) | Nothing stored; it is the only path to the data (ADR-0002) | The owner's PC during development; for the beta, Google Cloud Run in Singapore (`asia-southeast1`), beside the development Supabase project, with demo accounts and made-up data only (D-101); Google Cloud Run in Mumbai before the release |
 | The user's phone | An encrypted copy of the user's own recent data (ADR-0007) | The phone |
 
 ### External services, and what each receives

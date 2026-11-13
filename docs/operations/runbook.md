@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
+- Last updated: 2026-11-13 (D-101: the API on Cloud Run for the beta, `HOST`, the image, "The API
+  on Cloud Run"). 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
   same day (the dashboard paths still to confirm, with what Supabase's docs say).
   2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
 
@@ -11,7 +12,10 @@ not yet known are marked *Not yet written* rather than guessed. D- numbers refer
 [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27.md).
 
 Hosting is decided: Supabase in Mumbai on the Free plan (ADR-0002, ADR-0003, D-16, D-17); the
-API runs on the developer's PC until Q-087 is settled.
+API runs on the developer's PC until Q-087 is settled. For the beta (D-101, Q-087 answered for
+the API), the API runs on Google Cloud Run in Singapore (`asia-southeast1`), beside the development
+Supabase project, which is in Singapore too; both move to Mumbai before the release. See "The API on
+Cloud Run".
 
 ## Local setup
 For the Skeleton slice on Windows 11. Steps come from the official pages listed under
@@ -157,8 +161,10 @@ it when the Skeleton's database step starts.
      and `db:growth`. The shared pooler works over IPv4.
    - **Direct connection**: not used. The owner decided on 2026-10-28 that the migrations use
      the session pooler too, so there is one database connection string.
-   - The **transaction pooler** (port 6543) is for Cloud Run later (Q-087). It does not support
-     prepared statements.
+   - The **transaction pooler** (port 6543, the same address otherwise) is for Cloud Run (D-101).
+     It does not support prepared statements: `npm run check:pooler -w @fitsphere/api` checks,
+     read only, that the API's kinds of query work through it. Never run `migrate` through it:
+     the migrations hold a lock for the whole run, which needs the session pooler.
 9. **Meal photo storage** (Meal logging slice; ADR-0002 rules 3 and 4). Menu names may differ;
    record the actual path here.
    - **Storage → New bucket:** name it (for example `meal-photos`) and put the name in
@@ -407,11 +413,12 @@ Names only. Values live in the password manager and in `.env` files that are nev
 
 | Name | Used by | What it holds | Secret? |
 |---|---|---|---|
-| `DATABASE_URL` | API, `migrate` and `db:growth` | PostgreSQL connection string: the session pooler on the PC; the transaction pooler on Cloud Run later. The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
+| `DATABASE_URL` | API, `migrate`, `db:growth` and `check:pooler` | PostgreSQL connection string: the session pooler on the PC; on Cloud Run, the secret `database-url`, the transaction pooler if `check:pooler` passes, else the session pooler (D-101). The migrations use the session pooler; there is no separate migration connection (owner's decision, 2026-10-28) | **Yes** (contains the database password) |
 | `SUPABASE_URL` | API, `check:data-api`, `check:signup` and `check:storage` | `https://<project-ref>.supabase.co`. The API derives the token issuer and the signing-key address from it | No |
 | `SUPABASE_PUBLISHABLE_KEY` | API | Sent to Supabase Auth when the API reads the signed-in user at account setup | No (safe to publish) |
 | `SUPABASE_SECRET_KEY` | API | The secret key (`sb_secret_…`, step 5, item 7), used only to delete a user's sign-in account (D-31). Without it, Delete account answers "not available" and deletes nothing. Server only, never in the app, logs or tests | **Yes** |
-| `PORT` | API | Port the API listens on, on the PC. `npm run dev:phone` sets it to 3000 for the API it starts | No |
+| `HOST` | API | The address the API listens on. Leave it empty on the PC: the API then listens on `127.0.0.1` only, reached through the tunnel (step 8). The image sets `0.0.0.0` for Cloud Run (D-101) | No |
+| `PORT` | API | Port the API listens on: 3000 when empty. `npm run dev:phone` sets it to 3000 for the API it starts; Cloud Run sets it (8080) | No |
 | `LOG_LEVEL` | API | `info` by default | No |
 | `STORAGE_S3_ENDPOINT`, `STORAGE_S3_REGION` | API, `check:storage` | Supabase Storage's S3 endpoint and region (step 5, item 9). Without all five storage names, photo links answer "not available" | No |
 | `STORAGE_BUCKET` | API, `check:storage` | The private meal-photo bucket | No |
@@ -434,7 +441,62 @@ GitHub Actions needs no secrets in the Skeleton: its tests use a PostgreSQL serv
 test signing keys made during the run.
 
 ## Deployment and rollback
-*Not yet written.*
+
+### The API on Cloud Run
+For the beta (D-101): the Google Cloud project `fitsphere-api`, region `asia-southeast1`
+(Singapore, beside the Supabase project; both move to Mumbai before the release), service
+`fitsphere-api`. Testers use demo accounts and made-up data only, until Legal's review (Q-049).
+The free trial: the owner activates the full account before day 90 (about 1 February 2027), or
+Cloud Run stops.
+
+**The image, checked on the PC on 2026-11-13** (Docker Desktop, Docker 29.7). The `Dockerfile` at
+the root builds it (`docker build -t fitsphere-api:local .`); `.dockerignore` lets only the root
+package files, `apps/api` and `packages/shared` in, never an `.env` file or a test. The image held no
+`.env` file and no phone app, and ran as `node`. With made-up settings, `GET /v1/health` answered
+200, a request with no sign-in token 401, the log held the route and never the search text, and
+`docker stop` ended it in about 1.5 seconds with exit code 0. The API's 306 integration tests
+passed through PgBouncer 1.26 in transaction mode with prepared statements off, standing in for
+Supabase's transaction pooler.
+
+**First deploy, not yet run** (the owner's handoff, D-101). Mark each step verified, with the date,
+the first time it works.
+1. Install the Google Cloud CLI, then `gcloud auth login` and `gcloud config set project fitsphere-api`.
+2. The database, only at the owner's word, from the PC through the session pooler:
+   `npm run migrate -w @fitsphere/api`, then `npm run foods:import -w @fitsphere/api` and
+   `npm run exercises:import -w @fitsphere/api`.
+3. `npm run check:pooler -w @fitsphere/api`. PASS: Cloud Run's `database-url` is the transaction
+   pooler (the session pooler's address with port 6543). FAIL: it is the session pooler's address.
+4. In Secret Manager, one secret each: `database-url`, `supabase-secret-key`,
+   `storage-s3-access-key-id` and `storage-s3-secret-access-key`. Give the Cloud Run runtime's
+   service account **Secret Manager Secret Accessor** on them. Paste each value from the password
+   manager into the console; never into a file in the repository, a saved command or chat.
+5. At the root of a checkout of `main`, `gcloud meta list-files-for-upload` lists what the deploy
+   uploads (`.gcloudignore`): no `.env` file, no `apps/mobile`, `data` or `docs`.
+6. Deploy from the same folder (fill in the plain values from the table in "Configuration names"):
+   ```
+   gcloud run deploy fitsphere-api \
+     --source . --region asia-southeast1 \
+     --allow-unauthenticated \
+     --cpu 1 --memory 512Mi --min-instances 0 --max-instances 2 \
+     --set-env-vars HOST=0.0.0.0,LOG_LEVEL=info,SUPABASE_URL=...,SUPABASE_PUBLISHABLE_KEY=...,OFF_CONTACT=...,STORAGE_BUCKET=meal-photos,STORAGE_S3_ENDPOINT=...,STORAGE_S3_REGION=... \
+     --set-secrets DATABASE_URL=database-url:latest,SUPABASE_SECRET_KEY=supabase-secret-key:latest,STORAGE_S3_ACCESS_KEY_ID=storage-s3-access-key-id:latest,STORAGE_S3_SECRET_ACCESS_KEY=storage-s3-secret-access-key:latest
+   ```
+   `--allow-unauthenticated` is right: the API checks every request's Supabase token itself (the
+   access module, REQ-NFR-001); only `GET /v1/health` is public.
+7. Check: `https://<service-url>/v1/health` answers `{"status":"ok"}`, and Cloud Run's logs show
+   one line per request (route, status, time, user ID) and no secret, token, email address or
+   health data.
+8. Keep at most 2 old revisions, and delete old images in Artifact Registry.
+
+**Rollback, not yet run:** send all traffic back to the revision before:
+`gcloud run revisions list --service fitsphere-api --region asia-southeast1`, then
+`gcloud run services update-traffic fitsphere-api --region asia-southeast1 --to-revisions <revision>=100`.
+It does not undo a migration: an older API must still work with the database as it is.
+
+**Android test build** (after the first deploy; tell the owner first, D-19): an EAS profile
+`preview` in `apps/mobile/eas.json` (an APK, internal distribution) with the service's address as
+`EXPO_PUBLIC_API_URL`, then `eas build -p android --profile preview`. The owner shares the APK
+through Firebase App Distribution.
 
 ## Monitoring
 *Not yet written.* The owner-review triggers for moving to Supabase Pro or adding backups
