@@ -7,6 +7,17 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://fitsphere-api-163496400043.asia-southeast1.run.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vmieqpjevwkdagshbyyo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_BgiTF0k-H5fQKpxzE41tGA_Fen8ywQb"
+      }
     }
   }
 }
