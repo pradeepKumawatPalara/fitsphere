@@ -3325,6 +3325,40 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-103 Home: every nutrient under Calories, an apple and a dumbbell under the strip's days, no workouts card
+- Status: **Accepted** (owner, in chat, 2026-11-13: with a screenshot of Home, "Here on the home
+  dashboard I want the all for nutriton value like protein carbs, fat, Fibet same as Nutriton tab Under
+  Caloried tab. and Remove the Protien kpi will be removed. And I workouts this week card I want to
+  remove. instead i want to add the icon under the week strip same as the month view. Come up with the
+  plan and canva desing and wait for my approval"; of the canvas's three ways, version 103: "lock it B";
+  locked in version 104). Plan: `docs/plans/home-nutrients.md`. Built on branch `feat/home-nutrients`.
+- Answer (REQ-HOME-002, REQ-HOME-004, REQ-HOME-007, REQ-ROLE-007):
+  - **Under Calories**, in place of the protein card: Protein, Carbs, Fat and Fibre side by side, as
+    Nutrition's Eaten card (each with its colour square and its amount as Nutrition writes it, "–"
+    when none), each with "of 120 g" and a thin bar in its colour against the date's daily target
+    (D-70, D-77); over a target, the line and the bar in the warning gold (Q-022); with none, "No
+    target". Screen readers hear "Protein: 86.0 g of 120 g", "Fat: 64.0 g of 60 g, 4.0 g over",
+    "Fibre: none, no daily target". The calories part and By meal are unchanged.
+  - **The date strip**: each day's status box gives way to the header calendar's marks (D-84): a green
+    **apple** on a day with a meal and a green **dumbbell** on a day with a workout Training lists
+    (D-65), side by side under the date, in the selected day's ink on the selected day; none on greyed
+    days. Screen readers hear "Monday 26 Oct, 2 meals logged, 1 workout logged".
+  - **No workouts card** on Home ("Workouts this week", the tracker of REQ-HOME-007), nor the day
+    sheet its days opened (D-34, D-42): workouts are opened and started on Training.
+- MVP defaults (two questions of the plan the owner did not answer, 2026-11-13):
+  - **The weekly workout target** shows on one line under Home's strip, for the week the strip shows,
+    after a green dumbbell: "3 of 4 workouts this week", "4 workouts this week · target achieved", "2
+    workouts that week" with no target, "No workouts this week". Counted as the tracker counted (D-41: a
+    workout with an exercise; D-29: two on one day count two), against the week's Sunday's target
+    (D-77). Home has no "Set a weekly workout target" button: Your targets sets it.
+  - **Nutrition's and Training's strips** show the apple and the dumbbell too, as the header's calendar
+    does on every tab.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-HOME-002, REQ-HOME-004, REQ-HOME-007, REQ-ROLE-007; the constraints' MVP
+  defaults; the redesign's 2.3; CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

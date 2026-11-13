@@ -24,6 +24,17 @@ migration, no phone change. **The database steps, the secrets, the deploy and th
 `preview` (after the deploy, with the service's address) wait for the owner's word; tell the owner
 before the build (D-19).**
 
+**Home: every nutrient under Calories, the strip's apple and dumbbell, no workouts card — built on
+branch `feat/home-nutrients` (D-103, 2026-11-13), in its own folder `D:\fitsphere-home` (removed once
+merged).** Plan: `docs/plans/home-nutrients.md` (Accepted); canvas boards `HomeNutrients*` B locked
+(version 104). Under Calories, protein, carbs, fat and fibre as Nutrition's Eaten card, each "of 120 g"
+with a thin bar against the date's target (`components/NutrientTargets.tsx`); the date strip on Home,
+Nutrition and Training puts the header calendar's green apple and dumbbell under each date (`WeekStrip`'s
+`activity`, `useWeekActivity` in `src/weekActivity.ts`); no "Workouts this week" card (nor
+`WorkoutTracker` and `WorkoutDaySheet`): a line under Home's strip, "3 of 4 workouts this week"
+(`components/WeekWorkouts.tsx`, MVP default). Phone app only: no server change, no migration, no phone
+schema change, no new build.
+
 **Every field's message three seconds after typing stops, the approved ranges, measurement notes —
 built on branch `fix/validation-timing` (D-98, D-99, D-100, 2026-11-13), in `D:\fitsphere`.** D-99:
 every typed field's message shows three seconds after typing stops or once the field is left (an empty

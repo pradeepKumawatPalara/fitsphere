@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { ScrollView } from 'react-native';
 import { stripStartFor, stripStarts } from '../navigation/SelectedDayProvider';
+import { LIGHT_COLORS } from '../theme';
 import { WeekStrip } from './WeekStrip';
 
 // The date strip shows a week, Monday to Sunday, and swipes a week at a time (REQ-HOME-002, D-79),
@@ -118,5 +119,61 @@ describe('REQ-HOME-002 the date strip, Monday to Sunday (D-79)', () => {
     } finally {
       scrollTo.mockRestore();
     }
+  });
+});
+
+describe('D-103 an apple and a dumbbell under each date, as the header calendar (D-84)', () => {
+  // Meals on Monday and today, workouts on Monday and Tuesday; Thursday's, after today, are not shown.
+  const activity = {
+    meals: { '2026-10-26': 2, '2026-10-28': 1, '2026-10-29': 1 },
+    workouts: { '2026-10-26': 1, '2026-10-27': 2, '2026-10-29': 1 },
+  };
+
+  /** The colour of the icon a mark holds (the icons themselves are hidden from screen readers). */
+  function colour(testID: string): unknown {
+    return (screen.getByTestId(testID).props.children as { props: { color: string } }).props.color;
+  }
+
+  async function renderMarked(selected = TODAY) {
+    await render(
+      <WeekStrip today={TODAY} firstDay={FIRST_DAY} selected={selected} start="2026-10-26" activity={activity} onSelect={jest.fn()} onShow={jest.fn()} />,
+    );
+  }
+
+  it('a green apple on a day with a meal, a green dumbbell on a day with a workout, side by side; each day says what was logged', async () => {
+    await renderMarked();
+
+    const monday = screen.getByRole('button', { name: 'Monday 26 Oct, 2 meals logged, 1 workout logged' });
+    expect(within(monday).getByTestId('meals-2026-10-26')).toBeOnTheScreen();
+    expect(within(monday).getByTestId('workout-2026-10-26')).toBeOnTheScreen();
+    expect(colour('meals-2026-10-26')).toBe(LIGHT_COLORS.success);
+    expect(colour('workout-2026-10-26')).toBe(LIGHT_COLORS.success);
+    const tuesday = screen.getByRole('button', { name: 'Tuesday 27 Oct, 2 workouts logged' });
+    expect(within(tuesday).getByTestId('workout-2026-10-27')).toBeOnTheScreen();
+    expect(within(tuesday).queryByTestId('meals-2026-10-27')).toBeNull();
+  });
+
+  it('the selected day’s marks take its ink; a day with nothing, or after today, has none', async () => {
+    await renderMarked();
+
+    const today = screen.getByRole('button', { name: 'Wednesday 28 Oct, today, 1 meal logged' });
+    expect(within(today).getByTestId('meals-2026-10-28')).toBeOnTheScreen();
+    expect(colour('meals-2026-10-28')).toBe(LIGHT_COLORS.onPrimary);
+    expect(screen.getByRole('button', { name: 'Thursday 29 Oct, not available' })).toBeDisabled();
+    expect(screen.queryByTestId('meals-2026-10-29')).toBeNull();
+    expect(screen.queryByTestId('workout-2026-10-29')).toBeNull();
+
+    await screen.rerender(
+      <WeekStrip today={TODAY} firstDay={FIRST_DAY} selected="2026-10-26" start="2026-10-26" activity={activity} onSelect={jest.fn()} onShow={jest.fn()} />,
+    );
+    expect(colour('meals-2026-10-26')).toBe(LIGHT_COLORS.onPrimary);
+    expect(colour('meals-2026-10-28')).toBe(LIGHT_COLORS.success);
+  });
+
+  it('nothing is marked while the week loads', async () => {
+    await render(<WeekStrip today={TODAY} firstDay={FIRST_DAY} selected={TODAY} start="2026-10-26" activity={null} onSelect={jest.fn()} onShow={jest.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Monday 26 Oct' })).toBeOnTheScreen();
+    expect(screen.queryByTestId('meals-2026-10-26')).toBeNull();
   });
 });

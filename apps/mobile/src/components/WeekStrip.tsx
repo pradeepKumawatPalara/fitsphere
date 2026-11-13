@@ -1,11 +1,12 @@
 import { addDays, type IstDay } from '@fitsphere/shared';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Apple, ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { dayParts } from '../format';
 import { stripStarts } from '../navigation/SelectedDayProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { activityStatus, type CalendarActivity } from './CalendarSheet';
 import { Text } from './ui';
 
 type Props = {
@@ -15,11 +16,9 @@ type Props = {
   selected: IstDay;
   /** The Monday of the week shown. */
   start: IstDay;
-  /** Days with something logged: their status box is filled. Home and Nutrition mark meals (REQ-HOME-002;
-   * Q-019), Training workouts (D-65). */
-  loggedDays?: ReadonlySet<IstDay>;
-  /** What screen readers hear on a marked day: "meal logged" (the default) or "workout logged". */
-  loggedLabel?: string;
+  /** The week's meals and listed workouts per day (D-103): an apple and a dumbbell under the date. Null while
+   * they load, and left out where nothing is marked. */
+  activity?: CalendarActivity | null;
   onSelect(day: IstDay): void;
   /** Shows the week from its Monday, `start`. */
   onShow(start: IstDay): void;
@@ -27,14 +26,15 @@ type Props = {
 
 // The date strip (REQ-HOME-002, D-79): a week, Monday to Sunday; this week's days after today are
 // greyed and cannot be picked (Q-017), as are days before `firstDay` (REQ-DATE-001), and screen
-// readers hear them as "not available", as in the calendar (D-34). Today is outlined (REQ-DATE-003),
-// and each day has a status box, filled when a meal is logged that day (Q-019), or on Training a
-// workout (D-65). The selected day, which every card below follows, is the filled pill.
+// readers hear them as "not available", as in the calendar (D-34). Today is outlined (REQ-DATE-003).
+// Under each date, as in the header's calendar (D-84): a green apple when a meal is logged that day
+// and a green dumbbell when a workout is (D-103, on Home, Nutrition and Training; it replaced the
+// status box of Q-019 and D-65). The selected day, which every card below follows, is the filled pill.
 //
 // Earlier weeks are pages to swipe through, a week a page, as "Earlier days" and "Later days" move: no
 // further back than the week holding `firstDay`, no further on than this week. A swipe shows days
 // without choosing one. Only the week shown is there for screen readers; the arrows move it.
-export function WeekStrip({ today, firstDay, selected, start, loggedDays, loggedLabel = 'meal logged', onSelect, onShow }: Props) {
+export function WeekStrip({ today, firstDay, selected, start, activity, onSelect, onShow }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const canGoBack = addDays(start, -1) >= firstDay;
@@ -62,12 +62,14 @@ export function WeekStrip({ today, firstDay, selected, start, loggedDays, logged
       const outOfRange = day > today || day < firstDay;
       const isToday = day === today;
       const isSelected = day === selected;
-      const logged = loggedDays?.has(day) ?? false;
+      const meals = outOfRange ? 0 : (activity?.meals[day] ?? 0);
+      const workouts = outOfRange ? 0 : (activity?.workouts[day] ?? 0);
+      const logged = meals > 0 || workouts > 0 ? `, ${activityStatus(meals, workouts)}` : '';
       return (
         <Pressable
           key={day}
           accessibilityRole="button"
-          accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}${logged ? `, ${loggedLabel}` : ''}${outOfRange ? ', not available' : ''}`}
+          accessibilityLabel={`${parts.weekdayName} ${parts.date} ${parts.month}${isToday ? ', today' : ''}${logged}${outOfRange ? ', not available' : ''}`}
           accessibilityState={{ selected: isSelected, disabled: outOfRange }}
           disabled={outOfRange}
           onPress={() => onSelect(day)}
@@ -85,11 +87,19 @@ export function WeekStrip({ today, firstDay, selected, start, loggedDays, logged
           <Text style={[styles.date, isToday && styles.todayText, isSelected && styles.selectedText, outOfRange && styles.disabledText]}>
             {parts.date}
           </Text>
-          {loggedDays ? (
-            <View
-              testID={`status-${day}`}
-              style={[styles.status, logged && styles.statusFilled, isSelected && (logged ? styles.statusOnSelected : styles.statusOpenOnSelected)]}
-            />
+          {activity !== undefined ? (
+            <View style={styles.marks}>
+              {meals > 0 ? (
+                <View testID={`meals-${day}`}>
+                  <Apple size={12} strokeWidth={2.6} color={isSelected ? colors.onPrimary : colors.success} />
+                </View>
+              ) : null}
+              {workouts > 0 ? (
+                <View testID={`workout-${day}`}>
+                  <Dumbbell size={12} strokeWidth={2.6} color={isSelected ? colors.onPrimary : colors.success} />
+                </View>
+              ) : null}
+            </View>
           ) : null}
         </Pressable>
       );
@@ -154,7 +164,8 @@ export function WeekStrip({ today, firstDay, selected, start, loggedDays, logged
 
 // The redesign's 2.3 (locked by the owner, 2026-11-03; Monday to Sunday since D-79, locked 2026-11-11): square
 // days 64 tall and 4 apart, today outlined in caramel, the selected day filled, days that cannot be picked
-// greyed; a day with a meal (on Training, a workout) has a green mark under its date.
+// greyed. Since D-103 (canvas "2.3 Home · every nutrient…", B locked 2026-11-13): an apple 12 and a dumbbell
+// 12 side by side in a row 12 tall under the date, green, or the selected day's ink.
 const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   arrow: { width: 28, height: 64, alignItems: 'center', justifyContent: 'center' },
@@ -170,8 +181,5 @@ const useStyles = themedStyles((c) => ({
   todayText: { color: c.accent },
   selectedText: { color: c.onPrimary },
   disabledText: { color: c.inkSubtle },
-  status: { width: 14, height: 4, borderRadius: 2, backgroundColor: c.track },
-  statusFilled: { backgroundColor: c.success },
-  statusOnSelected: { backgroundColor: c.onPrimary },
-  statusOpenOnSelected: { backgroundColor: c.scrim },
+  marks: { height: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
 }));

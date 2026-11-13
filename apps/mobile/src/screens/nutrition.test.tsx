@@ -116,14 +116,15 @@ describe('REQ-NUT-002 and REQ-NUT-003 Consumed', () => {
     expect(screen.getAllByText('Tap to add what you ate')).toHaveLength(2);
   });
 
-  it('Q-019 the week strip fills the status box of each day with a meal', async () => {
+  it('D-103 the week strip puts a green apple under each day with a meal, as the header calendar', async () => {
     await renderInApp(<NutritionScreen />, undefined, async (db) => {
       await meal(db, { day: '2026-10-27' });
     });
 
-    expect(await screen.findByRole('button', { name: 'Tuesday 27 Oct, meal logged' })).toBeOnTheScreen();
+    const tuesday = await screen.findByRole('button', { name: 'Tuesday 27 Oct, 1 meal logged' });
+    expect(within(tuesday).getByTestId('meals-2026-10-27')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Monday 26 Oct' })).toBeOnTheScreen();
-    expect(screen.getByTestId('status-2026-10-27')).toHaveStyle({ backgroundColor: LIGHT_COLORS.success });
+    expect(screen.queryByTestId('meals-2026-10-26')).toBeNull();
   });
 });
 
@@ -165,7 +166,7 @@ describe('D-34 meal slots fold and open', () => {
     expect(screen.getByRole('button', { name: 'Hide Lunch meals' })).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 Oct' }));
-    await fireEvent.press(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, meal logged' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, 1 meal logged' }));
 
     expect(await screen.findByRole('button', { name: 'Show Lunch meals' })).toBeOnTheScreen();
   });
@@ -653,7 +654,7 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
 });
 
 describe('Home with meals (REQ-HOME-002…005, REQ-NAV-003)', () => {
-  it('REQ-HOME-003 the calories and protein cards use the day’s meals', async () => {
+  it('REQ-HOME-003 the calories card and the nutrients under it use the day’s meals (D-103)', async () => {
     await renderInApp(<HomeScreen />, undefined, async (db) => {
       await meal(db, { items: [ATTA, GHEE] });
       await db.runAsync(
@@ -664,15 +665,19 @@ describe('Home with meals (REQ-HOME-002…005, REQ-NAV-003)', () => {
 
     expect(await screen.findByText('237 of 2,000 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('1,763 kcal remaining')).toBeOnTheScreen();
-    expect(screen.getByText('6 g eaten')).toBeOnTheScreen();
+    // As Nutrition's Eaten card writes them; no protein card.
+    expect(screen.getByLabelText(/^Protein: 6\.\d g, no daily target$/)).toBeOnTheScreen();
+    expect(screen.getByLabelText(/^Fat: \d+\.\d g, no daily target$/)).toBeOnTheScreen();
+    expect(screen.queryByText(/g eaten$/)).toBeNull();
   });
 
-  it('REQ-HOME-002 the week strip fills the box of days with a meal (Q-019)', async () => {
+  it('REQ-HOME-002 the week strip puts an apple under each day with a meal (D-103)', async () => {
     await renderInApp(<HomeScreen />, undefined, async (db) => {
       await meal(db);
     });
 
-    expect(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, meal logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, 1 meal logged' })).toBeOnTheScreen();
+    expect(screen.getByTestId('meals-2026-10-28')).toBeOnTheScreen();
   });
 
   it('REQ-HOME-005 "By meal" opens Nutrition › Consumed for the day (Q-023)', async () => {

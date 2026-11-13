@@ -143,12 +143,13 @@ describe('D-84 the header calendar marks meals and workouts', () => {
     const tuesday = screen.getByRole('button', { name: 'Tuesday 27 October 2026, 1 meal logged' });
     const wednesday = screen.getByRole('button', { name: 'Wednesday 21 October 2026, 2 workouts logged' });
     const empty = screen.getByRole('button', { name: 'Thursday 22 October 2026, Nothing logged' });
-    expect(screen.getByTestId('meals-2026-10-26')).toBeOnTheScreen();
-    expect(screen.getByTestId('meals-2026-10-27')).toBeOnTheScreen();
-    expect(screen.queryByTestId('meals-2026-10-21')).toBeNull();
-    expect(screen.getByTestId('workout-2026-10-26')).toBeOnTheScreen();
-    expect(screen.getByTestId('workout-2026-10-21')).toBeOnTheScreen();
-    expect(screen.queryByTestId('workout-2026-10-27')).toBeNull();
+    // The days' own marks: Home's strip under the sheet marks this week's days too (D-103).
+    expect(within(monday).getByTestId('meals-2026-10-26')).toBeOnTheScreen();
+    expect(within(tuesday).getByTestId('meals-2026-10-27')).toBeOnTheScreen();
+    expect(within(wednesday).queryByTestId('meals-2026-10-21')).toBeNull();
+    expect(within(monday).getByTestId('workout-2026-10-26')).toBeOnTheScreen();
+    expect(within(wednesday).getByTestId('workout-2026-10-21')).toBeOnTheScreen();
+    expect(within(tuesday).queryByTestId('workout-2026-10-27')).toBeNull();
     // No green days (the owner, 2026-11-12): a day with meals keeps the plain background.
     for (const day of [monday, tuesday, wednesday]) expect(day).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.successTint });
     // A workout with no exercise is not marked (D-65).
