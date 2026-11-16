@@ -8,8 +8,10 @@
   slice 3.
   Amended on 2026-10-30 by **D-31**: the AI consent switch and its record move from slice 7 into
   slice 6, and Settings shows "India · Kolkata" as fixed text.
+  Amended on 2026-11-16 by **D-104**: the iOS app (iPhone only) is built and tested now and
+  released with Android; it is no longer post-MVP.
 - Owner: Project owner
-- Applies to: all work until the MVP is released on Android.
+- Applies to: all work until the MVP is released on Android and iOS.
 
 ## 1. The MVP rule
 1. Build the **basic product** listed in section 2. Everything else is post-MVP (section 3).
@@ -42,10 +44,12 @@ Only the Personal Training User view (D-20). Every account is a Personal Trainin
 **Coach and Head Coach (D-20):** the Coach and Head Coach roles and the role selector ·
 invitations · links (remove, leave, switch) · Head Coach permission · the Notifications list ·
 push notifications · coach-set targets and plans (building them, the diet plan and training plan
-views, "Log this option") · the push check and the iOS compile check that were Skeleton steps 11
-and 12. Details: [`backlog.md`](backlog.md) B-17 to B-24.
+views, "Log this option") · the push check that was Skeleton step 11. Details:
+[`backlog.md`](backlog.md) B-17 to B-23. (The iOS compile check, step 12, and the iOS release
+came back with D-104, 2026-11-16: the iOS app is built and tested now and released with Android;
+`docs/plans/ios-app.md`.)
 
-Also post-MVP: iOS release · "Pre" baseline row and week-details screen · "Eaten before" list
+Also post-MVP: "Pre" baseline row and week-details screen · "Eaten before" list
 (Saved covers re-logging) · Examples section in Log meal (tips stay) · audio storage · video
 uploads (other than YouTube links) · premium plans · Platform Admin role and admin
 screens · multiple time zones · other invite channels (SMS, WhatsApp) · backups and

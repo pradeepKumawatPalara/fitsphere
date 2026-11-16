@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (D-83: E-29 closed, the Workout in progress pill). 2026-11-11 (D-82: RB-05, the how-to text checked before real users; E-29 on hold). Earlier the same day (D-77: E-11 done; the target checks S6-10 to S6-13). 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
+- Last updated: 2026-11-16 (D-104: B-01 started, the iOS app; B-24's profile ready). 2026-11-12 (D-83: E-29 closed, the Workout in progress pill). 2026-11-11 (D-82: RB-05, the how-to text checked before real users; E-29 on hold). Earlier the same day (D-77: E-11 done; the target checks S6-10 to S6-13). 2026-11-06 (D-57: E-28 on hold). 2026-11-05 (D-50: E-14 and E-17 narrowed, E-24 to E-26; E-27 on hold). 2026-10-31 (D-32: the Progress and Settings checks to run before release, S5-01
   to S5-07 and S6-01 to S6-09; the slice 5 and 6 IDs made final). 2026-10-30 (Settings slice,
   steps 2 and 5, D-31: RB-04 and E-21 to E-23). Earlier the same day
   (D-28: E-13, a dish removed from the list). Earlier the same day (D-26
@@ -96,7 +96,7 @@ From `mvp-scope.md` section 3, plus items the D-18, D-20 and D-26 answers moved 
 
 | ID | Item | Affects | Notes |
 |---|---|---|---|
-| B-01 | iOS release | A-001, ADR-0001, C-008 | Waits for an iPhone (D-10, R-001); Apple fee due at release |
+| B-01 | iOS release | A-001, ADR-0001, C-008 | **Started (D-104, 2026-11-16)**: the owner has an iPhone; iPhone only; released with Android when the owner says. Steps and prerequisites: `docs/plans/ios-app.md`. The Apple fee is due before the first TestFlight build (D-104 replaces "at release") |
 | B-02 | "Pre" baseline row and week-details screen in Progress | REQ-PRG-005 | Q-045, Q-046 |
 | B-03 | "Eaten before" list in Log meal | REQ-LOG-007 | Saved covers re-logging in the MVP; since D-60 (2026-11-06) Search foods lists the foods of the last five days (Recent foods), so what remains is past meals as a whole |
 | B-04 | Examples section in Log meal (Best, Vague, Say) | REQ-LOG-008 | The tips stay in the MVP |
@@ -119,7 +119,7 @@ From `mvp-scope.md` section 3, plus items the D-18, D-20 and D-26 answers moved 
 | B-21 | Coach-set targets and plans: building diet and training plans, the trainee's plan views, "Log this option", the "Set by <name>" label | REQ-ROLE-006, REQ-PLAN-001…006, REQ-PLAN-008, REQ-TRN-001, REQ-TRN-006, REQ-TRN-007, invariant #2, Q-034, Q-035 | D-20. In the MVP the Diet plan and Training tabs show their empty states, and users set their own targets (REQ-ROLE-007) |
 | B-22 | The Notifications list and push notifications; the push token removed at log out | REQ-ROLE-016, ADR-0004 rule 6 and step 5 | D-20. Needs B-23 first |
 | B-23 | Push check on the phone (was Skeleton step 11) | ADR-0001 step 7, D-13 answer 9, Q-083 | D-20. Needs a free Firebase project with `com.fitsphere.app`, its FCM V1 key uploaded to EAS credentials, `expo-notifications` and a new EAS build. Send a notification with Expo's push tool; it arrives on the phone |
-| B-24 | iOS compile check (was Skeleton step 12) | ADR-0001 step 5, R-001 | D-20. One EAS iOS simulator build; uses 1 of the free plan's iOS builds and needs no Apple account. Before the iOS release (B-01) |
+| B-24 | iOS compile check (was Skeleton step 12) | ADR-0001 step 5, R-001 | D-20. One EAS iOS simulator build; uses 1 of the free plan's iOS builds and needs no Apple account. Before the iOS release (B-01). D-104: the profile `ios-simulator` is ready (`eas build -p ios --profile ios-simulator`); it runs at the owner's word (D-19) |
 | B-25 | Phone time-zone check: with the phone set to Los Angeles, "Today (IST)" keeps India's date and a weight gets the IST day (was Skeleton step 3's phone check and step 10's check 5) | ADR-0007 step 5, REQ-DATE-004, invariant #5 | D-22: dropped for the MVP, which serves India only (D-09). Automated tests cover it under `Asia/Kolkata` and `America/Los_Angeles`. Run with B-09 |
 | B-26 | Dishes deferred until their missing ingredients have a source: curd and raita, masala chai, besan dishes (such as besan chilla, dhokla and pakora), and chole | REQ-LOG-007, ADR-0006 rule 1 | D-26 answer 3, amended 2026-10-30: deferred, not dropped. The IFCT list has no curd, white sugar, tea or besan, and B002 "Bengal gram, whole" does not say which chickpea it is. A source for those ingredients needs the owner's approval |
 | B-27 | A food's amount in household units (teaspoon, tablespoon, glass, half glass, katori or bowl) as well as grams | REQ-LOG-007, ADR-0006 rule 1, D-26 | D-36: **built 2026-11-03** on `ui-redesign` (plan `household-units.md`, accepted), for listed foods in Search foods; barcode products and your own food stay in grams. Migration 0009 and `foods:import` ran on `fitsphere-dev` on 2026-11-03. Waits for the owner: measuring and approving rows, then `foods:import` again. Until a row is approved, no food offers a unit |

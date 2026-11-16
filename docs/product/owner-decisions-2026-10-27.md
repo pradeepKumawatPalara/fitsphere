@@ -3359,6 +3359,43 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-104 The iOS app: built and tested now, released with Android (changes D-10 answer 8)
+- Status: **Accepted** (owner, in chat, 2026-11-16: "We have built the android apk and thats is under
+  testing, while we test that and fix the bugs. I want you to prepare the ios version of this app and
+  perform coding standard testing at your level and let me know the steps that we will be needing to
+  get it live once we are done fixing everything. Also list out the prerequisites needed for ios app
+  hosting."; to the plan's four questions: "1. Yes go ahead with the IOS 2 Iphone only 3 Yes I have
+  Iphone for the testing 4 I will answer all the questions"). Plan: `docs/plans/ios-app.md`. Built on
+  branch `feat/ios-app`.
+- Answer:
+  - **iOS starts now**, beside the Android test build's fixes. D-10 answer 8's wait ends: the owner
+    has an iPhone for testing; no Mac is needed (EAS builds, signs and uploads). The iOS release
+    goes with Android's, when the owner says (backlog B-01).
+  - **iPhone only** (`ios.supportsTablet: false`); an iPad can still run it as an iPhone app.
+  - **The owner answers Apple's questions**: export compliance (encryption), the App Privacy
+    details, the age rating and the listing, with Legal's review (Q-049).
+- What changes (settings and two small code changes; no new package):
+  - `app.json`: Appearance's System follows the phone on an iPhone (`userInterfaceStyle`
+    `automatic`; `light` made iOS report light always); no microphone or Face ID permission text,
+    as the app uses neither; iPhone only.
+  - `eas.json`: `ios-simulator`, the compile check (B-24, no Apple account), and `production`, the
+    store build for TestFlight and the App Store (`preview`'s addresses; EAS counts the build
+    numbers).
+  - On an iPhone: the sign-in screens' footer moves with the keyboard (iOS's "will show" events),
+    and the floating Log button and the Workout in progress pill have iOS's shadow (Android keeps its
+    elevation).
+- MVP defaults: until the owner gives the encryption answer to keep in `app.json`
+  (`ios.config.usesNonExemptEncryption`), App Store Connect asks it at each upload; `production`
+  uses the beta's addresses until the move to Mumbai (D-101).
+- Not changed: Android (the same settings and permissions, no new Android build), the server; no
+  migration, no phone schema change. Every iOS build is an EAS cloud build, and the owner is told
+  first (D-19).
+- Doc changes: the plan; `mvp-scope.md` (the iOS release no longer post-MVP); backlog B-01 and B-24;
+  the constraints' A-001 and R-001; ADR-0001's validation step 5; the runbook ("Builds and devices",
+  the iOS app); CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants
