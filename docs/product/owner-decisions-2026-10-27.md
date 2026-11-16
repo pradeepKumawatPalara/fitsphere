@@ -3396,6 +3396,30 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-105 The Workout in progress pill can be moved to another corner
+- Status: **Accepted** (owner, in chat, 2026-11-16: "When the workout timer is going on, that time it shows
+  the hover on each time on the other tab which is fine. But it should be movable. As if I want to move to
+  other corner I should be able to do so."; of the canvas's A (the pill as it is) and B (a grip at its
+  left), version 106 and 107, "lock it A"; locked in version 108). Built on branch
+  `feat/movable-workout-pill`. Numbered D-105: D-104 is the iOS app's.
+- Answer (REQ-TRN-003; with D-83):
+  - The Workout in progress pill (D-83) can be **dragged** with a finger. Let go, it **settles in the
+    nearest of four corners**: the screen's quarter it is in, 16 dp from the side, at the top just below
+    the header (on an exercise's page, below its back arrow), at the bottom just above the tab bar (on
+    an exercise's page, above its edge). It slides into place; while dragged it is a little larger, its
+    shadow deeper.
+  - It **stays in that corner** on every tab and over an exercise's page, and after the app is closed, on
+    this phone only (kept with the phone's other settings, as the measurements' cm or in, D-23); bottom
+    right until moved, as before.
+  - A **tap still opens the workout**; only a finger that moves drags it. Screen readers get the actions
+    "Move to the top left", "Move to the top right"… for the three other corners.
+  - The pill looks as it did (A): no grip.
+- Phone app only: React Native's own touch handlers (the responder system) and `Animated`, no new package, no new build (iOS
+  too, D-104). No server change, no migration, no phone schema change.
+- Doc changes: REQ-TRN-003's D-83 line; constraints' MVP defaults; the redesign's 4.5; CLAUDE.md.
+
+---
+
 ---
 
 ## Proposed replacement wording for the two invariants

@@ -39,6 +39,14 @@ the sign-in screens' footer moves with the keyboard and the floating controls ha
 no migration, no phone schema change. **Every iOS build waits for the owner's word (D-19); the owner
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
+**The Workout in progress pill moved to another corner — built on branch `feat/movable-workout-pill`
+(D-105, 2026-11-16), in its own folder `D:\fitsphere-workout-pill` (removed once merged).** Canvas boards
+`WorkoutPillMove*` A locked (version 108). The pill (D-83) can be dragged; let go, it settles in the
+nearest corner (top below the header, bottom above the tabs) and stays there on every page and after the
+app is closed, on this phone (`sync_meta` `workout_pill_corner`); a tap still opens the workout; screen
+readers move it with actions (`components/WorkoutInProgress.tsx`, React Native's touch handlers). Phone app only: no
+server change, no migration, no phone schema change, no new build.
+
 **Home: every nutrient under Calories, the strip's apple and dumbbell, no workouts card — built on
 branch `feat/home-nutrients` (D-103, 2026-11-13), in its own folder `D:\fitsphere-home` (removed once
 merged).** Plan: `docs/plans/home-nutrients.md` (Accepted); canvas boards `HomeNutrients*` B locked
