@@ -29,6 +29,15 @@ jobs:
       - name: Install packages
         run: npm ci
 
+      
+      # expo-camera, expo-file-system, expo-font and expo-image-manipulator ship prebuilt
+      # iOS code that needs expo-modules-jsi 58.0.21 or newer. 58.0.20 makes the app
+      # close at launch ("Symbol not found ... JavaScriptEncodable ... encode(into:in:)").
+      - name: Update expo-modules-jsi for the prebuilt Expo modules
+        run: |
+          npm install --no-save expo-modules-jsi@~58.0.23
+          node -p "'expo-modules-jsi ' + require('expo-modules-jsi/package.json').version"
+
       - name: Create the native iOS project
         working-directory: apps/mobile
         run: npx expo prebuild --platform ios --clean
