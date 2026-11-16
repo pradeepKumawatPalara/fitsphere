@@ -18,7 +18,7 @@
 //   in the same form (GENERIC_SAME_AS): their other names go to that food instead.
 //
 // Running it again on the same files changes nothing more.
-import { MEAL_ITEM_GRAMS_MAX } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX } from '@fitsphere/shared';
 import { SEARCH_WORD } from './brandLabels.ts';
 import { toCsv } from './csv.ts';
 import { DISH_ESTIMATES_HEADER, readDishEstimatesSheet } from './dishEstimates.ts';
@@ -68,7 +68,14 @@ export const GENERIC_SAME_AS: Readonly<Record<string, { source: FoodAliasSource;
 const ANOTHER_FOOD = /^(just the plain food|a brand’s product)/;
 
 /** The note of a home-style food made from the file's generic foods. */
-const GENERIC_NOTE = /^GEN-\d+ of the owner's consolidated food database/;
+export const GENERIC_NOTE = /^GEN-\d+ of the owner's consolidated food database/;
+
+/**
+ * Ends the data_source of an estimated dish made from another base food's row of a dish the food list
+ * already has (D-102: "Idli (Urad Dal)" beside INDB's Idli). Such a row is not one of the file's
+ * dishes for matching: its name is the dish's with the base food added.
+ */
+export const ANOTHER_BASE_NOTE = '; another base food (D-102)';
 
 /** The issue of a dish the file only rates D, as D-62 wrote it. */
 export const WEAK_MATCH_ISSUE = 'weak match (D): its values are a default for the base food, not checked';
@@ -147,10 +154,10 @@ export function tidyName(name: string): string {
   return text;
 }
 
-const withoutBrackets = (name: string) => name.replace(/\([^)]*\)?/g, ' ');
+export const withoutBrackets = (name: string) => name.replace(/\([^)]*\)?/g, ' ');
 
 /** A code's words: lowercase letters and digits joined by hyphens. */
-function slug(name: string): string {
+export function slug(name: string): string {
   return aliasKey(name)
     .normalize('NFD')
     .replace(/[^a-z0-9 ]/g, '')
@@ -262,7 +269,7 @@ function chosen(rows: readonly Cell[], base?: string): Cell | null {
 }
 
 /** A base food's own words ("Okra / Bhindi": okra, bhindi); none for a region ("Regional - Goan"). */
-function baseWords(base: string): string[] {
+export function baseWords(base: string): string[] {
   if (/^regional\b/i.test(base)) return [];
   const words = base
     .split('/')
@@ -272,13 +279,13 @@ function baseWords(base: string): string[] {
 }
 
 /** A serving as the sheets write it: "katori" is "1 katori", "2 biscuits (15 g)" stays as it is. */
-function servingOf(unit: string, withoutGrams = false): string {
+export function servingOf(unit: string, withoutGrams = false): string {
   const text = withoutGrams ? unit.replace(/\s*\([^)]*\b(g|ml)\b[^)]*\)\s*$/i, '').trim() : unit.trim();
   return /^\d/.test(text) ? text : `1 ${text}`;
 }
 
 /** The sheet's check of one row, as `foods:import` reads it: the problem, or null. */
-function problemOf(header: readonly string[], row: readonly string[], read: (text: string) => unknown): string | null {
+export function problemOf(header: readonly string[], row: readonly string[], read: (text: string) => unknown): string | null {
   try {
     read(toCsv([header, row]));
     return null;
@@ -316,7 +323,10 @@ export function convertConsolidated(input: ConsolidatedInput): ConsolidatedResul
   // generic foods this file gave (made again from it below).
   const listed: ListedFood[] = [
     ...input.indb,
-    ...estimates.slice(1).filter((row) => est(row, 'status') === 'approved').map((row) => ({ source: 'dish_estimate' as const, code: est(row, 'code'), name: est(row, 'name'), kcal: Number(est(row, 'kcal')) })),
+    ...estimates
+      .slice(1)
+      .filter((row) => est(row, 'status') === 'approved' && !est(row, 'data_source').endsWith(ANOTHER_BASE_NOTE))
+      .map((row) => ({ source: 'dish_estimate' as const, code: est(row, 'code'), name: est(row, 'name'), kcal: Number(est(row, 'kcal')) })),
     ...home
       .slice(1)
       .filter((row) => hm(row, 'status') === 'approved' && !GENERIC_NOTE.test(hm(row, 'notes')))
@@ -521,7 +531,7 @@ export function convertConsolidated(input: ConsolidatedInput): ConsolidatedResul
         flag: 'llm',
       };
       const line = HOME_FOODS_HEADER.map((column) => cells[column]!);
-      const problem = Number(cells.serving_grams) > MEAL_ITEM_GRAMS_MAX ? 'serving over 2,000 g' : problemOf(HOME_FOODS_HEADER, line, readHomeFoodsSheet);
+      const problem = Number(cells.serving_grams) > SERVING_GRAMS_MAX ? 'serving over 2,000 g' : problemOf(HOME_FOODS_HEADER, line, readHomeFoodsSheet);
       if (problem) {
         report.failed.push(`${id} ${name} (generic food): ${problem}`);
         continue;

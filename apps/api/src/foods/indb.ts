@@ -5,7 +5,7 @@
 // (R-008). Two steps, as USDA's: `convertIndb` turns INDB.xlsx's rows into the two CSV files kept in
 // the repository (`npm run indb:convert`), and `readIndbCsv` reads them back for `foods:import`. Every
 // value is estimated.
-import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import type { ImportedFood } from './ifct.ts';
 import { FoodListError } from './ifct.ts';
 import { portionLabel, readServingListCsv, USDA_FOODS_HEADER, USDA_PORTIONS_HEADER, type ImportedPortion, type ServingList } from './usda.ts';
@@ -72,7 +72,7 @@ export function convertIndb(rows: string[][]): { foods: string[][]; portions: st
     if (!unit || servingKcal === null || kcal! < 1) continue;
     const grams = Math.round((100 * servingKcal) / kcal! * 100) / 100;
     const description = `1 ${unit}`;
-    if (grams < 1 || grams > MEAL_ITEM_GRAMS_MAX || portionLabel(description).length > SERVING_LABEL_MAX) continue;
+    if (grams < 1 || grams > SERVING_GRAMS_MAX || portionLabel(description).length > SERVING_LABEL_MAX) continue;
     portions.push([code, '1', description, decimal(grams)]);
   }
   return { foods, portions, skipped };

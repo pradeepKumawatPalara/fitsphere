@@ -4,10 +4,11 @@
 // archive, app.usda_foods and app.usda_food_portions, not to the food list (D-47). One transaction each: every row is
 // inserted or updated by its code, and rows no longer in the file are removed, so running it again
 // gives the same table.
-import type { PackagedFood } from '@fitsphere/shared';
+import { PACKAGED_SERVING_LABEL, type PackagedFood } from '@fitsphere/shared';
 import type pg from 'pg';
 import type { ImportedDish } from './dishes.ts';
 import { IFCT_SOURCE, type ImportedFood } from './ifct.ts';
+import { withSheetUnits, type FoodUnits } from './foodUnits.ts';
 import type { ImportedMeasure } from './measures.ts';
 import { withSingleUnits } from './servingUnits.ts';
 import type { ImportedPortion } from './usda.ts';
@@ -158,8 +159,21 @@ export async function importUsdaArchive(client: pg.ClientBase, foods: ImportedFo
 }
 
 /**
+ * Every serving the food list has now, kept with its grams in app.food_portion_history (D-102), so a
+ * meal logged in it is still accepted after its grams change. Rows are only ever added.
+ */
+const RECORD_PORTIONS = `insert into app.food_portion_history (source, code, label, grams)
+  select source, code, label, grams from app.food_portions where source = $1
+  on conflict do nothing`;
+const RECORD_PACKAGED_PORTIONS = `insert into app.food_portion_history (source, code, label, grams)
+  select 'barcode', barcode, $1, serving_grams from app.packaged_foods where serving_grams is not null
+  union all select 'barcode', barcode, label, grams from app.packaged_food_portions
+  on conflict do nothing`;
+
+/**
  * Makes app.packaged_foods hold exactly the file's packaged foods (D-48), with their other names (D-94),
- * in one transaction.
+ * and since D-102 the units of the owner's food database (app.packaged_food_portions) and the measure
+ * each page opens on, in one transaction.
  */
 export async function importPackagedFoods(client: pg.ClientBase, foods: readonly PackagedFood[]): Promise<number> {
   await client.query('begin');
@@ -167,10 +181,10 @@ export async function importPackagedFoods(client: pg.ClientBase, foods: readonly
     await client.query('delete from app.packaged_foods');
     for (const batch of batches(foods)) {
       await client.query(
-        `insert into app.packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases)
-         select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases
+        `insert into app.packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases, opens_on)
+         select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases, opens_on
          from jsonb_to_recordset($1::jsonb) as row (barcode text, name text, brand text, kcal numeric, protein_g numeric,
-           carbs_g numeric, fat_g numeric, fibre_g numeric, serving_grams numeric, aliases text[])`,
+           carbs_g numeric, fat_g numeric, fibre_g numeric, serving_grams numeric, aliases text[], opens_on text)`,
         [
           JSON.stringify(
             batch.map((food) => ({
@@ -184,11 +198,21 @@ export async function importPackagedFoods(client: pg.ClientBase, foods: readonly
               fibre_g: food.fibreG,
               serving_grams: food.servingGrams,
               aliases: food.aliases ?? [],
+              opens_on: food.opensOn ?? null,
             })),
           ),
         ],
       );
     }
+    const portions = foods.flatMap((food) => (food.portions ?? []).map((portion, index) => ({ barcode: food.barcode, seq: index + 1, label: portion.label, grams: portion.grams })));
+    for (const batch of batches(portions)) {
+      await client.query(
+        `insert into app.packaged_food_portions (barcode, seq, label, grams)
+         select barcode, seq, label, grams from jsonb_to_recordset($1::jsonb) as row (barcode text, seq integer, label text, grams numeric)`,
+        [JSON.stringify(batch)],
+      );
+    }
+    await client.query(RECORD_PACKAGED_PORTIONS, [PACKAGED_SERVING_LABEL]);
     await client.query('commit');
   } catch (error) {
     await client.query('rollback').catch(() => undefined);
@@ -199,14 +223,20 @@ export async function importPackagedFoods(client: pg.ClientBase, foods: readonly
 
 /**
  * Makes app.food_portions hold exactly a source's servings, and after them the single unit a serving
- * holds several of ("2 slices" also gives "Slice", D-76). Run after importFoods for that source.
+ * holds several of ("2 slices" also gives "Slice", D-76), then the units of the owner's food database
+ * (D-102: a unit of the same name takes the sheet's grams); and each food's page open on the measure
+ * `opensOn` gives (app.foods.opens_on). Run after importFoods for that source.
  */
 export async function importPortions(
   client: pg.ClientBase,
   source: string,
   portions: ImportedPortion[],
-): Promise<{ servings: number; units: number }> {
-  const rows = withSingleUnits(portions);
+  units: ReadonlyMap<string, FoodUnits> = new Map(),
+  opensOn: (portions: readonly ImportedPortion[]) => ReadonlyMap<string, string> = () => new Map(),
+): Promise<{ servings: number; units: number; sheetUnits: number; replaced: number; opening: number }> {
+  const single = withSingleUnits(portions);
+  const { portions: rows, added, replaced } = withSheetUnits(single, units);
+  const opening = [...opensOn(rows)].map(([code, label]) => ({ code, label }));
   await client.query('begin');
   try {
     await client.query('delete from app.food_portions where source = $1', [source]);
@@ -217,12 +247,22 @@ export async function importPortions(
         [source, JSON.stringify(batch)],
       );
     }
+    await client.query(RECORD_PORTIONS, [source]);
+    await client.query('update app.foods set opens_on = null where source = $1 and opens_on is not null', [source]);
+    for (const batch of batches(opening)) {
+      await client.query(
+        `update app.foods set opens_on = row.label
+         from jsonb_to_recordset($2::jsonb) as row (code text, label text)
+         where app.foods.source = $1 and app.foods.code = row.code`,
+        [source, JSON.stringify(batch)],
+      );
+    }
     await client.query('commit');
   } catch (error) {
     await client.query('rollback').catch(() => undefined);
     throw error;
   }
-  return { servings: portions.length, units: rows.length - portions.length };
+  return { servings: portions.length, units: single.length - portions.length, sheetUnits: added, replaced, opening: opening.length };
 }
 
 /**

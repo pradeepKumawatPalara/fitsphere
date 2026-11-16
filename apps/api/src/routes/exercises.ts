@@ -12,6 +12,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { ApiError } from '../errors.ts';
+import { sendLargeJson } from './largeJson.ts';
 
 // GET /v1/exercises (D-50): FitSphere's exercise list, for the phone to cache and search offline, with
 // each exercise's group, how it is logged, its Compendium MET, the library's categories and
@@ -19,7 +20,7 @@ import { ApiError } from '../errors.ts';
 // library (D-81), with the first video address any of its places gives. Reference data, the same for
 // every signed-in user. The version changes whenever any value in the list changes.
 export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg.Pool, 'query'> }) {
-  app.get(`${API_BASE_PATH}/exercises`, { config: { access: 'account' } }, async (request) => {
+  app.get(`${API_BASE_PATH}/exercises`, { config: { access: 'account' } }, async (request, reply) => {
     const parsed = exercisesQuerySchema.safeParse(request.query);
     if (!parsed.success) throw new ApiError('VALIDATION_FAILED', validationDetails(parsed.error, request.query));
 
@@ -97,6 +98,6 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
         details: detailsOf.get(row.code) ?? null,
       })),
     };
-    return body;
+    return sendLargeJson(request, reply, body);
   });
 }

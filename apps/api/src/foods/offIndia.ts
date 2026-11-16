@@ -4,7 +4,7 @@
 // steps, as USDA's and INDB's: `packagedFromRow` judges one row of the export (tab-separated, read
 // by `npm run off:convert`), which writes data/foods/off-india-products.csv; `readPackagedCsv` reads
 // that file back for `foods:import`.
-import { MEAL_ITEM_GRAMS_MAX, type PackagedFood } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, type PackagedFood } from '@fitsphere/shared';
 import { parseCsv } from './csv.ts';
 import { FoodListError } from './ifct.ts';
 
@@ -97,7 +97,7 @@ export function packagedFromRow(columns: ExportColumns, fields: readonly string[
   const brand = cell('brands').split(',')[0]?.trim() ?? '';
   const servingQuantity = number(cell('serving_quantity'));
   const servingGrams =
-    servingQuantity !== null && servingQuantity > 0 && servingQuantity <= MEAL_ITEM_GRAMS_MAX && !/\bml\b|millilit/i.test(cell('serving_size'))
+    servingQuantity !== null && servingQuantity > 0 && servingQuantity <= SERVING_GRAMS_MAX && !/\bml\b|millilit/i.test(cell('serving_size'))
       ? round(servingQuantity)
       : null;
   return {
@@ -243,7 +243,7 @@ export function readPackagedCsv(text: string): PackagedFood[] {
     if (Number(kcal) > 1_000 || [protein, carbs, fat, fibre].some((value) => Number(value) > 100)) {
       throw new FoodListError(`${line}: a value is more than 100 g, or 1,000 kcal, per 100 g`);
     }
-    if (serving !== '' && (Number(serving) <= 0 || Number(serving) > MEAL_ITEM_GRAMS_MAX)) throw new FoodListError(`${line}: the serving's grams`);
+    if (serving !== '' && (Number(serving) <= 0 || Number(serving) > SERVING_GRAMS_MAX)) throw new FoodListError(`${line}: the serving's grams`);
     return {
       barcode,
       name: name.trim(),

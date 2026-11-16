@@ -2,12 +2,7 @@
 // amended 2026-10-30; D-28), and works out each approved dish's values for one portion: IFCT values
 // per 100 g × the measured grams. The whole sheet is checked first; any problem refuses all of it,
 // naming the line. Why each rule exists: docs/data/food-list-sources.md, "Dishes".
-import {
-  MEAL_ITEM_KCAL_MAX,
-  MEAL_ITEM_NUTRIENT_MAX,
-  MEAL_ITEM_PORTIONS_MAX,
-  type DishPortionUnit,
-} from '@fitsphere/shared';
+import { type DishPortionUnit } from '@fitsphere/shared';
 import { parseCsv } from './csv.ts';
 import { FoodListError, type ImportedFood } from './ifct.ts';
 
@@ -50,9 +45,12 @@ export const COOKED_IFCT_ENTRIES: ReadonlySet<string> = new Set(['M004']);
 /** IFCT's poultry rows (group N) are not confirmed raw, so no approved recipe may use them (D-28). */
 const UNCONFIRMED_GROUP = 'N';
 
-/** One portion holds at most this much, so 10 portions still fit one meal item. */
-const PORTION_KCAL_MAX = MEAL_ITEM_KCAL_MAX / MEAL_ITEM_PORTIONS_MAX;
-const PORTION_NUTRIENT_MAX = MEAL_ITEM_NUTRIENT_MAX / MEAL_ITEM_PORTIONS_MAX;
+/**
+ * One portion holds at most this much: a tenth of what one meal item held before D-102 (20,000 kcal,
+ * 5,000 g), so 10 portions fit one meal item.
+ */
+const PORTION_KCAL_MAX = 2_000;
+const PORTION_NUTRIENT_MAX = 500;
 
 const CODE = /^[a-z][a-z0-9_]{1,40}$/;
 /** Grams and katoris: up to four digits and two decimals. */

@@ -11,15 +11,18 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { ApiError } from '../errors.ts';
+import { sendLargeJson } from './largeJson.ts';
 
 // GET /v1/foods (ADR-0006 rule 1): FitSphere's food list, for the phone to cache and search
 // offline, with the approved dishes and their values for one portion (D-28), and each food's
-// approved household units with the grams one holds (D-36), and each USDA food's servings (D-39).
+// approved household units with the grams one holds (D-36), and each USDA food's servings (D-39); since
+// D-102 each food's and packaged food's units from the owner's food database, and the measure its page
+// opens on.
 // Reference data, the same for every
 // signed-in user. Rows hidden until checked are left out, and so are the recipes' ingredients and
 // grams. The version changes whenever any value in the list changes.
 export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Pool, 'query'> }) {
-  app.get(`${API_BASE_PATH}/foods`, { config: { access: 'account' } }, async (request) => {
+  app.get(`${API_BASE_PATH}/foods`, { config: { access: 'account' } }, async (request, reply) => {
     const parsed = foodsQuerySchema.safeParse(request.query);
     if (!parsed.success) throw new ApiError('VALIDATION_FAILED', validationDetails(parsed.error, request.query));
 
@@ -35,8 +38,9 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       carbs_g: string;
       kcal: string;
       estimated: boolean;
+      opens_on: string | null;
     }>(
-      `select source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, estimated
+      `select source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, estimated, opens_on
        from app.foods where not hidden order by source, code`,
     );
     const dishes = await deps.db.query<{
@@ -78,13 +82,23 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
       fibre_g: string | null;
       serving_grams: string | null;
       aliases: string[];
-    }>('select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases from app.packaged_foods order by barcode');
+      opens_on: string | null;
+    }>('select barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases, opens_on from app.packaged_foods order by barcode');
+    // Their units from the owner's food database (D-102), besides the label's serving.
+    const packagedPortions = await deps.db.query<{ barcode: string; label: string; grams: string }>(
+      'select barcode, label, grams from app.packaged_food_portions order by barcode, seq',
+    );
+    const packagedPortionsOf = new Map<string, { label: string; grams: number }[]>();
+    for (const row of packagedPortions.rows) {
+      packagedPortionsOf.set(row.barcode, [...(packagedPortionsOf.get(row.barcode) ?? []), { label: row.label, grams: Number(row.grams) }]);
+    }
     const version = foodListVersion({
       foods: rows,
       dishes: dishes.rows,
       measures: measures.rows,
       portions: portions.rows,
       packaged: packaged.rows,
+      packagedPortions: packagedPortions.rows,
     });
     if (parsed.data.version === version) return { version, items: null, dishes: null, packaged: null } satisfies FoodsResponse;
 
@@ -104,6 +118,8 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         kcalEstimated: row.estimated,
         measures: measuresOf.get(`${row.source} ${row.code}`) ?? [],
         portions: portionsOf.get(`${row.source} ${row.code}`) ?? [],
+        // The measure its page opens on (D-102), only when the owner's food database gives one.
+        ...(row.opens_on === null ? {} : { opensOn: row.opens_on }),
       })),
       dishes: dishes.rows.map((row) => ({
         code: row.code,
@@ -127,13 +143,16 @@ export function registerFoodsRoute(app: FastifyInstance, deps: { db: Pick<pg.Poo
         servingGrams: row.serving_grams === null ? null : Number(row.serving_grams),
         // Its other names (D-94), only when it has some: most have none.
         ...(row.aliases.length > 0 ? { aliases: row.aliases } : {}),
+        // Its units and the measure its page opens on (D-102), only when it has them.
+        ...(packagedPortionsOf.has(row.barcode) ? { portions: packagedPortionsOf.get(row.barcode)! } : {}),
+        ...(row.opens_on === null ? {} : { opensOn: row.opens_on }),
       })),
     };
-    return body;
+    return sendLargeJson(request, reply, body);
   });
 }
 
 /** A short hash of every value the phone receives, so any change gives a new version. */
-function foodListVersion(list: { foods: object[]; dishes: object[]; measures: object[]; portions: object[]; packaged: object[] }): string {
+function foodListVersion(list: { foods: object[]; dishes: object[]; measures: object[]; portions: object[]; packaged: object[]; packagedPortions: object[] }): string {
   return createHash('sha256').update(JSON.stringify(list)).digest('base64url').slice(0, 22);
 }

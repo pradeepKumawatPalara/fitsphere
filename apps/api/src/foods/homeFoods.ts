@@ -8,7 +8,7 @@
 //
 // A row's item ("bread") and its search words (D-55) are kept as the food's aliases, so a search for
 // the item finds all its forms ("bread" finds Butter toast). They are never shown.
-import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import { BRAND_LABEL_BASES, BRAND_LABEL_STATUSES, CODE, SEARCH_WORD, SEARCH_WORDS_MAX, VALUE } from './brandLabels.ts';
 import { parseCsv } from './csv.ts';
 import { isCalendarDate } from './dishes.ts';
@@ -93,7 +93,7 @@ export function readHomeFoodsSheet(text: string): HomeFoodsSheet {
     // Every home-style food has its serving: a slice, a roti, a plate.
     const serving = cell.serving!;
     const servingGrams = cell.serving_grams!;
-    if (serving === '' || !VALUE.test(servingGrams) || Number(servingGrams) <= 0 || Number(servingGrams) > MEAL_ITEM_GRAMS_MAX) {
+    if (serving === '' || !VALUE.test(servingGrams) || Number(servingGrams) <= 0 || Number(servingGrams) > SERVING_GRAMS_MAX) {
       fail('serving must be given, with serving_grams more than 0 and at most 2,000');
     }
     const label = portionLabel(serving);
