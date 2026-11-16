@@ -47,6 +47,24 @@ app is closed, on this phone (`sync_meta` `workout_pill_corner`); a tap still op
 readers move it with actions (`components/WorkoutInProgress.tsx`, React Native's touch handlers). Phone app only: no
 server change, no migration, no phone schema change, no new build.
 
+**A food's page: the units of the owner's food database, its Default Unit, a typed quantity — built on
+branch `feat/food-units` (D-102, 2026-11-13), in its own folder `D:\fitsphere-food-units` (removed once
+merged).** Plan: `docs/plans/food-units.md` (Accepted), REQ-LOG-007; canvas boards `FoodUnits*` locked
+(version 102). From the Default Unit and Allowed Units of the owner's `Indian_Food_Database_CONSOLIDATED
+(1).xlsx` (kept outside the repository, in `D:\fitsphere-data`), `npm run food-units:convert`
+(`apps/api/src/foods/foodUnits.ts`) writes `docs/data/food-units-sheet.csv` (16,607 foods), adds a dish's
+other base foods' rows as dishes of their own ("Idli (Urad Dal)") to `docs/data/dish-estimates-sheet.csv`,
+and lists the drinks whose ml it fixed (milk 1.03 g per ml) in `docs/data/food-units-ml-fixes.csv`.
+`foods:import` loads the units after each food's own servings, a unit of the same name taking the sheet's
+grams; a packaged food keeps its label's serving. A food's page opens on its Default Unit (after an amount
+in the meal, last time's or a searched one); Quantity is typed (more than 0, two decimals) with the list
+of halves beside it; one food in a meal up to 10,000 g (was 2,000); ml typed whole for a drink. Every
+serving ever loaded is kept (`app.food_portion_history`) so old meals stay valid. Migration
+`0033_food_units.sql`, phone schema version 23, risk R-016. No new build. **On `fitsphere-dev`: migration
+0033 before the updated API, then `foods:import`; with the Cloud Run beta on the same database, 0033, then
+deploy this API, then `foods:import` (the beta's older API would refuse an old meal whose serving's grams
+the import changes); only when the owner says so.**
+
 **Home: every nutrient under Calories, the strip's apple and dumbbell, no workouts card — built on
 branch `feat/home-nutrients` (D-103, 2026-11-13), in its own folder `D:\fitsphere-home` (removed once
 merged).** Plan: `docs/plans/home-nutrients.md` (Accepted); canvas boards `HomeNutrients*` B locked

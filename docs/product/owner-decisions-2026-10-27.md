@@ -3325,6 +3325,87 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-102 A food's page: the units of the owner's food database, its Default Unit, a typed quantity
+- Status: **Accepted** (owner, in chat, 2026-11-13: "In the each sheet there is the column Portion
+  Type, Default unit, Allowed Units. So the Food item is search and select to measuring tab its default
+  unit is selected as per the sheet ... If user want to change the value ... He can ... Currently quantity
+  field is dropdown I want this to be dropdown as well input field ... 0 or negative value is not
+  allowed ... keep the current measuring value to the each food item as well ... If the any food items
+  measuring value is not in the sheet than keep the current one ... come up with the plan and canva
+  design"; then the answers to the plan's four questions, "Same unit, different grams -> keep the sheet
+  value", "A food listed more than once with different units --> can be dumped the second one and when
+  User search he can clearly identify which one is rice and which one is urad", "A packaged food's label
+  gives one serving, and the sheet gives another --> keep the Current one", "User can enter the max
+  quantity as per his choice. No max limit for now", "Millilitres: you can fix and provide the updated
+  sheet for those you fixed", and of the canvas, version 100 and 101, "lock it, just change the maximum
+  value user can enter more maximum value"; locked in version 102). Plan: `docs/plans/food-units.md`.
+  Built on branch `feat/food-units`. Numbered D-102: D-101 is the Cloud Run beta's.
+- Answer (REQ-LOG-007; changes D-36's "measured only" for the units of the owner's database, D-26's
+  2,000 g, and the halves of D-36, D-39 and D-28):
+  - **The units.** `Indian_Food_Database_CONSOLIDATED (1).xlsx` (kept outside the repository) gives
+    each row of its sheets Dishes, Branded packaged and Generic unbranded a Default Unit and Allowed
+    Units with their grams ("katori:129.0g | bowl:215.0g | gram:1g"). `npm run food-units:convert`
+    reads them for the foods FitSphere has, matched as D-94 matched them (a dish by its name, a packaged
+    food by its barcode, an IFCT food by its code, a generic food where D-94 put it), into
+    `docs/data/food-units-sheet.csv`: 16,607 foods (IFCT 542, INDB 733, home-style 85, estimated dishes
+    7,042, packaged 8,205), 49,849 units. `foods:import` loads them as the food's servings, after its
+    own; Portion Type is not used. A food the sheet does not list keeps its measures as they were.
+  - **R1, the same unit with other grams:** the sheet's grams replace today's: 1,699 servings, most by
+    under a gram (Boiled rice's Plate 300 g → 301 g), some by much more (INDB's Chicken pulao Plate
+    668 g → 150.5 g). 26,596 units are added to the listed foods; 8,401 of them open on a unit of the
+    sheet, and so do the 8,205 packaged foods.
+  - **R2, a dish under several base foods with other units:** the food keeps the row of its own base
+    food (an estimated dish's `base`), else the one whose default unit weighs its serving, else the one
+    whose base it names, else the first; **each other row is loaded as an estimated dish of its own,
+    named with its base food**, so a search tells them apart: "Idli" (INDB) and "Idli (Urad Dal)". 195
+    added; 148 the file rates D (a weak match) are held, as D-62 and D-94 hold such rows.
+  - **R3, a packaged food's serving:** the label's serving is kept (D-48); the file's is used only for
+    the 1,062 products whose label gives none.
+  - **R5, ml:** a drink the file counts below or above about 1 g per ml (milk at 0.8) is counted at 1.03
+    g per ml for milk and milk drinks, 1.00 for the others, in ml and in its glass (250 ml), cup (200 ml),
+    katori (150 ml) and tablespoon (15 ml): 106 fixed. 33 rows the file calls liquid that are not
+    drinks ("Milk Sooji Fudge") are not changed. Both are listed for the owner in
+    `docs/data/food-units-ml-fixes.csv`.
+  - **The page (the redesign's 3.6b "units from your food database", locked):** a food opens on its
+    Default Unit, quantity 1 (Grams 100 when it is gram); before it, as before, the amount the food is
+    in the meal with (D-64), was last logged in (D-60), or was searched with (D-96); a food the sheet
+    does not list opens as before. The Measure list holds the food's measures smallest first, then
+    Grams, ml for a drink (typed whole, as grams are), then oz (D-76); a packaged food's units beside
+    its label's Serving.
+  - **Quantity is a box to type in, with the list beside it:** the number typed (a keypad with a
+    decimal point), the arrow opening the list of halves from 0.5 to 10 as before, with a number typed
+    shown in the list too. **R4: more than 0, at most two decimals, no upper limit but the server's:
+    one food in a meal up to 10,000 g** (was 2,000 g; grams, ml and a My food's grams or ml too). The
+    message shows 3 seconds after typing stops or when the box is left (D-99): "Enter a quantity more
+    than 0, with at most two decimals."; past 10,000 g, "That is more than 10,000 g of this food, the
+    most one food can have. Enter up to 77.51."; Add is greyed meanwhile. The energy, the four
+    nutrients and "Net wt" follow a valid number as it is typed.
+  - A meal shows the amount as typed: "1.25 × katori (161.3 g)", "250 ml (257.5 g)".
+- MVP defaults (with the owner's answers): an IFCT food may be logged in a unit of the sheet (was oz
+  only); a unit of the same name as the label's Serving is left out of a packaged food; a count's grams
+  are checked as count × grams within 0.01 g, or as before; a dish of the recipe sheet (none approved)
+  and a My food's own unit keep their limits (10 portions; 0.1 to 100, D-39), typed with decimals; an
+  item may hold up to 200,000 kcal and 20,000 g of a nutrient, so no amount the phone allows is
+  refused (before, a My food of 2,000 kcal a piece × 11 was); the list of halves stays 0.5 to 10 (a list
+  of thousands of rows would be slow).
+- Old meals stay valid: every serving and its grams ever loaded is kept (`app.food_portion_history`),
+  and the sync accepts a serving listed now or before, so a meal logged before a unit's grams changed
+  can be saved again, and a saved meal logged again.
+- Migration `0033_food_units.sql` (`app.foods.opens_on`, `app.packaged_foods.opens_on`,
+  `app.packaged_food_portions`, `app.food_portion_history`, a meal's and a saved meal's totals to
+  numeric(10,2)); `GET /v1/foods` sends `opensOn` and a packaged food's `portions`; phone schema
+  version 23 (the food list is downloaded once again). No new build. **On `fitsphere-dev`: migration
+  0033 before the updated API, then `foods:import`; only when the owner says so.**
+- Found in the owner's phone test (2026-11-16): the full food list grew to 6.3 MB and took longer than
+  the phone's 15 seconds through the tunnel, so the phone showed "Offline". `GET /v1/foods` and
+  `GET /v1/exercises` now send their lists gzipped to a client that accepts it (0.7 MB), and the phone
+  waits 60 seconds for those two lists.
+- Risk R-016: the units' grams are the AI tool's estimates in the owner's workbook, not weighed.
+- Doc changes: REQ-LOG-007; `docs/contracts/data-model.md`; `docs/data/food-list-sources.md`;
+  constraints (R-016, MVP defaults); the redesign's 3.6b; CLAUDE.md.
+
+---
+
 ## D-103 Home: every nutrient under Calories, an apple and a dumbbell under the strip's days, no workouts card
 - Status: **Accepted** (owner, in chat, 2026-11-13: with a screenshot of Home, "Here on the home
   dashboard I want the all for nutriton value like protein carbs, fat, Fibet same as Nutriton tab Under

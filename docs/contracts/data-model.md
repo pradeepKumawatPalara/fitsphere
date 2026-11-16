@@ -2,7 +2,10 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (gym members, D-90: `users.is_gym_member`, migration 0029, for the
+- Last updated: 2026-11-16 (a food's page with the units of the owner's food database, D-102: migration 0033,
+  `foods.opens_on`, `packaged_foods.opens_on`, `packaged_food_portions`, `food_portion_history`, a meal's totals
+  numeric(10,2), one food in a meal up to 10,000 g, counts with two decimals, phone schema version 23).
+  2026-11-12 (gym members, D-90: `users.is_gym_member`, migration 0029, for the
   Coach view built by another team). Earlier the same day (the owner's consolidated food database, D-94: migration 0030,
   `packaged_foods.aliases`, phone schema version 22). Earlier the same day (everyday foods, D-92: "@" words among `app.foods.aliases`). Earlier the same
   day (Search foods ignores accents, D-88: phone schema version 21). 2026-11-11
@@ -360,8 +363,8 @@ The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
 | `meal_type` | `text` | `breakfast`, `lunch`, `snack` or `dinner`; required (REQ-LOG-003). Null once deleted |
 | `tags` | `text[]` | Any of `before_training`, `dessert`, each at most once (Q-031). Empty once deleted |
-| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `usda_fndds`, `indb`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000; portions 0.5–10 in halves; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000; or, D-39, a USDA serving with its label, 0.5–10 in halves with the grams they came to (since D-46 to D-62 also an INDB, brand-label, home-style, estimated-dish or packaged food's serving; since D-76 also `oz`, 28.35 g each, for every listed and packaged food); or your own food's unit, `ml` 1–2,000 whole or another of its units 0.1–100 with one decimal), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that an IFCT food may be in a unit it has on `food_measures` (D-36), a USDA food in a serving it has on `food_portions` with its grams, and your own food in its unit (D-39); and a listed or packaged food in oz, its grams 28.35 × the count within 0.02 g (D-76; an IFCT food has no other serving). A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
-| `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(8,2)` | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
+| `items` | `jsonb` | **Health.** 1 to 30 foods, each with its source (`ifct2017`, `usda_fndds`, `indb`, `dish`, `barcode`, `own`), reference, name, amount (whole grams 1–2,000, 1–10,000 since D-102; portions 0.5–10 in halves, since D-102 more than 0 to 10 with two decimals; or a household unit, `teaspoon`, `tablespoon`, `katori`, `glass` or `piece`, 0.5–10 in halves with the grams they came to, at most 2,000; or, D-39, a USDA serving with its label, 0.5–10 in halves with the grams they came to (since D-46 to D-62 also an INDB, brand-label, home-style, estimated-dish or packaged food's serving; since D-76 also `oz`, 28.35 g each, for every listed and packaged food); or your own food's unit, `ml` 1–2,000 whole or another of its units 0.1–100 with one decimal), and its values for that amount: kcal and protein always, carbs, fat and fibre or null. A dish is in portions and must be on `dishes`; every other food is in grams (D-28), except that an IFCT food may be in a unit it has on `food_measures` (D-36), a USDA food in a serving it has on `food_portions` with its grams, and your own food in its unit (D-39); and a listed or packaged food in oz, its grams 28.35 × the count within 0.02 g (D-76; an IFCT food has no other serving). Since D-102 a household unit's or serving's count is any number more than 0 with at most two decimals (`ml` whole), its grams at most 10,000, its grams checked as the count × the serving's within 0.01 g or, as before, per serving within 0.02 g; an IFCT food may be in a serving on `food_portions`; a serving is accepted when listed now or on `food_portion_history`; a packaged food's also on `packaged_food_portions`. A snapshot: a later change to the food list never changes a past meal. Checked by the API against the shared schema. Null once deleted |
+| `kcal`, `protein_g`, `carbs_g`, `fat_g`, `fibre_g` | `numeric(10,2)` (`numeric(8,2)` before migration 0033, D-102) | **Health.** Totals computed by the API from the items, never sent by the phone: the sum of the known values, or null when no item has that value (MVP default, D-26). Null once deleted |
 | `photo` | `jsonb` | **Health.** The meal's one photo, `{"kind": "photo", "mediaId": …}` (see `media`), or one public image link, `{"kind": "link", "url": "https://…"}` (REQ-LOG-010), or null (MVP default, D-26). A link is https only, with a host name, no user name or password, and at most 2,000 characters; FitSphere never fetches it. Null once deleted |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
 | `deleted_at` | `timestamptz` | Set when the user deletes the meal |
@@ -460,6 +463,7 @@ no personal data, so it has no `user_id` and no `change_seq`; the phone fetches 
 | `hidden` | `boolean` | Left out of `GET /v1/foods` until checked (N001, Q001, S007) |
 | `aliases` | `text[]` | Other spellings to search by; for a `brand_label`, its brand, then its search words (D-55); for a `home` food, its item, then its search words (D-59); for a `dish_estimate`, its base food's names (D-62); and, after them, the everyday words the food is listed first for, each marked with "@" ("@rice", D-92, from the approved rows of `docs/data/everyday-foods-sheet.csv`); then the other names the owner's food database gives it, those it lacks (D-94, `docs/data/food-aliases-sheet.csv`). Never shown; the phone reads them only to search and order |
 | `flag` | `text` | Since migration 0018 (D-52): null, or `scrap` on the brand labels collected from the web and approved on 2026-11-06; since migration 0019 (D-53) also `llm` on those holding an AI tool's estimates. Server only: never in `GET /v1/foods`; nothing reads it yet |
+| `opens_on` | `text` | Since migration 0033 (D-102): null, or the measure the food's page opens on, the owner's food database's Default Unit: one of its servings' labels, or `Grams`. Set by `foods:import` from `docs/data/food-units-sheet.csv`; sent as `opensOn` only when not null |
 | `updated_at` | `timestamptz` | Server time of the last import that changed the row |
 
 ### `dishes` — reference data
@@ -507,6 +511,19 @@ food already has a serving of that name (in any case). No serving may be named "
 refuses the sheet): oz is the weight every listed and packaged food may be logged in, not a row here.
 A serving's name is never changed, since a meal logged with it is checked by that name.
 
+Since D-102 the units of the owner's food database (`docs/data/food-units-sheet.csv`) come after them,
+numbered on: a unit of the same name as a serving the food has (in any case) gives that serving its
+grams instead ("keep the sheet value"); IFCT's foods have rows here too. A drink's unit `ml` holds the
+grams one ml weighs. Every row written is also kept in `food_portion_history`.
+
+### `food_portion_history` — reference data
+Every serving a food has had, with its grams (D-102, migration 0033): `source` (a food source, or
+`barcode` for a packaged food), `code`, `label`, `grams` (more than 0, at most 2,000); primary key the
+four. Rows are added by every `foods:import` (and, by the migration, from `food_portions` and the
+packaged foods' label servings as they were), never removed. The sync accepts a serving listed now or
+here, so a meal logged before a serving's grams changed can be saved again, and a saved meal logged.
+Not personal data; row level security on, no policies; never sent to the phone.
+
 ### `packaged_foods` — reference data
 Packaged foods sold in India, from Open Food Facts' data export (D-48; ADR-0009): loaded from
 `data/foods/off-india-products.csv` by `foods:import`, replaced whole. Migrations 0014 and 0030. Kept apart from
@@ -523,6 +540,15 @@ policies. Sent to the phone with the food list (`GET /v1/foods`, `packaged`).
 | `fibre_g` | `numeric(6,2)` | Null, or 0 to 100, per 100 g |
 | `serving_grams` | `numeric(7,2)` | Null, or more than 0 and at most 2,000: one serving, when the label gives it in grams |
 | `aliases` | `text[]` | Other names to search by, never shown (D-94): from `docs/data/food-aliases-sheet.csv`, the owner's food database's; empty for most. Sent only when not empty |
+| `opens_on` | `text` | Since migration 0033 (D-102): null, or the measure the page opens on (a unit's label, `Serving` for the label's serving, or `Grams`). Sent as `opensOn` only when not null |
+
+### `packaged_food_portions` — reference data
+A packaged food's units from the owner's food database (D-102, migration 0033): `barcode` (references
+`packaged_foods`, deleted with it), `seq` (1 to 99), `label` (1 to 80 characters, unique per barcode),
+`grams` (more than 0, at most 2,000); primary key (`barcode`, `seq`). Written by `foods:import` with
+the packaged foods, in the same transaction; a unit named as the label's `Serving` is left out when the
+label gives one (the owner: "keep the current one"). Sent as the packaged food's `portions` only when
+it has some. Not personal data; row level security on, no policies.
 
 ### `exercises` — reference data
 FitSphere's exercise list (D-50; `docs/data/exercise-list-sources.md`): loaded from
@@ -747,6 +773,10 @@ searches. The setting lasts as long as the connection and is set at each start.
   the list comes) and `packaged_foods.search_aliases` (as a search reads them) and clears
   `food_list_version`, so the next download brings them. The products stay, searched by name and brand
   until then.
+- **Version 23** (units from the owner's food database, D-102) adds `foods.opens_on` and
+  `packaged_foods.opens_on` (null when none) and `packaged_foods.portions` (JSON, `[]` until the list
+  comes), and clears `food_list_version`, so the next download brings them. Until then each food's page
+  opens and lists its measures as before.
 - **Version 9** (the profile, D-38) adds `profile` and clears the sync cursor so the next sync
   pulls the profile the account already has. A profile change is matched in the outbox by its type
   alone, there being one profile.
@@ -780,7 +810,8 @@ searches. The setting lasts as long as the connection and is set at each start.
 | `foods`, `dishes`, `food_measures`, `barcode_products` | Reference data, not personal | Replaced by the next import (`foods`, `dishes`, `food_measures`) |
 | `settings` | While the account exists | With the account |
 | `my_foods` | While the account exists; a deleted one keeps only its ID and when it was deleted | With the account |
-| `food_portions` | Reference data, not personal | Replaced by the next import |
+| `food_portions`, `packaged_food_portions` | Reference data, not personal | Replaced by the next import |
+| `food_portion_history` | Reference data, not personal; kept | Never removed |
 | `profiles` | While the account exists | With the account, its photo's files first (REQ-ACC-009, D-38) |
 | `ai_consents` | While the account exists, every change kept | With the account (REQ-ACC-009; Legal confirms, Q-049) |
 | `media` | While the account exists; a deleted photo's files leave storage after the next sync | With the account: every file of the user's photos is removed from storage first, deleted photos included (REQ-ACC-009) |
