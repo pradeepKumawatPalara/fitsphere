@@ -42,7 +42,7 @@ joins the Apple Developer Program and answers Apple's questions, encryption incl
 **Any past date; a day older than the phone's 90 read online — built on branch `feat/older-days`
 (D-106, 2026-11-16), on top of `fix/week-strip-one-week` (a swipe moves the strip exactly one week,
 D-79 note), in `D:\fitsphere`.** Plan: `docs/plans/older-days.md` (Accepted); canvas boards `OlderDays*`
-approved but not yet on the canvas (it could not be opened from that day's account). The calendar, the
+LOCKED (version 109). The calendar, the
 date strip, Log meal and the measurements sheet go back to 1 January 2000 (`EARLIEST_DAY`); the phone
 still keeps 90 days (ADR-0007 rule 1, unchanged): an older day's week, or the calendar's month, is read
 with `GET /v1/users/{userId}/days` (at most 42 days, self only) by `useOlderDays`

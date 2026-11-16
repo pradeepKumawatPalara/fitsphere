@@ -11,9 +11,9 @@
   REQ-TRN-004)
 - Requirements: REQ-DATE-001 amended
 - Design: the canvas boards `OlderDays` (one screen, eight states) and `OlderDaysStates` (every state,
-  dark and light), "2.2 Calendar and 2.3 Home · older days (D-106)". The canvas
-  (https://claude.ai/artifact/WvdLa9fzyBFrdHcgDf7RTE) could not be opened from the account used on
-  2026-11-16; the boards are added, titled approved, once it can.
+  dark and light), "2.2 Calendar and 2.3 Home · older days · LOCKED (D-106)", added in version 109
+  (the canvas could not be opened from the account first used on 2026-11-16; the owner approved the
+  design described): https://claude.ai/artifact/WvdLa9fzyBFrdHcgDf7RTE
 - Server: one read-only route, no migration. Phone: no schema change, no new build.
 
 ## What the owner asked

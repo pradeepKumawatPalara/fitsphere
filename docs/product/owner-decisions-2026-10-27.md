@@ -3512,8 +3512,8 @@ checksum), and the configuration template was left as it is.*
   user can go only 90 days past form the caleder. I want to remove this validatios. Now User can go back
   past date as much User wants."; of the two ways offered, "Old days load online" over the phone keeping
   all history, and "Any date, no real limit" over back to the account's start; "canva first", then
-  "design is approve" for the design described: the canvas could not be opened from the account used
-  that day, so the boards `OlderDays*` wait to be added to it). Built on branch `feat/older-days`, on
+  "design is approve" for the design described, the canvas not being open to the account first used
+  that day; the boards `OlderDays*` were added to it, LOCKED, in version 109). Built on branch `feat/older-days`, on
   top of the date strip's one-week swipe (D-79 note, 2026-11-16).
 - Answer (REQ-DATE-001; replaces the 90-day limit of D-23's calendar default and of D-34 answer 5's
   "Only the last 90 days are on this phone"):
