@@ -2008,6 +2008,12 @@ checksum), and the configuration template was left as it is.*
   (4.3); `docs/testing/slice-4-manual-testing.md`; `CLAUDE.md`. Migration `0022_exercise_places.sql`
   (`app.exercises.places`), phone schema version 16; no new build. On `fitsphere-dev`: migration 0022
   before the updated API, then `exercises:import`; only when the owner says so.
+- Fixed 2026-11-16 (the owner, on the phone: "when I open the Excercise in the edit mode that time
+  category and subcategory become null even though they are filled while Creatting a New Excercise"):
+  Edit exercise shows Category and Sub-group where the list holds the exercise: its only place, or the
+  first of its places (66 of the library's exercises have more than one, e.g. Deadlift under Barbell ›
+  Back and CrossFit › Weightlifting & Loaded); a name of the user's own shows none. The choice is still
+  not saved with the exercise (answer above). Branch `fix/exercise-edit-category`; phone app only.
 
 ---
 
