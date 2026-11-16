@@ -5,20 +5,22 @@ import { getEntry, PROFILE_KEY, type LocalProfile } from '../local/store';
 import { usePhoto } from '../photos/loadPhoto';
 import { jpegDataUri } from '../photos/bytes';
 import { initialOf } from '../profile';
-import { useSync } from '../sync/SyncProvider';
+import { sameData } from '../sameData';
+import { useDataVersion } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
 import { Text } from './ui';
 
 /** The profile on this phone (REQ-ACC-011), read again after each save and sync; null for none yet. */
 export function useProfile(): LocalProfile | null {
   const local = useLocalDatabase();
-  const { version } = useSync();
+  const version = useDataVersion();
   const [profile, setProfile] = useState<LocalProfile | null>(null);
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     let active = true;
     void getEntry(local.state.db, 'profile', PROFILE_KEY).then((found) => {
-      if (active) setProfile(found);
+      // Unchanged, the profile already shown stays, so the header does not draw again.
+      if (active) setProfile((current) => (sameData(current, found) ? current : found));
     });
     return () => {
       active = false;

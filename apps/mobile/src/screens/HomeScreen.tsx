@@ -49,7 +49,7 @@ import {
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
 import { targetValues, weekTargetDay } from '../targets';
 import { useWeekActivity } from '../weekActivity';
@@ -66,6 +66,7 @@ export function HomeScreen() {
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   // Weight in the body-weight unit setting (Q-024, REQ-ACC-003).
   const bodyWeightUnit = useBodyWeightUnit();
   const texts = useMemo(() => dayValues(bodyWeightUnit), [bodyWeightUnit]);
@@ -138,7 +139,7 @@ export function HomeScreen() {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
-  }, [local.state, selected, today, stripStart, sync.version, measurementsOpen, texts]);
+  }, [local.state, selected, today, stripStart, version, measurementsOpen, texts]);
 
   // Today's card says when measurements were last logged, and whether they are due (D-85). All the
   // account's days are on the phone when it was created within the 90 days.

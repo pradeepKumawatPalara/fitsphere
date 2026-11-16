@@ -23,7 +23,7 @@ import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { targetsOn, type LocalTarget } from '../local/store';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { sinceText, TARGET_GROUPS, targetTexts } from '../targets';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -52,6 +52,7 @@ export function TargetsScreen({ now = () => new Date() }: { now?: () => Date }) 
   const { colors } = useTheme();
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const texts = targetTexts(useBodyWeightUnit());
   const today = istToday(now());
@@ -67,7 +68,7 @@ export function TargetsScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [local.state, sync.version, today]);
+  }, [local.state, version, today]);
 
   /** Saves a new value from today on; the value already holding today changes nothing (D-77). */
   async function save(kind: TargetKind, value: number) {

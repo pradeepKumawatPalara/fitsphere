@@ -39,7 +39,7 @@ import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { useWeekActivity } from '../weekActivity';
@@ -117,6 +117,7 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
   // The strip's week: an apple and a dumbbell under each day, as on Home (D-103; was a mark on workout days, D-65).
@@ -165,7 +166,7 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     return () => {
       active = false;
     };
-  }, [local.state, phoneFirstDay, today, selected, sync.version]);
+  }, [local.state, phoneFirstDay, today, selected, version]);
 
   // Workouts with no exercise are not listed, marked or counted (D-65).
   const listed = listedWorkouts(recent);

@@ -26,7 +26,7 @@ import {
 } from '../local/store';
 import { formatAmount, formatKcal, OWN_UNIT_NAMES, PORTION_UNIT_LABELS } from '../meals';
 import { readSearch, type ReadSearch, type SearchAmount } from '../searchAmount';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { FoodDetail, type FoodResult } from './FoodDetail';
@@ -532,7 +532,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
   const styles = useStyles();
   const { colors } = useTheme();
   const local = useLocalDatabase();
-  const { version } = useSync();
+  const version = useDataVersion();
   const [query, setQuery] = useState('');
   // D-72: the text searched for, once typing pauses; and the results, with the text they are for.
   const [searched, setSearched] = useState('');

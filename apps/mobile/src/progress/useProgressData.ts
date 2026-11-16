@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { dailyNutrition, getMeta, listEntries, targetsOn, type LocalMeasurements } from '../local/store';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 import { accountStartDay } from './account';
 import type { DayNutrition, WeighInPoint } from './calculations';
 
@@ -31,7 +31,7 @@ export type ProgressData = {
 export function useProgressData(today: IstDay, refresh: unknown): ProgressData | null {
   const { deps } = useAuth();
   const local = useLocalDatabase();
-  const { version } = useSync();
+  const version = useDataVersion();
   const [data, setData] = useState<ProgressData | null>(null);
   const [readStart, setReadStart] = useState<IstDay | null>(null);
 

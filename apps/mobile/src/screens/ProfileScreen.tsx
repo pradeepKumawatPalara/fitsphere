@@ -27,7 +27,7 @@ import {
   type ProfileProblems,
 } from '../profile';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
@@ -49,6 +49,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
   const { email } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const bodyWeightUnit = useBodyWeightUnit();
   const today = istToday(now());
@@ -84,7 +85,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [db, sync.version]);
+  }, [db, version]);
 
   useEffect(() => {
     if (!db) return;
@@ -95,7 +96,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [db, today, sync.version]);
+  }, [db, today, version]);
 
   function change(fields: Partial<ProfileForm>) {
     edited.current = true;

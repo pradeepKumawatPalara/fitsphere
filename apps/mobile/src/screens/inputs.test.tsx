@@ -7,7 +7,7 @@ import { AuthProvider } from '../auth/AuthProvider';
 import { FormScreen } from '../components/FormScreen';
 import { Text } from '../components/ui';
 import { replaceFoods } from '../local/store';
-import { useSync } from '../sync/SyncProvider';
+import { useSyncStatus } from '../sync/SyncProvider';
 import { renderInApp } from '../testing/appHarness';
 import { deps, fakeApi, fakeAuthClient, fakeSession } from '../testing/fakes';
 import { ChangePasswordScreen } from './ChangePasswordScreen';
@@ -63,7 +63,7 @@ const FOODS: Food[] = [
 
 /** The sync's state, so a test can let it settle before going on or ending. */
 function SyncState() {
-  return <Text>{`Sync: ${useSync().status}`}</Text>;
+  return <Text>{`Sync: ${useSyncStatus()}`}</Text>;
 }
 
 async function synced() {

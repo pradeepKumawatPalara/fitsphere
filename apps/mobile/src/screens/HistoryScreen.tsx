@@ -17,7 +17,7 @@ import { Banner, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listWeighIns } from '../local/store';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 
 const CHUNK_DAYS = 90;
 
@@ -26,7 +26,7 @@ const CHUNK_DAYS = 90;
 export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) {
   const { deps } = useAuth();
   const local = useLocalDatabase();
-  const { version } = useSync();
+  const version = useDataVersion();
   const today = istToday(now());
   const windowStart = syncWindowStart(today);
   const [recent, setRecent] = useState<HistoryRow[]>([]);

@@ -57,7 +57,7 @@ import { findListedExercise, listEntries } from '../local/store';
 import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
 import { chartGeometry } from '../progress/chartGeometry';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { GROUP_LABELS } from '../workouts';
@@ -105,7 +105,7 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
   const { colors } = useTheme();
   const pill = useChoiceStyles();
   const local = useLocalDatabase();
-  const sync = useSync();
+  const version = useDataVersion();
   const { deps } = useAuth();
   const unit = useLiftingWeightUnit();
   const today = istToday(now());
@@ -133,7 +133,7 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
     return () => {
       active = false;
     };
-  }, [local.state, name, firstDay, today, sync.version]);
+  }, [local.state, name, firstDay, today, version]);
 
   const loaded = listed !== undefined && phone !== null;
   const names = listed ? [listed.name, ...listed.aliases] : [name];

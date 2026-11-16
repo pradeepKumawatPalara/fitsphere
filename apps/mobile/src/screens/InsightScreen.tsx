@@ -25,7 +25,7 @@ import {
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listMealsOfDay, targetsOn, type LocalMeal } from '../local/store';
 import { formatAmount, formatKcal, MEAL_TYPE_LABELS } from '../meals';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
@@ -46,7 +46,7 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
   const { colors } = useTheme();
   const pill = useChoiceStyles();
   const local = useLocalDatabase();
-  const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const params = useLocalSearchParams<{ day?: string; scope?: string }>();
   const today = istToday(now());
@@ -72,7 +72,7 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [local.state, day, sync.version]);
+  }, [local.state, day, version]);
 
   function choose(next: InsightScope) {
     setScope(next);

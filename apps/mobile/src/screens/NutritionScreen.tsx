@@ -25,7 +25,7 @@ import { sameFoods } from '../mealItems';
 import { describeItems, formatAmount, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useShownOlderDays } from '../navigation/useShownOlderDays';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { useWeekActivity } from '../weekActivity';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -68,6 +68,7 @@ export function NutritionScreen() {
   const pill = useChoiceStyles();
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string }>();
   const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
@@ -123,7 +124,7 @@ export function NutritionScreen() {
     return () => {
       active = false;
     };
-  }, [local.state, selected, sync.version]);
+  }, [local.state, selected, version]);
 
   /** Saves a logged meal with its foods changed (D-97), keeping its date, meal, tags and photo. */
   function saveFoods(meal: LocalMeal, items: MealItem[]) {

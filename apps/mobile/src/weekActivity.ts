@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { CalendarActivity } from './components/CalendarSheet';
 import { useLocalDatabase } from './local/LocalDatabaseProvider';
 import { listEntries, mealCounts } from './local/store';
-import { useSync } from './sync/SyncProvider';
+import { useDataVersion } from './sync/SyncProvider';
 import { workoutsPerDay } from './workouts';
 
 /**
@@ -16,7 +16,7 @@ export type WeekActivity = CalendarActivity & { counted: number };
 /** The week from Monday `start` on the phone, read again after each sync; null while it loads. */
 export function useWeekActivity(start: IstDay): WeekActivity | null {
   const local = useLocalDatabase();
-  const sync = useSync();
+  const version = useDataVersion();
   const [read, setRead] = useState<{ start: IstDay; activity: WeekActivity } | null>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export function useWeekActivity(start: IstDay): WeekActivity | null {
     return () => {
       active = false;
     };
-  }, [local.state, start, sync.version]);
+  }, [local.state, start, version]);
 
   // Another week's, while this one loads, is not this week's.
   return read && read.start === start ? read.activity : null;
