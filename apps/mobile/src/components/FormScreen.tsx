@@ -1,6 +1,6 @@
 import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { useContext, useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Keyboard, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Keyboard, ScrollView, View, type KeyboardEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { themedStyles } from '../theme';
 import { StripeCorner } from './StripeCorner';
@@ -40,15 +40,21 @@ export function FormScreen({
   const [screenBottom, setScreenBottom] = useState<number | null>(null);
 
   useEffect(() => {
-    const shown = Keyboard.addListener('keyboardDidShow', (event) => {
+    const onShown = (event: KeyboardEvent) => {
       setKeyboardTop(event.endCoordinates.screenY);
       measureBottom(frame.current, setScreenBottom);
-    });
-    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardTop(null));
-    return () => {
-      shown.remove();
-      hidden.remove();
     };
+    const onHidden = () => setKeyboardTop(null);
+    // Android sends only the Did events, once the keyboard is open or closed. iOS sends the Will
+    // events as the keyboard starts to move, with where it will end, so the footer rides with it
+    // rather than jumping after it (D-104); the Did events that follow change nothing.
+    const listeners = [
+      Keyboard.addListener('keyboardWillShow', onShown),
+      Keyboard.addListener('keyboardDidShow', onShown),
+      Keyboard.addListener('keyboardWillHide', onHidden),
+      Keyboard.addListener('keyboardDidHide', onHidden),
+    ];
+    return () => listeners.forEach((listener) => listener.remove());
   }, []);
 
   const lift = keyboardTop === null || screenBottom === null ? 0 : Math.max(screenBottom - keyboardTop - bottom, 0);

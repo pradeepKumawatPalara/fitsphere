@@ -2,7 +2,7 @@ import type { IstDay } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import { Pressable } from 'react-native';
-import { themedStyles, useTheme } from '../theme';
+import { FLOATING_SHADOW, themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Text } from './ui';
 
@@ -39,7 +39,7 @@ const useStyles = themedStyles((c) => ({
     paddingRight: 18,
     borderRadius: 8,
     backgroundColor: c.primary,
-    elevation: 6,
+    ...FLOATING_SHADOW,
   },
   pressed: { backgroundColor: c.primaryPressed },
   log: { ...TYPE.button, color: c.onPrimary },

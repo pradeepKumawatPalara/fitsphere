@@ -20,9 +20,24 @@ API listens on `HOST` (`127.0.0.1` when empty, so the PC and the tunnel are unch
 `0.0.0.0`) and `PORT` (`src/listenAddress.ts`), stops cleanly on SIGTERM, and survives a connection
 that drops while held (`src/db/pool.ts`). `Dockerfile`, `.dockerignore`, `.gcloudignore` at the root;
 `npm run check:pooler` checks the transaction pooler, read only; runbook, "The API on Cloud Run". No
-migration, no phone change. **The database steps, the secrets, the deploy and the APK's EAS profile
-`preview` (after the deploy, with the service's address) wait for the owner's word; tell the owner
-before the build (D-19).**
+migration, no phone change. Merged (pull request #104); deployed by the owner on 2026-11-13 at
+`https://fitsphere-api-163496400043.asia-southeast1.run.app`. The test APK's EAS profile `preview`
+(`apps/mobile/eas.json`, branch `feat/eas-preview`): an APK with that address and the Supabase
+project's address and publishable key; same app ID as the development build. **Tell the owner
+before every build (D-19).**
+
+**The iOS app, iPhone only — built on branch `feat/ios-app` (D-104, 2026-11-16), on top of
+`feat/eas-preview`, in its own folder `D:\fitsphere-ios` (removed once merged).** Plan:
+`docs/plans/ios-app.md` (Accepted): the review's findings, the iPhone checks IOS-01 to IOS-15, the
+steps to the App Store and their prerequisites. D-10's wait for an iPhone ends: the owner has one,
+and the iOS release goes with Android's. `app.json`: Appearance's System follows the phone on an
+iPhone (`userInterfaceStyle` `automatic`), no microphone or Face ID permission text (unused),
+`supportsTablet` false. `eas.json`: `ios-simulator` (the compile check, B-24, no Apple account) and
+`production` (TestFlight and the store, `preview`'s addresses until the move to Mumbai). On an iPhone
+the sign-in screens' footer moves with the keyboard and the floating controls have iOS's shadow
+(`FLOATING_SHADOW` in `src/theme.tsx`). Android unchanged: no new Android build. No server change,
+no migration, no phone schema change. **Every iOS build waits for the owner's word (D-19); the owner
+joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
 **Home: every nutrient under Calories, the strip's apple and dumbbell, no workouts card — built on
 branch `feat/home-nutrients` (D-103, 2026-11-13), in its own folder `D:\fitsphere-home` (removed once
@@ -442,7 +457,8 @@ before the release (accepted risk R-006).
 **Builds and devices (D-19).** No Android Studio, emulator or local Android builds. Development
 builds come from EAS Build (`development` profile) and run on the owner's phone. Rebuild only when
 native code changes, and **tell the owner before every cloud build** (free plan: 15 Android
-builds a month). Live code: `npx expo start --dev-client --tunnel`. Checks that need a cable are
+builds a month; iOS builds are counted apart, D-104). iOS builds come from EAS too, with no Mac
+(runbook, "The iOS app"). Live code: `npx expo start --dev-client --tunnel`. Checks that need a cable are
 marked "USB + adb". The phone reaches the API on the PC through a Cloudflare Quick Tunnel, only
 while testing, with test data only, closed after use; **never commit the tunnel's address**
 (D-19 answer 6, runbook step 8).

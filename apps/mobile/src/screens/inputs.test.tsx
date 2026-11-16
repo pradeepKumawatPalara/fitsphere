@@ -234,8 +234,9 @@ const NAVIGATION_BAR = 48;
 type Measurable = { measureInWindow(done: (x: number, y: number, width: number, height: number) => void): void };
 type Element = ReturnType<typeof screen.getByText>;
 
-async function keyboard(event: 'keyboardDidShow' | 'keyboardDidHide') {
-  const screenY = event === 'keyboardDidShow' ? KEYBOARD_TOP : SCREEN_BOTTOM;
+// Android sends only the Did events; iOS sends the Will events first, as the keyboard starts to move.
+async function keyboard(event: 'keyboardDidShow' | 'keyboardDidHide' | 'keyboardWillShow' | 'keyboardWillHide') {
+  const screenY = event === 'keyboardDidShow' || event === 'keyboardWillShow' ? KEYBOARD_TOP : SCREEN_BOTTOM;
   await act(async () => {
     DeviceEventEmitter.emit(event, {
       duration: 0,
@@ -339,6 +340,20 @@ describe('REQ-ACC-001 a form screen keeps its main button above the keyboard', (
     expect(footerBottom(button)).toBe(KEYBOARD_TOP - 16);
 
     await keyboard('keyboardDidHide');
+    expect(footerBottom(button)).toBe(SCREEN_BOTTOM - 16 - NAVIGATION_BAR);
+  });
+
+  it.each(FORMS)('%s: on an iPhone the footer moves as the keyboard starts to, not after (D-104)', async (_, Screen, title) => {
+    await renderForm(Screen);
+    await layOut();
+    const button = await screen.findByRole('button', { name: title });
+
+    await keyboard('keyboardWillShow');
+    expect(footerBottom(button)).toBe(KEYBOARD_TOP - 16);
+    await keyboard('keyboardDidShow');
+    expect(footerBottom(button)).toBe(KEYBOARD_TOP - 16);
+
+    await keyboard('keyboardWillHide');
     expect(footerBottom(button)).toBe(SCREEN_BOTTOM - 16 - NAVIGATION_BAR);
   });
 });

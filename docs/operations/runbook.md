@@ -2,8 +2,9 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-13 (D-101: the API on Cloud Run for the beta, `HOST`, the image, "The API
-  on Cloud Run"). 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
+- Last updated: 2026-11-16 (D-104: "The iOS app", the EAS profiles `ios-simulator` and
+  `production`). 2026-11-13 (D-101: the first deploy, the test APK's EAS profile `preview`). Earlier
+  the same day (D-101: the API on Cloud Run for the beta, `HOST`, the image, "The API on Cloud Run"). 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
   same day (the dashboard paths still to confirm, with what Supabase's docs say).
   2026-10-29 (Meal logging slice: `OFF_CONTACT`; meal photo storage)
 
@@ -32,8 +33,10 @@ Commands that need the monorepo (install, run, test) are added when the Skeleton
 | `cloudflared` | Latest release, from Cloudflare's GitHub releases (`cloudflared-windows-amd64.msi`). It does not update itself on Windows | The development tunnel to the API (D-19 answer 6, step 8). No Cloudflare account |
 | Android platform-tools (`adb`) only | Any recent version | The "USB + adb" checks (D-19). No Android Studio, JDK, Android SDK or emulator |
 | An Android phone | The owner's OnePlus Nord CE4, with a USB cable that carries data | Every device check (D-19). The lowest-end phone available for ADR-0001 step 6 |
+| An iPhone (D-104) | The owner's, on iOS 15.1 or later, with the TestFlight app | The iOS checks IOS-01 to IOS-15 (`docs/plans/ios-app.md`) |
+| Apple Developer Program (D-104) | US$99 a year (C-008; confirm on Apple's site), an Apple ID with two-factor sign-in | TestFlight and the App Store ("The iOS app") |
 | Supabase account | Free plan, project in South Asia (Mumbai) | Database and sign-in (ADR-0002, ADR-0004) |
-| Expo account | Free plan: 15 Android builds a month | Android development builds and the development server's tunnel (D-19). Post-MVP (D-20): the EAS iOS compile check (ADR-0001 step 5) and push credentials (ADR-0001 step 7) |
+| Expo account | Free plan: 15 Android builds a month, iOS builds counted apart | Android development builds and the development server's tunnel (D-19); iOS builds, the compile check included (D-104, "The iOS app"). Post-MVP (D-20): push credentials (ADR-0001 step 7) |
 | Firebase project | Free | **Post-MVP (D-20, backlog B-23)**, not needed for the Skeleton: FCM credentials for push on Android (ADR-0001 step 7, D-13 answer 9, ADR-0004 rule 6) |
 | PostgreSQL 17 on the PC | Installed natively for Windows, not in Docker (owner's choice, D-18 answer 14) | Integration, authorization and database tests; Supabase's current default is PostgreSQL 17 |
 | A password manager | Any | Where secret values are kept (see "Secrets on the PC") |
@@ -427,7 +430,7 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `OFF_CONTACT` | API | A contact email address for the owner, sent to Open Food Facts in the User-Agent (`FitSphere/1.0 (<address>)`), as Open Food Facts asks. Without it, barcode lookups answer "not available right now" and nothing is sent | No, but kept in `.env` and never committed |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
-| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it. Never committed | No (built into the app's code served by the development server) |
+| `EXPO_PUBLIC_API_URL` | App | Address of the API. During development, the tunnel's address while a tunnel runs, and empty otherwise (D-19 answer 6, step 8). `npm run dev:phone` writes and empties it; the tunnel's address is never committed. For the test APK, the Cloud Run service's address, in `apps/mobile/eas.json`'s `preview` profile (D-101) | No (built into the app's code) |
 | `TEST_DATABASE_URL` | Tests | Local or CI PostgreSQL for integration tests; synthetic data only | No — a local test database, never the Supabase project |
 
 Files with credentials, never committed. Both are for push, which is post-MVP (D-20, backlog
@@ -458,8 +461,12 @@ package files, `apps/api` and `packages/shared` in, never an `.env` file or a te
 passed through PgBouncer 1.26 in transaction mode with prepared statements off, standing in for
 Supabase's transaction pooler.
 
-**First deploy, not yet run** (the owner's handoff, D-101). Mark each step verified, with the date,
-the first time it works.
+**First deploy: done by the owner on 2026-11-13** (D-101), service address
+`https://fitsphere-api-163496400043.asia-southeast1.run.app`. Checked from the PC the same day:
+`GET /v1/health` answered 200 `{"status":"ok"}`; `POST /v1/sync` and `GET /v1/foods` with no
+sign-in token answered 401; an unknown path 404. Not recorded yet: which pooler `database-url`
+holds, the log check (step 7) and step 8. Before that deploy, on the owner's word: steps 2 (migrate:
+nothing to apply; both imports run from `main`). The steps:
 1. Install the Google Cloud CLI, then `gcloud auth login` and `gcloud config set project fitsphere-api`.
 2. The database, only at the owner's word, from the PC through the session pooler:
    `npm run migrate -w @fitsphere/api`, then `npm run foods:import -w @fitsphere/api` and
@@ -493,10 +500,37 @@ the first time it works.
 `gcloud run services update-traffic fitsphere-api --region asia-southeast1 --to-revisions <revision>=100`.
 It does not undo a migration: an older API must still work with the database as it is.
 
-**Android test build** (after the first deploy; tell the owner first, D-19): an EAS profile
-`preview` in `apps/mobile/eas.json` (an APK, internal distribution) with the service's address as
-`EXPO_PUBLIC_API_URL`, then `eas build -p android --profile preview`. The owner shares the APK
-through Firebase App Distribution.
+**Android test build** (D-101; tell the owner before every build, D-19): the EAS profile `preview`
+in `apps/mobile/eas.json` builds an APK for internal distribution with the service's address as
+`EXPO_PUBLIC_API_URL`, and the Supabase project's address and publishable key (both built into the
+app anyway). From `apps/mobile`: `npx eas-cli@26 build --platform android --profile preview`, then
+download the APK from the build's page; the owner shares it through Firebase App Distribution.
+- Its app ID is the development build's (`com.fitsphere.app`), so on a phone that has the
+  development build, installing the APK replaces it, and the other way round. If Android refuses
+  to install one over the other, uninstall the other first: anything logged on that phone and not
+  yet synced is then lost (synced data comes back after signing in).
+- EAS also loads its `preview` environment for this profile, which holds the phone-only test
+  build's `EXPO_PUBLIC_UAT_PASSWORDS`; nothing on `main` reads it, so it is not built into the APK.
+
+### The iOS app (D-104)
+iPhone only. EAS builds and signs in the cloud, so no Mac is needed. **Tell the owner before every
+build** (D-19): the free plan counts iOS builds apart from Android's. The steps to the App Store and
+their prerequisites are in `docs/plans/ios-app.md`. From `apps/mobile`:
+- **Compile check** (B-24, no Apple account): `npx eas-cli@26 build --platform ios --profile ios-simulator`.
+  It makes a build for Apple's simulator, which needs a Mac to run, so it only shows that the app
+  compiles.
+- **TestFlight and the App Store** (needs the Apple Developer Program and the app's record in App
+  Store Connect, bundle ID `com.fitsphere.app`): `npx eas-cli@26 build --platform ios --profile production`,
+  then `npx eas-cli@26 submit --platform ios --latest`. The first build asks for the owner's Apple
+  sign-in and makes the signing certificate and provisioning profile, which EAS keeps. After Apple
+  processes the upload, the owner adds testers in TestFlight and installs the TestFlight app on the
+  iPhone. `production` uses `preview`'s addresses (the beta) until the move to Mumbai; EAS counts the
+  build numbers (`autoIncrement`).
+- **Live code on the iPhone** (optional, as on Android): register the iPhone with
+  `npx eas-cli@26 device:create`, turn on Developer Mode on the iPhone (Settings › Privacy &
+  Security), build the `development` profile for iOS, then `npm run dev:phone` as for Android.
+- Apple's encryption question (export compliance) is asked at each upload; the owner answers it
+  (D-104).
 
 ## Monitoring
 *Not yet written.* The owner-review triggers for moving to Supabase Pro or adding backups

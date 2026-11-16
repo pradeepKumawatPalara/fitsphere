@@ -141,6 +141,10 @@ The pre-acceptance spike was skipped (D-12). Run these checks during the first s
 *D-20 (2026-10-28):* push and the iOS release are post-MVP, so steps 7 and 5 no longer run in the
 first slice; they are backlog items B-23 and B-24. The decision is unchanged.
 
+*D-104 (2026-11-16):* the owner has an iPhone and starts the iOS app now (revisit condition "An
+iPhone becomes available"): step 5 runs with the EAS profile `ios-simulator`, at the owner's word,
+and the iPhone is tested through TestFlight (`docs/plans/ios-app.md`). The decision is unchanged.
+
 Record each result, with its date, under "Validation results". A failed check that optimisation
 does not fix triggers the revisit conditions; changing the decision needs a new ADR that
 supersedes this one.

@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider, type Theme } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { StyleSheet, useColorScheme } from 'react-native';
+import { Platform, StyleSheet, useColorScheme, type ViewStyle } from 'react-native';
 import { useThemePreference } from './settings/SettingsProvider';
 
 // The app's light and dark colours (REQ-ACC-001; MVP defaults, D-31): the design system's tokens
@@ -129,6 +129,16 @@ export const DARK_COLORS: ThemeColors = {
   onScrim: '#F1EAE5',
   stripe: 'rgba(201,154,115,0.08)',
 };
+
+/**
+ * The shadow under a control floating over the page (the Log button, the Workout in progress pill):
+ * Android's elevation 6. iOS has no elevation, so there the same depth is drawn with iOS's own
+ * shadow, in its default black (D-104).
+ */
+export const FLOATING_SHADOW: ViewStyle = Platform.select<ViewStyle>({
+  ios: { shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.27, shadowRadius: 4.65 },
+  default: { elevation: 6 },
+});
 
 export type Scheme = 'light' | 'dark';
 type ThemeValue = { scheme: Scheme; colors: ThemeColors };
