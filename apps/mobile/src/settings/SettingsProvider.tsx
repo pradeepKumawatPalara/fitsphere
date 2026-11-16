@@ -11,7 +11,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
 import { listSettings, type LocalSetting } from '../local/store';
-import { useSync, type EntryInput } from '../sync/SyncProvider';
+import { sameData } from '../sameData';
+import { type EntryInput, useDataVersion, useSync } from '../sync/SyncProvider';
 
 // The user's settings (REQ-ACC-001…003; MVP default, D-31): kept on the phone and synced like
 // targets, so a change applies at once, offline too, and follows the account to another phone.
@@ -32,7 +33,8 @@ const SettingsContext = createContext<SettingsValue>({
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { state } = useLocalDatabase();
   const db = state.status === 'ready' ? state.db : null;
-  const { version, save } = useSync();
+  const { save } = useSync();
+  const version = useDataVersion();
   // The settings read from this database; another user's, or none, never apply.
   const [loaded, setLoaded] = useState<{ db: SqlDb; settings: Settings } | null>(null);
   const settings = db && loaded?.db === db ? loaded.settings : DEFAULT_SETTINGS;
@@ -42,7 +44,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (!db) return;
     let active = true;
     void listSettings(db).then((rows) => {
-      if (active) setLoaded({ db, settings: toSettings(rows) });
+      if (!active) return;
+      const read = toSettings(rows);
+      // Unchanged, the settings already shown stay, so nothing that reads them draws again.
+      setLoaded((current) => (current?.db === db && sameData(current.settings, read) ? current : { db, settings: read }));
     });
     return () => {
       active = false;

@@ -379,6 +379,17 @@ back. Stop the API with Ctrl+C in its terminal.
    route to the API does not rely on this.
 8. SQLite encryption (SQLCipher) needs a development build, not Expo Go, and fails silently when
    missing; the app checks at start that it is active (data model, "On the phone").
+9. **Speed** (2026-11-16): the development build is much slower than a release build. Its
+   JavaScript runs in development mode (React's checks, code not minified or precompiled, a debug
+   build) and loads through Expo's tunnel; the API answers through Cloudflare's tunnel and the PC.
+   A page opening late there is not by itself a bug. Judge speed on the test APK (`preview`
+   profile; same app ID, so it replaces the development build), or start the development server
+   with production JavaScript: add `--no-dev --minify` to the `start` script in
+   `apps/mobile/package.json` for the test, then take them out. The dev menu's performance
+   monitor shows a busy JavaScript thread as a low JS count while UI stays near 60. Since the same
+   day, a screen out of view (a tab left, a screen under a page pushed over it) reads nothing from
+   the phone after a save or sync, and reads once when it comes back into view
+   (`apps/mobile/src/navigation/inViewRoute.tsx`, `useDataVersion`).
 
 ### References (local setup)
 Checked 2026-10-27:

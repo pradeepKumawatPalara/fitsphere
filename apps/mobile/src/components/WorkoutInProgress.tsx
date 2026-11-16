@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View, type GestureResponderEvent, type ViewStyle } from 'react-native';
 import { useNow } from '../clock';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import { useScreenInView } from '../navigation/screenInView';
 import { getMeta, listEntries, setMeta } from '../local/store';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 import { FLOATING_SHADOW, themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { formatDuration, listedWorkouts, spokenDuration, timerSeconds, timerState } from '../workouts';
@@ -52,7 +53,7 @@ export function runningWorkout(workouts: readonly Candidate[], today: IstDay): R
 /** The running or paused workout on this phone, read again after every change. */
 function useRunningWorkout(now: () => Date): RunningWorkout | null {
   const local = useLocalDatabase();
-  const sync = useSync();
+  const version = useDataVersion();
   const [found, setFound] = useState<RunningWorkout | null>(null);
   const today = istToday(now());
   useEffect(() => {
@@ -64,7 +65,7 @@ function useRunningWorkout(now: () => Date): RunningWorkout | null {
     return () => {
       active = false;
     };
-  }, [local.state, sync.version, today]);
+  }, [local.state, version, today]);
   return found;
 }
 
@@ -173,7 +174,9 @@ export function WorkoutInProgress({
   const { colors } = useTheme();
   const workout = useRunningWorkout(now);
   const running = timerState(workout?.timer ?? null) === 'running';
-  const clock = useNow(now, running);
+  // Out of view (under a page pushed over it), it does not count each second.
+  const inView = useScreenInView();
+  const clock = useNow(now, running && inView);
   const [corner, moveTo] = usePillCorner();
   const [dragging, setDragging] = useState(false);
   // The drag's offset, made once (state: React reads no ref while drawing).

@@ -6,6 +6,7 @@ import { HeaderActions, HeaderTitle } from '../../components/AppHeader';
 import { StripeCorner } from '../../components/StripeCorner';
 import { TabBar } from '../../components/TabBar';
 import { WorkoutInProgress } from '../../components/WorkoutInProgress';
+import { InViewWhenFocused } from '../../navigation/inViewRoute';
 import { SelectedDayProvider } from '../../navigation/SelectedDayProvider';
 import { useTheme } from '../../theme';
 
@@ -32,8 +33,17 @@ export default function TabsLayout() {
         <Tabs
           tabBar={(props) => <TabBar {...props} />}
           screenOptions={{
-            headerTitle: () => <HeaderTitle />,
-            headerRight: () => <HeaderActions />,
+            // Each tab has its own header; only the shown tab's reads the phone's data (REQ-NFR-003).
+            headerTitle: () => (
+              <InViewWhenFocused>
+                <HeaderTitle />
+              </InViewWhenFocused>
+            ),
+            headerRight: () => (
+              <InViewWhenFocused>
+                <HeaderActions />
+              </InViewWhenFocused>
+            ),
             // A flat edge, as the pushed screens' header.
             headerShadowVisible: false,
             headerStyle: { height },
@@ -49,7 +59,10 @@ export default function TabsLayout() {
           <Tabs.Screen name="training" options={{ title: 'Training' }} />
           <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
         </Tabs>
-        <WorkoutInProgress top={height + 8} bottom={TAB_BAR + (insets?.bottom ?? 0) + 12} onOpen={(id) => router.push(`/workout/${id}`)} />
+        {/* Under a page pushed over the tabs, the pill is out of view: it reads and counts nothing. */}
+        <InViewWhenFocused>
+          <WorkoutInProgress top={height + 8} bottom={TAB_BAR + (insets?.bottom ?? 0) + 12} onOpen={(id) => router.push(`/workout/${id}`)} />
+        </InViewWhenFocused>
       </View>
     </SelectedDayProvider>
   );

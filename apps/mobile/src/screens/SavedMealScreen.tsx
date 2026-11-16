@@ -12,7 +12,7 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listSavedMeals, type LocalSavedMeal } from '../local/store';
 import { sameFoods } from '../mealItems';
 import { formatGrams, formatKcal } from '../meals';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
@@ -31,6 +31,7 @@ export function SavedMealScreen({ now = () => new Date() }: { now?: () => Date }
   const insets = useContext(SafeAreaInsetsContext);
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
   const today = istToday(now());
@@ -75,7 +76,7 @@ export function SavedMealScreen({ now = () => new Date() }: { now?: () => Date }
     return () => {
       active = false;
     };
-  }, [local.state, sync.version]);
+  }, [local.state, version]);
 
   async function save() {
     if (name === '' || items.length === 0) return;

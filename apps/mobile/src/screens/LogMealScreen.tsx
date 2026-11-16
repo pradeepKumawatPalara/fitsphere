@@ -43,7 +43,7 @@ import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listMealsOfDay, listSavedMeals, mealCounts, type LocalMeal, type LocalSavedMeal } from '../local/store';
 import { describeItems, formatGrams, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
-import { useOlderDays, useSync } from '../sync/SyncProvider';
+import { useDataVersion, useOlderDays, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
@@ -74,6 +74,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const insets = useContext(SafeAreaInsetsContext);
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
   const today = istToday(now());
@@ -197,7 +198,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [local.state, firstDay, today, sync.version]);
+  }, [local.state, firstDay, today, version]);
 
   const meals = dayMeals ?? [];
 

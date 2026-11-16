@@ -9,7 +9,7 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, mealCounts } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { greetingName } from '../profile';
-import { useOlderDays, useSync } from '../sync/SyncProvider';
+import { useDataVersion, useOlderDays } from '../sync/SyncProvider';
 import { monthRange } from '../sync/olderDays';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -54,7 +54,7 @@ export function HeaderActions() {
   // The month the calendar shows: one before the phone's 90 days is read from the server (D-106).
   const [month, setMonth] = useState(selected.slice(0, 7));
   const local = useLocalDatabase();
-  const sync = useSync();
+  const version = useDataVersion();
   const shownMonth = monthRange(calendarOpen ? month : today.slice(0, 7));
   const monthOlder = useOlderDays(shownMonth.from, shownMonth.to, today);
   // The meals and listed workouts on the phone (D-84), read when the calendar opens; null until then.
@@ -70,7 +70,7 @@ export function HeaderActions() {
     return () => {
       active = false;
     };
-  }, [calendarOpen, local.state, firstDay, today, sync.version]);
+  }, [calendarOpen, local.state, firstDay, today, version]);
   return (
     <View style={styles.actions}>
       <Pressable

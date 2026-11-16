@@ -28,7 +28,7 @@ import { nameFromEmail } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, setMeta } from '../local/store';
 import { useSettings } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useSyncStatus } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { LogOut } from './LogOut';
@@ -56,7 +56,7 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
   const { colors } = useTheme();
   const { deps, email } = useAuth();
   const { settings, saveSetting } = useSettings();
-  const sync = useSync();
+  const syncStatus = useSyncStatus();
   const router = useRouter();
   const theme = THEMES.find((option) => option.value === settings.theme) ?? THEMES[0]!;
   return (
@@ -128,7 +128,7 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
             Development
           </Text>
           <TodayIst />
-          <Text>Sync: {sync.status}</Text>
+          <Text>Sync: {syncStatus}</Text>
           <ApiStatus apiUrl={deps.apiUrl} check={checkApiHealth} />
           <LocalDatabaseCheck />
           <Button title="200-row list (development)" onPress={() => router.push('/dev-history')} />

@@ -8,7 +8,7 @@ import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listTargets, type LocalTarget } from '../local/store';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion } from '../sync/SyncProvider';
 import { TARGET_ORDER, targetChanges, targetPeriods, targetTexts } from '../targets';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -40,7 +40,7 @@ export function TargetHistoryScreen({ now = () => new Date() }: { now?: () => Da
   const { colors } = useTheme();
   const pill = useChoiceStyles();
   const local = useLocalDatabase();
-  const sync = useSync();
+  const version = useDataVersion();
   const router = useRouter();
   const texts = targetTexts(useBodyWeightUnit());
   const today = istToday(now());
@@ -56,7 +56,7 @@ export function TargetHistoryScreen({ now = () => new Date() }: { now?: () => Da
     return () => {
       active = false;
     };
-  }, [local.state, sync.version]);
+  }, [local.state, version]);
 
   if (targets === null) return <View style={styles.screen} />;
 

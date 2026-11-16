@@ -15,7 +15,7 @@ import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listEntries, rejectedChanges, type LocalWorkout, type OutboxEntry } from '../local/store';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
-import { useSync } from '../sync/SyncProvider';
+import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import {
@@ -57,6 +57,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
   const router = useRouter();
   const local = useLocalDatabase();
   const sync = useSync();
+  const version = useDataVersion();
   const unit = useLiftingWeightUnit();
   const [workout, setWorkout] = useState<LocalWorkout | null | 'loading'>('loading');
   // Its place among its day's workouts, in the order they were started.
@@ -93,7 +94,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
     return () => {
       active = false;
     };
-  }, [local.state, id, sync.version, loadDay]);
+  }, [local.state, id, version, loadDay]);
 
   if (workout === 'loading') return null;
   if (workout === null) {
