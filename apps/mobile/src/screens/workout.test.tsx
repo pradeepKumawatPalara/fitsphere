@@ -897,6 +897,53 @@ describe('D-67 Category and Sub-group', () => {
   });
 });
 
+describe('D-67 Edit shows Category and Sub-group (the owner, 2026-11-16)', () => {
+  it('an exercise added from Dumbbell › Biceps opens in Edit with Dumbbell and Biceps chosen', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Category', 'Dumbbell');
+    await choosePlace('Sub-group', 'Biceps');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Hammer curl' }));
+    await fillSets([{ reps: '10', weight: '12' }, {}, {}]);
+    await save();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Hammer curl: 3 sets, 10 × 12.0 kg' }));
+
+    expect(screen.getByText('Edit exercise')).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Category: Dumbbell' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sub-group: Biceps' })).toBeOnTheScreen();
+    // The exercise and its sets stay as saved.
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Hammer curl');
+    expect(screen.getByLabelText('Set 1, Reps').props.value).toBe('10');
+  });
+
+  it('an exercise in several places shows its first', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('dip', 'Parallel bar dip');
+    await fillSets([{ reps: '8' }, {}, {}]);
+    await save();
+
+    // The card's first button opens the exercise (the others are its sets and the bar's).
+    await fireEvent.press((await screen.findAllByRole('button', { name: /^Parallel bar dip: / }))[0]!);
+
+    expect(await screen.findByRole('button', { name: 'Category: Bodyweight / Calisthenics' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sub-group: Push' })).toBeOnTheScreen();
+  });
+
+  it('a name of the user’s own, in no place, shows every category', async () => {
+    await startWorkout();
+    await addOwn({ name: 'Synthetic own move' });
+
+    // The card's first button opens the exercise (the others are its sets and the bar's).
+    await fireEvent.press((await screen.findAllByRole('button', { name: /^Synthetic own move: / }))[0]!);
+
+    expect(screen.getByText('Edit exercise')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Category: All categories' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sub-group: All sub-groups' })).toBeOnTheScreen();
+  });
+});
+
 describe('D-67 the exercise page', () => {
   it('is a page with a back arrow; while a list shows, Save exercise steps aside, and the name while a choice list is open', async () => {
     await startWorkout();

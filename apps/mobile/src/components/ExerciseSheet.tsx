@@ -121,7 +121,8 @@ function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit)
 // (REQ-TRN-005, REQ-ACC-002). Nothing is saved until every field is valid; Cancel closes without
 // saving (as Q-029). Above the name, Category and Sub-group narrow the search (D-67): with either
 // chosen, its exercises show before a word is typed, every match of the words typed after, each
-// tagged with what is not chosen yet; the choice is not saved with the exercise. A picked exercise
+// tagged with what is not chosen yet; the choice is not saved with the exercise, and Edit shows the
+// exercise's place in the list (the owner, 2026-11-16). A picked exercise
 // of the list has How to do it, which opens its page on How to (D-82).
 export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }: Props) {
   const styles = useStyles();
@@ -170,6 +171,23 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       setPicked(false);
     }
   }
+
+  // Editing (the owner, 2026-11-16: they were empty, though chosen when it was added): Category and
+  // Sub-group show where the list holds the exercise. The choice itself is not saved (D-67), so it is
+  // the exercise's place: its only one, or the first of its places (66 exercises have several). A
+  // name of the user's own has none, and shows none.
+  const editingName = editing?.name ?? null;
+  useEffect(() => {
+    if (editingName === null || local.state.status !== 'ready') return;
+    let active = true;
+    void findListedExercise(local.state.db, editingName).then((found) => {
+      const place = found?.places[0];
+      if (active && place) setFilter({ category: place.category, subGroup: place.subGroup });
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state, editingName]);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
