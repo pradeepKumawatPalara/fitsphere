@@ -549,14 +549,28 @@ export function estimateTime(seconds: number): string {
 }
 
 /**
+ * The estimate the user can go back to (D-107): when the calories field holds the user's own number, or
+ * was emptied, and there is an estimate; null otherwise. The field then shows "Edited" and an arrow.
+ */
+export function caloriesChanged(kcal: string | null, estimated: { estimate: CaloriesEstimate } | { missing: NoEstimate }): CaloriesEstimate | null {
+  return kcal !== null && 'estimate' in estimated ? estimated.estimate : null;
+}
+
+/**
  * What the calories field says under it (D-50): how the estimate was made, or why there is none, or
- * that the number was typed.
+ * that the number was typed; typed or emptied with an estimate to go back to, the estimate and its
+ * arrow (D-107).
  */
 export function caloriesHelp(
   kcal: string | null,
   estimated: { estimate: CaloriesEstimate } | { missing: NoEstimate },
   kind: WorkoutExercise['kind'],
 ): string {
+  const changed = caloriesChanged(kcal, estimated);
+  if (changed !== null) {
+    const back = `The estimate is ${formatInteger(changed.kcal)} kcal: tap the arrow to use it.`;
+    return kcal?.trim() === '' ? `Empty: no calories will be saved. ${back}` : back;
+  }
   if (kcal !== null) return kcal.trim() === '' ? 'Type the number from your machine or watch, or leave it empty.' : 'As you typed it, from your machine or watch.';
   if ('estimate' in estimated) {
     const { met, speedKmh, weightGrams, seconds } = estimated.estimate;

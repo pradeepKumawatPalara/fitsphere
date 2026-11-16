@@ -3557,6 +3557,32 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-DATE-001; constraints' MVP defaults (calendar, measurements sheet, Log meal, the
   header's calendar); api-conventions; the plan `docs/plans/older-days.md`; CLAUDE.md.
 
+## D-107 Calories burned changed by you: an Edited tag, and an arrow back to the estimate
+- Status: **Accepted** (owner, in chat, 2026-11-16: "On the add, edit new excercise there should be a
+  functionality to reset the calories by system generated if user has edited it. Or it should notifu
+  that calories has been edited. SO come up with the plan and canva desing and wait for my approval";
+  of the canvas's A (a link under the box), B (an Edited tag and an arrow in the box) and C (a notice
+  only), version 110, "Lock it B"; locked in version 111). Plan: `docs/plans/exercise-calories-reset.md`.
+  Built on branch `feat/exercise-calories-reset`. Numbered D-107: D-106 is older days' (PR #111).
+- Answer (REQ-TRN-003; with D-50):
+  - On Add exercise and Edit exercise, when Calories burned holds the user's own number, or was emptied,
+    and there is an estimate to go back to, a caramel **Edited** tag shows beside the label and an
+    **arrow** (Lucide's RotateCcw) at the box's end, after kcal. The line under the box says "The
+    estimate is 326 kcal: tap the arrow to use it."; emptied, "Empty: no calories will be saved." before
+    it. A number out of range shows its message there, with the arrow still beside it.
+  - The arrow puts the estimate back, marked "estimated", with its usual line. It then follows the
+    time, distance and speed again, and is saved as an estimate ("· estimated"), as before the user
+    typed. The typed number is gone; it can be typed again. Screen readers hear the arrow as "Use the
+    estimate, 326 kcal" and, once tapped, "Calories burned: the estimate, 326 kcal".
+  - With no estimate (an exercise of the user's own or with no activity value, no time yet, no
+    weigh-in on or before the day), nothing changes: no tag, no arrow, the line as before.
+- MVP defaults (the plan's question 2, not answered): the workout's and Training's cards are
+  unchanged (they already tell "326 kcal · estimated" from a typed "360 kcal"); a number typed equal
+  to the estimate counts as typed.
+- Phone app only: no server change, no migration, no phone schema change, no new build (the icon is
+  in the app's icon package).
+- Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
+
 ---
 
 ---

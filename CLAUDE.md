@@ -39,6 +39,15 @@ the sign-in screens' footer moves with the keyboard and the floating controls ha
 no migration, no phone schema change. **Every iOS build waits for the owner's word (D-19); the owner
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
+**Calories burned changed by you: an Edited tag and an arrow back to the estimate — built on branch
+`feat/exercise-calories-reset` (D-107, 2026-11-16), in its own folder `D:\fitsphere-exercise-calories`
+(removed once merged).** Plan: `docs/plans/exercise-calories-reset.md` (Accepted); canvas boards
+`ExerciseCalories*` B locked (version 111). On Add and Edit exercise, calories typed over an estimate, or
+emptied, show a caramel Edited tag beside the label and an arrow (RotateCcw) at the box's end; the line
+under it gives the estimate; the arrow puts it back, saved as an estimate (`caloriesChanged`,
+`caloriesHelp` in `apps/mobile/src/workouts.ts`; `components/ExerciseSheet.tsx`). Phone app only: no
+server change, no migration, no phone schema change, no new build.
+
 **Any past date; a day older than the phone's 90 read online — built on branch `feat/older-days`
 (D-106, 2026-11-16), on top of `fix/week-strip-one-week` (a swipe moves the strip exactly one week,
 D-79 note), in `D:\fitsphere`.** Plan: `docs/plans/older-days.md` (Accepted); canvas boards `OlderDays*`
