@@ -102,6 +102,16 @@ export function authorizeWorkoutRead(caller: Account, userId: string): void {
   if (caller.id !== userId) throw new ApiError('NOT_FOUND');
 }
 
+/**
+ * Who may read a person's older days (D-106): their weigh-ins, steps, sleep, measurements, meals and
+ * workouts of the days asked for (permission matrix, as each kind's own rule). MVP (D-20): only the
+ * person themselves; anyone else gets 404, as for weigh-ins (T-01). Post-MVP (backlog B-19, B-20):
+ * their coach with an active link, and a Head Coach the trainee allows.
+ */
+export function authorizeDaysRead(caller: Account, userId: string): void {
+  if (caller.id !== userId) throw new ApiError('NOT_FOUND');
+}
+
 function bearerToken(request: FastifyRequest): string {
   const header = request.headers.authorization;
   const match = header ? /^Bearer ([^\s]+)$/i.exec(header) : null;

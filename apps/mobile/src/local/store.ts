@@ -22,6 +22,7 @@ import {
   WORKOUT_DELETE,
   WORKOUT_SET,
   type ChangeErrorCode,
+  type DaysResponse,
   type Dish,
   type ExerciseGroup,
   type Food,
@@ -860,18 +861,71 @@ export async function applyServerEntries<K extends EntryKind>(
   kind: K,
   entries: (Partial<LocalEntries[K]> | { deleted: boolean; id: string })[],
 ): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await applyEntries(db, kind, entries);
+    if (kind === 'meal' || kind === 'profile') await removeUnusedPhotos(db);
+  });
+}
+
+/** `applyServerEntries` inside a transaction already open. */
+async function applyEntries<K extends EntryKind>(
+  db: SqlDb,
+  kind: K,
+  entries: (Partial<LocalEntries[K]> | { deleted: boolean; id: string })[],
+): Promise<void> {
   const spec = KINDS[kind];
   const columns = [...spec.columns, ...spec.pullColumns];
+  for (const entry of entries) {
+    const fields = entry as Record<string, unknown>;
+    const key = keyOf(spec, fields) as string;
+    if (await hasOutboxEntry(db, spec, key)) continue;
+    // A meal or saved meal deleted on another phone leaves this one too.
+    if (fields.deleted === true) await db.runAsync(`DELETE FROM ${spec.table} WHERE ${tableKey(spec)} = ?`, [key]);
+    else await upsert(db, spec, columns, fields, 'synced');
+  }
+}
+
+// Older days (D-106): days before the phone's 90, read from the server when the user opens them
+// (ADR-0007 rule 1), are kept on the phone only while the app is open, so every screen reads them as
+// it reads the 90 days; the first prune after the app starts again removes them.
+
+/** The older days this app session holds, per phone database. */
+const heldDays = new WeakMap<SqlDb, { from: IstDay; to: IstDay }[]>();
+
+/** Keeps the days `from` to `to` on the phone until the app starts again: pruning leaves them (D-106). */
+export function holdDays(db: SqlDb, from: IstDay, to: IstDay): void {
+  const held = heldDays.get(db) ?? [];
+  if (!held.some((range) => range.from <= from && range.to >= to)) held.push({ from, to });
+  heldDays.set(db, held);
+}
+
+/** Where GET /v1/users/{id}/days sends each day kind's entries. */
+const DAYS_FIELDS: Partial<Record<EntryKind, keyof DaysResponse>> = {
+  weighIn: 'weighIns',
+  steps: 'steps',
+  sleep: 'sleep',
+  measurements: 'measurements',
+  workout: 'workouts',
+  meal: 'meals',
+};
+
+/**
+ * The phone's day data from `from` to `to` replaced by the server's (D-106), in one transaction:
+ * synced entries there go, so one deleted on another phone or on the server goes too, and the
+ * server's are written. Pending and rejected entries stay (D-14), as does a meal whose photo waits to
+ * be uploaded; an entry with a change waiting keeps the phone's value. The days are held.
+ */
+export async function replaceDays(db: SqlDb, from: IstDay, to: IstDay, days: DaysResponse): Promise<void> {
+  holdDays(db, from, to);
   await db.withTransactionAsync(async () => {
-    for (const entry of entries) {
-      const fields = entry as Record<string, unknown>;
-      const key = keyOf(spec, fields) as string;
-      if (await hasOutboxEntry(db, spec, key)) continue;
-      // A meal or saved meal deleted on another phone leaves this one too.
-      if (fields.deleted === true) await db.runAsync(`DELETE FROM ${spec.table} WHERE ${tableKey(spec)} = ?`, [key]);
-      else await upsert(db, spec, columns, fields, 'synced');
+    for (const kind of DAY_KINDS) {
+      const field = DAYS_FIELDS[kind];
+      if (!field) continue;
+      const waitingPhoto = kind === 'meal' ? ` AND ${NO_PHOTO_WAITING}` : '';
+      await db.runAsync(`DELETE FROM ${KINDS[kind].table} WHERE sync_state = 'synced' AND day BETWEEN ? AND ?${waitingPhoto}`, [from, to]);
+      await applyEntries(db, kind, days[field] as Parameters<typeof applyEntries>[2]);
     }
-    if (kind === 'meal' || kind === 'profile') await removeUnusedPhotos(db);
+    await removeUnusedPhotos(db);
   });
 }
 
@@ -953,17 +1007,25 @@ export async function discardRejected(db: SqlDb, changeId: string): Promise<void
   });
 }
 
+/** SQL, on the meals table: the meal has no photo waiting to be uploaded. */
+const NO_PHOTO_WAITING = 'NOT EXISTS (SELECT 1 FROM photos WHERE photos.meal_id = meals.id AND uploaded = 0)';
+
 /**
  * Keeps the last 90 IST days of day data on the phone (ADR-0007 rule 1): synced entries older
- * than that are removed; pending and rejected ones never are (D-14), nor a meal whose photo waits
- * to be uploaded. Targets and settings are always kept. Photos of removed meals go with them.
+ * than that are removed, apart from the older days held while the app is open (D-106); pending and
+ * rejected ones never are (D-14), nor a meal whose photo waits to be uploaded. Targets and settings
+ * are always kept. Photos of removed meals go with them.
  */
 export async function pruneSynced(db: SqlDb, today: IstDay): Promise<number> {
   let removed = 0;
+  // Older days opened while the app is open stay till it starts again (D-106).
+  const held = heldDays.get(db) ?? [];
+  const keep = held.map(() => ' AND day NOT BETWEEN ? AND ?').join('');
   for (const kind of DAY_KINDS) {
-    const waitingPhoto = kind === 'meal' ? ' AND NOT EXISTS (SELECT 1 FROM photos WHERE photos.meal_id = meals.id AND uploaded = 0)' : '';
-    const result = await db.runAsync(`DELETE FROM ${KINDS[kind].table} WHERE sync_state = 'synced' AND day < ?${waitingPhoto}`, [
+    const waitingPhoto = kind === 'meal' ? ` AND ${NO_PHOTO_WAITING}` : '';
+    const result = await db.runAsync(`DELETE FROM ${KINDS[kind].table} WHERE sync_state = 'synced' AND day < ?${keep}${waitingPhoto}`, [
       syncWindowStart(today),
+      ...held.flatMap((range) => [range.from, range.to]),
     ]);
     removed += result.changes;
   }

@@ -8,8 +8,8 @@ import { Text, TextButton } from './ui';
 type Props = {
   title: string;
   unit: string;
-  /** Eaten on the selected day, in `unit`. */
-  eaten: number;
+  /** Eaten on the selected day, in `unit`; null while a day before the phone's 90 is not loaded (D-106). */
+  eaten: number | null;
   /** The user's target on the day shown, or null when none held (REQ-ROLE-007, D-77). */
   target: number | null;
   /** Null on a past date with no target: one set now starts today (D-77). */
@@ -24,6 +24,27 @@ type Props = {
 export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
+  // A day before the phone's 90 not loaded yet (D-106): dashes, an empty bar, its target still shown.
+  if (eaten === null) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{title}</Text>
+        <Hero value="–" unit={unit} word="eaten" over={false} waiting />
+        {target === null ? null : (
+          <>
+            <Text style={styles.line}>
+              <Text style={[styles.reading, styles.waiting]}>–</Text> of {formatInteger(target)} {unit}
+            </Text>
+            <View style={styles.plates}>
+              {Array.from({ length: 20 }, (_, index) => (
+                <View key={index} style={[styles.plate, { backgroundColor: colors.track }]} />
+              ))}
+            </View>
+          </>
+        )}
+      </View>
+    );
+  }
   if (target === null) {
     return (
       <View style={styles.card}>
@@ -74,12 +95,12 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
 }
 
 /** The hero number with its unit and word beside it ("1,180 KCAL / REMAINING"), read out as one. */
-function Hero({ value, unit, word, over }: { value: string; unit: string; word: string; over: boolean }) {
+function Hero({ value, unit, word, over, waiting = false }: { value: string; unit: string; word: string; over: boolean; waiting?: boolean }) {
   const styles = useStyles();
   return (
-    <View accessible accessibilityLabel={`${value} ${unit} ${word}`} style={styles.hero}>
-      <Text style={[styles.heroNumber, over && styles.over]}>{value}</Text>
-      <Text style={[styles.heroWord, over && styles.over]}>
+    <View accessible accessibilityLabel={waiting ? `${unit} eaten: not loaded` : `${value} ${unit} ${word}`} style={styles.hero}>
+      <Text style={[styles.heroNumber, over && styles.over, waiting && styles.waiting]}>{value}</Text>
+      <Text style={[styles.heroWord, over && styles.over, waiting && styles.waiting]}>
         {unit}
         {'\n'}
         {word}
@@ -95,6 +116,7 @@ const useStyles = themedStyles((c) => ({
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingRight: 30 },
   title: { ...TYPE.label, color: c.inkMuted },
   over: { color: c.warning },
+  waiting: { color: c.inkSubtle },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   heroNumber: TYPE.heroNumber,
   heroWord: { ...TYPE.metric, fontSize: 18, lineHeight: 19, paddingBottom: 14, color: c.accent },

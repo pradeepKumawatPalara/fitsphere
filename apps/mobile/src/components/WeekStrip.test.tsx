@@ -343,3 +343,49 @@ describe('D-103 an apple and a dumbbell under each date, as the header calendar 
     expect(screen.queryByTestId('meals-2026-10-26')).toBeNull();
   });
 });
+
+describe('D-106 back to 1 Jan 2000: only the weeks beside the one shown are drawn', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  /** Every day button drawn, the hidden weeks' too. */
+  function drawnDays() {
+    return screen.queryAllByRole('button', { name: /^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day \d/, includeHiddenElements: true });
+  }
+
+  it('over a thousand weeks, three drawn; a swipe still moves one week and draws its neighbours', async () => {
+    const onShow = jest.fn();
+    function Far() {
+      const [start, setStart] = useState('2026-10-26');
+      return (
+        <WeekStrip
+          today={TODAY}
+          firstDay="2000-01-01"
+          selected={TODAY}
+          start={start}
+          onSelect={jest.fn()}
+          onShow={(next) => {
+            onShow(next);
+            setStart(next);
+          }}
+        />
+      );
+    }
+    await render(<Far />);
+    await fireEvent(pages(), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: WIDTH, height: 64 } } });
+
+    expect(stripStarts('2000-01-01', TODAY).length).toBeGreaterThan(1_400);
+    // This week and the one before it: there is none after.
+    expect(drawnDays()).toHaveLength(14);
+
+    await swipe(150, 250, 80);
+    await settle();
+    await swipe(150, 250, 80);
+    await settle();
+
+    expect(onShow).toHaveBeenLastCalledWith('2026-10-12');
+    expect(onShow).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: 'Monday 12 Oct' })).toBeOnTheScreen();
+    expect(drawnDays().length).toBeLessThanOrEqual(35);
+  });
+});

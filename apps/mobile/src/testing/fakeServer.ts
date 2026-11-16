@@ -1,6 +1,7 @@
 import {
   istToday,
   mealTotals,
+  syncWindowStart,
   type BarcodeProduct,
   type Dish,
   type Food,
@@ -20,6 +21,8 @@ import { ME } from './fakes';
 // after the cursor, for every kind; a deleted meal or workout stays as `deleted: true`. It also
 // serves the food list (GET /v1/foods), the exercise list (GET /v1/exercises), barcode lookups,
 // meal photo links with a fake storage behind them, and older workouts (GET /v1/users/{id}/workouts).
+// As the real server, the pull holds day data of the last 90 IST days only (ADR-0007 rule 1); older
+// days are read with GET /v1/users/{id}/days (D-106).
 
 type Stored = { item: Record<string, unknown>; seq: number };
 
@@ -47,6 +50,8 @@ const KINDS = {
 } as const;
 type ChangeType = keyof typeof KINDS;
 type ListName = (typeof KINDS)[ChangeType]['list'];
+/** The day data's lists: windowed in the pull, sent by GET /users/{id}/days. */
+const DAY_LISTS = ['weighIns', 'steps', 'sleep', 'measurements', 'workouts', 'meals'] as const;
 
 export function fakeServer(now: Date) {
   const stored = new Map<string, Stored>();
@@ -80,6 +85,10 @@ export function fakeServer(now: Date) {
     files: new Map<string, Uint8Array>(),
     /** What `GET /users/{id}/workouts` returns. */
     olderWorkouts: [] as Workout[],
+    /** The `from` and `to` of each `GET /users/{id}/days` (D-106). */
+    dayQueries: [] as { from: string; to: string }[],
+    /** Answer `GET /users/{id}/days` with this status instead. */
+    daysFailWith: null as number | null,
     /** The latest AI consent record (REQ-ACC-004); null until the user chooses. */
     aiConsent: null as { consented: boolean; textVersion: string; recordedAt: string } | null,
     /** Answer `DELETE /me` with this status instead of deleting (503: not available). */
@@ -231,8 +240,23 @@ export function fakeServer(now: Date) {
         removals: [],
       };
       const changed = [...stored.entries()].filter(([, entry]) => entry.seq > after).sort((a, b) => a[1].seq - b[1].seq);
-      for (const [slot, { item }] of changed) pull[slot.split('|')[0] as ListName].push(item);
+      const windowStart = syncWindowStart(istToday(now));
+      for (const [slot, { item }] of changed) {
+        const list = slot.split('|')[0] as ListName;
+        if ((DAY_LISTS as readonly string[]).includes(list) && typeof item.day === 'string' && item.day < windowStart) continue;
+        pull[list].push(item);
+      }
       return json(200, { results, pull, cursor: String(seq), hasMore: false });
+    }
+    if (method === 'GET' && /^\/users\/[^/]+\/days$/.test(path)) {
+      const from = url.searchParams.get('from') ?? '';
+      const to = url.searchParams.get('to') ?? '';
+      state.dayQueries.push({ from, to });
+      if (state.daysFailWith) {
+        return json(state.daysFailWith, { error: { code: 'INTERNAL_ERROR', message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      const inRange = (item: Record<string, unknown>) => typeof item.day === 'string' && item.day >= from && item.day <= to;
+      return json(200, Object.fromEntries(DAY_LISTS.map((list) => [list, [...entries(list).values()].filter(inRange)])));
     }
     if (method === 'GET' && /^\/users\/[^/]+\/workouts$/.test(path)) {
       return json(200, { items: state.olderWorkouts, nextCursor: null });

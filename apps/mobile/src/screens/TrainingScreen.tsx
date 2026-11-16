@@ -1,5 +1,6 @@
 import {
   addDays,
+  syncWindowStart,
   WORKOUT_DELETE,
   WORKOUT_SET,
   type IstDay,
@@ -14,7 +15,6 @@ import {
   ClockArrowDown,
   Dumbbell,
   Flame,
-  History,
   List,
   Pause,
   Plus,
@@ -30,12 +30,14 @@ import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { isWaiting, ShowingDayBanner } from '../components/ShowingDayBanner';
 import { WeekStrip } from '../components/WeekStrip';
 import { Banner, IconButton, Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay, formatInteger, formatMonth } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
 import { useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
@@ -119,10 +121,17 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   const { today, selected, firstDay, stripStart, select, showDays } = useSelectedDay();
   // The strip's week: an apple and a dumbbell under each day, as on Home (D-103; was a mark on workout days, D-65).
   const activity = useWeekActivity(stripStart);
+  // A day before the phone's 90 is read from the server when shown (D-106).
+  const olderDays = useShownOlderDays();
+  const waiting = isWaiting(olderDays.day.status);
+  // All workouts lists the phone's 90 days, then older ones loaded with "Load older" (REQ-TRN-004).
+  const phoneFirstDay = syncWindowStart(today);
   const [recent, setRecent] = useState<Row[]>([]);
+  // The selected date's workouts, read on their own: the date may be older than the 90 days (D-106).
+  const [dayRows, setDayRows] = useState<Row[]>([]);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
   const [older, setOlder] = useState<Row[]>([]);
-  const [oldestLoaded, setOldestLoaded] = useState(firstDay);
+  const [oldestLoaded, setOldestLoaded] = useState(phoneFirstDay);
   const [message, setMessage] = useState<Message | null>(null);
   const [shown, setShown] = useState<Shown>('day');
   // A date picked anywhere, the strip or the header's calendar, shows that date (D-65).
@@ -143,21 +152,26 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     if (local.state.status !== 'ready') return;
     const db = local.state.db;
     let active = true;
-    void Promise.all([listEntries(db, 'workout', firstDay, today), rejectedChanges(db)]).then(([workouts, waiting]) => {
-      if (!active) return;
-      setRecent(workouts.map(({ id, day, exercises, timer, recordedAt, syncState }) => ({ id, day, exercises, timer, recordedAt, syncState })));
-      setRejected(waiting.filter((change) => change.type === WORKOUT_SET || change.type === WORKOUT_DELETE));
-    });
+    const asRows = (workouts: Awaited<ReturnType<typeof listEntries<'workout'>>>) =>
+      workouts.map(({ id, day, exercises, timer, recordedAt, syncState }) => ({ id, day, exercises, timer, recordedAt, syncState }));
+    void Promise.all([listEntries(db, 'workout', phoneFirstDay, today), rejectedChanges(db), listEntries(db, 'workout', selected, selected)]).then(
+      ([workouts, waiting, onDay]) => {
+        if (!active) return;
+        setRecent(asRows(workouts));
+        setRejected(waiting.filter((change) => change.type === WORKOUT_SET || change.type === WORKOUT_DELETE));
+        setDayRows(asRows(onDay));
+      },
+    );
     return () => {
       active = false;
     };
-  }, [local.state, firstDay, today, sync.version]);
+  }, [local.state, phoneFirstDay, today, selected, sync.version]);
 
   // Workouts with no exercise are not listed, marked or counted (D-65).
   const listed = listedWorkouts(recent);
   const months = byMonth([...listed, ...listedWorkouts(older)]);
   const open = openMonths ?? new Set(months[0] ? [months[0].month] : []);
-  const dayWorkouts = byDate(listed.filter((row) => row.day === selected))[0]?.workouts ?? [];
+  const dayWorkouts = byDate(listedWorkouts(dayRows))[0]?.workouts ?? [];
   // The rows draw again each second only while a timer runs (D-71).
   const clock = useNow(now, listed.some((row) => timerState(row.timer) === 'running'));
 
@@ -322,20 +336,16 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
 
   const isToday = selected === today;
   const count = dayWorkouts.length;
-  const dayHeading = `${isToday ? `Today, ${formatDay(selected)}` : formatDay(selected)}${count ? ` · ${count} ${count === 1 ? 'workout' : 'workouts'}` : ''}`;
+  const dayHeading = `${isToday ? `Today, ${formatDay(selected)}` : formatDay(selected, today)}${count ? ` · ${count} ${count === 1 ? 'workout' : 'workouts'}` : ''}`;
 
   // By day (D-65): the selected date's workouts, under the button that logs to that date.
   const byDay = (
     <>
       {isToday ? null : (
-        <View style={styles.banner}>
-          <History size={20} color={colors.accent} />
-          <Text style={styles.bannerText}>Showing {formatDay(selected)}</Text>
-          <TextButton title="Back to today" onPress={() => select(today)} />
-        </View>
+        <ShowingDayBanner day={selected} today={today} status={olderDays.day.status} onBack={() => select(today)} onRetry={olderDays.day.retry} />
       )}
       <TextButton
-        title={isToday ? 'Log workout for today' : `Log workout for ${formatDay(selected)}`}
+        title={isToday ? 'Log workout for today' : `Log workout for ${formatDay(selected, today)}`}
         filled
         icon={Plus}
         disabled={starting}
@@ -348,10 +358,10 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
         <View accessibilityLabel={`${formatDay(selected)}: ${count} ${count === 1 ? 'workout' : 'workouts'}`} style={styles.dayCard}>
           {workoutRows(selected, dayWorkouts, false)}
         </View>
-      ) : (
+      ) : waiting ? null : (
         <View style={styles.none}>
           <Dumbbell size={22} color={colors.inkSubtle} />
-          <Text style={styles.noneText}>No workouts on {formatDay(selected)}.</Text>
+          <Text style={styles.noneText}>No workouts on {formatDay(selected, today)}.</Text>
         </View>
       )}
     </>
@@ -465,17 +475,6 @@ const useStyles = themedStyles((c) => ({
   header: { gap: 12 },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { flex: 1, flexDirection: 'row', gap: 8, paddingHorizontal: 8 },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingLeft: 14,
-    paddingRight: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: c.accentTint,
-  },
-  bannerText: { flex: 1, fontSize: 15, lineHeight: 22 },
   heading: { ...TYPE.label, marginTop: 12, color: c.inkMuted },
   dayCard: {
     paddingVertical: 6,

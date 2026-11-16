@@ -39,6 +39,19 @@ the sign-in screens' footer moves with the keyboard and the floating controls ha
 no migration, no phone schema change. **Every iOS build waits for the owner's word (D-19); the owner
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
+**Any past date; a day older than the phone's 90 read online — built on branch `feat/older-days`
+(D-106, 2026-11-16), on top of `fix/week-strip-one-week` (a swipe moves the strip exactly one week,
+D-79 note), in `D:\fitsphere`.** Plan: `docs/plans/older-days.md` (Accepted); canvas boards `OlderDays*`
+LOCKED (version 109). The calendar, the
+date strip, Log meal and the measurements sheet go back to 1 January 2000 (`EARLIEST_DAY`); the phone
+still keeps 90 days (ADR-0007 rule 1, unchanged): an older day's week, or the calendar's month, is read
+with `GET /v1/users/{userId}/days` (at most 42 days, self only) by `useOlderDays`
+(`src/sync/SyncProvider.tsx`) and held while the app is open (`replaceDays`, `holdDays` in
+`src/local/store.ts`); the banner says loading, offline or "Couldn't load this day." with Try again, Home
+shows dashes meanwhile; a date of another year shows its year. No migration, no phone schema change, no
+new build. **The beta's Cloud Run API needs this API before beta phones read older days; deploy only
+when the owner says so.**
+
 **The Workout in progress pill moved to another corner — built on branch `feat/movable-workout-pill`
 (D-105, 2026-11-16), in its own folder `D:\fitsphere-workout-pill` (removed once merged).** Canvas boards
 `WorkoutPillMove*` A locked (version 108). The pill (D-83) can be dragged; let go, it settles in the

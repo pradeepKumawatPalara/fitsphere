@@ -20,6 +20,8 @@ type Props = {
    * <date>", and whether they are due. Absent on other dates and on Progress.
    */
   since?: MeasurementsSince | null;
+  /** A day before the phone's 90 not loaded yet (D-106): a dash in place of what was logged. */
+  waiting?: boolean;
   onAdd(): void;
   onEdit(): void;
 };
@@ -59,7 +61,7 @@ const ROWS: { key: LengthKey; label: string }[] = [
 // redesign's 2.3 (locked by the owner, 2026-11-03): ruled rows, the readings in condensed figures.
 // On today, with `since` (D-85; canvas "2.3 Home · Measurements due", C locked): when they were last
 // logged, and once due a caramel "Due" badge beside the title and "Add measurements" filled caramel.
-export function MeasurementsCard({ day, entry, unit, since, onAdd, onEdit }: Props) {
+export function MeasurementsCard({ day, entry, unit, since, waiting = false, onAdd, onEdit }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   if (!entry) {
@@ -75,7 +77,7 @@ export function MeasurementsCard({ day, entry, unit, since, onAdd, onEdit }: Pro
             </View>
           ) : null}
         </View>
-        <Text style={styles.body}>{since ? since.line : `No measurements for ${formatDay(day)}.`}</Text>
+        <Text style={[styles.body, waiting && styles.waiting]}>{waiting ? '–' : since ? since.line : `No measurements for ${formatDay(day)}.`}</Text>
         <Text style={styles.hint}>Log your upper and lower waist once a week.</Text>
         <View style={styles.add}>
           <TextButton title="Add measurements" outlined strong={due} onPress={onAdd} />
@@ -120,6 +122,7 @@ const useStyles = themedStyles((c) => ({
   due: { height: 24, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, borderRadius: 4, backgroundColor: c.primary },
   dueText: { ...TYPE.link, fontSize: 14, lineHeight: 16, letterSpacing: 1.5, color: c.onPrimary },
   body: { fontSize: 15, lineHeight: 22 },
+  waiting: { color: c.inkSubtle },
   hint: { ...TYPE.small, color: c.inkMuted },
   add: { marginTop: 4 },
   // Rows ruled like a tape reading.

@@ -5,6 +5,7 @@ import {
   SAVED_MEAL_SET,
   PROFILE_SET,
   SETTING_SET,
+  syncWindowStart,
   TARGET_SET,
   WORKOUT_DELETE,
   WORKOUT_SET,
@@ -14,7 +15,6 @@ import {
   type TargetKind,
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { History } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
@@ -27,6 +27,7 @@ import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { NutrientTargets } from '../components/NutrientTargets';
 import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
+import { isWaiting, ShowingDayBanner } from '../components/ShowingDayBanner';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
 import { WeekWorkouts } from '../components/WeekWorkouts';
@@ -46,9 +47,10 @@ import {
   type SyncState,
 } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles, useTheme } from '../theme';
+import { themedStyles } from '../theme';
 import { targetValues, weekTargetDay } from '../targets';
 import { useWeekActivity } from '../weekActivity';
 import { LogOut } from './LogOut';
@@ -61,7 +63,6 @@ type Targets = Partial<Record<TargetKind, number>>;
 // tabs' common header (REQ-NAV-002).
 export function HomeScreen() {
   const styles = useStyles();
-  const { colors } = useTheme();
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
@@ -83,6 +84,9 @@ export function HomeScreen() {
   const [eaten, setEaten] = useState<MealTotals | null>(null);
   // The strip's week: an apple and a dumbbell under each day, and its workouts counted under it (D-103).
   const activity = useWeekActivity(stripStart);
+  // A day before the phone's 90 is read from the server when shown; till then its cards show dashes (D-106).
+  const older = useShownOlderDays();
+  const waiting = isWaiting(older.day.status);
 
   useEffect(() => {
     let active = true;
@@ -140,7 +144,7 @@ export function HomeScreen() {
   // account's days are on the phone when it was created within the 90 days.
   const since =
     selected === today && lastMeasured
-      ? measurementsSince(lastMeasured.day, today, lastMeasured.accountDay !== null && lastMeasured.accountDay >= firstDay)
+      ? measurementsSince(lastMeasured.day, today, lastMeasured.accountDay !== null && lastMeasured.accountDay >= syncWindowStart(today))
       : null;
 
   function openTargets() {
@@ -196,17 +200,13 @@ export function HomeScreen() {
             onShow={showDays}
           />
           <WeekWorkouts
-            count={activity?.counted ?? null}
+            count={isWaiting(older.week.status) ? null : (activity?.counted ?? null)}
             target={targets.weekly_workouts ?? null}
             thisWeek={stripStart === istWeekStart(today)}
           />
         </View>
         {selected !== today ? (
-          <View style={styles.banner}>
-            <History size={20} color={colors.accent} />
-            <Text style={styles.bannerText}>Showing {formatDay(selected)}</Text>
-            <TextButton title="Back to today" onPress={() => select(today)} />
-          </View>
+          <ShowingDayBanner day={selected} today={today} status={older.day.status} onBack={() => select(today)} onRetry={older.day.retry} />
         ) : null}
         <RejectedChanges entries={rejected} onEdit={editRejected} onDiscard={(changeId) => void sync.discard(changeId)} />
         {/* The day's food against its targets: the panel Home leads with; protein, carbs, fat and fibre
@@ -216,12 +216,12 @@ export function HomeScreen() {
           <TargetProgressCard
             title="Calories"
             unit="kcal"
-            eaten={Math.round(eaten?.kcal ?? 0)}
+            eaten={waiting ? null : Math.round(eaten?.kcal ?? 0)}
             target={targets.calories ?? null}
             onSetTarget={selected === today ? openTargets : null}
           />
           <View style={styles.rule} />
-          <NutrientTargets totals={eaten} targets={targets} />
+          <NutrientTargets totals={waiting ? null : eaten} targets={targets} />
           <View style={styles.panelFoot}>
             <TextButton title="By meal" arrow end onPress={() => router.push({ pathname: '/nutrition', params: { tab: 'consumed' } })} />
           </View>
@@ -236,6 +236,7 @@ export function HomeScreen() {
                 label={texts[kind].label}
                 value={entry ? texts[kind].format(entry.value) : null}
                 syncState={entry?.syncState ?? null}
+                waiting={waiting && !entry}
                 onPress={() => setSheet({ kind, day: selected, initial: entry?.value ?? null })}
               />
             );
@@ -246,6 +247,7 @@ export function HomeScreen() {
           entry={measurements}
           unit={lengthUnit}
           since={since}
+          waiting={waiting}
           onAdd={() => setMeasurementsSheet({ mode: 'add', day: selected })}
           onEdit={() => setMeasurementsSheet({ mode: 'edit', day: selected })}
         />
@@ -261,7 +263,7 @@ export function HomeScreen() {
         ) : null}
         {sheet && sheetText ? (
           <NumberEntrySheet
-            title={`${sheetText.label} · ${formatDay(sheet.day)}`}
+            title={`${sheetText.label} · ${formatDay(sheet.day, today)}`}
             label={sheetText.inputLabel}
             unit={sheetText.unit}
             initialText={sheet.initial === null ? '' : sheetText.toText(sheet.initial)}
@@ -285,17 +287,6 @@ const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
   week: { gap: 6 },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingLeft: 14,
-    paddingRight: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: c.accentTint,
-  },
-  bannerText: { flex: 1, fontSize: 15, lineHeight: 22 },
   body: { fontSize: 15 },
   panel: { padding: 16, borderRadius: 4, backgroundColor: c.surface },
   rule: { height: 1, marginVertical: 16, backgroundColor: c.border },

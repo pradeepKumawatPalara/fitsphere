@@ -30,10 +30,11 @@ export function dayParts(day: IstDay) {
   };
 }
 
-/** e.g. "Wed 28 Oct" */
-export function formatDay(day: IstDay): string {
+/** e.g. "Wed 28 Oct"; with `today`, a day of another year carries its year, "Wed 12 Mar 2025" (D-106). */
+export function formatDay(day: IstDay, today?: IstDay): string {
   const parts = dayParts(day);
-  return `${parts.weekday} ${parts.date} ${parts.month}`;
+  const year = today !== undefined && day.slice(0, 4) !== today.slice(0, 4) ? ` ${day.slice(0, 4)}` : '';
+  return `${parts.weekday} ${parts.date} ${parts.month}${year}`;
 }
 
 // Body weight is typed and shown in the body-weight unit setting (REQ-ACC-003, Q-024), with one

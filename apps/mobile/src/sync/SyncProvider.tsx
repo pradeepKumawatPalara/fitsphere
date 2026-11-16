@@ -1,12 +1,14 @@
 import * as Crypto from 'expo-crypto';
 import * as Network from 'expo-network';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { istToday } from '@fitsphere/shared';
+import { istToday, type IstDay } from '@fitsphere/shared';
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { insertNewPhoto, type PhotoFiles } from '../local/photos';
-import { deleteEntry, discardRejected, PROFILE_KEY, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
+import { deleteEntry, discardRejected, holdDays, PROFILE_KEY, replaceDays, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
+import type { SqlDb } from '../local/sql';
+import { fetchDays, olderPart, rangeKey, type OlderDaysStatus } from './olderDays';
 import { uploadPhotos } from './photoSync';
 import { refreshExerciseList, refreshFoodList, syncNow, type SyncOutcome } from './syncClient';
 
@@ -56,6 +58,10 @@ type SyncContextValue = {
   /** Saves a new workout with no exercises on `day` and returns its ID; it counts once it has one (D-41). */
   startWorkout(day: string): Promise<string>;
   discard(changeId: string): Promise<void>;
+  /** The older days asked for this app session, by `rangeKey`, and how each stands (D-106). */
+  older: Readonly<Record<string, OlderDaysStatus>>;
+  /** Reads the days `from` to `to`, all before the phone's 90, from the server onto the phone (D-106). */
+  loadOlder(from: IstDay, to: IstDay): Promise<void>;
 };
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -82,6 +88,45 @@ export function SyncProvider({
   const [status, setStatus] = useState<SyncContextValue['status']>('idle');
   const running = useRef(false);
   const again = useRef(false);
+  // The older days asked for, for the database open now: a new one (another sign-in) starts afresh.
+  const [older, setOlder] = useState<{ db: SqlDb | null; ranges: Record<string, OlderDaysStatus> }>({ db: null, ranges: {} });
+  const olderRanges = older.db === db ? older.ranges : NO_RANGES;
+  // Older days not read while offline: read once a sync reaches the server.
+  const offline = useRef(new Map<string, { db: SqlDb; from: IstDay; to: IstDay }>());
+  // The older days being read now: Home, Nutrition and Training ask for the same week at once.
+  const reading = useRef(new Set<string>());
+
+  const loadOlder = useCallback(
+    async (from: IstDay, to: IstDay) => {
+      if (!db) return;
+      const key = rangeKey({ from, to });
+      if (reading.current.has(key)) return;
+      reading.current.add(key);
+      const mark = (state: OlderDaysStatus) =>
+        setOlder((current) => ({ db, ranges: { ...(current.db === db ? current.ranges : {}), [key]: state } }));
+      mark('loading');
+      // Held from the start: an entry logged there meanwhile is not pruned by the next sync.
+      holdDays(db, from, to);
+      try {
+        const days = await fetchDays(deps, from, to).catch((): 'failed' => 'failed');
+        if (days === 'offline') offline.current.set(key, { db, from, to });
+        else offline.current.delete(key);
+        if (typeof days === 'string') {
+          mark(days);
+          return;
+        }
+        const stored = await replaceDays(db, from, to, days).then(
+          () => true,
+          () => false,
+        );
+        mark(stored ? 'loaded' : 'failed');
+        if (stored) setVersion((value) => value + 1);
+      } finally {
+        reading.current.delete(key);
+      }
+    },
+    [db, deps],
+  );
 
   const run = useCallback(async () => {
     if (!db) return;
@@ -101,6 +146,7 @@ export function SyncProvider({
           await refreshFoodList(db, deps).catch(() => 'failed');
           await refreshExerciseList(db, deps).catch(() => 'failed');
           await uploadPhotos(db, deps).catch(() => 'offline');
+          for (const range of [...offline.current.values()]) if (range.db === db) void loadOlder(range.from, range.to);
         }
         setStatus(outcome);
         setVersion((value) => value + 1);
@@ -108,7 +154,7 @@ export function SyncProvider({
     } finally {
       running.current = false;
     }
-  }, [db, deps, now]);
+  }, [db, deps, now, loadOlder]);
 
   useEffect(() => {
     if (!db) return;
@@ -182,7 +228,9 @@ export function SyncProvider({
   );
 
   return (
-    <SyncContext.Provider value={{ version, status, save, remove, newId, saveWeight, startWorkout, discard }}>
+    <SyncContext.Provider
+      value={{ version, status, save, remove, newId, saveWeight, startWorkout, discard, older: olderRanges, loadOlder }}
+    >
       {children}
     </SyncContext.Provider>
   );
@@ -190,6 +238,33 @@ export function SyncProvider({
 
 function defaultNow(): Date {
   return new Date();
+}
+
+const NO_RANGES: Readonly<Record<string, OlderDaysStatus>> = {};
+
+/**
+ * The days `from` to `to` a screen shows (D-106): the part before the phone's 90 days is read from
+ * the server once this app session, the first screen to show it asking; offline, it is asked again
+ * once a sync reaches the server (SyncProvider). `retry` asks again (Try again).
+ */
+export function useOlderDays(from: IstDay, to: IstDay, today: IstDay): { status: OlderDaysStatus; retry(): void } {
+  const { older, loadOlder } = useSync();
+  const range = olderPart(from, to, today);
+  const olderFrom = range?.from ?? null;
+  const olderTo = range?.to ?? null;
+  const state = range ? older[rangeKey(range)] : undefined;
+
+  useEffect(() => {
+    if (olderFrom === null || olderTo === null || state !== undefined) return;
+    void loadOlder(olderFrom, olderTo);
+  }, [olderFrom, olderTo, state, loadOlder]);
+
+  return {
+    status: range ? (state ?? 'loading') : 'onPhone',
+    retry: () => {
+      if (olderFrom !== null && olderTo !== null) void loadOlder(olderFrom, olderTo);
+    },
+  };
 }
 
 export function useSync(): SyncContextValue {
