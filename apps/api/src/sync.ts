@@ -43,6 +43,7 @@ import {
   workoutSetDataSchema,
   type ChangeError,
   type ChangeErrorCode,
+  type DaysResponse,
   type IstDay,
   type MealItem,
   type MealPhoto,
@@ -658,6 +659,57 @@ type StoredMyFood = { id: string; deleted: boolean; name: string | null; unit: E
 type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises: Workout['exercises'] | null };
 
 /**
+ * The day data's rows of user $1, one select per kind, each `item` as the pull sends it; the caller
+ * adds which rows (`and ...`). Meals and workouts include the deleted ones. Shared by the pull and by
+ * the older days (D-106), so both send the same.
+ */
+const DAY_KIND_ROWS = [
+  `select 'weighIn' as kind, change_seq,
+         json_build_object('day', day::text, 'weightGrams', weight_grams,
+           'recordedAt', recorded_at, 'updatedAt', updated_at) as item
+       from app.weigh_ins where user_id = $1`,
+  `select 'steps', change_seq,
+         json_build_object('day', day::text, 'steps', steps, 'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.step_counts where user_id = $1`,
+  `select 'sleep', change_seq,
+         json_build_object('day', day::text, 'sleepMinutes', sleep_minutes,
+           'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.sleep_logs where user_id = $1`,
+  `select 'measurements', change_seq,
+         json_build_object('day', day::text, 'upperWaistMm', upper_waist_mm, 'lowerWaistMm', lower_waist_mm,
+           'chestMm', chest_mm, 'hipsMm', hips_mm, 'armMm', arm_mm, 'thighMm', thigh_mm, 'notes', notes,
+           'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.measurements where user_id = $1`,
+  `select 'workout', change_seq,
+         json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'exercises', exercises,
+           'timer', case when timer_started_at is null then null else json_build_object('startedAt', timer_started_at,
+             'countedSeconds', timer_counted_seconds, 'runningSince', timer_running_since, 'doneAt', timer_done_at) end,
+           'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.workouts where user_id = $1`,
+  `select 'meal', change_seq,
+         json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'mealType', meal_type,
+           'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
+           'fibreG', fibre_g, 'photo', photo, 'recordedAt', recorded_at, 'updatedAt', updated_at)
+       from app.meals where user_id = $1`,
+];
+
+/**
+ * The user's day data from `from` to `to`, both included, as the pull sends it (ADR-0007 rule 1:
+ * older history loaded online; D-106). The route checks who asks and how many days.
+ */
+export async function readDays(db: pg.Pool, userId: string, from: IstDay, to: IstDay): Promise<DaysResponse> {
+  const { rows } = await db.query<ChangedRow>(
+    `select kind, change_seq::text as change_seq, item from (
+       ${DAY_KIND_ROWS.map((rows) => `${rows} and day between $2 and $3`).join('\n       union all\n       ')}
+     ) as days
+     order by change_seq`,
+    [userId, from, to],
+  );
+  const { weighIns, steps, sleep, measurements, workouts, meals } = toPull(rows);
+  return { weighIns, steps, sleep, measurements, workouts, meals };
+}
+
+/**
  * The user's rows changed after `afterSeq`, oldest change first, from every synced table. They
  * share `app.change_seq`, so one cursor covers them all. Day data, meals and workouts included, is
  * limited to the 90-day window; targets (every value, each with its day, D-77), settings, the
@@ -666,32 +718,7 @@ type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises:
 async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigint, windowStart: IstDay, limit: number) {
   const { rows } = await client.query<ChangedRow>(
     `select kind, change_seq::text as change_seq, item from (
-       select 'weighIn' as kind, change_seq,
-         json_build_object('day', day::text, 'weightGrams', weight_grams,
-           'recordedAt', recorded_at, 'updatedAt', updated_at) as item
-       from app.weigh_ins where user_id = $1 and change_seq > $2 and day >= $3
-       union all
-       select 'steps', change_seq,
-         json_build_object('day', day::text, 'steps', steps, 'recordedAt', recorded_at, 'updatedAt', updated_at)
-       from app.step_counts where user_id = $1 and change_seq > $2 and day >= $3
-       union all
-       select 'sleep', change_seq,
-         json_build_object('day', day::text, 'sleepMinutes', sleep_minutes,
-           'recordedAt', recorded_at, 'updatedAt', updated_at)
-       from app.sleep_logs where user_id = $1 and change_seq > $2 and day >= $3
-       union all
-       select 'measurements', change_seq,
-         json_build_object('day', day::text, 'upperWaistMm', upper_waist_mm, 'lowerWaistMm', lower_waist_mm,
-           'chestMm', chest_mm, 'hipsMm', hips_mm, 'armMm', arm_mm, 'thighMm', thigh_mm, 'notes', notes,
-           'recordedAt', recorded_at, 'updatedAt', updated_at)
-       from app.measurements where user_id = $1 and change_seq > $2 and day >= $3
-       union all
-       select 'workout', change_seq,
-         json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'exercises', exercises,
-           'timer', case when timer_started_at is null then null else json_build_object('startedAt', timer_started_at,
-             'countedSeconds', timer_counted_seconds, 'runningSince', timer_running_since, 'doneAt', timer_done_at) end,
-           'recordedAt', recorded_at, 'updatedAt', updated_at)
-       from app.workouts where user_id = $1 and change_seq > $2 and day >= $3
+       ${DAY_KIND_ROWS.map((rows) => `${rows} and change_seq > $2 and day >= $3`).join('\n       union all\n       ')}
        union all
        select 'target', change_seq,
          json_build_object('kind', kind, 'day', day::text, 'value', value, 'setByUserId', set_by_user_id,
@@ -709,12 +736,6 @@ async function changedRows(client: pg.PoolClient, userId: string, afterSeq: bigi
              'line2', address_line2, 'city', city, 'state', state, 'pinCode', pin_code) end,
            'photoMediaId', photo_media_id, 'setAt', set_at, 'updatedAt', updated_at)
        from app.profiles where user_id = $1 and change_seq > $2
-       union all
-       select 'meal', change_seq,
-         json_build_object('id', id, 'day', day::text, 'deleted', deleted_at is not null, 'mealType', meal_type,
-           'tags', tags, 'items', items, 'kcal', kcal, 'proteinG', protein_g, 'carbsG', carbs_g, 'fatG', fat_g,
-           'fibreG', fibre_g, 'photo', photo, 'recordedAt', recorded_at, 'updatedAt', updated_at)
-       from app.meals where user_id = $1 and change_seq > $2 and day >= $3
        union all
        select 'savedMeal', change_seq,
          json_build_object('id', id, 'deleted', deleted_at is not null, 'name', name, 'tags', tags,

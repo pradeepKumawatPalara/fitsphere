@@ -1428,6 +1428,40 @@ export const workoutsPageSchema = z.object({
 });
 export type WorkoutsPage = z.infer<typeof workoutsPageSchema>;
 
+// --- Older days: GET /v1/users/{userId}/days (D-106) ---
+
+/** The earliest day the calendar and the date strip go back to (D-106: any date; a floor, not a rule). */
+export const EARLIEST_DAY = '2000-01-01';
+/** The most days one read of older days returns: a calendar month's grid, six weeks. */
+export const MAX_DAYS_RANGE = 42;
+
+/** From and to, both included; at most MAX_DAYS_RANGE days (checked by the route). */
+export const daysQuerySchema = z.strictObject({
+  from: istDaySchema,
+  to: istDaySchema,
+});
+export type DaysQuery = z.input<typeof daysQuerySchema>;
+
+/**
+ * The user's day data of the days asked for, as the sync pull sends it (ADR-0007 rule 1: older
+ * history loaded online, D-106), with meals and workouts deleted on another phone, so the phone
+ * removes its copy. No cursor: the phone asks again for the days it shows.
+ */
+export const daysResponseSchema = z.object({
+  weighIns: z.array(weighInSchema),
+  steps: z.array(stepCountSchema),
+  sleep: z.array(sleepLogSchema),
+  measurements: z.array(measurementSchema),
+  workouts: z.array(pulledWorkoutSchema),
+  meals: z.array(pulledMealSchema),
+});
+export type DaysResponse = z.infer<typeof daysResponseSchema>;
+
+/** How many days `from` to `to` holds, both included. */
+export function daysInRange(from: IstDay, to: IstDay): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+}
+
 // --- Validation details ---
 
 /**
