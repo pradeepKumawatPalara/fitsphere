@@ -495,9 +495,17 @@ export type MealType = (typeof MEAL_TYPES)[number];
 export const MEAL_TAGS = ['before_training', 'dessert'] as const;
 export type MealTag = (typeof MEAL_TAGS)[number];
 export const MAX_MEAL_ITEMS = 30;
-/** Grams eaten of a listed food or your own food (MVP default, D-26). */
-export const MEAL_ITEM_GRAMS_MAX = 2_000;
-/** Portions of a dish, in halves (MVP default, D-26). */
+/**
+ * The most one food in a meal may weigh, in grams (or ml of your own food): 2,000 g (MVP default,
+ * D-26), 10,000 g since D-102 (the owner: "No max limit for now", "just change the maximum value").
+ */
+export const MEAL_ITEM_GRAMS_MAX = 10_000;
+/**
+ * The most one serving or unit of a food may weigh, in the food list (D-26; the database's own
+ * check on app.food_portions and app.packaged_foods). Not an amount in a meal: MEAL_ITEM_GRAMS_MAX.
+ */
+export const SERVING_GRAMS_MAX = 2_000;
+/** Portions of a dish, with at most two decimals (MVP default, D-26; typed since D-102). */
 export const MEAL_ITEM_PORTIONS_MAX = 10;
 /**
  * Household units a listed food can be logged in, once the owner has measured the grams one holds
@@ -505,15 +513,30 @@ export const MEAL_ITEM_PORTIONS_MAX = 10;
  */
 export const FOOD_MEASURES = ['teaspoon', 'tablespoon', 'katori', 'glass', 'piece'] as const;
 export type FoodMeasure = (typeof FOOD_MEASURES)[number];
-/** Units of a food, in halves, as a dish's portions (MVP default, D-36). */
+/**
+ * The largest count the food page's list offers for a household unit, in halves (MVP default,
+ * D-36). Since D-102 a count typed may be more, up to MEAL_ITEM_GRAMS_MAX in all.
+ */
 export const MEAL_ITEM_MEASURES_MAX = 10;
-/** The most one item can hold, whatever its amount. */
-export const MEAL_ITEM_KCAL_MAX = 20_000;
-export const MEAL_ITEM_NUTRIENT_MAX = 5_000;
+/**
+ * The most one item can hold, whatever its amount (D-102: enough for 10,000 g of any food, at most
+ * 1,000 kcal and 100 g of a nutrient per 100 g, and for 100 of a My food's unit, at most 2,000 kcal
+ * and 200 g of a nutrient each).
+ */
+export const MEAL_ITEM_KCAL_MAX = 200_000;
+export const MEAL_ITEM_NUTRIENT_MAX = 20_000;
 export const MEAL_ITEM_SOURCES = ['ifct2017', 'usda_fndds', 'indb', 'brand_label', 'home', 'dish_estimate', 'dish', 'barcode', 'own'] as const;
 export type MealItemSource = (typeof MEAL_ITEM_SOURCES)[number];
-/** The servings of a USDA or INDB food, in halves, as household units (more-foods plan; D-46). */
+/**
+ * The largest count the food page's list offers for a serving, in halves (more-foods plan; D-46).
+ * Since D-102 a count typed may be more, up to MEAL_ITEM_GRAMS_MAX in all.
+ */
 export const MEAL_ITEM_SERVINGS_MAX = 10;
+/**
+ * ml, of a drink the owner's food database gives a weight per ml for (D-102): logged as a serving
+ * with this name, its grams the food's own "ml" unit × the ml, in whole ml.
+ */
+export const ML_SERVING_LABEL = 'ml';
 /**
  * oz, a weight, for every listed and packaged food (D-76): logged as a serving with this name, of
  * OZ_GRAMS each, counted in halves as other servings. No food's own serving may have this name.
@@ -539,14 +562,25 @@ export function isOwnQuantity(unit: 'g' | OwnUnit, value: number): boolean {
 
 const nutrientSchema = z.number().min(0).max(MEAL_ITEM_NUTRIENT_MAX);
 
-/** A count in halves, from 0.5 to `max`. */
-function halvesSchema(max: number) {
-  return z
-    .number()
-    .min(0.5)
-    .max(max)
-    .refine((value) => Number.isInteger(value * 2));
+/**
+ * Whether `value` has at most two decimals (D-102: a quantity typed on the food page, "1.25"),
+ * allowing for a binary fraction's last digit.
+ */
+export function hasTwoDecimals(value: number): boolean {
+  const hundredths = value * 100;
+  return Math.abs(hundredths - Math.round(hundredths)) < 1e-6;
 }
+
+/**
+ * A count more than 0 with at most two decimals (D-102; halves from 0.5 before), up to `max`.
+ * Every count the phone sent before (a half from 0.5 to 10) still passes.
+ */
+function countSchema(max: number) {
+  return z.number().gt(0).max(max).refine(hasTwoDecimals);
+}
+
+/** The most a count of a serving or unit may be: a hundredth of a gram each, up to the grams allowed. */
+const COUNT_MAX = MEAL_ITEM_GRAMS_MAX * 100;
 
 /**
  * One food in a meal, with its values for the amount eaten. The values are a snapshot taken when
@@ -561,19 +595,20 @@ export const mealItemSchema = z
     name: z.string().trim().min(1).max(120),
     amount: z.discriminatedUnion('unit', [
       z.strictObject({ unit: z.literal('g'), value: z.int().min(1).max(MEAL_ITEM_GRAMS_MAX) }),
-      z.strictObject({ unit: z.literal('portion'), value: halvesSchema(MEAL_ITEM_PORTIONS_MAX) }),
+      z.strictObject({ unit: z.literal('portion'), value: countSchema(MEAL_ITEM_PORTIONS_MAX) }),
       // Units of a listed food (D-36), with the grams they came to, which the values are for.
       z.strictObject({
         unit: z.literal('measure'),
         measure: z.enum(FOOD_MEASURES),
-        value: halvesSchema(MEAL_ITEM_MEASURES_MAX),
+        value: countSchema(COUNT_MAX),
         grams: z.number().gt(0).max(MEAL_ITEM_GRAMS_MAX),
       }),
-      // Servings of a USDA food, as USDA labels them, with the grams they came to.
+      // Servings of a food, as its source labels them (since D-102 also the units of the owner's food
+      // database, and ml), with the grams they came to.
       z.strictObject({
         unit: z.literal('serving'),
         label: z.string().min(1).max(SERVING_LABEL_MAX),
-        value: halvesSchema(MEAL_ITEM_SERVINGS_MAX),
+        value: countSchema(COUNT_MAX),
         grams: z.number().gt(0).max(MEAL_ITEM_GRAMS_MAX),
       }),
       // Your own food in one of its units other than grams; the values are for this quantity.
@@ -590,18 +625,21 @@ export const mealItemSchema = z
   // A dish is logged in portions, and everything else in grams (D-26 answer 3; D-28); an IFCT food
   // may also be logged in a household unit (D-36), a USDA food in its servings, and your own food in
   // its unit (more-foods plan); an INDB recipe in grams or its serving (D-46). Since D-76 every listed
-  // and packaged food may also be logged in oz, as a serving named "oz".
+  // and packaged food may also be logged in oz, as a serving named "oz"; since D-102 an IFCT food
+  // also in the units of the owner's food database, as servings the sync finds on the list.
   .refine((item) => ALLOWED_AMOUNTS[item.source].includes(item.amount.unit), { path: ['amount'] })
-  // An IFCT food has no servings of its own: only oz (D-76).
-  .refine((item) => item.source !== 'ifct2017' || item.amount.unit !== 'serving' || item.amount.label === OZ_SERVING_LABEL, { path: ['amount'] })
   // oz is a weight: 28.35 g each, allowing for rounding to two decimals (D-76).
   .refine((item) => item.amount.unit !== 'serving' || item.amount.label !== OZ_SERVING_LABEL || Math.abs(item.amount.grams - item.amount.value * OZ_GRAMS) <= 0.02, {
     path: ['amount', 'grams'],
   })
+  // ml are typed whole (D-102).
+  .refine((item) => item.amount.unit !== 'serving' || item.amount.label !== ML_SERVING_LABEL || Number.isInteger(item.amount.value), {
+    path: ['amount', 'value'],
+  })
   .refine((item) => item.amount.unit !== 'own' || isOwnQuantity(item.amount.name, item.amount.value), { path: ['amount', 'value'] });
 
 const ALLOWED_AMOUNTS: Record<MealItemSource, readonly string[]> = {
-  // An IFCT food in grams, a household unit (D-36), or oz (D-76).
+  // An IFCT food in grams, a household unit (D-36), oz (D-76), or a unit of the owner's food database (D-102).
   ifct2017: ['g', 'measure', 'serving'],
   usda_fndds: ['g', 'serving'],
   indb: ['g', 'serving'],
@@ -1066,10 +1104,21 @@ export const foodSchema = z.object({
   kcalEstimated: z.boolean(),
   /** The household units the owner has measured for this food, and the grams one holds (D-36). */
   measures: z.array(z.object({ measure: z.enum(FOOD_MEASURES), grams: z.number() })),
-  /** A USDA food's servings as USDA labels them ("Medium or regular slice"), and their grams. */
+  /**
+   * Its servings as its source labels them ("Medium or regular slice", "1 plate"), and their grams;
+   * since D-102 also the units of the owner's food database ("Katori", "ml": grams per ml).
+   */
   portions: z.array(z.object({ label: z.string(), grams: z.number() })),
+  /**
+   * The measure its page opens on (D-102, the database's Default Unit): a serving's label, or
+   * FOOD_OPENS_ON_GRAMS; absent when the database does not list the food.
+   */
+  opensOn: z.string().optional(),
 });
 export type Food = z.infer<typeof foodSchema>;
+
+/** `opensOn` of a food whose page opens on Grams (D-102). */
+export const FOOD_OPENS_ON_GRAMS = 'Grams';
 
 /** How a dish's portion is counted: one piece, or one 200 ml katori (D-26 answer 3, amended). */
 export const DISH_PORTION_UNITS = ['piece', 'katori'] as const;
@@ -1117,8 +1166,15 @@ export const packagedFoodSchema = z.object({
    * none.
    */
   aliases: z.array(z.string()).optional(),
+  /**
+   * The units of the owner's food database (D-102: "Katori", "Bar", "ml": grams per ml), besides the
+   * label's serving; absent when it has none.
+   */
+  portions: z.array(z.object({ label: z.string(), grams: z.number() })).optional(),
+  /** The measure its page opens on (D-102), as a food's `opensOn`; absent when not listed. */
+  opensOn: z.string().optional(),
 });
-export type PackagedFood =z.infer<typeof packagedFoodSchema>;
+export type PackagedFood = z.infer<typeof packagedFoodSchema>;
 
 /** The name a packaged food's serving is logged under (D-48). */
 export const PACKAGED_SERVING_LABEL = 'Serving';

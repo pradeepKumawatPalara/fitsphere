@@ -1,11 +1,13 @@
-import { OZ_SERVING_LABEL, type MealItem } from '@fitsphere/shared';
+import { FOOD_OPENS_ON_GRAMS, MEAL_ITEM_GRAMS_MAX, ML_SERVING_LABEL, OZ_SERVING_LABEL, type MealItem } from '@fitsphere/shared';
 import { ChevronDown, ChevronLeft, SquarePen, Trash } from 'lucide-react-native';
 import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
-import { formatInteger } from '../format';
+import { formatInteger, parseWholeNumber } from '../format';
 import { useFieldChecks } from '../fieldChecks';
 import type { ListedFood, LocalMyFood } from '../local/store';
 import {
+  countRule,
+  formatCount,
   GRAMS_RULE,
   itemFromDish,
   itemFromFood,
@@ -14,9 +16,11 @@ import {
   itemFromPackaged,
   itemFromPackagedServings,
   itemFromServings,
+  listMax,
   ownQuantityRule,
   OZ_SERVING,
   packagedServing,
+  parseCount,
   parseGrams,
   parseOwnQuantity,
   PORTIONS_MAX,
@@ -65,27 +69,49 @@ import { IconButton, Problem, Text, TextButton, TextInput } from './ui';
 // several things also gives one of them ("2 slices" gives Slice; the food list brings it as one more
 // serving), every listed and packaged food can be logged in oz, and each measure shows its grams
 // beside its name. The food's own measures come first, smallest first, then Grams, then oz.
+//
+// Units from the owner's food database (D-102; the redesign's 3.6b "units from your food database",
+// locked 2026-11-13): a food the database lists has its units too (Katori, Bowl, Medium, Bar…; a
+// packaged food's beside its label's serving) and opens on its Default Unit, quantity 1, after an
+// amount it is in the meal with (D-64), was last logged in (D-60) or was searched with (D-96). A drink
+// also has ml, typed as grams are, after Grams. Quantity is a box to type in, more than 0 with at most
+// two decimals and no more than 10,000 g of the food, with the list of halves beside it, a number typed
+// shown in the list too.
 
 export type FoodResult = ListedFood;
 
 /**
- * One way to measure the food: typed, or counted in halves up to `max`; with the grams one holds,
- * shown beside its name, and the serving or household unit it counts.
+ * One way to measure the food: typed (Grams, ml, a My food's unit), or counted, typed or chosen from
+ * a list of halves up to `list`, any count up to `max` (D-102); with the grams one holds, shown beside
+ * its name, and the serving or household unit it counts.
  */
-type Measure = { key: string; name: string; grams: number | null; counted: boolean; max: number; serving?: FoodServing; unit?: FoodUnit };
+type Measure = { key: string; name: string; grams: number | null; counted: boolean; max: number; list: number; serving?: FoodServing; unit?: FoodUnit };
 
 /** What a measure is called when read out, and in tests: "Slice (28 g)", "Grams". */
 function measureLabel(measure: Pick<Measure, 'name' | 'grams'>): string {
   return measure.grams === null ? measure.name : `${measure.name} (${formatMeasureGrams(measure.grams)})`;
 }
 
-const GRAMS: Measure = { key: 'g', name: 'Grams', grams: null, counted: false, max: 0 };
+const GRAMS: Measure = { key: 'g', name: 'Grams', grams: null, counted: false, max: MEAL_ITEM_GRAMS_MAX, list: 0 };
 
 function servingMeasure(key: string, serving: FoodServing): Measure {
-  return { key, name: serving.label, grams: serving.grams, counted: true, max: servingsMax(serving.grams), serving };
+  return { key, name: serving.label, grams: serving.grams, counted: true, max: servingsMax(serving.grams), list: listMax(serving.grams), serving };
 }
 
 const OZ: Measure = servingMeasure('oz', OZ_SERVING);
+
+/** ml of a drink (D-102): typed whole, as grams are, each the grams the database gives a ml. */
+function mlMeasure(serving: FoodServing): Measure {
+  return { key: 'ml', name: ML_SERVING_LABEL, grams: serving.grams, counted: false, max: Math.floor(MEAL_ITEM_GRAMS_MAX / serving.grams + 1e-9), list: 0, serving };
+}
+
+/** A food's own measures, smallest first, then Grams, ml for a drink (D-102), then oz (D-76). */
+function inOrder(own: Measure[], ml: FoodServing | undefined): Measure[] {
+  // Smallest first: "Slice" before the "2 slices" it comes from. The sort keeps equal grams in order.
+  return [...own.sort((a, b) => (a.grams ?? 0) - (b.grams ?? 0)), GRAMS, ...(ml ? [mlMeasure(ml)] : []), OZ];
+}
+
+const isMl = (serving: FoodServing) => serving.label === ML_SERVING_LABEL;
 
 /** One row of the picker's wheels. */
 const ROW = 52;
@@ -95,26 +121,39 @@ function halves(max: number): number[] {
   return Array.from({ length: Math.floor(max * 2) }, (_, index) => (index + 1) / 2);
 }
 
+/** The list's counts with `count` among them, in order, when it fits the measure (D-102). */
+function withCount(counts: number[], count: number, max: number): number[] {
+  return counts.includes(count) || !(count > 0) || count > max ? counts : [...counts, count].sort((a, b) => a - b);
+}
+
 function capital(text: string): string {
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
 /**
- * A listed food's are its household units and servings, smallest first, then Grams and oz (D-76); a
- * dish's, its portion; a My food's, its unit; a packaged food's, the serving its label gives in
- * grams (D-48), then Grams and oz.
+ * A listed food's are its household units and servings (since D-102 also the units of the owner's
+ * food database), smallest first, then Grams, ml for a drink, and oz (D-76); a dish's, its portion; a
+ * My food's, its unit; a packaged food's, the serving its label gives in grams (D-48) and the
+ * database's units, then Grams, ml and oz.
  */
 function measuresOf(result: FoodResult): Measure[] {
   if (result.kind === 'packaged') {
     const serving = packagedServing(result.food);
-    return [...(serving ? [servingMeasure('serving', serving)] : []), GRAMS, OZ];
+    const units = result.food.portions ?? [];
+    return inOrder(
+      [
+        ...(serving ? [servingMeasure('serving', serving)] : []),
+        ...units.flatMap((unit, index) => (isMl(unit) ? [] : [servingMeasure(`unit ${index}`, unit)])),
+      ],
+      units.find(isMl),
+    );
   }
   if (result.kind === 'dish') {
-    return [{ key: 'portion', name: capital(PORTION_UNIT_LABELS[result.dish.portionUnit]), grams: null, counted: true, max: PORTIONS_MAX }];
+    return [{ key: 'portion', name: capital(PORTION_UNIT_LABELS[result.dish.portionUnit]), grams: null, counted: true, max: PORTIONS_MAX, list: PORTIONS_MAX }];
   }
   if (result.kind === 'mine') {
     const unit = result.food.unit;
-    return [{ key: 'own', name: unit === 'g' ? 'Grams' : unit === 'ml' ? 'ml' : capital(OWN_UNIT_NAMES[unit].many), grams: null, counted: false, max: 0 }];
+    return [{ key: 'own', name: unit === 'g' ? 'Grams' : unit === 'ml' ? 'ml' : capital(OWN_UNIT_NAMES[unit].many), grams: null, counted: false, max: 0, list: 0 }];
   }
   const own: Measure[] = [
     ...result.food.measures.map((unit) => ({
@@ -123,30 +162,50 @@ function measuresOf(result: FoodResult): Measure[] {
       grams: unit.grams,
       counted: true,
       max: unitsMax(unit.grams),
+      list: listMax(unit.grams),
       unit,
     })),
-    ...result.food.portions.map((serving, index) => servingMeasure(`serving ${index}`, serving)),
+    // Keyed by their place in the food's servings, so "serving 0" stays the source's own first one.
+    ...result.food.portions.flatMap((serving, index) => (isMl(serving) ? [] : [servingMeasure(`serving ${index}`, serving)])),
   ];
-  // Smallest first: "Slice" before the "2 slices" it comes from. The sort keeps equal grams in order.
-  return [...own.sort((a, b) => (a.grams ?? 0) - (b.grams ?? 0)), GRAMS, OZ];
+  return inOrder(own, result.food.portions.find(isMl));
 }
 
-/** What the amount adds, or null when the typed quantity can't be added. */
-function itemOf(result: FoodResult, measure: Measure, count: number, typed: string): MealItem | null {
-  if (result.kind === 'dish') return itemFromDish(result.dish, count);
+/** The measure the owner's food database opens the food on (D-102), or -1 when it gives none the page has. */
+function opensOnIndex(result: FoodResult, measures: Measure[]): number {
+  const opensOn = result.kind === 'food' || result.kind === 'packaged' ? result.food.opensOn : undefined;
+  if (opensOn === undefined) return -1;
+  if (opensOn === FOOD_OPENS_ON_GRAMS) return measures.findIndex((measure) => measure.key === 'g');
+  const name = opensOn.toLowerCase();
+  return measures.findIndex((measure) => measure.key !== 'oz' && measure.name.toLowerCase() === name);
+}
+
+/**
+ * What the amount adds, or null when the quantity can't be added: `count` is the typed count of a
+ * counted measure (null when it is not one), `typed` the text of a typed one.
+ */
+function itemOf(result: FoodResult, measure: Measure, count: number | null, typed: string): MealItem | null {
   if (result.kind === 'mine') {
     const quantity = parseOwnQuantity(typed, result.food.unit);
     return quantity === null ? null : itemFromMyFood(result.food, quantity);
   }
-  if (result.kind === 'packaged') {
-    if (measure.serving) return itemFromPackagedServings(result.food, measure.serving, count);
-    const grams = parseGrams(typed);
-    return grams === null ? null : itemFromPackaged(result.food, grams);
+  if (measure.counted) {
+    if (count === null) return null;
+    if (result.kind === 'dish') return itemFromDish(result.dish, count);
+    if (result.kind === 'packaged') return measure.serving ? itemFromPackagedServings(result.food, measure.serving, count) : null;
+    if (measure.serving) return itemFromServings(result.food, measure.serving, count);
+    return measure.unit ? itemFromFoodUnits(result.food, measure.unit, count) : null;
   }
-  if (measure.serving) return itemFromServings(result.food, measure.serving, count);
-  if (measure.unit) return itemFromFoodUnits(result.food, measure.unit, count);
+  if (result.kind === 'dish') return null;
+  if (measure.key === 'ml' && measure.serving) {
+    // Whole ml (D-102), logged as a serving named "ml" of the grams one holds.
+    const ml = parseWholeNumber(typed, 1, measure.max);
+    if (ml === null) return null;
+    return result.kind === 'packaged' ? itemFromPackagedServings(result.food, measure.serving, ml) : itemFromServings(result.food, measure.serving, ml);
+  }
   const grams = parseGrams(typed);
-  return grams === null ? null : itemFromFood(result.food, grams);
+  if (grams === null) return null;
+  return result.kind === 'packaged' ? itemFromPackaged(result.food, grams) : itemFromFood(result.food, grams);
 }
 
 /**
@@ -168,10 +227,13 @@ function startOf(result: FoodResult, measures: Measure[], from: MealItem['amount
       return counted(at(from.measure), from.value);
     case 'serving':
       if (from.label === OZ_SERVING_LABEL) return counted(at('oz'), from.value);
-      if (result.kind === 'packaged') return counted(at('serving'), from.value);
-      if (result.kind !== 'food') return null;
+      // ml are typed whole (D-102).
+      if (from.label === ML_SERVING_LABEL) return typed(at('ml'), from.value);
+      if (result.kind !== 'food' && result.kind !== 'packaged') return null;
+      // A serving by its name: a packaged food's label's "Serving" (D-48), or a unit of the owner's food
+      // database (D-102), whichever the food has by that name.
       return counted(
-        measures.findIndex((measure) => measure.key.startsWith('serving ') && measure.serving?.label === from.label),
+        measures.findIndex((measure) => measure.counted && measure.key !== 'oz' && measure.serving?.label === from.label),
         from.value,
       );
   }
@@ -251,18 +313,31 @@ export function FoodDetail({
   // when it still has it (D-60); a food found by a search with an amount, on that amount (D-96).
   const servingFirst =
     result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
-  // Otherwise on Grams (D-76: the food's own measures come before it).
-  const opening = Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g')));
+  // Otherwise on Grams (D-76: the food's own measures come before it). A food the owner's food database
+  // lists opens on its Default Unit (D-102).
+  const sheetOpening = opensOnIndex(result, measures);
+  const opening = sheetOpening >= 0 ? sheetOpening : Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g')));
   const [start] = useState(() => (from ? startOf(result, measures, from) : amount ? startFromSearch(result, measures, opening, amount) : null));
   const [measureIndex, setMeasureIndex] = useState(() => start?.measureIndex ?? opening);
-  const [count, setCount] = useState(start?.count ?? 1);
+  const [countText, setCountText] = useState(() => formatCount(start?.count ?? 1));
   const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
   const [picking, setPicking] = useState(false);
   const measure = measures[measureIndex] ?? measures[0]!;
+  const count = measure.counted ? parseCount(countText, measure.max) : null;
   const item = itemOf(result, measure, count, typed);
   // The typed amount's rule shows once typing pauses or the box is left (D-99); Add waits meanwhile.
-  const checks = useFieldChecks({ typed });
+  const checks = useFieldChecks({ typed, count: countText });
   const typedRefused = !item && !measure.counted && checks.shows('typed');
+  const countRefused = measure.counted && count === null && checks.shows('count');
+  const problem = countRefused
+    ? countRule(countText, measure.max, measure.grams)
+    : !typedRefused
+      ? null
+      : result.kind === 'mine'
+        ? ownQuantityRule(result.food.unit)
+        : measure.key === 'ml'
+          ? `Enter whole ml from 1 to ${formatInteger(measure.max)}.`
+          : GRAMS_RULE;
 
   const name = result.kind === 'dish' ? result.dish.name : result.food.name;
   const mark =
@@ -321,19 +396,34 @@ export function FoodDetail({
             <View style={styles.quantity}>
               <Text style={styles.label}>Quantity</Text>
               {measure.counted ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Quantity: ${count}`}
-                  onPress={() => setPicking(true)}
-                  style={({ pressed }) => [styles.box, pressed && styles.pressed]}
-                >
-                  <Text style={styles.count}>{count}</Text>
-                  <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
-                </Pressable>
+                // Typed, or chosen from the list beside it (D-102). The list's button keeps the name the
+                // quantity had (D-45): "Quantity: 1".
+                <View style={[styles.box, styles.countBox, countRefused && styles.refused, checks.focused === 'count' && !countRefused && styles.focusedBox]}>
+                  <TextInput
+                    key="count"
+                    accessibilityLabel="Type the quantity"
+                    value={countText}
+                    onChangeText={setCountText}
+                    onFocus={() => checks.focus('count')}
+                    onBlur={() => checks.blur('count')}
+                    keyboardType="decimal-pad"
+                    selectTextOnFocus
+                    style={[styles.typed, styles.countTyped]}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Quantity: ${countText}`}
+                    onPress={() => setPicking(true)}
+                    style={({ pressed }) => [styles.listButton, pressed && styles.pressed]}
+                  >
+                    <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
+                  </Pressable>
+                </View>
               ) : (
                 <View style={[styles.box, typedRefused && styles.refused]}>
                   <TextInput
-                    accessibilityLabel={result.kind === 'mine' ? ownQuantityLabel(result.food.unit) : 'Grams eaten'}
+                    key="typed"
+                    accessibilityLabel={result.kind === 'mine' ? ownQuantityLabel(result.food.unit) : measure.key === 'ml' ? 'ml drunk' : 'Grams eaten'}
                     value={typed}
                     onChangeText={setTyped}
                     onFocus={() => checks.focus('typed')}
@@ -364,7 +454,7 @@ export function FoodDetail({
               )}
             </View>
           </View>
-          {typedRefused ? <Problem text={result.kind === 'mine' ? ownQuantityRule(result.food.unit) : GRAMS_RULE} /> : null}
+          {problem ? <Problem text={problem} /> : null}
           {from ? <Text style={styles.per}>{`${fromLabel}: ${formatAmount(from)}`}</Text> : null}
           {result.kind === 'mine' && onEdit ? <TextButton title="Edit My food" icon={SquarePen} onPress={() => onEdit(result.food)} /> : null}
         </View>
@@ -401,10 +491,10 @@ export function FoodDetail({
         <AmountPicker
           measures={measures}
           measureIndex={measureIndex}
-          count={count}
+          count={count ?? 1}
           onDone={(index, chosen) => {
             setMeasureIndex(index);
-            setCount(chosen);
+            setCountText(formatCount(chosen));
             setPicking(false);
           }}
           onClose={() => setPicking(false)}
@@ -416,7 +506,9 @@ export function FoodDetail({
 
 /**
  * The quantity and the measure as two wheels, the chosen row of each on one band across the middle;
- * Done keeps them. A typed measure (Grams) has no wheel: its quantity is typed in the box.
+ * Done keeps them. A typed measure (Grams, ml) has no wheel: its quantity is typed in the box. The
+ * quantities are halves up to the measure's list (D-36), with a count typed in the box among them
+ * (D-102: "1.25", "25").
  */
 function AmountPicker({
   measures,
@@ -435,7 +527,7 @@ function AmountPicker({
   const [index, setIndex] = useState(measureIndex);
   const [chosen, setChosen] = useState(count);
   const measure = measures[index] ?? measures[0]!;
-  const counts = measure.counted ? halves(measure.max) : [];
+  const counts = measure.counted ? withCount(halves(measure.list), chosen, measure.max) : [];
   return (
     <Sheet
       onClose={onClose}
@@ -461,7 +553,7 @@ function AmountPicker({
             />
           ) : (
             <View style={styles.typeHere}>
-              <Text style={styles.hint}>Type the grams in the box</Text>
+              <Text style={styles.hint}>{measure.key === 'ml' ? 'Type the ml in the box' : 'Type the grams in the box'}</Text>
             </View>
           )}
         </View>
@@ -610,6 +702,12 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceSunken,
   },
   refused: { borderColor: c.danger },
+  // The typed quantity and its list (D-102, the locked "units from your food database"): the number on
+  // the left, the list's arrow in a 44 wide part on the right, a rule between; caramel while typed in.
+  countBox: { paddingRight: 0, gap: 0 },
+  focusedBox: { borderColor: c.accent, borderWidth: 2 },
+  countTyped: { minWidth: 0 },
+  listButton: { width: 44, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', borderLeftWidth: 1, borderLeftColor: c.border },
   pressed: { opacity: 0.6 },
   count: { ...TYPE.metric, fontSize: 24, lineHeight: 26 },
   typed: { ...TYPE.metric, flex: 1, fontSize: 24, lineHeight: 28, paddingVertical: 8 },

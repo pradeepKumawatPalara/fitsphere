@@ -10,7 +10,7 @@ import {
   type SyncRequest,
   type SyncResponse,
 } from '@fitsphere/shared';
-import { callApi } from '../api/client';
+import { callApi, LIST_TIMEOUT_MS } from '../api/client';
 import type { AuthDeps } from '../auth/service';
 import type { SqlDb } from '../local/sql';
 import {
@@ -85,6 +85,7 @@ export async function refreshFoodList(db: SqlDb, auth: AuthDeps): Promise<FoodLi
   const version = await getMeta(db, 'food_list_version');
   const response = await callApi<unknown>(auth.apiUrl, `/foods${version ? `?version=${encodeURIComponent(version)}` : ''}`, {
     token: session.access_token,
+    timeoutMs: LIST_TIMEOUT_MS,
     ...(auth.fetchImpl ? { fetchImpl: auth.fetchImpl } : {}),
   });
   if (response.kind === 'offline') return 'offline';
@@ -107,6 +108,7 @@ export async function refreshExerciseList(db: SqlDb, auth: AuthDeps): Promise<Fo
   const version = await getMeta(db, 'exercise_list_version');
   const response = await callApi<unknown>(auth.apiUrl, `/exercises${version ? `?version=${encodeURIComponent(version)}` : ''}`, {
     token: session.access_token,
+    timeoutMs: LIST_TIMEOUT_MS,
     ...(auth.fetchImpl ? { fetchImpl: auth.fetchImpl } : {}),
   });
   if (response.kind === 'offline') return 'offline';

@@ -552,16 +552,23 @@ describe('more foods: USDA servings, your own units and My foods', () => {
     estimated: false,
   };
 
-  it('a USDA food in grams or its servings (halves to 10), and in nothing else', () => {
+  it('a USDA food in grams or its servings (D-102: any count above 0 with two decimals), and in nothing else', () => {
     expect(mealItemSchema.safeParse(USDA_BREAD).success).toBe(true);
     expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { unit: 'g', value: 56 } }).success).toBe(true);
-    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value: 1.25 } }).success).toBe(false);
-    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value: 10.5 } }).success).toBe(false);
+    for (const value of [0.01, 1.25, 10.5, 150]) {
+      expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value } }).success).toBe(true);
+    }
+    for (const value of [0, -1, 1.255]) {
+      expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value } }).success).toBe(false);
+    }
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { ...USDA_BREAD.amount, value: 400, grams: 11_200 } }).success).toBe(false);
     expect(mealItemSchema.safeParse({ ...USDA_BREAD, amount: { unit: 'measure', measure: 'glass', value: 1, grams: 250 } }).success).toBe(false);
-    expect(mealItemSchema.safeParse({ ...USDA_BREAD, source: 'ifct2017' }).success).toBe(false);
+    // Since D-102 an IFCT food may be in a serving too: the sync, not the schema, refuses one not on the list.
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, source: 'ifct2017' }).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...USDA_BREAD, source: 'dish' }).success).toBe(false);
   });
 
-  it('your own food in grams, millilitres (1 to 2,000) or another unit (0.1 to 100, one decimal)', () => {
+  it('your own food in grams, millilitres (1 to 10,000, D-102) or another unit (0.1 to 100, one decimal)', () => {
     expect(mealItemSchema.safeParse(OWN_BREAD).success).toBe(true);
     expect(mealItemSchema.safeParse({ ...OWN_BREAD, ref: null, amount: { unit: 'own', name: 'ml', value: 250 } }).success).toBe(true);
     for (const value of [0.1, 1.5, 100]) {
@@ -574,7 +581,9 @@ describe('more foods: USDA servings, your own units and My foods', () => {
     expect(mealItemSchema.safeParse({ ...OWN_BREAD, amount: { unit: 'own', name: 'plate', value: 1 } }).success).toBe(false);
     expect(mealItemSchema.safeParse({ ...OWN_BREAD, source: 'barcode' }).success).toBe(false);
     expect(isOwnQuantity('g', 2_000)).toBe(true);
-    expect(isOwnQuantity('g', 2_001)).toBe(false);
+    expect(isOwnQuantity('g', 10_000)).toBe(true);
+    expect(isOwnQuantity('ml', 10_000)).toBe(true);
+    expect(isOwnQuantity('g', 10_001)).toBe(false);
   });
 
   it('REQ-LOG-011 a My food: values per 100 g or ml up to 900 kcal and 100 g; per one unit up to 2,000 kcal and 200 g', () => {
@@ -801,28 +810,32 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
   // A synthetic dish (D-28): made-up values.
   const dish = { ...item, source: 'dish' as const, ref: 'test_dal', name: 'Test dal', estimated: true };
 
-  it('accepts whole grams from 1 to 2,000 and portions in halves from 0.5 to 10', () => {
+  it('accepts whole grams from 1 to 10,000 (D-102) and portions above 0 to 10, with two decimals', () => {
     for (const amount of [
       { unit: 'g', value: 1 },
       { unit: 'g', value: 2_000 },
+      { unit: 'g', value: 10_000 },
     ]) {
       expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
     }
     for (const amount of [
       { unit: 'portion', value: 0.5 },
       { unit: 'portion', value: 10 },
+      { unit: 'portion', value: 0.25 },
     ]) {
       expect(mealItemSchema.safeParse({ ...dish, amount }).success).toBe(true);
     }
     for (const amount of [
       { unit: 'g', value: 0 },
       { unit: 'g', value: 12.5 },
+      { unit: 'g', value: 10_001 },
       { unit: 'cup', value: 1 },
     ]) {
       expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
     }
     for (const amount of [
-      { unit: 'portion', value: 0.25 },
+      { unit: 'portion', value: 0 },
+      { unit: 'portion', value: 0.125 },
       { unit: 'portion', value: 10.5 },
     ]) {
       expect(mealItemSchema.safeParse({ ...dish, amount }).success).toBe(false);
@@ -843,16 +856,23 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
     }
   });
 
-  it('D-36 a listed food may be in household units: halves from 0.5 to 10, with the grams they came to', () => {
+  it('D-36 a listed food may be in household units: above 0 with two decimals (D-102), with the grams they came to', () => {
     const glasses = (value: number, grams: number) => ({ unit: 'measure', measure: 'glass', value, grams });
-    for (const amount of [glasses(0.5, 129), glasses(10, 2_000), { unit: 'measure', measure: 'teaspoon', value: 1, grams: 4.6 }]) {
+    for (const amount of [
+      glasses(0.5, 129),
+      glasses(10, 2_000),
+      glasses(0.25, 64.5),
+      glasses(10.5, 1_000),
+      glasses(9, 2_322),
+      { unit: 'measure', measure: 'teaspoon', value: 1, grams: 4.6 },
+    ]) {
       expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
     }
     for (const amount of [
-      glasses(0.25, 64.5),
-      glasses(10.5, 1_000),
+      glasses(0, 0),
+      glasses(1.333, 344),
       glasses(1, 0),
-      glasses(9, 2_322),
+      glasses(40, 10_320),
       { unit: 'measure', measure: 'cup', value: 1, grams: 240 },
       { unit: 'measure', measure: 'glass', value: 1 },
     ]) {
@@ -865,18 +885,24 @@ describe('REQ-LOG-007 meal items and totals (D-26)', () => {
     }
   });
 
-  it('D-76 a listed or packaged food may be in oz: 28.35 g each, in halves to 10', () => {
+  it('D-76 a listed or packaged food may be in oz: 28.35 g each (D-102: any count above 0 with two decimals)', () => {
     const oz = (value: number, grams: number) => ({ unit: 'serving', label: 'oz', value, grams });
     for (const source of ['ifct2017', 'indb', 'brand_label', 'home', 'dish_estimate', 'barcode'] as const) {
       expect(mealItemSchema.safeParse({ ...item, source, amount: oz(2, 56.7) }).success).toBe(true);
     }
     expect(mealItemSchema.safeParse({ ...item, amount: oz(0.5, 14.18) }).success).toBe(true);
     expect(mealItemSchema.safeParse({ ...item, amount: oz(10, 283.5) }).success).toBe(true);
-    for (const amount of [oz(2, 60), oz(0.25, 7.09), oz(10.5, 297.68)]) {
+    for (const amount of [oz(0.25, 7.09), oz(10.5, 297.68)]) {
+      expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(true);
+    }
+    for (const amount of [oz(2, 60), oz(0.25, 7.5)]) {
       expect(mealItemSchema.safeParse({ ...item, amount }).success).toBe(false);
     }
-    // An IFCT food has no servings of its own: oz only.
-    expect(mealItemSchema.safeParse({ ...item, amount: { unit: 'serving', label: 'Slice', value: 1, grams: 25 } }).success).toBe(false);
+    // Since D-102 an IFCT food may be in a unit of the owner's food database: the sync checks it is listed.
+    expect(mealItemSchema.safeParse({ ...item, amount: { unit: 'serving', label: 'Katori', value: 1.5, grams: 150.75 } }).success).toBe(true);
+    // ml are whole (D-102).
+    expect(mealItemSchema.safeParse({ ...item, amount: { unit: 'serving', label: 'ml', value: 250, grams: 257.5 } }).success).toBe(true);
+    expect(mealItemSchema.safeParse({ ...item, amount: { unit: 'serving', label: 'ml', value: 2.5, grams: 2.58 } }).success).toBe(false);
     for (const source of ['dish', 'own'] as const) {
       expect(mealItemSchema.safeParse({ ...item, source, amount: oz(1, 28.35) }).success).toBe(false);
     }

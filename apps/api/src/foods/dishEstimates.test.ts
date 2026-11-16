@@ -27,13 +27,14 @@ function refused(...rows: string[]): string {
 }
 
 describe('D-62 the committed estimated-dishes sheet', () => {
-  it('passes every check: 6,848 dishes approved, 150 held back with their problem', () => {
+  it('passes every check: 7,043 dishes approved, 298 held back with their problem', () => {
     // D-62's 5,025; D-94's 1,634 held rows the owner's consolidated file rates C with values that fit, and
-    // 189 dishes FitSphere lacked. Held: D-62's 1,778 less those, and 6 dishes the file only rates D.
+    // 189 dishes FitSphere lacked; D-102's 195 rows of another base food ("Idli (Urad Dal)"). Held: D-62's
+    // 1,778 less those, 6 dishes the file only rates D, and D-102's 148 rows of another base food it rates D.
     const { foods, portions, held } = readDishEstimatesSheet(COMMITTED);
-    expect(foods).toHaveLength(6_848);
-    expect(portions).toHaveLength(6_848);
-    expect(held).toBe(150);
+    expect(foods).toHaveLength(7_043);
+    expect(portions).toHaveLength(7_043);
+    expect(held).toBe(298);
     expect(foods.every((food) => food.flag === 'llm' && food.estimated && food.code.startsWith('est-'))).toBe(true);
   });
 

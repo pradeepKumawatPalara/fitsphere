@@ -1,4 +1,5 @@
 import {
+  hasTwoDecimals,
   isOwnQuantity,
   MEAL_ITEM_GRAMS_MAX,
   MEAL_ITEM_MEASURES_MAX,
@@ -24,12 +25,41 @@ import { parseOneDecimal, parseWholeNumber } from './format';
 // Turning a food and an amount into a meal item (REQ-LOG-007; MVP defaults, D-26). Values are per
 // 100 g in the food list and on a label; the item keeps its values for the amount eaten.
 
-/** Whole grams eaten, 1 to 2,000 (MVP default, D-26). */
+/** Whole grams eaten, 1 to 2,000 (MVP default, D-26); to 10,000 since D-102. */
 export function parseGrams(text: string): number | null {
   return parseWholeNumber(text, 1, MEAL_ITEM_GRAMS_MAX);
 }
 
 export const GRAMS_RULE = `Enter whole grams from 1 to ${MEAL_ITEM_GRAMS_MAX.toLocaleString('en-US')}.`;
+
+/**
+ * A quantity typed on a food's page (D-102): more than 0, with at most two decimals, a point or a
+ * comma before them ("1.5", "0,25", ".5"); null when it is not one. Up to `max`.
+ */
+export function parseCount(text: string, max: number): number | null {
+  const match = /^(\d{0,5})(?:[.,](\d{1,2}))?$/.exec(text.trim());
+  if (!match || (match[1] === '' && match[2] === undefined)) return null;
+  const value = Number(`${match[1] || '0'}.${match[2] ?? '0'}`);
+  return value > 0 && value <= max && hasTwoDecimals(value) ? value : null;
+}
+
+/** The rule a typed quantity must meet: what the message says when `text` cannot be used (D-102). */
+export function countRule(text: string, max: number, gramsPerUnit: number | null): string {
+  const typed = parseCount(text, Number.MAX_SAFE_INTEGER);
+  if (typed !== null && typed > max) {
+    return gramsPerUnit === null
+      ? `Enter up to ${formatCount(max)}, the most one food can have.`
+      : `That is more than ${MEAL_ITEM_GRAMS_MAX.toLocaleString('en-US')} g of this food, the most one food can have. Enter up to ${formatCount(max)}.`;
+  }
+  return COUNT_RULE;
+}
+
+export const COUNT_RULE = 'Enter a quantity more than 0, with at most two decimals.';
+
+/** A count as typed back into the box: "1.5", "0.25", "2". */
+export function formatCount(count: number): string {
+  return String(Math.round(count * 100) / 100);
+}
 
 function forGrams(per100g: number, grams: number): number {
   return Math.round(per100g * grams) / 100;
@@ -81,9 +111,12 @@ export function stepPortions(portions: number, direction: 1 | -1, max = PORTIONS
   return Math.min(max, Math.max(PORTIONS_MIN, portions + direction * PORTION_STEP));
 }
 
-/** A value for one portion × the portions, in exact hundredths: values have two decimals and portions are halves. */
+/**
+ * A value for one portion × the portions, in hundredths: values have two decimals, and portions halves
+ * (the same as before) or, typed since D-102, two decimals too.
+ */
 function forPortions(perPortion: number, portions: number): number {
-  return Math.round((Math.round(perPortion * 100) * Math.round(portions * 2)) / 2) / 100;
+  return Math.round(Math.round(perPortion * 100) * portions) / 100;
 }
 
 /** A dish (D-28), eaten in `portions`; its values are always estimated. */
@@ -116,9 +149,26 @@ function gramsOfUnits(gramsPerUnit: number, count: number): number {
   return Math.round(gramsPerUnit * count * 100) / 100;
 }
 
-/** The most units one item can hold: 10, in halves, and no more than 2,000 g (D-36). */
+/**
+ * The most units one item can hold: no more than 10,000 g in all, in hundredths (D-102; 10, in halves,
+ * up to 2,000 g before).
+ */
 export function unitsMax(gramsPerUnit: number): number {
-  return Math.min(MEAL_ITEM_MEASURES_MAX, Math.floor((MEAL_ITEM_GRAMS_MAX / gramsPerUnit) * 2) / 2);
+  return countMax(gramsPerUnit);
+}
+
+/** The most of a unit or serving of `gramsPerUnit` one item can hold: 10,000 g in all, in hundredths (D-102). */
+export function countMax(gramsPerUnit: number): number {
+  return Math.floor((MEAL_ITEM_GRAMS_MAX / gramsPerUnit) * 100 + 1e-6) / 100;
+}
+
+/**
+ * The counts the food page's list offers: halves from 0.5 to 10, or fewer when a unit is so heavy that
+ * 10 would pass 10,000 g (D-36, D-39; D-102: any other count is typed).
+ */
+export function listMax(gramsPerUnit: number | null): number {
+  if (gramsPerUnit === null) return MEAL_ITEM_MEASURES_MAX;
+  return Math.min(MEAL_ITEM_SERVINGS_MAX, Math.floor((MEAL_ITEM_GRAMS_MAX / gramsPerUnit) * 2) / 2);
 }
 
 /** A listed food eaten in household units (D-36): its values are for the grams they come to. */
@@ -152,9 +202,12 @@ export function gramsPerUnitOf(amount: Extract<MealItem['amount'], { unit: 'meas
 /** One serving of a USDA food, as USDA labels it, and its grams (D-39). */
 export type FoodServing = Food['portions'][number];
 
-/** The most servings one item can hold: 10, in halves, and no more than 2,000 g (D-39). */
+/**
+ * The most servings one item can hold: no more than 10,000 g in all, in hundredths (D-102; 10, in
+ * halves, up to 2,000 g before, D-39).
+ */
 export function servingsMax(gramsPerServing: number): number {
-  return Math.min(MEAL_ITEM_SERVINGS_MAX, Math.floor((MEAL_ITEM_GRAMS_MAX / gramsPerServing) * 2) / 2);
+  return countMax(gramsPerServing);
 }
 
 /** A USDA food eaten in its servings (D-39): its values are for the grams they come to. */
@@ -235,11 +288,12 @@ export function sameFoods(a: readonly MealItem[], b: readonly MealItem[]): boole
 
 /**
  * The existing item holding both amounts, its values from the ones it has (as changing its grams);
- * or null when together they would pass the most one food can have (2,000 g, 10 portions, or 10
- * units up to 2,000 g).
+ * or null when together they would pass the most one food can have (10,000 g since D-102, or 10
+ * portions).
  */
 export function addAmount(existing: MealItem, added: MealItem): MealItem | null {
-  const total = existing.amount.value + added.amount.value;
+  // In hundredths: counts typed with decimals (D-102) add up exactly, 0.1 + 0.2 as 0.3.
+  const total = Math.round((existing.amount.value + added.amount.value) * 100) / 100;
   if (existing.amount.unit === 'g') return total > MEAL_ITEM_GRAMS_MAX ? null : withGrams(existing, total);
   if (existing.amount.unit === 'measure') return total > unitsMax(gramsPerUnitOf(existing.amount)) ? null : withUnits(existing, total);
   if (existing.amount.unit === 'serving') return total > servingsMax(gramsPerUnitOf(existing.amount)) ? null : withServings(existing, total);

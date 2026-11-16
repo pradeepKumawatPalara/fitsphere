@@ -4,7 +4,7 @@
 // USDA asks to be credited. Two steps: `convertFndds` turns USDA's JSON download into the two CSV
 // files kept in the repository (`npm run usda:convert`), and `readUsdaCsv` reads them back for
 // `foods:import`. Values are per 100 g.
-import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import { parseCsv } from './csv.ts';
 import { FoodListError, type ImportedFood } from './ifct.ts';
 
@@ -81,7 +81,7 @@ export function convertFndds(json: unknown): { foods: string[][]; portions: stri
       const description = (portion.portionDescription ?? '').trim();
       const grams = portion.gramWeight ?? 0;
       const label = portionLabel(description);
-      if (!description || skippedPortion(description) || grams <= 0 || grams > MEAL_ITEM_GRAMS_MAX) continue;
+      if (!description || skippedPortion(description) || grams <= 0 || grams > SERVING_GRAMS_MAX) continue;
       if (label.length > SERVING_LABEL_MAX || labels.has(label)) continue;
       labels.add(label);
       portions.push([code, String(labels.size), description, decimal(grams)]);
@@ -158,7 +158,7 @@ export function readServingListCsv(
     const [code = '', seq = '', description = '', grams = ''] = row;
     if (row.length !== USDA_PORTIONS_HEADER.length) throw new FoodListError(`${line}: ${row.length} fields`);
     if (!codes.has(code)) throw new FoodListError(`${line}: no food with this code`);
-    if (!/^\d{1,2}$/.test(seq) || !NUMBER.test(grams) || Number(grams) <= 0 || Number(grams) > MEAL_ITEM_GRAMS_MAX) {
+    if (!/^\d{1,2}$/.test(seq) || !NUMBER.test(grams) || Number(grams) <= 0 || Number(grams) > SERVING_GRAMS_MAX) {
       throw new FoodListError(`${line}: the order or the grams are not as expected`);
     }
     const label = portionLabel(description);

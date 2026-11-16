@@ -552,34 +552,48 @@ const OZ_SOURCES: ReadonlySet<MealItem['source']> = new Set([...FOOD_SOURCES, 'b
 /**
  * An INDB serving must be on the list for its food, with the grams per serving it came to (D-46); a
  * USDA serving, logged before USDA's foods were archived, on the archive (D-39, D-47); a packaged
- * food's, on the packaged foods, as their one "Serving" (D-48). oz is a weight every listed and
- * packaged food may be logged in, its grams checked by the meal's schema (D-76).
+ * food's, on the packaged foods, as their one "Serving" (D-48), or since D-102 one of its units from the
+ * owner's food database. oz is a weight every listed and packaged food may be logged in, its grams
+ * checked by the meal's schema (D-76). Since D-102 a serving the food had before with those grams is
+ * accepted too (app.food_portion_history), so a meal logged before the food list changed a serving's
+ * grams can still be saved again, and a saved meal still logged.
  */
 async function servingsListed(client: pg.PoolClient, items: MealItem[]): Promise<boolean> {
   const used = items.flatMap((item) =>
     item.amount.unit === 'serving' && !(item.amount.label === OZ_SERVING_LABEL && OZ_SOURCES.has(item.source))
-      ? [{ source: item.source, code: item.ref ?? '', label: item.amount.label, grams: item.amount.grams / item.amount.value }]
+      ? [{ source: item.source, code: item.ref ?? '', label: item.amount.label, count: item.amount.value, grams: item.amount.grams }]
       : [],
   );
-  for (const { source, code, label, grams } of used) {
+  for (const { source, code, label, count, grams } of used) {
     const { rows } =
       source === 'usda_fndds'
         ? await client.query<{ grams: string }>('select grams from app.usda_food_portions where code = $1 and label = $2', [code, label])
         : source === 'barcode'
-          ? await client.query<{ grams: string }>('select serving_grams as grams from app.packaged_foods where barcode = $1 and $2 = $3', [
-              code,
-              label,
-              PACKAGED_SERVING_LABEL,
-            ])
-          : await client.query<{ grams: string }>('select grams from app.food_portions where source = $1 and code = $2 and label = $3', [
-              source,
-              code,
-              label,
-            ]);
-    // The phone multiplies the serving's grams by the count; allow for rounding to two decimals.
-    if (!rows[0] || Math.abs(Number(rows[0].grams) - grams) > 0.02) return false;
+          ? await client.query<{ grams: string }>(
+              `select serving_grams as grams from app.packaged_foods where barcode = $1 and $2 = $3 and serving_grams is not null
+               union all select grams from app.packaged_food_portions where barcode = $1 and label = $2
+               union all select grams from app.food_portion_history where source = 'barcode' and code = $1 and label = $2`,
+              [code, label, PACKAGED_SERVING_LABEL],
+            )
+          : await client.query<{ grams: string }>(
+              `select grams from app.food_portions where source = $1 and code = $2 and label = $3
+               union all select grams from app.food_portion_history where source = $1 and code = $2 and label = $3`,
+              [source, code, label],
+            );
+    if (!rows.some((row) => servingGramsAgree(Number(row.grams), count, grams))) return false;
   }
   return true;
+}
+
+/**
+ * Whether `grams` is `count` servings of `perServing` grams. The phone multiplies the serving's grams by
+ * the count and rounds to two decimals: a serving's grams within 0.02 of the item's per serving (as
+ * before D-102), or the count × the serving within 0.01 of the item's grams (D-102: a count typed as
+ * 0.01 or 1.25, where dividing would magnify the rounding). Either is accepted, so nothing accepted
+ * before is refused.
+ */
+export function servingGramsAgree(perServing: number, count: number, grams: number): boolean {
+  return Math.abs(perServing - grams / count) <= 0.02 || Math.abs(perServing * count - grams) <= 0.01 + 1e-9;
 }
 
 async function measuresListed(client: pg.PoolClient, items: MealItem[]): Promise<boolean> {

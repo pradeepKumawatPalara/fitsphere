@@ -229,8 +229,9 @@ describe('REQ-LOG-001 meals', () => {
     ['an unknown tag', { tags: ['party'] }],
     ['the same tag twice', { tags: ['dessert', 'dessert'] }],
     ['0 g', { items: [{ ...ATTA, amount: { unit: 'g', value: 0 } }] }],
-    ['2,001 g', { items: [{ ...ATTA, amount: { unit: 'g', value: 2_001 } }] }],
-    ['a portion that is not a half', { items: [{ ...ATTA, amount: { unit: 'portion', value: 1.3 } }] }],
+    // One food may weigh up to 10,000 g since D-102 (2,000 before).
+    ['10,001 g', { items: [{ ...ATTA, amount: { unit: 'g', value: 10_001 } }] }],
+    ['a portion with three decimals', { items: [{ ...ATTA, amount: { unit: 'portion', value: 1.333 } }] }],
     ['a negative value', { items: [{ ...ATTA, proteinG: -1 }] }],
     ['an empty item name', { items: [{ ...ATTA, name: '  ' }] }],
     ['totals sent by the phone', { totals: { kcal: 1 } }],

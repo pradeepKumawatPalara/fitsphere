@@ -2,7 +2,7 @@
 // slices" of 56 g also gives "Slice" of 28 g, "Plate (4 pc)" of 60 g gives "Piece" of 15 g, and
 // "1/4 cup" of 30 g gives "Cup" of 120 g. The grams are the serving's, divided: nothing is guessed.
 // A serving of one ("Slice", "Tea cup") already is that unit and gives nothing more.
-import { MEAL_ITEM_GRAMS_MAX, OZ_SERVING_LABEL } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, OZ_SERVING_LABEL } from '@fitsphere/shared';
 import { FoodListError } from './ifct.ts';
 import type { ImportedPortion } from './usda.ts';
 
@@ -25,7 +25,7 @@ export function unitInServing(label: string, grams: number): { label: string; gr
 function each(name: string, grams: number, count: number): { label: string; grams: number } | null {
   if (!Number.isFinite(count) || count <= 0 || count === 1) return null;
   const one = Math.round((grams / count) * 100) / 100;
-  return one > 0 && one <= MEAL_ITEM_GRAMS_MAX ? { label: name, grams: one } : null;
+  return one > 0 && one <= SERVING_GRAMS_MAX ? { label: name, grams: one } : null;
 }
 
 /** "slices" → "Slice", "pcs" → "Piece", "sandwiches" → "Sandwich"; the last word only. */

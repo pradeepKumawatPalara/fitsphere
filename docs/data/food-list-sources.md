@@ -2,7 +2,7 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-12 (D-94: the owner's consolidated food database: other names,
+- Last updated: 2026-11-16 (D-102: the units of the owner's food database, its Default Unit, another base food's rows as dishes of their own, ml fixed for drinks). 2026-11-12 (D-94: the owner's consolidated food database: other names,
   `docs/data/food-aliases-sheet.csv`; 1,823 more estimated dishes; 53 generic foods as home-style
   foods; a proposed everyday row for bread). Earlier the same day (D-92: the everyday foods, `docs/data/everyday-foods-sheet.csv`, 16 rows
   approved by the owner). Earlier the same day (D-89: Open Food Facts' brands written one way,
@@ -672,6 +672,41 @@ loads them. Running it again on the same file changes nothing more.
   rejected) and for the dishes FitSphere has: they keep their values. Its Search Text, and its
   "Search index (preview)" sheet.
 
+## Units of the owner's food database (D-102)
+
+`Indian_Food_Database_CONSOLIDATED (1).xlsx` (13 November 2026, kept outside the repository, in
+`D:\fitsphere-data`) gives each row of its sheets "Dishes", "Branded packaged" and "Generic unbranded"
+a **Default Unit** and **Allowed Units** with their grams ("katori:129.0g | bowl:215.0g | gram:1g"),
+the file's estimates (an AI tool's), not weighed (risk R-016). `npm run food-units:convert -w
+@fitsphere/api -- <the file>` reads them for the foods FitSphere has, matched as D-94 matched them (a
+dish by its name or its name without the part in brackets among INDB's recipes, the estimated dishes and
+the home-style foods; a packaged food by its barcode; an IFCT food by its code and the same name; a
+generic food where D-94 put it), and writes three files; it changes nothing else. Running it again on
+the same file changes nothing more.
+
+- **`docs/data/food-units-sheet.csv`** (`source`, `code`, `name`, `opens_on`, `units`): one row per
+  food, its units as "Katori:129 | Bowl:215 | ml:1.03" (gram is Grams, which every food has;
+  millilitre is ml, grams per ml) and the unit its page opens on (`Grams` for gram). 16,607 foods: IFCT
+  542, INDB 733, home-style 85, estimated dishes 7,042, packaged 8,205. Not used: Portion Type.
+  `foods:import` checks it whole (no unit named oz, grams more than 0 and at most 2,000 with two
+  decimals, each name once) and loads the units after each food's own servings (`app.food_portions`,
+  numbered on): a unit of the same name as a serving the food has gives it the file's grams (the owner:
+  "keep the sheet value"; 1,699 servings), the others are added (26,596). A packaged food's go to
+  `app.packaged_food_portions`, the file's "serving" left out when the label gives a serving (the owner:
+  "keep the current one"; 1,917). Each food's page opens on its unit (`opens_on`) when the food has it.
+- **`docs/data/dish-estimates-sheet.csv`** (D-62's sheet and rules): a dish the file lists under several
+  base foods with other units keeps one row (the one of its own base food, else the one whose default
+  unit weighs its serving, else the one whose base it names, else the first); each other base food's
+  row is added as an estimated dish of its own, named with its base food ("Idli (Urad Dal)"), its
+  `data_source` ending "; another base food (D-102)": 195 approved, 148 the file rates D held as weak
+  matches. D-94's convert does not read these rows as the file's dishes.
+- **`docs/data/food-units-ml-fixes.csv`**, for the owner: a drink the file counts below or above about
+  1 g per ml (0.97 to 1.06; milk at 0.8, black coffee at 0.75) is counted at 1.03 g per ml for milk and
+  milk drinks (milk, lassi, milkshake, egg nog; not coconut or soya milk) and 1.00 for the others, in
+  ml and in its glass (250 ml), cup (200 ml), katori (150 ml) and tablespoon (15 ml), as the file sizes
+  them: 106 rows. 33 rows the file calls liquid that are not drinks (a fudge, a curry in milk, a sorbet)
+  are listed "not a drink: check" and not changed.
+
 ## Household units: FitSphere's household-measures sheet (D-36)
 `docs/data/household-measures-sheet.csv` gives the grams one household unit of a listed food holds,
 so the food can be logged as "1 glass" or "2 teaspoons" as well as in grams (plan:
@@ -696,6 +731,9 @@ weighing: no published table is used (NIN's household-measure tables are not a s
   five raw dals by the katori; nuts, seeds and dried fruit; fruit by the piece or katori;
   vegetables by the piece; egg; paneer. Never fill in or approve a row without the owner's
   measurements.
+
+Since D-102 the units of the owner's food database are servings of their own (above), beside
+these: an approved household unit stays the food's measure of that name.
 
 ### More measures from the servings already approved (D-76)
 No new data: `foods:import` divides a serving that holds several things into one of them ("2 slices"

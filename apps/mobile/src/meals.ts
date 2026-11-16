@@ -1,4 +1,5 @@
 import {
+  ML_SERVING_LABEL,
   OZ_SERVING_LABEL,
   SAVED_MEAL_NAME_MAX,
   type DishPortionUnit,
@@ -45,10 +46,14 @@ export function formatAmount(amount: MealItem['amount']): string {
   return formatPortions(amount.value);
 }
 
-/** Servings, named as their source names them: e.g. "2 × medium or regular slice"; oz as "2 oz" (D-76). */
+/**
+ * Servings, named as their source names them: e.g. "2 × medium or regular slice", "1.25 × katori"
+ * (D-102); oz as "2 oz" (D-76), ml as "250 ml" (D-102).
+ */
 export function formatServings(count: number, label: string): string {
-  if (label === OZ_SERVING_LABEL) return `${count} oz`;
-  return `${count} × ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+  const shown = formatInteger(Math.round(count * 100) / 100);
+  if (label === OZ_SERVING_LABEL || label === ML_SERVING_LABEL) return `${shown} ${label}`;
+  return `${shown} × ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 }
 
 /** The units of a food the user enters (D-39): the choice's label, and the unit's names. */

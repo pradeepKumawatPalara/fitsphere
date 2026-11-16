@@ -10,7 +10,7 @@
 //
 // A row's base food words ("okra; bhindi") are kept as the food's aliases, so a search for the base
 // food finds its dishes ("okra" finds Bhindi Masala). They are never shown.
-import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import { BRAND_LABEL_BASES, CODE, SEARCH_WORD, SEARCH_WORDS_MAX, VALUE } from './brandLabels.ts';
 import { parseCsv } from './csv.ts';
 import { isCalendarDate } from './dishes.ts';
@@ -114,7 +114,7 @@ export function readDishEstimatesSheet(text: string): DishEstimatesSheet {
       fail(`kcal ${kcal} does not agree with protein, carbs and fat (${Math.round(computed)} kcal)`);
     }
     const servingGrams = cell.serving_grams!;
-    if (cell.serving === '' || !VALUE.test(servingGrams) || Number(servingGrams) <= 0 || Number(servingGrams) > MEAL_ITEM_GRAMS_MAX) {
+    if (cell.serving === '' || !VALUE.test(servingGrams) || Number(servingGrams) <= 0 || Number(servingGrams) > SERVING_GRAMS_MAX) {
       fail('serving must be given, with serving_grams more than 0 and at most 2,000');
     }
     const label = portionLabel(cell.serving!);

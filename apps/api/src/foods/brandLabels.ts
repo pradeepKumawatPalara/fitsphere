@@ -12,7 +12,7 @@
 // Since D-55 a row may give search words, separated by semicolons ("whole wheat atta; gehu atta"):
 // the everyday names of what the product is, kept as the food's aliases after its brand, so a search
 // for the item finds every brand whatever its pack calls it. They are never shown.
-import { MEAL_ITEM_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
+import { SERVING_GRAMS_MAX, SERVING_LABEL_MAX } from '@fitsphere/shared';
 import { parseCsv } from './csv.ts';
 import { isCalendarDate } from './dishes.ts';
 import { FOOD_FLAGS, FoodListError, type FoodFlag, type ImportedFood } from './ifct.ts';
@@ -112,7 +112,7 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
     const serving = cell.serving!;
     const servingGrams = cell.serving_grams!;
     if ((serving === '') !== (servingGrams === '')) fail('serving and serving_grams go together');
-    if (servingGrams !== '' && (!VALUE.test(servingGrams) || Number(servingGrams) <= 0 || Number(servingGrams) > MEAL_ITEM_GRAMS_MAX)) {
+    if (servingGrams !== '' && (!VALUE.test(servingGrams) || Number(servingGrams) <= 0 || Number(servingGrams) > SERVING_GRAMS_MAX)) {
       fail('serving_grams must be more than 0 and at most 2,000');
     }
     const label = serving === '' ? '' : portionLabel(serving);
