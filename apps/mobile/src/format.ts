@@ -57,16 +57,26 @@ export function parseWeightInput(text: string, unit: BodyWeightUnit): number | n
   return isWeightGramsInRange(grams) ? grams : null;
 }
 
+/**
+ * Reads a number of up to four whole digits and at most `decimals` decimals, a point or a comma before
+ * them; null otherwise. As a number pad types it, the whole part may be left out (".5" is 0.5; the
+ * owner, 2026-11-16: ".5" hours of sleep was refused) and a point may end it ("7." is 7, so a message
+ * does not show while the decimal is still to come, D-99). A point alone is no number.
+ */
+function parseDecimal(text: string, decimals: 1 | 2): number | null {
+  const match = (decimals === 1 ? /^(\d{0,4})(?:[.,](\d?))?$/ : /^(\d{0,4})(?:[.,](\d{0,2}))?$/).exec(text.trim());
+  if (!match || (match[1] === '' && !match[2])) return null;
+  return Number(`${match[1] || '0'}.${match[2] || '0'}`);
+}
+
 /** Reads a number typed with at most one decimal, with a dot or a comma; null otherwise. */
 export function parseOneDecimal(text: string): number | null {
-  const match = /^(\d{1,4})(?:[.,](\d))?$/.exec(text.trim());
-  return match ? Number(`${match[1]}.${match[2] ?? '0'}`) : null;
+  return parseDecimal(text, 1);
 }
 
 /** Reads a number with at most two decimals, a point or a comma before them (a distance in km, D-50). */
 export function parseTwoDecimals(text: string): number | null {
-  const match = /^(\d{1,4})(?:[.,](\d{1,2}))?$/.exec(text.trim());
-  return match ? Number(`${match[1]}.${match[2] ?? '0'}`) : null;
+  return parseDecimal(text, 2);
 }
 
 /** Reads a whole number from `min` to `max`; spaces and thousands commas are ignored. */

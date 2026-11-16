@@ -3255,6 +3255,15 @@ checksum), and the configuration template was left as it is.*
   `apps/mobile/src/fieldChecks.ts`); the tests see a problem at once.
 - Phone app only for the timing: no server change for it.
 - Doc changes: the requirements named above; constraints' MVP defaults; CLAUDE.md.
+- Changed 2026-11-16 (the owner, in chat: "Currently the field validations appear after the 3 seconds
+  which is too large. I want it to be appear in 0.30 seconds"): the pause is **0.3 seconds**
+  (`CHECK_PAUSE_MS` 300); the rest of D-99 is unchanged. Built on branch `fix/field-checks`.
+- Fixed 2026-11-16 (the owner: "ON the Home tab Sleep input box I enter value of .5 still shows me the
+  validations"): a number may be typed without its whole part (".5" is 0.5, ",5" too) or end in a
+  point ("7." is 7, so the shorter pause shows no message while the decimal is still to come), in
+  every box with decimals: body weight and its target, sleep, the measurements, height, the lifting
+  weights, speed, incline and distance, a label's values per 100 g, your own food's quantity, and a
+  food's Quantity (D-102 already read ".5"). A point alone is still no number. Same branch.
 
 ## D-100 The ranges and text rules of every typed field
 - Status: **Accepted** (owner, in chat, 2026-11-13: "Person Heght can be from 50 CM to 300 cm."; then,

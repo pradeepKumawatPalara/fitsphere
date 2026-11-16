@@ -57,7 +57,21 @@ describe('REQ-HOME-006 Steps and Sleep tiles', () => {
     expect(await db.getFirstAsync('SELECT * FROM steps', [])).toBeNull();
   });
 
-  it.each(['24.1', '7.25', '-1', 'x'])('Q-028 refuses sleep "%s" and saves nothing', async (text) => {
+  it.each([
+    ['.5', 'Sleep: 0.5 h', 30],
+    [',5', 'Sleep: 0.5 h', 30],
+    ['7.', 'Sleep: 7.0 h', 420],
+  ])('sleep typed as "%s" is saved (the owner, 2026-11-16: ".5" was refused)', async (text, shown, minutes) => {
+    const { server } = await renderInApp(<HomeScreen />);
+
+    await log('Sleep', text);
+
+    expect(await screen.findByRole('button', { name: shown })).toBeOnTheScreen();
+    expect(screen.queryByText(dayValues('kg').sleep.rule)).toBeNull();
+    await waitFor(() => expect(server.entries('sleep').get('2026-10-28')).toMatchObject({ sleepMinutes: minutes }));
+  });
+
+  it.each(['24.1', '7.25', '-1', 'x', '.', '.55'])('Q-028 refuses sleep "%s" and saves nothing', async (text) => {
     const { db } = await renderInApp(<HomeScreen />);
 
     await log('Sleep', text);
