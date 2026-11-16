@@ -92,7 +92,7 @@ describe('D-76 oz, a weight every listed and packaged food may be logged in', ()
 
 describe('D-102 a quantity typed on a food’s page', () => {
   it('reads more than 0 with at most two decimals, a point or a comma before them', () => {
-    expect(['1', '1.5', '0,25', '.5', '0.01', '25', ' 2 '].map((text) => parseCount(text, 100))).toEqual([1, 1.5, 0.25, 0.5, 0.01, 25, 2]);
+    expect(['1', '1.5', '0,25', '.5', '0.01', '25', ' 2 ', '1.'].map((text) => parseCount(text, 100))).toEqual([1, 1.5, 0.25, 0.5, 0.01, 25, 2, 1]);
     for (const text of ['0', '0.00', '-1', '1.234', '', '.', 'abc', '1e2', '1.5.2']) expect(parseCount(text, 100)).toBeNull();
     expect(parseCount('77.52', 77.51)).toBeNull();
     expect(parseCount('77.51', 77.51)).toBe(77.51);
