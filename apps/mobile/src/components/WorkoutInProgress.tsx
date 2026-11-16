@@ -6,7 +6,7 @@ import { useNow } from '../clock';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries } from '../local/store';
 import { useSync } from '../sync/SyncProvider';
-import { themedStyles, useTheme } from '../theme';
+import { FLOATING_SHADOW, themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { formatDuration, listedWorkouts, spokenDuration, timerSeconds, timerState } from '../workouts';
 import { Text } from './ui';
@@ -106,7 +106,7 @@ const useStyles = themedStyles((c) => ({
     borderRadius: 24,
     borderWidth: 1.5,
     backgroundColor: c.surfaceRaised,
-    elevation: 6,
+    ...FLOATING_SHADOW,
   },
   pressed: { opacity: 0.8 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.success },

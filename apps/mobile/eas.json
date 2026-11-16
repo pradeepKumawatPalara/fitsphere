@@ -18,6 +18,19 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://vmieqpjevwkdagshbyyo.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_BgiTF0k-H5fQKpxzE41tGA_Fen8ywQb"
       }
+    },
+    "ios-simulator": {
+      "ios": {
+        "simulator": true
+      }
+    },
+    "production": {
+      "extends": "preview",
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   }
 }

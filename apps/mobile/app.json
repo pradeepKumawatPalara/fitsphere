@@ -6,9 +6,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "fitsphere",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.fitsphere.app"
     },
     "android": {
@@ -23,7 +23,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-sqlite",
         {
@@ -34,6 +39,7 @@
         "expo-camera",
         {
           "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs and to take meal photos.",
+          "microphonePermission": false,
           "recordAudioAndroid": false
         }
       ],
