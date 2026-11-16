@@ -232,7 +232,7 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
           {shown === 'howto' ? <HowToTab listed={listed} /> : null}
         </ScrollView>
       ) : null}
-      <WorkoutInProgress bottom={16} now={now} onOpen={(id) => (onOpenWorkout ? onOpenWorkout(id) : onClose())} />
+      <WorkoutInProgress top={64} bottom={16} now={now} onOpen={(id) => (onOpenWorkout ? onOpenWorkout(id) : onClose())} />
     </FullScreen>
   );
 }

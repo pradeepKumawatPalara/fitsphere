@@ -714,7 +714,8 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
  * `user_id` is the signed-in user's sign-in ID; `account_id` their FitSphere ID, which the API's
  * paths use (GET /v1/me). `account_created_day` is the IST day the account was created, for
  * Progress's "Meals logged" (Q-044). `ai_consent` is the last AI consent read from the server,
- * shown offline (D-31); the server's record is the one that counts.
+ * shown offline (D-31); the server's record is the one that counts. `workout_pill_corner` is the corner
+ * the Workout in progress pill was moved to (D-105), kept on this phone only.
  */
 export type MetaKey =
   | 'user_id'
@@ -725,7 +726,8 @@ export type MetaKey =
   | 'food_list_version'
   | 'exercise_list_version'
   | 'account_created_day'
-  | 'ai_consent';
+  | 'ai_consent'
+  | 'workout_pill_corner';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);

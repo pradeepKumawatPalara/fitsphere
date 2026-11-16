@@ -49,7 +49,7 @@ export default function TabsLayout() {
           <Tabs.Screen name="training" options={{ title: 'Training' }} />
           <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
         </Tabs>
-        <WorkoutInProgress bottom={TAB_BAR + (insets?.bottom ?? 0) + 12} onOpen={(id) => router.push(`/workout/${id}`)} />
+        <WorkoutInProgress top={height + 8} bottom={TAB_BAR + (insets?.bottom ?? 0) + 12} onOpen={(id) => router.push(`/workout/${id}`)} />
       </View>
     </SelectedDayProvider>
   );
