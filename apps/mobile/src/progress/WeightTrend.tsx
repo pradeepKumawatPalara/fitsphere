@@ -107,7 +107,8 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
       ) : points.length < 2 ? (
         <Text style={styles.empty}>{PROGRESS_TEXTS.chartEmpty}</Text>
       ) : (
-        <WeightChart points={points} unit={unit} weekly={rangeIsWeekly(range)} />
+        // A new chart for each range, so the point touched in another is forgotten.
+        <WeightChart key={range} points={points} unit={unit} weekly={rangeIsWeekly(range)} />
       )}
       <TextButton title="All weigh-ins" arrow onPress={onAllWeighIns} />
     </Card>

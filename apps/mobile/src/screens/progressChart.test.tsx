@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, within } from '@testing-library/react-native';
 import { applyServerEntries, setMeta } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { renderInApp } from '../testing/appHarness';
@@ -145,5 +145,71 @@ describe('REQ-PRG-004 weight trend chart', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'All weigh-ins' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith('/weight-history');
+  });
+});
+
+// The owner, 2026-11-16: with many points the values could not be read. As an exercise's graph (D-82,
+// the owner's C): pressing the chart picks the nearest point, ringed, with a bubble of its weight and date.
+describe('REQ-PRG-004 touching the weight chart', () => {
+  const WIDTH = 300;
+
+  async function laidOut() {
+    const plot = await screen.findByTestId('weight-chart-plot');
+    await fireEvent(plot, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: WIDTH, height: 200 } } });
+    return plot;
+  }
+
+  async function touch(x: number, how: 'onResponderGrant' | 'onResponderMove' = 'onResponderGrant') {
+    await act(async () => screen.getByTestId('weight-chart-plot').props[how]({ nativeEvent: { locationX: x } }));
+  }
+
+  function bubble() {
+    return within(screen.getByTestId('weight-chart-bubble'));
+  }
+
+  it('a press shows the nearest weigh-in’s weight and date; sliding moves to the next; a tap beside the line hides it', async () => {
+    await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE));
+    await laidOut();
+    expect(screen.queryByTestId('weight-chart-bubble')).toBeNull();
+
+    await touch(0);
+    expect(bubble().getByText('80.0 kg')).toBeOnTheScreen();
+    expect(bubble().getByText('Thu 1 Oct')).toBeOnTheScreen();
+
+    await touch(WIDTH, 'onResponderMove');
+    expect(bubble().getByText('78.8 kg')).toBeOnTheScreen();
+    expect(bubble().getByText('Wed 28 Oct')).toBeOnTheScreen();
+    // Kept after the finger lifts, for the screen reader too.
+    expect(screen.getByLabelText(/^4 weigh-ins/)).toHaveAccessibilityValue({ text: 'Wed 28 Oct, 78.8 kg' });
+
+    await fireEvent.press(screen.getByLabelText(/^4 weigh-ins/));
+    expect(screen.queryByTestId('weight-chart-bubble')).toBeNull();
+  });
+
+  it('another range forgets the point; a week’s average says its week', async () => {
+    await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE, '2026-07-01'));
+    await laidOut();
+    await touch(0);
+    expect(screen.getByTestId('weight-chart-bubble')).toBeOnTheScreen();
+
+    await fireEvent.press(range('6 months'));
+    await laidOut();
+    expect(screen.queryByTestId('weight-chart-bubble')).toBeNull();
+
+    await touch(0);
+    expect(bubble().getByText('81.5 kg')).toBeOnTheScreen();
+    expect(bubble().getByText('Week of Mon 10 Aug')).toBeOnTheScreen();
+  });
+
+  it('a screen reader moves from point to point by swiping up or down', async () => {
+    await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE));
+    await laidOut();
+    const chart = screen.getByLabelText(/^4 weigh-ins/);
+    expect(chart).toHaveAccessibilityValue({ text: 'Swipe up or down to hear each point' });
+
+    await act(async () => chart.props.onAccessibilityAction({ nativeEvent: { actionName: 'increment' } }));
+    expect(screen.getByLabelText(/^4 weigh-ins/)).toHaveAccessibilityValue({ text: 'Thu 1 Oct, 80.0 kg' });
+    await act(async () => screen.getByLabelText(/^4 weigh-ins/).props.onAccessibilityAction({ nativeEvent: { actionName: 'increment' } }));
+    expect(screen.getByLabelText(/^4 weigh-ins/)).toHaveAccessibilityValue({ text: 'Wed 14 Oct, 79.0 kg' });
   });
 });
