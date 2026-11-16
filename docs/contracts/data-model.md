@@ -709,7 +709,9 @@ searches. The setting lasts as long as the connection and is set at each start.
 - **What is kept:** the user's own weigh-ins, steps, sleep, measurements and workouts for the last
   90 IST days, and every target value (D-77) and their settings (ADR-0007 rule 1). Synced day entries older
   than that are deleted from the phone at each sync; targets and settings are never pruned. Older history is read from the
-  server when viewed online.
+  server when viewed online. Since D-106, an older day shown on Home, Nutrition, Training, Log meal or the calendar is read
+  with `GET /v1/users/{userId}/days` (its week, or the calendar's month) into the same tables as synced entries, and held
+  while the app is open: the prune leaves it until the app starts again (no schema change).
 - **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
   each in a transaction. Version 2 (Home and daily tracking slice) adds `steps`, `sleep`,
   `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor

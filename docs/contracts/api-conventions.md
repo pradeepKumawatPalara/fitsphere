@@ -104,6 +104,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 | `GET /v1/users/{userId}/workouts` | Read workouts online: the user's own history older than the phone holds | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-TRN-004, REQ-NFR-001 |
+| `GET /v1/users/{userId}/days` | Read a range of days online: the user's own day data older than the phone holds (D-106) | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-DATE-001, REQ-NFR-001 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
 | `GET /v1/exercises` | FitSphere's exercise list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-TRN-003, D-50 |
 | `GET /v1/barcodes/{barcode}` | A packaged product's values per 100 g, from Open Food Facts | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, ADR-0006 |
@@ -362,6 +363,23 @@ Sorted by day, oldest first; workouts on the same day by `id`. Deleted workouts 
 - The app uses it for the user's own workouts older than the 90 days the phone holds, read online
   (REQ-TRN-004; ADR-0007 rules 1 and 6).
 - `timer` is the workout's timer (D-71), or `null` when it was never started.
+
+### `GET /v1/users/{userId}/days`
+Query: `from` and `to` (IST days, inclusive, required), at most 42 days (`MAX_DAYS_RANGE`); any other
+query field, a day that is not a date, `to` before `from` or more days is `VALIDATION_FAILED`. No
+cursor and no limit: the days asked for, whole.
+
+`200`: the day data of those days, each kind as the sync pull sends it (ADR-0007), with meals and
+workouts deleted on another phone as `{ "deleted": true, "id", "day", "updatedAt" }`, so the phone
+removes its copy:
+```json
+{ "weighIns": [ { "day": "2025-03-11", "weightGrams": 74150, "recordedAt": "…", "updatedAt": "…" } ],
+  "steps": [], "sleep": [], "measurements": [], "workouts": [], "meals": [] }
+```
+- Who may read it follows the permission matrix, kind by kind, as the weigh-ins route above.
+  **MVP (D-20):** only the user themselves; anyone else gets `404`, as for a user that does not exist.
+- The app reads a day older than the 90 the phone holds when it is shown (D-106; ADR-0007 rule 1):
+  its week, or the calendar's month, kept on the phone while the app is open.
 
 ### `GET /v1/foods`
 Query: `version` (optional), the version of the list the phone already holds.

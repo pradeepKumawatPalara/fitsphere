@@ -3507,6 +3507,41 @@ checksum), and the configuration template was left as it is.*
   too, D-104). No server change, no migration, no phone schema change.
 - Doc changes: REQ-TRN-003's D-83 line; constraints' MVP defaults; the redesign's 4.5; CLAUDE.md.
 
+## D-106 Any past date can be chosen; a day older than the phone's 90 is read online
+- Status: **Accepted** (owner, in chat, 2026-11-16: "Currently there is the validations of 90 days that
+  user can go only 90 days past form the caleder. I want to remove this validatios. Now User can go back
+  past date as much User wants."; of the two ways offered, "Old days load online" over the phone keeping
+  all history, and "Any date, no real limit" over back to the account's start; "canva first", then
+  "design is approve" for the design described: the canvas could not be opened from the account used
+  that day, so the boards `OlderDays*` wait to be added to it). Built on branch `feat/older-days`, on
+  top of the date strip's one-week swipe (D-79 note, 2026-11-16).
+- Answer (REQ-DATE-001; replaces the 90-day limit of D-23's calendar default and of D-34 answer 5's
+  "Only the last 90 days are on this phone"):
+  - The header's calendar, the date strip (Home, Nutrition, Training), Log meal's date and the
+    measurements sheet go **back to any date**; 1 January 2000 is the floor (`EARLIEST_DAY`), a
+    technical one. Future dates still cannot be chosen (Q-017).
+  - The phone still keeps **the last 90 days** (ADR-0007 rule 1, unchanged): a day before them is
+    **read from the server when it is shown** ("Older history is loaded from the server when viewed
+    online"), its week, or the calendar's month (`GET /v1/users/{userId}/days`, at most 42 days a
+    read, the user's own only). It is kept on the phone **while the app is open**, so every screen
+    shows and changes it as it does a day of the 90; the first sync after the app starts again
+    removes it (an entry still waiting to sync stays, D-14).
+  - While such a day is not shown yet, the "Showing <date>" banner has a second line: "Loading this
+    day…", offline "This day is more than 90 days ago. Connect to the internet to see it.", or
+    "Couldn't load this day." with **Try again**; Home's cards show dashes, not "nothing logged"
+    (their targets still show). Offline, it is read once a sync reaches the server. The calendar
+    says "Loading this month…" or "Connect to the internet to see this month's meals and
+    workouts." in place of the month's workouts, and marks nothing until it is read.
+  - A date of another year carries its year ("Showing Wed 12 Mar 2025").
+  - Unchanged: Training's All workouts (the 90 days, then "Load older"), Progress, an exercise's
+    History, the Profile's latest weight: they keep their own rules.
+- MVP defaults (D-18): the floor 1 January 2000; 42 days a read; older days held while the app is
+  open, not longer; logging on an older day offline is allowed and syncs later.
+- Server: one read-only route, no migration. Phone: no schema change, no new build. The beta's API
+  on Cloud Run needs this API before the beta phones can read older days.
+- Doc changes: REQ-DATE-001; constraints' MVP defaults (calendar, measurements sheet, Log meal, the
+  header's calendar); api-conventions; the plan `docs/plans/older-days.md`; CLAUDE.md.
+
 ---
 
 ---
