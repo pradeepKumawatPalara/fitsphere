@@ -19,27 +19,23 @@ const DOT = 3.5;
 const EDGE = 2;
 /** The touched point's ringed dot. */
 const TOUCHED = 7;
+/** More points than this, and only the line is drawn, with the latest and the touched dots: light on low-end phones. */
+const MAX_DOTS = 120;
 
 type Props = {
   /** Oldest first; at least 2. */
   points: readonly WeighInPoint[];
   unit: BodyWeightUnit;
-  /** Each point is a week's average (6M and All). */
-  weekly: boolean;
 };
 
-/** A point's date: its day, or for a week's average the week's Monday ("Week of Mon 19 Oct"). */
-export function pointDay(day: string, weekly: boolean): string {
-  return weekly ? `Week of ${formatDay(day)}` : formatDay(day);
-}
-
 // The weight trend line (REQ-PRG-004): the highest and lowest weights on the left, the first and
-// last dates below. Pressing it and sliding picks the nearest point (the owner, 2026-11-16: with many
+// last dates below; every weigh-in a point, each on its day (the owner, 2026-11-16; 6M and All plotted
+// weekly averages before). Pressing it and sliding picks the nearest point (the owner, 2026-11-16: with many
 // points the values could not be read; as an exercise's graph, D-82, the owner's C): its dot ringed, a
 // dashed line down from a bubble at the top with its weight and date, kept after the finger lifts
 // until the chart is tapped beside the line or another range is chosen. A screen reader hears a
 // summary of the range, and moves from point to point by swiping up or down.
-export function WeightChart({ points, unit, weekly }: Props) {
+export function WeightChart({ points, unit }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
@@ -49,13 +45,14 @@ export function WeightChart({ points, unit, weekly }: Props) {
   const first = points[0]!;
   const last = points[points.length - 1]!;
   const geometry = chartGeometry(points, width, HEIGHT, TOUCHED + EDGE);
-  const what = weekly ? `${points.length} weekly averages` : `${points.length} weigh-ins`;
+  const what = `${points.length} weigh-ins`;
+  const dotted = points.length <= MAX_DOTS;
   const line = geometry.dots.map((dot) => `${dot.x},${dot.y}`).join(' ');
   const firstDot = geometry.dots[0]!;
   const lastDot = geometry.dots[geometry.dots.length - 1]!;
   const point = touched === null ? undefined : points[touched];
   const dot = touched === null ? undefined : geometry.dots[touched];
-  const said = (index: number) => `${pointDay(points[index]!.day, weekly)}, ${weightText(points[index]!.weightGrams, unit)}`;
+  const said = (index: number) => `${formatDay(points[index]!.day)}, ${weightText(points[index]!.weightGrams, unit)}`;
   const bubbleLeft = dot ? Math.min(Math.max(dot.x - bubbleWidth / 2, 0), Math.max(width - bubbleWidth, 0)) : 0;
 
   /** The point whose dot is nearest across. */
@@ -109,11 +106,11 @@ export function WeightChart({ points, unit, weekly }: Props) {
               <Polygon points={`${line} ${lastDot.x},${HEIGHT} ${firstDot.x},${HEIGHT}`} fill={colors.accentTint} />
               <Polyline points={line} fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
               {dot ? <Line x1={dot.x} y1={0} x2={dot.x} y2={HEIGHT} stroke={colors.ink} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.7} /> : null}
-              {/* A dot for each weigh-in; a week's average is a point on the line only, till touched. */}
+              {/* A dot for each weigh-in; with very many, only the latest and the one touched. */}
               {geometry.dots.map((each, index) => {
                 const isTouched = index === touched;
                 const latest = index === geometry.dots.length - 1;
-                if (weekly && !isTouched) return null;
+                if (!dotted && !isTouched && !latest) return null;
                 return (
                   <Circle
                     key={index}
@@ -136,7 +133,7 @@ export function WeightChart({ points, unit, weekly }: Props) {
               style={[styles.bubble, { left: bubbleLeft }]}
             >
               <Text style={styles.bubbleValue}>{weightText(point.weightGrams, unit)}</Text>
-              <Text style={styles.bubbleDay}>{pointDay(point.day, weekly)}</Text>
+              <Text style={styles.bubbleDay}>{formatDay(point.day)}</Text>
             </View>
           ) : null}
         </View>
@@ -145,7 +142,6 @@ export function WeightChart({ points, unit, weekly }: Props) {
         <Text style={styles.date}>{formatDay(first.day)}</Text>
         <Text style={styles.date}>{formatDay(last.day)}</Text>
       </View>
-      {weekly ? <Text style={styles.note}>Weekly averages</Text> : null}
     </Pressable>
   );
 }
@@ -165,5 +161,4 @@ const useStyles = themedStyles((c) => ({
   bubbleDay: { fontSize: 12, lineHeight: 15, color: c.bg },
   dates: { flexDirection: 'row', justifyContent: 'space-between' },
   date: { ...TYPE.label, fontSize: 13, letterSpacing: 0.5, color: c.inkMuted },
-  note: { fontSize: 13, color: c.inkMuted },
 }));

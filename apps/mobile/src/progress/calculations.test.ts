@@ -8,7 +8,6 @@ import {
   monthsBefore,
   rangeNeedsServer,
   rangeStart,
-  weeklyAverages,
   weekRows,
   type DayNutrition,
 } from './calculations';
@@ -210,16 +209,15 @@ describe('REQ-PRG-004 chart points', () => {
     expect(rangeStart('All', TODAY)).toBeNull();
   });
 
-  it('plots weekly averages for 6M and All', () => {
+  it('plots every weigh-in for 6M and All too, each on its own day (the owner, 2026-11-16; they were weekly averages)', () => {
     expect(chartPoints('6M', weighIns, TODAY)).toEqual([
-      { day: '2026-10-19', weightGrams: 79_500 },
-      { day: '2026-10-26', weightGrams: 80_500 },
+      { day: '2026-10-20', weightGrams: 79_000 },
+      { day: '2026-10-22', weightGrams: 80_000 },
+      { day: '2026-10-26', weightGrams: 80_000 },
+      { day: TODAY, weightGrams: 81_000 },
     ]);
-    expect(chartPoints('All', weighIns, TODAY)[0]).toEqual({ day: '2026-03-30', weightGrams: 84_000 });
-  });
-
-  it('weeklyAverages puts each point on its Monday', () => {
-    expect(weeklyAverages([{ day: '2026-11-01', weightGrams: 70_000 }])).toEqual([{ day: '2026-10-26', weightGrams: 70_000 }]);
+    expect(chartPoints('All', weighIns, TODAY)[0]).toEqual({ day: '2026-04-01', weightGrams: 84_000 });
+    expect(chartPoints('All', weighIns, TODAY)).toHaveLength(5);
   });
 
   it('reads older weigh-ins online only for ranges reaching past the 90 days on the phone', () => {

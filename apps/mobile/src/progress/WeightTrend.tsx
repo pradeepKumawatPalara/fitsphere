@@ -10,7 +10,6 @@ import {
   CHART_RANGES,
   chartPoints,
   mergeWeighIns,
-  rangeIsWeekly,
   rangeNeedsServer,
   type ChartRange,
   type WeighInPoint,
@@ -41,7 +40,7 @@ type Props = {
 
 // The weight trend card (REQ-PRG-004): the range buttons, the chart or its empty state, and "All
 // weigh-ins" (D-34: calendar months; it opens on 1M). 1W, 1M and 3M come from the phone, 3M cut to
-// its 90 days. 6M and All also need the older weigh-ins, read
+// its 90 days. Every range plots each weigh-in (the owner, 2026-11-16). 6M and All also need the older weigh-ins, read
 // online once per range and kept in memory only (ADR-0007 rules 1 and 6); offline they show the
 // named warning, and choosing the range again tries again.
 export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns }: Props) {
@@ -108,7 +107,7 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
         <Text style={styles.empty}>{PROGRESS_TEXTS.chartEmpty}</Text>
       ) : (
         // A new chart for each range, so the point touched in another is forgotten.
-        <WeightChart key={range} points={points} unit={unit} weekly={rangeIsWeekly(range)} />
+        <WeightChart key={range} points={points} unit={unit} />
       )}
       <TextButton title="All weigh-ins" arrow onPress={onAllWeighIns} />
     </Card>

@@ -174,31 +174,16 @@ export function rangeNeedsServer(range: ChartRange, today: IstDay, accountStart:
   return reachesBack && (accountStart === null || accountStart < syncWindowStart(today));
 }
 
-/** Whether a range is plotted as weekly averages, to keep the chart light on low-end phones. */
-export function rangeIsWeekly(range: ChartRange): boolean {
-  return range === '6M' || range === 'All';
-}
-
 /**
- * The weight trend chart's points, oldest first (REQ-PRG-004): every weigh-in in the range for
- * 1W, 1M and 3M; one point per Mon–Sun week (its Monday, the week's average) for 6M and All.
+ * The weight trend chart's points, oldest first (REQ-PRG-004): every weigh-in in the range, each on
+ * its own day, for every range (the owner, 2026-11-16: 6M and All plotted weekly averages, dated on
+ * their Mondays, which read as wrong data).
  */
 export function chartPoints(range: ChartRange, weighIns: readonly WeighInPoint[], today: IstDay): WeighInPoint[] {
   const from = rangeStart(range, today);
-  const inRange = weighIns
+  return weighIns
     .filter((entry) => (from === null || entry.day >= from) && entry.day <= today)
     .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0));
-  return rangeIsWeekly(range) ? weeklyAverages(inRange) : inRange;
-}
-
-/** One point per Mon–Sun week, on its Monday, with the week's average weight in whole grams; oldest first. */
-export function weeklyAverages(weighIns: readonly WeighInPoint[]): WeighInPoint[] {
-  const weeks = new Map<IstDay, number[]>();
-  for (const entry of weighIns) {
-    const monday = istWeekStart(entry.day);
-    weeks.set(monday, [...(weeks.get(monday) ?? []), entry.weightGrams]);
-  }
-  return [...weeks.keys()].sort().map((day) => ({ day, weightGrams: average(weeks.get(day)!)! }));
 }
 
 /** The phone's weigh-ins with older ones read from the server; the phone's entry wins for a day. */
