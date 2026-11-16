@@ -2510,6 +2510,14 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build.
 - Doc changes: REQ-HOME-002; Q-019's row in `docs/product/mvp-scope.md`; D-34 answer 3's
   amendment; the redesign plan's 2.3; CLAUDE.md.
+- Fixed 2026-11-16 (the owner, on the phone: "when I scroll it 3-4 time left and right … it
+  automatically become scrollable. continously … when I scroll left it should go to 1 week left at
+  once. and same as for the right"): the strip no longer pages with the phone's own scrolling, which
+  could run on freely after a few quick swipes. The strip follows the finger, never further than the
+  next week, and on letting go slides **exactly one week** in the swipe's direction (dragged a quarter
+  of the week, or flicked), or back; a swipe made while the week still slides moves one more week from
+  it; the arrows slide a week too (`WeekStrip.tsx`, `swipeStep`). The answer above is unchanged.
+  Branch `fix/week-strip-one-week`; phone app only: no server change, no migration, no new build.
 
 ## D-80 The packaged foods named only by their brand: kept, renamed or left out
 - Status: **Accepted** (owner, in chat, 2026-11-11: "When I Search for the English oven the first row
