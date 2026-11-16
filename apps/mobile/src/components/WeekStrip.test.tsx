@@ -1,31 +1,70 @@
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
-import { ScrollView } from 'react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { stripStartFor, stripStarts } from '../navigation/SelectedDayProvider';
 import { LIGHT_COLORS } from '../theme';
-import { WeekStrip } from './WeekStrip';
+import { swipeStep, WeekStrip } from './WeekStrip';
 
-// The date strip shows a week, Monday to Sunday, and swipes a week at a time (REQ-HOME-002, D-79),
-// within the phone's 90 days (D-23); this week's days after today are greyed and cannot be picked
-// (Q-017). The arrows still move it.
+// The date strip shows a week, Monday to Sunday, and a swipe moves it exactly one week, however long or
+// fast (REQ-HOME-002, D-79; the owner, 2026-11-16), within the phone's 90 days (D-23); this week's days
+// after today are greyed and cannot be picked (Q-017). The arrows move it a week too.
 
 const TODAY = '2026-10-28'; // a Wednesday
 const FIRST_DAY = '2026-10-07'; // a Wednesday too
 const WIDTH = 300;
 
-function strip(start: string, onShow: (start: string) => void, onSelect = jest.fn()) {
+function strip(start: string, onShow: (start: string) => void, onSelect: (day: string) => void = jest.fn()) {
   return <WeekStrip today={TODAY} firstDay={FIRST_DAY} selected={TODAY} start={start} onSelect={onSelect} onShow={onShow} />;
+}
+
+/** The strip as the screens hold it: the week it shows moves to the week it asks for. */
+function Screen({ first, onShow, onSelect }: { first: string; onShow: (start: string) => void; onSelect: (day: string) => void }) {
+  const [start, setStart] = useState(first);
+  return strip(
+    start,
+    (next) => {
+      onShow(next);
+      setStart(next);
+    },
+    onSelect,
+  );
 }
 
 /** Renders the strip and lays it out, so its weeks become pages. */
 async function renderStrip(start = '2026-10-26', onSelect = jest.fn()) {
   const onShow = jest.fn();
-  await render(strip(start, onShow, onSelect));
+  await render(<Screen first={start} onShow={onShow} onSelect={onSelect} />);
   await fireEvent(screen.getByTestId('week-pages'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: WIDTH, height: 64 } } });
   return onShow;
 }
 
-async function swipeTo(x: number) {
-  await fireEvent(screen.getByTestId('week-scroll'), 'momentumScrollEnd', { nativeEvent: { contentOffset: { x, y: 0 } } });
+/** A finger on the strip at `x`, `ms` milliseconds into the swipe. */
+function finger(x: number, ms: number, y = 30) {
+  return { nativeEvent: { pageX: x, pageY: y, timestamp: ms, touches: [] } };
+}
+
+const pages = () => screen.getByTestId('week-pages');
+
+/** A finger comes down at `fromX`, moves sideways to `toX` over `ms` milliseconds, and lifts at `liftMs`. */
+async function swipe(fromX: number, toX: number, ms = 1000, liftMs = ms) {
+  await act(async () => pages().props.onTouchStart(finger(fromX, 0)));
+  const taken = fromX + Math.sign(toX - fromX) * 12;
+  expect(pages().props.onMoveShouldSetResponder(finger(taken, 10))).toBe(true);
+  await act(async () => pages().props.onResponderGrant(finger(taken, 10)));
+  await act(async () => pages().props.onResponderMove(finger(toX, ms)));
+  await act(async () => pages().props.onResponderRelease(finger(toX, liftMs)));
+}
+
+/** The week slides into place. */
+async function settle() {
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+}
+
+/** How far the row of weeks is moved. */
+function rowOffset(): unknown {
+  return StyleSheet.flatten(screen.getByTestId('week-row').props.style).transform?.[0];
 }
 
 describe('REQ-HOME-002 the date strip, Monday to Sunday (D-79)', () => {
@@ -76,49 +115,176 @@ describe('REQ-HOME-002 the date strip, Monday to Sunday (D-79)', () => {
     expect(screen.getByRole('button', { name: 'Later days' })).toBeEnabled();
   });
 
-  it('a swipe shows the week it settles on', async () => {
+  it('follows days shown another way; only the week shown is there for screen readers', async () => {
+    const onShow = jest.fn();
+    await render(strip('2026-10-26', onShow));
+    await fireEvent(pages(), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: WIDTH, height: 64 } } });
+    // The row opens on this week, the fourth: 7 days, not the other weeks' 21; the arrows are "Earlier
+    // days" and "Later days".
+    expect(rowOffset()).toEqual({ translateX: -3 * WIDTH });
+    expect(screen.getAllByRole('button', { name: /day \d/ })).toHaveLength(7);
+
+    // The calendar, two weeks back: shown at once.
+    await screen.rerender(strip('2026-10-12', onShow));
+
+    expect(rowOffset()).toEqual({ translateX: -1 * WIDTH });
+    expect(screen.getByRole('button', { name: 'Monday 12 Oct' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Wednesday 28 Oct, today' })).toBeNull();
+    expect(onShow).not.toHaveBeenCalled();
+  });
+});
+
+describe('D-79 a swipe moves the strip exactly one week (the owner, 2026-11-16)', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it.each([
+    ['dragged past a quarter of the week, to the right', 100, 0, -1],
+    ['dragged past a quarter of the week, to the left', -100, 0, 1],
+    ['dragged less than a quarter, slowly', 60, 0.1, 0],
+    ['flicked, however short', 20, 0.5, -1],
+    ['flicked the other way at the end of a drag', 200, -0.5, 1],
+    ['dragged three weeks', 900, 0, -1],
+    ['flicked three weeks fast', -900, -5, 1],
+  ])('%s: %d points at %d points a millisecond moves %d week', (_, dx, speed, week) => {
+    expect(swipeStep(dx, speed, WIDTH)).toBe(week);
+  });
+
+  it('a swipe to the right shows the week before, once the week has slid into place', async () => {
     const onShow = await renderStrip();
 
-    await swipeTo(2 * WIDTH);
+    await swipe(150, 250);
+    expect(rowOffset()).toEqual({ translateX: -3 * WIDTH + 100 });
+    expect(onShow).not.toHaveBeenCalled();
+    await settle();
 
+    expect(onShow).toHaveBeenCalledTimes(1);
+    expect(onShow).toHaveBeenCalledWith('2026-10-19');
+    expect(rowOffset()).toEqual({ translateX: -2 * WIDTH });
+    expect(screen.getByRole('button', { name: 'Monday 19 Oct' })).toBeOnTheScreen();
+  });
+
+  it('a long, fast swipe still moves one week; the week follows the finger no further than the next week', async () => {
+    const onShow = await renderStrip();
+
+    await swipe(0, 3 * WIDTH, 100);
+    expect(rowOffset()).toEqual({ translateX: -2 * WIDTH });
+    await settle();
+
+    expect(onShow).toHaveBeenCalledTimes(1);
     expect(onShow).toHaveBeenCalledWith('2026-10-19');
   });
 
-  it('D-23 stops at the week holding the first day, and at this week', async () => {
-    const onShow = await renderStrip('2026-10-12');
-
-    await swipeTo(10 * WIDTH);
-    expect(onShow).toHaveBeenLastCalledWith('2026-10-26');
-    await swipeTo(-WIDTH);
-    expect(onShow).toHaveBeenLastCalledWith('2026-10-05');
-  });
-
-  it('the arrows move a week; settling back on the week shown changes nothing', async () => {
+  it('a short, slow swipe slides back to the week shown; a finger that stops before it lifts does not flick', async () => {
     const onShow = await renderStrip('2026-10-19');
 
-    await swipeTo(2 * WIDTH);
+    await swipe(150, 200);
+    await settle();
+    await swipe(150, 190, 60, 400);
+    await settle();
+
     expect(onShow).not.toHaveBeenCalled();
-    await fireEvent.press(screen.getByRole('button', { name: 'Earlier days' }));
-    expect(onShow).toHaveBeenLastCalledWith('2026-10-12');
-    await fireEvent.press(screen.getByRole('button', { name: 'Later days' }));
-    expect(onShow).toHaveBeenLastCalledWith('2026-10-26');
+    expect(rowOffset()).toEqual({ translateX: -2 * WIDTH });
   });
 
-  it('follows days shown another way; only the week shown is there for screen readers', async () => {
-    const scrollTo = jest.spyOn(ScrollView.prototype as unknown as { scrollTo(options: object): void }, 'scrollTo');
-    try {
-      await renderStrip();
-      // 7 days, not the other weeks' 21; the arrows are "Earlier days" and "Later days".
-      expect(screen.getAllByRole('button', { name: /day \d/ })).toHaveLength(7);
+  it('swiped left and right again and again, it moves a week each time and stays put between (the owner’s report)', async () => {
+    const onShow = await renderStrip();
 
-      await screen.rerender(strip('2026-10-12', jest.fn()));
-
-      expect(scrollTo).toHaveBeenLastCalledWith({ x: 1 * WIDTH, animated: true });
-      expect(screen.getByRole('button', { name: 'Monday 12 Oct' })).toBeOnTheScreen();
-      expect(screen.queryByRole('button', { name: 'Wednesday 28 Oct, today' })).toBeNull();
-    } finally {
-      scrollTo.mockRestore();
+    for (const [from, to, week] of [
+      [150, 250, '2026-10-19'],
+      [250, 150, '2026-10-26'],
+      [150, 250, '2026-10-19'],
+      [150, 250, '2026-10-12'],
+      [250, 150, '2026-10-19'],
+      [250, 150, '2026-10-26'],
+    ] as const) {
+      await swipe(from, to, 80);
+      await settle();
+      expect(onShow).toHaveBeenLastCalledWith(week);
     }
+    expect(onShow).toHaveBeenCalledTimes(6);
+    expect(rowOffset()).toEqual({ translateX: -3 * WIDTH });
+  });
+
+  it('a swipe made while the week still slides moves one more week from it', async () => {
+    const onShow = await renderStrip();
+
+    await swipe(150, 250, 80);
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+    await swipe(150, 250, 80);
+    await settle();
+
+    expect(onShow).toHaveBeenCalledTimes(1);
+    expect(onShow).toHaveBeenCalledWith('2026-10-12');
+    expect(rowOffset()).toEqual({ translateX: -1 * WIDTH });
+  });
+
+  it('D-23 stops at this week, with a little give', async () => {
+    const onShow = await renderStrip();
+
+    await swipe(250, 100, 80);
+    expect(rowOffset()).toEqual({ translateX: -3 * WIDTH - 50 });
+    await settle();
+
+    expect(onShow).not.toHaveBeenCalled();
+    expect(rowOffset()).toEqual({ translateX: -3 * WIDTH });
+  });
+
+  it('D-23 stops at the week holding the first of the 90 days', async () => {
+    const onShow = await renderStrip('2026-10-05');
+
+    await swipe(100, 250, 80);
+    expect(rowOffset()).toEqual({ translateX: 50 });
+    await settle();
+
+    expect(onShow).not.toHaveBeenCalled();
+    expect(rowOffset()).toEqual({ translateX: 0 });
+  });
+
+  it('a tap stays the day’s: the strip takes only a finger moving sideways', async () => {
+    const onSelect = jest.fn();
+    await renderStrip('2026-10-26', onSelect);
+
+    await act(async () => pages().props.onTouchStart(finger(150, 0)));
+    expect(pages().props.onMoveShouldSetResponder(finger(155, 10))).toBe(false);
+    expect(pages().props.onMoveShouldSetResponder(finger(160, 10, 60))).toBe(false);
+    expect(pages().props.onMoveShouldSetResponder(finger(162, 10, 35))).toBe(true);
+    expect(pages().props.onResponderTerminationRequest()).toBe(false);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Tuesday 27 Oct' }));
+    expect(onSelect).toHaveBeenCalledWith('2026-10-27');
+  });
+
+  it('a swipe taken away (the page scrolled) slides back', async () => {
+    const onShow = await renderStrip();
+
+    await act(async () => pages().props.onTouchStart(finger(150, 0)));
+    await act(async () => pages().props.onResponderGrant(finger(162, 10)));
+    await act(async () => pages().props.onResponderMove(finger(250, 80)));
+    await act(async () => pages().props.onResponderTerminate(finger(250, 80)));
+    await settle();
+
+    expect(onShow).not.toHaveBeenCalled();
+    expect(rowOffset()).toEqual({ translateX: -3 * WIDTH });
+  });
+
+  it('the arrows slide a week each', async () => {
+    const onShow = await renderStrip('2026-10-19');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Earlier days' }));
+    await settle();
+    expect(onShow).toHaveBeenLastCalledWith('2026-10-12');
+    await fireEvent.press(screen.getByRole('button', { name: 'Later days' }));
+    await settle();
+    expect(onShow).toHaveBeenLastCalledWith('2026-10-19');
+    await fireEvent.press(screen.getByRole('button', { name: 'Later days' }));
+    await settle();
+
+    expect(onShow).toHaveBeenLastCalledWith('2026-10-26');
+    expect(onShow).toHaveBeenCalledTimes(3);
+    expect(screen.getByRole('button', { name: 'Later days' })).toBeDisabled();
   });
 });
 
