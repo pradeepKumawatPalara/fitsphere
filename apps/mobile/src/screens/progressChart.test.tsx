@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, within } from '@testing-library/react-native';
 import { applyServerEntries, setMeta } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { renderInApp } from '../testing/appHarness';
@@ -22,6 +22,15 @@ async function seed(db: SqlDb, entries: Record<string, number>, accountStart = '
 }
 
 const PHONE = { '2026-08-10': 81_500, '2026-10-01': 80_000, '2026-10-14': 79_000, '2026-10-25': 79_300, '2026-10-28': 78_800 };
+
+/** The dots the chart draws: its SVG circles in the rendered tree. */
+function dotsDrawn(): number {
+  type Node = { type: string; children: (Node | string)[] | null };
+  const count = (node: Node | string | null): number =>
+    node === null || typeof node === 'string' ? 0 : (node.type === 'RNSVGCircle' ? 1 : 0) + (node.children ?? []).reduce((sum, child) => sum + count(child), 0);
+  const tree = screen.toJSON() as Node | Node[] | null;
+  return Array.isArray(tree) ? tree.reduce((sum, node) => sum + count(node), 0) : count(tree);
+}
 
 function range(name: string) {
   return screen.getByRole('button', { name });
@@ -58,7 +67,7 @@ describe('REQ-PRG-004 weight trend chart', () => {
     expect(screen.queryByRole('image')).toBeNull();
   });
 
-  it('6M reads the older weigh-ins online and plots weekly averages; the phone’s days come from the phone', async () => {
+  it('6M reads the older weigh-ins online and plots each one on its day; the phone’s days come from the phone', async () => {
     const { server } = await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE));
     server.state.older = [
       { day: '2026-03-01', weightGrams: 85_000 },
@@ -69,15 +78,16 @@ describe('REQ-PRG-004 weight trend chart', () => {
 
     await fireEvent.press(range('6 months'));
 
-    expect(await screen.findByLabelText('7 weekly averages, 82.0 kg on Mon 4 May to 78.8 kg on Mon 26 Oct')).toBeOnTheScreen();
-    expect(screen.getByText('Weekly averages')).toBeOnTheScreen();
+    // Every weigh-in, as 1M and 3M (the owner, 2026-11-16; they were weekly averages on their Mondays).
+    expect(await screen.findByLabelText('7 weigh-ins, 82.0 kg on Sun 10 May to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.queryByText('Weekly averages')).toBeNull();
     // Six calendar months back: from 28 April.
     expect(server.state.weighInQueries).toEqual([{ from: '2026-04-28', to: '2026-07-30', cursor: null }]);
 
     // Read once: choosing it again uses what was read.
     await fireEvent.press(range('1 month'));
     await fireEvent.press(range('6 months'));
-    expect(screen.getByLabelText(/^7 weekly averages/)).toBeOnTheScreen();
+    expect(screen.getByLabelText(/^7 weigh-ins/)).toBeOnTheScreen();
     expect(server.state.weighInQueries).toHaveLength(1);
   });
 
@@ -92,7 +102,7 @@ describe('REQ-PRG-004 weight trend chart', () => {
 
     await fireEvent.press(range('All'));
 
-    expect(await screen.findByLabelText('7 weekly averages, 86.0 kg on Mon 2 Feb to 78.8 kg on Mon 26 Oct')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('7 weigh-ins, 86.0 kg on Tue 3 Feb to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
     expect(server.state.weighInQueries).toEqual([
       { from: '2026-02-02', to: '2026-07-30', cursor: null },
       { from: '2026-02-02', to: '2026-07-30', cursor: '1' },
@@ -113,7 +123,7 @@ describe('REQ-PRG-004 weight trend chart', () => {
 
     server.state.offline = false;
     await fireEvent.press(range('6 months'));
-    expect(await screen.findByLabelText(/^5 weekly averages/)).toBeOnTheScreen();
+    expect(await screen.findByLabelText(/^5 weigh-ins/)).toBeOnTheScreen();
   });
 
   it('says to try later when the server fails', async () => {
@@ -135,8 +145,26 @@ describe('REQ-PRG-004 weight trend chart', () => {
 
     await fireEvent.press(range('6 months'));
 
-    expect(screen.getByLabelText('2 weekly averages, 79.0 kg on Mon 12 Oct to 78.8 kg on Mon 26 Oct')).toBeOnTheScreen();
+    expect(screen.getByLabelText('2 weigh-ins, 79.0 kg on Wed 14 Oct to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('with more than 120 points, only the latest dot, and the touched one', async () => {
+    const { server } = await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE, '2025-01-01'));
+    // A weigh-in every day from 1 February to 30 July on the server: 180, with the phone's 5.
+    server.state.older = Array.from({ length: 180 }, (_, index) => ({
+      day: new Date(Date.UTC(2026, 1, 1 + index)).toISOString().slice(0, 10),
+      weightGrams: 84_000 - index * 10,
+    }));
+    await screen.findByLabelText(/^4 weigh-ins/);
+
+    await fireEvent.press(range('All'));
+    expect(await screen.findByLabelText(/^185 weigh-ins/)).toBeOnTheScreen();
+    await fireEvent(screen.getByTestId('weight-chart-plot'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 200 } } });
+    expect(dotsDrawn()).toBe(1);
+
+    await act(async () => screen.getByTestId('weight-chart-plot').props.onResponderGrant({ nativeEvent: { locationX: 0 } }));
+    expect(dotsDrawn()).toBe(2);
   });
 
   it('"All weigh-ins" opens the weight history', async () => {
@@ -145,5 +173,72 @@ describe('REQ-PRG-004 weight trend chart', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'All weigh-ins' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith('/weight-history');
+  });
+});
+
+// The owner, 2026-11-16: with many points the values could not be read. As an exercise's graph (D-82,
+// the owner's C): pressing the chart picks the nearest point, ringed, with a bubble of its weight and date.
+describe('REQ-PRG-004 touching the weight chart', () => {
+  const WIDTH = 300;
+
+  async function laidOut() {
+    const plot = await screen.findByTestId('weight-chart-plot');
+    await fireEvent(plot, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: WIDTH, height: 200 } } });
+    return plot;
+  }
+
+  async function touch(x: number, how: 'onResponderGrant' | 'onResponderMove' = 'onResponderGrant') {
+    await act(async () => screen.getByTestId('weight-chart-plot').props[how]({ nativeEvent: { locationX: x } }));
+  }
+
+  function bubble() {
+    return within(screen.getByTestId('weight-chart-bubble'));
+  }
+
+  it('a press shows the nearest weigh-in’s weight and date; sliding moves to the next; a tap beside the line hides it', async () => {
+    await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE));
+    await laidOut();
+    expect(screen.queryByTestId('weight-chart-bubble')).toBeNull();
+    expect(dotsDrawn()).toBe(4);
+
+    await touch(0);
+    expect(bubble().getByText('80.0 kg')).toBeOnTheScreen();
+    expect(bubble().getByText('Thu 1 Oct')).toBeOnTheScreen();
+
+    await touch(WIDTH, 'onResponderMove');
+    expect(bubble().getByText('78.8 kg')).toBeOnTheScreen();
+    expect(bubble().getByText('Wed 28 Oct')).toBeOnTheScreen();
+    // Kept after the finger lifts, for the screen reader too.
+    expect(screen.getByLabelText(/^4 weigh-ins/)).toHaveAccessibilityValue({ text: 'Wed 28 Oct, 78.8 kg' });
+
+    await fireEvent.press(screen.getByLabelText(/^4 weigh-ins/));
+    expect(screen.queryByTestId('weight-chart-bubble')).toBeNull();
+  });
+
+  it('another range forgets the point; 6M’s points are weigh-ins on their own days', async () => {
+    await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE, '2026-07-01'));
+    await laidOut();
+    await touch(0);
+    expect(screen.getByTestId('weight-chart-bubble')).toBeOnTheScreen();
+
+    await fireEvent.press(range('6 months'));
+    await laidOut();
+    expect(screen.queryByTestId('weight-chart-bubble')).toBeNull();
+
+    await touch(0);
+    expect(bubble().getByText('81.5 kg')).toBeOnTheScreen();
+    expect(bubble().getByText('Mon 10 Aug')).toBeOnTheScreen();
+  });
+
+  it('a screen reader moves from point to point by swiping up or down', async () => {
+    await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE));
+    await laidOut();
+    const chart = screen.getByLabelText(/^4 weigh-ins/);
+    expect(chart).toHaveAccessibilityValue({ text: 'Swipe up or down to hear each point' });
+
+    await act(async () => chart.props.onAccessibilityAction({ nativeEvent: { actionName: 'increment' } }));
+    expect(screen.getByLabelText(/^4 weigh-ins/)).toHaveAccessibilityValue({ text: 'Thu 1 Oct, 80.0 kg' });
+    await act(async () => screen.getByLabelText(/^4 weigh-ins/).props.onAccessibilityAction({ nativeEvent: { actionName: 'increment' } }));
+    expect(screen.getByLabelText(/^4 weigh-ins/)).toHaveAccessibilityValue({ text: 'Wed 14 Oct, 79.0 kg' });
   });
 });

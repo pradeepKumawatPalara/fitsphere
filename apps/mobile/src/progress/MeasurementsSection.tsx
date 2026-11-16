@@ -20,15 +20,17 @@ type Props = {
 };
 
 // Progress › Measurements (REQ-PRG-006): the latest entry as Home's measurements card, with "Edit
-// measurements"; the older ones folded under "Show all measurements (N)", as a table of the two
-// waists, each row opening that date's entry to edit. With none, "Add first" and the weekly waist
-// recommendation.
+// measurements"; with more than one, all of them, the latest too, folded under "Show all measurements
+// (N)", as a table of the two waists, each row opening that date's entry to edit (the owner,
+// 2026-11-16: "(2)" showed one row, the older one alone). With none, "Add first" and the weekly waist
+// recommendation. The heading and its Add button share a row when they fit; on a narrow screen or a
+// larger font the button goes under the heading, whole (the owner's OnePlus Nord CE4, 2026-11-16).
 export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   // Folded at first, so the screen stays short.
   const [showAll, setShowAll] = useState(false);
-  const [latest, ...older] = measurements;
+  const latest = measurements[0];
   if (!latest) {
     return (
       <Card title="Measurements">
@@ -43,14 +45,14 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
   const length = (mm: number) => `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
   return (
     <View style={styles.section}>
-      <View style={styles.headingRow}>
+      <View testID="measurements-heading-row" style={styles.headingRow}>
         <Text accessibilityRole="header" style={styles.heading}>
           Measurements
         </Text>
         <TextButton title="Add measurements" outlined icon={Plus} onPress={onAdd} />
       </View>
       <MeasurementsCard day={latest.day} entry={latest} unit={unit} onAdd={onAdd} onEdit={() => onEdit(latest.day)} />
-      {older.length > 0 && showAll ? (
+      {measurements.length > 1 && showAll ? (
         <View style={styles.table}>
           <View style={styles.row} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             <View style={styles.day} />
@@ -58,7 +60,7 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
             <Text style={[styles.value, styles.columnHeading]}>Lower waist</Text>
             <View style={styles.chevron} />
           </View>
-          {older.map((entry) => {
+          {measurements.map((entry) => {
             const upper = length(entry.upperWaistMm);
             const lower = length(entry.lowerWaistMm);
             const note = entry.syncState === 'pending' ? 'Waiting to sync' : entry.syncState === 'rejected' ? 'Not saved' : null;
@@ -84,7 +86,7 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
           })}
         </View>
       ) : null}
-      {older.length > 0 ? (
+      {measurements.length > 1 ? (
         <TextButton
           title={showAll ? 'Show fewer' : `Show all measurements (${measurements.length})`}
           onPress={() => setShowAll((shown) => !shown)}
@@ -99,7 +101,8 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
 // row opening with a chevron; a waiting entry's note muted, one not saved in red.
 const useStyles = themedStyles((c) => ({
   section: { gap: 12 },
-  headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  // Wraps rather than pushing the button past the screen's edge.
+  headingRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, rowGap: 8 },
   heading: { ...TYPE.metric, lineHeight: 24, color: c.ink },
   emptyText: { gap: 2 },
   body: { fontSize: 15, lineHeight: 22, color: c.ink },
