@@ -1,0 +1,66 @@
+name: iOS simulator build
+
+# Started by hand only: Actions > "iOS simulator build" > Run workflow.
+# Builds the development app for the iOS Simulator (not a real iPhone),
+# packed as a .zip that Appetize.io can run in a web browser.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios-simulator:
+    name: Build iOS Simulator development app (.zip)
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Create the native iOS project
+        working-directory: apps/mobile
+        run: npx expo prebuild --platform ios --clean
+        env:
+          CI: "1"
+
+      - name: Build the app for the iOS Simulator (no signing needed)
+        working-directory: apps/mobile/ios
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -n 1)
+          SCHEME="${WORKSPACE%.xcworkspace}"
+          echo "Workspace: $WORKSPACE  Scheme: $SCHEME"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Pack the .app as a .zip
+        working-directory: apps/mobile/ios/build/Build/Products/Debug-iphonesimulator
+        run: |
+          APP=$(ls -d *.app | head -n 1)
+          zip -qry "$GITHUB_WORKSPACE/FitSphere-simulator.zip" "$APP"
+          ls -lh "$GITHUB_WORKSPACE/FitSphere-simulator.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitSphere-ios-simulator
+          path: FitSphere-simulator.zip
+          retention-days: 30
