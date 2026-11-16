@@ -697,6 +697,13 @@ const MIGRATIONS = [
   `ALTER TABLE packaged_foods ADD COLUMN aliases TEXT NOT NULL DEFAULT '[]';
    ALTER TABLE packaged_foods ADD COLUMN search_aliases TEXT NOT NULL DEFAULT '';
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // Units from the owner's food database (D-102): a packaged food's units as JSON, and the measure each
+  // food's page opens on, null when it has none. The food list's version is cleared, so the next
+  // download brings them; till then the pages open and list their measures as before.
+  `ALTER TABLE foods ADD COLUMN opens_on TEXT;
+   ALTER TABLE packaged_foods ADD COLUMN portions TEXT NOT NULL DEFAULT '[]';
+   ALTER TABLE packaged_foods ADD COLUMN opens_on TEXT;
+   DELETE FROM sync_meta WHERE key = 'food_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1255,8 +1262,8 @@ export async function replaceFoods(
     for (let start = 0; start < packaged.length; start += PACKAGED_ROWS_PER_INSERT) {
       const batch = packaged.slice(start, start + PACKAGED_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases, search_name, search_brand, search_aliases)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO packaged_foods (barcode, name, brand, kcal, protein_g, carbs_g, fat_g, fibre_g, serving_grams, aliases, search_name, search_brand, search_aliases, portions, opens_on)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((food) => [
           food.barcode,
           food.name,
@@ -1271,6 +1278,8 @@ export async function replaceFoods(
           searchText(food.name),
           searchText(food.brand ?? ''),
           searchText((food.aliases ?? []).join(' ')),
+          JSON.stringify(food.portions ?? []),
+          food.opensOn ?? null,
         ]),
       );
     }
@@ -1286,8 +1295,8 @@ export async function replaceFoods(
     for (let start = 0; start < foods.length; start += FOOD_ROWS_PER_INSERT) {
       const batch = foods.slice(start, start + FOOD_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures, portions, search_name, search_aliases)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO foods (source, code, name, food_group, aliases, protein_g, fibre_g, fat_g, carbs_g, kcal, kcal_estimated, measures, portions, search_name, search_aliases, opens_on)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((food) => [
           food.source,
           food.code,
@@ -1304,6 +1313,7 @@ export async function replaceFoods(
           JSON.stringify(food.portions),
           searchText(food.name),
           searchText(JSON.stringify(food.aliases)),
+          food.opensOn ?? null,
         ]),
       );
     }
@@ -1311,10 +1321,12 @@ export async function replaceFoods(
   });
 }
 
-/** Foods a statement writes when the list is replaced: 15 values each, within SQLite's 999. */
-const FOOD_ROWS_PER_INSERT = 50;
-/** Packaged foods a statement writes: 13 values each, within SQLite's 999. */
-const PACKAGED_ROWS_PER_INSERT = 76;
+/** Foods a statement writes when the list is replaced: 16 values each (D-102), within SQLite's 999. */
+export const FOOD_ROWS_PER_INSERT = 50;
+/** Packaged foods a statement writes: 15 values each (D-102), within SQLite's 999. */
+export const PACKAGED_ROWS_PER_INSERT = 66;
+/** The values one statement may bind, at most (SQLite's SQLITE_MAX_VARIABLE_NUMBER before 3.32). */
+export const SQL_VALUES_MAX = 999;
 
 /**
  * Searches the packaged foods, offline (D-48): every product whose name, brand or other names (D-94)
@@ -1350,10 +1362,13 @@ type PackagedRow = {
   fibre_g: number | null;
   serving_grams: number | null;
   aliases: string;
+  portions: string;
+  opens_on: string | null;
 };
 
 function toPackaged(row: PackagedRow): PackagedFood {
   const aliases = JSON.parse(row.aliases) as string[];
+  const portions = JSON.parse(row.portions) as NonNullable<PackagedFood['portions']>;
   return {
     barcode: row.barcode,
     name: row.name,
@@ -1365,6 +1380,9 @@ function toPackaged(row: PackagedRow): PackagedFood {
     fibreG: row.fibre_g,
     servingGrams: row.serving_grams,
     ...(aliases.length > 0 ? { aliases } : {}),
+    // Its units and the measure its page opens on (D-102), when it has them.
+    ...(portions.length > 0 ? { portions } : {}),
+    ...(row.opens_on === null ? {} : { opensOn: row.opens_on }),
   };
 }
 
@@ -1474,6 +1492,7 @@ type FoodRow = {
   kcal_estimated: number;
   measures: string;
   portions: string;
+  opens_on: string | null;
 };
 
 function toFood(row: FoodRow): Food {
@@ -1491,6 +1510,8 @@ function toFood(row: FoodRow): Food {
     kcalEstimated: row.kcal_estimated === 1,
     measures: JSON.parse(row.measures) as Food['measures'],
     portions: JSON.parse(row.portions) as Food['portions'],
+    // The measure its page opens on (D-102), when the owner's food database gives one.
+    ...(row.opens_on === null ? {} : { opensOn: row.opens_on }),
   };
 }
 

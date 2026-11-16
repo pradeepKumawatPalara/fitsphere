@@ -13,14 +13,21 @@ type Options = {
   token?: string;
   body?: unknown;
   fetchImpl?: typeof fetch;
+  /** How long to wait before giving up: 15 seconds unless said (LIST_TIMEOUT_MS for the big lists). */
+  timeoutMs?: number;
 };
 
 const TIMEOUT_MS = 15_000;
+/**
+ * How long the food and exercise lists may take (D-102): the food list is 6 MB, 0.7 MB packed, and the
+ * PC sends it to the phone through a tunnel, often over the phone's hotspot.
+ */
+export const LIST_TIMEOUT_MS = 60_000;
 
 export async function callApi<T>(apiUrl: string | undefined, path: string, options: Options = {}): Promise<ApiResult<T>> {
   if (!apiUrl) return { kind: 'offline' };
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? TIMEOUT_MS);
   try {
     const response = await (options.fetchImpl ?? fetch)(`${apiUrl}${API_BASE_PATH}${path}`, {
       method: options.method ?? 'GET',

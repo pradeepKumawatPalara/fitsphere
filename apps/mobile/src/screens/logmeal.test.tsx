@@ -393,7 +393,7 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     expect(await screen.findByRole('button', { name: 'Ghee, 900 kcal per 100 g, estimated' })).toBeOnTheScreen();
   });
 
-  it.each(['0', '2001', '12.5', ''])('D-26 refuses "%s" grams', async (grams) => {
+  it.each(['0', '10001', '12.5', ''])('D-26 refuses "%s" grams (D-102: up to 10,000)', async (grams) => {
     await render();
     await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
     await fireEvent.changeText(screen.getByLabelText('Search foods'), 'atta');
@@ -404,7 +404,7 @@ describe('REQ-LOG-007 adding foods without AI', () => {
     await fireEvent(screen.getByLabelText('Grams eaten'), 'blur');
 
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
-    expect(screen.getByText('Enter whole grams from 1 to 2,000.')).toBeOnTheScreen();
+    expect(screen.getByText('Enter whole grams from 1 to 10,000.')).toBeOnTheScreen();
   });
 
   it('ADR-0007 rule 6 before the food list was ever downloaded, says that needs internet', async () => {
@@ -525,8 +525,8 @@ describe('D-45 a food’s page (the owner, 2026-11-04, after HealthifyMe’s)', 
     expect(screen.getByText('Net wt: 100 g')).toBeOnTheScreen();
     expect(nutrients()).toEqual(['Protein: 10.6 g', 'Carbs: 64.2 g', 'Fat: 1.5 g', 'Fibre: 11.4 g']);
 
-    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '2500');
-    expect(screen.getByText('Enter whole grams from 1 to 2,000.')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '12500');
+    expect(screen.getByText('Enter whole grams from 1 to 10,000.')).toBeOnTheScreen();
     expect(screen.getByLabelText('Adds –')).toBeOnTheScreen();
     expect(nutrients()).toEqual(['Protein: –', 'Carbs: –', 'Fat: –', 'Fibre: –']);
     expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
@@ -691,14 +691,14 @@ describe('D-34 the same food added again to the meal', () => {
     expect(screen.getAllByLabelText(/^Wheat flour, atta: /)).toHaveLength(2);
   });
 
-  it('when together they would pass 2,000 g, says so and only keeps it separate', async () => {
+  it('when together they would pass 10,000 g (D-102, was 2,000), says so and only keeps it separate', async () => {
     await render();
-    await addFood('atta', /^Wheat flour, atta/, '1500');
+    await addFood('atta', /^Wheat flour, atta/, '9500');
     await addFood('atta', /^Wheat flour, atta/, '600');
 
     expect(
       screen.getByText(
-        "Wheat flour, atta is already in this meal (1,500 g). Together that would be over 2,000 g, the most for one food, so it's added on its own.",
+        "Wheat flour, atta is already in this meal (9,500 g). Together that would be over 10,000 g, the most for one food, so it's added on its own.",
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Add to existing' })).toBeNull();
@@ -917,8 +917,8 @@ describe('D-36 household units', () => {
     expect(wheel('Measure')).toEqual(['Glass (258 g)', 'Grams', 'oz (28.35 g)']);
     expect(screen.getByText('Type the grams in the box')).toBeOnTheScreen();
     await fireEvent.press(within(screen.getByLabelText('Measure')).getByRole('button', { name: 'Glass (258 g)' }));
-    // 7.5 glasses is 1,935 g; 8 would pass 2,000 g, the most for one food.
-    expect(wheel('Quantity')).toEqual(Array.from({ length: 15 }, (_, index) => String((index + 1) / 2)));
+    // The list offers halves to 10 (D-102: 10,000 g is the most for one food; more is typed).
+    expect(wheel('Quantity')).toEqual(Array.from({ length: 20 }, (_, index) => String((index + 1) / 2)));
     await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
 
     expect(screen.getByLabelText('Measure: Glass (258 g)')).toBeOnTheScreen();
