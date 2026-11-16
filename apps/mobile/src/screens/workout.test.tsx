@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
-import { Button, Keyboard, StyleSheet, type EmitterSubscription } from 'react-native';
+import { AccessibilityInfo, Button, Keyboard, StyleSheet, type EmitterSubscription } from 'react-native';
 import { getEntry, replaceExercises, saveEntry, saveWeighIn, type WorkoutData } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { NOW, renderInApp } from '../testing/appHarness';
@@ -716,7 +716,8 @@ describe('D-50 calories burned and heart rate', () => {
     await screen.findByText(/^Estimated: /);
 
     await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '360');
-    expect(screen.getByText('As you typed it, from your machine or watch.')).toBeOnTheScreen();
+    // D-107: typed over an estimate, the line says what the estimate is and how to go back to it.
+    expect(screen.getByText('The estimate is 326 kcal: tap the arrow to use it.')).toBeOnTheScreen();
     expect(screen.queryByText('estimated')).toBeNull();
     await save();
 
@@ -802,6 +803,124 @@ describe('D-50 calories burned and heart rate', () => {
     expect(screen.getByText(/^Activity values: Herrmann SD/)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByText(/^Activity values/)).toBeNull();
+  });
+});
+
+// D-107 (canvas "Calories burned changed by you", B locked by the owner, 2026-11-16): calories typed
+// over an estimate, or emptied, show an Edited tag and an arrow at the box's end that puts it back.
+describe('D-107 calories changed by you: the Edited tag and the arrow back to the estimate', () => {
+  const BACK = 'The estimate is 326 kcal: tap the arrow to use it.';
+  const kcalBox = () => screen.getByLabelText('Calories burned (optional)');
+  const arrow = () => screen.queryByRole('button', { name: /^Use the estimate, / });
+
+  /** Running, 30 min and `km`: 9.3 MET × 70.0 kg × 0.5 h = 326 kcal for 5 km with the 70 kg weigh-in. */
+  async function run(km = '5') {
+    await openSheet();
+    await pick('run', 'Running');
+    await fireEvent.changeText(screen.getByLabelText('Time, minutes'), '30');
+    await fireEvent.changeText(screen.getByLabelText('Distance in km (optional)'), km);
+  }
+
+  it('the estimate has no tag and no arrow', async () => {
+    await startWorkout(undefined, 70_000);
+    await run();
+    await screen.findByText(/^Estimated: /);
+
+    expect(screen.queryByText('Edited')).toBeNull();
+    expect(arrow()).toBeNull();
+  });
+
+  it('a typed number shows Edited and the arrow; the arrow puts the estimate back, which follows the run again and saves as an estimate', async () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility').mockImplementation(() => undefined);
+    try {
+      const { server, id } = await startWorkout(undefined, 70_000);
+      await run();
+      await screen.findByText(/^Estimated: /);
+      await fireEvent.changeText(kcalBox(), '360');
+
+      expect(screen.getByText('Edited')).toBeOnTheScreen();
+      expect(screen.getByText(BACK)).toBeOnTheScreen();
+      expect(screen.queryByText('estimated')).toBeNull();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Use the estimate, 326 kcal' }));
+      expect(kcalBox().props.value).toBe('326');
+      expect(screen.getByText('estimated')).toBeOnTheScreen();
+      expect(screen.getByText(/^Estimated: 9\.3 MET for 10\.0 km\/h/)).toBeOnTheScreen();
+      expect(screen.queryByText('Edited')).toBeNull();
+      expect(arrow()).toBeNull();
+      expect(announce).toHaveBeenCalledWith('Calories burned: the estimate, 326 kcal');
+
+      // The estimate again, not the number it had: a faster run burns more.
+      await fireEvent.changeText(screen.getByLabelText('Distance in km (optional)'), '6');
+      expect(kcalBox().props.value).toBe('385');
+      await save();
+      await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ calories: { kcal: 385, estimated: true } }] }));
+    } finally {
+      announce.mockRestore();
+    }
+  });
+
+  it('an emptied box says no calories will be saved, with the arrow; saved so, it has none', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await run();
+    await screen.findByText(/^Estimated: /);
+    await fireEvent.changeText(kcalBox(), '');
+
+    expect(screen.getByText(`Empty: no calories will be saved. ${BACK}`)).toBeOnTheScreen();
+    expect(screen.getByText('Edited')).toBeOnTheScreen();
+    expect(arrow()).toBeOnTheScreen();
+    await save();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ calories: null }] }));
+  });
+
+  it('a number out of range keeps the arrow beside its message', async () => {
+    await startWorkout(undefined, 70_000);
+    await run();
+    await screen.findByText(/^Estimated: /);
+    await fireEvent.changeText(kcalBox(), '5001');
+
+    expect(await screen.findByText(RULES.kcal)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Use the estimate, 326 kcal' }));
+    expect(kcalBox().props.value).toBe('326');
+    expect(screen.queryByText(RULES.kcal)).toBeNull();
+  });
+
+  it('Edit exercise on calories typed before shows Edited and the arrow, and saves the estimate once it is used', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await run();
+    await screen.findByText(/^Estimated: /);
+    await fireEvent.changeText(kcalBox(), '360');
+    await save();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 360 kcal' }));
+    expect(screen.getByRole('header', { name: 'Edit exercise' })).toBeOnTheScreen();
+    expect(kcalBox().props.value).toBe('360');
+    expect(await screen.findByText('Edited')).toBeOnTheScreen();
+    expect(screen.getByText(BACK)).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Use the estimate, 326 kcal' }));
+    await save();
+    expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 326 kcal · estimated' })).toBeOnTheScreen();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ calories: { kcal: 326, estimated: true } }] }));
+  });
+
+  it('with no estimate to go back to (no weigh-in, or a name of the user’s own) there is no tag and no arrow', async () => {
+    await startWorkout();
+    await run();
+    await screen.findByText('Log your weight to see an estimate.');
+    await fireEvent.changeText(kcalBox(), '300');
+
+    expect(screen.getByText('As you typed it, from your machine or watch.')).toBeOnTheScreen();
+    expect(screen.queryByText('Edited')).toBeNull();
+    expect(arrow()).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
+
+    await openSheet();
+    await typeName('Hill sprints');
+    await fireEvent.changeText(kcalBox(), '200');
+    expect(screen.getByText('As you typed it, from your machine or watch.')).toBeOnTheScreen();
+    expect(screen.queryByText('Edited')).toBeNull();
+    expect(arrow()).toBeNull();
   });
 });
 

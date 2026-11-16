@@ -1,7 +1,7 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, Search, Trash } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
-import { Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
+import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash } from 'lucide-react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { useFieldChecks, type FieldChecks } from '../fieldChecks';
 import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -17,6 +17,7 @@ import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import {
+  caloriesChanged,
   caloriesHelp,
   effortOf,
   EMPTY_EXERCISE,
@@ -257,9 +258,18 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} in ${filterLabel(filter)}`;
   const estimated = estimateCalories(match, effortOf(text, layout), weightGrams);
   const estimate = 'estimate' in estimated ? estimated.estimate : null;
+  // The user's own number, or an empty box, where there is an estimate to go back to (D-107).
+  const changed = caloriesChanged(text.kcal, estimated);
 
   function change(fields: Partial<ExerciseText>) {
     setText((current) => ({ ...current, ...fields }));
+  }
+
+  /** The arrow (D-107): the estimate again, which then follows the time and distance as before. */
+  function backToEstimate() {
+    if (changed === null) return;
+    change({ kcal: null });
+    AccessibilityInfo.announceForAccessibility(`Calories burned: the estimate, ${formatInteger(changed.kcal)} kcal`);
   }
 
   function changeSet(index: number, column: SetColumn, value: string) {
@@ -586,8 +596,14 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             </View>
           ) : null}
           <View style={styles.field}>
+            {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
+                you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
+                the estimate back. */}
             <View style={styles.labelRow}>
-              <Text style={labelStyle}>Calories burned (optional)</Text>
+              <View style={styles.labelWithTag}>
+                <Text style={labelStyle}>Calories burned (optional)</Text>
+                {changed ? <Text style={styles.editedTag}>Edited</Text> : null}
+              </View>
               <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
                 <Info size={22} color={colors.accent} />
               </IconButton>
@@ -601,6 +617,16 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
               refused={problems.kcal !== undefined}
               {...watch('kcal')}
+              after={
+                changed ? (
+                  <>
+                    <View style={styles.divider} />
+                    <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
+                      <RotateCcw size={22} strokeWidth={2.25} color={colors.accent} />
+                    </IconButton>
+                  </>
+                ) : null
+              }
             />
             {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.help}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
           </View>
@@ -815,23 +841,27 @@ function AverageSpeed({ text }: { text: ExerciseText }) {
 }
 
 /**
- * A sunken box for one value, its unit after it, and a `mark` such as "estimated" before the unit; the
- * outline caramel while typing and red when refused.
+ * A sunken box for one value, its unit after it, a `mark` such as "estimated" before the unit, and
+ * `after` the unit a button of the box's own (the calories' arrow, D-107); the outline caramel while
+ * typing and red when refused.
  */
 function Box({
   unit,
   mark,
+  after,
   refused,
   compact = false,
   note = false,
   onFocus,
   onBlur,
   ...input
-}: { unit?: string; mark?: string; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
+}: { unit?: string; mark?: string; after?: ReactNode; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
   const styles = useStyles();
   const [focused, setFocused] = useState(false);
   return (
-    <View style={[styles.box, compact && styles.compact, note && styles.noteBox, focused && styles.focused, refused && styles.refused]}>
+    <View
+      style={[styles.box, compact && styles.compact, note && styles.noteBox, after ? styles.withAfter : null, focused && styles.focused, refused && styles.refused]}
+    >
       <TextInput
         onFocus={(event) => {
           setFocused(true);
@@ -846,6 +876,7 @@ function Box({
       />
       {mark ? <Text style={styles.help}>{mark}</Text> : null}
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+      {after}
     </View>
   );
 }
@@ -869,6 +900,23 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceSunken,
   },
   compact: { flex: 1, gap: 8, paddingHorizontal: 12 },
+  // A button at the box's end keeps its own room (D-107).
+  withAfter: { paddingRight: 4 },
+  divider: { width: 1, height: 28, backgroundColor: c.border },
+  // The calories' label and, once changed by the user, the caramel Edited tag (D-107), as Home's Due badge.
+  labelWithTag: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  editedTag: {
+    ...TYPE.label,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
+    color: c.onPrimary,
+    backgroundColor: c.primary,
+  },
   noteBox: { minHeight: 84, alignItems: 'flex-start' },
   focused: { borderColor: c.accent },
   refused: { borderColor: c.danger },
