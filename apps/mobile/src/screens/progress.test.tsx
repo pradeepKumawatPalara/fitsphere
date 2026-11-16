@@ -1,5 +1,6 @@
 import type { MealItem } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { applyServerEntries, setMeta } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { renderInApp } from '../testing/appHarness';
@@ -169,7 +170,7 @@ describe('REQ-PRG-006 measurements', () => {
     await waitFor(() => expect(server.entries('measurements').get('2026-10-28')).toMatchObject({ upperWaistMm: 812 }));
   });
 
-  it('shows the latest entry; the older ones fold under "Show all measurements (N)", newest first, and each opens to edit', async () => {
+  it('shows the latest entry; all of them, the latest too, fold under "Show all measurements (N)", newest first, and each opens to edit', async () => {
     await renderInApp(<ProgressScreen />, undefined, async (db) => {
       await applyServerEntries(db, 'measurements', [
         { day: '2026-10-12', upperWaistMm: 820, lowerWaistMm: 850, ...NO_OPTIONAL, recordedAt: AT },
@@ -183,14 +184,16 @@ describe('REQ-PRG-006 measurements', () => {
     expect(titles.map((title) => title.props.children)).toEqual([['Measurements · ', 'Mon 26 Oct']]);
     expect(screen.queryByRole('button', { name: /^Edit measurements, / })).toBeNull();
 
+    // The owner, 2026-11-16: "(N)" counts every entry, so the table holds N rows.
     await fireEvent.press(screen.getByRole('button', { name: 'Show all measurements (3)' }));
     const rows = screen.getAllByRole('button', { name: /^Edit measurements, / });
     expect(rows.map((row) => row.props.accessibilityLabel)).toEqual([
+      'Edit measurements, Mon 26 Oct: Upper waist 80.0 cm, Lower waist 83.0 cm',
       'Edit measurements, Mon 12 Oct: Upper waist 82.0 cm, Lower waist 85.0 cm',
       'Edit measurements, Mon 5 Oct: Upper waist 82.5 cm, Lower waist 85.5 cm',
     ]);
 
-    await fireEvent.press(rows[0]!);
+    await fireEvent.press(rows[1]!);
     expect(screen.getByLabelText('Date: Mon 12 Oct')).toBeOnTheScreen();
     await fireEvent.changeText(screen.getByLabelText('Upper waist (cm)'), '81.5');
     await fireEvent.press(screen.getByRole('button', { name: 'Save measurements' }));
@@ -202,6 +205,30 @@ describe('REQ-PRG-006 measurements', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Show fewer' }));
     expect(screen.queryByRole('button', { name: /^Edit measurements, / })).toBeNull();
+  });
+
+  it('with two entries, "Show all measurements (2)" lists both (the owner, 2026-11-16)', async () => {
+    await renderInApp(<ProgressScreen />, undefined, async (db) => {
+      await applyServerEntries(db, 'measurements', [
+        { day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT },
+        { day: '2026-10-19', upperWaistMm: 810, lowerWaistMm: 840, ...NO_OPTIONAL, recordedAt: AT },
+      ]);
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (2)' }));
+
+    expect(screen.getAllByRole('button', { name: /^Edit measurements, / })).toHaveLength(2);
+  });
+
+  it('the heading and Add measurements wrap rather than cut the button off on a narrow screen (the owner, 2026-11-16)', async () => {
+    await renderInApp(<ProgressScreen />, undefined, async (db) => {
+      await applyServerEntries(db, 'measurements', [{ day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT }]);
+    });
+
+    await screen.findByRole('header', { name: 'Measurements' });
+    // The layout is the phone's; this checks the row may wrap, so the button keeps its whole width.
+    expect(StyleSheet.flatten(screen.getByTestId('measurements-heading-row').props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+    expect(screen.getByRole('button', { name: 'Add measurements' })).toBeOnTheScreen();
   });
 
   it('with one entry, shows it with no "Show all measurements"', async () => {
