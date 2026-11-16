@@ -1,6 +1,7 @@
 import {
   addDays,
   fromMillimetres,
+  istWeekStart,
   MEASUREMENT_NOTES_MAX,
   type IstDay,
   type LengthUnit,
@@ -13,6 +14,7 @@ import { formatDay, measurementRange, parseLength } from '../format';
 import { useFieldChecks } from '../fieldChecks';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, getMeta, setMeta } from '../local/store';
+import { useOlderDays } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
@@ -73,6 +75,10 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   // The length being typed in: its outline caramel.
   const [focused, setFocused] = useState<LengthKey | null>(null);
   const [busy, setBusy] = useState(false);
+  // A day before the phone's 90 is read from the server; its entry is read again once it is (D-106).
+  const monday = istWeekStart(day);
+  const older = useOlderDays(monday, addDays(monday, 6), today);
+  const olderLoaded = older.status === 'loaded';
 
   // The day's entry, in the unit last chosen on this phone (MVP default, D-23).
   useEffect(() => {
@@ -103,7 +109,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
     return () => {
       active = false;
     };
-  }, [local.state, day]);
+  }, [local.state, day, olderLoaded]);
 
   /** Switching the unit converts what is typed, so each value keeps its meaning. */
   function changeUnit(next: LengthUnit) {
@@ -222,8 +228,8 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
     >
       <View style={styles.dateRow}>
         {mode === 'edit' ? (
-          <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
-            {formatDay(day)}
+          <Text accessibilityLabel={`Date: ${formatDay(day, today)}`} style={styles.date}>
+            {formatDay(day, today)}
           </Text>
         ) : (
           <View style={styles.row}>
@@ -237,8 +243,8 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             >
               <ChevronLeft size={20} strokeWidth={2.25} color={day <= firstDay ? colors.inkSubtle : colors.accent} />
             </Pressable>
-            <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={[styles.date, styles.dateBetween]}>
-              {formatDay(day)}
+            <Text accessibilityLabel={`Date: ${formatDay(day, today)}`} style={[styles.date, styles.dateBetween]}>
+              {formatDay(day, today)}
             </Text>
             <Pressable
               accessibilityRole="button"

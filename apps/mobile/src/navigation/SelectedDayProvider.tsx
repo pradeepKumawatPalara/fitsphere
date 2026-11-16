@@ -1,12 +1,12 @@
-import { addDays, istToday, istWeekStart, syncWindowStart, type IstDay } from '@fitsphere/shared';
+import { addDays, EARLIEST_DAY, istToday, istWeekStart, type IstDay } from '@fitsphere/shared';
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 
 type SelectedDayValue = {
   today: IstDay;
   /** The day every main screen shows (REQ-DATE-001). */
   selected: IstDay;
-  /** The earliest day that can be selected: the 90 IST days the phone holds (ADR-0007 rule 1;
-   * MVP default, D-23). Older days are viewed in Progress. */
+  /** The earliest day that can be selected: any day back to EARLIEST_DAY (D-106; it was the phone's 90
+   * days, D-23). A day before the phone's 90 is read from the server when shown (`useShownOlderDays`). */
   firstDay: IstDay;
   /** The Monday of the Monday-to-Sunday week the date strip shows (REQ-HOME-002, D-79). */
   stripStart: IstDay;
@@ -36,7 +36,7 @@ export function stripStarts(firstDay: IstDay, today: IstDay): IstDay[] {
  */
 export function SelectedDayProvider({ children, now = defaultNow }: { children: ReactNode; now?: () => Date }) {
   const today = istToday(now());
-  const firstDay = syncWindowStart(today);
+  const firstDay = EARLIEST_DAY;
   const [selected, setSelected] = useState(today);
   const [stripStart, setStripStart] = useState(() => stripStartFor(today));
 

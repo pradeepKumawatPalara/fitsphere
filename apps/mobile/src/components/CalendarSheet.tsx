@@ -1,8 +1,9 @@
 import type { IstDay } from '@fitsphere/shared';
 import { useState } from 'react';
-import { Apple, ChevronLeft, ChevronRight, CircleAlert, Dumbbell } from 'lucide-react-native';
+import { Apple, ChevronLeft, ChevronRight, CircleAlert, Dumbbell, LoaderCircle, WifiOff } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { addMonths, formatLongDay, formatMonth, monthWeeks } from '../format';
+import type { OlderDaysStatus } from '../sync/olderDays';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
@@ -18,7 +19,7 @@ type Props = {
   /** Above the month, e.g. "Log this meal to"; the header's calendar has none. */
   title?: string;
   today: IstDay;
-  /** The earliest day that can be picked (the phone's 90 days; MVP default, D-23). */
+  /** The earliest day that can be picked: EARLIEST_DAY (D-106; it was the phone's 90 days, D-23). */
   firstDay: IstDay;
   selected: IstDay;
   /** Meals logged per day (Log meal): a dot under each day with a meal, and each day's status. */
@@ -29,6 +30,15 @@ type Props = {
    * days. `null` while they load: the same layout, nothing marked yet.
    */
   activity?: CalendarActivity | null;
+  /**
+   * The header's calendar: how the month shown stands (D-106). A month before the phone's 90 days is
+   * read from the server; while it is not, a line in place of its workouts says why.
+   */
+  monthStatus?: OlderDaysStatus;
+  /** The first of the phone's 90 days: in a month not shown yet, only the days before it are unknown. */
+  phoneFirstDay?: IstDay;
+  /** The month shown changed, "2025-03". */
+  onMonth?(month: string): void;
   onSelect(day: IstDay): void;
   onClose(): void;
 };
@@ -59,16 +69,22 @@ const WEEKDAY_HEADINGS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MONTHS_AHEAD = 12;
 // What a greyed day says when tapped (D-34).
 export const FUTURE_DAY = "Future dates can't be chosen. Choose today or an earlier day.";
-export const OLDER_DAY = 'Only the last 90 days are on this phone. Choose a later day.';
+export const OLDER_DAY = 'Choose a day from 1 Jan 2000 on.';
+/** The header's calendar, while a month before the phone's 90 days is not shown yet (D-106). */
+export const OLDER_MONTH_TEXTS = {
+  loading: 'Loading this month…',
+  offline: 'Connect to the internet to see this month’s meals and workouts.',
+  failed: 'Couldn’t load this month’s meals and workouts.',
+} as const;
 
 // The header's calendar shortcut (REQ-NAV-002), and Log meal's date (REQ-LOG-002, D-33): a month
-// grid that opens on the selected month and browses back to `firstDay`'s month and up to 12 months
-// ahead (D-34). Future days (Q-017) and days before `firstDay` are greyed and cannot be picked:
+// grid that opens on the selected month and browses back to `firstDay`'s month (January 2000, D-106)
+// and up to 12 months ahead (D-34). Future days (Q-017) and days before `firstDay` are greyed and cannot be picked:
 // tapping one says why, and screen readers hear "not available". With `counts` (Log meal), each day
 // with a meal has a dot, and each day's status (Q-037) is read out. With `activity` (the header's,
 // D-84, canvas "2.2 Calendar · an apple for meals", B locked), a day with a meal has a green apple and
 // a day with a workout a green dumbbell, side by side under the date; the month's workouts are counted under its name, with a key below.
-export function CalendarSheet({ title, today, firstDay, selected, counts, activity, onSelect, onClose }: Props) {
+export function CalendarSheet({ title, today, firstDay, selected, counts, activity, monthStatus, phoneFirstDay, onMonth, onSelect, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const [month, setMonth] = useState(selected.slice(0, 7));
@@ -85,7 +101,10 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
   function showMonth(next: string) {
     setMonth(next);
     setNotice(null);
+    onMonth?.(next);
   }
+  // An older month not shown yet (D-106): its marks are not known, so none are drawn.
+  const monthWaiting = monthStatus === 'loading' || monthStatus === 'offline' || monthStatus === 'failed' ? monthStatus : null;
 
   // In the sheets' frame (the redesign's 2.2, locked by the owner 2026-11-03): the month in display
   // capitals, under Log meal's title; square days, today outlined in caramel, the selected day
@@ -104,7 +123,14 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
             <Text accessibilityRole="header" style={styles.title}>
               {formatMonth(month)}
             </Text>
-            {marking ? (
+            {marking && monthWaiting ? (
+              <View accessibilityLiveRegion="polite" style={styles.monthCount}>
+                {monthWaiting === 'loading' ? <LoaderCircle size={14} strokeWidth={2.5} color={colors.accent} /> : null}
+                {monthWaiting === 'offline' ? <WifiOff size={14} strokeWidth={2.25} color={colors.inkMuted} /> : null}
+                {monthWaiting === 'failed' ? <CircleAlert size={14} strokeWidth={2.25} color={colors.danger} /> : null}
+                <Text style={styles.monthCountText}>{OLDER_MONTH_TEXTS[monthWaiting]}</Text>
+              </View>
+            ) : marking ? (
               <View style={styles.monthCount}>
                 {monthWorkouts !== null ? (
                   <>
@@ -157,8 +183,9 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
               const isSelected = day === selected;
               const isToday = day === today;
               const count = counts?.[day] ?? 0;
-              const meals = activity && !disabled ? (activity.meals[day] ?? 0) : 0;
-              const workouts = activity && !disabled ? (activity.workouts[day] ?? 0) : 0;
+              const unknown = monthWaiting !== null && (phoneFirstDay === undefined || day < phoneFirstDay);
+              const meals = activity && !disabled && !unknown ? (activity.meals[day] ?? 0) : 0;
+              const workouts = activity && !disabled && !unknown ? (activity.workouts[day] ?? 0) : 0;
               const status = disabled
                 ? ', not available'
                 : counts
@@ -244,8 +271,8 @@ const useStyles = themedStyles((c) => ({
   overline: { ...TYPE.label, color: c.inkMuted },
   title: TYPE.sheetTitle,
   // The month's workouts (D-84): kept 20 tall while they load, so the days do not move.
-  monthCount: { height: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  monthCountText: { ...TYPE.small, color: c.inkMuted },
+  monthCount: { minHeight: 20, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  monthCountText: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
   arrows: { flexDirection: 'row', gap: 8 },
   arrow: {
     width: 44,

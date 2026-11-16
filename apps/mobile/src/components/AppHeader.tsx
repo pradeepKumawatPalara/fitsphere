@@ -1,3 +1,4 @@
+import { syncWindowStart } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { Calendar } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -8,7 +9,8 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { listEntries, mealCounts } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { greetingName } from '../profile';
-import { useSync } from '../sync/SyncProvider';
+import { useOlderDays, useSync } from '../sync/SyncProvider';
+import { monthRange } from '../sync/olderDays';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { workoutsPerDay } from '../workouts';
@@ -28,7 +30,7 @@ export function HeaderTitle() {
   const { email } = useAuth();
   const profile = useProfile();
   const { today, selected } = useSelectedDay();
-  const date = selected === today ? `Today · ${formatDay(selected)}` : formatDay(selected);
+  const date = selected === today ? `Today · ${formatDay(selected)}` : formatDay(selected, today);
   return (
     <View style={styles.title}>
       <Text accessibilityLabel={`Selected date: ${date}`} style={[styles.date, selected === today && styles.today]}>
@@ -49,9 +51,13 @@ export function HeaderActions() {
   const { today, selected, firstDay, select } = useSelectedDay();
   const router = useRouter();
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // The month the calendar shows: one before the phone's 90 days is read from the server (D-106).
+  const [month, setMonth] = useState(selected.slice(0, 7));
   const local = useLocalDatabase();
   const sync = useSync();
-  // The 90 days' meals and listed workouts (D-84), read when the calendar opens; null until then.
+  const shownMonth = monthRange(calendarOpen ? month : today.slice(0, 7));
+  const monthOlder = useOlderDays(shownMonth.from, shownMonth.to, today);
+  // The meals and listed workouts on the phone (D-84), read when the calendar opens; null until then.
   const [activity, setActivity] = useState<CalendarActivity | null>(null);
 
   useEffect(() => {
@@ -70,7 +76,10 @@ export function HeaderActions() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Calendar"
-        onPress={() => setCalendarOpen(true)}
+        onPress={() => {
+          setMonth(selected.slice(0, 7));
+          setCalendarOpen(true);
+        }}
         hitSlop={2}
         style={({ pressed }) => [styles.calendar, pressed && styles.pressed]}
       >
@@ -91,6 +100,9 @@ export function HeaderActions() {
           firstDay={firstDay}
           selected={selected}
           activity={activity}
+          monthStatus={monthOlder.status}
+          phoneFirstDay={syncWindowStart(today)}
+          onMonth={setMonth}
           onSelect={select}
           onClose={() => setCalendarOpen(false)}
         />

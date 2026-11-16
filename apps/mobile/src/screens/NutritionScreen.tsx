@@ -1,6 +1,6 @@
 import { type MealItem, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Bookmark, ChevronDown, ChevronUp, ClipboardList, History, Plus } from 'lucide-react-native';
+import { Bookmark, ChevronDown, ChevronUp, ClipboardList, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
@@ -9,6 +9,7 @@ import { LoggedMealCard } from '../components/LoggedMealCard';
 import { MealCard } from '../components/MealCard';
 import { andList, useFoodChange } from '../components/MealFoods';
 import { ActionsSheet, ConfirmSheet, RelogSheet, SAVED_NAME_HINT, SaveMealSheet } from '../components/MealSheets';
+import { isWaiting, ShowingDayBanner } from '../components/ShowingDayBanner';
 import { WeekStrip } from '../components/WeekStrip';
 import { Text, TextButton, useChoiceStyles } from '../components/ui';
 import { formatDay } from '../format';
@@ -23,6 +24,7 @@ import {
 import { sameFoods } from '../mealItems';
 import { describeItems, formatAmount, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER, suggestedSavedName } from '../meals';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
+import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { useSync } from '../sync/SyncProvider';
 import { useWeekActivity } from '../weekActivity';
 import { themedStyles, useTheme } from '../theme';
@@ -81,6 +83,8 @@ export function NutritionScreen() {
   const [totals, setTotals] = useState<MealTotals | null>(null);
   // The strip's week: an apple and a dumbbell under each day, as on Home (D-103).
   const activity = useWeekActivity(stripStart);
+  // A day before the phone's 90 is read from the server when shown (D-106).
+  const older = useShownOlderDays();
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   // One food of a logged meal open on its own page, or in the sheet for its amount (D-97).
@@ -165,11 +169,7 @@ export function NutritionScreen() {
           onShow={showDays}
         />
         {selected !== today ? (
-          <View style={styles.banner}>
-            <History size={20} color={colors.accent} />
-            <Text style={styles.bannerText}>Showing {formatDay(selected)}</Text>
-            <TextButton title="Back to today" onPress={() => select(today)} />
-          </View>
+          <ShowingDayBanner day={selected} today={today} status={older.day.status} onBack={() => select(today)} onRetry={older.day.retry} />
         ) : null}
         <View accessibilityRole="tablist" style={styles.tabs}>
           {TABS.map((entry) => (
@@ -190,7 +190,7 @@ export function NutritionScreen() {
 
         {tab === 'consumed' ? (
           <>
-            <EatenSummary totals={totals} />
+            <EatenSummary totals={isWaiting(older.day.status) ? null : totals} />
             {MEAL_TYPE_ORDER.map((slot) => {
               const label = MEAL_TYPE_LABELS[slot];
               const slotMeals = meals.filter((meal) => meal.mealType === slot);
@@ -381,7 +381,7 @@ export function NutritionScreen() {
       {sheet?.kind === 'relog' ? (
         <RelogSheet
           name={sheet.saved.name}
-          dayLabel={formatDay(selected)}
+          dayLabel={formatDay(selected, today)}
           onChangeFirst={(slot) =>
             router.push({ pathname: '/log-meal', params: { day: selected, savedId: sheet.saved.id, ...(slot ? { slot } : {}) } })
           }
@@ -469,17 +469,6 @@ const useStyles = themedStyles((c) => ({
   sheetText: { fontSize: 16, lineHeight: 24 },
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingLeft: 14,
-    paddingRight: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: c.accentTint,
-  },
-  bannerText: { flex: 1, fontSize: 15, lineHeight: 22 },
   body: { fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
   // Equal widths, as the meal pills on Log meal: 8 at the sides and one line, which shrinks a little

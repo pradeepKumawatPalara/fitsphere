@@ -1,6 +1,6 @@
 import { addDays, type IstDay } from '@fitsphere/shared';
 import { Apple, ChevronLeft, ChevronRight, Dumbbell } from 'lucide-react-native';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, View, type GestureResponderEvent } from 'react-native';
 import { dayParts } from '../format';
 import { stripStarts } from '../navigation/SelectedDayProvider';
@@ -68,7 +68,8 @@ export function WeekStrip({ today, firstDay, selected, start, activity, onSelect
   const { colors } = useTheme();
   const canGoBack = addDays(start, -1) >= firstDay;
   const canGoOn = addDays(start, 7) <= today;
-  const starts = stripStarts(firstDay, today);
+  // Every week back to `firstDay`: over a thousand since D-106, made once a day.
+  const starts = useMemo(() => stripStarts(firstDay, today), [firstDay, today]);
   const shown = Math.max(0, starts.indexOf(start));
   // A page's width: the room between the arrows, known once laid out.
   const [pageWidth, setPageWidth] = useState(0);
@@ -76,6 +77,8 @@ export function WeekStrip({ today, firstDay, selected, start, activity, onSelect
   const [slide] = useState(() => new Animated.Value(0));
   // The week the row shows, or is sliding to.
   const target = useRef(0);
+  // The week a swipe or an arrow last sent the row to, drawn with its neighbours till it is shown.
+  const [near, setNear] = useState<number | null>(null);
   // Where the finger came down on the strip, and once it swipes, the swipe.
   const touch = useRef<{ x: number; y: number } | null>(null);
   const swipe = useRef<Swipe | null>(null);
@@ -101,9 +104,20 @@ export function WeekStrip({ today, firstDay, selected, start, activity, onSelect
 
   /** A week moved to: one week either side of the week the row shows or slides to, within the weeks there are. */
   function step(by: number) {
-    if (pageWidth > 0) slideTo(Math.min(starts.length - 1, Math.max(0, target.current + by)));
-    else if (by !== 0) onShow(addDays(start, 7 * by));
+    if (pageWidth === 0) {
+      if (by !== 0) onShow(addDays(start, 7 * by));
+      return;
+    }
+    const index = Math.min(starts.length - 1, Math.max(0, target.current + by));
+    setNear(index);
+    slideTo(index);
   }
+
+  // Only the weeks beside the one shown, and beside the one a swipe slides to, are drawn: the strip
+  // goes back to EARLIEST_DAY, over a thousand weeks (D-106). Each sits at its own place in the row.
+  const drawn = [...new Set([shown - 1, shown, shown + 1, ...(near === null ? [] : [near - 1, near, near + 1])])].filter(
+    (index) => index >= 0 && index < starts.length,
+  );
 
   // Follows weeks shown another way, the calendar and "Back to today": the next week over slides, a week
   // further off shows at once.
@@ -265,16 +279,19 @@ export function WeekStrip({ today, firstDay, selected, start, activity, onSelect
           <View style={styles.week}>{days(start)}</View>
         ) : (
           <Animated.View testID="week-row" style={[styles.weeks, { width: starts.length * pageWidth, transform: [{ translateX: slide }] }]}>
-            {starts.map((first) => (
-              <View
-                key={first}
-                importantForAccessibility={first === start ? 'auto' : 'no-hide-descendants'}
-                accessibilityElementsHidden={first !== start}
-                style={[styles.week, { width: pageWidth }]}
-              >
-                {days(first)}
-              </View>
-            ))}
+            {drawn.map((index) => {
+              const first = starts[index]!;
+              return (
+                <View
+                  key={first}
+                  importantForAccessibility={first === start ? 'auto' : 'no-hide-descendants'}
+                  accessibilityElementsHidden={first !== start}
+                  style={[styles.week, styles.placed, { left: index * pageWidth, width: pageWidth }]}
+                >
+                  {days(first)}
+                </View>
+              );
+            })}
           </Animated.View>
         )}
       </View>
@@ -303,7 +320,8 @@ const useStyles = themedStyles((c) => ({
   pressed: { opacity: 0.6 },
   dimmed: { opacity: 0.45 },
   pages: { flex: 1, overflow: 'hidden' },
-  weeks: { flexDirection: 'row' },
+  weeks: { height: 64 },
+  placed: { position: 'absolute', top: 0 },
   week: { flexDirection: 'row', gap: 4 },
   day: { flex: 1, height: 64, alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 4 },
   today: { borderWidth: 2, borderColor: c.accent },

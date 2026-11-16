@@ -4,7 +4,9 @@ import {
   MAX_MEAL_ITEMS,
   mealTotals,
   MEAL_TYPES,
-  syncWindowStart,
+  EARLIEST_DAY,
+  istWeekStart,
+  addDays,
   type IstDay,
   type MealItem,
   type MealTag,
@@ -41,7 +43,7 @@ import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listMealsOfDay, listSavedMeals, mealCounts, type LocalMeal, type LocalSavedMeal } from '../local/store';
 import { describeItems, formatGrams, formatKcal, MEAL_TYPE_LABELS, MEAL_TYPE_ORDER } from '../meals';
-import { useSync } from '../sync/SyncProvider';
+import { useOlderDays, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 
@@ -75,7 +77,8 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const router = useRouter();
   const params = useLocalSearchParams<Params>();
   const today = istToday(now());
-  const firstDay = syncWindowStart(today);
+  // Any day back to EARLIEST_DAY (D-106; it was the phone's 90 days).
+  const firstDay = EARLIEST_DAY;
   const editing = typeof params.mealId === 'string' && params.mealId !== '';
   const savedId = !editing && typeof params.savedId === 'string' && params.savedId !== '' ? params.savedId : null;
 
@@ -83,6 +86,9 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [day, setDay] = useState<IstDay>(() =>
     typeof params.day === 'string' && isIstDay(params.day) && params.day <= today && params.day >= firstDay ? params.day : today,
   );
+  // A date before the phone's 90 has its meals read from the server, to show and change them (D-106).
+  const dayMonday = istWeekStart(day);
+  useOlderDays(dayMonday, addDays(dayMonday, 6), today);
   const [mealType, setMealType] = useState<MealType | null>(() =>
     MEAL_TYPES.includes(params.slot as MealType) ? (params.slot as MealType) : null,
   );

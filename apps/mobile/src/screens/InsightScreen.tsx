@@ -1,4 +1,4 @@
-import { isIstDay, istToday, MEAL_TYPES, syncWindowStart, type IstDay, type MealType, type TargetKind } from '@fitsphere/shared';
+import { EARLIEST_DAY, isIstDay, istToday, MEAL_TYPES, type IstDay, type MealType, type TargetKind } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CalendarDays, ChartPie, Check, ChevronDown, ChevronUp, Info, Plus } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -50,7 +50,7 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
   const router = useRouter();
   const params = useLocalSearchParams<{ day?: string; scope?: string }>();
   const today = istToday(now());
-  const firstDay = syncWindowStart(today);
+  const firstDay = EARLIEST_DAY;
   const day: IstDay =
     typeof params.day === 'string' && isIstDay(params.day) && params.day <= today && params.day >= firstDay ? params.day : today;
   const [scope, setScope] = useState<InsightScope>(() => asInsightScope(params.scope));
