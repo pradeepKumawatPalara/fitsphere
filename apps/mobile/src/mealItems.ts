@@ -34,12 +34,13 @@ export const GRAMS_RULE = `Enter whole grams from 1 to ${MEAL_ITEM_GRAMS_MAX.toL
 
 /**
  * A quantity typed on a food's page (D-102): more than 0, with at most two decimals, a point or a
- * comma before them ("1.5", "0,25", ".5"); null when it is not one. Up to `max`.
+ * comma before them ("1.5", "0,25", ".5", and "1." while the decimal is still to come, D-99); null
+ * when it is not one. Up to `max`.
  */
 export function parseCount(text: string, max: number): number | null {
-  const match = /^(\d{0,5})(?:[.,](\d{1,2}))?$/.exec(text.trim());
-  if (!match || (match[1] === '' && match[2] === undefined)) return null;
-  const value = Number(`${match[1] || '0'}.${match[2] ?? '0'}`);
+  const match = /^(\d{0,5})(?:[.,](\d{0,2}))?$/.exec(text.trim());
+  if (!match || (match[1] === '' && !match[2])) return null;
+  const value = Number(`${match[1] || '0'}.${match[2] || '0'}`);
   return value > 0 && value <= max && hasTwoDecimals(value) ? value : null;
 }
 

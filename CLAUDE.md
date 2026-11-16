@@ -89,9 +89,10 @@ Nutrition and Training puts the header calendar's green apple and dumbbell under
 (`components/WeekWorkouts.tsx`, MVP default). Phone app only: no server change, no migration, no phone
 schema change, no new build.
 
-**Every field's message three seconds after typing stops, the approved ranges, measurement notes —
+**Every field's message after typing stops (0.3 seconds since 2026-11-16, branch `fix/field-checks`; ".5" and "7." read
+in every box with decimals), the approved ranges, measurement notes —
 built on branch `fix/validation-timing` (D-98, D-99, D-100, 2026-11-13), in `D:\fitsphere`.** D-99:
-every typed field's message shows three seconds after typing stops or once the field is left (an empty
+every typed field's message shows three seconds (now 0.3) after typing stops or once the field is left (an empty
 one only once left), never because a button was pressed; buttons are greyed meanwhile, with a line
 saying what is missing (`apps/mobile/src/fieldChecks.ts`, `CHECK_PAUSE_MS`; tests use 0). D-100: the
 owner's ranges and text rules for every field (height 50–300 cm; daily steps 1–200,000; targets from

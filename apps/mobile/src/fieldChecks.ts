@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 
-/** How long typing must pause before a field's problem shows: three seconds (D-99, the owner's choice). */
-export const CHECK_PAUSE_MS = 3_000;
+/**
+ * How long typing must pause before a field's problem shows: 0.3 seconds (D-99; the owner, 2026-11-16:
+ * three seconds "is too large. I want it to be appear in 0.30 seconds").
+ */
+export const CHECK_PAUSE_MS = 300;
 
 let pauseMs = CHECK_PAUSE_MS;
 
@@ -16,8 +19,8 @@ export function setCheckPause(ms: number): void {
 /**
  * When the problems of a form's fields may show (D-99; the owner, 2026-11-13: "all the validations
  * should shows when the User stop typing just after 5 second ... not on when the user click on the
- * button"; then "lets change it to 3 seconds"). A field's problem shows once typing in it has paused
- * for three seconds, or as soon as the field is left; an empty field's ("Enter …") only once the field
+ * button"; then "lets change it to 3 seconds"; then, 2026-11-16, 0.3 seconds). A field's problem shows
+ * once typing in it has paused for `CHECK_PAUSE_MS`, or as soon as the field is left; an empty field's ("Enter …") only once the field
  * has been left empty. The screen works each problem out from what is typed now, so a problem goes the
  * moment the field is put right. No problem waits for a button: the screen greys its button while there
  * is one.
