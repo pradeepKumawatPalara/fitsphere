@@ -1168,6 +1168,44 @@ describe('D-67 the name’s chevron, and a choice the exercise is not in', () =>
     expect(await screen.findByRole('button', { name: 'Hammer curl, Dumbbell · Biceps' })).toBeOnTheScreen();
   });
 
+  it('the owner, 2026-11-17: opened on an exercise picked in a category, the chevron lists all its exercises, the picked one highlighted', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Category', 'Dumbbell');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Dumbbell curl, Biceps' }));
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Dumbbell curl');
+    expect(screen.queryByText('Dumbbell · 3 exercises')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+
+    // Not the name's own search, which found it alone: the whole category, the picked one highlighted.
+    expect(await screen.findByText('Dumbbell · 3 exercises')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell curl, Biceps, picked' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Dumbbell bench press, Chest' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Biceps' })).not.toBeSelected();
+
+    // Another picked from it replaces it, and the list closes.
+    await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl, Biceps' }));
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Hammer curl');
+    expect(screen.queryByText('Dumbbell · 3 exercises')).toBeNull();
+  });
+
+  it('with no category, the chevron on an exercise picked lists every exercise, it highlighted; typing searches again', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('hammer', 'Hammer curl');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+    expect(await screen.findByText('All exercises · 15')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Dumbbell · Biceps, picked' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Kabaddi, Sport' })).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'curl');
+    expect(await screen.findByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Dumbbell · Biceps' })).not.toBeSelected();
+    expect(screen.queryByRole('button', { name: /^Kabaddi/ })).toBeNull();
+  });
+
   it('a category or sub-group the picked exercise is not in clears its name; one it is in keeps it', async () => {
     await startWorkout();
     await openSheet();

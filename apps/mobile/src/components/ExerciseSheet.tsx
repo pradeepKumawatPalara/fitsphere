@@ -1,6 +1,6 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash } from 'lucide-react-native';
-import { useEffect, useState, type ReactNode } from 'react';
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash } from 'lucide-react-native';
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { AccessibilityInfo, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { useFieldChecks, type FieldChecks } from '../fieldChecks';
 import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
@@ -151,12 +151,20 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   // and, opened with nothing typed or chosen, every exercise.
   const [listClosed, setListClosed] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
+  // The chevron opened on an exercise of the list already picked (the owner, 2026-11-17: it listed only
+  // that exercise, the name being its own search, under a large empty space): the choice's exercises, or
+  // every one, the picked one highlighted and scrolled to; typing in the name searches again.
+  const [browsingPicked, setBrowsingPicked] = useState(false);
+  const matchesView = useRef<ComponentRef<typeof ScrollView>>(null);
+  const scrolledToPicked = useRef(false);
   // The picked exercise's page, opened on How to (D-82); the form waits under it.
   const [howTo, setHowTo] = useState(false);
   const filtered = filter.category !== null || filter.subGroup !== null;
   const unnamed = text.name.trim() === '';
-  const browsingAll = showingAll && !filtered && unnamed;
-  const browsing = (filtered || browsingAll) && unnamed;
+  // The whole choice shows, not a search: with no name yet, or opened on the exercise picked.
+  const wholeChoice = unnamed || browsingPicked;
+  const browsingAll = showingAll && !filtered && wholeChoice;
+  const browsing = (filtered || browsingAll) && wholeChoice;
 
   /**
    * A new category or sub-group (D-67). An exercise of the list already picked that it does not hold
@@ -226,7 +234,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     const searching = !listClosed && (typingName || browsing);
     void Promise.all([
       findListedExercise(db, text.name),
-      searching ? searchExercises(db, text.name, browsingAll ? SHOWN_MAX : filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll) : [],
+      searching
+        ? searchExercises(db, browsingPicked ? '' : text.name, browsingAll ? SHOWN_MAX : filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll)
+        : [],
     ]).then(([found, list]) => {
       if (!active) return;
       setListed(found);
@@ -235,7 +245,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     return () => {
       active = false;
     };
-  }, [local.state, text.name, typingName, browsing, browsingAll, listClosed, filtered, filter]);
+  }, [local.state, text.name, typingName, browsing, browsingAll, browsingPicked, listClosed, filtered, filter]);
 
   // An exercise saved as cardio, now listed as done in sets or the other way round, keeps its own
   // fields while it keeps its name, as a name of the user's own.
@@ -249,6 +259,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const listing = picking !== null || choosing;
   // Words typed in a category or sub-group that match none of its exercises (D-67).
   const noMatch = filtered && named && typingName && !listClosed && matches.length === 0 && listed === null;
+  const firstMatches = matches.slice(0, SHOWN_MAX);
+  const shownMatches =
+    browsingPicked && listed !== null && !firstMatches.some((exercise) => exercise.code === listed.code) ? [listed, ...firstMatches] : firstMatches;
   const listTitle = browsingAll
     ? `All exercises · ${formatInteger(counts?.total ?? matches.length)}`
     : !filtered
@@ -280,10 +293,18 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   function toggleList() {
     if (choosing) {
       setListClosed(true);
+      setBrowsingPicked(false);
       Keyboard.dismiss();
       return;
     }
     setListClosed(false);
+    // An exercise of the list picked: its choice's exercises, or every one, with it highlighted.
+    if (listed !== null && !unnamed) {
+      scrolledToPicked.current = false;
+      setBrowsingPicked(true);
+      if (!filtered) setShowingAll(true);
+      return;
+    }
     if (unnamed && !filtered) setShowingAll(true);
     else setTypingName(true);
   }
@@ -293,6 +314,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     setListed(exercise);
     setMatches([]);
     setTypingName(false);
+    setBrowsingPicked(false);
     setPicked(true);
   }
 
@@ -365,6 +387,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               change({ name });
               setTypingName(true);
               setListClosed(false);
+              setBrowsingPicked(false);
             }}
             placeholder={filtered ? `Search ${filterLabel(filter)}` : 'Search or type an exercise'}
             autoCapitalize="sentences"
@@ -406,21 +429,34 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           {/* A plain list, not a FlatList: it sits in the page's scroll view, which may not hold a
               virtualized list; at most SHOWN_MAX rows are drawn. */}
           <View style={[styles.matches, styles.fill]}>
-            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fill} testID="exercise-matches">
-              {matches.slice(0, SHOWN_MAX).map((exercise, index) => {
+            <ScrollView ref={matchesView} nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fill} testID="exercise-matches">
+              {shownMatches.map((exercise, index) => {
                 const tag = matchTag(exercise, filter);
+                const isPicked = browsingPicked && listed !== null && exercise.code === listed.code;
                 return (
                   <Pressable
                     key={exercise.code}
                     accessibilityRole="button"
-                    accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
+                    accessibilityLabel={`${tag ? `${exercise.name}, ${tag}` : exercise.name}${isPicked ? ', picked' : ''}`}
+                    accessibilityState={{ selected: isPicked }}
                     onPress={() => pick(exercise)}
-                    style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
+                    // The picked one is scrolled to once the list opens, a row of the others above it.
+                    onLayout={
+                      isPicked
+                        ? (event) => {
+                            if (scrolledToPicked.current) return;
+                            scrolledToPicked.current = true;
+                            matchesView.current?.scrollTo({ y: Math.max(0, event.nativeEvent.layout.y - 52), animated: false });
+                          }
+                        : undefined
+                    }
+                    style={({ pressed }) => [styles.match, index > 0 && styles.divided, isPicked && styles.matchPicked, pressed && styles.pressed]}
                   >
                     <View style={styles.matchText}>
-                      <Text style={styles.matchName}>{exercise.name}</Text>
+                      <Text style={[styles.matchName, isPicked && styles.matchNamePicked]}>{exercise.name}</Text>
                       {tag ? <Text style={styles.matchLine}>{tag}</Text> : null}
                     </View>
+                    {isPicked ? <Check size={20} strokeWidth={2.5} color={colors.accent} /> : null}
                   </Pressable>
                 );
               })}
@@ -954,6 +990,9 @@ const useStyles = themedStyles((c) => ({
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
   matchName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  // The exercise picked, when the list opens on it: the accent's tint, its name bold, a tick at its end.
+  matchPicked: { backgroundColor: c.accentTint },
+  matchNamePicked: { fontWeight: '700' },
   // A group, as Search foods' source tags: the muted ink on the sunken colour.
   tag: {
     ...TYPE.label,
