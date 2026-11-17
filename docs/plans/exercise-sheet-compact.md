@@ -82,6 +82,9 @@ holds an exercise of the list (How to needs the list's steps; a name of the user
 - Accessibility labels unchanged, so screen readers and the tests find each field by its whole name.
 - After the owner's phone test (2026-11-17): "estimated" in the half-wide calories box hid the number,
   so it moved beside the Calories label as a tag (`calories-estimated`), where D-107's Edited tag goes.
+- Then ("the two input field is not align"): Calories' label row, taller with its info button and tag,
+  set its box lower than Time spent's. The two labels now share one row and the two boxes the next
+  (`exercise-effort-labels`, `exercise-effort-boxes`), so the boxes always line up.
 
 ## Tests (built)
 - `workout.test.tsx` "D-111 the exercise page with less scrolling": How to do it beside the name only for

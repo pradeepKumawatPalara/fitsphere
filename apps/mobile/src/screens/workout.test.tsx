@@ -1104,7 +1104,16 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
     await pick('push', 'Push-up');
 
     const effort = screen.getByTestId('exercise-effort');
-    expect(effort).toHaveStyle({ flexDirection: 'row' });
+    // The two boxes share one row, their labels the row above, so the boxes line up whatever the
+    // labels hold (the owner, 2026-11-17: Calories' info button and tag had set its box lower).
+    const boxes = screen.getByTestId('exercise-effort-boxes');
+    expect(boxes).toHaveStyle({ flexDirection: 'row' });
+    expect(within(boxes).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();
+    expect(within(boxes).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
+    const labels = screen.getByTestId('exercise-effort-labels');
+    expect(labels).toHaveStyle({ flexDirection: 'row' });
+    expect(within(labels).getByText('Time spent')).toBeOnTheScreen();
+    expect(within(labels).getByText('Calories')).toBeOnTheScreen();
     // "estimated" sits beside the Calories label, not in the half-wide box, where it hid the number
     // (the owner, 2026-11-17).
     expect(within(effort).queryByText('estimated')).toBeNull();

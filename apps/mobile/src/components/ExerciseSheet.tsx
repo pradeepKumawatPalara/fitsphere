@@ -632,26 +632,20 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <View style={styles.rule} />
           {/* D-111 (the owner's B): the optional fields two to a row, with short labels; screen readers
               still hear each field's whole name. Sets: Time spent beside Calories; cardio: Calories alone. */}
-          <View testID="exercise-effort" style={styles.pair}>
-            {layout.kind === 'sets' ? (
-              <View style={[styles.field, styles.half]}>
-                <Text style={labelStyle}>Time spent</Text>
-                <Box
-                  accessibilityLabel="Time spent in min (optional)"
-                  value={text.spentMinutes}
-                  onChangeText={(spentMinutes) => change({ spentMinutes })}
-                  keyboardType="number-pad"
-                  unit="min"
-                  refused={problems.spent !== undefined}
-                  {...watch('spentMinutes')}
-                />
-              </View>
-            ) : null}
-            <View style={[styles.field, styles.half]}>
+          {/* The labels in one row and the boxes in the next, so the two boxes line up whatever the labels
+              hold: Calories' info button and its tag made its label taller than Time spent's, and its box
+              sat lower (the owner, 2026-11-17: "the two input field is not align"). */}
+          <View testID="exercise-effort" style={styles.field}>
+            <View testID="exercise-effort-labels" style={[styles.pair, styles.pairLabels]}>
+              {layout.kind === 'sets' ? (
+                <View style={styles.half}>
+                  <Text style={labelStyle}>Time spent</Text>
+                </View>
+              ) : null}
               {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
                   you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
                   the estimate back. */}
-              <View style={styles.labelRow}>
+              <View style={[styles.half, styles.labelRow]}>
                 {/* The estimate says so beside the label, not in the box, where it left the number too
                     little room once the box was half the width (the owner, 2026-11-17). */}
                 <View style={styles.labelWithTag}>
@@ -668,25 +662,42 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                   <Info size={20} color={colors.accent} />
                 </IconButton>
               </View>
-              <Box
-                accessibilityLabel="Calories burned (optional)"
-                value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
-                onChangeText={(kcal) => change({ kcal })}
-                keyboardType="number-pad"
-                unit="kcal"
-                refused={problems.kcal !== undefined}
-                {...watch('kcal')}
-                after={
-                  changed ? (
-                    <>
-                      <View style={styles.divider} />
-                      <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
-                        <RotateCcw size={20} strokeWidth={2.25} color={colors.accent} />
-                      </IconButton>
-                    </>
-                  ) : null
-                }
-              />
+            </View>
+            <View testID="exercise-effort-boxes" style={styles.pair}>
+              {layout.kind === 'sets' ? (
+                <View style={styles.half}>
+                  <Box
+                    accessibilityLabel="Time spent in min (optional)"
+                    value={text.spentMinutes}
+                    onChangeText={(spentMinutes) => change({ spentMinutes })}
+                    keyboardType="number-pad"
+                    unit="min"
+                    refused={problems.spent !== undefined}
+                    {...watch('spentMinutes')}
+                  />
+                </View>
+              ) : null}
+              <View style={styles.half}>
+                <Box
+                  accessibilityLabel="Calories burned (optional)"
+                  value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
+                  onChangeText={(kcal) => change({ kcal })}
+                  keyboardType="number-pad"
+                  unit="kcal"
+                  refused={problems.kcal !== undefined}
+                  {...watch('kcal')}
+                  after={
+                    changed ? (
+                      <>
+                        <View style={styles.divider} />
+                        <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
+                          <RotateCcw size={20} strokeWidth={2.25} color={colors.accent} />
+                        </IconButton>
+                      </>
+                    ) : null
+                  }
+                />
+              </View>
             </View>
           </View>
           {problems.spent ? <Problem text={problems.spent} /> : null}
@@ -1051,6 +1062,8 @@ const useStyles = themedStyles((c) => ({
   rule: { height: 1, backgroundColor: c.border },
   // The calories' line, under Time spent and Calories, closer to them than the next pair.
   afterPair: { ...TYPE.small, color: c.inkMuted, marginTop: -6 },
+  // Time spent's label beside Calories', centred on it: Calories' row holds a 44-high info button.
+  pairLabels: { alignItems: 'center' },
   labelRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: -10 },
   body: { fontSize: 15, lineHeight: 22 },
   example: { gap: 2, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.surfaceSunken },
