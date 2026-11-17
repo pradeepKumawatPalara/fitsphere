@@ -55,6 +55,13 @@ empties; a state saved before shows with the list's spelling, or as saved when n
 `components/StatePicker.tsx`). Phone app only: no server change, no migration, no phone schema change, no
 new build.
 
+**Every set value whole — built on the day's branch `daily/2026-11-17` (D-112, 2026-11-17), in
+`D:\fitsphere`.** Canvas boards `ExerciseSets*` A locked (version 118). The sets' column headings
+carry the units ("Weight · kg", "Time · sec", "Reps", "optional" under a kept column); each box holds only its
+number, centred (18 high with three across); a slim X removes a set (`SetRow`, `columnHeading` in
+`components/ExerciseSheet.tsx`). Phone app only: no server change, no migration, no phone schema change, no
+new build.
+
 **The exercise page scrolls less — built on the day's branch `daily/2026-11-17` (D-111, 2026-11-17), in
 `D:\fitsphere`.** Plan: `docs/plans/exercise-sheet-compact.md` (Accepted); canvas boards `ExerciseScroll*` B
 locked (version 114). Add and Edit exercise keep every field, smaller: boxes 44 high (54), Time spent

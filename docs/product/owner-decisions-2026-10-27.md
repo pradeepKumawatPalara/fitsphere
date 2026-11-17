@@ -3679,6 +3679,26 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build.
 - Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; the plan; CLAUDE.md.
 
+## D-112 Every set value whole: the units in the column headings
+- Status: **Accepted** (owner, in chat, 2026-11-17: with a screenshot of Edit exercise, Barbell Bear Crawl
+  Drag, "the value is not completely visible ... come up with the canva design and the canva design also
+  cover the other excercise scenario as well"; of the canvas's A (the units in the headings), B (a small
+  unit above each number) and C (three boxes over two lines), version 117, the owner chose A; locked in
+  version 118). Built on the day's branch `daily/2026-11-17`.
+- Problem: an exercise saved with reps and changed, on Edit, to one done with weight and time keeps its
+  reps as a third, optional column (D-50). Three boxes in a row, each with its unit, beside the set's
+  number and the bin, left the number about 28 points: "1.0" showed as ".0".
+- Answer (REQ-TRN-003; with D-50, D-63, D-111):
+  - The sets' column headings carry the units: "Weight · kg" (or lb), "Time · sec", "Reps"; a column the
+    type doesn't ask for has "optional" under its heading.
+  - Each box holds only its number, centred; 18 high with three boxes across (20 otherwise).
+  - A slim X (32 wide) removes a set, in place of the red bin (40).
+  - So the largest values show whole, three across: 2,204.6 lb, 3,600 s, 200 reps.
+- MVP defaults: screen readers hear each box's whole name as before ("Set 1, Weight in kg"); cardio's
+  boxes and the page's other boxes keep their units.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
+
 ---
 
 ---
