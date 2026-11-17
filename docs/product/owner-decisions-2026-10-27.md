@@ -2207,11 +2207,13 @@ checksum), and the configuration template was left as it is.*
   - The time comes from the phone's clock: leaving the screen, closing the app or turning the phone
     off does not stop it. A clock set back takes no time away; a timer shows 24 hours at most.
   - Mark done is not required: the workout is still saved at every change (D-29), and a workout logged
-    without the timer stays as it was. Mark done with no exercise is allowed and keeps the time.
+    without the timer stays as it was. Mark done with no exercise is allowed and keeps the time
+    (changed by D-108: Mark done waits for an exercise).
   - A workout whose timer has started is **listed** on Training and in Home's day sheet before its
     first exercise ("No exercises"), so a running workout is never lost; this changes D-65's "a workout
     with no exercise is not listed" for timed workouts only. It still **counts toward the week only once
-    it has an exercise** (D-41, unchanged).
+    it has an exercise** (D-41, unchanged). *Changed by D-108 (2026-11-16): a workout with no exercise is
+    not listed, marked or counted, even with its timer started; the Workout in progress pill opens it.*
   - Each workout has its own timer; two may run at once. Deleting a workout deletes its timer.
   - Not in this change: Reset to 0:00, laps and rest timers, sound or vibration, a lock-screen timer
     (it needs a native module and a new build), the time on Home, typing the total by hand, using the
@@ -3582,6 +3584,34 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build (the icon is
   in the app's icon package).
 - Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
+
+## D-108 A workout with no exercise is not logged, even with its timer running
+- Status: **Accepted** (owner, in chat, 2026-11-16: "add the validations that tere should not be no
+  workout counts in the dat without any excecise. If the timer is continue it should continue but
+  without adding any excercise without will not be logged."). Built on branch `fix/empty-workouts`.
+- Problem: since D-71 a workout whose timer had started was listed before its first exercise, so a
+  day with only an empty, timed workout had a dumbbell on the date strips and in the header's
+  calendar, counted in the calendar's month ("1 workout"), and showed on Training as "No exercises;
+  Running · 12:34"; and Mark done could finish a workout with no exercise.
+- Answer (REQ-TRN-003, REQ-TRN-004; changes D-71's MVP default, restores D-65 for timed workouts):
+  - A workout is **logged only once it has an exercise** (D-41). Before that, timer or not, it is
+    not listed (By day, All workouts), marked (the dumbbells under the strips' dates and in the
+    calendar), counted (the month's count, Home's "3 of 4 workouts this week") or numbered.
+  - **The timer continues**: Start workout, Pause and Resume work on a workout with no exercise, and
+    the time counts as before. The Workout in progress pill (D-83) still shows it while its timer runs
+    or is paused, so it is never lost; the pill names it by its place, as its own screen does.
+  - **Mark done waits for an exercise**: greyed, with "Add an exercise to log this workout and mark
+    it done." above it in the timer's bar. The screen's empty box says "No exercises yet. Add one to
+    log this workout."
+  - Once the first exercise is added, the workout is listed, marked and counted at once, with its
+    time ("Running · 10:00"), and Mark done can be tapped.
+- MVP defaults: a workout whose last exercise is removed is no longer listed, timed or not (as D-65);
+  its timer is kept. The note on another workout's greyed Start workout (D-83) is unchanged. Phone
+  only: the server still stores a workout with no exercise, and does not refuse Mark done without one
+  (an older app may send it).
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003 and REQ-TRN-004; constraints' D-71 row and a D-108 row; the redesign's 4.1;
+  CLAUDE.md.
 
 ---
 
