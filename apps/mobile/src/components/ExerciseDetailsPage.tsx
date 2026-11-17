@@ -14,11 +14,11 @@ import {
   Pointer,
   Repeat,
   Ruler,
+  Scale,
   Timer,
   TrendingUp,
   TriangleAlert,
   Trophy,
-  Weight,
   Zap,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -519,7 +519,7 @@ function bestIcon(best: ExerciseBest): LucideIcon {
     case 'oneRm':
       return Trophy;
     case 'heaviest':
-      return Weight;
+      return Scale;
     case 'volume':
     case 'repsSession':
     case 'timeSession':

@@ -25,11 +25,11 @@ async function seed(db: SqlDb, entries: Record<string, number>, accountStart = '
 
 const PHONE = { '2026-08-10': 81_500, '2026-10-01': 80_000, '2026-10-14': 79_000, '2026-10-25': 79_300, '2026-10-28': 78_800 };
 
-/** The dots the chart draws: its SVG circles in the rendered tree. */
+/** The dots the chart draws: its SVG circles in the rendered tree (filled; the icons' rings are not). */
 function dotsDrawn(): number {
-  type Node = { type: string; children: (Node | string)[] | null };
+  type Node = { type: string; props?: object; children: (Node | string)[] | null };
   const count = (node: Node | string | null): number =>
-    node === null || typeof node === 'string' ? 0 : (node.type === 'RNSVGCircle' ? 1 : 0) + (node.children ?? []).reduce((sum, child) => sum + count(child), 0);
+    node === null || typeof node === 'string' ? 0 : (node.type === 'RNSVGCircle' && (node.props as { fill?: unknown } | undefined)?.fill != null ? 1 : 0) + (node.children ?? []).reduce((sum, child) => sum + count(child), 0);
   const tree = screen.toJSON() as Node | Node[] | null;
   return Array.isArray(tree) ? tree.reduce((sum, node) => sum + count(node), 0) : count(tree);
 }

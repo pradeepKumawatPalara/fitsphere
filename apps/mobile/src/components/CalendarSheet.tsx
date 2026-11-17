@@ -111,6 +111,7 @@ export function CalendarSheet({ title, today, firstDay, selected, counts, activi
   // filled; greyed days dimmed.
   return (
     <Sheet
+      dragToClose
       onClose={onClose}
       header={
         <View style={styles.monthRow}>
