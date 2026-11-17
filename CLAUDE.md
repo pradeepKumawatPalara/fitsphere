@@ -40,7 +40,7 @@ no migration, no phone schema change. **Every iOS build waits for the owner's wo
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
 **A workout with no exercise is not logged — built on branch `fix/empty-workouts` (D-108, 2026-11-16),
-in `D:itsphere`.** Timer or not, a workout without an exercise is not listed, marked (the strips' and
+in `D:\fitsphere`.** Timer or not, a workout without an exercise is not listed, marked (the strips' and
 the calendar's dumbbells) or counted (the month's count, the week's line); its timer still starts, counts,
 pauses and resumes, and the Workout in progress pill still opens it; Mark done is greyed until it has one
 (`listedWorkouts`, `isLogged` in `apps/mobile/src/workouts.ts`; `runningWorkout` in
