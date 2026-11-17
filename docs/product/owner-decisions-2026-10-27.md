@@ -3664,6 +3664,10 @@ checksum), and the configuration template was left as it is.*
   - **Time spent beside Calories** (a cardio exercise: Calories alone), the heart rates beside each other,
     with short labels: "Time spent", "Calories", "Average HR", "Highest HR". The calories' line sits under
     the pair. The note is one line, "Note (optional)" inside it, growing as it is typed.
+  - **"Estimated" beside the Calories label** (the owner, 2026-11-17, after the phone test: "the calories
+    value is not visible. SO put the estimated label to label"): the half-wide box shows only the number
+    and kcal; the estimate's tag sits where D-107's Edited tag does (never both), the muted tag of the
+    page's other tags; on a narrow phone it goes under the label. Canvas version 115.
   - **How to do it** moves from the tag line to the right of the Exercise name label, and shows only while
     the name holds an exercise of the list.
 - MVP defaults: screen readers hear each field's whole name, as before; Time spent's own line ("Used only

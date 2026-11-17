@@ -80,6 +80,8 @@ holds an exercise of the list (How to needs the list's steps; a name of the user
   (`exercise-how-to`), only with `match`; the tag line keeps the tag and how it is logged.
 - `apps/mobile/src/components/ExercisePlacePickers.tsx`: Category and Sub-group 44 high.
 - Accessibility labels unchanged, so screen readers and the tests find each field by its whole name.
+- After the owner's phone test (2026-11-17): "estimated" in the half-wide calories box hid the number,
+  so it moved beside the Calories label as a tag (`calories-estimated`), where D-107's Edited tag goes.
 
 ## Tests (built)
 - `workout.test.tsx` "D-111 the exercise page with less scrolling": How to do it beside the name only for
