@@ -113,7 +113,7 @@ export function ExercisePlacePickers({ filter, counts, open, onOpen, onChange }:
         {field('subGroup', 'Sub-group', noSubGroups ? 'No sub-groups' : (filter.subGroup ?? 'All sub-groups'), filter.subGroup !== null, noSubGroups)}
       </View>
       {open ? (
-        <View accessibilityLabel={open === 'category' ? 'Categories' : 'Sub-groups'} style={[styles.list, styles.grow]}>
+        <View accessibilityLabel={open === 'category' ? 'Categories' : 'Sub-groups'} style={[styles.list, styles.fit]} testID="exercise-place-panel">
           <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.scroll} testID="exercise-place-list">
             {options.map((option, index) => {
               const isChosen = option.value === chosen;
@@ -144,7 +144,10 @@ export function ExercisePlacePickers({ filter, counts, open, onOpen, onChange }:
 const useStyles = themedStyles((c) => ({
   wrap: { gap: 8 },
   fill: { flex: 1, paddingBottom: 16 },
-  grow: { flex: 1 },
+  // The list as tall as its choices, and no taller (the owner, 2026-11-17: a short list left a large empty
+  // panel under its last choice); shrunk to the page's room when longer, where it scrolls (the page is held
+  // to the screen's height while a list shows).
+  fit: { flexGrow: 0, flexShrink: 1 },
   row: { flexDirection: 'row', gap: 12 },
   // D-111: 44 high, the label 6 above, as the exercise page's other boxes.
   half: { flex: 1, minWidth: 0, gap: 6 },
@@ -166,7 +169,7 @@ const useStyles = themedStyles((c) => ({
   value: { flex: 1, minWidth: 0, fontSize: 16, lineHeight: 22, color: c.inkMuted },
   chosenValue: { color: c.ink, fontWeight: '600' },
   list: { borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised, overflow: 'hidden' },
-  scroll: { flex: 1 },
+  scroll: { flexGrow: 0, flexShrink: 1 },
   option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   tick: { width: 18 },

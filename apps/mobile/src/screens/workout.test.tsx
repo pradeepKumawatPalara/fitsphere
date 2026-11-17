@@ -1166,7 +1166,7 @@ describe('D-67 the exercise page', () => {
   // The owner, 2026-11-13: Category, Sub-group and the names did not scroll. Inside the page's scroll
   // view a list's `flex: 1` holds nothing unless the page's content is exactly the page's height, so
   // the lists grew to their full length. The layout itself is the phone's; this checks the styles it needs.
-  it('while a list shows, the page holds its content to its height, so Category, Sub-group and the names scroll', async () => {
+  it('while a list shows, the page holds its content to its height, so Category, Sub-group and the names scroll; each list is only as tall as its rows', async () => {
     await startWorkout();
     await openSheet();
     const page = () => screen.getByTestId('exercise-page');
@@ -1174,22 +1174,32 @@ describe('D-67 the exercise page', () => {
       expect(page().props.scrollEnabled).toBe(false);
       expect(StyleSheet.flatten(page().props.contentContainerStyle)).toMatchObject({ flex: 1 });
     };
+    // As tall as its rows, shrunk to the page's room when longer (the owner, 2026-11-17: a short list
+    // left a large empty panel under its last choice).
+    const fits = (testID: string) => {
+      const style = StyleSheet.flatten(screen.getByTestId(testID).props.style);
+      expect(style).toMatchObject({ flexGrow: 0, flexShrink: 1 });
+      expect(style).not.toHaveProperty('flex');
+    };
     expect(page().props.scrollEnabled).toBe(true);
     expect(StyleSheet.flatten(page().props.contentContainerStyle) ?? {}).not.toHaveProperty('flex');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
     heldToThePage();
-    expect(StyleSheet.flatten(screen.getByTestId('exercise-place-list').props.style)).toMatchObject({ flex: 1 });
+    fits('exercise-place-panel');
+    fits('exercise-place-list');
     await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Sub-group: All sub-groups' }));
     heldToThePage();
-    expect(StyleSheet.flatten(screen.getByTestId('exercise-place-list').props.style)).toMatchObject({ flex: 1 });
+    fits('exercise-place-panel');
+    fits('exercise-place-list');
     await fireEvent.press(screen.getByRole('button', { name: 'Biceps, 2 exercises' }));
 
     expect(await screen.findByRole('button', { name: 'Hammer curl' })).toBeOnTheScreen();
     heldToThePage();
-    expect(StyleSheet.flatten(screen.getByTestId('exercise-matches').props.style)).toMatchObject({ flex: 1 });
+    fits('exercise-matches-panel');
+    fits('exercise-matches');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl' }));
     expect(page().props.scrollEnabled).toBe(true);

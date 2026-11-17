@@ -446,8 +446,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <Text style={labelStyle}>{listTitle}</Text>
           {/* A plain list, not a FlatList: it sits in the page's scroll view, which may not hold a
               virtualized list; at most SHOWN_MAX rows are drawn. */}
-          <View style={[styles.matches, styles.fill]}>
-            <ScrollView ref={matchesView} nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fill} testID="exercise-matches">
+          <View style={[styles.matches, styles.fit]} testID="exercise-matches-panel">
+            <ScrollView ref={matchesView} nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fit} testID="exercise-matches">
               {shownMatches.map((exercise, index) => {
                 const tag = matchTag(exercise, filter);
                 const isPicked = browsingPicked && listed !== null && exercise.code === listed.code;
@@ -1005,6 +1005,9 @@ const useStyles = themedStyles((c) => ({
   // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
   top: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   fill: { flex: 1 },
+  // A list as tall as its rows and no taller, shrunk to the page's room when longer, where it scrolls
+  // (the owner, 2026-11-17: a short list left a large empty panel under its last row).
+  fit: { flexGrow: 0, flexShrink: 1 },
   // Exactly the page's height, not at least it (`flexGrow`): a scroll view's content has no height of its
   // own, so only this gives the open list a height to scroll in.
   listing: { flex: 1 },
