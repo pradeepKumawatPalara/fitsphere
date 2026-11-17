@@ -38,7 +38,9 @@ export function EatenSummary({ totals }: { totals: MealTotals | null }) {
                 <View style={[styles.swatch, { backgroundColor: colors[colour] }]} />
                 <Text style={styles.label}>{label}</Text>
               </View>
-              <Text style={styles.value}>{value}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={styles.value}>
+                {value}
+              </Text>
             </View>
           );
         })}
@@ -53,14 +55,14 @@ const useStyles = themedStyles((c) => ({
   card: { padding: 16, borderRadius: 4, backgroundColor: c.surface },
   title: { ...TYPE.label, color: c.inkMuted },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 2 },
-  kcal: TYPE.heroNumber,
+  kcal: { ...TYPE.heroNumber, fontSize: 52, lineHeight: 54 },
   none: { color: c.inkSubtle },
-  unit: { ...TYPE.metric, fontSize: 18, paddingBottom: 16, color: c.accent },
+  unit: { ...TYPE.metric, fontSize: 16, paddingBottom: 8, color: c.accent },
   row: { flexDirection: 'row', marginTop: 8, borderTopWidth: 1, borderTopColor: c.border },
   nutrient: { flex: 1, gap: 4, paddingTop: 12, paddingLeft: 10 },
   divided: { borderLeftWidth: 1, borderLeftColor: c.border },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatch: { width: 8, height: 8, borderRadius: 2 },
   label: { ...TYPE.label, letterSpacing: 1.2, color: c.inkMuted },
-  value: { ...TYPE.metric, fontSize: 20, lineHeight: 22 },
+  value: { ...TYPE.metric, fontSize: 15, lineHeight: 18 },
 }));

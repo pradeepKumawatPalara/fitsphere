@@ -33,11 +33,27 @@ describe('D-83 the workout the pill shows', () => {
     expect(runningWorkout([workout('o', '2026-10-25', '2026-10-25T10:00:00.000Z', paused('2026-10-25T10:00:00.000Z', 60))], '2026-10-28')).toBeNull();
   });
 
-  it('counts a workout timed before its first exercise', () => {
+  it('D-108 shows a workout timed before its first exercise, named as its own screen names it', () => {
     expect(runningWorkout([workout('e', '2026-10-28', '2026-10-28T03:00:00.000Z', running('2026-10-28T03:00:00.000Z'), [])], '2026-10-28')).toMatchObject({
       id: 'e',
       name: 'Workout 1',
     });
+    // Numbered among the day's workouts with an exercise, itself included; another empty one is not counted.
+    const list = [
+      workout('a', '2026-10-28', '2026-10-28T01:00:00.000Z', null),
+      workout('x', '2026-10-28', '2026-10-28T01:30:00.000Z', null, []),
+      workout('e', '2026-10-28', '2026-10-28T03:00:00.000Z', running('2026-10-28T03:00:00.000Z'), []),
+    ];
+    expect(runningWorkout(list, '2026-10-28')).toMatchObject({ id: 'e', name: 'Workout 2' });
+  });
+
+  it('leaves out the workout asking, but still counts it when numbering the others', () => {
+    const list = [
+      workout('a', '2026-10-28', '2026-10-28T01:00:00.000Z', running('2026-10-28T01:00:00.000Z')),
+      workout('b', '2026-10-28', '2026-10-28T02:00:00.000Z', paused('2026-10-28T02:00:00.000Z', 60)),
+    ];
+    expect(runningWorkout(list, '2026-10-28', 'a')).toMatchObject({ id: 'b', name: 'Workout 2' });
+    expect(runningWorkout(list.slice(0, 1), '2026-10-28', 'a')).toBeNull();
   });
 });
 

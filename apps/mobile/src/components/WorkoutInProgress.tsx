@@ -25,13 +25,16 @@ type Candidate = { id: string; day: IstDay; recordedAt: string; exercises: reado
 /**
  * The workout the pill shows (MVP defaults, D-83): of today's and yesterday's (a timer can run past
  * midnight, D-71), one whose timer runs, else one paused; the latest started. Older ones are left
- * out, so a timer never marked done does not stay for days. Null with none. Named "Workout 2" by its
- * place among its day's listed workouts, as everywhere else (D-65).
+ * out, so a timer never marked done does not stay for days. Null with none. A workout with no
+ * exercise yet is shown too: it is not logged, but its timer counts on and the pill is the way back
+ * to it (D-108). Named "Workout 2" by its place among its day's listed workouts, as its own screen
+ * names it (D-65). `except` is never chosen but still numbers the others: the workout whose own
+ * screen asks which other workout's timer is going.
  */
-export function runningWorkout(workouts: readonly Candidate[], today: IstDay): RunningWorkout | null {
+export function runningWorkout(workouts: readonly Candidate[], today: IstDay, except?: string): RunningWorkout | null {
   const days = new Set([today, addDays(today, -1)]);
-  const listed = listedWorkouts(workouts.filter((workout) => days.has(workout.day)));
-  const going = listed
+  const going = workouts
+    .filter((workout) => days.has(workout.day) && workout.id !== except)
     .filter((workout) => {
       const state = timerState(workout.timer ?? null);
       return state === 'running' || state === 'paused';
@@ -43,8 +46,10 @@ export function runningWorkout(workouts: readonly Candidate[], today: IstDay): R
     );
   const chosen = going[0];
   if (!chosen) return null;
-  const place = listed
-    .filter((workout) => workout.day === chosen.day)
+  const place = listedWorkouts(
+    workouts.filter((workout) => workout.day === chosen.day),
+    chosen.id,
+  )
     .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
     .findIndex((workout) => workout.id === chosen.id);
   return { id: chosen.id, day: chosen.day, name: `Workout ${place + 1}`, timer: chosen.timer! };

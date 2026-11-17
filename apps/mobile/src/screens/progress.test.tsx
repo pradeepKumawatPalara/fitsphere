@@ -1,6 +1,5 @@
 import type { MealItem } from '@fitsphere/shared';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
 import { applyServerEntries, setMeta } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { renderInApp } from '../testing/appHarness';
@@ -61,11 +60,13 @@ describe('REQ-PRG-001 weight over 4 weeks', () => {
       await applyServerEntries(db, 'weighIn', weighIns({ '2026-09-30': 80_000, '2026-10-14': 79_000, '2026-10-28': 78_800 }));
     });
 
-    expect(await screen.findByText('Latest weigh-in · Wed 28 Oct')).toBeOnTheScreen();
+    expect(await screen.findByLabelText(/^Latest weigh-in · Wed 28 Oct: /)).toBeOnTheScreen();
     // On the card, and as the lowest value on the chart's scale.
-    expect(screen.getAllByText('78.8 kg')).toHaveLength(2);
-    expect(screen.getByText('Down 1.2 kg since Wed 30 Sep')).toBeOnTheScreen();
-    expect(screen.getByText('Down 0.3 kg a week')).toBeOnTheScreen();
+    // The card's weight has no unit: it is in the heading ("Weight over 4 weeks · kg"); the week table's has it.
+    expect(screen.getByText('Weight over 4 weeks · kg')).toBeOnTheScreen();
+    expect(screen.getAllByText('78.8 kg')).toHaveLength(1);
+    expect(screen.getByLabelText('Down 1.2 kg since Wed 30 Sep')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Down 0.3 kg a week')).toBeOnTheScreen();
   });
 
   it('replaces the rate with the not-enough-data message with less than a week of weigh-ins', async () => {
@@ -73,8 +74,8 @@ describe('REQ-PRG-001 weight over 4 weeks', () => {
       await applyServerEntries(db, 'weighIn', weighIns({ '2026-10-25': 79_300, '2026-10-28': 78_800 }));
     });
 
-    expect(await screen.findByText('Down 0.5 kg since Sun 25 Oct')).toBeOnTheScreen();
-    expect(screen.getByText('Not enough data for a weekly rate yet. Log your weight for at least a week.')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Down 0.5 kg since Sun 25 Oct')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Not enough data for a weekly rate yet. Log your weight for at least a week.')).toBeOnTheScreen();
   });
 
   it('says so with no weigh-ins, and "All weigh-ins" opens the weight history', async () => {
@@ -166,7 +167,9 @@ describe('REQ-PRG-006 measurements', () => {
     expect(await screen.findByLabelText('Upper waist: 81.2 cm')).toBeOnTheScreen();
     expect(screen.getByText('Measurements · Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Add first' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Add measurements' })).toBeOnTheScreen();
+    // Once there is an entry, no Add button: the pencil edits it.
+    expect(screen.queryByRole('button', { name: 'Add measurements' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit measurements' })).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('measurements').get('2026-10-28')).toMatchObject({ upperWaistMm: 812 }));
   });
 
@@ -181,7 +184,7 @@ describe('REQ-PRG-006 measurements', () => {
 
     // Only the latest as a card; the older ones folded.
     const titles = await screen.findAllByText(/^Measurements · /);
-    expect(titles.map((title) => title.props.children)).toEqual([['Measurements · ', 'Mon 26 Oct']]);
+    expect(titles.map((title) => title.props.children)).toEqual(['Measurements · Mon 26 Oct']);
     expect(screen.queryByRole('button', { name: /^Edit measurements, / })).toBeNull();
 
     // The owner, 2026-11-16: "(N)" counts every entry, so the table holds N rows.
@@ -220,15 +223,14 @@ describe('REQ-PRG-006 measurements', () => {
     expect(screen.getAllByRole('button', { name: /^Edit measurements, / })).toHaveLength(2);
   });
 
-  it('the heading and Add measurements wrap rather than cut the button off on a narrow screen (the owner, 2026-11-16)', async () => {
+  it('with an entry, the heading has no Add measurements button, only the pencil on the card', async () => {
     await renderInApp(<ProgressScreen />, undefined, async (db) => {
       await applyServerEntries(db, 'measurements', [{ day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT }]);
     });
 
     await screen.findByRole('header', { name: 'Measurements' });
-    // The layout is the phone's; this checks the row may wrap, so the button keeps its whole width.
-    expect(StyleSheet.flatten(screen.getByTestId('measurements-heading-row').props.style)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
-    expect(screen.getByRole('button', { name: 'Add measurements' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Add measurements' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit measurements' })).toBeOnTheScreen();
   });
 
   it('with one entry, shows it with no "Show all measurements"', async () => {

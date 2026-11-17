@@ -1,6 +1,8 @@
 import { act, fireEvent, screen, within } from '@testing-library/react-native';
+import { Button } from 'react-native';
 import { applyServerEntries, setMeta } from '../local/store';
 import type { SqlDb } from '../local/sql';
+import { useSync } from '../sync/SyncProvider';
 import { renderInApp } from '../testing/appHarness';
 import { ProgressScreen } from './ProgressScreen';
 
@@ -30,6 +32,12 @@ function dotsDrawn(): number {
     node === null || typeof node === 'string' ? 0 : (node.type === 'RNSVGCircle' ? 1 : 0) + (node.children ?? []).reduce((sum, child) => sum + count(child), 0);
   const tree = screen.toJSON() as Node | Node[] | null;
   return Array.isArray(tree) ? tree.reduce((sum, node) => sum + count(node), 0) : count(tree);
+}
+
+/** Saves a weigh-in on the phone, as Home or Profile does: the phone's data changes. */
+function SaveWeighIn() {
+  const sync = useSync();
+  return <Button title="Save a weigh-in" onPress={() => void sync.saveWeight('2026-10-27', 79_000)} />;
 }
 
 function range(name: string) {
@@ -91,7 +99,7 @@ describe('REQ-PRG-004 weight trend chart', () => {
     expect(server.state.weighInQueries).toHaveLength(1);
   });
 
-  it('All starts at the day the account was created and follows the server’s pages', async () => {
+  it('D-106 All starts at the earliest day, before the account was created, and follows the server’s pages', async () => {
     const { server } = await renderInApp(<ProgressScreen />, undefined, (db) => seed(db, PHONE, '2026-02-02'));
     server.state.older = [
       { day: '2026-02-03', weightGrams: 86_000 },
@@ -104,8 +112,8 @@ describe('REQ-PRG-004 weight trend chart', () => {
 
     expect(await screen.findByLabelText('7 weigh-ins, 86.0 kg on Tue 3 Feb to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
     expect(server.state.weighInQueries).toEqual([
-      { from: '2026-02-02', to: '2026-07-30', cursor: null },
-      { from: '2026-02-02', to: '2026-07-30', cursor: '1' },
+      { from: '2000-01-01', to: '2026-07-30', cursor: null },
+      { from: '2000-01-01', to: '2026-07-30', cursor: '1' },
     ]);
   });
 
@@ -136,17 +144,40 @@ describe('REQ-PRG-004 weight trend chart', () => {
     expect(await screen.findByText('Something went wrong. Try again later.')).toBeOnTheScreen();
   });
 
-  it('an account newer than 90 days has nothing older, so 6M works offline from the phone', async () => {
+  it('D-106 an account newer than 90 days still reads 6M and All online: a weigh-in logged on an older day shows', async () => {
     const { server } = await renderInApp(<ProgressScreen />, undefined, (db) =>
       seed(db, { '2026-10-14': 79_000, '2026-10-28': 78_800 }, '2026-10-01'),
     );
+    // Logged for 20 July, before the account was created on 1 October.
+    server.state.older = [{ day: '2026-07-20', weightGrams: 80_500 }];
     await screen.findByLabelText(/^2 weigh-ins/);
-    server.state.offline = true;
 
     await fireEvent.press(range('6 months'));
+    expect(await screen.findByLabelText('3 weigh-ins, 80.5 kg on Mon 20 Jul to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
 
-    expect(screen.getByLabelText('2 weigh-ins, 79.0 kg on Wed 14 Oct to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
-    expect(screen.queryByRole('alert')).toBeNull();
+    await fireEvent.press(range('All'));
+    expect(await screen.findByLabelText('3 weigh-ins, 80.5 kg on Mon 20 Jul to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
+    expect(server.state.weighInQueries.map((query) => query.from)).toEqual(['2026-04-28', '2000-01-01']);
+  });
+
+  it('D-106 a change saved after 6M was read reads it again, keeping the chart meanwhile, so an older weigh-in joins it', async () => {
+    const { server } = await renderInApp(
+      <>
+        <ProgressScreen />
+        <SaveWeighIn />
+      </>,
+      undefined,
+      (db) => seed(db, PHONE, '2026-10-01'),
+    );
+    await screen.findByLabelText(/^4 weigh-ins/);
+    await fireEvent.press(range('6 months'));
+    expect(await screen.findByLabelText(/^5 weigh-ins/)).toBeOnTheScreen();
+
+    server.state.older = [{ day: '2026-07-20', weightGrams: 80_500 }];
+    await fireEvent.press(screen.getByRole('button', { name: 'Save a weigh-in' }));
+
+    expect(await screen.findByLabelText('7 weigh-ins, 80.5 kg on Mon 20 Jul to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
+    expect(server.state.weighInQueries.length).toBeGreaterThanOrEqual(2);
   });
 
   it('with more than 120 points, only the latest dot, and the touched one', async () => {

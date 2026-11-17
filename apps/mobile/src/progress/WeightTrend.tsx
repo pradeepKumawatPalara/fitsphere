@@ -1,11 +1,13 @@
 import type { BodyWeightUnit, IstDay } from '@fitsphere/shared';
-import { WifiOff } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { ArrowRight, WifiOff } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
-import { Banner, Text, TextButton, useChoiceStyles } from '../components/ui';
+import { Banner, Text, useChoiceStyles } from '../components/ui';
+import { useDataVersion } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import {
   CHART_RANGES,
   chartPoints,
@@ -33,7 +35,6 @@ type Props = {
   /** The phone's weigh-ins of the last 90 days. */
   weighIns: readonly WeighInPoint[];
   today: IstDay;
-  accountStart: IstDay | null;
   unit: BodyWeightUnit;
   onAllWeighIns(): void;
 };
@@ -41,15 +42,19 @@ type Props = {
 // The weight trend card (REQ-PRG-004): the range buttons, the chart or its empty state, and "All
 // weigh-ins" (D-34: calendar months; it opens on 1M). 1W, 1M and 3M come from the phone, 3M cut to
 // its 90 days. Every range plots each weigh-in (the owner, 2026-11-16). 6M and All also need the older weigh-ins, read
-// online once per range and kept in memory only (ADR-0007 rules 1 and 6); offline they show the
-// named warning, and choosing the range again tries again.
-export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns }: Props) {
+// online once per range and kept in memory only (ADR-0007 rules 1 and 6), whatever the account's age:
+// any past day can hold a weigh-in (D-106). After a change saved or synced, the range shown is read
+// again, its chart kept meanwhile, so a weigh-in logged on an older day joins it. Offline they show
+// the named warning, and choosing the range again tries again.
+export function WeightTrend({ weighIns, today, unit, onAllWeighIns }: Props) {
   const styles = useStyles();
   const { deps } = useAuth();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
   const [range, setRange] = useState<ChartRange>('1M');
-  const [older, setOlder] = useState<Partial<Record<OnlineRange, WeighInPoint[]>>>({});
+  const version = useDataVersion();
+  // Each online range's older weigh-ins, with the phone's data version when they were read.
+  const [older, setOlder] = useState<Partial<Record<OnlineRange, { points: WeighInPoint[]; version: number }>>>({});
   const [message, setMessage] = useState<{ text: string; offline: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const chosen = useRef<ChartRange>('1M');
@@ -59,11 +64,13 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
     setRange(next);
     setMessage(null);
     if (next !== '6M' && next !== 'All') return;
-    if (older[next] || !rangeNeedsServer(next, today, accountStart)) return;
+    // Read before: the effect below reads it again if anything has changed since.
+    if (older[next] || !rangeNeedsServer(next, today)) return;
     setBusy(true);
-    const result = await fetchOlderWeighIns(deps, next, today, accountStart);
+    const at = version;
+    const result = await fetchOlderWeighIns(deps, next, today);
     setBusy(false);
-    if (Array.isArray(result)) setOlder((current) => ({ ...current, [next]: result }));
+    if (Array.isArray(result)) setOlder((current) => ({ ...current, [next]: { points: result, version: at } }));
     else if (chosen.current === next) {
       setMessage(
         result === 'offline' ? { text: TEXTS.needsInternet(PROGRESS_TEXTS.chartStep[next]), offline: true } : { text: TEXTS.tryLater, offline: false },
@@ -71,12 +78,34 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
     }
   }
 
-  const fromServer = range === '6M' || range === 'All' ? older[range] : undefined;
-  const waiting = (range === '6M' || range === 'All') && !fromServer && rangeNeedsServer(range, today, accountStart);
+  const read = range === '6M' || range === 'All' ? older[range] : undefined;
+  const fromServer = read?.points;
+  const waiting = (range === '6M' || range === 'All') && !fromServer && rangeNeedsServer(range, today);
+  // A change saved or synced since the range shown was read (a weigh-in on an older day, D-106): read it
+  // again, quietly, keeping its chart; offline, the chart stays as read.
+  const stale = read !== undefined && read.version !== version;
+  useEffect(() => {
+    if (!stale || (range !== '6M' && range !== 'All')) return;
+    const which: OnlineRange = range;
+    const at = version;
+    let active = true;
+    void fetchOlderWeighIns(deps, which, today).then((result) => {
+      if (active && Array.isArray(result)) setOlder((current) => ({ ...current, [which]: { points: result, version: at } }));
+    });
+    return () => {
+      active = false;
+    };
+  }, [stale, range, version, deps, today]);
   const points = chartPoints(range, fromServer ? mergeWeighIns(weighIns, fromServer) : weighIns, today);
 
   return (
-    <Card title="Weight trend">
+    <Card title="Weight trend" action={
+        // As small as the heading beside it.
+        <Pressable accessibilityRole="button" accessibilityLabel="All weigh-ins" onPress={onAllWeighIns} hitSlop={10} style={({ pressed }) => [styles.all, pressed && pill.pressed]}>
+          <Text style={styles.allText}>All weigh-ins</Text>
+          <ArrowRight size={14} strokeWidth={2.5} color={colors.accent} />
+        </Pressable>
+      }>
       <View style={styles.ranges}>
         {CHART_RANGES.map((option) => {
           const selected = option === range;
@@ -109,7 +138,6 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
         // A new chart for each range, so the point touched in another is forgotten.
         <WeightChart key={range} points={points} unit={unit} />
       )}
-      <TextButton title="All weigh-ins" arrow onPress={onAllWeighIns} />
     </Card>
   );
 }
@@ -119,6 +147,8 @@ export function WeightTrend({ weighIns, today, accountStart, unit, onAllWeighIns
 // sunken box, one with too few weigh-ins says so in a dashed box, and a range that cannot load
 // says why in a banner.
 const useStyles = themedStyles((c) => ({
+  all: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  allText: { ...TYPE.label, color: c.accent },
   ranges: { flexDirection: 'row', gap: 6 },
   range: { flex: 1, paddingHorizontal: 0 },
   rangeText: { fontVariant: ['tabular-nums'] },

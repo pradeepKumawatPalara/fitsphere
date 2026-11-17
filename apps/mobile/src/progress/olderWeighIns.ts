@@ -1,6 +1,6 @@
 import {
   addDays,
-  istDayOf,
+  EARLIEST_DAY,
   MAX_LIST_LIMIT,
   syncWindowStart,
   type IstDay,
@@ -17,20 +17,15 @@ const MAX_PAGES = 20;
 /**
  * The weigh-ins older than the 90 days the phone holds, for the 6M and All chart ranges
  * (REQ-PRG-004; ADR-0007 rules 1 and 6): read online from GET /v1/users/{id}/weigh-ins, page by
- * page, and kept in memory only. 6M reaches back six calendar months; All, to the day the account
- * was created (as kept on the phone, else from GET /v1/me). Offline or failed otherwise.
+ * page, and kept in memory only. 6M reaches back six calendar months; All, to EARLIEST_DAY, as any
+ * past day can hold a weigh-in, before the account was created too (D-106; it was the account's first
+ * day). Offline or failed otherwise.
  */
-export async function fetchOlderWeighIns(
-  deps: AuthDeps,
-  range: '6M' | 'All',
-  today: IstDay,
-  accountStart: IstDay | null,
-): Promise<WeighInPoint[] | 'offline' | 'failed'> {
+export async function fetchOlderWeighIns(deps: AuthDeps, range: '6M' | 'All', today: IstDay): Promise<WeighInPoint[] | 'offline' | 'failed'> {
   const call = await callMe(deps);
   if (call.kind !== 'ok') return call.kind;
   const to = addDays(syncWindowStart(today), -1);
-  const from = range === '6M' ? rangeStart('6M', today)! : (accountStart ?? istDayOf(new Date(call.me.user.createdAt)));
-  if (from > to) return [];
+  const from = range === '6M' ? rangeStart('6M', today)! : EARLIEST_DAY;
 
   const points: WeighInPoint[] = [];
   let cursor: string | null = null;

@@ -220,12 +220,12 @@ describe('REQ-PRG-004 chart points', () => {
     expect(chartPoints('All', weighIns, TODAY)).toHaveLength(5);
   });
 
-  it('reads older weigh-ins online only for ranges reaching past the 90 days on the phone', () => {
-    expect(rangeNeedsServer('3M', TODAY, null)).toBe(false);
-    expect(rangeNeedsServer('6M', TODAY, null)).toBe(true);
-    expect(rangeNeedsServer('All', TODAY, '2026-05-01')).toBe(true);
-    // An account newer than 90 days has nothing older on the server.
-    expect(rangeNeedsServer('All', TODAY, '2026-09-01')).toBe(false);
+  it('reads older weigh-ins online only for ranges reaching past the 90 days on the phone, whatever the account’s age (D-106)', () => {
+    expect(rangeNeedsServer('1W', TODAY)).toBe(false);
+    expect(rangeNeedsServer('1M', TODAY)).toBe(false);
+    expect(rangeNeedsServer('3M', TODAY)).toBe(false);
+    expect(rangeNeedsServer('6M', TODAY)).toBe(true);
+    expect(rangeNeedsServer('All', TODAY)).toBe(true);
   });
 
   it('merges older weigh-ins from the server; the phone wins for a day', () => {

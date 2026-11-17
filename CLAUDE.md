@@ -39,6 +39,37 @@ the sign-in screens' footer moves with the keyboard and the floating controls ha
 no migration, no phone schema change. **Every iOS build waits for the owner's word (D-19); the owner
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
+**A workout with no exercise is not logged — built on branch `fix/empty-workouts` (D-108, 2026-11-16),
+in `D:\fitsphere`.** Timer or not, a workout without an exercise is not listed, marked (the strips' and
+the calendar's dumbbells) or counted (the month's count, the week's line); its timer still starts, counts,
+pauses and resumes, and the Workout in progress pill still opens it; Mark done is greyed until it has one
+(`listedWorkouts`, `isLogged` in `apps/mobile/src/workouts.ts`; `runningWorkout` in
+`components/WorkoutInProgress.tsx`; `components/WorkoutTimerBar.tsx`). Phone app only: no server change,
+no migration, no phone schema change, no new build.
+
+**Profile: the State from a list — built on branch `feat/profile-state-list` (D-109, 2026-11-16), in its
+own folder `D:\fitsphere-profile-state` (removed once merged).** The address's State is a box with a down
+arrow opening a sheet of India's 28 states, then its 8 union territories; a tap chooses, Clear state
+empties; a state saved before shows with the list's spelling, or as saved when not on it
+(`INDIAN_STATES`, `UNION_TERRITORIES`, `listedState` in `apps/mobile/src/profile.ts`;
+`components/StatePicker.tsx`). Phone app only: no server change, no migration, no phone schema change, no
+new build.
+
+**Every set value whole — built on the day's branch `daily/2026-11-17` (D-112, 2026-11-17), in
+`D:\fitsphere`.** Canvas boards `ExerciseSets*` A locked (version 118). The sets' column headings
+carry the units ("Weight · kg", "Time · sec", "Reps", "optional" under a kept column); each box holds only its
+number, centred (18 high with three across); a slim X removes a set (`SetRow`, `columnHeading` in
+`components/ExerciseSheet.tsx`). Phone app only: no server change, no migration, no phone schema change, no
+new build.
+
+**The exercise page scrolls less — built on the day's branch `daily/2026-11-17` (D-111, 2026-11-17), in
+`D:\fitsphere`.** Plan: `docs/plans/exercise-sheet-compact.md` (Accepted); canvas boards `ExerciseScroll*` B
+locked (version 114). Add and Edit exercise keep every field, smaller: boxes 44 high (54), Time spent
+beside Calories, the heart rates side by side, short labels (screen readers hear the whole names), the
+note one line; How to do it at the right of the Exercise name label, only for an exercise of the list
+(`components/ExerciseSheet.tsx`, `components/ExercisePlacePickers.tsx`). Phone app only: no server change,
+no migration, no phone schema change, no new build.
+
 **Calories burned changed by you: an Edited tag and an arrow back to the estimate — built on branch
 `feat/exercise-calories-reset` (D-107, 2026-11-16), in its own folder `D:\fitsphere-exercise-calories`
 (removed once merged).** Plan: `docs/plans/exercise-calories-reset.md` (Accepted); canvas boards
@@ -95,8 +126,9 @@ with a thin bar against the date's target (`components/NutrientTargets.tsx`); th
 Nutrition and Training puts the header calendar's green apple and dumbbell under each date (`WeekStrip`'s
 `activity`, `useWeekActivity` in `src/weekActivity.ts`); no "Workouts this week" card (nor
 `WorkoutTracker` and `WorkoutDaySheet`): a line under Home's strip, "3 of 4 workouts this week"
-(`components/WeekWorkouts.tsx`, MVP default). Phone app only: no server change, no migration, no phone
-schema change, no new build.
+(`components/WeekWorkouts.tsx`, MVP default), removed by D-110 (2026-11-17, branch `fix/home-week-line`:
+no line, and Home shows the weekly workout target nowhere). Phone app only: no server change, no
+migration, no phone schema change, no new build.
 
 **Every field's message after typing stops (0.3 seconds since 2026-11-16, branch `fix/field-checks`; ".5" and "7." read
 in every box with decimals), the approved ranges, measurement notes —
@@ -292,7 +324,7 @@ REQ-TRN-003, REQ-TRN-004; canvas boards `WorkoutTimer*` and `TrainingTimer*` loc
 workout of today has **Start workout** in a bar at its foot; then the time in minutes and seconds,
 Pause or Resume, and Mark done ("Done · total time", pauses left out; Resume today only); a timer
 started can be finished after midnight; Training's rows say "Running", "Paused" or "Done" with the
-time; a timed workout is listed before its first exercise but counts only with one (D-41). The time
+time; a workout is listed and counts only with an exercise, timed or not (D-41, D-108). The time
 comes from the clock (`app.workouts.timer_*`, migrations `0025_workout_timer.sql` and `0026_workout_timer_count.sql`; phone schema
 version 18, `workouts.timer`). No new build. **On `fitsphere-dev`: migrations 0025 and 0026 before the updated
 API; only when the owner says so.**

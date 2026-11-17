@@ -36,9 +36,10 @@ it('REQ-ACC-003 shows every Progress weight in the body-weight unit setting', as
   });
 
   // On the card, and as the lowest value on the chart's scale (1M reaches back to 28 Sep, D-34).
-  expect(await screen.findAllByText('173.7 lb')).toHaveLength(2);
-  expect(screen.getByText('Down 2.6 lb since Wed 30 Sep')).toBeOnTheScreen();
-  expect(screen.getByText('Down 0.7 lb a week')).toBeOnTheScreen();
+  expect(await screen.findByText('Weight over 4 weeks · lb')).toBeOnTheScreen();
+  expect(screen.getAllByText('173.7 lb')).toHaveLength(1);
+  expect(screen.getByLabelText('Down 2.6 lb since Wed 30 Sep')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Down 0.7 lb a week')).toBeOnTheScreen();
   expect(screen.getByText('Weight (lb)', { includeHiddenElements: true })).toBeOnTheScreen();
   expect(screen.getByLabelText('Target: weight 165.3 lb, no calories, no protein, no steps')).toBeOnTheScreen();
   expect(screen.getByLabelText('This week: weight 173.7 lb, no calories, no protein, no steps')).toBeOnTheScreen();
@@ -59,8 +60,8 @@ it('REQ-ACC-003 changing the body-weight unit while Progress is open converts ev
   );
 
   // Nothing chosen yet: kg.
-  expect(await screen.findByText('Down 1.2 kg since Wed 30 Sep')).toBeOnTheScreen();
-  expect(screen.getByText('Down 0.3 kg a week')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Down 1.2 kg since Wed 30 Sep')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Down 0.3 kg a week')).toBeOnTheScreen();
   // 1M, the range shown first, reaches back to 28 Sep (D-34).
   expect(screen.getByLabelText('3 weigh-ins, 80.0 kg on Wed 30 Sep to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
   expect(screen.getByText('Weight (kg)', { includeHiddenElements: true })).toBeOnTheScreen();
@@ -72,10 +73,10 @@ it('REQ-ACC-003 changing the body-weight unit while Progress is open converts ev
   await fireEvent.press(screen.getByRole('button', { name: 'Change the body-weight unit' }));
 
   // The card, the chart, the table's heading, Target row and weeks: all in lb at once.
-  expect(await screen.findByText('Down 2.6 lb since Wed 30 Sep')).toBeOnTheScreen();
-  expect(screen.getByText('Down 0.7 lb a week')).toBeOnTheScreen();
+  expect(await screen.findByLabelText('Down 2.6 lb since Wed 30 Sep')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Down 0.7 lb a week')).toBeOnTheScreen();
   // On the card, and as the lowest value on the chart's scale.
-  expect(screen.getAllByText('173.7 lb')).toHaveLength(2);
+  expect(screen.getAllByText('173.7 lb')).toHaveLength(1);
   expect(screen.getByLabelText('3 weigh-ins, 176.4 lb on Wed 30 Sep to 173.7 lb on Wed 28 Oct')).toBeOnTheScreen();
   expect(screen.getByText('Weight (lb)', { includeHiddenElements: true })).toBeOnTheScreen();
   expect(screen.getByLabelText('Target: weight 165.3 lb, no calories, no protein, no steps')).toBeOnTheScreen();

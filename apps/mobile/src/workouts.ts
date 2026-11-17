@@ -603,26 +603,28 @@ export function workoutSummary(exercises: readonly Pick<WorkoutExercise, 'name'>
 }
 
 /**
- * The workouts listed and numbered (D-65): those with an exercise, as they count toward the week
- * (D-41), and those whose timer has started (D-71), so a workout timed before its first exercise is
- * never lost. One with neither is still stored, and opens from its own screen, but no list shows it,
- * so "Workout 2" is the same workout on Training, Home and its own screen. `keep` is listed anyway:
- * the workout open on its own screen, while it has no exercise yet.
+ * The workouts listed, marked, counted and numbered (D-65, D-108): only those with an exercise, as
+ * they count toward the week (D-41). One with none is not logged, even with its timer running (D-108;
+ * D-71 had listed it): it is still stored, its timer counts on, and it opens from its own screen and,
+ * while its timer runs or is paused, from the Workout in progress pill (D-83); but no list, mark or
+ * count shows it, so "Workout 2" is the same workout on Training, Home and its own screen. `keep` is
+ * listed anyway: the workout open on its own screen, while it has no exercise yet.
  */
-export function listedWorkouts<T extends { id: string; exercises: readonly unknown[]; timer?: WorkoutTimer | null }>(
-  workouts: readonly T[],
-  keep?: string,
-): T[] {
-  return workouts.filter((workout) => workout.exercises.length > 0 || Boolean(workout.timer) || workout.id === keep);
+export function listedWorkouts<T extends { id: string; exercises: readonly unknown[] }>(workouts: readonly T[], keep?: string): T[] {
+  return workouts.filter((workout) => workout.exercises.length > 0 || workout.id === keep);
+}
+
+/** Whether a workout is logged (D-108): it has an exercise. Until then it can't be marked done. */
+export function isLogged(workout: { exercises: readonly unknown[] }): boolean {
+  return workout.exercises.length > 0;
 }
 
 /**
- * How many listed workouts (D-65) each day has: the header's calendar puts a dumbbell on those days
- * and counts the month's (D-84). Days with none are left out.
+ * How many listed workouts (D-65), those with an exercise (D-108), each day has: the header's calendar
+ * and the date strips put a dumbbell on those days, and the calendar counts the month's (D-84). Days
+ * with none are left out.
  */
-export function workoutsPerDay(
-  workouts: readonly { id: string; day: IstDay; exercises: readonly unknown[]; timer?: WorkoutTimer | null }[],
-): Record<IstDay, number> {
+export function workoutsPerDay(workouts: readonly { id: string; day: IstDay; exercises: readonly unknown[] }[]): Record<IstDay, number> {
   const counts: Record<IstDay, number> = {};
   for (const workout of listedWorkouts(workouts)) counts[workout.day] = (counts[workout.day] ?? 0) + 1;
   return counts;

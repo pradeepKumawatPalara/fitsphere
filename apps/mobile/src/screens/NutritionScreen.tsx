@@ -1,6 +1,6 @@
 import { type MealItem, type MealTotals, type MealType } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Bookmark, ChevronDown, ChevronUp, ClipboardList, Plus } from 'lucide-react-native';
+import { Bookmark, ChevronDown, ChevronUp, ClipboardList, Cookie, Moon, Plus, Sun, Sunrise } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { EatenSummary } from '../components/EatenSummary';
@@ -29,6 +29,8 @@ import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { useWeekActivity } from '../weekActivity';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+
+const SLOT_ICONS = { breakfast: Sunrise, lunch: Sun, snack: Cookie, dinner: Moon } as const;
 
 type Tab = 'consumed' | 'plan' | 'saved';
 const TABS: { tab: Tab; label: string }[] = [
@@ -206,9 +208,15 @@ export function NutritionScreen() {
                 <View key={slot} style={styles.slot}>
                   <View style={styles.slotHeader}>
                     <Pressable accessible={false} disabled={slotMeals.length === 0} onPress={() => toggle(slot)} style={styles.slotHeading}>
-                      <Text accessibilityRole="header" style={styles.slotTitle}>
-                        {label}
-                      </Text>
+                      <View style={styles.slotTitleRow}>
+                        {(() => {
+                          const Icon = SLOT_ICONS[slot];
+                          return <Icon size={20} strokeWidth={2.25} color={colors.accent} />;
+                        })()}
+                        <Text accessibilityRole="header" style={styles.slotTitle}>
+                          {label}
+                        </Text>
+                      </View>
                       {slotMeals.length > 0 ? (
                         <Text style={styles.slotTotal}>
                           {formatKcal(kcal)} · {slotMeals.length} {slotMeals.length === 1 ? 'meal' : 'meals'}
@@ -469,7 +477,7 @@ function RemoveFoodSheet({
 const useStyles = themedStyles((c) => ({
   sheetText: { fontSize: 16, lineHeight: 24 },
   screen: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 76, gap: 12 },
   body: { fontSize: 15 },
   tabs: { flexDirection: 'row', gap: 8 },
   // Equal widths, as the meal pills on Log meal: 8 at the sides and one line, which shrinks a little
@@ -479,6 +487,7 @@ const useStyles = themedStyles((c) => ({
   slotHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   // The heading takes the row's room, so tapping anywhere on it opens or closes the slot.
   slotHeading: { flex: 1, minHeight: 44, justifyContent: 'center', gap: 2 },
+  slotTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   slotTitle: { ...TYPE.metric, lineHeight: 24 },
   slotTotal: { fontSize: 14, lineHeight: 20, color: c.inkMuted, fontVariant: ['tabular-nums'] },
   chevron: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

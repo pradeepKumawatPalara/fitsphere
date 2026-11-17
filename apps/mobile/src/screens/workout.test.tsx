@@ -112,7 +112,7 @@ describe('REQ-TRN-003 starting a workout', () => {
 
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${id}`);
     expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
-    expect(screen.getByText('No exercises yet.')).toBeOnTheScreen();
+    expect(screen.getByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ deleted: false, day: '2026-10-28', exercises: [] }));
     expect(await getEntry(db, 'workout', id)).toMatchObject({ syncState: 'synced' });
     // D-65: with no exercise yet, Training doesn't list it.
@@ -557,7 +557,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Remove Squat' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
 
-    expect(await screen.findByText('No exercises yet.')).toBeOnTheScreen();
+    expect(await screen.findByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
   });
 
@@ -577,7 +577,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Squat: 1 set, 10 reps' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Remove exercise' }));
 
-    expect(await screen.findByText('No exercises yet.')).toBeOnTheScreen();
+    expect(await screen.findByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
   });
 
@@ -694,7 +694,7 @@ describe('D-50 calories burned and heart rate', () => {
       await screen.findByText('Estimated: 9.3 MET for 10.0 km/h × 70.0 kg × 30 min. Type the number from your machine or watch to replace it.'),
     ).toBeOnTheScreen();
     expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('326');
-    expect(screen.getByText('estimated')).toBeOnTheScreen();
+    expect(screen.getByTestId('calories-estimated')).toHaveTextContent('Estimated');
     await save();
 
     expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 326 kcal · estimated' })).toBeOnTheScreen();
@@ -718,7 +718,7 @@ describe('D-50 calories burned and heart rate', () => {
     await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '360');
     // D-107: typed over an estimate, the line says what the estimate is and how to go back to it.
     expect(screen.getByText('The estimate is 326 kcal: tap the arrow to use it.')).toBeOnTheScreen();
-    expect(screen.queryByText('estimated')).toBeNull();
+    expect(screen.queryByTestId('calories-estimated')).toBeNull();
     await save();
 
     expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 360 kcal' })).toBeOnTheScreen();
@@ -840,11 +840,11 @@ describe('D-107 calories changed by you: the Edited tag and the arrow back to th
 
       expect(screen.getByText('Edited')).toBeOnTheScreen();
       expect(screen.getByText(BACK)).toBeOnTheScreen();
-      expect(screen.queryByText('estimated')).toBeNull();
+      expect(screen.queryByTestId('calories-estimated')).toBeNull();
 
       await fireEvent.press(screen.getByRole('button', { name: 'Use the estimate, 326 kcal' }));
       expect(kcalBox().props.value).toBe('326');
-      expect(screen.getByText('estimated')).toBeOnTheScreen();
+      expect(screen.getByTestId('calories-estimated')).toHaveTextContent('Estimated');
       expect(screen.getByText(/^Estimated: 9\.3 MET for 10\.0 km\/h/)).toBeOnTheScreen();
       expect(screen.queryByText('Edited')).toBeNull();
       expect(arrow()).toBeNull();
@@ -1063,6 +1063,145 @@ describe('D-67 Edit shows Category and Sub-group (the owner, 2026-11-16)', () =>
   });
 });
 
+describe('the exercise’s tag line (the owner’s report, 2026-11-17)', () => {
+  it('wraps when its tag is long, so how the exercise is logged moves on rather than standing a letter a line', async () => {
+    await startWorkout();
+    await openSheet();
+
+    await pick('push', 'Push-up');
+
+    // "Bodyweight / Calisthenics · Push", "Reps" and How to do it on one line left "Reps" no width, and
+    // the line grew hundreds of points tall: the line wraps, the tag may shrink, how it is logged never.
+    const line = screen.getByTestId('exercise-type-line');
+    expect(line).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap' });
+    expect(within(line).getByText('Bodyweight / Calisthenics · Push')).toHaveStyle({ flexShrink: 1 });
+    expect(screen.getByTestId('exercise-log-type')).toHaveTextContent('Reps');
+    expect(screen.getByTestId('exercise-log-type')).toHaveStyle({ flexShrink: 0 });
+    // Since D-111 How to do it is beside the name, no longer on this line.
+    expect(within(line).queryByRole('button', { name: 'How to do Push-up' })).toBeNull();
+  });
+});
+
+describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-17)', () => {
+  it('How to do it sits beside the exercise name, only while the name is an exercise of the list', async () => {
+    await startWorkout();
+    await openSheet();
+    // No name yet: no How to do it.
+    expect(screen.queryByTestId('exercise-how-to')).toBeNull();
+
+    await pick('push', 'Push-up');
+    expect(screen.getByTestId('exercise-how-to')).toBe(screen.getByRole('button', { name: 'How to do Push-up' }));
+    expect(screen.getByRole('button', { name: 'How to do Push-up' })).toBeOnTheScreen();
+
+    // A name of the user's own has no How to do it; nor a name being typed that the list doesn't hold.
+    await typeName('My own stretch');
+    expect(screen.queryByTestId('exercise-how-to')).toBeNull();
+  });
+
+  it('shows the optional fields two to a row with short labels, each still read by its whole name, and the note one line', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('push', 'Push-up');
+
+    const effort = screen.getByTestId('exercise-effort');
+    // The two boxes share one row, their labels the row above, so the boxes line up whatever the
+    // labels hold (the owner, 2026-11-17: Calories' info button and tag had set its box lower).
+    const boxes = screen.getByTestId('exercise-effort-boxes');
+    expect(boxes).toHaveStyle({ flexDirection: 'row' });
+    expect(within(boxes).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();
+    expect(within(boxes).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
+    const labels = screen.getByTestId('exercise-effort-labels');
+    expect(labels).toHaveStyle({ flexDirection: 'row' });
+    expect(within(labels).getByText('Time spent')).toBeOnTheScreen();
+    expect(within(labels).getByText('Calories')).toBeOnTheScreen();
+    // "estimated" sits beside the Calories label, not in the half-wide box, where it hid the number
+    // (the owner, 2026-11-17).
+    expect(within(effort).queryByText('estimated')).toBeNull();
+    expect(within(effort).getByText('Time spent')).toBeOnTheScreen();
+    expect(within(effort).getByText('Calories')).toBeOnTheScreen();
+    expect(within(effort).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();
+    expect(within(effort).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
+    expect(screen.getByText('Average HR')).toBeOnTheScreen();
+    expect(screen.getByText('Highest HR')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Average heart rate (optional)')).toBeOnTheScreen();
+    expect(screen.queryByText('Time spent in min (optional)')).toBeNull();
+    // The note: one line under its label (the owner, 2026-11-17: keep the label), nothing inside it.
+    expect(screen.getByText('Note (optional)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Note (optional)')).not.toHaveProp('placeholder');
+  });
+
+  it('a cardio exercise has Calories alone in the row: it has no time spent', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('running', 'Running');
+
+    const effort = screen.getByTestId('exercise-effort');
+    expect(within(effort).queryByLabelText('Time spent in min (optional)')).toBeNull();
+    expect(within(effort).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
+  });
+});
+
+describe('D-112 every set value whole (the owner’s A, 2026-11-17)', () => {
+  const headings = () => screen.getByTestId('exercise-set-headings');
+
+  it('the units are in the column headings, each box holds only its number, centred', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('dumbbell bench', 'Dumbbell bench press');
+
+    expect(within(headings()).getByText('Reps')).toBeOnTheScreen();
+    expect(within(headings()).getByText('Weight · kg')).toBeOnTheScreen();
+    expect(within(headings()).queryByText('optional')).toBeNull();
+    // No unit in the boxes: "kg" was in each weight box.
+    expect(screen.queryByText('kg')).toBeNull();
+    for (const label of ['Set 1, Reps', 'Set 1, Weight in kg']) {
+      expect(screen.getByLabelText(label)).toHaveStyle({ textAlign: 'center', fontSize: 20 });
+    }
+  });
+
+  it('an edit that kept a column has three boxes: "optional" under it, the numbers 18 high, the largest values whole', async () => {
+    const id = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1c';
+    mockParams.id = id;
+    // Farmer's walk is done with weight and time; saved with reps too, it keeps them as a third column (D-50).
+    const saved = {
+      kind: 'sets',
+      name: "Farmer's walk",
+      sets: [
+        { reps: 200, weightGrams: 1_000_000, seconds: 3600 },
+        { reps: 10, weightGrams: 40_000, seconds: 45 },
+      ],
+      durationSeconds: null,
+      calories: null,
+      averageHeartRateBpm: null,
+      highestHeartRateBpm: null,
+      note: null,
+    };
+    await renderInApp(<WorkoutScreen />, undefined, async (db, server) => {
+      await withExerciseList(db, server);
+      const data = { id, day: '2026-10-28', exercises: [saved], recordedAt: '2026-10-28T02:00:00.000Z', timer: null } as unknown as WorkoutData;
+      await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000a2', data });
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^Farmer's walk: Set 1, / }));
+
+    expect(await screen.findByText('Weight · kg')).toBeOnTheScreen();
+    expect(within(headings()).getByText('Time · sec')).toBeOnTheScreen();
+    expect(within(headings()).getByText('Reps')).toBeOnTheScreen();
+    expect(within(headings()).getByText('optional')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Set 1, Weight in kg')).toHaveDisplayValue('1000.0');
+    expect(screen.getByLabelText('Set 1, Time in sec')).toHaveDisplayValue('3600');
+    expect(screen.getByLabelText('Set 1, Reps (optional)')).toHaveDisplayValue('200');
+    for (const label of ['Set 1, Weight in kg', 'Set 1, Time in sec', 'Set 1, Reps (optional)']) {
+      expect(screen.getByLabelText(label)).toHaveStyle({ textAlign: 'center', fontSize: 18 });
+    }
+    expect(screen.queryByText('sec')).toBeNull();
+
+    // The slim X removes a set, as the bin did.
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove set 2' }));
+    expect(screen.queryByLabelText('Set 2, Weight in kg')).toBeNull();
+  });
+});
+
 describe('D-67 the exercise page', () => {
   it('is a page with a back arrow; while a list shows, Save exercise steps aside, and the name while a choice list is open', async () => {
     await startWorkout();
@@ -1088,7 +1227,7 @@ describe('D-67 the exercise page', () => {
   // The owner, 2026-11-13: Category, Sub-group and the names did not scroll. Inside the page's scroll
   // view a list's `flex: 1` holds nothing unless the page's content is exactly the page's height, so
   // the lists grew to their full length. The layout itself is the phone's; this checks the styles it needs.
-  it('while a list shows, the page holds its content to its height, so Category, Sub-group and the names scroll', async () => {
+  it('while a list shows, the page holds its content to its height, so Category, Sub-group and the names scroll; each list is only as tall as its rows', async () => {
     await startWorkout();
     await openSheet();
     const page = () => screen.getByTestId('exercise-page');
@@ -1096,22 +1235,32 @@ describe('D-67 the exercise page', () => {
       expect(page().props.scrollEnabled).toBe(false);
       expect(StyleSheet.flatten(page().props.contentContainerStyle)).toMatchObject({ flex: 1 });
     };
+    // As tall as its rows, shrunk to the page's room when longer (the owner, 2026-11-17: a short list
+    // left a large empty panel under its last choice).
+    const fits = (testID: string) => {
+      const style = StyleSheet.flatten(screen.getByTestId(testID).props.style);
+      expect(style).toMatchObject({ flexGrow: 0, flexShrink: 1 });
+      expect(style).not.toHaveProperty('flex');
+    };
     expect(page().props.scrollEnabled).toBe(true);
     expect(StyleSheet.flatten(page().props.contentContainerStyle) ?? {}).not.toHaveProperty('flex');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Category: All categories' }));
     heldToThePage();
-    expect(StyleSheet.flatten(screen.getByTestId('exercise-place-list').props.style)).toMatchObject({ flex: 1 });
+    fits('exercise-place-panel');
+    fits('exercise-place-list');
     await fireEvent.press(screen.getByRole('button', { name: 'Dumbbell, 3 exercises' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Sub-group: All sub-groups' }));
     heldToThePage();
-    expect(StyleSheet.flatten(screen.getByTestId('exercise-place-list').props.style)).toMatchObject({ flex: 1 });
+    fits('exercise-place-panel');
+    fits('exercise-place-list');
     await fireEvent.press(screen.getByRole('button', { name: 'Biceps, 2 exercises' }));
 
     expect(await screen.findByRole('button', { name: 'Hammer curl' })).toBeOnTheScreen();
     heldToThePage();
-    expect(StyleSheet.flatten(screen.getByTestId('exercise-matches').props.style)).toMatchObject({ flex: 1 });
+    fits('exercise-matches-panel');
+    fits('exercise-matches');
 
     await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl' }));
     expect(page().props.scrollEnabled).toBe(true);
@@ -1148,6 +1297,44 @@ describe('D-67 the name’s chevron, and a choice the exercise is not in', () =>
 
     await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
     expect(await screen.findByRole('button', { name: 'Hammer curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+  });
+
+  it('the owner, 2026-11-17: opened on an exercise picked in a category, the chevron lists all its exercises, the picked one highlighted', async () => {
+    await startWorkout();
+    await openSheet();
+    await choosePlace('Category', 'Dumbbell');
+    await fireEvent.press(await screen.findByRole('button', { name: 'Dumbbell curl, Biceps' }));
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Dumbbell curl');
+    expect(screen.queryByText('Dumbbell · 3 exercises')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+
+    // Not the name's own search, which found it alone: the whole category, the picked one highlighted.
+    expect(await screen.findByText('Dumbbell · 3 exercises')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Dumbbell curl, Biceps, picked' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Dumbbell bench press, Chest' })).not.toBeSelected();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Biceps' })).not.toBeSelected();
+
+    // Another picked from it replaces it, and the list closes.
+    await fireEvent.press(screen.getByRole('button', { name: 'Hammer curl, Biceps' }));
+    expect(screen.getByLabelText('Exercise name').props.value).toBe('Hammer curl');
+    expect(screen.queryByText('Dumbbell · 3 exercises')).toBeNull();
+  });
+
+  it('with no category, the chevron on an exercise picked lists every exercise, it highlighted; typing searches again', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('hammer', 'Hammer curl');
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Exercise list' }));
+    expect(await screen.findByText('All exercises · 15')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Dumbbell · Biceps, picked' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Kabaddi, Sport' })).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Exercise name'), 'curl');
+    expect(await screen.findByRole('button', { name: 'Dumbbell curl, Dumbbell · Biceps' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Hammer curl, Dumbbell · Biceps' })).not.toBeSelected();
+    expect(screen.queryByRole('button', { name: /^Kabaddi/ })).toBeNull();
   });
 
   it('a category or sub-group the picked exercise is not in clears its name; one it is in keeps it', async () => {
@@ -1254,13 +1441,38 @@ describe('D-71 the workout timer', () => {
     expect(screen.queryByRole('button', { name: 'Start workout' })).toBeNull();
     const started = { startedAt: NOW.toISOString(), countedSeconds: 0, runningSince: NOW.toISOString(), doneAt: null };
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [], timer: started }));
-    // Training lists it before its first exercise, with its time.
-    expect(await screen.findByText('Running · 0:00')).toBeOnTheScreen();
 
     later(754);
 
     expect(await screen.findByLabelText('Workout time 12 minutes 34 seconds', {}, { timeout: 3_000 })).toBeOnTheScreen();
+    await addOwn({});
     expect(await screen.findByText('Running · 12:34', {}, { timeout: 3_000 })).toBeOnTheScreen();
+  });
+
+  it('D-108 with no exercise the timer counts on, but the workout is not logged: not listed, and Mark done waits for an exercise', async () => {
+    const { server, id } = await logTimed();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    await screen.findByRole('button', { name: 'Pause' });
+
+    later(600);
+    expect(await screen.findByLabelText('Workout time 10 minutes 0 seconds', {}, { timeout: 3_000 })).toBeOnTheScreen();
+    expect(screen.getByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
+    expect(screen.getByText('Add an exercise to log this workout and mark it done.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Mark done' })).toBeDisabled();
+    // Pause and Resume still work: the timer counts on.
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeEnabled();
+    // Training doesn't list it, nor its time.
+    expect(screen.getByText('No workouts on Wed 28 Oct.')).toBeOnTheScreen();
+    expect(screen.queryByText(/^Running · /)).toBeNull();
+
+    await addOwn({});
+
+    // Logged once it has an exercise: listed with its time, and Mark done can be tapped.
+    expect(await screen.findByText('Running · 10:00')).toBeOnTheScreen();
+    expect(screen.queryByText('Add an exercise to log this workout and mark it done.')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mark done' }));
+    expect(await screen.findByLabelText('Done, total time 10 minutes 0 seconds')).toBeOnTheScreen();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ timer: { countedSeconds: 600, doneAt: clock.toISOString() } }));
   });
 
   it('Pause stops the count and Resume counts on, the time paused left out; Mark done shows the total', async () => {
@@ -1278,7 +1490,8 @@ describe('D-71 the workout timer', () => {
     expect(await screen.findByLabelText('Workout time 10 minutes 0 seconds')).toBeOnTheScreen();
 
     later(154);
-    await fireEvent.press(screen.getByRole('button', { name: 'Mark done' }));
+    await addOwn({});
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mark done' }));
 
     expect(await screen.findByLabelText('Done, total time 12 minutes 34 seconds')).toBeOnTheScreen();
     expect(screen.getByText('Done · total time')).toBeOnTheScreen();
@@ -1296,6 +1509,7 @@ describe('D-71 the workout timer', () => {
   it('Resume after Mark done, on a workout of today, counts on from the total', async () => {
     const { server, id } = await logTimed();
     await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    await addOwn({});
     later(754);
     await fireEvent.press(await screen.findByRole('button', { name: 'Mark done' }));
     await screen.findByText('Done · total time');
@@ -1324,6 +1538,7 @@ describe('D-71 the workout timer', () => {
     const { server, id } = await logTimed();
     await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
     await screen.findByRole('button', { name: 'Pause' });
+    await addOwn({});
 
     // 09:00 to 01:00 the next day, India time.
     later(16 * 3_600);
