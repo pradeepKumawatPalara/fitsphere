@@ -1141,6 +1141,67 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
   });
 });
 
+describe('D-112 every set value whole (the owner’s A, 2026-11-17)', () => {
+  const headings = () => screen.getByTestId('exercise-set-headings');
+
+  it('the units are in the column headings, each box holds only its number, centred', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('dumbbell bench', 'Dumbbell bench press');
+
+    expect(within(headings()).getByText('Reps')).toBeOnTheScreen();
+    expect(within(headings()).getByText('Weight · kg')).toBeOnTheScreen();
+    expect(within(headings()).queryByText('optional')).toBeNull();
+    // No unit in the boxes: "kg" was in each weight box.
+    expect(screen.queryByText('kg')).toBeNull();
+    for (const label of ['Set 1, Reps', 'Set 1, Weight in kg']) {
+      expect(screen.getByLabelText(label)).toHaveStyle({ textAlign: 'center', fontSize: 20 });
+    }
+  });
+
+  it('an edit that kept a column has three boxes: "optional" under it, the numbers 18 high, the largest values whole', async () => {
+    const id = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c1c';
+    mockParams.id = id;
+    // Farmer's walk is done with weight and time; saved with reps too, it keeps them as a third column (D-50).
+    const saved = {
+      kind: 'sets',
+      name: "Farmer's walk",
+      sets: [
+        { reps: 200, weightGrams: 1_000_000, seconds: 3600 },
+        { reps: 10, weightGrams: 40_000, seconds: 45 },
+      ],
+      durationSeconds: null,
+      calories: null,
+      averageHeartRateBpm: null,
+      highestHeartRateBpm: null,
+      note: null,
+    };
+    await renderInApp(<WorkoutScreen />, undefined, async (db, server) => {
+      await withExerciseList(db, server);
+      const data = { id, day: '2026-10-28', exercises: [saved], recordedAt: '2026-10-28T02:00:00.000Z', timer: null } as unknown as WorkoutData;
+      await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000a2', data });
+    });
+
+    await fireEvent.press(await screen.findByRole('button', { name: /^Farmer's walk: Set 1, / }));
+
+    expect(await screen.findByText('Weight · kg')).toBeOnTheScreen();
+    expect(within(headings()).getByText('Time · sec')).toBeOnTheScreen();
+    expect(within(headings()).getByText('Reps')).toBeOnTheScreen();
+    expect(within(headings()).getByText('optional')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Set 1, Weight in kg')).toHaveDisplayValue('1000.0');
+    expect(screen.getByLabelText('Set 1, Time in sec')).toHaveDisplayValue('3600');
+    expect(screen.getByLabelText('Set 1, Reps (optional)')).toHaveDisplayValue('200');
+    for (const label of ['Set 1, Weight in kg', 'Set 1, Time in sec', 'Set 1, Reps (optional)']) {
+      expect(screen.getByLabelText(label)).toHaveStyle({ textAlign: 'center', fontSize: 18 });
+    }
+    expect(screen.queryByText('sec')).toBeNull();
+
+    // The slim X removes a set, as the bin did.
+    await fireEvent.press(screen.getByRole('button', { name: 'Remove set 2' }));
+    expect(screen.queryByLabelText('Set 2, Weight in kg')).toBeNull();
+  });
+});
+
 describe('D-67 the exercise page', () => {
   it('is a page with a back arrow; while a list shows, Save exercise steps aside, and the name while a choice list is open', async () => {
     await startWorkout();

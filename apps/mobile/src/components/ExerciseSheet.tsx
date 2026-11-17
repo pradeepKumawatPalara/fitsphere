@@ -1,5 +1,5 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash } from 'lucide-react-native';
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash, X } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { AccessibilityInfo, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { useFieldChecks, type FieldChecks } from '../fieldChecks';
@@ -110,6 +110,11 @@ function matchTag(exercise: ListedExercise, filter: ExerciseFilter): string | nu
 function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit): string {
   const label = column === 'reps' ? 'Reps' : column === 'weight' ? `Weight in ${unit}` : 'Time in sec';
   return required ? label : `${label} (optional)`;
+}
+
+/** A set's column as its heading shows it, its unit after it (D-112): "Weight · kg", "Time · sec", "Reps". */
+function columnHeading(column: SetColumn, unit: BodyWeightUnit): string {
+  return column === 'reps' ? 'Reps' : column === 'weight' ? `Weight · ${unit}` : 'Time · sec';
 }
 
 // A page for one exercise (REQ-TRN-003; D-50), opened over the workout with a back arrow, as Search foods
@@ -546,12 +551,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           {layout.kind === 'sets' ? (
             <View style={styles.field}>
               <Text style={labelStyle}>Sets</Text>
-              <View style={styles.setRow}>
+              {/* D-112 (the owner's A, 2026-11-17: values were cut off with three boxes in a row): the units in
+                  the headings, "optional" under a column the type doesn't ask for, the boxes only numbers. */}
+              <View testID="exercise-set-headings" style={[styles.setRow, styles.headingRow]}>
                 <View style={styles.numberSpace} />
                 {layout.columns.map(({ column, required }) => (
-                  <Text key={column} style={styles.columnLabel}>
-                    {columnLabel(column, required, unit)}
-                  </Text>
+                  <View key={column} style={styles.heading}>
+                    <Text style={styles.columnLabel}>{columnHeading(column, unit)}</Text>
+                    {required ? null : <Text style={styles.columnOptional}>optional</Text>}
+                  </View>
                 ))}
                 <View style={styles.binSpace} />
               </View>
@@ -878,6 +886,8 @@ function SetRow({
   return (
     <View style={styles.setRow}>
       <Text style={styles.setNumber}>{index + 1}</Text>
+      {/* D-112: only the number, centred (its unit is in the heading), 18 high with three boxes across, so
+          the largest values show whole: 2,204.6 lb, 3,600 s, 200 reps. */}
       {columns.map(({ column, required }, position) => (
         <Box
           key={column}
@@ -885,17 +895,24 @@ function SetRow({
           value={set[column]}
           onChangeText={(value) => onChange(index, column, value)}
           keyboardType={column === 'weight' ? 'decimal-pad' : 'number-pad'}
-          unit={column === 'weight' ? unit : column === 'seconds' ? 'sec' : ''}
           refused={refused.includes(`${index}:${column}`)}
           autoFocus={autoFocus && position === 0}
           compact
+          inSet
+          small={columns.length > 2}
           {...watch(setField(index, column))}
         />
       ))}
       {onRemove ? (
-        <IconButton label={`Remove set ${index + 1}`} onPress={onRemove}>
-          <Trash size={20} color={colors.danger} />
-        </IconButton>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Remove set ${index + 1}`}
+          onPress={onRemove}
+          hitSlop={6}
+          style={({ pressed }) => [styles.removeSet, pressed && styles.pressed]}
+        >
+          <X size={18} strokeWidth={2.25} color={colors.inkMuted} />
+        </Pressable>
       ) : (
         <View style={styles.binSpace} />
       )}
@@ -924,16 +941,36 @@ function Box({
   after,
   refused,
   compact = false,
+  inSet = false,
+  small = false,
   note = false,
   onFocus,
   onBlur,
   ...input
-}: { unit?: string; after?: ReactNode; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
+}: {
+  unit?: string;
+  after?: ReactNode;
+  refused: boolean;
+  compact?: boolean;
+  /** A set's box (D-112): its number centred, little padding. */
+  inSet?: boolean;
+  /** Three boxes across: the number 18 high. */
+  small?: boolean;
+  note?: boolean;
+} & TextInputProps) {
   const styles = useStyles();
   const [focused, setFocused] = useState(false);
   return (
     <View
-      style={[styles.box, compact && styles.compact, note && styles.noteBox, after ? styles.withAfter : null, focused && styles.focused, refused && styles.refused]}
+      style={[
+        styles.box,
+        compact && styles.compact,
+        inSet && styles.setBox,
+        note && styles.noteBox,
+        after ? styles.withAfter : null,
+        focused && styles.focused,
+        refused && styles.refused,
+      ]}
     >
       <TextInput
         onFocus={(event) => {
@@ -944,7 +981,7 @@ function Box({
           setFocused(false);
           onBlur?.(event);
         }}
-        style={[styles.value, !note && styles.number, note && styles.note]}
+        style={[styles.value, !note && styles.number, small && styles.numberSmall, inSet && styles.centred, note && styles.note]}
         {...input}
       />
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
@@ -974,6 +1011,10 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceSunken,
   },
   compact: { flex: 1, gap: 8, paddingHorizontal: 12 },
+  // A set's box (D-112): only its number, so little padding and the number centred.
+  setBox: { paddingHorizontal: 6 },
+  centred: { textAlign: 'center' },
+  numberSmall: { fontSize: 18, lineHeight: 22 },
   // A button at the box's end keeps its own room (D-107).
   withAfter: { paddingRight: 4 },
   divider: { width: 1, height: 28, backgroundColor: c.border },
@@ -1055,11 +1096,17 @@ const useStyles = themedStyles((c) => ({
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   choice: { paddingHorizontal: 12 },
   choiceText: { fontSize: 15, letterSpacing: 0.5 },
-  setRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  setNumber: { ...TYPE.metric, fontSize: 18, width: 24, textAlign: 'center', color: c.accent },
-  numberSpace: { width: 24 },
-  columnLabel: { ...TYPE.label, flex: 1, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted },
-  binSpace: { width: 40 },
+  // D-112: the set's number 20 wide, the boxes 8 apart, a slim X 32 wide to remove a set.
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  setNumber: { ...TYPE.metric, fontSize: 18, width: 20, textAlign: 'center', color: c.accent },
+  numberSpace: { width: 20 },
+  // The headings over their boxes, centred, lined up at their foot when one has "optional" under it.
+  headingRow: { alignItems: 'flex-end' },
+  heading: { flex: 1, minWidth: 0, alignItems: 'center' },
+  columnLabel: { ...TYPE.label, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted, textAlign: 'center' },
+  columnOptional: { fontSize: 12, lineHeight: 14, color: c.inkMuted, textAlign: 'center' },
+  binSpace: { width: 32 },
+  removeSet: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
   addSet: { alignItems: 'flex-start' },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
