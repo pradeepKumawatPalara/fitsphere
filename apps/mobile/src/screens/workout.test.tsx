@@ -1063,6 +1063,24 @@ describe('D-67 Edit shows Category and Sub-group (the owner, 2026-11-16)', () =>
   });
 });
 
+describe('the exercise’s tag line (the owner’s report, 2026-11-17)', () => {
+  it('wraps when its tag is long, so how the exercise is logged moves on rather than standing a letter a line', async () => {
+    await startWorkout();
+    await openSheet();
+
+    await pick('push', 'Push-up');
+
+    // "Bodyweight / Calisthenics · Push", "Reps" and How to do it on one line left "Reps" no width, and
+    // the line grew hundreds of points tall: the line wraps, the tag may shrink, how it is logged never.
+    const line = screen.getByTestId('exercise-type-line');
+    expect(line).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap' });
+    expect(within(line).getByText('Bodyweight / Calisthenics · Push')).toHaveStyle({ flexShrink: 1 });
+    expect(screen.getByTestId('exercise-log-type')).toHaveTextContent('Reps');
+    expect(screen.getByTestId('exercise-log-type')).toHaveStyle({ flexShrink: 0 });
+    expect(within(line).getByRole('button', { name: 'How to do Push-up' })).toBeOnTheScreen();
+  });
+});
+
 describe('D-67 the exercise page', () => {
   it('is a page with a back arrow; while a list shows, Save exercise steps aside, and the name while a choice list is open', async () => {
     await startWorkout();

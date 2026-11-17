@@ -455,9 +455,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       {named && !choosing ? (
         <>
           {match ? (
-            <View style={styles.typeLine}>
-              <Text style={styles.tag}>{matchTag(match, NO_FILTER)}</Text>
-              <Text style={styles.help}>{LOG_TYPE_LABELS[match.logType]}</Text>
+            // The tag, how it is logged and How to do it wrap onto the next line when they don't fit
+            // (the owner's report, 2026-11-17): a long tag, "Olympic Weightlifting · Jerk Family", left
+            // "Weight and reps" almost no width, so it stood one letter a line, hundreds of points tall,
+            // and the row's other two sat in the middle of a large gap.
+            <View testID="exercise-type-line" style={styles.typeLine}>
+              <Text style={[styles.tag, styles.typeTag]}>{matchTag(match, NO_FILTER)}</Text>
+              <Text testID="exercise-log-type" style={[styles.help, styles.typeLabel]}>
+                {LOG_TYPE_LABELS[match.logType]}
+              </Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`How to do ${match.name}`}
@@ -960,7 +966,11 @@ const useStyles = themedStyles((c) => ({
     color: c.inkMuted,
     backgroundColor: c.surfaceSunken,
   },
-  typeLine: { marginTop: -6, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // A line that wraps: a tag too long for the line takes it, wrapping inside its box; how the exercise
+  // is logged never shrinks, so it moves on rather than standing a letter a line.
+  typeLine: { marginTop: -6, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 2 },
+  typeTag: { flexShrink: 1 },
+  typeLabel: { flexShrink: 0 },
   howTo: { marginLeft: 'auto', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
   howToPressed: { opacity: 0.7 },
   howToText: { ...TYPE.link, color: c.accent },
