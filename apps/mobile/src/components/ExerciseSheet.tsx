@@ -377,7 +377,25 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={chooseFilter} />
         {picking === null ? (
       <View style={styles.field}>
-        <Text style={labelStyle}>Exercise name</Text>
+        {/* D-111 (the owner's B, with How to do it beside the name, 2026-11-17): How to do it at the label's
+            right, only while the name holds an exercise of the list. */}
+        <View style={styles.nameLabelRow}>
+          <Text style={[labelStyle, styles.nameLabel]}>Exercise name</Text>
+          {match ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`How to do ${match.name}`}
+              onPress={() => setHowTo(true)}
+              hitSlop={8}
+              testID="exercise-how-to"
+              style={({ pressed }) => [styles.howTo, pressed && styles.howToPressed]}
+            >
+              <BookOpen size={17} strokeWidth={2.25} color={colors.accent} />
+              <Text style={styles.howToText}>How to do it</Text>
+              <ChevronRight size={16} strokeWidth={2.5} color={colors.accent} />
+            </Pressable>
+          ) : null}
+        </View>
         <View style={[styles.box, styles.nameBox, (typingName || choosing) && styles.focused, problems.name ? styles.refused : null]}>
           <Search size={20} color={colors.inkMuted} />
           <TextInput
@@ -500,16 +518,6 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               <Text testID="exercise-log-type" style={[styles.help, styles.typeLabel]}>
                 {LOG_TYPE_LABELS[match.logType]}
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`How to do ${match.name}`}
-                onPress={() => setHowTo(true)}
-                style={({ pressed }) => [styles.howTo, pressed && styles.howToPressed]}
-              >
-                <BookOpen size={17} strokeWidth={2.25} color={colors.accent} />
-                <Text style={styles.howToText}>How to do it</Text>
-                <ChevronRight size={16} strokeWidth={2.5} color={colors.accent} />
-              </Pressable>
             </View>
           ) : (
             <View style={styles.field}>
@@ -622,60 +630,64 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           )}
 
           <View style={styles.rule} />
-          {layout.kind === 'sets' ? (
-            <View style={styles.field}>
-              <Text style={labelStyle}>Time spent in min (optional)</Text>
-              <Box
-                accessibilityLabel="Time spent in min (optional)"
-                value={text.spentMinutes}
-                onChangeText={(spentMinutes) => change({ spentMinutes })}
-                keyboardType="number-pad"
-                unit="min"
-                refused={problems.spent !== undefined}
-                {...watch('spentMinutes')}
-              />
-              {problems.spent ? <Problem text={problems.spent} /> : <Text style={styles.help}>Used only to estimate the calories burned.</Text>}
-            </View>
-          ) : null}
-          <View style={styles.field}>
-            {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
-                you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
-                the estimate back. */}
-            <View style={styles.labelRow}>
-              <View style={styles.labelWithTag}>
-                <Text style={labelStyle}>Calories burned (optional)</Text>
-                {changed ? <Text style={styles.editedTag}>Edited</Text> : null}
+          {/* D-111 (the owner's B): the optional fields two to a row, with short labels; screen readers
+              still hear each field's whole name. Sets: Time spent beside Calories; cardio: Calories alone. */}
+          <View testID="exercise-effort" style={styles.pair}>
+            {layout.kind === 'sets' ? (
+              <View style={[styles.field, styles.half]}>
+                <Text style={labelStyle}>Time spent</Text>
+                <Box
+                  accessibilityLabel="Time spent in min (optional)"
+                  value={text.spentMinutes}
+                  onChangeText={(spentMinutes) => change({ spentMinutes })}
+                  keyboardType="number-pad"
+                  unit="min"
+                  refused={problems.spent !== undefined}
+                  {...watch('spentMinutes')}
+                />
               </View>
-              <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
-                <Info size={22} color={colors.accent} />
-              </IconButton>
+            ) : null}
+            <View style={[styles.field, styles.half]}>
+              {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
+                  you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
+                  the estimate back. */}
+              <View style={styles.labelRow}>
+                <View style={styles.labelWithTag}>
+                  <Text style={labelStyle}>Calories</Text>
+                  {changed ? <Text style={styles.editedTag}>Edited</Text> : null}
+                </View>
+                <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
+                  <Info size={20} color={colors.accent} />
+                </IconButton>
+              </View>
+              <Box
+                accessibilityLabel="Calories burned (optional)"
+                value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
+                onChangeText={(kcal) => change({ kcal })}
+                keyboardType="number-pad"
+                unit="kcal"
+                {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
+                refused={problems.kcal !== undefined}
+                {...watch('kcal')}
+                after={
+                  changed ? (
+                    <>
+                      <View style={styles.divider} />
+                      <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
+                        <RotateCcw size={20} strokeWidth={2.25} color={colors.accent} />
+                      </IconButton>
+                    </>
+                  ) : null
+                }
+              />
             </View>
-            <Box
-              accessibilityLabel="Calories burned (optional)"
-              value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
-              onChangeText={(kcal) => change({ kcal })}
-              keyboardType="number-pad"
-              unit="kcal"
-              {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
-              refused={problems.kcal !== undefined}
-              {...watch('kcal')}
-              after={
-                changed ? (
-                  <>
-                    <View style={styles.divider} />
-                    <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
-                      <RotateCcw size={22} strokeWidth={2.25} color={colors.accent} />
-                    </IconButton>
-                  </>
-                ) : null
-              }
-            />
-            {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.help}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
           </View>
+          {problems.spent ? <Problem text={problems.spent} /> : null}
+          {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.afterPair}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
           <View style={styles.pair}>
             {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
               <View key={key} style={[styles.field, styles.half]}>
-                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}</Text>
+                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average HR' : 'Highest HR'}</Text>
                 <Box
                   accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}
                   value={text[key]}
@@ -693,9 +705,10 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       ) : null}
 
       <View style={styles.field}>
-        <Text style={labelStyle}>Note (optional)</Text>
+        {/* D-111: one line, its name inside it, growing as it is typed. */}
         <Box
           accessibilityLabel="Note (optional)"
+          placeholder="Note (optional)"
           value={text.note}
           onChangeText={(note) => change({ note })}
           multiline
@@ -929,9 +942,11 @@ function Box({
 // exercise a red link at the foot of the form, away from Save, the one filled action.
 const useStyles = themedStyles((c) => ({
   saveHint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
-  field: { gap: 8 },
+  // D-111 (the owner's B, 2026-11-17: too much scrolling): boxes 44 high (54 before), labels 6 above them,
+  // fields 12 apart (14), numbers 20 (24), the note one line.
+  field: { gap: 6 },
   box: {
-    minHeight: 54,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -959,24 +974,24 @@ const useStyles = themedStyles((c) => ({
     color: c.onPrimary,
     backgroundColor: c.primary,
   },
-  noteBox: { minHeight: 84, alignItems: 'flex-start' },
+  noteBox: { alignItems: 'flex-start' },
   focused: { borderColor: c.accent },
   refused: { borderColor: c.danger },
-  value: { ...TYPE.input, flex: 1, paddingVertical: 12, fontVariant: ['tabular-nums'] },
-  number: { ...TYPE.metric, fontSize: 24, lineHeight: 28 },
-  note: { minHeight: 80, textAlignVertical: 'top', lineHeight: 24 },
+  value: { ...TYPE.input, flex: 1, paddingVertical: 8, fontVariant: ['tabular-nums'] },
+  number: { ...TYPE.metric, fontSize: 20, lineHeight: 24 },
+  note: { textAlignVertical: 'top', lineHeight: 24 },
   unit: { ...TYPE.label, fontSize: 15, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
   help: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
   header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 6, paddingRight: 8 },
   title: { ...TYPE.screenHeader, flex: 1 },
   // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
-  top: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
+  top: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   fill: { flex: 1 },
   // Exactly the page's height, not at least it (`flexGrow`): a scroll view's content has no height of its
   // own, so only this gives the open list a height to scroll in.
   listing: { flex: 1 },
   listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
-  form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
+  form: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 12 },
   listed: { gap: 8 },
   // The name's chevron, as Category's (D-67), at the box's end.
   nameBox: { paddingRight: 4 },
@@ -1010,7 +1025,10 @@ const useStyles = themedStyles((c) => ({
   typeLine: { marginTop: -6, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 2 },
   typeTag: { flexShrink: 1 },
   typeLabel: { flexShrink: 0 },
-  howTo: { marginLeft: 'auto', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // How to do it at the name label's right (D-111): 28 high in the label's row, 44 to the touch.
+  nameLabelRow: { minHeight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nameLabel: { flex: 1 },
+  howTo: { minHeight: 28, marginVertical: -6, flexDirection: 'row', alignItems: 'center', gap: 6 },
   howToPressed: { opacity: 0.7 },
   howToText: { ...TYPE.link, color: c.accent },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -1025,6 +1043,8 @@ const useStyles = themedStyles((c) => ({
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   rule: { height: 1, backgroundColor: c.border },
+  // The calories' line, under Time spent and Calories, closer to them than the next pair.
+  afterPair: { ...TYPE.small, color: c.inkMuted, marginTop: -6 },
   labelRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: -10 },
   body: { fontSize: 15, lineHeight: 22 },
   example: { gap: 2, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.surfaceSunken },

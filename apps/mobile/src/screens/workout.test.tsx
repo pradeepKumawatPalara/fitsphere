@@ -1077,7 +1077,55 @@ describe('the exercise’s tag line (the owner’s report, 2026-11-17)', () => {
     expect(within(line).getByText('Bodyweight / Calisthenics · Push')).toHaveStyle({ flexShrink: 1 });
     expect(screen.getByTestId('exercise-log-type')).toHaveTextContent('Reps');
     expect(screen.getByTestId('exercise-log-type')).toHaveStyle({ flexShrink: 0 });
-    expect(within(line).getByRole('button', { name: 'How to do Push-up' })).toBeOnTheScreen();
+    // Since D-111 How to do it is beside the name, no longer on this line.
+    expect(within(line).queryByRole('button', { name: 'How to do Push-up' })).toBeNull();
+  });
+});
+
+describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-17)', () => {
+  it('How to do it sits beside the exercise name, only while the name is an exercise of the list', async () => {
+    await startWorkout();
+    await openSheet();
+    // No name yet: no How to do it.
+    expect(screen.queryByTestId('exercise-how-to')).toBeNull();
+
+    await pick('push', 'Push-up');
+    expect(screen.getByTestId('exercise-how-to')).toBe(screen.getByRole('button', { name: 'How to do Push-up' }));
+    expect(screen.getByRole('button', { name: 'How to do Push-up' })).toBeOnTheScreen();
+
+    // A name of the user's own has no How to do it; nor a name being typed that the list doesn't hold.
+    await typeName('My own stretch');
+    expect(screen.queryByTestId('exercise-how-to')).toBeNull();
+  });
+
+  it('shows the optional fields two to a row with short labels, each still read by its whole name, and the note one line', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('push', 'Push-up');
+
+    const effort = screen.getByTestId('exercise-effort');
+    expect(effort).toHaveStyle({ flexDirection: 'row' });
+    expect(within(effort).getByText('Time spent')).toBeOnTheScreen();
+    expect(within(effort).getByText('Calories')).toBeOnTheScreen();
+    expect(within(effort).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();
+    expect(within(effort).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
+    expect(screen.getByText('Average HR')).toBeOnTheScreen();
+    expect(screen.getByText('Highest HR')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Average heart rate (optional)')).toBeOnTheScreen();
+    expect(screen.queryByText('Time spent in min (optional)')).toBeNull();
+    // The note: no label over it, its name inside it.
+    expect(screen.getByLabelText('Note (optional)')).toHaveProp('placeholder', 'Note (optional)');
+    expect(screen.queryByText('Note (optional)')).toBeNull();
+  });
+
+  it('a cardio exercise has Calories alone in the row: it has no time spent', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('running', 'Running');
+
+    const effort = screen.getByTestId('exercise-effort');
+    expect(within(effort).queryByLabelText('Time spent in min (optional)')).toBeNull();
+    expect(within(effort).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
   });
 });
 

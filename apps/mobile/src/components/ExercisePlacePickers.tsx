@@ -146,9 +146,10 @@ const useStyles = themedStyles((c) => ({
   fill: { flex: 1, paddingBottom: 16 },
   grow: { flex: 1 },
   row: { flexDirection: 'row', gap: 12 },
-  half: { flex: 1, minWidth: 0, gap: 8 },
+  // D-111: 44 high, the label 6 above, as the exercise page's other boxes.
+  half: { flex: 1, minWidth: 0, gap: 6 },
   box: {
-    minHeight: 54,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
