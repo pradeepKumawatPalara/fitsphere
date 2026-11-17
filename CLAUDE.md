@@ -39,6 +39,14 @@ the sign-in screens' footer moves with the keyboard and the floating controls ha
 no migration, no phone schema change. **Every iOS build waits for the owner's word (D-19); the owner
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
+**A workout with no exercise is not logged — built on branch `fix/empty-workouts` (D-108, 2026-11-16),
+in `D:\fitsphere`.** Timer or not, a workout without an exercise is not listed, marked (the strips' and
+the calendar's dumbbells) or counted (the month's count, the week's line); its timer still starts, counts,
+pauses and resumes, and the Workout in progress pill still opens it; Mark done is greyed until it has one
+(`listedWorkouts`, `isLogged` in `apps/mobile/src/workouts.ts`; `runningWorkout` in
+`components/WorkoutInProgress.tsx`; `components/WorkoutTimerBar.tsx`). Phone app only: no server change,
+no migration, no phone schema change, no new build.
+
 **Calories burned changed by you: an Edited tag and an arrow back to the estimate — built on branch
 `feat/exercise-calories-reset` (D-107, 2026-11-16), in its own folder `D:\fitsphere-exercise-calories`
 (removed once merged).** Plan: `docs/plans/exercise-calories-reset.md` (Accepted); canvas boards
@@ -292,7 +300,7 @@ REQ-TRN-003, REQ-TRN-004; canvas boards `WorkoutTimer*` and `TrainingTimer*` loc
 workout of today has **Start workout** in a bar at its foot; then the time in minutes and seconds,
 Pause or Resume, and Mark done ("Done · total time", pauses left out; Resume today only); a timer
 started can be finished after midnight; Training's rows say "Running", "Paused" or "Done" with the
-time; a timed workout is listed before its first exercise but counts only with one (D-41). The time
+time; a workout is listed and counts only with an exercise, timed or not (D-41, D-108). The time
 comes from the clock (`app.workouts.timer_*`, migrations `0025_workout_timer.sql` and `0026_workout_timer_count.sql`; phone schema
 version 18, `workouts.timer`). No new build. **On `fitsphere-dev`: migrations 0025 and 0026 before the updated
 API; only when the owner says so.**

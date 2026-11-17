@@ -36,12 +36,15 @@ export function OtherTimerNote({ other, onOpen }: { other: OtherTimer; onOpen():
  * The workout timer's bar at the foot of a workout (D-71): "Start workout" on a workout of today
  * whose timer has not started; then the time counted, a "Running" or "Paused" tag, Pause or Resume,
  * and "Mark done". A timer marked done shows no bar: the workout's screen shows its total instead.
- * While another workout's timer runs or is paused, Start workout is greyed, with why (D-83).
+ * While another workout's timer runs or is paused, Start workout is greyed, with why (D-83). With no
+ * exercise yet the timer counts on, but Mark done is greyed, with why: the workout is not logged
+ * until it has one (D-108).
  */
 export function WorkoutTimerBar({
   state,
   seconds,
   busy,
+  logged = true,
   other = null,
   onOpenOther,
   onStart,
@@ -53,6 +56,8 @@ export function WorkoutTimerBar({
   seconds: number;
   /** A step being saved: the buttons wait for it. */
   busy: boolean;
+  /** Whether the workout has an exercise; without one, Mark done waits (D-108). */
+  logged?: boolean;
   /** Another workout's timer going, which keeps this one from starting (D-83). */
   other?: OtherTimer | null;
   onOpenOther?(): void;
@@ -93,6 +98,7 @@ export function WorkoutTimerBar({
           <Text style={[styles.tagText, { color: running ? colors.success : colors.warning }]}>{running ? 'Running' : 'Paused'}</Text>
         </View>
       </View>
+      {logged ? null : <Text style={styles.hint}>Add an exercise to log this workout and mark it done.</Text>}
       <View style={styles.actions}>
         <View style={styles.half}>
           {running ? (
@@ -102,7 +108,7 @@ export function WorkoutTimerBar({
           )}
         </View>
         <View style={styles.half}>
-          <TextButton title="Mark done" filled wide icon={Check} disabled={busy} onPress={onDone} />
+          <TextButton title="Mark done" filled wide icon={Check} disabled={busy || !logged} onPress={onDone} />
         </View>
       </View>
     </View>
@@ -125,6 +131,8 @@ const useStyles = themedStyles((c) => ({
   tag: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 30, marginBottom: 8, paddingHorizontal: 10, borderRadius: 4 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.success },
   tagText: { ...TYPE.link, fontSize: 14, letterSpacing: 1.2 },
+  // D-108: why Mark done is greyed, in the field checks' muted line (D-99).
+  hint: { fontSize: 14, lineHeight: 20, color: c.inkMuted },
   actions: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
 }));
