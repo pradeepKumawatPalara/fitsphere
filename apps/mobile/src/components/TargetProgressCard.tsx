@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import type { ReactNode } from 'react';
 import { formatInteger } from '../format';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -14,6 +15,8 @@ type Props = {
   target: number | null;
   /** Null on a past date with no target: one set now starts today (D-77). */
   onSetTarget: (() => void) | null;
+  /** At the right of the title, on its line (Home's "By meal"). */
+  action?: ReactNode;
 };
 
 // The calories card (REQ-HOME-003), Home's hero. With no target, only the amount eaten and "Set a
@@ -21,14 +24,17 @@ type Props = {
 // redesign's 2.3 (locked by the owner, 2026-11-03): the bar is 20 plates filled in caramel, and the
 // hero counts down what is left. Since D-103 the protein card it also drew is gone: protein shows with
 // carbs, fat and fibre under it (NutrientTargets).
-export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: Props) {
+export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, action }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   // A day before the phone's 90 not loaded yet (D-106): dashes, an empty bar, its target still shown.
   if (eaten === null) {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{title}</Text>
+          {action}
+        </View>
         <Hero value="–" unit={unit} word="eaten" over={false} waiting />
         {target === null ? null : (
           <>
@@ -48,7 +54,10 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
   if (target === null) {
     return (
       <View style={styles.card}>
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{title}</Text>
+          {action}
+        </View>
         <Hero value={formatInteger(eaten)} unit={unit} word="eaten" over={false} />
         {onSetTarget ? (
           <View style={styles.setTarget}>
@@ -67,7 +76,10 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
   const filled = Math.min(plates, Math.round((percent / 100) * plates));
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.titleRow}>
+          <Text style={styles.title}>{title}</Text>
+          {action}
+        </View>
       <Hero value={formatInteger(over ? eaten - target : target - eaten)} unit={unit} word={over ? 'over' : 'remaining'} over={over} />
       <Text style={styles.line}>
         <Text style={styles.reading}>{formatInteger(eaten)}</Text> of {formatInteger(target)} {unit}
@@ -109,6 +121,7 @@ function Hero({ value, unit, word, over, waiting = false }: { value: string; uni
 // Plates 14 tall, 3 apart, radius 2.
 const useStyles = themedStyles((c) => ({
   card: { gap: 6 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { ...TYPE.label, color: c.inkMuted },
   over: { color: c.warning },
   waiting: { color: c.inkSubtle },

@@ -54,8 +54,13 @@ describe('REQ-HOME-008 measurements card', () => {
 
     expect(await screen.findByLabelText('Upper waist: 81.2 cm')).toBeOnTheScreen();
     expect(screen.getByLabelText('Lower waist: 84.5 cm')).toBeOnTheScreen();
+    // Hips, chest, arms and thighs fold under "More measurements", closed until opened.
+    expect(screen.queryByLabelText('Chest: 99.0 cm')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'More measurements, 1 logged' }));
     expect(screen.getByLabelText('Chest: 99.0 cm')).toBeOnTheScreen();
     expect(screen.queryByLabelText(/^Hips:/)).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'More measurements, 1 logged' }));
+    expect(screen.queryByLabelText('Chest: 99.0 cm')).toBeNull();
     expect(screen.getByLabelText('Notes: Synthetic note')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Edit measurements' })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Add measurements' })).toBeNull();
@@ -243,6 +248,7 @@ describe('D-24 editing a date’s measurements', () => {
     await fireEvent.press(save());
 
     expect(await screen.findByLabelText('Upper waist: 79.5 cm')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: /^More measurements/ }));
     expect(screen.getByLabelText('Chest: 95.0 cm')).toBeOnTheScreen();
     expect(screen.getByLabelText('Notes: Synthetic corrected')).toBeOnTheScreen();
     await waitFor(() =>

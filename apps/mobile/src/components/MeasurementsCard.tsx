@@ -1,5 +1,6 @@
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
-import { Clock, Pencil } from 'lucide-react-native';
+import { ChevronDown, Clock, Pencil } from 'lucide-react-native';
+import { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { formatDay } from '../format';
 import type { LocalMeasurements } from '../local/store';
@@ -24,6 +25,10 @@ type Props = {
   waiting?: boolean;
   /** The date in the title: Progress, where the card is the latest entry, not the selected day's (Home). */
   showDate?: boolean;
+  /** Inside the card, under its last row (Home's "Show all measurements"). */
+  footer?: ReactNode;
+  /** Home: hips, chest, arms and thighs fold under "More measurements", the waists stay in view. */
+  groupMore?: boolean;
   onAdd(): void;
   onEdit(): void;
 };
@@ -41,10 +46,17 @@ export const MEASUREMENTS_DUE_AFTER_DAYS = 7;
  * younger than that (`accountNewer`), and "None in the last 90 days." otherwise.
  */
 export function measurementsSince(lastDay: IstDay | null, today: IstDay, accountNewer: boolean): MeasurementsSince {
-  if (lastDay === null) return { line: accountNewer ? 'No measurements logged yet.' : 'None in the last 90 days.', due: true };
+  if (lastDay === null)
+    return {
+      line: accountNewer ? 'No measurements logged yet.' : 'None in the last 90 days.',
+      due: true,
+    };
   const days = daysBetween(lastDay, today);
   const ago = days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
-  return { line: `Last logged ${ago}, on ${formatDay(lastDay)}.`, due: days > MEASUREMENTS_DUE_AFTER_DAYS };
+  return {
+    line: `Last logged ${ago}, on ${formatDay(lastDay)}.`,
+    due: days > MEASUREMENTS_DUE_AFTER_DAYS,
+  };
 }
 
 type LengthKey = 'upperWaistMm' | 'lowerWaistMm' | 'chestMm' | 'hipsMm' | 'armMm' | 'thighMm';
@@ -58,14 +70,17 @@ const ROWS: { key: LengthKey; label: string }[] = [
   { key: 'thighMm', label: 'Thighs' },
 ];
 
+const MORE_KEYS: LengthKey[] = ['hipsMm', 'chestMm', 'armMm', 'thighMm'];
+
 // The measurements card (REQ-HOME-008), always on Home (D-24). It shows the selected date's entry
 // with "Edit measurements", or, with none, the weekly waist prompt and "Add measurements". The
 // redesign's 2.3 (locked by the owner, 2026-11-03): ruled rows, the readings in condensed figures.
 // On today, with `since` (D-85; canvas "2.3 Home · Measurements due", C locked): when they were last
 // logged, and once due a caramel "Due" badge beside the title and "Add measurements" filled caramel.
-export function MeasurementsCard({ day, entry, unit, since, waiting = false, showDate = false, onAdd, onEdit }: Props) {
+export function MeasurementsCard({ day, entry, unit, since, waiting = false, showDate = false, footer, groupMore = false, onAdd, onEdit }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
+  const [moreOpen, setMoreOpen] = useState(false);
   if (!entry) {
     const due = since?.due ?? false;
     return (
@@ -84,10 +99,23 @@ export function MeasurementsCard({ day, entry, unit, since, waiting = false, sho
         <View style={styles.add}>
           <TextButton title="Add measurements" outlined strong={due} onPress={onAdd} />
         </View>
+        {footer}
       </View>
     );
   }
 
+  const renderRow = ({ key, label }: { key: LengthKey; label: string }) => {
+    const mm = entry[key];
+    if (mm === null) return null;
+    const value = `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
+    return (
+      <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={styles.row}>
+        <Text style={styles.rowText}>{label}</Text>
+        <Text style={styles.value}>{value}</Text>
+      </View>
+    );
+  };
+  const moreRows = ROWS.filter((row) => MORE_KEYS.includes(row.key) && entry[row.key] !== null);
   const note = entry.syncState === 'pending' ? 'Waiting to sync' : entry.syncState === 'rejected' ? 'Not saved' : null;
   return (
     <View style={styles.card}>
@@ -98,24 +126,30 @@ export function MeasurementsCard({ day, entry, unit, since, waiting = false, sho
         </Pressable>
       </View>
       <View>
-        {ROWS.map(({ key, label }) => {
-          const mm = entry[key];
-          if (mm === null) return null;
-          const value = `${fromMillimetres(mm, unit).toFixed(1)} ${unit}`;
-          return (
-            <View key={key} accessible accessibilityLabel={`${label}: ${value}`} style={styles.row}>
-              <Text style={styles.rowText}>{label}</Text>
-              <Text style={styles.value}>{value}</Text>
-            </View>
-          );
-        })}
+        {(groupMore ? ROWS.filter((row) => !MORE_KEYS.includes(row.key)) : ROWS).map(renderRow)}
       </View>
+      {groupMore && moreRows.length > 0 ? (
+        <View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`More measurements, ${moreRows.length} logged`}
+            accessibilityState={{ expanded: moreOpen }}
+            onPress={() => setMoreOpen((open) => !open)}
+            style={styles.moreHeader}
+          >
+            <Text style={styles.moreTitle}>More measurements</Text>
+            <ChevronDown size={20} strokeWidth={2.25} color={colors.accent} style={moreOpen ? styles.flipped : undefined} />
+          </Pressable>
+          {moreOpen ? moreRows.map(renderRow) : null}
+        </View>
+      ) : null}
       {entry.notes ? (
         <Text accessibilityLabel={`Notes: ${entry.notes}`} style={styles.notes}>
           {entry.notes}
         </Text>
       ) : null}
       {note ? <Text style={[styles.note, entry.syncState === 'rejected' && styles.notSaved]}>{note}</Text> : null}
+      {footer}
     </View>
   );
 }
@@ -124,10 +158,35 @@ const useStyles = themedStyles((c) => ({
   card: { padding: 16, borderRadius: 4, backgroundColor: c.surface, gap: 8 },
   title: { ...TYPE.label, color: c.inkMuted },
   // The title, and the "Due" badge at its right (D-85): caramel, 24 tall, a clock and the word.
-  titleRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  edit: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  due: { height: 24, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, borderRadius: 4, backgroundColor: c.primary },
-  dueText: { ...TYPE.link, fontSize: 14, lineHeight: 16, letterSpacing: 1.5, color: c.onPrimary },
+  titleRow: {
+    minHeight: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  edit: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  due: {
+    height: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    borderRadius: 4,
+    backgroundColor: c.primary,
+  },
+  dueText: {
+    ...TYPE.link,
+    fontSize: 14,
+    lineHeight: 16,
+    letterSpacing: 1.5,
+    color: c.onPrimary,
+  },
   body: { fontSize: 15, lineHeight: 22 },
   waiting: { color: c.inkSubtle },
   hint: { ...TYPE.small, color: c.inkMuted },
@@ -143,6 +202,16 @@ const useStyles = themedStyles((c) => ({
   },
   rowText: { fontSize: 15, color: c.inkMuted },
   value: TYPE.dayNumber,
+  moreHeader: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: c.border,
+  },
+  moreTitle: { ...TYPE.label, color: c.inkMuted },
+  flipped: { transform: [{ rotate: '180deg' }] },
   notes: { color: c.inkMuted },
   note: { fontSize: 12, lineHeight: 16, color: c.inkMuted },
   notSaved: { color: c.danger },

@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { useContext, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, ScrollView, View } from 'react-native';
+import { useContext, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, KeyboardAvoidingView, Modal, ScrollView, View, type GestureResponderEvent } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -16,6 +16,8 @@ type Props = {
   actions?: ReactNode;
   /** False when the body is a list that scrolls itself (Search foods). */
   scroll?: boolean;
+  /** Drag the handle or heading down to close (the header's calendar). */
+  dragToClose?: boolean;
   onClose(): void;
 };
 
@@ -25,14 +27,54 @@ type Props = {
 // navigation bar; with the keyboard up the bar is behind it, so the offset takes that padding back.
 // The redesign's frame (D-35, with 2.2): a card-coloured sheet with a grab handle, the stripe corner
 // at its top right, and its title in condensed capitals.
-export function Sheet({ title, header, children, actions, scroll = true, onClose }: Props) {
+export function Sheet({ title, header, children, actions, scroll = true, dragToClose = false, onClose }: Props) {
   const styles = useStyles();
+  const [dy] = useState(() => new Animated.Value(0));
+  const scrollY = useRef(0);
+  const touch = useRef<{ x: number; y: number; at: number; dragging: boolean } | null>(null);
+  // Drag down to close, with the touch system's own handlers (as the Workout in progress pill does): a
+  // clear downward drag while the body is scrolled to its top moves the sheet; let go past 100, or in a
+  // quick flick, and it slides off and closes, else it springs back.
+  function touchStart(e: GestureResponderEvent) {
+    touch.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, at: Date.now(), dragging: false };
+  }
+  function touchMove(e: GestureResponderEvent) {
+    const start = touch.current;
+    if (!start) return;
+    const moveY = e.nativeEvent.pageY - start.y;
+    const moveX = e.nativeEvent.pageX - start.x;
+    if (!start.dragging) {
+      if (scrollY.current > 0 || moveY <= 8 || moveY <= Math.abs(moveX) * 1.5) return;
+      start.dragging = true;
+    }
+    dy.setValue(Math.max(0, moveY));
+  }
+  function touchEnd(e: GestureResponderEvent) {
+    const start = touch.current;
+    touch.current = null;
+    if (!start?.dragging) return;
+    const moved = e.nativeEvent.pageY - start.y;
+    const speed = moved / Math.max(1, Date.now() - start.at);
+    if (moved > 100 || speed > 0.8) {
+      Animated.timing(dy, { toValue: 800, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => onClose());
+    } else {
+      Animated.spring(dy, { toValue: 0, bounciness: 0, speed: 18, useNativeDriver: true }).start();
+    }
+  }
+  const dragHandlers = dragToClose ? { onTouchStart: touchStart, onTouchMove: touchMove, onTouchEnd: touchEnd, onTouchCancel: touchEnd } : {};
   // None outside the app (tests).
   const bottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={-bottom} style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={-bottom} style={[styles.backdrop, dragToClose && styles.clear]}>
+        {/* The dimming fades as the sheet is dragged down, so it hides smoothly with it. */}
+        {dragToClose ? (
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.dim, { opacity: dy.interpolate({ inputRange: [0, 400], outputRange: [1, 0], extrapolate: 'clamp' }) }]}
+          />
+        ) : null}
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: dy }] }]} {...dragHandlers}>
           <StripeCorner />
           <View style={styles.handle} />
           <View style={styles.header}>
@@ -44,14 +86,22 @@ export function Sheet({ title, header, children, actions, scroll = true, onClose
             {header}
           </View>
           {scroll ? (
-            <ScrollView style={styles.scroll} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.body}
+              keyboardShouldPersistTaps="handled"
+              scrollEventThrottle={16}
+              onScroll={(e) => {
+                scrollY.current = e.nativeEvent.contentOffset.y;
+              }}
+            >
               {children}
             </ScrollView>
           ) : (
             <View style={[styles.body, styles.list]}>{children}</View>
           )}
           {actions ? <View style={[styles.actions, { paddingBottom: 16 + bottom }]}>{actions}</View> : <View style={{ height: 16 + bottom }} />}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -90,6 +140,8 @@ export function SheetHeading({
 // 16 at the sides, as the tab screens; 12 between the parts of the body, 8 between the actions. The
 // main action is filled, Cancel and Close are links.
 const useStyles = themedStyles((c) => ({
+  clear: { backgroundColor: 'transparent' },
+  dim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: c.scrim },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: c.scrim },
   sheet: {
     maxHeight: '90%',
