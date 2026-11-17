@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-11 (`details` in `GET /v1/exercises`, D-82). Earlier the same day (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-17 (`GET /v1/users/{userId}/measurements`, D-114). 2026-11-11 (`details` in `GET /v1/exercises`, D-82). Earlier the same day (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -103,6 +103,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `PUT /v1/me/ai-consent` | Record a change of AI meal-reading consent | The user, for their own record only | REQ-ACC-004, C-004 |
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
+| `GET /v1/users/{userId}/measurements` | Read measurements online: the user's own, of the dates they pick, older than the phone holds (D-114) | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-006, REQ-NFR-001 |
 | `GET /v1/users/{userId}/workouts` | Read workouts online: the user's own history older than the phone holds | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-TRN-004, REQ-NFR-001 |
 | `GET /v1/users/{userId}/days` | Read a range of days online: the user's own day data older than the phone holds (D-106) | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-DATE-001, REQ-NFR-001 |
 | `GET /v1/foods` | FitSphere's food list, for the phone to cache and search offline | Signed in, with an account (reference data, the same for everyone) | REQ-LOG-007, REQ-ACC-005, ADR-0006 |
@@ -339,6 +340,25 @@ first.
   Coach rules above are post-MVP (backlog B-19, B-20) and are added to the access module then;
   the path keeps the user's ID so that no new route is needed. In the Skeleton the app uses this
   route only for the user's own history older than 90 days.
+
+### `GET /v1/users/{userId}/measurements`
+Query: `from` and `to` (IST days, inclusive, required), `limit`, `cursor`, as for weigh-ins.
+Sorted by day, oldest first; one entry per day.
+
+`200`:
+```json
+{
+  "items": [ { "day": "2024-12-15", "upperWaistMm": 910, "lowerWaistMm": 965, "chestMm": null,
+      "hipsMm": null, "armMm": null, "thighMm": null, "notes": null, "recordedAt": "…", "updatedAt": "…" } ],
+  "nextCursor": null
+}
+```
+- Who may read it follows the permission matrix (body metrics), with the same rules as the
+  weigh-ins route above. **MVP (D-20):** only the user themselves; anyone else gets `404`.
+- The cursor holds the last day returned; a cursor from another route is `VALIDATION_FAILED`.
+- The app uses it for Progress's measurements of the dates the user picks (a year, or From and To),
+  for the days older than the 90 the phone holds, read online and kept in memory only (D-114;
+  ADR-0007 rules 1 and 6).
 
 ### `GET /v1/users/{userId}/workouts`
 Query: `from` and `to` (IST days, inclusive, required), `limit`, `cursor`, as for weigh-ins.

@@ -3717,6 +3717,41 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-TRN-003's D-82 note, REQ-TRN-008; constraints' D-82 row; the redesign's 4.2 and 4.4;
   CLAUDE.md.
 
+## D-114 Progress's measurements: the last 90 days at first, other dates by a year or Pick dates
+- Status: **Accepted** (owner, in chat, 2026-11-17: "in the progress tab when the Measurements is adds for the
+  previous years like 2024, 2000 these data is not visible on the show All Measurements. Please find out the
+  root cause"; then "By defualt the should shows only 90 days data. for the older data we need date range
+  when selected it should shows that data. for this desing the canva desing forst and wait for my approval";
+  of the canvas's A (a Dates button), B (a row of choices) and C (a second list), version 120, "go with B";
+  locked in version 122). Built on branch `daily/2026-11-17-b`.
+- Root cause: Progress read measurements only from the phone's last 90 days (D-30, ADR-0007 rule 1), while
+  D-106 let a measurement be saved on any day back to 2000; the server had no route to read them back but
+  the 42-day `/days`, so older entries were saved but never listed (backlog E-18).
+- Answer (REQ-PRG-006; with D-30, D-106):
+  - The card and "Show all measurements (N)" keep the last 90 days, from the phone; N counts them, and the
+    button shows from one entry (it needed two), so other dates can be reached.
+  - Unfolded, a row of choices above the list, scrolling sideways: **Pick dates** (with a calendar icon),
+    **Last 90 days** (chosen at first), then each year from this one back to 2000. A year shows 1 January to
+    31 December (this year: to today); Pick dates opens a sheet with From and To, each opening the calendar
+    (1 January 2000 to today), and Show.
+  - A count line under the choices names the dates: "2 measurements · Mon 1 Jan 2024 – Tue 31 Dec 2024";
+    each date of another year shows its year; each row still opens that day's measurements to edit.
+  - Days older than the phone's 90 are read online with the new `GET /v1/users/{userId}/measurements`
+    (the user's own only, as weigh-ins), kept in memory only (ADR-0007 rules 1 and 6); the phone's entries
+    win for their day. Loading: "Loading measurements…"; offline: "Measurements older than 90 days need
+    an internet connection." with Try again; none: "No measurements from <from> to <to>."
+  - With none in the last 90 days, the card says "No measurements in the last 90 days." (was "No
+    measurements yet.") with Add first and **Older measurements**, which unfolds the choices.
+- MVP defaults: the choices are the app's choice blocks (square, as the weight chart's ranges; the canvas
+  first drew them round); "Show fewer" folds the list and goes back to the last 90 days; a To before From
+  moves From to it, a From after To moves To; a server error says "Couldn't load these measurements." with
+  Try again; the dates sheet's Cancel keeps the dates shown. Progress's week table stays on the 90 days
+  (E-18's other half).
+- No migration, no phone schema change, no new build. A new API route: **the beta's Cloud Run API needs this
+  API before beta phones read older measurements; deploy only when the owner says so.**
+- Doc changes: REQ-PRG-006; api-conventions (the route); data model (the phone's older reads); constraints'
+  MVP defaults; backlog E-18; the redesign's 5.1; CLAUDE.md.
+
 ---
 
 ---
