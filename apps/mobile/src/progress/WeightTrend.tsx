@@ -1,12 +1,13 @@
 import type { BodyWeightUnit, IstDay } from '@fitsphere/shared';
-import { WifiOff } from 'lucide-react-native';
+import { ArrowRight, WifiOff } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
-import { Banner, Text, TextButton, useChoiceStyles } from '../components/ui';
+import { Banner, Text, useChoiceStyles } from '../components/ui';
 import { useDataVersion } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
+import { TYPE } from '../typography';
 import {
   CHART_RANGES,
   chartPoints,
@@ -98,7 +99,13 @@ export function WeightTrend({ weighIns, today, unit, onAllWeighIns }: Props) {
   const points = chartPoints(range, fromServer ? mergeWeighIns(weighIns, fromServer) : weighIns, today);
 
   return (
-    <Card title="Weight trend">
+    <Card title="Weight trend" action={
+        // As small as the heading beside it.
+        <Pressable accessibilityRole="button" accessibilityLabel="All weigh-ins" onPress={onAllWeighIns} hitSlop={10} style={({ pressed }) => [styles.all, pressed && pill.pressed]}>
+          <Text style={styles.allText}>All weigh-ins</Text>
+          <ArrowRight size={14} strokeWidth={2.5} color={colors.accent} />
+        </Pressable>
+      }>
       <View style={styles.ranges}>
         {CHART_RANGES.map((option) => {
           const selected = option === range;
@@ -131,7 +138,6 @@ export function WeightTrend({ weighIns, today, unit, onAllWeighIns }: Props) {
         // A new chart for each range, so the point touched in another is forgotten.
         <WeightChart key={range} points={points} unit={unit} />
       )}
-      <TextButton title="All weigh-ins" arrow onPress={onAllWeighIns} />
     </Card>
   );
 }
@@ -141,6 +147,8 @@ export function WeightTrend({ weighIns, today, unit, onAllWeighIns }: Props) {
 // sunken box, one with too few weigh-ins says so in a dashed box, and a range that cannot load
 // says why in a banner.
 const useStyles = themedStyles((c) => ({
+  all: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  allText: { ...TYPE.label, color: c.accent },
   ranges: { flexDirection: 'row', gap: 6 },
   range: { flex: 1, paddingHorizontal: 0 },
   rangeText: { fontVariant: ['tabular-nums'] },

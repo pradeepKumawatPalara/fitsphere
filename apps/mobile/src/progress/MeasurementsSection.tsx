@@ -1,5 +1,5 @@
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
-import { ChevronRight, Plus } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MeasurementsCard } from '../components/MeasurementsCard';
@@ -49,9 +49,8 @@ export function MeasurementsSection({ measurements, unit, onAdd, onEdit }: Props
         <Text accessibilityRole="header" style={styles.heading}>
           Measurements
         </Text>
-        <TextButton title="Add measurements" outlined icon={Plus} onPress={onAdd} />
       </View>
-      <MeasurementsCard day={latest.day} entry={latest} unit={unit} onAdd={onAdd} onEdit={() => onEdit(latest.day)} />
+      <MeasurementsCard showDate day={latest.day} entry={latest} unit={unit} onAdd={onAdd} onEdit={() => onEdit(latest.day)} />
       {measurements.length > 1 && showAll ? (
         <View style={styles.table}>
           <View style={styles.row} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>

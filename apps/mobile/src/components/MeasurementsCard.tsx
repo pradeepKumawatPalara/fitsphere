@@ -1,6 +1,6 @@
 import { fromMillimetres, type IstDay, type LengthUnit } from '@fitsphere/shared';
-import { Clock } from 'lucide-react-native';
-import { View } from 'react-native';
+import { Clock, Pencil } from 'lucide-react-native';
+import { Pressable, View } from 'react-native';
 import { formatDay } from '../format';
 import type { LocalMeasurements } from '../local/store';
 import { daysBetween } from '../progress/calculations';
@@ -22,6 +22,8 @@ type Props = {
   since?: MeasurementsSince | null;
   /** A day before the phone's 90 not loaded yet (D-106): a dash in place of what was logged. */
   waiting?: boolean;
+  /** The date in the title: Progress, where the card is the latest entry, not the selected day's (Home). */
+  showDate?: boolean;
   onAdd(): void;
   onEdit(): void;
 };
@@ -61,7 +63,7 @@ const ROWS: { key: LengthKey; label: string }[] = [
 // redesign's 2.3 (locked by the owner, 2026-11-03): ruled rows, the readings in condensed figures.
 // On today, with `since` (D-85; canvas "2.3 Home · Measurements due", C locked): when they were last
 // logged, and once due a caramel "Due" badge beside the title and "Add measurements" filled caramel.
-export function MeasurementsCard({ day, entry, unit, since, waiting = false, onAdd, onEdit }: Props) {
+export function MeasurementsCard({ day, entry, unit, since, waiting = false, showDate = false, onAdd, onEdit }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   if (!entry) {
@@ -89,7 +91,12 @@ export function MeasurementsCard({ day, entry, unit, since, waiting = false, onA
   const note = entry.syncState === 'pending' ? 'Waiting to sync' : entry.syncState === 'rejected' ? 'Not saved' : null;
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>Measurements · {formatDay(day)}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{showDate ? `Measurements · ${formatDay(day)}` : 'Measurements'}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Edit measurements" onPress={onEdit} hitSlop={10} style={styles.edit}>
+          <Pencil size={18} strokeWidth={2.25} color={colors.accent} />
+        </Pressable>
+      </View>
       <View>
         {ROWS.map(({ key, label }) => {
           const mm = entry[key];
@@ -109,7 +116,6 @@ export function MeasurementsCard({ day, entry, unit, since, waiting = false, onA
         </Text>
       ) : null}
       {note ? <Text style={[styles.note, entry.syncState === 'rejected' && styles.notSaved]}>{note}</Text> : null}
-      <TextButton title="Edit measurements" onPress={onEdit} />
     </View>
   );
 }
@@ -119,6 +125,7 @@ const useStyles = themedStyles((c) => ({
   title: { ...TYPE.label, color: c.inkMuted },
   // The title, and the "Due" badge at its right (D-85): caramel, 24 tall, a clock and the word.
   titleRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  edit: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   due: { height: 24, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, borderRadius: 4, backgroundColor: c.primary },
   dueText: { ...TYPE.link, fontSize: 14, lineHeight: 16, letterSpacing: 1.5, color: c.onPrimary },
   body: { fontSize: 15, lineHeight: 22 },
