@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { applyServerEntries, setMeta } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { renderInApp } from '../testing/appHarness';
@@ -29,6 +30,27 @@ async function type(label: string, text: string) {
 function save() {
   return screen.getByRole('button', { name: 'Save measurements' });
 }
+
+describe('the measurements sheet on every phone (the owner’s report, 2026-11-17)', () => {
+  it('switching cm and in again and again leaves each box’s field one fixed height, with no extra font padding', async () => {
+    await renderInApp(<HomeScreen />);
+    await openSheet();
+    const heights = () =>
+      ['Upper waist', 'Lower waist'].map((label) => {
+        const unit = screen.queryByRole('button', { name: 'cm', selected: true }) ? 'cm' : 'in';
+        const style = StyleSheet.flatten(screen.getByLabelText(`${label} (${unit})`).props.style);
+        expect(style).toMatchObject({ includeFontPadding: false, textAlignVertical: 'center' });
+        return style.height;
+      });
+    const first = heights();
+    expect(typeof first[0]).toBe('number');
+
+    for (const unit of ['in', 'cm', 'in', 'cm']) {
+      await fireEvent.press(screen.getByRole('button', { name: unit }));
+      expect(heights()).toEqual(first);
+    }
+  });
+});
 
 describe('REQ-HOME-008 measurements card', () => {
   it('REQ-HOME-008 with no entry for the date, "Add measurements" opens the sheet on the selected date', async () => {

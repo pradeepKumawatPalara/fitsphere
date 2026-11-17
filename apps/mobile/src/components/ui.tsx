@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text as NativeText,
   TextInput as NativeTextInput,
+  useWindowDimensions,
   View,
   type StyleProp,
   type TextInputProps,
@@ -52,8 +53,38 @@ function fontFor(style: StyleProp<TextStyle>, nested: boolean): TextStyle | unde
  * come last, so no caller can replace them. Otherwise Android uses its own theme, which follows the
  * phone, not the app's setting.
  */
+/** A style length as a number of points, or null when it is not one ("10%", or unset). */
+function points(...values: unknown[]): number {
+  const found = values.find((value) => typeof value === 'number');
+  return typeof found === 'number' ? found : 0;
+}
+
+/**
+ * The height of a one-line field: its line (its `lineHeight`, else 1.3 × its font size, Barlow's lines
+ * being 1.2), grown with the phone's text size as React Native grows the text, plus its padding and its
+ * border; its own `height` when it sets one.
+ */
+export function singleLineHeight(style: TextStyle, fontScale: number): number {
+  if (typeof style.height === 'number') return style.height;
+  const line = typeof style.lineHeight === 'number' ? style.lineHeight : Math.ceil((style.fontSize ?? 14) * 1.3);
+  const padding = points(style.paddingTop, style.paddingVertical, style.padding) + points(style.paddingBottom, style.paddingVertical, style.padding);
+  const border = points(style.borderTopWidth, style.borderWidth) + points(style.borderBottomWidth, style.borderWidth);
+  return Math.ceil(line * fontScale) + padding + border;
+}
+
+// Every text field (the owner's report, 2026-11-17, a Realme Narzo phone: switching cm and in made the
+// Measurements' empty boxes nearly twice as tall). Android measures a field's height from the phone's own
+// fonts, an empty one from an empty line, and on some phones' font settings that line comes out far
+// taller than the app's font; each new render measured it again. A one-line field now has a fixed height
+// (`singleLineHeight`) and no extra font padding, so no phone's fonts can stretch it; one of many lines
+// still grows with its text.
 export function TextInput({ style, ...props }: TextInputProps) {
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  const scale = props.maxFontSizeMultiplier && props.maxFontSizeMultiplier >= 1 ? Math.min(fontScale, props.maxFontSizeMultiplier) : fontScale;
+  const oneLine: TextStyle | null = props.multiline
+    ? null
+    : { height: singleLineHeight(StyleSheet.flatten(style) ?? {}, props.allowFontScaling === false ? 1 : scale), includeFontPadding: false, textAlignVertical: 'center' };
   return (
     <NativeTextInput
       {...props}
@@ -61,7 +92,7 @@ export function TextInput({ style, ...props }: TextInputProps) {
       cursorColor={colors.accent}
       selectionHandleColor={colors.accent}
       selectionColor={colors.accentTint}
-      style={[style, fontFor(style, false), { color: colors.ink }]}
+      style={[style, fontFor(style, false), oneLine, { color: colors.ink }]}
     />
   );
 }
