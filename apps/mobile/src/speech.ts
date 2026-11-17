@@ -1,17 +1,17 @@
-// Speech to text on the phone only (ADR-0005, D-18, D-108): the phone's own recognizer, asked to work
+// Speech to text on the phone only (ADR-0005, D-18, D-115): the phone's own recognizer, asked to work
 // on the device (`requiresOnDeviceRecognition`), so the voice never leaves the phone and no audio is
-// kept. The native part comes with a development build made after D-108; on an older build, or a
+// kept. The native part comes with a development build made after D-115; on an older build, or a
 // phone that can't recognise speech on the device, `canListen` is false and "Speak your meal" is not
 // shown (B-15). The module is reached through Expo's optional loader, so an older build never fails
 // to start. Tests replace this file with a fake (jest.mock).
 import { requireOptionalNativeModule } from 'expo';
 
-/** The languages the mic offers (D-108): English (India) by default, or Hindi, in Settings. */
+/** The languages the mic offers (D-115): English (India) by default, or Hindi, in Settings. */
 export const VOICE_LANGUAGES = ['en-IN', 'hi-IN'] as const;
 export type VoiceLanguage = (typeof VOICE_LANGUAGES)[number];
 export const DEFAULT_VOICE_LANGUAGE: VoiceLanguage = 'en-IN';
 
-/** Listening stops by itself after this long, at the latest (D-108). */
+/** Listening stops by itself after this long, at the latest (D-115). */
 export const LISTEN_MAX_MS = 30_000;
 /**
  * Listening stops after this long with no words heard (the owner's phone test, 2026-11-17: "stop
@@ -105,7 +105,7 @@ function nativeEngine(native: NativeSpeech): SpeechEngine {
         // The voice never leaves the phone (D-18): no recognition over the network.
         requiresOnDeviceRecognition: true,
         // Keeps listening through pauses until stopped (Android 13 and later, iOS); where the phone
-        // still ends on a pause, the caller listens again (D-108).
+        // still ends on a pause, the caller listens again (D-115).
         continuous: true,
         maxAlternatives: 1,
         addsPunctuation: false,

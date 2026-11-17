@@ -44,7 +44,7 @@ jest.mock('../speech', () => ({
   }),
 }));
 
-// D-108 (REQ-LOG-005, REQ-LOG-009, REQ-ACC-004; the canvas's VoiceMealLocked): Speak your meal in
+// D-115 (REQ-LOG-005, REQ-LOG-009, REQ-ACC-004; the canvas's VoiceMealLocked): Speak your meal in
 // Search foods, end to end: words heard, consent asked once, the text read by the (fake) API, the
 // foods found in the phone's list and reviewed, then added to Log meal. Synthetic foods, made-up meals.
 
@@ -268,7 +268,7 @@ describe('REQ-LOG-009 a spoken meal, end to end', () => {
   });
 
   it.each([
-    ['too many requests (no daily limit since D-108, so said as unavailable)', { status: 429, code: 'RATE_LIMITED' }, false, /AI meal reading isn't available right now/],
+    ['too many requests (no daily limit since D-115, so said as unavailable)', { status: 429, code: 'RATE_LIMITED' }, false, /AI meal reading isn't available right now/],
     ['the service unavailable, OpenAI’s monthly limit included', { status: 503, code: 'SERVICE_UNAVAILABLE' }, false, /AI meal reading isn't available right now/],
     ['offline', { items: [] }, true, /You're offline/],
   ])('%s: its own message, and the words kept as a search', async (_name, answer, offline, message) => {

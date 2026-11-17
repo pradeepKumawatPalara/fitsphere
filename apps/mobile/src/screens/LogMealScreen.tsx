@@ -116,7 +116,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   // Each saved food's meal, so a meal with two saved for it keeps each food in its own on Save. A food
   // changed or added has none and goes to the newest.
   const origin = useRef(new WeakMap<MealItem, string>());
-  // D-108: foods added from what was said whose amount was assumed (tagged until changed), and how
+  // D-115: foods added from what was said whose amount was assumed (tagged until changed), and how
   // many foods were added that way, said in a banner until Save or another meal or date.
   const assumed = useRef(new WeakSet<MealItem>());
   const [voiceAdded, setVoiceAdded] = useState(0);
@@ -231,7 +231,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const allowLeave = usePreventRemove(!leaveOk && (pending.length > 0 || editChanged || unassigned), ({ repeat }) => setLeaving({ repeat }));
 
   /** Logging: shows a meal's foods; foods added before any meal was chosen join it (D-68). */
-  /** Search foods' foods; from what was said (D-108), counted for the banner and tagged when their amount was assumed. */
+  /** Search foods' foods; from what was said (D-115), counted for the banner and tagged when their amount was assumed. */
   function addFromSearch(added: MealItem[], voice?: { assumed: MealItem[] }) {
     if (voice) {
       voice.assumed.forEach((item) => assumed.current.add(item));

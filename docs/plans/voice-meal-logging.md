@@ -3,7 +3,7 @@
 - Status: **Accepted** (the owner, in chat, 2026-11-17; see "The owner's answers")
 - Owner: Project owner (D-01)
 - Last updated: 2026-11-17
-- Decision: D-108
+- Decision: D-115
 - ADR: ADR-0010 (AI meal reading's provider and matching; replaces parts of ADR-0005)
 - Builds on: E-28 (the mic, on hold since D-57), ADR-0005 (one AI module, on-device voice only, consent
   checked on the server), Search foods (REQ-LOG-007, D-96's amounts typed with a food), the food units
@@ -79,7 +79,7 @@ exactly as for a food searched by hand.
   `SERVICE_UNAVAILABLE`; no `OPENAI_API_KEY`, 503 as the other optional services.
 - Migration `0034_ai_readings.sql`: `app.ai_readings (user_id, day, count)`, deleted with the user;
   one statement raises the count only while under the limit.
-- No monthly cap in the app: OpenAI's own monthly limit ($10) is the cap (the owner, D-108).
+- No monthly cap in the app: OpenAI's own monthly limit ($10) is the cap (the owner, D-115).
 - `packages/shared`: the request and answer contracts, the measure words, `AI_CONSENT_REQUIRED`, the
   new consent text and version.
 

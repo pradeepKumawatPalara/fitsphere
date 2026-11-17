@@ -13,7 +13,7 @@ tests on the phone and reports bugs; each fix, or small group, is its own branch
 off `main`. Data-loss and sync bugs first.
 
 **Voice meal logging from the Search foods box, read by OpenAI — being built on branch
-`feat/ai-meal-logging` (D-108, ADR-0010, 2026-11-17), in `c:\fitsphere`.** Plan:
+`feat/ai-meal-logging` (D-115, ADR-0010, 2026-11-17), in `c:\fitsphere`.** Plan:
 `docs/plans/voice-meal-logging.md` (Accepted). A mic at the end of Search foods (E-28, on-device
 speech only, hidden where the phone can't); the text, never audio, goes to `POST /v1/ai/meal-parse`;
 OpenAI `gpt-6-luna` names the foods, quantities and units, no nutrition; the phone finds each in its
@@ -555,7 +555,7 @@ Approved stack:
 - Sign-in and authorization: Supabase Auth, with every request authorized by one access module
   in the Node API; email through Resend from a domain FitSphere owns (still required at the MVP
   release, D-20); Expo push, post-MVP (ADR-0004, Accepted — D-18).
-- AI meal reading: OpenAI `gpt-6-luna` through the Responses API (ADR-0010, Accepted — D-108;
+- AI meal reading: OpenAI `gpt-6-luna` through the Responses API (ADR-0010, Accepted — D-115;
   was Gemini 3.1 Flash-Lite, ADR-0005), through one AI module; the AI names foods and never gives
   nutrition; voice is
   recognised on the phone only (ADR-0005, Accepted — D-18). Paid use needs the owner's sign-off

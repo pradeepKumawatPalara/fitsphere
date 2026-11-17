@@ -1,4 +1,4 @@
-// A spoken meal's foods found in the phone's food list (D-108, ADR-0010). The AI names each food,
+// A spoken meal's foods found in the phone's food list (D-115, ADR-0010). The AI names each food,
 // its quantity, unit and preparation, never nutrition; here each name is searched as Search foods
 // searches it (the first food listed is the one), and its amount built as the food's page builds it
 // (`spokenItemOf`), so a food said and the same food searched have the same values. A food the list
@@ -26,7 +26,7 @@ export type FoodListSearch = (db: SqlDb, text: string) => Promise<{ results: Sea
 /** Grams in one of each weight or volume the AI may say (a millilitre taken as a gram, as Search foods does). */
 const WEIGHTS: Partial<Record<SpokenUnit, number>> = { g: 1, kg: 1000, ml: 1, l: 1000 };
 /**
- * Other names of a measure, tried after the one said: the AI says katori for a bowl (D-108). A piece
+ * Other names of a measure, tried after the one said: the AI says katori for a bowl (D-115). A piece
  * or a serving is also tried as a bare count, as "2 roti" typed is (D-96): a roti's measure is "Roti".
  */
 const OTHER_UNITS: Partial<Record<SpokenUnit, readonly (string | null)[]>> = {

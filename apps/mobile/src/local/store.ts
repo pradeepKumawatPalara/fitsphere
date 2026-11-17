@@ -736,7 +736,7 @@ export type MetaKey =
   | 'account_created_day'
   | 'ai_consent'
   | 'workout_pill_corner'
-  // The mic's language, on this phone only (D-108): 'en-IN' or 'hi-IN'.
+  // The mic's language, on this phone only (D-115): 'en-IN' or 'hi-IN'.
   | 'voice_language';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {

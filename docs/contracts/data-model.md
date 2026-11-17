@@ -351,12 +351,12 @@ only (MVP default, D-31).
 | `recorded_at` | `timestamptz` | Not null. Server time when the API received the change |
 
 - Rows are only added, never changed. Two changes at the same time are ordered by `id`.
-- Before each AI call, the AI module reads the latest row (invariant #3; slice 7). Since D-108 it
+- Before each AI call, the AI module reads the latest row (invariant #3; slice 7). Since D-115 it
   counts only consent given on the current text (`AI_CONSENT_TEXT_VERSION`); older versions
   (`AI_CONSENT_OLDER_TEXT_VERSIONS`) are still recorded, so older apps keep working.
 
-### `ai_readings` — account data (D-108, migration 0034)
-AI readings made, a user an Asia/Kolkata day. Made for ADR-0005's limit of 15; since D-108 there is
+### `ai_readings` — account data (D-115, migration 0034)
+AI readings made, a user an Asia/Kolkata day. Made for ADR-0005's limit of 15; since D-115 there is
 no daily limit, and the count is kept only to show use. Nothing of the meal text or the answer is
 kept. Not synced, never sent to the phone.
 

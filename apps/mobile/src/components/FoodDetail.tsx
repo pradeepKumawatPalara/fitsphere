@@ -289,7 +289,7 @@ function typedAtFirst(result: FoodResult): string {
 }
 
 /**
- * What a food found for a spoken food adds (D-108), built as this page builds it, so its values are a
+ * What a food found for a spoken food adds (D-115), built as this page builds it, so its values are a
  * searched food's. The amount said, when the food has its measure (an amount typed with the search's
  * rules, D-96; `otherUnits` are tried after the unit said: a katori said may be the food's Bowl);
  * else the amount the page opens on, marked `assumed` for the user to check.

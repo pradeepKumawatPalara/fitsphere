@@ -33,7 +33,7 @@ export const REQUEST_ERROR_CODES = [
   'RATE_LIMITED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
-  // D-108: an AI reading asked for without consent given on the current text (invariant #3).
+  // D-115: an AI reading asked for without consent given on the current text (invariant #3).
   'AI_CONSENT_REQUIRED',
 ] as const;
 export type RequestErrorCode = (typeof REQUEST_ERROR_CODES)[number];
@@ -111,7 +111,7 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
  * a new version, and the request schema then accepts both while older apps are in use.
  */
 export const AI_CONSENT_TEXT_VERSION = '2026-11-17';
-// The owner approved this text on 2026-11-17 (D-108, ADR-0010: OpenAI in place of Gemini).
+// The owner approved this text on 2026-11-17 (D-115, ADR-0010: OpenAI in place of Gemini).
 export const AI_CONSENT_TEXT =
   "When it is on, the meal text you type or speak is sent to OpenAI's AI service to find the foods " +
   'and amounts you name. FitSphere takes the food values from its own food list. Your text may be ' +
@@ -120,7 +120,7 @@ export const AI_CONSENT_TEXT =
   'foods before they are saved.';
 /**
  * Texts shown by older apps (2026-10-30: the Gemini text, D-31). Their changes are still recorded,
- * but an AI reading needs consent given on the current text (D-108), so they are asked again.
+ * but an AI reading needs consent given on the current text (D-115), so they are asked again.
  */
 export const AI_CONSENT_OLDER_TEXT_VERSIONS = ['2026-10-30'] as const;
 
@@ -138,7 +138,7 @@ export const aiConsentResponseSchema = z.object({
 });
 export type AiConsentResponse = z.infer<typeof aiConsentResponseSchema>;
 
-// --- AI meal reading: POST /v1/ai/meal-parse (ADR-0010, D-108; REQ-LOG-009) ---
+// --- AI meal reading: POST /v1/ai/meal-parse (ADR-0010, D-115; REQ-LOG-009) ---
 
 /** The meal text, typed or turned into text on the phone, in characters after trimming. */
 export const MEAL_TEXT_MIN = 2;
@@ -174,7 +174,7 @@ export const mealParseRequestSchema = z.strictObject({
 export type MealParseRequest = z.infer<typeof mealParseRequestSchema>;
 
 /**
- * One food the user said. Never nutrition (D-108): the phone takes values from its food list. A
+ * One food the user said. Never nutrition (D-115): the phone takes values from its food list. A
  * strict object, so an answer carrying kcal or any other field is refused.
  */
 export const parsedMealItemSchema = z.strictObject({

@@ -10,7 +10,7 @@ import {
   mealParserFromEnv,
 } from './mealParser.ts';
 
-// The AI module (ADR-0010, D-108) with a fake client: no test ever calls OpenAI.
+// The AI module (ADR-0010, D-115) with a fake client: no test ever calls OpenAI.
 
 const ROTI = { spokenWords: 'do roti', name: 'roti', quantity: 2, unit: 'piece', preparation: null, ambiguity: [] };
 

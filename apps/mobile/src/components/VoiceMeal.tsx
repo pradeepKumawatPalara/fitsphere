@@ -16,7 +16,7 @@ import { FoodDetail } from './FoodDetail';
 import { Sheet } from './Sheet';
 import { Text, TextButton } from './ui';
 
-// Voice meal logging in Search foods (D-108; the canvas's VoiceMealLocked, locked 2026-11-17: option C
+// Voice meal logging in Search foods (D-115; the canvas's VoiceMealLocked, locked 2026-11-17: option C
 // with option B's review). A "Speak your meal" row under the search box, only where the phone can
 // recognise speech on the device (B-15). Listening replaces the results with a panel, the words also
 // filling the search box; only Done, or 30 seconds, ends it (a pause doesn't); Cancel keeps the words
@@ -44,7 +44,7 @@ type Stage =
   | { kind: 'consent'; text: string }
   | { kind: 'review'; found: FoundFood[]; ticked: boolean[]; missing: ParsedMealItem[] };
 
-/** The mic's language: Settings' choice, English (India) when Hindi isn't on the phone (D-108). */
+/** The mic's language: Settings' choice, English (India) when Hindi isn't on the phone (D-115). */
 export async function voiceLanguageOf(value: string | null): Promise<VoiceLanguage> {
   const chosen = VOICE_LANGUAGES.find((language) => language === value) ?? DEFAULT_VOICE_LANGUAGE;
   if (chosen === DEFAULT_VOICE_LANGUAGE) return chosen;
@@ -78,7 +78,7 @@ export function useVoiceMeal({
   const [stage, setStage] = useState<Stage>({ kind: 'idle', notice: null });
   // A food of the review whose amount is being changed on its page.
   const [changing, setChanging] = useState<number | null>(null);
-  // The listening session (D-108, the owner's 2026-11-17 phone test): it runs until Done, 6 seconds
+  // The listening session (D-115, the owner's 2026-11-17 phone test): it runs until Done, 6 seconds
   // with no words, or 30 seconds; a shorter pause doesn't end it. The recognizer gives the words in
   // pieces, and may end on a short pause by itself: the final pieces are added up, and it is started
   // again until one of those three.
@@ -108,7 +108,7 @@ export function useVoiceMeal({
     [],
   );
 
-  // The time shown while listening, and the end after 6 seconds with no words or 30 seconds (D-108).
+  // The time shown while listening, and the end after 6 seconds with no words or 30 seconds (D-115).
   const listening = stage.kind === 'listening';
   useEffect(() => {
     if (!listening) return;
@@ -231,7 +231,7 @@ export function useVoiceMeal({
     setStage({ kind: 'idle', notice: null });
   }
 
-  /** Consent first: asked once, when never chosen or chosen on an older text (D-108). */
+  /** Consent first: asked once, when never chosen or chosen on an older text (D-115). */
   async function afterListening(text: string) {
     setStage({ kind: 'reading' });
     const consent = await readAiConsent(deps);

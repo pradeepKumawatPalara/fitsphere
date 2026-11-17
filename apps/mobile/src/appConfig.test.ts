@@ -31,7 +31,7 @@ describe('D-104 the iPhone app', () => {
     expect(pluginOptions('expo-secure-store')).toMatchObject({ faceIDPermission: false });
   });
 
-  it('D-108 asks for the microphone for Speak your meal only, with one text, and blocks it nowhere', () => {
+  it('D-115 asks for the microphone for Speak your meal only, with one text, and blocks it nowhere', () => {
     const text = pluginOptions('expo-speech-recognition')?.microphonePermission;
     expect(text).toMatch(/^FitSphere uses the microphone only when you tap Speak your meal/);
     // `false` would make the image picker block Android's microphone permission, and empty iOS's text.

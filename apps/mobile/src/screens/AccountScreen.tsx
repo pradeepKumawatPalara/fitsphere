@@ -253,7 +253,7 @@ const VOICE_LANGUAGE_OPTIONS: { value: VoiceLanguage; label: string }[] = [
 ];
 
 /**
- * The mic's language in Search foods (D-108; the canvas's VoiceMealShared): English (India) or Hindi,
+ * The mic's language in Search foods (D-115; the canvas's VoiceMealShared): English (India) or Hindi,
  * kept on this phone. Shown only where the phone can recognise speech on the device. Hindi needs its
  * offline speech pack; until it is on the phone the mic uses English (India).
  */

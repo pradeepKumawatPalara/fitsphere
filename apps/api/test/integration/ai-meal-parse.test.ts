@@ -4,9 +4,9 @@ import { MealParserFailed, type MealParser } from '../../src/ai/mealParser.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 
-// POST /v1/ai/meal-parse (ADR-0010, D-108; REQ-LOG-009, REQ-ACC-004): consent checked before any
+// POST /v1/ai/meal-parse (ADR-0010, D-115; REQ-LOG-009, REQ-ACC-004): consent checked before any
 // call (invariant #3; ADR-0005 validation 4), readings counted by India day with no daily limit
-// (D-108), failures as SERVICE_UNAVAILABLE and not counted, nothing of the text in the logs (invariant #7).
+// (D-115), failures as SERVICE_UNAVAILABLE and not counted, nothing of the text in the logs (invariant #7).
 // The AI module is a fake that counts its calls: no test calls OpenAI. Made-up meals only.
 
 const ANSWER: MealParseResponse = {
@@ -151,7 +151,7 @@ describe('REQ-LOG-009 a reading', () => {
     expect(await readingsCounted(user.id)).toEqual([]);
   });
 
-  it('D-108 without OPENAI_API_KEY the route answers 503 SERVICE_UNAVAILABLE', async () => {
+  it('D-115 without OPENAI_API_KEY the route answers 503 SERVICE_UNAVAILABLE', async () => {
     const user = await noKeyApi.signUpWithAccount();
     const response = await read(user.token, { text: MEAL }, noKeyApi);
     expect(response.statusCode).toBe(503);
@@ -195,7 +195,7 @@ describe('invariant #3 consent is checked before any call (ADR-0005 validation 4
   });
 });
 
-describe('D-108 no daily limit: readings are counted by India day', () => {
+describe('D-115 no daily limit: readings are counted by India day', () => {
   it('20 readings in a day are all read, none refused; each is counted on its India day', async () => {
     const user = await consentingUser();
     for (let i = 0; i < 20; i += 1) expect((await read(user.token, { text: MEAL })).statusCode).toBe(200);

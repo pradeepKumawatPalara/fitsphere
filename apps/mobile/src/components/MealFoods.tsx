@@ -188,7 +188,7 @@ export function MealFoodRows({
   items: readonly MealItem[];
   empty?: string;
   onChange(index: number): void;
-  /** A food added from what was said whose amount was not said (D-108): tagged until changed or saved. */
+  /** A food added from what was said whose amount was not said (D-115): tagged until changed or saved. */
   isAssumed?(item: MealItem): boolean;
 }) {
   const styles = useStyles();

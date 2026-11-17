@@ -1,4 +1,4 @@
-// The one AI module (ADR-0005, ADR-0010; D-108): OpenAI's Responses API reads which foods a meal text
+// The one AI module (ADR-0005, ADR-0010; D-115): OpenAI's Responses API reads which foods a meal text
 // names, with quantity, unit and preparation. It never asks for or accepts nutrition: the phone takes
 // values from its own food list. Only the meal text is sent, never a name, email or user ID, and
 // nothing about a request or its answer is logged (invariant #7). Consent and the daily limit are

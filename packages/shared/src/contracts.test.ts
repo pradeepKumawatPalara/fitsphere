@@ -532,7 +532,7 @@ describe('REQ-ACC-004 AI consent request', () => {
     ]);
   });
 
-  it('D-108 the text names OpenAI, not Gemini, under a new version; an older app’s version is still recorded', () => {
+  it('D-115 the text names OpenAI, not Gemini, under a new version; an older app’s version is still recorded', () => {
     expect(AI_CONSENT_TEXT).toContain('OpenAI');
     expect(AI_CONSENT_TEXT).not.toMatch(/Gemini|Google/);
     expect(AI_CONSENT_OLDER_TEXT_VERSIONS).not.toContain(AI_CONSENT_TEXT_VERSION);
@@ -542,7 +542,7 @@ describe('REQ-ACC-004 AI consent request', () => {
   });
 });
 
-describe('REQ-LOG-009 AI meal reading: POST /v1/ai/meal-parse (D-108)', () => {
+describe('REQ-LOG-009 AI meal reading: POST /v1/ai/meal-parse (D-115)', () => {
   const ROTI = {
     spokenWords: 'do roti',
     name: 'roti',
@@ -568,7 +568,7 @@ describe('REQ-LOG-009 AI meal reading: POST /v1/ai/meal-parse (D-108)', () => {
     expect(mealParseResponseSchema.parse({ items: [] })).toEqual({ items: [] });
   });
 
-  it('D-108 an answer giving nutrition, or any field not in the contract, is refused', () => {
+  it('D-115 an answer giving nutrition, or any field not in the contract, is refused', () => {
     for (const extra of [{ kcal: 240 }, { proteinG: 7 }, { grams: 80 }, { calories: 240 }]) {
       expect(mealParseResponseSchema.safeParse({ items: [{ ...ROTI, ...extra }] }).success).toBe(false);
     }

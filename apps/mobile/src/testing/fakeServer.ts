@@ -92,7 +92,7 @@ export function fakeServer(now: Date) {
     daysFailWith: null as number | null,
     /** The latest AI consent record (REQ-ACC-004); null until the user chooses. */
     aiConsent: null as { consented: boolean; textVersion: string; recordedAt: string } | null,
-    /** What `POST /ai/meal-parse` answers (D-108): the foods named, or an error status and code. */
+    /** What `POST /ai/meal-parse` answers (D-115): the foods named, or an error status and code. */
     mealParse: { items: [] } as { items: ParsedMealItem[] } | { status: number; code: string },
     /** `POST /ai/meal-parse` fails as a network failure would. */
     mealParseOffline: false,

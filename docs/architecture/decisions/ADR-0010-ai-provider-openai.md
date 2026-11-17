@@ -1,6 +1,6 @@
 # ADR-0010: AI meal reading's provider (OpenAI) and where nutrition comes from
 
-- Status: **Accepted** by the project owner on 2026-11-17 (D-108)
+- Status: **Accepted** by the project owner on 2026-11-17 (D-115)
 - Date: 2026-11-17
 - Decision owner: Project owner
 - Related requirements: REQ-LOG-005, REQ-LOG-009, REQ-ACC-004, REQ-ACC-005
@@ -11,12 +11,12 @@
   each call; only the meal text or photo is sent, never a name, email or user ID; nothing AI-related is
   logged; on-device voice only, the mic hidden otherwise; no audio kept; the user reviews before
   saving; label photos deleted once read. ADR-0005's 15 readings a user a day is replaced too: no daily
-  limit (D-108).
+  limit (D-115).
 
 ## Context
 ADR-0005 chose Gemini 3.1 Flash-Lite and planned that the AI returns grams and that unmatched foods take
 the AI's estimate. Before slice 7 was built the owner chose OpenAI, set up a project with a hard monthly
-spending limit, and asked that the AI name foods only, never give nutrition (D-108). The first use is
+spending limit, and asked that the AI name foods only, never give nutrition (D-115). The first use is
 voice from the Search foods box (E-28): on-device speech becomes text, the text is read by the AI, and
 the phone finds the foods in its own food list.
 
@@ -32,7 +32,7 @@ ADR-0005's, unchanged:
 - **A — Gemini 3.1 Flash-Lite, paid tier** (ADR-0005). Meets 1 to 3 on its 2026-10-27 check. Not set up:
   no billing for AI on the Google project yet (Q-087's AI part).
 - **B — OpenAI `gpt-6-luna`, Responses API.** Set up by the owner: a project with a $10 a month hard
-  limit and a key limited to the Responses API (D-108).
+  limit and a key limited to the Responses API (D-115).
   - Criterion 1: OpenAI's data controls say data sent to the API is not used to train or improve its
     models unless the organisation opts in. Requests to `/v1/responses` are kept up to 30 days for abuse
     monitoring, whatever `store` says; Zero Data Retention needs OpenAI's approval. `store: false` keeps
@@ -54,10 +54,10 @@ ADR-0005's, unchanged:
   (ADR-0006) and works out the values as for a searched food. An item with no match is shown under "Not
   in our food list" with Search and Own food; no AI estimate is ever used (replaces ADR-0005 step 4 and
   Q-063's answer).
-- **Limits:** none in the app (D-108): OpenAI's hard monthly limit, set by the owner, is the only cap.
+- **Limits:** none in the app (D-115): OpenAI's hard monthly limit, set by the owner, is the only cap.
   Readings made are counted by user and India day in `app.ai_readings`, never refused. Any OpenAI failure, the limit
   included, is `SERVICE_UNAVAILABLE`, and the user's words are kept.
-- **Consent:** asked once in the app, at the first reading (D-108), and checked on the server before
+- **Consent:** asked once in the app, at the first reading (D-115), and checked on the server before
   every call, against the current consent text's version (invariant #3). The text names OpenAI.
 - **The key** is in the API's environment only (`OPENAI_API_KEY`); never printed, logged or committed.
   Without it, the route answers 503.
@@ -68,7 +68,7 @@ now, and its strict-schema output fits the module. Removing nutrition from the A
 values identical to a hand-searched food's and keeps unverified numbers out of the user's log.
 
 ## Why alternatives were rejected
-A is not set up for billing, and the owner chose B (D-108). A stays possible behind the same module.
+A is not set up for billing, and the owner chose B (D-115). A stays possible behind the same module.
 
 ## Counterfactual
 If `gpt-6-luna`'s reading of Indian meals is poor in validation, or Legal needs processing in India that
@@ -80,7 +80,7 @@ India project with Zero Data Retention.
   to 30 days for abuse monitoring (risk R-017). Legal confirms before real users (Q-049).
 - People who agreed to the Gemini consent text are asked again once.
 - Foods missing from the food list cannot be logged by voice; the user searches or adds their own food.
-- Paid use is signed off by the owner (D-108, C-008).
+- Paid use is signed off by the owner (D-115, C-008).
 
 ## Validation plan
 ADR-0005's steps 1, 3, 4 and 5 for voice, with this provider:

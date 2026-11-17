@@ -3583,7 +3583,7 @@ checksum), and the configuration template was left as it is.*
   in the app's icon package).
 - Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
 
-## D-108 Voice meal logging from the Search foods box; OpenAI reads the meal; consent asked once
+## D-115 Voice meal logging from the Search foods box; OpenAI reads the meal; consent asked once
 - Status: **Accepted** (owner, in chat, 2026-11-17: the feature brief "voice meal logging from the
   Search foods box", then "I am the owner", "keep the consent just for first time", "Monthly cap is set
   on openAi side, dont do anything in App", "show Not in our food list", "put it on canvas"). Plan:

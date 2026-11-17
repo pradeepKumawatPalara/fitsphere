@@ -7,7 +7,7 @@ import { itemFromFood, itemFromFoodUnits, itemFromServings } from './mealItems';
 import { memoryDb } from './testing/memoryDb';
 import { amountSaid, findSpokenFoods } from './voiceMeal';
 
-// D-108 (REQ-LOG-009): the foods the AI named, found in the phone's food list as Search foods finds
+// D-115 (REQ-LOG-009): the foods the AI named, found in the phone's food list as Search foods finds
 // them, with their amounts built as a food's page builds them. Synthetic foods and made-up values.
 
 const food = (source: Food['source'], code: string, name: string, extra: Partial<Food> = {}): Food => ({
@@ -54,7 +54,7 @@ beforeEach(async () => {
   await replaceFoods(db, 'v-test', [ROTI, DAL, BIRYANI, CURD, RICE, MILK, EGG_RAW, EGG_BOILED]);
 });
 
-describe('D-108 the amount said', () => {
+describe('D-115 the amount said', () => {
   it('weights and volumes become grams; a measure stays a measure; nothing said is no amount', () => {
     expect(amountSaid({ quantity: 150, unit: 'g' }).amount).toEqual({ count: 150, unit: 'g' });
     expect(amountSaid({ quantity: 0.5, unit: 'kg' }).amount).toEqual({ count: 500, unit: 'g' });

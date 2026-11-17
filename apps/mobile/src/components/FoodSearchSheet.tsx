@@ -530,7 +530,7 @@ function kcalRange(members: readonly Result[]): { shown: string; said: string } 
 
 /**
  * The search Search foods runs (D-72, D-96), as a function: the foods found for a text, in the list's
- * order, with the amount typed with it and the foods it names. Also finds a spoken food (D-108), so a
+ * order, with the amount typed with it and the foods it names. Also finds a spoken food (D-115), so a
  * food said is the food the same words typed would list first.
  */
 export async function searchFoodList(
@@ -584,9 +584,9 @@ export function FoodSearchSheet({
   onClose,
 }: {
   today: IstDay;
-  /** The foods added; `voice` when they came from what was said (D-108), with those whose amount was assumed. */
+  /** The foods added; `voice` when they came from what was said (D-115), with those whose amount was assumed. */
   onAdd(items: MealItem[], voice?: { assumed: MealItem[] }): void;
-  /** Enter a food the list doesn't have as your own, named as said (D-108). */
+  /** Enter a food the list doesn't have as your own, named as said (D-115). */
   onOwnFood?(name: string): void;
   onClose(): void;
 }) {
@@ -667,7 +667,7 @@ export function FoodSearchSheet({
     onClose();
   }
 
-  // D-108: "Speak your meal", where the phone can recognise speech on the device.
+  // D-115: "Speak your meal", where the phone can recognise speech on the device.
   const voice = useVoiceMeal({
     setQuery: changeQuery,
     search: searchFoodList,
