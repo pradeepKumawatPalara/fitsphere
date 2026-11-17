@@ -3613,6 +3613,26 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-TRN-003 and REQ-TRN-004; constraints' D-71 row and a D-108 row; the redesign's 4.1;
   CLAUDE.md.
 
+## D-109 Profile: the address's State is chosen from a list of India's states and union territories
+- Status: **Accepted** (owner, in chat, 2026-11-16: "in the profile sections I want that state input
+  should be dropdown with all indian state + indian KEndra shashit pradesh"). Built on branch
+  `feat/profile-state-list`. Numbered D-109: D-108 is the empty workouts' (branch `fix/empty-workouts`).
+- Answer (REQ-ACC-011; with D-38 and D-100):
+  - On Profile, the address's **State** is a box like the others with a down arrow, "State" until
+    one is chosen. A tap opens a sheet titled State: **States**, India's 28, then **Union
+    territories** (Kendra Shasit Pradesh), its 8, each list in the order of the alphabet, the chosen
+    one ticked. A tap on one chooses it and closes the sheet; **Clear state** empties it.
+  - The names: Andhra Pradesh … West Bengal; Andaman and Nicobar Islands, Chandigarh, Dadra and Nagar
+    Haveli and Daman and Diu, Delhi, Jammu and Kashmir, Ladakh, Lakshadweep, Puducherry.
+  - The address's rules are unchanged (D-100): line 1, the city, the state and the PIN code, or none.
+- MVP defaults: a state saved before is shown with the list's spelling when it matches, ignoring case,
+  spaces and marks; one that does not match is shown and saved as it was, and the sheet says it isn't on
+  the list, until one is chosen. No search box (36 rows). Phone only: the server keeps D-100's rules for
+  the state and does not check the list.
+- Phone app only: no server change, no migration, no phone schema change, no new build (the arrow is
+  in the app's icon package).
+- Doc changes: REQ-ACC-011; constraints' MVP defaults; the redesign's 6.6; CLAUDE.md.
+
 ---
 
 ---

@@ -47,6 +47,14 @@ pauses and resumes, and the Workout in progress pill still opens it; Mark done i
 `components/WorkoutInProgress.tsx`; `components/WorkoutTimerBar.tsx`). Phone app only: no server change,
 no migration, no phone schema change, no new build.
 
+**Profile: the State from a list — built on branch `feat/profile-state-list` (D-109, 2026-11-16), in its
+own folder `D:\fitsphere-profile-state` (removed once merged).** The address's State is a box with a down
+arrow opening a sheet of India's 28 states, then its 8 union territories; a tap chooses, Clear state
+empties; a state saved before shows with the list's spelling, or as saved when not on it
+(`INDIAN_STATES`, `UNION_TERRITORIES`, `listedState` in `apps/mobile/src/profile.ts`;
+`components/StatePicker.tsx`). Phone app only: no server change, no migration, no phone schema change, no
+new build.
+
 **Calories burned changed by you: an Edited tag and an arrow back to the estimate — built on branch
 `feat/exercise-calories-reset` (D-107, 2026-11-16), in its own folder `D:\fitsphere-exercise-calories`
 (removed once merged).** Plan: `docs/plans/exercise-calories-reset.md` (Accepted); canvas boards
