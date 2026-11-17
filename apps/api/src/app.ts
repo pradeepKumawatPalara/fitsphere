@@ -11,6 +11,7 @@ import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerDaysRoute } from './routes/days.ts';
 import { registerExercisesRoute } from './routes/exercises.ts';
 import { registerFoodsRoute } from './routes/foods.ts';
+import { registerMeasurementsRoute } from './routes/measurements.ts';
 import { registerMediaRoutes } from './routes/media.ts';
 import { registerMeRoutes } from './routes/me.ts';
 import { registerSyncRoute } from './routes/sync.ts';
@@ -94,6 +95,7 @@ export function buildApp(deps: AppDeps) {
   });
   registerWorkoutsRoute(app, deps);
   registerWeighInsRoute(app, deps);
+  registerMeasurementsRoute(app, deps);
   registerDaysRoute(app, deps);
   registerFoodsRoute(app, deps);
   registerExercisesRoute(app, deps);

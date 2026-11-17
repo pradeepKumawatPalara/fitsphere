@@ -55,6 +55,22 @@ empties; a state saved before shows with the list's spelling, or as saved when n
 `components/StatePicker.tsx`). Phone app only: no server change, no migration, no phone schema change, no
 new build.
 
+**Progress's measurements by dates — built on branch `daily/2026-11-17-b` (D-114, 2026-11-17), in
+`D:\fitsphere`.** Canvas boards `MeasurementsRange*` B locked (version 122). The card and "Show all
+measurements (N)" keep the last 90 days; unfolded, a row of choices, Pick dates (From and To from the
+calendar), Last 90 days and each year back to 2000, a count line naming the dates; days older than the
+phone's 90 read online with the new `GET /v1/users/{userId}/measurements` (self only, paged, as
+weigh-ins) and kept in memory (`progress/measurementsRange.ts`, `progress/MeasurementsSection.tsx`,
+`progress/MeasurementDatesSheet.tsx`). No migration, no phone schema change, no new build. **The beta's
+Cloud Run API needs this API before beta phones read older measurements; deploy only when the owner says
+so.**
+
+**The exercise bar's Progress is Details — built on branch `daily/2026-11-17-b` (D-113, 2026-11-17), in
+`D:\fitsphere`.** The first button in the bar at each workout exercise's foot says Details, with an i in a
+circle (Lucide `Info`), in place of Progress and its rising line; same page, Progress, History and How to;
+screen readers hear the same (`screens/WorkoutScreen.tsx`). Phone app only: no server change, no migration,
+no phone schema change, no new build.
+
 **Every set value whole — built on the day's branch `daily/2026-11-17` (D-112, 2026-11-17), in
 `D:\fitsphere`.** Canvas boards `ExerciseSets*` A locked (version 118). The sets' column headings
 carry the units ("Weight · kg", "Time · sec", "Reps", "optional" under a kept column); each box holds only its
@@ -235,7 +251,7 @@ no phone schema change, no new build.
 **An exercise's page: Progress, History and How to — built on branch `feat/exercise-details` (D-82,
 2026-11-11), with D-81, in `D:\fitsphere-exercise-details`.** Plan: `docs/plans/exercise-details-page.md`
 (Accepted), REQ-TRN-008; canvas boards `ExerciseDetail*` locked (version 79), `WorkoutIcons*` C chosen
-(version 81). Progress in the bar at each workout exercise's foot (Progress, Edit, Remove, with words),
+(version 81). Details in the bar at each workout exercise's foot (Details, Edit, Remove, with words; Progress until D-113),
 and How to do it in Add exercise, open the exercise's page
 (`components/ExerciseDetailsPage.tsx`, a whole page over the screen; the numbers in
 `src/exerciseStats.ts`): Progress (three records with their days, the workouts, a graph for 4W, 12W or

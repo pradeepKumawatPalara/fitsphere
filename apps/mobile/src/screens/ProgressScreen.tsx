@@ -56,6 +56,8 @@ export function ProgressScreen() {
         <MeasurementsSection
           measurements={data.measurements}
           unit={data.lengthUnit}
+          today={today}
+          refresh={sheet}
           onAdd={() => setSheet({ mode: 'add', day: today })}
           onEdit={(day) => setSheet({ mode: 'edit', day })}
         />

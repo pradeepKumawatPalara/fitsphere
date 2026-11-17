@@ -54,16 +54,17 @@ async function openPage(name: string) {
 }
 
 describe('D-82 an exercise’s page from a workout', () => {
-  it('gives each exercise a bar with Progress, Edit and Remove (the owner’s C)', async () => {
+  it('gives each exercise a bar with Details, Edit and Remove (the owner’s C; Details since D-113)', async () => {
     await renderWorkout();
     await screen.findByRole('button', { name: 'Push-up: progress, history and how to' });
 
-    for (const word of ['Progress', 'Edit', 'Remove']) expect(screen.getAllByText(word)).toHaveLength(2);
+    for (const word of ['Details', 'Edit', 'Remove']) expect(screen.getAllByText(word)).toHaveLength(2);
+    expect(screen.queryByText('Progress')).toBeNull();
     expect(screen.getByRole('button', { name: 'Edit Push-up' })).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Remove Push-up' })).toBeOnTheScreen();
   });
 
-  it('opens from Progress on the Progress tab, with its records, its workouts in a line and the graph', async () => {
+  it('opens from Details on the Progress tab, with its records, its workouts in a line and the graph', async () => {
     await renderWorkout();
     await openPage('Dumbbell bench press');
 
