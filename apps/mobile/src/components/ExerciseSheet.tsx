@@ -723,10 +723,11 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       ) : null}
 
       <View style={styles.field}>
-        {/* D-111: one line, its name inside it, growing as it is typed. */}
+        {/* D-111: one line, growing as it is typed, under its label (the owner, 2026-11-17: keep the label,
+            not the name inside the box). */}
+        <Text style={labelStyle}>Note (optional)</Text>
         <Box
           accessibilityLabel="Note (optional)"
-          placeholder="Note (optional)"
           value={text.note}
           onChangeText={(note) => change({ note })}
           multiline

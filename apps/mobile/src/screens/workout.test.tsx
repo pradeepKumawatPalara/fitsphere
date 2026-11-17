@@ -1125,9 +1125,9 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
     expect(screen.getByText('Highest HR')).toBeOnTheScreen();
     expect(screen.getByLabelText('Average heart rate (optional)')).toBeOnTheScreen();
     expect(screen.queryByText('Time spent in min (optional)')).toBeNull();
-    // The note: no label over it, its name inside it.
-    expect(screen.getByLabelText('Note (optional)')).toHaveProp('placeholder', 'Note (optional)');
-    expect(screen.queryByText('Note (optional)')).toBeNull();
+    // The note: one line under its label (the owner, 2026-11-17: keep the label), nothing inside it.
+    expect(screen.getByText('Note (optional)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Note (optional)')).not.toHaveProp('placeholder');
   });
 
   it('a cardio exercise has Calories alone in the row: it has no time spent', async () => {
