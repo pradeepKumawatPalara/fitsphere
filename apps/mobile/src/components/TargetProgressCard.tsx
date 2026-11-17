@@ -67,10 +67,7 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget }: 
   const filled = Math.min(plates, Math.round((percent / 100) * plates));
   return (
     <View style={styles.card}>
-      <View style={styles.row}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={[styles.title, over && styles.over]}>{target > 0 ? `${percent}%` : '–'}</Text>
-      </View>
+      <Text style={styles.title}>{title}</Text>
       <Hero value={formatInteger(over ? eaten - target : target - eaten)} unit={unit} word={over ? 'over' : 'remaining'} over={over} />
       <Text style={styles.line}>
         <Text style={styles.reading}>{formatInteger(eaten)}</Text> of {formatInteger(target)} {unit}
@@ -112,14 +109,12 @@ function Hero({ value, unit, word, over, waiting = false }: { value: string; uni
 // Plates 14 tall, 3 apart, radius 2.
 const useStyles = themedStyles((c) => ({
   card: { gap: 6 },
-  // Clear of the card's cut corner.
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingRight: 30 },
   title: { ...TYPE.label, color: c.inkMuted },
   over: { color: c.warning },
   waiting: { color: c.inkSubtle },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
-  heroNumber: TYPE.heroNumber,
-  heroWord: { ...TYPE.metric, fontSize: 18, lineHeight: 19, paddingBottom: 14, color: c.accent },
+  heroNumber: { ...TYPE.heroNumber, fontSize: 52, lineHeight: 54 },
+  heroWord: { ...TYPE.metric, fontSize: 16, lineHeight: 17, paddingBottom: 8, color: c.accent },
   line: { color: c.inkMuted, fontSize: 15, lineHeight: 22 },
   reading: { color: c.ink, fontWeight: '600' },
   plates: { flexDirection: 'row', gap: 3, marginTop: 8 },

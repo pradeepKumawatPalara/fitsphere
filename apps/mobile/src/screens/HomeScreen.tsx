@@ -16,7 +16,8 @@ import {
 } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ChevronDown, ChevronUp, Footprints, Moon, Scale } from 'lucide-react-native';
+import { LayoutAnimation, Platform, Pressable, ScrollView, UIManager, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
 import { CutCorner } from '../components/CutCorner';
@@ -33,7 +34,7 @@ import { WeekStrip } from '../components/WeekStrip';
 import { WeekWorkouts } from '../components/WeekWorkouts';
 import { Text, TextButton } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
-import { formatDay } from '../format';
+import { formatDay, formatInteger } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
   dayNutrition,
@@ -50,10 +51,15 @@ import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useDataVersion, useSync } from '../sync/SyncProvider';
-import { themedStyles } from '../theme';
+import { themedStyles, useTheme } from '../theme';
 import { targetValues, weekTargetDay } from '../targets';
+import { TYPE } from '../typography';
 import { useWeekActivity } from '../weekActivity';
 import { LogOut } from './LogOut';
+
+if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
+
+const TILE_ICONS = { weighIn: Scale, steps: Footprints, sleep: Moon } as const;
 
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
 type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState }>>;
@@ -88,6 +94,12 @@ export function HomeScreen() {
   // A day before the phone's 90 is read from the server when shown; till then its cards show dashes (D-106).
   const older = useShownOlderDays();
   const waiting = isWaiting(older.day.status);
+  const { colors } = useTheme();
+  const [weekOpen, setWeekOpen] = useState(true);
+  function toggleWeek() {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setWeekOpen((open) => !open);
+  }
 
   useEffect(() => {
     let active = true;
@@ -191,20 +203,35 @@ export function HomeScreen() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.week}>
-          <WeekStrip
-            today={today}
-            firstDay={firstDay}
-            selected={selected}
-            start={stripStart}
-            activity={activity}
-            onSelect={select}
-            onShow={showDays}
-          />
-          <WeekWorkouts
-            count={isWaiting(older.week.status) ? null : (activity?.counted ?? null)}
-            target={targets.weekly_workouts ?? null}
-            thisWeek={stripStart === istWeekStart(today)}
-          />
+          {/* A sliding panel: the handle shows the date and folds the week away. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={weekOpen ? 'Hide the week' : 'Show the week'}
+            accessibilityState={{ expanded: weekOpen }}
+            onPress={toggleWeek}
+            style={styles.handle}
+          >
+            <Text style={styles.handleText}>{formatDay(selected, today)}</Text>
+            {weekOpen ? <ChevronUp size={20} strokeWidth={2.25} color={colors.accent} /> : <ChevronDown size={20} strokeWidth={2.25} color={colors.accent} />}
+          </Pressable>
+          {weekOpen ? (
+            <>
+              <WeekStrip
+                today={today}
+                firstDay={firstDay}
+                selected={selected}
+                start={stripStart}
+                activity={activity}
+                onSelect={select}
+                onShow={showDays}
+              />
+              <WeekWorkouts
+                count={isWaiting(older.week.status) ? null : (activity?.counted ?? null)}
+                target={targets.weekly_workouts ?? null}
+                thisWeek={stripStart === istWeekStart(today)}
+              />
+            </>
+          ) : null}
         </View>
         {selected !== today ? (
           <ShowingDayBanner day={selected} today={today} status={older.day.status} onBack={() => select(today)} onRetry={older.day.retry} />
@@ -236,6 +263,11 @@ export function HomeScreen() {
                 divider={index > 0}
                 label={texts[kind].label}
                 value={entry ? texts[kind].format(entry.value) : null}
+                icon={(() => {
+                  const Icon = TILE_ICONS[kind];
+                  return <Icon size={16} strokeWidth={2.25} color={colors.accent} />;
+                })()}
+                shownValue={kind === 'steps' && entry ? formatInteger(entry.value) : undefined}
                 syncState={entry?.syncState ?? null}
                 waiting={waiting && !entry}
                 onPress={() => setSheet({ kind, day: selected, initial: entry?.value ?? null })}
@@ -286,8 +318,10 @@ export function HomeScreen() {
 // locked 2026-11-13): the week's workouts line 6 under the strip, and no workouts card.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 76, gap: 12 },
   week: { gap: 6 },
+  handle: { minHeight: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
+  handleText: { ...TYPE.label, color: c.inkMuted },
   body: { fontSize: 15 },
   panel: { padding: 16, borderRadius: 4, backgroundColor: c.surface },
   rule: { height: 1, marginVertical: 16, backgroundColor: c.border },
