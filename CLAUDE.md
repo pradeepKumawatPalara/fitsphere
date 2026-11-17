@@ -40,7 +40,7 @@ no migration, no phone schema change. **Every iOS build waits for the owner's wo
 joins the Apple Developer Program and answers Apple's questions, encryption included.**
 
 **Profile: the State from a list — built on branch `feat/profile-state-list` (D-109, 2026-11-16), in its
-own folder `D:itsphere-profile-state` (removed once merged).** The address's State is a box with a down
+own folder `D:\fitsphere-profile-state` (removed once merged).** The address's State is a box with a down
 arrow opening a sheet of India's 28 states, then its 8 union territories; a tap chooses, Clear state
 empties; a state saved before shows with the list's spelling, or as saved when not on it
 (`INDIAN_STATES`, `UNION_TERRITORIES`, `listedState` in `apps/mobile/src/profile.ts`;
