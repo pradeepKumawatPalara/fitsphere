@@ -694,7 +694,7 @@ describe('D-50 calories burned and heart rate', () => {
       await screen.findByText('Estimated: 9.3 MET for 10.0 km/h × 70.0 kg × 30 min. Type the number from your machine or watch to replace it.'),
     ).toBeOnTheScreen();
     expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('326');
-    expect(screen.getByText('estimated')).toBeOnTheScreen();
+    expect(screen.getByTestId('calories-estimated')).toHaveTextContent('Estimated');
     await save();
 
     expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 326 kcal · estimated' })).toBeOnTheScreen();
@@ -718,7 +718,7 @@ describe('D-50 calories burned and heart rate', () => {
     await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '360');
     // D-107: typed over an estimate, the line says what the estimate is and how to go back to it.
     expect(screen.getByText('The estimate is 326 kcal: tap the arrow to use it.')).toBeOnTheScreen();
-    expect(screen.queryByText('estimated')).toBeNull();
+    expect(screen.queryByTestId('calories-estimated')).toBeNull();
     await save();
 
     expect(await screen.findByRole('button', { name: 'Running: 30:00 · 5.00 km, 10.0 km/h · 6:00 /km · 360 kcal' })).toBeOnTheScreen();
@@ -840,11 +840,11 @@ describe('D-107 calories changed by you: the Edited tag and the arrow back to th
 
       expect(screen.getByText('Edited')).toBeOnTheScreen();
       expect(screen.getByText(BACK)).toBeOnTheScreen();
-      expect(screen.queryByText('estimated')).toBeNull();
+      expect(screen.queryByTestId('calories-estimated')).toBeNull();
 
       await fireEvent.press(screen.getByRole('button', { name: 'Use the estimate, 326 kcal' }));
       expect(kcalBox().props.value).toBe('326');
-      expect(screen.getByText('estimated')).toBeOnTheScreen();
+      expect(screen.getByTestId('calories-estimated')).toHaveTextContent('Estimated');
       expect(screen.getByText(/^Estimated: 9\.3 MET for 10\.0 km\/h/)).toBeOnTheScreen();
       expect(screen.queryByText('Edited')).toBeNull();
       expect(arrow()).toBeNull();
@@ -1105,6 +1105,9 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
 
     const effort = screen.getByTestId('exercise-effort');
     expect(effort).toHaveStyle({ flexDirection: 'row' });
+    // "estimated" sits beside the Calories label, not in the half-wide box, where it hid the number
+    // (the owner, 2026-11-17).
+    expect(within(effort).queryByText('estimated')).toBeNull();
     expect(within(effort).getByText('Time spent')).toBeOnTheScreen();
     expect(within(effort).getByText('Calories')).toBeOnTheScreen();
     expect(within(effort).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();

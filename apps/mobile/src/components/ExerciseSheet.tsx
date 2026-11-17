@@ -652,9 +652,17 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                   you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
                   the estimate back. */}
               <View style={styles.labelRow}>
+                {/* The estimate says so beside the label, not in the box, where it left the number too
+                    little room once the box was half the width (the owner, 2026-11-17). */}
                 <View style={styles.labelWithTag}>
                   <Text style={labelStyle}>Calories</Text>
-                  {changed ? <Text style={styles.editedTag}>Edited</Text> : null}
+                  {changed ? (
+                    <Text style={styles.editedTag}>Edited</Text>
+                  ) : text.kcal === null && estimate ? (
+                    <Text testID="calories-estimated" style={styles.tag}>
+                      Estimated
+                    </Text>
+                  ) : null}
                 </View>
                 <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
                   <Info size={20} color={colors.accent} />
@@ -666,7 +674,6 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
                 onChangeText={(kcal) => change({ kcal })}
                 keyboardType="number-pad"
                 unit="kcal"
-                {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
                 refused={problems.kcal !== undefined}
                 {...watch('kcal')}
                 after={
@@ -896,13 +903,12 @@ function AverageSpeed({ text }: { text: ExerciseText }) {
 }
 
 /**
- * A sunken box for one value, its unit after it, a `mark` such as "estimated" before the unit, and
- * `after` the unit a button of the box's own (the calories' arrow, D-107); the outline caramel while
- * typing and red when refused.
+ * A sunken box for one value, its unit after it, and `after` the unit a button of the box's own (the
+ * calories' arrow, D-107); the outline caramel while typing and red when refused. ("estimated" moved
+ * from the box to the calories' label, D-111.)
  */
 function Box({
   unit,
-  mark,
   after,
   refused,
   compact = false,
@@ -910,7 +916,7 @@ function Box({
   onFocus,
   onBlur,
   ...input
-}: { unit?: string; mark?: string; after?: ReactNode; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
+}: { unit?: string; after?: ReactNode; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
   const styles = useStyles();
   const [focused, setFocused] = useState(false);
   return (
@@ -929,7 +935,6 @@ function Box({
         style={[styles.value, !note && styles.number, note && styles.note]}
         {...input}
       />
-      {mark ? <Text style={styles.help}>{mark}</Text> : null}
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
       {after}
     </View>
@@ -961,7 +966,8 @@ const useStyles = themedStyles((c) => ({
   withAfter: { paddingRight: 4 },
   divider: { width: 1, height: 28, backgroundColor: c.border },
   // The calories' label and, once changed by the user, the caramel Edited tag (D-107), as Home's Due badge.
-  labelWithTag: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // On a narrow phone the tag goes under the label rather than squeezing it (D-111: the box is half wide).
+  labelWithTag: { flexShrink: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 2 },
   editedTag: {
     ...TYPE.label,
     fontSize: 12,
