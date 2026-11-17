@@ -167,11 +167,15 @@ export function rangeStart(range: ChartRange, today: IstDay): IstDay | null {
   }
 }
 
-/** Whether a range reaches back past the 90 days the phone holds, so needs older weigh-ins read online (ADR-0007 rule 6). */
-export function rangeNeedsServer(range: ChartRange, today: IstDay, accountStart: IstDay | null): boolean {
+/**
+ * Whether a range reaches back past the 90 days the phone holds, so needs older weigh-ins read online
+ * (ADR-0007 rule 6): 6M and All. Whatever the account's age: since D-106 a weigh-in can be logged on
+ * any past day, before the account was created too (the owner, 2026-11-16: a weigh-in of 1 Aug, on an
+ * account of October, was missing from 6M and All).
+ */
+export function rangeNeedsServer(range: ChartRange, today: IstDay): boolean {
   const start = rangeStart(range, today);
-  const reachesBack = start === null || start < syncWindowStart(today);
-  return reachesBack && (accountStart === null || accountStart < syncWindowStart(today));
+  return start === null || start < syncWindowStart(today);
 }
 
 /**
