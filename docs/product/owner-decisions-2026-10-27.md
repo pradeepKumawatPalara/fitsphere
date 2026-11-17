@@ -1984,6 +1984,10 @@ checksum), and the configuration template was left as it is.*
   - The name has a **chevron**, as Category's: it closes the list showing (and the keyboard), or opens
     it again: the matches of the words typed, the choice's exercises, or, with nothing typed or chosen,
     every exercise A to Z ("All exercises · 2,119"). Typing opens it again.
+    *Since 2026-11-17 (the owner's report: opened on an exercise picked, it listed only that one, under a
+    large empty space): opened on an exercise of the list already picked, it lists the choice's exercises,
+    or every one, the picked one highlighted (the accent's tint, bold, a tick) and scrolled to; typing in
+    the name searches again.*
   - An exercise of the list already picked that a new Category or Sub-group does not hold **leaves the
     name**, so the choice's exercises show to pick from; a name of the user's own stays.
 - MVP defaults:
