@@ -1981,6 +1981,9 @@ checksum), and the configuration template was left as it is.*
     calories, heart rate, note) shows, the whole page scrolls, the fields with it (the owner: "the
     whole screen should be scrollable while adding the timer and calories spend enter"). Save exercise
     is fixed at the foot, and steps aside while a list shows.
+    *Since 2026-11-17 (the owner's report: a short list left a large empty panel under its last choice):
+    a list is only as tall as its rows, under the fields; a longer one stops at the screen's foot and
+    scrolls.*
   - The name has a **chevron**, as Category's: it closes the list showing (and the keyboard), or opens
     it again: the matches of the words typed, the choice's exercises, or, with nothing typed or chosen,
     every exercise A to Z ("All exercises · 2,119"). Typing opens it again.
