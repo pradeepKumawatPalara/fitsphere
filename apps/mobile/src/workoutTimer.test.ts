@@ -1,6 +1,7 @@
 import type { WorkoutTimer } from '@fitsphere/shared';
 import {
   finishTimer,
+  isLogged,
   listedWorkouts,
   pauseTimer,
   resumeTimer,
@@ -9,6 +10,7 @@ import {
   timerLine,
   timerSeconds,
   timerState,
+  workoutsPerDay,
 } from './workouts';
 
 // The workout timer's sums (D-71): each step from the time given, pauses left out, a clock set back
@@ -70,13 +72,19 @@ describe('D-71 the workout timer', () => {
     expect(spokenDuration(3_661)).toBe('1 hour 1 minute 1 second');
   });
 
-  it('a workout whose timer has started is listed before its first exercise; one with neither is not', () => {
+  it('D-108 only a workout with an exercise is listed, even with its timer started; the one open on its screen is kept', () => {
     const workouts = [
-      { id: 'a', exercises: [], timer: null },
-      { id: 'b', exercises: [], timer: startTimer(T0) },
-      { id: 'c', exercises: [{}], timer: null },
+      { id: 'a', day: '2026-10-28', exercises: [], timer: null },
+      { id: 'b', day: '2026-10-28', exercises: [], timer: startTimer(T0) },
+      { id: 'c', day: '2026-10-28', exercises: [{}], timer: null },
+      { id: 'd', day: '2026-10-27', exercises: [{}], timer: finishTimer(startTimer(T0), after(60)) },
     ];
-    expect(listedWorkouts(workouts).map((workout) => workout.id)).toEqual(['b', 'c']);
-    expect(listedWorkouts(workouts, 'a').map((workout) => workout.id)).toEqual(['a', 'b', 'c']);
+    expect(listedWorkouts(workouts).map((workout) => workout.id)).toEqual(['c', 'd']);
+    expect(listedWorkouts(workouts, 'b').map((workout) => workout.id)).toEqual(['b', 'c', 'd']);
+    expect(isLogged(workouts[1]!)).toBe(false);
+    expect(isLogged(workouts[2]!)).toBe(true);
+    // No dumbbell, and no count, for a day whose only workout has no exercise.
+    expect(workoutsPerDay(workouts)).toEqual({ '2026-10-28': 1, '2026-10-27': 1 });
+    expect(workoutsPerDay(workouts.slice(0, 2))).toEqual({});
   });
 });

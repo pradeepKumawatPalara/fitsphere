@@ -25,6 +25,7 @@ import {
   exerciseLines,
   finishTimer,
   formatDuration,
+  isLogged,
   listedWorkouts,
   pauseTimer,
   resumeTimer,
@@ -43,13 +44,15 @@ type Sheet = { index: number | null };
 // "Finish" step (MVP default, D-29), and no Done: Save in the exercise sheet saves, and the header's
 // back arrow leaves (D-42). Each exercise has a bar at its foot with Progress (its page: progress,
 // history and how to, D-82), Edit and Remove; removing asks first. Named by its place among its day's workouts,
-// "Workout 2 · Tue 3 Nov". The workout counts toward the week once it has an exercise (D-41);
-// deleting it says what goes with it (D-63).
+// "Workout 2 · Tue 3 Nov". The workout is logged, listed and counts toward the week once it has an
+// exercise (D-41, D-108); deleting it says what goes with it (D-63).
 // The workout timer (D-71): a workout of today has "Start workout" in a bar at its foot; the bar
 // then shows the time counted, with Pause or Resume and "Mark done". A timer already started can be
 // paused, resumed and marked done whatever the date, so a workout that runs past midnight can be
 // finished. Marked done, the bar goes and a panel under the title shows the total, with Resume on a
 // workout of today, in case "Mark done" was tapped by mistake. Each step is saved and synced at once.
+// With no exercise the timer starts, counts on, pauses and resumes, but "Mark done" waits for an
+// exercise: until then the workout is not logged (D-108).
 export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -85,7 +88,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
     void Promise.all([getEntry(db, 'workout', id), rejectedChanges(db), listEntries(db, 'workout', addDays(loadDay, -1), loadDay)]).then(async ([entry, waiting, recent]) => {
       const sameDay = entry ? await listEntries(db, 'workout', entry.day, entry.day) : [];
       if (!active) return;
-      setOther(runningWorkout(recent.filter((each) => each.id !== id), loadDay));
+      setOther(runningWorkout(recent, loadDay, id));
       setWorkout(entry);
       // Numbered among the day's listed workouts, as Training and Home number them (D-65).
       setPlace(listedWorkouts(sameDay, id).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).findIndex((other) => other.id === id) + 1 || 1);
@@ -183,7 +186,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           <OtherTimerNote other={otherTimer} onOpen={() => router.push(`/workout/${other!.id}`)} />
         ) : null}
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
-        {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
+        {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet. Add one to log this workout.</Text> : null}
         {workout.exercises.map((exercise, index) => {
           const { main, rows, detail } = exerciseLines(exercise, unit);
           return (
@@ -272,6 +275,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           state={timer}
           seconds={seconds}
           busy={stepping}
+          logged={isLogged(workout)}
           onStart={() => void step((_, at) => startTimer(at))}
           onPause={() => void step((current, at) => pauseTimer(current!, at))}
           onResume={() => void step((current, at) => resumeTimer(current!, at))}

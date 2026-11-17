@@ -112,7 +112,7 @@ describe('REQ-TRN-003 starting a workout', () => {
 
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${id}`);
     expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
-    expect(screen.getByText('No exercises yet.')).toBeOnTheScreen();
+    expect(screen.getByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ deleted: false, day: '2026-10-28', exercises: [] }));
     expect(await getEntry(db, 'workout', id)).toMatchObject({ syncState: 'synced' });
     // D-65: with no exercise yet, Training doesn't list it.
@@ -557,7 +557,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Remove Squat' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Remove' }));
 
-    expect(await screen.findByText('No exercises yet.')).toBeOnTheScreen();
+    expect(await screen.findByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
   });
 
@@ -577,7 +577,7 @@ describe('REQ-TRN-003 editing and removing exercises', () => {
     await fireEvent.press(await screen.findByRole('button', { name: 'Squat: 1 set, 10 reps' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Remove exercise' }));
 
-    expect(await screen.findByText('No exercises yet.')).toBeOnTheScreen();
+    expect(await screen.findByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
     expect((await getEntry(db, 'workout', id))?.exercises).toEqual([]);
   });
 
@@ -1254,13 +1254,38 @@ describe('D-71 the workout timer', () => {
     expect(screen.queryByRole('button', { name: 'Start workout' })).toBeNull();
     const started = { startedAt: NOW.toISOString(), countedSeconds: 0, runningSince: NOW.toISOString(), doneAt: null };
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [], timer: started }));
-    // Training lists it before its first exercise, with its time.
-    expect(await screen.findByText('Running · 0:00')).toBeOnTheScreen();
 
     later(754);
 
     expect(await screen.findByLabelText('Workout time 12 minutes 34 seconds', {}, { timeout: 3_000 })).toBeOnTheScreen();
+    await addOwn({});
     expect(await screen.findByText('Running · 12:34', {}, { timeout: 3_000 })).toBeOnTheScreen();
+  });
+
+  it('D-108 with no exercise the timer counts on, but the workout is not logged: not listed, and Mark done waits for an exercise', async () => {
+    const { server, id } = await logTimed();
+    await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    await screen.findByRole('button', { name: 'Pause' });
+
+    later(600);
+    expect(await screen.findByLabelText('Workout time 10 minutes 0 seconds', {}, { timeout: 3_000 })).toBeOnTheScreen();
+    expect(screen.getByText('No exercises yet. Add one to log this workout.')).toBeOnTheScreen();
+    expect(screen.getByText('Add an exercise to log this workout and mark it done.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Mark done' })).toBeDisabled();
+    // Pause and Resume still work: the timer counts on.
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeEnabled();
+    // Training doesn't list it, nor its time.
+    expect(screen.getByText('No workouts on Wed 28 Oct.')).toBeOnTheScreen();
+    expect(screen.queryByText(/^Running · /)).toBeNull();
+
+    await addOwn({});
+
+    // Logged once it has an exercise: listed with its time, and Mark done can be tapped.
+    expect(await screen.findByText('Running · 10:00')).toBeOnTheScreen();
+    expect(screen.queryByText('Add an exercise to log this workout and mark it done.')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Mark done' }));
+    expect(await screen.findByLabelText('Done, total time 10 minutes 0 seconds')).toBeOnTheScreen();
+    await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ timer: { countedSeconds: 600, doneAt: clock.toISOString() } }));
   });
 
   it('Pause stops the count and Resume counts on, the time paused left out; Mark done shows the total', async () => {
@@ -1278,7 +1303,8 @@ describe('D-71 the workout timer', () => {
     expect(await screen.findByLabelText('Workout time 10 minutes 0 seconds')).toBeOnTheScreen();
 
     later(154);
-    await fireEvent.press(screen.getByRole('button', { name: 'Mark done' }));
+    await addOwn({});
+    await fireEvent.press(await screen.findByRole('button', { name: 'Mark done' }));
 
     expect(await screen.findByLabelText('Done, total time 12 minutes 34 seconds')).toBeOnTheScreen();
     expect(screen.getByText('Done · total time')).toBeOnTheScreen();
@@ -1296,6 +1322,7 @@ describe('D-71 the workout timer', () => {
   it('Resume after Mark done, on a workout of today, counts on from the total', async () => {
     const { server, id } = await logTimed();
     await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
+    await addOwn({});
     later(754);
     await fireEvent.press(await screen.findByRole('button', { name: 'Mark done' }));
     await screen.findByText('Done · total time');
@@ -1324,6 +1351,7 @@ describe('D-71 the workout timer', () => {
     const { server, id } = await logTimed();
     await fireEvent.press(screen.getByRole('button', { name: 'Start workout' }));
     await screen.findByRole('button', { name: 'Pause' });
+    await addOwn({});
 
     // 09:00 to 01:00 the next day, India time.
     later(16 * 3_600);

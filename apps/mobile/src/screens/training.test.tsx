@@ -369,13 +369,22 @@ describe('D-71 each workout’s timer on its row', () => {
     });
   }
 
-  it('By day says Running with the time counted, or Done with the total; a timed workout is listed before its first exercise', async () => {
+  it('By day says Done with the total; D-108 a timed workout with no exercise is not listed, though its timer runs', async () => {
     await renderTimed();
 
     expect(await screen.findByText('Done · 52:40')).toBeOnTheScreen();
-    expect(screen.getByText('Running · 12:34')).toBeOnTheScreen();
-    expect(screen.getByRole('header', { name: 'Today, Wed 28 Oct · 2 workouts' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: /^Wed 28 Oct, Workout \d: No exercises; Running · 12:34$/ })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Today, Wed 28 Oct · 1 workout' })).toBeOnTheScreen();
+    expect(screen.queryByText('Running · 12:34')).toBeNull();
+    expect(screen.queryByRole('button', { name: /No exercises/ })).toBeNull();
+  });
+
+  it('By day says Running with the time counted once the running workout has an exercise', async () => {
+    await renderInApp(<TrainingScreen now={() => NOW} />, undefined, async (_db, server) => {
+      server.storeWorkoutFromElsewhere(ID_2, '2026-10-28', [SQUAT], RUNNING);
+    });
+
+    expect(await screen.findByText('Running · 12:34')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Wed 28 Oct, Workout 1: 1 exercise · Squat; Running · 12:34' })).toBeOnTheScreen();
   });
 
   it('All workouts says Paused with the time counted; a workout with no timer says nothing of one', async () => {
