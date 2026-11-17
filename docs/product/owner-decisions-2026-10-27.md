@@ -3699,6 +3699,24 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build.
 - Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
 
+## D-113 The exercise bar's Progress renamed Details, with an ⓘ icon
+- Status: **Accepted** (owner, in chat, 2026-11-17: "on the workout tab for each of the excercise there
+  are the KPI named Progress, Edit, Remove. So Here I want to rename the KPI of Progress somethings thaat
+  most suit to its purpose. So come up with the different name and icon for this. wait for my approval";
+  of five proposed (A Details with ⓘ, B Insights, C Stats, D Records, E Overview), "go with A"). Built
+  on branch `daily/2026-11-17-b`.
+- Problem: the button opens the exercise's whole page, Progress, History and How to (D-82), and on How
+  to for an exercise never logged; "Progress", with the Progress tab's own rising-line icon, named only
+  one of the three.
+- Answer (REQ-TRN-003, REQ-TRN-008; with D-82):
+  - The first button in the bar at each workout exercise's foot says **Details**, with Lucide's `Info`
+    icon (an i in a circle), in place of "Progress" and its rising line (`TrendingUp`).
+  - Same place, colour, size and page; Edit and Remove unchanged; the page's own tabs keep their names.
+- MVP default: screen readers hear the same as before, "<exercise>: progress, history and how to".
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003's D-82 note, REQ-TRN-008; constraints' D-82 row; the redesign's 4.2 and 4.4;
+  CLAUDE.md.
+
 ---
 
 ---
