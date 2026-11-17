@@ -110,7 +110,7 @@ is built. A notice or sheet that several screens share takes its new look with t
 | 6.3 Change password | Locked and built; each problem shows under its field, and a changed password as a green banner (the banner's `success` tone) |
 | 6.4 Delete account | Locked and built; the list's bullets became icons on a red tint |
 | 6.5 Log out | Locked and built; its warning takes the place of Log out and Delete account, on a red tint |
-| 6.6 Profile (new: the owner's request, 2026-11-03) | Locked and built with its plan `user-profile.md` (Accepted; D-38); the header greets by the profile's first name and its avatar shows the photo |
+| 6.6 Profile (new: the owner's request, 2026-11-03) | Locked and built with its plan `user-profile.md` (Accepted; D-38); the header greets by the profile's first name and its avatar shows the photo. Since D-109 (2026-11-16) the address's State is a box with a down arrow that opens a sheet of India's states and union territories |
 | 6.7 Target history (new: the owner's request, 2026-11-11) | Locked (canvas version 73) and built with its plan `target-history.md` (Accepted; D-77, REQ-ROLE-018): the choices All and each target; All lists each change under its day, newest first; one target, its value now and since when, its earlier values with their dates and days, and the days before its first |
 
 ## Module 0: the foundation
