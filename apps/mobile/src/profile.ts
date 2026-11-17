@@ -41,14 +41,73 @@ export const PROFILE_TEXTS = {
   line1: `Enter line 1 in ${ADDRESS_LINE1_MIN} to ${ADDRESS_LINE_MAX} characters.`,
   line2: `Enter line 2 in up to ${ADDRESS_LINE_MAX} characters.`,
   city: `Enter a city of ${ADDRESS_PLACE_MIN} to ${ADDRESS_PLACE_MAX} letters.`,
-  state: `Enter a state of ${ADDRESS_PLACE_MIN} to ${ADDRESS_PLACE_MAX} letters.`,
+  // D-109: the state is chosen from the list; a state saved before it, not on the list, is kept.
+  state: 'Choose your state from the list.',
   dateOfBirthAge: `Enter a date of birth for someone ${PROFILE_AGE_MIN} or older.`,
   dateOfBirthReal: 'Enter a real date of birth: day, month and year.',
   phone: 'Enter a 10-digit Indian mobile number.',
   pinCode: 'Enter a 6-digit PIN code.',
   addressIncomplete: 'Enter line 1, the city, the state and the PIN code, or leave the address empty.',
+  stateNotListed: (state: string) => `"${state}" isn't on the list. Choose your state to change it.`,
   emailFixed: "Your sign-in email can't be changed yet.",
 };
+
+/**
+ * India's 28 states and 8 union territories (D-109), as the address's State lists them, each group in
+ * the order of the alphabet. Every name fits the address's rules (letters, spaces, at most 60).
+ */
+export const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+] as const;
+
+export const UNION_TERRITORIES = [
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+] as const;
+
+const STATE_KEY = (text: string) => text.toLowerCase().replace(/&/g, 'and').replace(/[^a-z]/g, '');
+const LISTED_STATES = new Map<string, string>([...INDIAN_STATES, ...UNION_TERRITORIES].map((state) => [STATE_KEY(state), state]));
+
+/**
+ * The list's name for a state typed before D-109, ignoring case, spaces and marks ("tamil nadu",
+ * "Jammu & Kashmir"); null when it is not on the list.
+ */
+export function listedState(text: string): string | null {
+  return LISTED_STATES.get(STATE_KEY(text)) ?? null;
+}
 
 /** The heights a profile takes in `unit`, one decimal: 100.0 to 250.0 cm, or 39.4 to 98.4 in. */
 export function heightRange(unit: LengthUnit): { min: number; max: number } {
@@ -104,7 +163,8 @@ export function formFromProfile(profile: Omit<ProfileSetData, 'setAt'> | null, u
     line1: address?.line1 ?? '',
     line2: address?.line2 ?? '',
     city: address?.city ?? '',
-    state: address?.state ?? '',
+    // A state typed before D-109 shows with the list's spelling when it is on the list, else as saved.
+    state: address ? (listedState(address.state) ?? address.state) : '',
     pinCode: address?.pinCode ?? '',
   };
 }

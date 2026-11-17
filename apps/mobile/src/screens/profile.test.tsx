@@ -51,7 +51,15 @@ beforeEach(() => {
 });
 
 async function type(label: string, text: string) {
+  // D-109: the State is chosen from its list.
+  if (label === 'State') return chooseState(text);
   await fireEvent.changeText(screen.getByLabelText(label), text);
+}
+
+/** Opens the State list and picks `state`. */
+async function chooseState(state: string) {
+  await fireEvent.press(screen.getByRole('button', { name: /^State: / }));
+  await fireEvent.press(await screen.findByRole('radio', { name: state }));
 }
 
 async function renderProfile(before?: Parameters<typeof renderInApp>[2]) {
@@ -67,9 +75,10 @@ describe('REQ-ACC-011 the Profile screen', () => {
     for (const label of ['Name (optional)', 'Day of birth', 'Month of birth', 'Year of birth', 'Height in cm', 'Phone number']) {
       expect(screen.getByLabelText(label)).toHaveProp('value', '');
     }
-    for (const label of ['Address line 1', 'Address line 2 (optional)', 'City', 'State', 'PIN code']) {
+    for (const label of ['Address line 1', 'Address line 2 (optional)', 'City', 'PIN code']) {
       expect(screen.getByLabelText(label)).toHaveProp('value', '');
     }
+    expect(screen.getByRole('button', { name: 'State: not chosen' })).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Sex: Female', checked: false })).toBeOnTheScreen();
     expect(screen.getByLabelText('Email: user@example.test')).toBeOnTheScreen();
     expect(screen.getByText(PROFILE_TEXTS.emailFixed)).toBeOnTheScreen();
@@ -179,6 +188,73 @@ describe('REQ-ACC-011 the Profile screen', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     await fireEvent(screen.getByLabelText('City'), 'blur');
     expect(screen.getByRole('alert')).toHaveTextContent(PROFILE_TEXTS.addressIncomplete);
+  });
+
+  it('D-109 the State is a list of the 28 states, then the 8 union territories; a tap chooses one and closes it', async () => {
+    const { db } = await renderProfile();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'State: not chosen' }));
+
+    expect(await screen.findByRole('header', { name: 'States' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Union territories' })).toBeOnTheScreen();
+    expect(screen.getAllByRole('radio', { checked: false }).filter((radio) => !/^Sex: /.test(radio.props.accessibilityLabel))).toHaveLength(36);
+    expect(screen.getByRole('radio', { name: 'Dadra and Nagar Haveli and Daman and Diu' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Clear state' })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Ladakh' }));
+
+    expect(screen.queryByRole('header', { name: 'Union territories' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'State: Ladakh' })).toBeOnTheScreen();
+    await type('Address line 1', '12 Example Lane');
+    await type('City', 'Leh');
+    await type('PIN code', '194101');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(await getEntry(db, 'profile', PROFILE_KEY)).toMatchObject({ address: { city: 'Leh', state: 'Ladakh', pinCode: '194101' } });
+  });
+
+  it('D-109 the saved state is ticked; Clear state empties it, and the address then asks for it', async () => {
+    await renderProfile(async (database) => saveProfile(database));
+    await fireEvent.press(await screen.findByRole('button', { name: 'State: Maharashtra' }));
+
+    expect(await screen.findByRole('radio', { name: 'Maharashtra', checked: true })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Clear state' }));
+
+    expect(screen.getByRole('button', { name: 'State: not chosen' })).toBeOnTheScreen();
+    expect(await screen.findByRole('alert')).toHaveTextContent(PROFILE_TEXTS.addressIncomplete);
+    expect(screen.getByRole('button', { name: 'Save profile' })).toBeDisabled();
+  });
+
+  it('D-109 a state typed before the list shows with the list’s spelling', async () => {
+    await renderProfile(async (_db, server) => server.storeProfileFromElsewhere({ ...SAVED, address: { ...ADDRESS, state: 'tamil  nadu' } }));
+
+    expect(await screen.findByRole('button', { name: 'State: Tamil Nadu' })).toBeOnTheScreen();
+  });
+
+  it('D-109 a state not on the list is kept as saved; its list says so, and choosing one replaces it', async () => {
+    const saved = { ...SAVED, address: { ...ADDRESS, state: 'Jammu-Kashmir' } };
+    const { db } = await renderProfile(async (database) => saveEntry(database, 'profile', { changeId: 'c2', data: { ...saved, setAt: AT } }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'State: Jammu-Kashmir' }));
+    expect(await screen.findByText(PROFILE_TEXTS.stateNotListed('Jammu-Kashmir'))).toBeOnTheScreen();
+    expect(screen.queryByRole('radio', { name: /Jammu/, checked: true })).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Jammu and Kashmir' }));
+
+    expect(screen.getByRole('button', { name: 'State: Jammu and Kashmir' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(await getEntry(db, 'profile', PROFILE_KEY)).toMatchObject({ address: { state: 'Jammu and Kashmir' } });
+  });
+
+  it('D-109 a state not on the list, left alone, is saved as it was', async () => {
+    const saved = { ...SAVED, address: { ...ADDRESS, state: 'Jammu-Kashmir' } };
+    const { db } = await renderProfile(async (database) => saveEntry(database, 'profile', { changeId: 'c2', data: { ...saved, setAt: AT } }));
+    await screen.findByRole('button', { name: 'State: Jammu-Kashmir' });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
+
+    await waitFor(() => expect(mockRouter.back).toHaveBeenCalled());
+    expect(await getEntry(db, 'profile', PROFILE_KEY)).toMatchObject({ address: { state: 'Jammu-Kashmir' } });
   });
 
   it('invariant #6 the height is typed in inches when the measurements use inches, and kept in mm', async () => {

@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { FormScreen } from '../components/FormScreen';
 import { NumberEntrySheet } from '../components/NumberEntrySheet';
 import { ProfilePhoto } from '../components/ProfilePhoto';
+import { StatePicker } from '../components/StatePicker';
 import { andList } from '../components/MealFoods';
 import { Field, Problem, Text, TextButton, TextInput, useChoiceStyles } from '../components/ui';
 import { useFieldChecks } from '../fieldChecks';
@@ -42,7 +43,8 @@ type PhotoDraft = { mediaId: string | null; files: PhotoFiles | null };
 // saved on the phone and synced, so it works offline; the weight is a weigh-in, saved as on Home.
 // Since D-99 a problem shows once typing pauses or the field is left, not when Save is pressed; the
 // date of birth's and the address's wait until they are complete or left. Save waits while there is
-// one, saying what to check.
+// one, saying what to check. Since D-109 the address's State is chosen from a list of India's states
+// and union territories (components/StatePicker.tsx).
 export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -335,15 +337,7 @@ export function ProfileScreen({ now = () => new Date() }: { now?: () => Date }) 
                   {...watch('city')}
                   half
                 />
-                <AddressInput
-                  label="State"
-                  placeholder="State"
-                  value={form.state}
-                  refused={!!problems.address}
-                  onChange={(state) => change({ state })}
-                  {...watch('state')}
-                  half
-                />
+                <StatePicker value={form.state} refused={!!problems.address} onChange={(state) => change({ state })} {...watch('state')} />
               </View>
               <View style={styles.pair}>
                 <AddressInput
