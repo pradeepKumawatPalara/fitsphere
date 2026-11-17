@@ -3663,7 +3663,7 @@ checksum), and the configuration template was left as it is.*
     high (54 before), Category and Sub-group too, labels closer to their boxes and fields closer together.
   - **Time spent beside Calories** (a cardio exercise: Calories alone), the heart rates beside each other,
     with short labels: "Time spent", "Calories", "Average HR", "Highest HR". The calories' line sits under
-    the pair. The note is one line, "Note (optional)" inside it, growing as it is typed.
+    the pair. The note is one line under its label, "Note (optional)", growing as it is typed (the owner kept the label after the phone test).
   - **"Estimated" beside the Calories label** (the owner, 2026-11-17, after the phone test: "the calories
     value is not visible. SO put the estimated label to label"): the half-wide box shows only the number
     and kcal; the estimate's tag sits where D-107's Edited tag does (never both), the muted tag of the

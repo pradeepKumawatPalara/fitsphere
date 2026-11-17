@@ -76,7 +76,7 @@ holds an exercise of the list (How to needs the list's steps; a name of the user
 - `apps/mobile/src/components/ExerciseSheet.tsx`: boxes 44 high (`box`), numbers 20, labels 6 above
   their boxes (`field`), fields 12 apart (`top`, `form`); Time spent and Calories in one row
   (`exercise-effort`; cardio: Calories alone), the calories' line under it; heart rates "Average HR" and
-  "Highest HR"; the note one line with "Note (optional)" inside it; How to do it in the name label's row
+  "Highest HR"; the note one line under its label "Note (optional)" (the owner kept the label after the phone test; it was first the box's placeholder); How to do it in the name label's row
   (`exercise-how-to`), only with `match`; the tag line keeps the tag and how it is logged.
 - `apps/mobile/src/components/ExercisePlacePickers.tsx`: Category and Sub-group 44 high.
 - Accessibility labels unchanged, so screen readers and the tests find each field by its whole name.
