@@ -1,5 +1,4 @@
 import {
-  istWeekStart,
   MEAL_SET,
   MEASUREMENTS_SET,
   SAVED_MEAL_SET,
@@ -30,7 +29,6 @@ import { RejectedChanges } from '../components/RejectedChanges';
 import { isWaiting, ShowingDayBanner } from '../components/ShowingDayBanner';
 import { TargetProgressCard } from '../components/TargetProgressCard';
 import { WeekStrip } from '../components/WeekStrip';
-import { WeekWorkouts } from '../components/WeekWorkouts';
 import { Text, TextButton } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
 import { formatDay } from '../format';
@@ -51,7 +49,7 @@ import { useShownOlderDays } from '../navigation/useShownOlderDays';
 import { useBodyWeightUnit } from '../settings/SettingsProvider';
 import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
-import { targetValues, weekTargetDay } from '../targets';
+import { targetValues } from '../targets';
 import { useWeekActivity } from '../weekActivity';
 import { LogOut } from './LogOut';
 
@@ -83,7 +81,7 @@ export function HomeScreen() {
   const [measurementsSheet, setMeasurementsSheet] = useState<{ mode: 'add' | 'edit'; day: IstDay } | null>(null);
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
-  // The strip's week: an apple and a dumbbell under each day, and its workouts counted under it (D-103).
+  // The strip's week: an apple and a dumbbell under each day (D-103); no line counting its workouts (D-110).
   const activity = useWeekActivity(stripStart);
   // A day before the phone's 90 is read from the server when shown; till then its cards show dashes (D-106).
   const older = useShownOlderDays();
@@ -110,14 +108,12 @@ export function HomeScreen() {
       Promise.all(DAY_VALUE_ORDER.map((kind) => getEntry(db, kind, selected))),
       rejectedChanges(db),
       targetsOn(db, selected),
-      // The strip's week's workout target is its Sunday's: this week's is today's (D-77).
-      targetsOn(db, weekTargetDay(stripStart)),
       getEntry(db, 'measurements', selected),
       getMeta(db, 'measurement_unit'),
       dayNutrition(db, selected),
       latestMeasurementsDay(db, today),
       getMeta(db, 'account_created_day'),
-    ]).then(([entries, waiting, onDay, onSunday, dayMeasurements, unit, nutrition, lastDay, accountDay]) => {
+    ]).then(([entries, waiting, onDay, dayMeasurements, unit, nutrition, lastDay, accountDay]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -128,8 +124,8 @@ export function HomeScreen() {
         ),
       );
       setRejected(waiting);
-      // Each date shows the targets it had (D-77); the strip's week's workouts, its Sunday's.
-      setTargets({ ...targetValues(onDay), ...targetValues(onSunday.filter((target) => target.kind === 'weekly_workouts')) });
+      // Each date shows the targets it had (D-77).
+      setTargets(targetValues(onDay));
       setMeasurements(dayMeasurements);
       setLastMeasured({ day: lastDay, accountDay });
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
@@ -139,7 +135,7 @@ export function HomeScreen() {
       active = false;
     };
     // Read again when the measurements sheet closes: its cm/in choice may have changed.
-  }, [local.state, selected, today, stripStart, version, measurementsOpen, texts]);
+  }, [local.state, selected, today, version, measurementsOpen, texts]);
 
   // Today's card says when measurements were last logged, and whether they are due (D-85). All the
   // account's days are on the phone when it was created within the 90 days.
@@ -190,22 +186,15 @@ export function HomeScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.week}>
-          <WeekStrip
-            today={today}
-            firstDay={firstDay}
-            selected={selected}
-            start={stripStart}
-            activity={activity}
-            onSelect={select}
-            onShow={showDays}
-          />
-          <WeekWorkouts
-            count={isWaiting(older.week.status) ? null : (activity?.counted ?? null)}
-            target={targets.weekly_workouts ?? null}
-            thisWeek={stripStart === istWeekStart(today)}
-          />
-        </View>
+        <WeekStrip
+          today={today}
+          firstDay={firstDay}
+          selected={selected}
+          start={stripStart}
+          activity={activity}
+          onSelect={select}
+          onShow={showDays}
+        />
         {selected !== today ? (
           <ShowingDayBanner day={selected} today={today} status={older.day.status} onBack={() => select(today)} onRetry={older.day.retry} />
         ) : null}
@@ -283,11 +272,10 @@ export function HomeScreen() {
 
 // The redesign's 2.3 (locked by the owner, 2026-11-03): cards 12 apart in the 16 gutter, radius 4; the
 // food card with the cut corner; the three tiles one strip; room at the foot for + LOG. Since D-103 (B
-// locked 2026-11-13): the week's workouts line 6 under the strip, and no workouts card.
+// locked 2026-11-13): no workouts card; since D-110 no line counting the week's workouts under the strip.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100, gap: 12 },
-  week: { gap: 6 },
   body: { fontSize: 15 },
   panel: { padding: 16, borderRadius: 4, backgroundColor: c.surface },
   rule: { height: 1, marginVertical: 16, backgroundColor: c.border },
