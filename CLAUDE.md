@@ -55,6 +55,14 @@ empties; a state saved before shows with the list's spelling, or as saved when n
 `components/StatePicker.tsx`). Phone app only: no server change, no migration, no phone schema change, no
 new build.
 
+**The exercise page scrolls less — built on the day's branch `daily/2026-11-17` (D-111, 2026-11-17), in
+`D:\fitsphere`.** Plan: `docs/plans/exercise-sheet-compact.md` (Accepted); canvas boards `ExerciseScroll*` B
+locked (version 114). Add and Edit exercise keep every field, smaller: boxes 44 high (54), Time spent
+beside Calories, the heart rates side by side, short labels (screen readers hear the whole names), the
+note one line; How to do it at the right of the Exercise name label, only for an exercise of the list
+(`components/ExerciseSheet.tsx`, `components/ExercisePlacePickers.tsx`). Phone app only: no server change,
+no migration, no phone schema change, no new build.
+
 **Calories burned changed by you: an Edited tag and an arrow back to the estimate — built on branch
 `feat/exercise-calories-reset` (D-107, 2026-11-16), in its own folder `D:\fitsphere-exercise-calories`
 (removed once merged).** Plan: `docs/plans/exercise-calories-reset.md` (Accepted); canvas boards

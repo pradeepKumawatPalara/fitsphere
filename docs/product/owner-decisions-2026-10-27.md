@@ -3650,6 +3650,28 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: REQ-HOME-007 and REQ-ROLE-007's criterion; constraints' D-103 row; the redesign's 2.3;
   CLAUDE.md.
 
+## D-111 The exercise page scrolls less: everything shown, smaller; How to do it beside the name
+- Status: **Accepted** (owner, in chat, 2026-11-17: "In the Add Excercise tab while Adding the details it
+  has to much scrolling. for this come up with the better canva desing and plan and wait for my
+  approval"; of the canvas's A (fold the optional fields), B (everything shown, smaller) and C (the
+  optional fields in a sheet), version 113: "Lock it B with one small change like how to do it should be
+  side by side to the excercise name to right side. will only visible when the here is the value for the
+  excercise name"; locked in version 114). Plan: `docs/plans/exercise-sheet-compact.md`. Built on the
+  day's branch `daily/2026-11-17`.
+- Answer (REQ-TRN-003; with D-50, D-67, D-82, D-107):
+  - Add exercise and Edit exercise keep every field shown, one page as before, but smaller: each box 44
+    high (54 before), Category and Sub-group too, labels closer to their boxes and fields closer together.
+  - **Time spent beside Calories** (a cardio exercise: Calories alone), the heart rates beside each other,
+    with short labels: "Time spent", "Calories", "Average HR", "Highest HR". The calories' line sits under
+    the pair. The note is one line, "Note (optional)" inside it, growing as it is typed.
+  - **How to do it** moves from the tag line to the right of the Exercise name label, and shows only while
+    the name holds an exercise of the list.
+- MVP defaults: screen readers hear each field's whole name, as before; Time spent's own line ("Used only
+  to estimate the calories burned.") is gone, the calories' line saying the same; cardio's fields stay one
+  under another; nothing saved changes.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; the plan; CLAUDE.md.
+
 ---
 
 ---
