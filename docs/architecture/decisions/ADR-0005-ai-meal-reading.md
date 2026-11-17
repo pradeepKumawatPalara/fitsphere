@@ -1,6 +1,8 @@
 # ADR-0005: AI meal reading (text, photo, voice)
 
-- Status: **Accepted** by the project owner on 2026-10-27 under the D-18 pre-approval. The check
+- Status: **Superseded in part** by [ADR-0010](ADR-0010-ai-provider-openai.md) on 2026-11-17 (D-108):
+  the provider (now OpenAI `gpt-6-luna`), flow step 4 (no AI estimate: unmatched foods are "Not in our
+  food list") and Q-063's answer. The rest stands. Originally **Accepted** by the project owner on 2026-10-27 under the D-18 pre-approval. The check
   against the requirements, invariants, threat model, D-01 to D-18 and ADR-0001 to ADR-0003
   found one conflict that touched privacy: the phone's speech service could receive the voice
   before the server's consent check (invariant #3, C-004). The owner answered it before

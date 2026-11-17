@@ -12,6 +12,23 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**Voice meal logging from the Search foods box, read by OpenAI — being built on branch
+`feat/ai-meal-logging` (D-108, ADR-0010, 2026-11-17), in `c:\fitsphere`.** Plan:
+`docs/plans/voice-meal-logging.md` (Accepted). A mic at the end of Search foods (E-28, on-device
+speech only, hidden where the phone can't); the text, never audio, goes to `POST /v1/ai/meal-parse`;
+OpenAI `gpt-6-luna` names the foods, quantities and units, no nutrition; the phone finds each in its
+own food list as Search foods does, and adds it to Log meal for review; no match: "Not in our food
+list". Consent asked once (a new text naming OpenAI), checked on the server before every call
+(invariant #3); no daily limit (the owner, 2026-11-17: readings are only counted by day, migration
+`0034_ai_readings.sql`, whose comment still says 15: an applied migration is never edited); OpenAI's
+$10 monthly limit is the only cap. Listening ends on Done, 6 seconds with no words, or 30 seconds. `OPENAI_API_KEY` in `apps/api/.env` only: never print, log or commit
+it. Canvas boards `VoiceMealLocked` (C with B's review) and `VoiceMealShared`, locked 2026-11-17; the
+phone part built (`components/VoiceMeal.tsx`, `src/voiceMeal.ts`, `src/speech.ts`,
+`expo-speech-recognition`, Settings › Voice language). `app.json` gives the microphone a text in every
+plugin (`false` made the image picker block Android's microphone permission). ADR-0010 validation 1:
+30 of 30 made-up meals read (`npm run ai:check`). Needs a new EAS development build (**the owner's
+word first, D-19**). **Migration 0034 applied on `fitsphere-dev` (the owner's word, 2026-11-17).**
+
 **The beta: the API on Cloud Run, an Android test build — built on branch `feat/cloud-run` (D-101,
 2026-11-13), in its own folder `D:\fitsphere-cloudrun` (removed once merged).** Q-087 answered for the
 API: the Google Cloud project `fitsphere-api` (free trial, ₹500 a month budget alert), region
@@ -538,7 +555,9 @@ Approved stack:
 - Sign-in and authorization: Supabase Auth, with every request authorized by one access module
   in the Node API; email through Resend from a domain FitSphere owns (still required at the MVP
   release, D-20); Expo push, post-MVP (ADR-0004, Accepted — D-18).
-- AI meal reading: Gemini 3.1 Flash-Lite on the paid tier, through one AI module; voice is
+- AI meal reading: OpenAI `gpt-6-luna` through the Responses API (ADR-0010, Accepted — D-108;
+  was Gemini 3.1 Flash-Lite, ADR-0005), through one AI module; the AI names foods and never gives
+  nutrition; voice is
   recognised on the phone only (ADR-0005, Accepted — D-18). Paid use needs the owner's sign-off
   on billing and the monthly cap (C-008, Q-087).
 - Food data: FitSphere's own food list plus Open Food Facts for barcodes (ADR-0006, Accepted —

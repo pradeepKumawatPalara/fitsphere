@@ -3583,6 +3583,53 @@ checksum), and the configuration template was left as it is.*
   in the app's icon package).
 - Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
 
+## D-108 Voice meal logging from the Search foods box; OpenAI reads the meal; consent asked once
+- Status: **Accepted** (owner, in chat, 2026-11-17: the feature brief "voice meal logging from the
+  Search foods box", then "I am the owner", "keep the consent just for first time", "Monthly cap is set
+  on openAi side, dont do anything in App", "show Not in our food list", "put it on canvas"). Plan:
+  `docs/plans/voice-meal-logging.md`. ADR-0010. Built on branch `feat/ai-meal-logging`.
+- Answer (REQ-LOG-005, REQ-LOG-009, REQ-ACC-004; E-28; ADR-0005 amended by ADR-0010):
+  1. **E-28 is off hold:** a microphone at the end of the Search foods box (Log meal › Search foods);
+     as locked on the canvas, a "Speak your meal" row under the box.
+  2. **Speech stays on the phone** (D-18, ADR-0005, unchanged): the phone's on-device recognition only;
+     the mic is hidden on phones that can't. No audio is uploaded or kept (D-16). English (India) by
+     default; Hindi chosen in Settings › Voice language.
+  3. **The AI provider changes** from Gemini 3.1 Flash-Lite to OpenAI, model `gpt-6-luna`, through the
+     Responses API (ADR-0010). The OpenAI project has a $10 a month hard spending limit and a key limited
+     to the Responses API, in `apps/api/.env` as `OPENAI_API_KEY`, with `OPENAI_MODEL`. The key is
+     never printed, logged or committed. This is the owner's sign-off for paid AI use (C-008).
+  4. **No monthly cap in the app:** OpenAI's limit is the cap; when it is reached the API answers
+     `SERVICE_UNAVAILABLE` and the phone keeps the words. **No daily limit either** (changed the
+     same day, after the owner's phone test reached 15: "Remove the daily limit"; ADR-0005's 15 a
+     user a day no longer applies). Readings are still counted by user and India day
+     (`app.ai_readings`), so a limit can come back without a migration.
+  4a. **Listening** (the owner's phone test, 2026-11-17): ends on Done speaking, after 6 seconds
+     with no words, or after 30 seconds; a shorter pause doesn't end it. The button, was "Done" with
+     a square: "Done speaking" with a tick (canvas board `VoiceMealDone`, options A to D, "Implement -
+     C").
+  5. **The AI gives no nutrition.** It names the foods said, with quantity, unit and preparation; the
+     phone finds each in its own food list and works out the values as for a searched food. A food
+     with no match is named under "Not in our food list", with Search and Own food: no AI estimate
+     (changes ADR-0005 step 4 and the answer to Q-063).
+  6. **Consent asked once:** the owner first asked for no consent; told that it is for Legal (DPDP),
+     "keep the consent just for first time". The first time a reading would be sent, a sheet asks;
+     Turn on or Not now is recorded and the sheet does not come back; Settings' switch changes it. The
+     server checks the latest record before every call (invariant #3, unchanged). The consent text
+     names OpenAI, with a new version, so people who agreed to the Gemini text are asked once again.
+- MVP default (D-18): an item whose amount was assumed (none said, or a unit the food lacks) is marked
+  on the phone until the meal is saved; nothing about it is stored.
+- Design (2026-11-17, "lock option C and add 3rd screen from option B (tick/untick searched food)"):
+  option C locked (a "Speak your meal" row under the search box, a listening panel with Done and Cancel
+  in the footer, then reading), with option B's review sheet ("3 foods found": each found food ticked,
+  untickable, its name opening its amount; "Not in our food list" with Search and Own food; "Add N
+  foods · kcal"), then Log meal with a banner "Added N foods from what you said". Board
+  `VoiceMealLocked`, with `VoiceMealShared` (consent, permission, errors, Voice language):
+  https://claude.ai/artifact/SjDTdqAtXqWgXJXvWAwav9. The consent sheet's text approved ("approved").
+- Server: the AI module, `POST /v1/ai/meal-parse`, migration `0034_ai_readings.sql`. Phone: the speech
+  module, so a new development build (D-19: the owner's word first).
+- Doc changes: ADR-0010, ADR-0005's status, the ADR index; REQ-LOG-005, REQ-LOG-009, REQ-ACC-004;
+  backlog E-28; risk R-017; CLAUDE.md.
+
 ---
 
 ---

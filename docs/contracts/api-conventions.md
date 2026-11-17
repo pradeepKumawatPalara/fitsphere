@@ -101,6 +101,7 @@ refer to [`owner-decisions-2026-10-27.md`](../product/owner-decisions-2026-10-27
 | `DELETE /v1/me` | Delete the user's account: their data, files and sign-in account | Signed in; the caller's own account only | REQ-ACC-009, ADR-0004 rule 7 |
 | `GET /v1/me/ai-consent` | The user's current AI meal-reading consent | The user, for their own record only | REQ-ACC-004 |
 | `PUT /v1/me/ai-consent` | Record a change of AI meal-reading consent | The user, for their own record only | REQ-ACC-004, C-004 |
+| `POST /v1/ai/meal-parse` | The foods a meal text names, read by AI; no nutrition | The user, for their own reading only, with consent on the current text | REQ-LOG-009, REQ-ACC-004, D-108 |
 | `POST /v1/sync` | Send queued changes; receive changes for the phone | Own data; Personal Training User role turned on to write any change | REQ-NFR-004, REQ-HOME-006, REQ-MEAS-*, REQ-ROLE-007, REQ-LOG-007, REQ-NUT-004, REQ-SAVED-001, REQ-TRN-003, REQ-ACC-001…003, ADR-0007 |
 | `GET /v1/users/{userId}/weigh-ins` | Read weigh-ins online: the user's own older history, or a trainee's | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-PRG-001, REQ-NFR-001; post-MVP REQ-ROLE-005, REQ-ROLE-013 |
 | `GET /v1/users/{userId}/workouts` | Read workouts online: the user's own history older than the phone holds | The user. Post-MVP (D-20): also their coach with an active link, or a Head Coach the trainee allows; read-only | REQ-TRN-004, REQ-NFR-001 |
@@ -158,6 +159,26 @@ No body. `204` with no body once the account is deleted:
   delete the sign-in account (the data is already gone; call again).
 - Logged: the request line with the account's ID, and "account deleted". Never the email address,
   the key or any health data (invariant #7).
+
+### `POST /v1/ai/meal-parse` (REQ-LOG-009, D-108, ADR-0010)
+The meal text, typed or turned into text on the phone (never audio), 2 to 500 characters once trimmed:
+```json
+{ "text": "do roti aur ek katori dal" }
+```
+Returns the foods it names, in the order said; never nutrition (the phone takes values from its food
+list). `quantity`, `unit` and `preparation` are `null` when not said; `unit` is one of `SPOKEN_UNITS`
+(shared); at most 20 foods:
+```json
+{ "items": [{ "spokenWords": "do roti", "name": "roti", "quantity": 2, "unit": "piece", "preparation": null, "ambiguity": [] }] }
+```
+- Checked in this order: the AI module is set up (else 503 `SERVICE_UNAVAILABLE`); the body (400
+  `VALIDATION_FAILED`); the latest consent, on and given on the current `AI_CONSENT_TEXT_VERSION`,
+  read immediately before the call (else 403 `AI_CONSENT_REQUIRED`, no call; invariant #3). No daily
+  limit (D-108); a reading made is counted by India day, a refused or failed one not.
+- Any failure of the AI provider, its monthly limit included, or an answer out of contract is 503
+  `SERVICE_UNAVAILABLE`.
+- Only the text reaches the AI: no name, email or user ID. Neither the text nor the answer is logged;
+  a failure logs its kind and the provider's code only (invariant #7).
 
 ### `GET /v1/me/ai-consent` and `PUT /v1/me/ai-consent` (REQ-ACC-004)
 `GET` returns the latest record, or `null` when the user has never chosen, which means AI is off

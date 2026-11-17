@@ -524,6 +524,9 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given a phone with on-device speech recognition and no network, when the user speaks a meal, then the text appears in the free-text box.
   - No audio recording is uploaded or kept by FitSphere, on the device or the server (D-16).
   - Given a phone without on-device speech recognition, then "Speak your meal" is not shown.
+- MVP (D-108, E-28): the voice entry is a **"Speak your meal" row, with a microphone, under the Search foods box** (Log meal › Search foods), as locked on the canvas. The words appear live in the box as an ordinary search; listening stops on silence, after 30 seconds, or a second tap. The microphone permission is asked on first use; refused, the user is told how to turn it on. English (India) by default, Hindi chosen in Settings › Voice language. When listening stops, with AI meal reading on, the text is read as in REQ-LOG-009; off, the words stay as a search.
+  - Given the user refused the microphone permission, when they tap the mic, then a message says how to turn it on in the phone's settings.
+  - Given a phone that can recognise speech on the device, when the user speaks, then the words appear in the Search foods box while they speak.
 
 ### REQ-LOG-006 — Photo entry
 - Requirement: A camera button captures a meal photo or nutrition label for parsing. A meal photo is kept as a compressed viewable copy of about 200 KB (phone-viewable quality) with a small thumbnail for lists. Instead of uploading, the user can paste a public link to an image (REQ-LOG-010). Photos are view-only (REQ-NFR-006). A user's own photos are never fully deleted automatically while the account exists; an original may be replaced by a viewing-quality copy (D-16). A user may delete their own meal photo or nutrition-label image, and it is then really removed: from file storage, and from copies cached on other phones at their next sync (D-16, A-004).
@@ -648,6 +651,11 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - When AI fails or times out, then the input is kept and the user can retry or use another method.
   - Given a user who has used 15 AI readings today, when they ask for another, then it is refused with a message and non-AI methods are offered (MVP default; ADR-0005).
 - AI provider: ADR-0005. Open: accuracy expectations (Q-040), measured in ADR-0005's validation.
+- Changed by D-108 (ADR-0010): the provider is OpenAI `gpt-6-luna`. **The AI names the foods, quantities and units only; it never gives nutrition.** The phone finds each food in its own food list as Search foods does and works out the values as for a searched food; there is no AI estimate. Matched foods join Log meal's list for review (kcal and protein shown as for any food); an item whose amount was not said, or whose unit the food lacks, is marked as assumed until the meal is saved (MVP default).
+  - Given the AI names a food that the food list does not have, then it is named under "Not in our food list" with Search and Own food, and nothing is added for it; if no food matched, the words stay in the Search foods box.
+  - Given a food matched by voice and the same food and amount searched by hand, then their kcal and nutrients are the same.
+  - Given OpenAI's monthly limit is reached, or the reading fails, then the user's words are kept and ordinary search is offered (`SERVICE_UNAVAILABLE`).
+  - D-108: there is no daily limit; the criterion above on 15 AI readings a day no longer applies.
 
 ### REQ-LOG-010 — Public link instead of an upload
 - Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, meal photos only (REQ-LOG-006; D-16, confirmed). Links to their own videos come with the audio/video release (future scope). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
@@ -808,6 +816,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Consent changes are recorded with a timestamp. *(A-007.)*
 - MVP default (D-18): each change records on/off, the time and the version of the consent text shown; one toggle covers typed or spoken text, photos and labels (Q-065; ADR-0005). Legal confirms (Q-049).
 - MVP (D-31): the switch and the record are built in the Settings slice (slice 6), with no AI call: each change goes to `PUT /v1/me/ai-consent`, online only, and the server records its own time (data model, `ai_consents`). The consent text and its version are in the shared package (`AI_CONSENT_TEXT`). The check before each AI call comes with slice 7 (invariant #3).
+- D-108 (2026-11-17): **asked once.** The first time a reading would be sent and the user has never chosen, or chose on an older consent text, a sheet shows the consent text with Turn on and Not now; the choice is recorded as from the Settings switch, and the sheet does not come back. The text names OpenAI (ADR-0010), with a new version; the server accepts only consent given on the current version, so people who agreed to the Gemini text are asked once again. Without it, the API refuses with `AI_CONSENT_REQUIRED` and calls no AI.
+  - Given the user chose Not now, when they use the mic again, then no sheet is shown, the words stay as a search, and a line says AI meal reading can be turned on in Settings.
 
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
