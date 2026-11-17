@@ -65,6 +65,11 @@ Training's All workouts (the phone's 90 days, then "Load older"), Progress (its 
 exercise's History, the Profile's latest weight: each keeps its own rule. ADR-0007 is unchanged: rule 1
 already reads older history online.
 
+*Fixed on 2026-11-17 (the owner's report: a weigh-in of 1 Aug missing from Progress's 6M and All):
+Progress's 6M and All read only an account older than the phone's 90 days online, and All only from the
+day the account was created; they now read online whatever the account's age, All from `EARLIEST_DAY`,
+and again after a change is saved or synced. Progress's week table still starts at the account's week.*
+
 ## Tests
 - API (integration, `days.test.ts`): each kind of the days asked for and nothing outside them, deleted
   meals sent as deleted, one day and 42 days, refused ranges and fields; another user and an unknown ID

@@ -37,7 +37,6 @@ export function ProgressScreen() {
         <WeightTrend
           weighIns={data.weighIns}
           today={today}
-          accountStart={accountStart}
           unit={unit}
           onAllWeighIns={() => router.push('/weight-history')}
         />
