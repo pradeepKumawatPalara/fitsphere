@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import {
+  AI_CONSENT_OLDER_TEXT_VERSIONS,
+  AI_CONSENT_TEXT,
   AI_CONSENT_TEXT_VERSION,
   aiConsentRequestSchema,
+  MEAL_PARSE_MAX_ITEMS,
+  MEAL_TEXT_MAX,
+  mealParseRequestSchema,
+  mealParseResponseSchema,
+  SPOKEN_UNITS,
   DEFAULT_SETTINGS,
   errorBodySchema,
   exerciseMet,
@@ -523,6 +530,58 @@ describe('REQ-ACC-004 AI consent request', () => {
     expect(detailsFor(aiConsentRequestSchema, { consented: true, textVersion: AI_CONSENT_TEXT_VERSION, recordedAt: RECORDED_AT })).toEqual([
       { field: 'recordedAt', issue: 'unknown_field' },
     ]);
+  });
+
+  it('D-108 the text names OpenAI, not Gemini, under a new version; an older app’s version is still recorded', () => {
+    expect(AI_CONSENT_TEXT).toContain('OpenAI');
+    expect(AI_CONSENT_TEXT).not.toMatch(/Gemini|Google/);
+    expect(AI_CONSENT_OLDER_TEXT_VERSIONS).not.toContain(AI_CONSENT_TEXT_VERSION);
+    for (const textVersion of AI_CONSENT_OLDER_TEXT_VERSIONS) {
+      expect(aiConsentRequestSchema.safeParse({ consented: false, textVersion }).success).toBe(true);
+    }
+  });
+});
+
+describe('REQ-LOG-009 AI meal reading: POST /v1/ai/meal-parse (D-108)', () => {
+  const ROTI = {
+    spokenWords: 'do roti',
+    name: 'roti',
+    quantity: 2,
+    unit: 'piece',
+    preparation: null,
+    ambiguity: [],
+  };
+
+  it('the request takes the meal text, 2 to 500 characters once trimmed', () => {
+    expect(mealParseRequestSchema.parse({ text: '  2 roti and dal  ' })).toEqual({ text: '2 roti and dal' });
+    expect(mealParseRequestSchema.safeParse({ text: 'दो रोटी' }).success).toBe(true);
+    expect(mealParseRequestSchema.safeParse({ text: 'x'.repeat(MEAL_TEXT_MAX) }).success).toBe(true);
+    for (const body of [{ text: ' a ' }, { text: 'x'.repeat(MEAL_TEXT_MAX + 1) }, { text: 42 }, {}, { text: 'roti', userId: 'u' }]) {
+      expect(mealParseRequestSchema.safeParse(body).success).toBe(false);
+    }
+  });
+
+  it('the answer lists foods with quantity, unit, preparation and what was unclear', () => {
+    const chai = { spokenWords: 'chai', name: 'tea with milk and sugar', quantity: null, unit: null, preparation: null, ambiguity: ['how much'] };
+    const body = { items: [ROTI, chai] };
+    expect(mealParseResponseSchema.parse(body)).toEqual(body);
+    expect(mealParseResponseSchema.parse({ items: [] })).toEqual({ items: [] });
+  });
+
+  it('D-108 an answer giving nutrition, or any field not in the contract, is refused', () => {
+    for (const extra of [{ kcal: 240 }, { proteinG: 7 }, { grams: 80 }, { calories: 240 }]) {
+      expect(mealParseResponseSchema.safeParse({ items: [{ ...ROTI, ...extra }] }).success).toBe(false);
+    }
+    expect(mealParseResponseSchema.safeParse({ items: [ROTI], totalKcal: 240 }).success).toBe(false);
+  });
+
+  it('refuses a unit outside FitSphere’s measure words, a quantity of 0 or less, and too many foods', () => {
+    expect(SPOKEN_UNITS).toContain('katori');
+    expect(SPOKEN_UNITS).not.toContain('bowl');
+    for (const item of [{ ...ROTI, unit: 'bowl' }, { ...ROTI, quantity: 0 }, { ...ROTI, quantity: -1 }, { ...ROTI, name: '' }]) {
+      expect(mealParseResponseSchema.safeParse({ items: [item] }).success).toBe(false);
+    }
+    expect(mealParseResponseSchema.safeParse({ items: Array(MEAL_PARSE_MAX_ITEMS + 1).fill(ROTI) }).success).toBe(false);
   });
 });
 
