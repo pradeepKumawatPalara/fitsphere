@@ -106,13 +106,13 @@ describe('REQ-NUT-002 and REQ-NUT-003 Consumed', () => {
     expect(screen.getByText('237 kcal · 1 meal')).toBeOnTheScreen();
     expect(screen.getByText('Wheat flour, atta, Ghee')).toBeOnTheScreen();
     expect(screen.getByText('180 kcal · 1 meal')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: /^Edit Lunch/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Insight: Lunch/ })).toBeNull();
     await open('Lunch');
-    expect(screen.getByRole('button', { name: 'Edit Lunch: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Insight: Lunch: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
     expect(screen.getByText('Dessert')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: 'Edit Snack: Synthetic bar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Insight: Snack: Synthetic bar' })).toBeNull();
     await open('Snack');
-    expect(screen.getByRole('button', { name: 'Edit Snack: Synthetic bar' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Insight: Snack: Synthetic bar' })).toBeOnTheScreen();
     expect(screen.getAllByText('Tap to add what you ate')).toHaveLength(2);
   });
 
@@ -182,11 +182,11 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
 
     await open('Lunch');
     const remove = await screen.findByRole('button', { name: 'Delete Lunch: Wheat flour, atta' });
-    // The icons are 44 to tap; Delete's stands out in red from Edit's caramel.
+    // The icons are 44 to tap; Delete's stands out in red from Insight's caramel.
     expect(remove).toHaveStyle({ width: 44, height: 44 });
     const icon = { includeHiddenElements: true };
     expect(within(remove).getByTestId('icon', icon)).toHaveProp('stroke', LIGHT_COLORS.danger);
-    expect(within(screen.getByRole('button', { name: 'Edit Lunch: Wheat flour, atta' })).getByTestId('icon', icon)).toHaveProp(
+    expect(within(screen.getByRole('button', { name: 'Insight: Lunch: Wheat flour, atta' })).getByTestId('icon', icon)).toHaveProp(
       'stroke',
       LIGHT_COLORS.accent,
     );
@@ -211,19 +211,7 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
     expect(screen.queryByText('Delete this meal?')).toBeNull();
   });
 
-  it('REQ-NUT-004 Edit opens Log meal with the meal', async () => {
-    let mealId = '';
-    await renderInApp(<NutritionScreen />, undefined, async (db) => {
-      mealId = await meal(db);
-    });
-
-    await open('Lunch');
-    await fireEvent.press(await screen.findByRole('button', { name: 'Edit Lunch: Wheat flour, atta' }));
-
-    expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/log-meal', params: { mealId } });
-  });
-
-  it('D-70 a logged meal’s Insight icon sits before Edit and opens Insight on its meal type and date; a saved meal has none', async () => {
+  it('D-70 a logged meal’s Insight icon sits first and opens Insight on its meal type and date; a saved meal has none', async () => {
     await renderInApp(<NutritionScreen />, undefined, async (db) => {
       await meal(db);
       await saveEntry(db, 'savedMeal', {
@@ -239,7 +227,6 @@ describe('REQ-NUT-004 the meal card’s actions', () => {
     const actions = screen.getAllByRole('button', { name: /Lunch: Wheat flour, atta/ }).map((button) => button.props.accessibilityLabel as string);
     expect(actions).toEqual([
       'Insight: Lunch: Wheat flour, atta',
-      'Edit Lunch: Wheat flour, atta',
       'Save Lunch: Wheat flour, atta to my meals',
       'Delete Lunch: Wheat flour, atta',
     ]);
@@ -354,7 +341,6 @@ describe('D-97 one food of a logged meal: Edit, Save and Remove', () => {
     expect(within(whole).getByText('Whole meal')).toBeOnTheScreen();
     expect(names(whole)).toEqual([
       'Insight: Lunch: Wheat flour, atta + 1 more',
-      'Edit Lunch: Wheat flour, atta + 1 more',
       'Save Lunch: Wheat flour, atta + 1 more to my meals',
       'Delete Lunch: Wheat flour, atta + 1 more',
     ]);
@@ -583,7 +569,7 @@ describe('REQ-SAVED-001 and REQ-SAVED-002 Saved', () => {
     );
     await fireEvent.press(screen.getByRole('tab', { name: 'Consumed' }));
     await open('Breakfast');
-    expect(await screen.findByRole('button', { name: 'Edit Breakfast: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Insight: Breakfast: Wheat flour, atta + 1 more' })).toBeOnTheScreen();
   });
 
   it('D-69 "Change amounts first" opens Log meal on the selected date with the saved meal’s foods and the meal chosen', async () => {

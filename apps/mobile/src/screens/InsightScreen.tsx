@@ -34,7 +34,7 @@ import { TYPE } from '../typography';
 const TOP_SHOWN = 5;
 
 function scopeLabel(scope: InsightScope): string {
-  return scope === 'day' ? 'Whole day' : MEAL_TYPE_LABELS[scope];
+  return scope === 'day' ? 'Full day' : MEAL_TYPE_LABELS[scope];
 }
 
 // Insight (REQ-NUT-005, REQ-NUT-006; D-70): opened from a logged meal's Insight icon on its meal
@@ -112,7 +112,7 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
             >
               <Icon size={22} strokeWidth={2} color={chosen ? colors.onPrimary : colors.accent} />
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.tileText, chosen && styles.tileTextChosen]}>
-                {entry === 'day' ? 'Day' : MEAL_TYPE_LABELS[entry]}
+                {scopeLabel(entry)}
               </Text>
               {hasFood ? (
                 <View testID={`has-food-${entry}`} style={styles.tick}>
@@ -260,33 +260,11 @@ function NutrientsCard({
   const styles = useStyles();
   const { colors } = useTheme();
   const meal = scope !== 'day';
-  const [keyName, setKeyName] = useState<string | null>(null);
   return (
     <View accessibilityLabel="Against your daily targets" style={[styles.card, styles.cardTight]}>
       <View style={styles.cardHead}>
         <Text style={[styles.cardTitle, styles.cardTitleFit]}>Against your daily targets</Text>
-        {meal ? (
-          // Icons in place of the words, kept inside the card; touch (or hover) shows the name.
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={styles.key}>
-            {(() => {
-              const MealIcon = MEAL_ICONS[scope];
-              return (
-                <>
-                  <Pressable onPress={() => setKeyName(scopeLabel(scope))} onHoverIn={() => setKeyName(scopeLabel(scope))} onHoverOut={() => setKeyName(null)} hitSlop={8} style={styles.keyItem}>
-                    <View style={[styles.keyMark, { backgroundColor: colors.inkMuted }]} />
-                    <MealIcon size={16} strokeWidth={2.25} color={colors.inkMuted} />
-                  </Pressable>
-                  <Pressable onPress={() => setKeyName('Rest of today')} onHoverIn={() => setKeyName('Rest of today')} onHoverOut={() => setKeyName(null)} hitSlop={8} style={styles.keyItem}>
-                    <View style={[styles.keyMark, styles.faded, { backgroundColor: colors.inkMuted }]} />
-                    <CalendarDays size={16} strokeWidth={2.25} color={colors.inkMuted} />
-                  </Pressable>
-                </>
-              );
-            })()}
-          </View>
-        ) : null}
       </View>
-      {meal && keyName ? <Text style={styles.keyText}>{keyName}</Text> : null}
       {nutrientLines(meals, scope, targets).map(({ nutrient, amount, dayAmount, target, missing }, index) => {
         const colour = colors[nutrient.colour];
         const eaten = amount ?? 0;

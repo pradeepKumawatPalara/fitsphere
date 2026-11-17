@@ -61,7 +61,6 @@ export function LoggedMealCard({
   savedAs,
   foodsSavedAs,
   onInsight,
-  onEdit,
   onSave,
   onDelete,
   onEditFood,
@@ -130,7 +129,6 @@ export function LoggedMealCard({
       <View testID="whole-meal" style={styles.foot}>
         <Text style={styles.footLabel}>Whole meal</Text>
         <IconAction icon={ChartPie} label={`Insight: ${title}`} color={colors.accent} onPress={onInsight} />
-        <IconAction icon={SquarePen} label={`Edit ${title}`} color={colors.accent} onPress={onEdit} />
         <IconAction
           icon={Bookmark}
           label={savedAs ? `${title}: saved to my meals as ${savedAs}` : `Save ${title} to my meals`}

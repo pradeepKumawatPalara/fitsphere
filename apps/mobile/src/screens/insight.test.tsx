@@ -70,7 +70,7 @@ describe('REQ-NUT-005 Insight', () => {
 
     expect(await screen.findByText('Today · Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Lunch' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Whole day' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Full day' })).not.toBeChecked();
     // A green tick on each meal with food.
     expect(screen.getByTestId('has-food-breakfast')).toBeOnTheScreen();
     expect(screen.getByTestId('has-food-lunch')).toBeOnTheScreen();
@@ -110,10 +110,10 @@ describe('REQ-NUT-005 Insight', () => {
       await target(db, 'fat', 5);
     });
 
-    await fireEvent.press(await screen.findByRole('radio', { name: 'Whole day' }));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Full day' }));
 
-    expect(screen.getByRole('radio', { name: 'Whole day' })).toBeChecked();
-    expect(screen.getByText('Whole day · calories')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Full day' })).toBeChecked();
+    expect(screen.getByText('Full day · calories')).toBeOnTheScreen();
     expect(screen.getByLabelText('429 kcal')).toBeOnTheScreen();
     expect(screen.getByText('21% of your 2,000 kcal daily target')).toBeOnTheScreen();
     const fat = screen.getByTestId('nutrient-fat');

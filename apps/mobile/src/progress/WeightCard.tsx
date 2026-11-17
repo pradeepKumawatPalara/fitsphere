@@ -1,5 +1,5 @@
 import { fromGrams, type BodyWeightUnit } from '@fitsphere/shared';
-import { CalendarDays, Minus, Scale, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react-native';
+import { CalendarDays, CircleGauge, Minus, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { Text } from '../components/ui';
@@ -21,7 +21,7 @@ export function WeightCard({ weighIns, unit }: { weighIns: readonly WeighInPoint
       <Hero unit={unit}>
         <View style={styles.empty}>
           <View style={styles.tile}>
-            <Scale size={24} color={colors.accent} />
+            <CircleGauge size={24} color={colors.accent} />
           </View>
           <Text style={styles.emptyText}>{PROGRESS_TEXTS.noWeighIns}</Text>
         </View>
@@ -30,15 +30,15 @@ export function WeightCard({ weighIns, unit }: { weighIns: readonly WeighInPoint
   }
   // The latest weight is the one large reading on Progress. The change is in the text colour, not
   // green or red: losing weight is not every user's goal.
-  const changeIcon = result.changeGrams === null ? Minus : result.changeGrams < 0 ? TrendingDown : result.changeGrams > 0 ? TrendingUp : Minus;
   const rate = result.weeklyRateGrams;
+  const changeIcon = result.changeGrams === null ? Minus : result.changeGrams < 0 ? TrendingDown : result.changeGrams > 0 ? TrendingUp : Minus;
   return (
     <Hero unit={unit}>
       {/* The weight, the change since a day and the weekly rate in one row (the owner chose option C,
           2026-11-17: the stacked rows, then option B's two rows, took too much room). */}
       <View style={styles.cols}>
         <View accessible accessibilityLabel={`Latest weigh-in · ${formatDay(result.latest.day)}: ${fromGrams(result.latest.weightGrams, unit).toFixed(1)} ${unit}`} style={[styles.cell, styles.first]}>
-          <Head icon={Scale} text="Weight" />
+          <Head icon={CircleGauge} text="Weight" />
           {/* The same figure style as the change and the rate beside it. */}
           <Text numberOfLines={1} style={styles.figure}>
             {fromGrams(result.latest.weightGrams, unit).toFixed(1)}
