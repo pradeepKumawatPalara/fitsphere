@@ -28,6 +28,7 @@ import { nameFromEmail } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, setMeta } from '../local/store';
 import { useSettings } from '../settings/SettingsProvider';
+import { DEFAULT_VOICE_LANGUAGE, languageInstalled, speechEngine, type VoiceLanguage } from '../speech';
 import { useSyncStatus } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
@@ -99,6 +100,8 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
 
       {/* Its own heading: the switch's row, so "AI meal reading" shows once. */}
       <AiConsentSwitch />
+
+      <VoiceLanguageSetting />
 
       <Section title="Country and time zone">
         <View style={styles.place}>
@@ -241,6 +244,76 @@ function Choice<T extends string>({
         );
       })}
     </View>
+  );
+}
+
+const VOICE_LANGUAGE_OPTIONS: { value: VoiceLanguage; label: string }[] = [
+  { value: 'en-IN', label: 'English (India)' },
+  { value: 'hi-IN', label: 'हिन्दी' },
+];
+
+/**
+ * The mic's language in Search foods (D-108; the canvas's VoiceMealShared): English (India) or Hindi,
+ * kept on this phone. Shown only where the phone can recognise speech on the device. Hindi needs its
+ * offline speech pack; until it is on the phone the mic uses English (India).
+ */
+function VoiceLanguageSetting() {
+  const styles = useStyles();
+  const local = useLocalDatabase();
+  const db = local.state.status === 'ready' ? local.state.db : null;
+  const [engine] = useState(speechEngine);
+  const [language, setLanguage] = useState<VoiceLanguage>(DEFAULT_VOICE_LANGUAGE);
+  const [installed, setInstalled] = useState<string[] | null>(null);
+  const [asked, setAsked] = useState(false);
+
+  useEffect(() => {
+    if (!db || !engine.canListen()) return;
+    let active = true;
+    void (async () => {
+      const stored = await getMeta(db, 'voice_language');
+      const languages = await engine.installedLanguages();
+      if (!active) return;
+      setLanguage(VOICE_LANGUAGE_OPTIONS.find((option) => option.value === stored)?.value ?? DEFAULT_VOICE_LANGUAGE);
+      setInstalled(languages);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [db, engine]);
+
+  if (!engine.canListen()) return null;
+  const missing = !languageInstalled(installed, language);
+  return (
+    <Section title="Voice language">
+      <Choice
+        label="Voice language"
+        options={VOICE_LANGUAGE_OPTIONS}
+        value={language}
+        onChange={(value) => {
+          setLanguage(value);
+          if (db) void setMeta(db, 'voice_language', value);
+        }}
+        fill
+      />
+      {missing ? (
+        <>
+          <Text style={styles.body}>Hindi needs its offline speech pack on this phone. Until it's downloaded, the mic uses English (India).</Text>
+          {asked ? (
+            <Text style={styles.help}>Your phone is downloading it. It may wait for Wi-Fi.</Text>
+          ) : (
+            <TextButton
+              title="Download Hindi speech pack"
+              onPress={() => {
+                setAsked(true);
+                void engine.downloadLanguage(language);
+              }}
+            />
+          )}
+        </>
+      ) : (
+        <Text style={styles.help}>Used by Speak your meal in Search foods. Speech is turned into text on your phone; nothing is recorded.</Text>
+      )}
+    </Section>
   );
 }
 

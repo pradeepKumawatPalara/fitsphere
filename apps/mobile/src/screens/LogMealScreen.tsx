@@ -17,6 +17,7 @@ import {
   ArrowDown,
   Bookmark,
   Calendar,
+  Check,
   ChevronDown,
   ChevronUp,
   CircleAlert,
@@ -115,6 +116,10 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   // Each saved food's meal, so a meal with two saved for it keeps each food in its own on Save. A food
   // changed or added has none and goes to the newest.
   const origin = useRef(new WeakMap<MealItem, string>());
+  // D-108: foods added from what was said whose amount was assumed (tagged until changed), and how
+  // many foods were added that way, said in a banner until Save or another meal or date.
+  const assumed = useRef(new WeakSet<MealItem>());
+  const [voiceAdded, setVoiceAdded] = useState(0);
   // An ID for each meal not saved yet, made once, so its photo keeps the meal it is for.
   const newIds = useRef<Partial<Record<MealType, string>>>({});
   // Edit: the meal as loaded, to tell whether it changed.
@@ -226,6 +231,15 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const allowLeave = usePreventRemove(!leaveOk && (pending.length > 0 || editChanged || unassigned), ({ repeat }) => setLeaving({ repeat }));
 
   /** Logging: shows a meal's foods; foods added before any meal was chosen join it (D-68). */
+  /** Search foods' foods; from what was said (D-108), counted for the banner and tagged when their amount was assumed. */
+  function addFromSearch(added: MealItem[], voice?: { assumed: MealItem[] }) {
+    if (voice) {
+      voice.assumed.forEach((item) => assumed.current.add(item));
+      setVoiceAdded((count) => count + added.length);
+    }
+    addItems(added);
+  }
+
   function chooseMeal(slot: MealType) {
     if (editing) {
       setMealType(slot);
@@ -233,6 +247,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     }
     if (slot === mealType) return;
     setNote(null);
+    setVoiceAdded(0);
     const carried = mealType === null ? items : [];
     if (mealType !== null) setDrafts((current) => ({ ...current, [mealType]: { items, photo } }));
     const next = draftOf(slot);
@@ -244,6 +259,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   /** Logging: another date; its meals as saved, the changes on this one left (D-68). */
   function goToDay(next: IstDay) {
     setNote(null);
+    setVoiceAdded(0);
     setDrafts({});
     newIds.current = {};
     if (mealType !== null) {
@@ -265,6 +281,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
     if (local.state.status !== 'ready' || pending.length === 0) return;
     const db = local.state.db;
     setBusy(true);
+    setVoiceAdded(0);
     const done: { slot: MealType; items: MealItem[] }[] = [];
     for (const slot of pending) {
       const draft = draftOf(slot);
@@ -316,6 +333,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   async function saveMeal() {
     if (!mealType || items.length === 0) return;
     setBusy(true);
+    setVoiceAdded(0);
     await sync.save('meal', { id, day, mealType, tags, items, photo: mealPhotoOf(photo) }, newPhotoOf(photo));
     setBusy(false);
   }
@@ -441,10 +459,19 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         <MealPhotoField mealId={photoMealId} value={photo} onChange={setPhoto} newId={sync.newId} />
 
         <Step number={3} title="Review and save" state={steps.review} cue={reviewCue}>
+          {voiceAdded > 0 ? (
+            <View accessibilityRole="alert" style={styles.voiceAdded}>
+              <Check size={20} strokeWidth={2.5} color={colors.accent} />
+              <Text style={styles.voiceAddedText}>
+                Added {voiceAdded} {voiceAdded === 1 ? 'food' : 'foods'} from what you said
+              </Text>
+            </View>
+          ) : null}
           <MealFoodRows
             items={items}
             empty={editing ? undefined : mealName ? `No foods in ${mealName}.` : 'Tap a meal to see its foods.'}
             onChange={(index) => void change(index)}
+            isAssumed={(item) => assumed.current.has(item)}
           />
         </Step>
       </ScrollView>
@@ -519,7 +546,17 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           onClose={() => setSheet(null)}
         />
       ) : null}
-      {sheet === 'search' ? <FoodSearchSheet today={today} onAdd={addItems} onClose={() => setSheet(null)} /> : null}
+      {sheet === 'search' ? (
+        <FoodSearchSheet
+          today={today}
+          onAdd={addFromSearch}
+          onOwnFood={(name) => {
+            setOwnName(name);
+            setSheet('own');
+          }}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
       {sheet === 'barcode' ? (
         <BarcodeSheet
           onAdd={(item) => addItems([item])}
@@ -850,6 +887,8 @@ const useStyles = themedStyles((c) => ({
   methodText: { ...TYPE.buttonSecondary, fontSize: 14, lineHeight: 16, letterSpacing: 0.3, textAlign: 'center' },
   pressed: { opacity: 0.6 },
   tips: { ...TYPE.small, color: c.inkMuted },
+  voiceAdded: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 4, backgroundColor: c.accentTint },
+  voiceAddedText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: '600', color: c.ink },
   hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
   footer: { paddingHorizontal: 16, paddingTop: 12, gap: 8, borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.bg },
   total: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },

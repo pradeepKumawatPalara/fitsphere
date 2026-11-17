@@ -6,6 +6,7 @@ import { TEXTS } from '../auth/texts';
 import { formatInteger } from '../format';
 import { latestOnly } from '../latestOnly';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import type { SqlDb } from '../local/sql';
 import {
   getFood,
   getMeta,
@@ -33,6 +34,7 @@ import { FoodDetail, type FoodResult } from './FoodDetail';
 import { BRAND_LABEL_CREDIT, DISH_ESTIMATES_CREDIT, HOME_FOODS_CREDIT } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
+import { useVoiceMeal } from './VoiceMeal';
 import { Sheet } from './Sheet';
 import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
@@ -81,6 +83,7 @@ import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
 /** A food found: as its page opens it, but a food of the list as its summary only (D-73). */
 type Result = Exclude<FoodResult, { kind: 'food' }> | { kind: 'food'; food: FoodSummary };
+export type SearchResult = Result;
 
 /** How many days Recent foods looks back, today included (D-60). */
 export const RECENT_FOOD_DAYS = 5;
@@ -525,10 +528,68 @@ function kcalRange(members: readonly Result[]): { shown: string; said: string } 
   return low === high ? { shown: formatKcal(low), said: formatKcal(low) } : { shown: `${formatInteger(low)}–${formatKcal(high)}`, said: `${formatInteger(low)} to ${formatKcal(high)}` };
 }
 
+/**
+ * The search Search foods runs (D-72, D-96), as a function: the foods found for a text, in the list's
+ * order, with the amount typed with it and the foods it names. Also finds a spoken food (D-108), so a
+ * food said is the food the same words typed would list first.
+ */
+export async function searchFoodList(
+  db: SqlDb,
+  searched: string,
+): Promise<{ results: SearchResult[]; amount: SearchAmount | null; foods: string[]; listCached: boolean }> {
+  // D-96: the amount typed with the food and words like "of" and "with" are not searched for ("2 roti"
+  // searches "roti"); a search that is only an amount is searched as typed.
+  const reading = readSearch(searched);
+  const searchAll = (text: string) => Promise.all([searchDishes(db, text), searchFoodSummaries(db, text), searchMyFoods(db, text), searchPackaged(db, text)]);
+  let words = reading.search || searched;
+  let amount = reading.amount;
+  let [dishes, foods, mine, packaged] = await searchAll(words);
+  // A number that is part of a name ("7 up", "50 50"): nothing found without it, so searched as typed.
+  if (words !== searched && amount !== null && dishes.length + foods.length + mine.length + packaged.length === 0) {
+    [dishes, foods, mine, packaged] = await searchAll(searched);
+    words = searched;
+    amount = null;
+  }
+  const listVersion = await getMeta(db, 'food_list_version');
+  const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
+  return {
+    amount,
+    foods: reading.foods,
+    listCached: listVersion !== null,
+    // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
+    // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
+    // D-51: those named exactly as the search first (or as typed, D-96: "5 star"); D-66: in four
+    // groups, the best matches first, each group in that order. D-78: each branded product once,
+    // where its first copy was.
+    results: onePerProduct(inSearchOrder(words, [
+      ...listed('home'),
+      ...mine.map((food): Result => ({ kind: 'mine', food })),
+      ...listed('brand_label'),
+      ...packaged.map((food): Result => ({ kind: 'packaged', food })),
+      ...listed('indb'),
+      ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
+      ...listed('dish_estimate'),
+      ...listed('ifct2017'),
+    ], searched)),
+  };
+}
+
 /** One line of the results list: a food, a name's brands, or one of those brands while they are open. */
 type Line = { kind: 'one'; result: Result } | { kind: 'brands'; row: Extract<ResultRow, { kind: 'brands' }>; open: boolean } | { kind: 'member'; result: Result; group: string };
 
-export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAdd(items: MealItem[]): void; onClose(): void }) {
+export function FoodSearchSheet({
+  today,
+  onAdd,
+  onOwnFood,
+  onClose,
+}: {
+  today: IstDay;
+  /** The foods added; `voice` when they came from what was said (D-108), with those whose amount was assumed. */
+  onAdd(items: MealItem[], voice?: { assumed: MealItem[] }): void;
+  /** Enter a food the list doesn't have as your own, named as said (D-108). */
+  onOwnFood?(name: string): void;
+  onClose(): void;
+}) {
   const styles = useStyles();
   const { colors } = useTheme();
   const local = useLocalDatabase();
@@ -606,6 +667,17 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     onClose();
   }
 
+  // D-108: "Speak your meal", where the phone can recognise speech on the device.
+  const voice = useVoiceMeal({
+    setQuery: changeQuery,
+    search: searchFoodList,
+    onAdd(items, assumed, stay) {
+      onAdd(items, { assumed });
+      if (!stay) onClose();
+    },
+    ...(onOwnFood ? { onOwnFood } : {}),
+  });
+
   /** The text typed or cleared (D-72): an emptied box clears the search and its results at once. */
   function changeQuery(text: string) {
     setQuery(text);
@@ -629,44 +701,10 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     // D-72: one search at a time; a newer text replaces one still waiting to start.
     runLatest(async () => {
       if (!active) return;
-      // D-96: the amount typed with the food and words like "of" and "with" are not searched for ("2 roti"
-      // searches "roti"); a search that is only an amount is searched as typed.
-      const reading = readSearch(searched);
-      const searchAll = (text: string) => Promise.all([searchDishes(db, text), searchFoodSummaries(db, text), searchMyFoods(db, text), searchPackaged(db, text)]);
-      let words = reading.search || searched;
-      let amount = reading.amount;
-      let [dishes, foods, mine, packaged] = await searchAll(words);
-      // A number that is part of a name ("7 up", "50 50"): nothing found without it, so searched as typed.
-      if (words !== searched && amount !== null && dishes.length + foods.length + mine.length + packaged.length === 0) {
-        if (!active) return;
-        [dishes, foods, mine, packaged] = await searchAll(searched);
-        words = searched;
-        amount = null;
-      }
-      const listVersion = await getMeta(db, 'food_list_version');
+      const list = await searchFoodList(db, searched);
       if (!active) return;
-      const listed = (source: Food['source']) => foods.filter((food) => food.source === source).map((food): Result => ({ kind: 'food', food }));
-      setFound({
-        query: searched,
-        amount,
-        foods: reading.foods,
-        // D-59: home-style foods; D-54: My foods, brand labels, packaged foods, INDB, then dishes and IFCT;
-        // D-62: the estimated dishes after the measured ones, before IFCT's raw foods.
-        // D-51: those named exactly as the search first (or as typed, D-96: "5 star"); D-66: in four
-        // groups, the best matches first, each group in that order. D-78: each branded product once,
-        // where its first copy was.
-        results: onePerProduct(inSearchOrder(words, [
-          ...listed('home'),
-          ...mine.map((food): Result => ({ kind: 'mine', food })),
-          ...listed('brand_label'),
-          ...packaged.map((food): Result => ({ kind: 'packaged', food })),
-          ...listed('indb'),
-          ...dishes.map((dish): Result => ({ kind: 'dish', dish })),
-          ...listed('dish_estimate'),
-          ...listed('ifct2017'),
-        ], searched)),
-      });
-      setListCached(listVersion !== null);
+      setFound({ query: searched, amount: list.amount, foods: list.foods, results: list.results });
+      setListCached(list.listCached);
     });
     return () => {
       active = false;
@@ -710,7 +748,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
     ) : undefined;
 
   return (
-    <FullScreen onClose={onClose} footer={bar}>
+    <FullScreen onClose={onClose} footer={voice.active ? voice.footer : bar}>
           <View style={styles.header}>
             <IconButton label="Close search" onPress={onClose}>
               <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
@@ -743,7 +781,8 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
                 </IconButton>
               ) : null}
             </View>
-            {!listCached ? (
+            {voice.row}
+            {voice.active ? null : !listCached ? (
               <Message text={TEXTS.needsInternet('Downloading the food list')} offline />
             ) : query.trim() !== '' && isShortSearch(readSearch(query).search || query) ? (
               // D-72: one or two characters list only the foods named by them, under this line.
@@ -775,7 +814,9 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
               </View>
             ) : null}
           </View>
-          {showRecent ? (
+          {voice.active ? (
+            voice.panel
+          ) : showRecent ? (
             <FlatList
               data={recent}
               keyExtractor={recentFoodKey}
@@ -910,6 +951,7 @@ export function FoodSearchSheet({ today, onAdd, onClose }: { today: IstDay; onAd
           onEdit={setEditing}
         />
       ) : null}
+      {voice.sheets}
     </FullScreen>
   );
 }

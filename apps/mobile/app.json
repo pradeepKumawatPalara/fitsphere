@@ -39,7 +39,7 @@
         "expo-camera",
         {
           "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs and to take meal photos.",
-          "microphonePermission": false,
+          "microphonePermission": "FitSphere uses the microphone only when you tap Speak your meal, to turn what you say into text on your phone.",
           "recordAudioAndroid": false
         }
       ],
@@ -48,7 +48,15 @@
         {
           "photosPermission": "FitSphere uses the photo you choose as a meal photo.",
           "cameraPermission": "FitSphere uses the camera to scan barcodes on food packs and to take meal photos.",
-          "microphonePermission": false
+          "microphonePermission": "FitSphere uses the microphone only when you tap Speak your meal, to turn what you say into text on your phone."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "FitSphere uses the microphone only when you tap Speak your meal, to turn what you say into text on your phone.",
+          "speechRecognitionPermission": "FitSphere turns what you say into text on your phone, to find the foods you ate.",
+          "androidSpeechServicePackages": ["com.google.android.as", "com.google.android.googlequicksearchbox"]
         }
       ],
       "expo-font"

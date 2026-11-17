@@ -269,6 +269,50 @@ function startFromSearch(result: FoodResult, measures: Measure[], opening: numbe
   return fits(index) ? { measureIndex: index, count, typed: '100' } : null;
 }
 
+/**
+ * The measure the page opens on. An INDB recipe opens on its serving (D-46): INDB's values are per
+ * 100 g of the raw ingredients, so its serving, not grams of the cooked dish, gives INDB's own figures.
+ * A home-style food opens on its serving too, as it is eaten (D-59), and so does an estimated dish
+ * (D-62). Otherwise on Grams (D-76: the food's own measures come before it). A food the owner's food
+ * database lists opens on its Default Unit (D-102).
+ */
+function openingOf(result: FoodResult, measures: Measure[]): number {
+  const servingFirst =
+    result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
+  const sheetOpening = opensOnIndex(result, measures);
+  return sheetOpening >= 0 ? sheetOpening : Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g')));
+}
+
+/** The typed quantity the page opens with: 1 of a My food counted in its unit, else 100 (grams). */
+function typedAtFirst(result: FoodResult): string {
+  return result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100';
+}
+
+/**
+ * What a food found for a spoken food adds (D-108), built as this page builds it, so its values are a
+ * searched food's. The amount said, when the food has its measure (an amount typed with the search's
+ * rules, D-96; `otherUnits` are tried after the unit said: a katori said may be the food's Bowl);
+ * else the amount the page opens on, marked `assumed` for the user to check.
+ */
+export function spokenItemOf(
+  result: FoodResult,
+  said: SearchAmount | null,
+  otherUnits: readonly (string | null)[] = [],
+): { item: MealItem; assumed: boolean } | null {
+  const measures = measuresOf(result);
+  const opening = openingOf(result, measures);
+  const tries = said ? [said, ...otherUnits.map((unit) => ({ count: said.count, unit }))] : [];
+  for (const amount of tries) {
+    const start = startFromSearch(result, measures, opening, amount);
+    const measure = start ? measures[start.measureIndex] : undefined;
+    const item = start && measure ? itemOf(result, measure, measure.counted ? start.count : null, start.typed) : null;
+    if (item) return { item, assumed: false };
+  }
+  const measure = measures[opening] ?? measures[0]!;
+  const item = itemOf(result, measure, measure.counted ? 1 : null, typedAtFirst(result));
+  return item ? { item, assumed: true } : null;
+}
+
 export function FoodDetail({
   result,
   from,
@@ -306,21 +350,13 @@ export function FoodDetail({
   const styles = useStyles();
   const { colors } = useTheme();
   const measures = measuresOf(result);
-  // An INDB recipe opens on its serving (D-46): INDB's values are per 100 g of the raw ingredients,
-  // so its serving, not grams of the cooked dish, gives INDB's own figures. A home-style food opens on
-  // its serving too, as it is eaten: a slice, two slices, a plate (D-59), and so does an estimated
-  // dish: a katori, a plate, a piece (D-62). A recent food opens on the amount it was last logged in,
-  // when it still has it (D-60); a food found by a search with an amount, on that amount (D-96).
-  const servingFirst =
-    result.kind === 'food' && (result.food.source === 'indb' || result.food.source === 'home' || result.food.source === 'dish_estimate') && result.food.portions.length > 0;
-  // Otherwise on Grams (D-76: the food's own measures come before it). A food the owner's food database
-  // lists opens on its Default Unit (D-102).
-  const sheetOpening = opensOnIndex(result, measures);
-  const opening = sheetOpening >= 0 ? sheetOpening : Math.max(0, measures.findIndex((measure) => measure.key === (servingFirst ? 'serving 0' : 'g')));
+  // The food's own opening measure (openingOf). A recent food opens on the amount it was last logged
+  // in, when it still has it (D-60); a food found by a search with an amount, on that amount (D-96).
+  const opening = openingOf(result, measures);
   const [start] = useState(() => (from ? startOf(result, measures, from) : amount ? startFromSearch(result, measures, opening, amount) : null));
   const [measureIndex, setMeasureIndex] = useState(() => start?.measureIndex ?? opening);
   const [countText, setCountText] = useState(() => formatCount(start?.count ?? 1));
-  const [typed, setTyped] = useState(start?.typed ?? (result.kind === 'mine' && result.food.unit !== 'g' && result.food.unit !== 'ml' ? '1' : '100'));
+  const [typed, setTyped] = useState(start?.typed ?? typedAtFirst(result));
   const [picking, setPicking] = useState(false);
   const measure = measures[measureIndex] ?? measures[0]!;
   const count = measure.counted ? parseCount(countText, measure.max) : null;
