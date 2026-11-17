@@ -3633,6 +3633,19 @@ checksum), and the configuration template was left as it is.*
   in the app's icon package).
 - Doc changes: REQ-ACC-011; constraints' MVP defaults; the redesign's 6.6; CLAUDE.md.
 
+## D-110 Home: no line under the date strip counting the week's workouts
+- Status: **Accepted** (owner, in chat, 2026-11-17: "on the home dashboard under the week strip there
+  is label called 4 workouts this week. I want to remove this label"). Built on branch
+  `fix/home-week-line`. Numbered D-110: D-108 and D-109 are on pull requests #117 and #118.
+- Answer (REQ-HOME-007; changes D-103's MVP default): Home's line under the date strip, "3 of 4 workouts
+  this week" (with "target achieved", "that week", "No workouts this week"), is gone. The strip's apple
+  and dumbbell under each date stay (REQ-HOME-002, D-103), on Home, Nutrition and Training.
+- Consequence: Home shows the weekly workout target nowhere; it is still set in Your targets and kept by
+  date in Target history (D-77).
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-HOME-007 and REQ-ROLE-007's criterion; constraints' D-103 row; the redesign's 2.3;
+  CLAUDE.md.
+
 ---
 
 ---

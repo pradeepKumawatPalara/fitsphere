@@ -17,9 +17,8 @@ const mockRouter = { replace: jest.fn(), push: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
 // Home's workouts with real workouts (D-103, replacing the workout tracker of REQ-HOME-007): a dumbbell
-// under each day of the strip with a workout Training lists (D-65), and a line under the strip counting
-// the week's against its target (MVP default, D-29; D-41: only a workout with an exercise counts). The
-// line's texts are tested on their own in targets.test.tsx.
+// under each day of the strip with a workout Training lists (D-65; D-41: only a workout with an
+// exercise). Since D-110 no line under the strip counts the week's workouts.
 
 // Wednesday 28 October 2026, 09:00 IST. The week shown is Mon 26 Oct – Sun 1 Nov.
 const NOW = new Date('2026-10-28T03:30:00Z');
@@ -78,12 +77,17 @@ function StartWorkout() {
   );
 }
 
-describe('D-103 the strip’s dumbbells and the week’s line count real workouts', () => {
-  it('D-41 a workout with an exercise counts, "1 of 5 workouts this week", with a dumbbell on its day; an empty one does not', async () => {
+/** No line under the strip counting the week's workouts, against a target or not (D-110). */
+function expectNoWeekLine() {
+  expect(screen.queryByTestId('week-workouts')).toBeNull();
+  expect(screen.queryByText(/workouts? (this|that) week/)).toBeNull();
+}
+
+describe('D-103 the strip’s dumbbells mark real workouts; D-110 no line counts them', () => {
+  it('D-41 a workout with an exercise has a dumbbell on its day; an empty one does not; no line under the strip', async () => {
     await renderHome(['2026-10-26'], undefined, ['2026-10-27']);
 
-    expect(await screen.findByText('1 of 5 workouts this week')).toBeOnTheScreen();
-    const monday = screen.getByRole('button', { name: 'Monday 26 Oct, 1 workout logged' });
+    const monday = await screen.findByRole('button', { name: 'Monday 26 Oct, 1 workout logged' });
     expect(within(monday).getByTestId('workout-2026-10-26')).toBeOnTheScreen();
     // The empty workout is not listed on Training (D-65), so it gets no dumbbell.
     expect(screen.getByRole('button', { name: 'Tuesday 27 Oct' })).toBeOnTheScreen();
@@ -91,57 +95,60 @@ describe('D-103 the strip’s dumbbells and the week’s line count real workout
     // No workouts card on Home any more.
     expect(screen.queryByText('Workouts this week')).toBeNull();
     expect(screen.queryByText('Mon 26 Oct – Sun 1 Nov')).toBeNull();
+    // D-110: no "1 of 5 workouts this week" under the strip.
+    expectNoWeekLine();
   });
 
-  it('D-29 two workouts on one day count 2, with one dumbbell; the week before is not counted', async () => {
+  it('D-29 two workouts on one day: one dumbbell, and screen readers hear 2', async () => {
     await renderHome(['2026-10-27', '2026-10-27', '2026-10-25']);
 
-    expect(await screen.findByText('2 of 5 workouts this week')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Tuesday 27 Oct, 2 workouts logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Tuesday 27 Oct, 2 workouts logged' })).toBeOnTheScreen();
     expect(screen.getAllByTestId('workout-2026-10-27')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Sunday 1 Nov, not available' })).toBeOnTheScreen();
   });
 
-  it('D-41 "target achieved" once the week has as many workouts as the target, or more', async () => {
+  it('D-110 a week past its target says nothing of it under the strip', async () => {
     await renderHome(['2026-10-26', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-28', '2026-10-28', '2026-10-28']);
 
-    expect(await screen.findByText('7 workouts this week · target achieved')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Wednesday 28 Oct, today, 4 workouts logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, 4 workouts logged' })).toBeOnTheScreen();
+    expect(screen.queryByText(/target achieved/)).toBeNull();
+    expectNoWeekLine();
   });
 
-  it('the line follows the strip: an earlier week shows its own dumbbells and says "that week"', async () => {
+  it('an earlier week shows its own dumbbells, and no line', async () => {
     await renderHome(['2026-10-25', '2026-10-28']);
-    await screen.findByText('1 of 5 workouts this week');
+    await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, 1 workout logged' });
 
     await fireEvent.press(screen.getByRole('button', { name: 'Earlier days' }));
 
     // The previous week, Mon 19 – Sun 25 Oct, holds one workout, on the Sunday.
-    expect(await screen.findByText('1 of 5 workouts that week')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Sunday 25 Oct, 1 workout logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Sunday 25 Oct, 1 workout logged' })).toBeOnTheScreen();
+    expectNoWeekLine();
     expect(screen.getByTestId('workout-2026-10-25')).toBeOnTheScreen();
     expect(screen.queryByTestId('workout-2026-10-28')).toBeNull();
   });
 
-  it('D-41 a workout started on the phone counts once it has an exercise, before it syncs', async () => {
+  it('D-41 a workout started on the phone gets its dumbbell once it has an exercise, before it syncs', async () => {
     const { server } = await renderHome([], <StartWorkout />);
-    await screen.findByText('0 of 5 workouts this week');
+    await screen.findByRole('button', { name: 'Wednesday 28 Oct, today' });
     server.state.offline = true;
 
     await fireEvent.press(screen.getByRole('button', { name: 'Start a test workout' }));
-    expect(await screen.findByText('0 of 5 workouts this week')).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today' })).toBeOnTheScreen();
     expect(screen.queryByTestId('workout-2026-10-28')).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Save a test workout with a squat' }));
 
-    expect(await screen.findByText('1 of 5 workouts this week')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Wednesday 28 Oct, today, 1 workout logged' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Wednesday 28 Oct, today, 1 workout logged' })).toBeOnTheScreen();
+    expect(screen.getByTestId('workout-2026-10-28')).toBeOnTheScreen();
+    expectNoWeekLine();
   });
 });
 
 describe('ADR-0007 rule 2 a rejected workout on Home', () => {
   it('D-29 shows "This workout wasn\'t saved…", and Edit opens the workout', async () => {
     const { server } = await renderHome([], <StartWorkout />);
-    await screen.findByText('0 of 5 workouts this week');
+    await screen.findByRole('button', { name: 'Wednesday 28 Oct, today' });
     server.state.rejectWith = 'DAY_IN_FUTURE';
 
     await fireEvent.press(screen.getByRole('button', { name: 'Start a test workout' }));

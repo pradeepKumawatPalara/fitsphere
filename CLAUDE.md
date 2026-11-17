@@ -111,8 +111,9 @@ with a thin bar against the date's target (`components/NutrientTargets.tsx`); th
 Nutrition and Training puts the header calendar's green apple and dumbbell under each date (`WeekStrip`'s
 `activity`, `useWeekActivity` in `src/weekActivity.ts`); no "Workouts this week" card (nor
 `WorkoutTracker` and `WorkoutDaySheet`): a line under Home's strip, "3 of 4 workouts this week"
-(`components/WeekWorkouts.tsx`, MVP default). Phone app only: no server change, no migration, no phone
-schema change, no new build.
+(`components/WeekWorkouts.tsx`, MVP default), removed by D-110 (2026-11-17, branch `fix/home-week-line`:
+no line, and Home shows the weekly workout target nowhere). Phone app only: no server change, no
+migration, no phone schema change, no new build.
 
 **Every field's message after typing stops (0.3 seconds since 2026-11-16, branch `fix/field-checks`; ".5" and "7." read
 in every box with decimals), the approved ranges, measurement notes —

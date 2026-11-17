@@ -8,10 +8,9 @@ import { workoutsPerDay } from './workouts';
 
 /**
  * The date strip's week (D-103): meals and listed workouts per day, for the apple and the dumbbell under
- * each date, as the header's calendar (D-84); and the workouts that count toward the week, those with an
- * exercise (D-41), for Home's line under the strip.
+ * each date, as the header's calendar (D-84). Home's line counting the week's workouts is gone (D-110).
  */
-export type WeekActivity = CalendarActivity & { counted: number };
+export type WeekActivity = CalendarActivity;
 
 /** The week from Monday `start` on the phone, read again after each sync; null while it loads. */
 export function useWeekActivity(start: IstDay): WeekActivity | null {
@@ -26,8 +25,7 @@ export function useWeekActivity(start: IstDay): WeekActivity | null {
     const end = addDays(start, 6);
     void Promise.all([mealCounts(db, start, end), listEntries(db, 'workout', start, end)]).then(([meals, workouts]) => {
       if (!active) return;
-      const counted = workouts.filter((workout) => workout.exercises.length > 0).length;
-      setRead({ start, activity: { meals, workouts: workoutsPerDay(workouts), counted } });
+      setRead({ start, activity: { meals, workouts: workoutsPerDay(workouts) } });
     });
     return () => {
       active = false;
