@@ -270,10 +270,11 @@ describe('REQ-HOME-003 and REQ-HOME-004 the calories card and the nutrients unde
     expect(screen.queryByText('No workouts this week')).toBeNull();
   });
 
-  it('REQ-HOME-003 target 2000 and 1500 eaten: 75%, and 500 kcal remaining as the big number, with 20 plates', async () => {
+  it('REQ-HOME-003 target 2000 and 1500 eaten: 500 kcal remaining as the big number, with 20 plates, 75% to screen readers', async () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={1_500} target={2_000} onSetTarget={jest.fn()} />);
 
-    expect(screen.getByText('75%')).toBeOnTheScreen();
+    // The UI changes of 2026-11-17 (branch ui-changes) took the percentage off the card; the bar still says it.
+    expect(screen.queryByText('75%')).toBeNull();
     expect(screen.getByLabelText('500 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('500')).toBeOnTheScreen();
     expect(screen.getByText('1,500 of 2,000 kcal')).toBeOnTheScreen();
