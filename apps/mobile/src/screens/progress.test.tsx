@@ -156,7 +156,7 @@ describe('REQ-PRG-006 measurements', () => {
   it('with none, recommends weekly waist tracking; "Add first" opens the sheet on today and the entry is listed', async () => {
     const { server } = await renderInApp(<ProgressScreen />);
 
-    expect(await screen.findByText('No measurements yet.')).toBeOnTheScreen();
+    expect(await screen.findByText('No measurements in the last 90 days.')).toBeOnTheScreen();
     expect(screen.getByText('Track your upper and lower waist once a week.')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Add first' }));
     expect(screen.getByLabelText('Date: Wed 28 Oct')).toBeOnTheScreen();
@@ -233,13 +233,14 @@ describe('REQ-PRG-006 measurements', () => {
     expect(screen.getByRole('button', { name: 'Edit measurements' })).toBeOnTheScreen();
   });
 
-  it('with one entry, shows it with no "Show all measurements"', async () => {
+  it('with one entry, shows it, and "Show all measurements (1)" leads to other dates (D-114)', async () => {
     await renderInApp(<ProgressScreen />, undefined, async (db) => {
       await applyServerEntries(db, 'measurements', [{ day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT }]);
     });
 
     expect(await screen.findByText('Measurements · Mon 26 Oct')).toBeOnTheScreen();
-    expect(screen.queryByRole('button', { name: /^Show all measurements/ })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Show all measurements (1)' }));
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
   });
 
   it('shows lengths in the cm/in unit last chosen on this phone', async () => {
@@ -249,5 +250,197 @@ describe('REQ-PRG-006 measurements', () => {
     });
 
     expect(await screen.findByLabelText('Upper waist: 32.0 in')).toBeOnTheScreen();
+  });
+});
+
+// D-114 (the owner's B on the canvas): the last 90 days at first; other dates from a row of choices,
+// days older than the phone's 90 read online. Today is Wed 28 Oct 2026, so the phone's 90 days are
+// Fri 31 Jul to Wed 28 Oct.
+describe('D-114 measurements by dates', () => {
+  const RECENT = { day: '2026-10-26', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, recordedAt: AT };
+  const rowNames = () => screen.getAllByRole('button', { name: /^Edit measurements, / }).map((row) => row.props.accessibilityLabel);
+
+  async function renderWithOlder(recent = true) {
+    return renderInApp(<ProgressScreen />, undefined, async (db, server) => {
+      if (recent) await applyServerEntries(db, 'measurements', [RECENT]);
+      server.storeMeasurementsFromElsewhere('2024-03-03', 940, 995);
+      server.storeMeasurementsFromElsewhere('2024-12-15', 910, 965);
+      server.storeMeasurementsFromElsewhere('2026-03-01', 880, 930);
+      server.storeMeasurementsFromElsewhere('2026-07-05', 860, 910);
+    });
+  }
+
+  it('unfolded, shows the last 90 days with a count line; the choices are Pick dates, Last 90 days and each year back to 2000', async () => {
+    const { server } = await renderWithOlder();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    expect(screen.getAllByRole('radio').map((choice) => choice.props.accessibilityLabel).slice(0, 4)).toEqual(['Pick dates', 'Last 90 days', '2026', '2025']);
+    expect(screen.getByRole('radio', { name: '2000' })).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+    expect(screen.getByText('1 measurement · Fri 31 Jul – Wed 28 Oct')).toBeOnTheScreen();
+    expect(rowNames()).toEqual(['Edit measurements, Mon 26 Oct: Upper waist 80.0 cm, Lower waist 83.0 cm']);
+    // The last 90 days are the phone's: nothing is read online.
+    expect(server.state.measurementQueries).toEqual([]);
+  });
+
+  it('a year shows its measurements, read online, newest first with their year; Show fewer goes back to the last 90 days', async () => {
+    const { server } = await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2024' }));
+
+    expect(await screen.findByText('2 measurements · Mon 1 Jan 2024 – Tue 31 Dec 2024')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: '2024' })).toBeChecked();
+    expect(rowNames()).toEqual([
+      'Edit measurements, Sun 15 Dec 2024: Upper waist 91.0 cm, Lower waist 96.5 cm',
+      'Edit measurements, Sun 3 Mar 2024: Upper waist 94.0 cm, Lower waist 99.5 cm',
+    ]);
+    expect(server.state.measurementQueries).toEqual([{ from: '2024-01-01', to: '2024-12-31', cursor: null }]);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Show fewer' }));
+    expect(screen.queryByRole('radio')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Show all measurements (1)' }));
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+  });
+
+  it('this year reads online only the days before the phone’s 90, and lists them with the phone’s', async () => {
+    const { server } = await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2026' }));
+
+    expect(await screen.findByText('3 measurements · Thu 1 Jan – Wed 28 Oct')).toBeOnTheScreen();
+    expect(rowNames().map((name) => name.split(':')[0])).toEqual([
+      'Edit measurements, Mon 26 Oct',
+      'Edit measurements, Sun 5 Jul',
+      'Edit measurements, Sun 1 Mar',
+    ]);
+    expect(server.state.measurementQueries).toEqual([{ from: '2026-01-01', to: '2026-07-30', cursor: null }]);
+  });
+
+  it('reads every page the server sends', async () => {
+    const { server } = await renderWithOlder();
+    server.state.measurementsPageSize = 1;
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2024' }));
+
+    expect(await screen.findByText('2 measurements · Mon 1 Jan 2024 – Tue 31 Dec 2024')).toBeOnTheScreen();
+    expect(server.state.measurementQueries.map((query) => query.cursor)).toEqual([null, '1']);
+  });
+
+  it('a year with none says so', async () => {
+    await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2023' }));
+
+    expect(await screen.findByText('No measurements from Sun 1 Jan 2023 to Sun 31 Dec 2023.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Edit measurements, / })).toBeNull();
+  });
+
+  it('offline, says older measurements need the internet; Try again loads them once online', async () => {
+    const { server } = await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+    server.state.offline = true;
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2024' }));
+
+    expect(await screen.findByText('Measurements older than 90 days need an internet connection.')).toBeOnTheScreen();
+    server.state.offline = false;
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('2 measurements · Mon 1 Jan 2024 – Tue 31 Dec 2024')).toBeOnTheScreen();
+  });
+
+  it('a server error says these could not load, with Try again', async () => {
+    const { server } = await renderWithOlder();
+    server.state.measurementsFailWith = 500;
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2024' }));
+
+    expect(await screen.findByText('Couldn’t load these measurements.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeOnTheScreen();
+  });
+
+  it('Pick dates: From and To open the calendar, a To before From moves From, and Show lists those dates', async () => {
+    const { server } = await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Pick dates' }));
+    expect(screen.getByText('Measurements older than 90 days load online.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'From: Fri 31 Jul. Change' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Wednesday 1 July 2026' }));
+    expect(screen.getByRole('button', { name: 'From: Wed 1 Jul. Change' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'To: Wed 28 Oct. Change' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'To: Wed 28 Oct. Change' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Friday 3 July 2026' }));
+    expect(screen.getByRole('button', { name: 'To: Fri 3 Jul. Change' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'To: Fri 3 Jul. Change' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Monday 29 June 2026' }));
+    // To before From: From moves to it.
+    expect(screen.getByRole('button', { name: 'From: Mon 29 Jun. Change' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'To: Mon 29 Jun. Change' })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'From: Mon 29 Jun. Change' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Previous month' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Sunday 1 March 2026' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Show' }));
+
+    expect(await screen.findByText('1 measurement · Sun 1 Mar – Mon 29 Jun')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Pick dates' })).toBeChecked();
+    expect(rowNames()).toEqual(['Edit measurements, Sun 1 Mar: Upper waist 88.0 cm, Lower waist 93.0 cm']);
+    expect(server.state.measurementQueries).toEqual([{ from: '2026-03-01', to: '2026-06-29', cursor: null }]);
+  });
+
+  it('Cancel leaves the dates as they were', async () => {
+    await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Pick dates' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+    expect(screen.getByText('1 measurement · Fri 31 Jul – Wed 28 Oct')).toBeOnTheScreen();
+  });
+
+  it('with none in the last 90 days, Older measurements opens the choices, and a year lists its measurements', async () => {
+    await renderWithOlder(false);
+
+    expect(await screen.findByText('No measurements in the last 90 days.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Show all measurements/ })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Older measurements' }));
+
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+    expect(screen.getByText('No measurements from Fri 31 Jul to Wed 28 Oct.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Older measurements' })).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: '2024' }));
+    expect(await screen.findByText('2 measurements · Mon 1 Jan 2024 – Tue 31 Dec 2024')).toBeOnTheScreen();
+  });
+
+  it('an older entry opens to edit, and the list shows the change', async () => {
+    await renderWithOlder();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
+    await fireEvent.press(screen.getByRole('radio', { name: '2024' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Edit measurements, Sun 15 Dec 2024: Upper waist 91.0 cm, Lower waist 96.5 cm' }));
+    expect(screen.getByLabelText('Date: Sun 15 Dec 2024')).toBeOnTheScreen();
+    await waitFor(() => expect(screen.getByLabelText('Upper waist (cm)').props.value).toBe('91.0'));
+    await fireEvent.changeText(screen.getByLabelText('Upper waist (cm)'), '90.5');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save measurements' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Edit measurements, Sun 15 Dec 2024: Upper waist 90.5 cm, Lower waist 96.5 cm' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: '2024' })).toBeChecked();
   });
 });

@@ -9,8 +9,14 @@ export const PROGRESS_TEXTS = {
   notEnoughForRate: 'Not enough data for a weekly rate yet. Log your weight for at least a week.',
   noMeals: 'No meals logged in the last 4 weeks.',
   noCalorieTarget: 'No calorie target',
-  noMeasurements: 'No measurements yet.',
+  // The card shows the last 90 days only (D-114): older ones may exist, read by dates.
+  noMeasurements: 'No measurements in the last 90 days.',
   measurementsHint: 'Track your upper and lower waist once a week.',
+  // The list of other dates (D-114).
+  measurementsLoading: 'Loading measurements…',
+  measurementsOffline: 'Measurements older than 90 days need an internet connection.',
+  measurementsFailed: 'Couldn’t load these measurements.',
+  noMeasurementsFrom: (from: string, to: string) => `No measurements from ${from} to ${to}.`,
   chartEmpty: 'Your trend shows once you have 2 weigh-ins in this range.',
   chartLoading: 'Loading older weigh-ins…',
   /** The step named in "… needs an internet connection." for the ranges read online (ADR-0007 rule 6). */

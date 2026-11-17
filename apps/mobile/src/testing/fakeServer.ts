@@ -85,6 +85,12 @@ export function fakeServer(now: Date) {
     files: new Map<string, Uint8Array>(),
     /** What `GET /users/{id}/workouts` returns. */
     olderWorkouts: [] as Workout[],
+    /** The `from`, `to` and `cursor` of each `GET /users/{id}/measurements` (D-114). */
+    measurementQueries: [] as { from: string | null; to: string | null; cursor: string | null }[],
+    /** Measurements a page holds; null puts them all on one page. */
+    measurementsPageSize: null as number | null,
+    /** Answer `GET /users/{id}/measurements` with this status instead. */
+    measurementsFailWith: null as number | null,
     /** The `from` and `to` of each `GET /users/{id}/days` (D-106). */
     dayQueries: [] as { from: string; to: string }[],
     /** Answer `GET /users/{id}/days` with this status instead. */
@@ -258,6 +264,21 @@ export function fakeServer(now: Date) {
       const inRange = (item: Record<string, unknown>) => typeof item.day === 'string' && item.day >= from && item.day <= to;
       return json(200, Object.fromEntries(DAY_LISTS.map((list) => [list, [...entries(list).values()].filter(inRange)])));
     }
+    if (method === 'GET' && /^\/users\/[^/]+\/measurements$/.test(path)) {
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      const cursor = url.searchParams.get('cursor');
+      state.measurementQueries.push({ from, to, cursor });
+      if (state.measurementsFailWith) {
+        return json(state.measurementsFailWith, { error: { code: 'INTERNAL_ERROR', message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      const matching = [...entries('measurements').values()]
+        .filter((entry) => (!from || String(entry.day) >= from) && (!to || String(entry.day) <= to))
+        .sort((a, b) => (String(a.day) < String(b.day) ? -1 : 1));
+      const start = Number(cursor ?? 0);
+      const end = start + (state.measurementsPageSize ?? matching.length);
+      return json(200, { items: matching.slice(start, end), nextCursor: end < matching.length ? String(end) : null });
+    }
     if (method === 'GET' && /^\/users\/[^/]+\/workouts$/.test(path)) {
       return json(200, { items: state.olderWorkouts, nextCursor: null });
     }
@@ -306,6 +327,21 @@ export function fakeServer(now: Date) {
     store('steps.set', { day, steps, recordedAt: `${day}T02:00:00.000Z` });
   }
 
+  /** Measurements saved from another phone, of any day (D-114): the waists, the rest empty. */
+  function storeMeasurementsFromElsewhere(day: string, upperWaistMm: number, lowerWaistMm: number) {
+    store('measurements.set', {
+      day,
+      upperWaistMm,
+      lowerWaistMm,
+      chestMm: null,
+      hipsMm: null,
+      armMm: null,
+      thighMm: null,
+      notes: null,
+      recordedAt: `${day}T02:00:00.000Z`,
+    });
+  }
+
   /** A target set from another phone, from today on unless another day is given (D-77). */
   function storeTargetFromElsewhere(kind: TargetKind, value: number, day: string = istToday(now)) {
     store('target.set', { kind, value, day, setAt: now.toISOString() });
@@ -345,6 +381,7 @@ export function fakeServer(now: Date) {
     entries,
     storeFromElsewhere,
     storeStepsFromElsewhere,
+    storeMeasurementsFromElsewhere,
     storeTargetFromElsewhere,
     storeMealFromElsewhere,
     deleteMealFromElsewhere,
