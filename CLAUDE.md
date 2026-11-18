@@ -12,22 +12,28 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
-**Voice meal logging from the Search foods box, read by OpenAI — being built on branch
-`feat/ai-meal-logging` (D-115, ADR-0010, 2026-11-17), in `c:\fitsphere`.** Plan:
-`docs/plans/voice-meal-logging.md` (Accepted). A mic at the end of Search foods (E-28, on-device
+**Voice meal logging from the Search foods box, read by OpenAI — merged (pull request #123,
+2026-11-18; D-115, ADR-0010).** Plan:
+`docs/plans/voice-meal-logging.md` (Accepted). A "Speak your meal" row under Search foods (E-28, on-device
 speech only, hidden where the phone can't); the text, never audio, goes to `POST /v1/ai/meal-parse`;
 OpenAI `gpt-6-luna` names the foods, quantities and units, no nutrition; the phone finds each in its
 own food list as Search foods does, and adds it to Log meal for review; no match: "Not in our food
 list". Consent asked once (a new text naming OpenAI), checked on the server before every call
 (invariant #3); no daily limit (the owner, 2026-11-17: readings are only counted by day, migration
 `0034_ai_readings.sql`, whose comment still says 15: an applied migration is never edited); OpenAI's
-$10 monthly limit is the only cap. Listening ends on Done, 6 seconds with no words, or 30 seconds. `OPENAI_API_KEY` in `apps/api/.env` only: never print, log or commit
-it. Canvas boards `VoiceMealLocked` (C with B's review) and `VoiceMealShared`, locked 2026-11-17; the
-phone part built (`components/VoiceMeal.tsx`, `src/voiceMeal.ts`, `src/speech.ts`,
-`expo-speech-recognition`, Settings › Voice language). `app.json` gives the microphone a text in every
-plugin (`false` made the image picker block Android's microphone permission). ADR-0010 validation 1:
-30 of 30 made-up meals read (`npm run ai:check`). Needs a new EAS development build (**the owner's
-word first, D-19**). **Migration 0034 applied on `fitsphere-dev` (the owner's word, 2026-11-17).**
+$10 monthly limit is the only cap. Listening ends on Done speaking, 6 seconds with no words, or 30
+seconds. `OPENAI_API_KEY` in `apps/api/.env` (on Cloud Run, the secret `openai-api-key`) only: never
+print, log or commit it. Canvas boards `VoiceMealLocked` (C with B's review), `VoiceMealShared` and
+`VoiceMealDone` (C), locked 2026-11-17 (https://claude.ai/artifact/SjDTdqAtXqWgXJXvWAwav9); the phone
+part (`components/VoiceMeal.tsx`, `src/voiceMeal.ts`, `src/speech.ts`, `expo-speech-recognition`,
+Settings › Voice language). `app.json` gives the microphone a text in every plugin (`false` made the
+image picker block Android's microphone permission). ADR-0010 validation 1: 30 of 30 made-up meals
+read (`npm run ai:check`). A native module: a development build or APK made from `main` after #123
+is needed for the mic (older builds hide the row); the owner's development build was made on
+2026-11-17. **Migration 0034 applied on `fitsphere-dev` (the owner's word, 2026-11-17), which the
+Cloud Run beta shares.** **The beta's Cloud Run API needs a deploy of `main` with the secret
+`openai-api-key` and `OPENAI_MODEL` (runbook, "The API on Cloud Run") before beta phones can read
+meals; deploy only when the owner says so.**
 
 **The beta: the API on Cloud Run, an Android test build — built on branch `feat/cloud-run` (D-101,
 2026-11-13), in its own folder `D:\fitsphere-cloudrun` (removed once merged).** Q-087 answered for the
