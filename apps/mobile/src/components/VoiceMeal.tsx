@@ -55,7 +55,11 @@ function seconds(value: number): string {
   return `0:${String(Math.min(value, 59)).padStart(2, '0')}`;
 }
 
+/** How Search foods starts when opened from Log meal's box: already listening, or reading the words typed there. */
+export type VoiceBegin = { listen: true } | { text: string };
+
 export function useVoiceMeal({
+  begin,
   setQuery,
   search,
   onAdd,
@@ -67,6 +71,7 @@ export function useVoiceMeal({
   /** The foods ticked, and those of them whose amount was assumed; `stay` keeps Search foods open. */
   onAdd(items: MealItem[], assumed: MealItem[], stay: boolean): void;
   onOwnFood?(name: string): void;
+  begin?: VoiceBegin | null;
 }): { active: boolean; row: ReactNode; panel: ReactNode; footer: ReactNode; sheets: ReactNode } {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -74,7 +79,7 @@ export function useVoiceMeal({
   const local = useLocalDatabase();
   const db = local.state.status === 'ready' ? local.state.db : null;
   const engine = speechEngine();
-  const [available] = useState(() => engine.canListen());
+  const [available] = useState(() => engine.canListen() || (begin !== undefined && begin !== null && 'text' in begin));
   const [stage, setStage] = useState<Stage>({ kind: 'idle', notice: null });
   // A food of the review whose amount is being changed on its page.
   const [changing, setChanging] = useState<number | null>(null);
@@ -262,7 +267,7 @@ export function useVoiceMeal({
     if (!db) return setStage({ kind: 'idle', notice: 'unavailable' });
     const { found, missing } = await findSpokenFoods(db, reading.items, search);
     if (cancelled.current) return;
-    setStage({ kind: 'review', found, ticked: found.map(() => true), missing });
+    setStage({ kind: 'review', found, ticked: found.map((food) => !food.several), missing });
   }
 
   function tickedOf(review: Extract<Stage, { kind: 'review' }>) {
@@ -274,6 +279,19 @@ export function useVoiceMeal({
     if (foods.length > 0) onAdd(foods.map((food) => food.item), foods.filter((food) => food.assumed).map((food) => food.item), stay);
     setStage({ kind: 'idle', notice: null });
   }
+
+  // Opened from Log meal's box (the owner, 2026-11-18): listening starts, or the words typed there are read, once.
+  const began = useRef(false);
+  useEffect(() => {
+    if (!begin || began.current || !db) return;
+    began.current = true;
+    void Promise.resolve().then(() => {
+      if ('listen' in begin) return start();
+      setQuery(begin.text);
+      cancelled.current = false;
+      return afterListening(begin.text);
+    });
+  });
 
   if (!available) return { active: false, row: null, panel: null, footer: null, sheets: null };
 

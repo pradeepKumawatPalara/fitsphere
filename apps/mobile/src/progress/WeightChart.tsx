@@ -10,7 +10,9 @@ import type { WeighInPoint } from './calculations';
 import { chartGeometry } from './chartGeometry';
 import { weightText } from './texts';
 
-const HEIGHT = 160;
+const FULL_HEIGHT = 112;
+/** The sparkline inside the weight tile (the owner's B, 2026-11-18): no scale, no dates, its bubble over the line. */
+const COMPACT_HEIGHT = 64;
 /** Room above the line for the touched point's bubble, as on an exercise's graph (D-82, the owner's C). */
 const BUBBLE_ROOM = 40;
 /** The latest dot's radius, and room kept clear for it with its edge. */
@@ -26,6 +28,8 @@ type Props = {
   /** Oldest first; at least 2. */
   points: readonly WeighInPoint[];
   unit: BodyWeightUnit;
+  /** The sparkline: small, with no scale or dates; touching still shows a point in a bubble. */
+  compact?: boolean;
 };
 
 // The weight trend line (REQ-PRG-004): the highest and lowest weights on the left, the first and
@@ -35,8 +39,10 @@ type Props = {
 // dashed line down from a bubble at the top with its weight and date, kept after the finger lifts
 // until the chart is tapped beside the line or another range is chosen. A screen reader hears a
 // summary of the range, and moves from point to point by swiping up or down.
-export function WeightChart({ points, unit }: Props) {
+export function WeightChart({ points, unit, compact = false }: Props) {
   const styles = useStyles();
+  const HEIGHT = compact ? COMPACT_HEIGHT : FULL_HEIGHT;
+  const room = compact ? 0 : BUBBLE_ROOM;
   const { colors } = useTheme();
   const [width, setWidth] = useState(0);
   const [bubbleWidth, setBubbleWidth] = useState(0);
@@ -83,11 +89,13 @@ export function WeightChart({ points, unit }: Props) {
       onPress={() => setTouched(null)}
       style={styles.chart}
     >
-      <View style={styles.body}>
-        <View style={styles.scale}>
-          <Text style={styles.scaleText}>{weightText(geometry.highest, unit)}</Text>
-          <Text style={styles.scaleText}>{weightText(geometry.lowest, unit)}</Text>
-        </View>
+      <View style={[styles.body, { height: HEIGHT + room }]}>
+        {compact ? null : (
+          <View style={[styles.scale, { paddingTop: room }]}>
+            <Text style={styles.scaleText}>{weightText(geometry.highest, unit)}</Text>
+            <Text style={styles.scaleText}>{weightText(geometry.lowest, unit)}</Text>
+          </View>
+        )}
         <View
           testID="weight-chart-plot"
           style={styles.plot}
@@ -99,7 +107,7 @@ export function WeightChart({ points, unit }: Props) {
           onResponderMove={(event) => pick(event.nativeEvent.locationX)}
         >
           {width > 0 ? (
-            <Svg width={width} height={HEIGHT} style={styles.svg}>
+            <Svg width={width} height={HEIGHT} style={{ marginTop: room }}>
               <Line x1={0} y1={0.5} x2={width} y2={0.5} stroke={colors.track} strokeWidth={1} />
               <Line x1={0} y1={HEIGHT / 2} x2={width} y2={HEIGHT / 2} stroke={colors.track} strokeWidth={1} strokeDasharray="3 4" />
               <Line x1={0} y1={HEIGHT - 0.5} x2={width} y2={HEIGHT - 0.5} stroke={colors.track} strokeWidth={1} />
@@ -138,10 +146,12 @@ export function WeightChart({ points, unit }: Props) {
           ) : null}
         </View>
       </View>
-      <View style={styles.dates}>
-        <Text style={styles.date}>{formatDay(first.day)}</Text>
-        <Text style={styles.date}>{formatDay(last.day)}</Text>
-      </View>
+      {compact ? null : (
+        <View style={styles.dates}>
+          <Text style={styles.date}>{formatDay(first.day)}</Text>
+          <Text style={styles.date}>{formatDay(last.day)}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -151,11 +161,10 @@ export function WeightChart({ points, unit }: Props) {
 // background's colour, as an exercise's graph (D-82, canvas "ProgressTouch", C locked).
 const useStyles = themedStyles((c) => ({
   chart: { gap: 6 },
-  body: { flexDirection: 'row', gap: 8, height: HEIGHT + BUBBLE_ROOM },
-  scale: { justifyContent: 'space-between', paddingTop: BUBBLE_ROOM },
+  body: { flexDirection: 'row', gap: 8 },
+  scale: { justifyContent: 'space-between' },
   scaleText: { ...TYPE.label, fontSize: 13, letterSpacing: 0, textTransform: 'none', fontVariant: ['tabular-nums'], color: c.inkMuted },
   plot: { flex: 1 },
-  svg: { marginTop: BUBBLE_ROOM },
   bubble: { position: 'absolute', top: 0, alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 4, backgroundColor: c.ink, elevation: 3 },
   bubbleValue: { ...TYPE.metric, fontSize: 17, lineHeight: 19, color: c.bg },
   bubbleDay: { fontSize: 12, lineHeight: 15, color: c.bg },

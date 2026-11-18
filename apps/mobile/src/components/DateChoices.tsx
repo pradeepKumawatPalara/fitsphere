@@ -6,6 +6,7 @@ import { rangeYears, shownRange, type DateChoice, type DayRange, type RangeStatu
 import { themedStyles, useTheme } from '../theme';
 import { CalendarSheet } from './CalendarSheet';
 import { DatesSheet } from './DatesSheet';
+import { PickDatesSheet } from './PickDatesSheet';
 import { Banner, Text, TextButton, useChoiceStyles } from './ui';
 
 /** The dates sheet, or the calendar for one of its ends. */
@@ -17,13 +18,19 @@ type Props = {
   onChoose(choice: DateChoice): void;
   /** What the dates sheet says loads online, e.g. "Workouts older than 90 days load online." */
   online: string;
+  /** What the choices are for, said after each name by a screen reader when a screen has two rows ("2024, weeks"). */
+  forWhat?: string;
+  /** Pick dates also offers a start year and an end year (Progress's Week by week, the owner's B). */
+  byYears?: boolean;
+  /** A choice for each year after Last 90 days; false where Pick dates already picks years (Week by week). */
+  yearChoices?: boolean;
 };
 
 // The row of date choices (D-114, the owner's B; shared by D-116's lists, the owner's A): Pick dates,
 // Last 90 days, then each year back to 2000, as the app's choice blocks in one row that scrolls
 // sideways, edge to edge (the screen's padding is 16). Pick dates opens From and To, each from the
 // calendar; Show picks them, Cancel leaves the choice as it was.
-export function DateChoices({ today, choice, onChoose, online }: Props) {
+export function DateChoices({ today, choice, onChoose, online, forWhat, byYears = false, yearChoices = true }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
@@ -54,12 +61,14 @@ export function DateChoices({ today, choice, onChoose, online }: Props) {
       onPress: () => setDates({ step: 'dates', range: shownRange(choice, today) }),
     },
     { key: 'last90', label: 'Last 90 days', selected: choice.kind === 'last90', onPress: () => onChoose({ kind: 'last90' }) },
-    ...rangeYears(today).map((year) => ({
-      key: String(year),
-      label: String(year),
-      selected: choice.kind === 'year' && choice.year === year,
-      onPress: () => onChoose({ kind: 'year', year }),
-    })),
+    ...(yearChoices
+      ? rangeYears(today).map((year) => ({
+          key: String(year),
+          label: String(year),
+          selected: choice.kind === 'year' && choice.year === year,
+          onPress: () => onChoose({ kind: 'year', year }),
+        }))
+      : []),
   ];
 
   return (
@@ -68,7 +77,7 @@ export function DateChoices({ today, choice, onChoose, online }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        accessibilityLabel="Dates"
+        accessibilityLabel={forWhat ? `Dates, ${forWhat}` : 'Dates'}
         style={styles.choicesScroll}
         contentContainerStyle={styles.choices}
       >
@@ -76,7 +85,7 @@ export function DateChoices({ today, choice, onChoose, online }: Props) {
           <Pressable
             key={key}
             accessibilityRole="radio"
-            accessibilityLabel={label}
+            accessibilityLabel={forWhat ? `${label}, ${forWhat}` : label}
             accessibilityState={{ checked: selected }}
             onPress={onPress}
             style={({ pressed }) => [pill.choice, styles.choice, selected && pill.chosen, pressed && pill.pressed]}
@@ -86,7 +95,20 @@ export function DateChoices({ today, choice, onChoose, online }: Props) {
           </Pressable>
         ))}
       </ScrollView>
-      {dates?.step === 'dates' ? (
+      {dates?.step === 'dates' && byYears ? (
+        <PickDatesSheet
+          from={dates.range.from}
+          to={dates.range.to}
+          today={today}
+          online={online}
+          onChange={(end) => setDates({ step: 'calendar', end, range: dates.range })}
+          onShow={(years) => {
+            onChoose({ kind: 'picked', range: years ?? dates.range });
+            setDates(null);
+          }}
+          onClose={() => setDates(null)}
+        />
+      ) : dates?.step === 'dates' ? (
         <DatesSheet
           from={dates.range.from}
           to={dates.range.to}

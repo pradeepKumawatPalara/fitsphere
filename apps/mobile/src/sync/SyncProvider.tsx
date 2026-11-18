@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as Network from 'expo-network';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { istToday, type IstDay } from '@fitsphere/shared';
+import { addDays, istToday, MAX_DAYS_RANGE, type IstDay } from '@fitsphere/shared';
 import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
@@ -304,6 +304,60 @@ export function useOlderDays(from: IstDay, to: IstDay, today: IstDay): { status:
     status: range ? (state ?? 'loading') : 'onPhone',
     retry: () => {
       if (olderFrom !== null && olderTo !== null) void loadOlder(olderFrom, olderTo);
+    },
+  };
+}
+
+/**
+ * The older days of `from`–`to` (any length, the part before the phone's 90 days), read in chunks of
+ * MAX_DAYS_RANGE and kept as `useOlderDays` keeps them: one status for the whole range, the worst of
+ * its chunks (offline, failed), else loading until every chunk is in. No range, or none older: onPhone.
+ */
+export function useOlderRange(range: { from: IstDay; to: IstDay } | null, today: IstDay): { status: OlderDaysStatus; retry(): void } {
+  const { loadOlder } = useSync();
+  const older = useContext(OlderDaysContext);
+  const from = range?.from ?? null;
+  const to = range?.to ?? null;
+  const part = from !== null && to !== null ? olderPart(from, to, today) : null;
+  const partFrom = part?.from ?? null;
+  const partTo = part?.to ?? null;
+  const chunks = useMemo(() => {
+    if (partFrom === null || partTo === null) return [];
+    const list: { from: IstDay; to: IstDay }[] = [];
+    for (let start = partFrom; start <= partTo; ) {
+      const end = addDays(start, MAX_DAYS_RANGE - 1);
+      const last = end > partTo ? partTo : end;
+      list.push({ from: start, to: last });
+      start = addDays(last, 1);
+    }
+    return list;
+  }, [partFrom, partTo]);
+  const states = chunks.map((chunk) => older[rangeKey(chunk)]);
+
+  useEffect(() => {
+    chunks.forEach((chunk, index) => {
+      if (states[index] === undefined) void loadOlder(chunk.from, chunk.to);
+    });
+    // `states` is read through `older`, which is a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chunks, older, loadOlder]);
+
+  const status: OlderDaysStatus =
+    chunks.length === 0
+      ? 'onPhone'
+      : states.includes('offline')
+      ? 'offline'
+      : states.includes('failed')
+      ? 'failed'
+      : states.every((state) => state === 'loaded')
+      ? 'loaded'
+      : 'loading';
+  return {
+    status,
+    retry: () => {
+      chunks.forEach((chunk, index) => {
+        if (states[index] !== 'loaded') void loadOlder(chunk.from, chunk.to);
+      });
     },
   };
 }

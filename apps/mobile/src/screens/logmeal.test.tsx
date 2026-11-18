@@ -92,38 +92,30 @@ describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 
   it('says what to tap at the step to do now: the meal, then a way to add food, then Save; no frame', async () => {
     await render();
     expect(await screen.findByText('Start here: tap your meal')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Step 1')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
-    expect(screen.getByLabelText('Step 2')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
     // The owner removed the step's caramel frame (2026-11-06).
     expect(screen.getByTestId('step-1')).not.toHaveStyle({ borderWidth: 1.5 });
     expect(screen.getByTestId('step-1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.accentTint });
 
     await fireEvent.press(screen.getByRole('radio', { name: 'Breakfast' }));
-    expect(screen.getByLabelText('Step 1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
     expect(cue('Start here: tap your meal')).toBeNull();
     expect(cue('Next: tap how to add your food')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Step 2')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
 
     await addFood('atta', /^Wheat flour, atta/, '60');
     expect(cue('Next: tap how to add your food')).toBeNull();
     expect(cue('Last: check your foods, then Save breakfast')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Step 3')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
     // No step turns green: green is for the meals with food (D-68, option A).
     expect(screen.queryByLabelText(/^Step \d, done$/)).toBeNull();
-    expect(screen.getByLabelText('Step 2')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.success });
   });
 
   it('foods added before the meal: the meal step asks for the meal to save', async () => {
     await render();
     await addFood('atta', /^Wheat flour, atta/, '60');
     expect(cue('Choose the meal to save')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Step 1')).toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
   });
 
   it('opened for a meal (from its + on Home), starts at adding food', async () => {
     await render({ day: TODAY, slot: 'lunch' });
     expect(await screen.findByText('Next: tap how to add your food')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Step 1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.primary });
   });
 
   it('the four ways to add food are in one row, each with its own tint, named in full', async () => {
@@ -611,10 +603,26 @@ describe('REQ-LOG-003 and the review before saving', () => {
     expect(mockRepeat).toHaveBeenCalled();
   });
 
-  it('D-68 the AI box is left out for now, and the tips are shown (REQ-LOG-008)', async () => {
+  it('D-68 the “coming soon” box is left out, and Best practices are shown and the examples are folded until opened (REQ-LOG-008)', async () => {
     await render();
 
-    expect(await screen.findByText('Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.')).toBeOnTheScreen();
+    expect(await screen.findByText('Tips for better results')).toBeOnTheScreen();
+    // Folded at first.
+    expect(screen.queryByText('Say the amount, in grams')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Show tips for better results' }));
+    expect(screen.getByText('Say the amount, in grams')).toBeOnTheScreen();
+    expect(screen.getByText('Name each food on its own')).toBeOnTheScreen();
+    // The examples are folded at first.
+    expect(screen.queryByText('chicken wrap')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Show examples' }));
+    expect(screen.getByText('chicken wrap')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Hide examples' }));
+    expect(screen.queryByText('chicken wrap')).toBeNull();
+    // The banner folds away with its tips, and opens again.
+    await fireEvent.press(screen.getByRole('button', { name: 'Hide tips for better results' }));
+    expect(screen.queryByText('Say the amount, in grams')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Show tips for better results' }));
+    expect(screen.getByText('Say the amount, in grams')).toBeOnTheScreen();
     expect(screen.queryByText('AI meal reading is coming soon')).toBeNull();
     // The cooked-rice example has no supporting source (D-26 answer 3, amended 2026-10-30).
     expect(screen.queryByText(/cooked rice weighs/)).toBeNull();

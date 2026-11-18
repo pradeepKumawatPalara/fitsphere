@@ -135,7 +135,36 @@ export function weekRows(input: {
   return rows;
 }
 
-export const CHART_RANGES = ['1W', '1M', '3M', '6M', 'All'] as const;
+/**
+ * The same weeks as `weekRows`, for any dates the user picks (the Week by week filter): every Mon–Sun
+ * week that holds a day from `from` to `to`, newest first, each value the average over the week's
+ * days that have an entry (Q-043), as above. Days outside `from`–`to` still count in their week.
+ */
+export function weekRowsBetween(input: {
+  from: IstDay;
+  to: IstDay;
+  weighIns: readonly WeighInPoint[];
+  nutrition: Readonly<Record<IstDay, DayNutrition>>;
+  steps: readonly { day: IstDay; steps: number }[];
+}): WeekRow[] {
+  const rows: WeekRow[] = [];
+  const firstWeek = istWeekStart(input.from);
+  for (let weekStart = istWeekStart(input.to); weekStart >= firstWeek; weekStart = addDays(weekStart, -7)) {
+    const weekEnd = addDays(weekStart, 6);
+    const inWeek = (day: IstDay) => day >= weekStart && day <= weekEnd;
+    const nutritionDays = Object.keys(input.nutrition).filter(inWeek);
+    rows.push({
+      weekStart,
+      weightGrams: average(input.weighIns.filter((entry) => inWeek(entry.day)).map((entry) => entry.weightGrams)),
+      kcal: average(nutritionDays.map((day) => input.nutrition[day]!.kcal)),
+      proteinG: average(nutritionDays.map((day) => input.nutrition[day]!.proteinG)),
+      steps: average(input.steps.filter((entry) => inWeek(entry.day)).map((entry) => entry.steps)),
+    });
+  }
+  return rows;
+}
+
+export const CHART_RANGES =['1W', '1M', '3M', '6M', 'All'] as const;
 export type ChartRange = (typeof CHART_RANGES)[number];
 
 /** The same date `months` calendar months earlier, or that month's last day when it has no such date (31 Mar → 28 or 29 Feb). */

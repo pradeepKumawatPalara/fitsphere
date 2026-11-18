@@ -9,6 +9,7 @@ import {
   rangeNeedsServer,
   rangeStart,
   weekRows,
+  weekRowsBetween,
   type DayNutrition,
 } from './calculations';
 
@@ -126,6 +127,38 @@ describe('REQ-PRG-003 daysLogged (Q-044)', () => {
 
   it('counts today alone for an account created today', () => {
     expect(daysLogged({}, TODAY, TODAY)).toEqual({ logged: 0, total: 1 });
+  });
+});
+
+describe('REQ-PRG-005 weekRowsBetween (Week by week, by dates)', () => {
+  const data = {
+    weighIns: [
+      { day: '2026-10-26', weightGrams: 80_000 },
+      { day: '2026-10-27', weightGrams: 80_500 },
+      { day: '2026-10-25', weightGrams: 90_000 },
+    ],
+    nutrition: { '2026-10-27': { kcal: 1800, proteinG: 90.5 }, [TODAY]: { kcal: 2200, proteinG: 100 } },
+    steps: [
+      { day: '2026-10-26', steps: 8000 },
+      { day: TODAY, steps: 10_001 },
+    ],
+  };
+
+  it('gives the same averages as weekRows for the same weeks', () => {
+    const last = weekRows({ today: TODAY, accountStart: null, ...data });
+    const between = weekRowsBetween({ from: '2026-10-19', to: TODAY, ...data });
+    expect(between).toEqual(last.slice(0, 2));
+  });
+
+  it('lists every Monday–Sunday week that holds a day of the dates, newest first, whole weeks counted', () => {
+    // 21 Oct (Wed) to 28 Oct (Wed) touches two weeks: Mon 19 Oct's and Mon 26 Oct's.
+    const rows = weekRowsBetween({ from: '2026-10-21', to: TODAY, ...data });
+    expect(rows.map((row) => row.weekStart)).toEqual(['2026-10-26', '2026-10-19']);
+    // A year, long ago: one row per week, none with data.
+    const year = weekRowsBetween({ from: '2024-01-01', to: '2024-12-31', weighIns: [], nutrition: {}, steps: [] });
+    expect(year).toHaveLength(53);
+    expect(year[0]?.weekStart).toBe('2024-12-30');
+    expect(year[52]?.weekStart).toBe('2024-01-01');
   });
 });
 

@@ -9,9 +9,8 @@ import { MeasurementsSection } from '../progress/MeasurementsSection';
 import { NutritionCard } from '../progress/NutritionCard';
 import { useProgressWeightUnit } from '../progress/units';
 import { useProgressData } from '../progress/useProgressData';
-import { WeekTable } from '../progress/WeekTable';
-import { WeightCard } from '../progress/WeightCard';
-import { WeightTrend } from '../progress/WeightTrend';
+import { WeeksTile } from '../progress/WeeksTile';
+import { WeightTile } from '../progress/WeightTile';
 import { useSync } from '../sync/SyncProvider';
 import { useTheme } from '../theme';
 
@@ -33,8 +32,7 @@ export function ProgressScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.bg }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <WeightCard weighIns={data.weighIns} unit={unit} />
-        <WeightTrend
+        <WeightTile
           weighIns={data.weighIns}
           today={today}
           unit={unit}
@@ -47,8 +45,9 @@ export function ProgressScreen() {
           calorieTarget={data.targets.calories ?? null}
           onSetTarget={() => router.push('/targets')}
         />
-        <WeekTable
-          rows={weekRows({ today, accountStart, weighIns: data.weighIns, nutrition: data.nutrition, steps: data.steps })}
+        <WeeksTile
+          lastWeeks={weekRows({ today, accountStart, weighIns: data.weighIns, nutrition: data.nutrition, steps: data.steps })}
+          today={today}
           targets={data.targets}
           unit={unit}
           thisWeek={istWeekStart(today)}
@@ -76,8 +75,9 @@ export function ProgressScreen() {
   );
 }
 
-// The redesign's 5.1 (locked by the owner, 2026-11-03): 20 between the cards.
+// The redesign's 5.1 (locked by the owner, 2026-11-03), tightened by the owner's B (2026-11-18): 10
+// between the tiles, so the page scrolls less.
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 16, paddingBottom: 24, gap: 20 },
+  content: { padding: 16, paddingBottom: 24, gap: 10 },
 });
