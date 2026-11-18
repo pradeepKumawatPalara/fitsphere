@@ -112,7 +112,7 @@ describe('D-82 an exercise’s page from a workout', () => {
     expect(screen.queryByText(/· this workout$/)).toBeNull();
   });
 
-  it('lists each workout on History, the three bests on top and as tags, a card opening its workout, and Load older', async () => {
+  it('lists each workout on History, the three bests on top and as tags, a card opening its workout, and other dates (D-116)', async () => {
     const { server } = await renderWorkout();
     await openPage('Dumbbell bench press');
     await fireEvent.press(screen.getByRole('tab', { name: 'History' }));
@@ -126,18 +126,47 @@ describe('D-82 an exercise’s page from a workout', () => {
     expect(screen.getByText('Volume')).toBeOnTheScreen();
     expect(screen.getByText('Volume 600 kg · Est. 1RM 26.5 kg')).toBeOnTheScreen();
 
+    // The last 90 days at first, under the date choices and a count line; no Load older (D-116).
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+    expect(screen.getByText('3 workouts with this exercise · Fri 31 Jul – Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Load older' })).toBeNull();
+
     server.state.olderWorkouts = [
       { id: OLD_ID, day: '2026-07-01', exercises: [sameSets('Dumbbell bench press', 3, 10, 15_000)], timer: null, recordedAt: '2026-07-01T02:00:00.000Z', updatedAt: '2026-07-01T02:00:00.000Z' },
     ];
-    await fireEvent.press(screen.getByRole('button', { name: 'Load older' }));
-    // An older workout is shown, not opened.
+    await fireEvent.press(screen.getByRole('radio', { name: '2026' }));
+    // An older workout, read online, is shown, not opened.
     expect(await screen.findByLabelText('Wed 1 Jul: 3 sets, 10 × 15.0 kg')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Wed 1 Jul: 3 sets, 10 × 15.0 kg' })).toBeNull();
+    expect(screen.getByText('4 workouts with this exercise · Thu 1 Jan – Wed 28 Oct')).toBeOnTheScreen();
+    expect(server.state.workoutQueries).toEqual([{ from: '2026-01-01', to: '2026-07-30', cursor: null }]);
+
+    // Progress counts the dates picked in History too.
+    await fireEvent.press(screen.getByRole('tab', { name: 'Progress' }));
+    expect(screen.getByText('4 workouts · first on Wed 1 Jul · last on Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.getByText('Your last 90 days, and the dates picked in History.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('tab', { name: 'History' }));
 
     await fireEvent.press(screen.getByRole('button', { name: 'Wed 21 Oct: 3 sets, 10 × 20.0 kg, Best volume' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith(`/workout/${LAST_WEEK_ID}`);
     expect(screen.queryByRole('header', { name: 'Dumbbell bench press' })).toBeNull();
+  });
+
+  it('History in another year: its workouts read online, their days and bests with the year (D-116)', async () => {
+    const { server } = await renderWorkout();
+    server.state.olderWorkouts = [
+      { id: OLD_ID, day: '2025-12-13', exercises: [sameSets('Dumbbell bench press', 3, 8, 15_000)], timer: null, recordedAt: '2025-12-13T02:00:00.000Z', updatedAt: '2025-12-13T02:00:00.000Z' },
+    ];
+    await openPage('Dumbbell bench press');
+    await fireEvent.press(screen.getByRole('tab', { name: 'History' }));
+
+    await fireEvent.press(screen.getByRole('radio', { name: '2025' }));
+
+    expect(await screen.findByText('1 workout with this exercise · Wed 1 Jan 2025 – Wed 31 Dec 2025')).toBeOnTheScreen();
+    expect(screen.getByLabelText(/^Sat 13 Dec 2025: 3 sets, 8 × 15\.0 kg/)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Heaviest 15.0 kg, Sat 13 Dec 2025' })).toBeOnTheScreen();
+    expect(server.state.workoutQueries).toEqual([{ from: '2025-01-01', to: '2025-12-31', cursor: null }]);
   });
 
   it('shows How to: the steps, what to watch for, the muscles, the equipment, the note and the default video', async () => {

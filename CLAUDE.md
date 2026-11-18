@@ -35,6 +35,17 @@ Cloud Run beta shares.** **The beta's Cloud Run API needs a deploy of `main` wit
 `openai-api-key` and `OPENAI_MODEL` (runbook, "The API on Cloud Run") before beta phones can read
 meals; deploy only when the owner says so.**
 
+**Older dates without "Load older" — built on branch `feat/older-history` (D-116, 2026-11-18), in
+`D:\fitsphere`.** Plan: `docs/plans/older-history.md` (Accepted); canvas boards `OlderWorkouts*` and
+`OlderElsewhere*` A locked (version 125). Training's All workouts, Weight history and an exercise's History
+lose Load older and get Progress's measurements' row of choices (D-114): Pick dates, Last 90 days (at
+first, the phone's), each year back to 2000, with a count line; older days read online with the existing
+workouts and weigh-ins routes, every page, kept in memory; a day the phone read whole (D-106) is the
+phone's alone; an older All workouts card opens its date in By day (`dateRange.ts`,
+`components/DateChoices.tsx`, `components/DatesSheet.tsx`, `olderWorkouts.ts`, `holdsServerDay` in
+`src/local/store.ts`). Phone app only: no server change, no migration, no phone schema change, no new build,
+no Cloud Run deploy.
+
 **The beta: the API on Cloud Run, an Android test build — built on branch `feat/cloud-run` (D-101,
 2026-11-13), in its own folder `D:\fitsphere-cloudrun` (removed once merged).** Q-087 answered for the
 API: the Google Cloud project `fitsphere-api` (free trial, ₹500 a month budget alert), region

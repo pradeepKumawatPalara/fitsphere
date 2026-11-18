@@ -1,4 +1,4 @@
-import { formatWeight } from '@fitsphere/shared';
+import { formatWeight, type IstDay } from '@fitsphere/shared';
 import type { ReactElement } from 'react';
 import { FlatList, View } from 'react-native';
 import { formatDay } from '../format';
@@ -9,9 +9,19 @@ import { Text } from './ui';
 
 export type HistoryRow = { day: string; weightGrams: number; note?: string };
 
+type Props = {
+  rows: HistoryRow[];
+  /** Above the rows: Weight history's date choices (D-116). */
+  header?: ReactElement;
+  /** With it, a day of another year shows its year ("Sun 28 Dec 2025"). */
+  today?: IstDay;
+  /** What shows with no rows; by default "No weights in this period.", null for nothing. */
+  empty?: ReactElement | null;
+};
+
 // The weight history list (REQ-PRG-001), in the body-weight unit setting (REQ-ACC-003). A FlatList
 // renders only the rows on screen, which keeps scrolling smooth on low-end phones (ADR-0001 step 6).
-export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: ReactElement }) {
+export function WeighInList({ rows, header, today, empty }: Props) {
   const styles = useStyles();
   const unit = useBodyWeightUnit();
   return (
@@ -27,11 +37,11 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
           // Together the rows make one card: the first rounds its top, the last its foot.
           <View
             accessible
-            accessibilityLabel={`${formatDay(item.day)}: ${weight}${item.note ? ` · ${item.note}` : ''}`}
+            accessibilityLabel={`${formatDay(item.day, today)}: ${weight}${item.note ? ` · ${item.note}` : ''}`}
             style={[styles.row, index === 0 ? styles.first : styles.ruled, index === rows.length - 1 && styles.last]}
           >
             <View style={styles.dayColumn}>
-              <Text style={styles.day}>{formatDay(item.day)}</Text>
+              <Text style={styles.day}>{formatDay(item.day, today)}</Text>
               {item.note ? (
                 <View style={styles.noteLine}>
                   <View style={[styles.dot, item.note === 'not saved' && styles.dotProblem]} />
@@ -43,8 +53,8 @@ export function WeighInList({ rows, footer }: { rows: HistoryRow[]; footer?: Rea
           </View>
         );
       }}
-      ListFooterComponent={footer}
-      ListEmptyComponent={<Text style={styles.empty}>No weights in this period.</Text>}
+      ListHeaderComponent={header}
+      ListEmptyComponent={empty === undefined ? <Text style={styles.empty}>No weights in this period.</Text> : (empty ?? undefined)}
     />
   );
 }

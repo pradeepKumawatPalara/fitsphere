@@ -369,13 +369,16 @@ function bestSpecs(kind: EffortKind): BestSpec[] {
   }
 }
 
-/** An exercise's bests ever (D-82): each with the session holding it, the earlier on a tie; none it has no value for. */
-export function exerciseBests(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit): ExerciseBest[] {
+/**
+ * An exercise's bests ever (D-82): each with the session holding it, the earlier on a tie; none it has
+ * no value for. With `today`, a day of another year shows its year (D-116: older years are shown).
+ */
+export function exerciseBests(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit, today?: IstDay): ExerciseBest[] {
   return bestSpecs(kind).flatMap((spec) => {
     const found = bestSession(sessions, kind, spec.score);
     if (!found) return [];
     const { value, unit: shownUnit } = spec.text(found.metrics, unit);
-    return [{ key: spec.key, label: spec.label, short: spec.short, value, unit: shownUnit, day: formatDay(found.session.day), session: found.session }];
+    return [{ key: spec.key, label: spec.label, short: spec.short, value, unit: shownUnit, day: formatDay(found.session.day, today), session: found.session }];
   });
 }
 
@@ -409,11 +412,11 @@ export type RecordCard = { label: string; value: string; unit: string; day: stri
  * The three record cards for a kind (the plan's table), each with the day it was made: a lift's are
  * History's three bests (the owner, 2026-11-12), Estimated 1RM, Heaviest and Best volume.
  */
-export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit): RecordCard[] {
+export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, unit: BodyWeightUnit, today?: IstDay): RecordCard[] {
   const workouts = new Set(sessions.flatMap((session) => session.workoutIds)).size;
   const first = sessions.at(-1);
-  const count: RecordCard = { label: 'Workouts', value: String(workouts), unit: '', day: first ? `since ${formatDay(first.day)}` : '' };
-  const bests = exerciseBests(sessions, kind, unit);
+  const count: RecordCard = { label: 'Workouts', value: String(workouts), unit: '', day: first ? `since ${formatDay(first.day, today)}` : '' };
+  const bests = exerciseBests(sessions, kind, unit, today);
   const card = (key: BestKey, label: string, emptyUnit: string): RecordCard => {
     const best = bests.find((each) => each.key === key);
     return best ? { label, value: best.value, unit: best.unit, day: best.day } : { label, value: '–', unit: emptyUnit, day: '' };
@@ -437,7 +440,7 @@ export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, 
       const total = sum(sessions.map((session) => sessionMetrics(session.exercise, kind).duration));
       return [
         card('longest', 'Longest', ''),
-        { label: 'Total time', value: total === null ? '–' : formatDuration(total), unit: '', day: first ? `since ${formatDay(first.day)}` : '' },
+        { label: 'Total time', value: total === null ? '–' : formatDuration(total), unit: '', day: first ? `since ${formatDay(first.day, today)}` : '' },
         count,
       ];
     }
@@ -445,13 +448,13 @@ export function exerciseRecords(sessions: readonly Session[], kind: EffortKind, 
 }
 
 /** "6 workouts · first on Mon 14 Sep · last on Fri 30 Oct", or "1 workout · Fri 30 Oct". */
-export function sessionsSummary(sessions: readonly Session[]): string {
+export function sessionsSummary(sessions: readonly Session[], today?: IstDay): string {
   const workouts = new Set(sessions.flatMap((session) => session.workoutIds)).size;
   const newest = sessions[0];
   const oldest = sessions.at(-1);
   if (!newest || !oldest) return '';
-  if (newest.day === oldest.day) return `${workouts === 1 ? '1 workout' : `${workouts} workouts`} · ${formatDay(newest.day)}`;
-  return `${workouts} workouts · first on ${formatDay(oldest.day)} · last on ${formatDay(newest.day)}`;
+  if (newest.day === oldest.day) return `${workouts === 1 ? '1 workout' : `${workouts} workouts`} · ${formatDay(newest.day, today)}`;
+  return `${workouts} workouts · first on ${formatDay(oldest.day, today)} · last on ${formatDay(newest.day, today)}`;
 }
 
 /** What the graph can show. */
@@ -559,10 +562,10 @@ export type HistoryRow = { label: string; value: string; best: boolean };
  */
 export type HistoryCard = { title: string; tags: ExerciseBest[]; rows: HistoryRow[]; main: string; footer: string; aria: string };
 
-/** A session's card on the History tab, with the bests of `bests` it holds. */
-export function historyCard(session: Session, kind: EffortKind, unit: BodyWeightUnit, bests: readonly ExerciseBest[]): HistoryCard {
+/** A session's card on the History tab, with the bests of `bests` it holds; with `today`, another year's day shows its year. */
+export function historyCard(session: Session, kind: EffortKind, unit: BodyWeightUnit, bests: readonly ExerciseBest[], today?: IstDay): HistoryCard {
   const title =
-    formatDay(session.day) +
+    formatDay(session.day, today) +
     (session.workoutIds.length > 1 ? ` · ${session.workoutIds.length} workouts` : session.workoutNumber === null ? '' : ` · Workout ${session.workoutNumber}`);
   const { exercise } = session;
   const metrics = sessionMetrics(exercise, kind);

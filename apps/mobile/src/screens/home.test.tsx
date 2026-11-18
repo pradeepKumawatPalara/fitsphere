@@ -176,34 +176,54 @@ describe('ADR-0007 rule 2 rejected changes', () => {
   });
 });
 
-describe('REQ-PRG-001 history', () => {
-  it('REQ-PRG-001 lists the phone’s weigh-ins newest first, then older ones from the server', async () => {
-    const { server } = await renderApp('history');
-    server.storeFromElsewhere('2026-10-27', 70_100);
-    server.storeFromElsewhere('2026-10-20', 70_500);
-    server.state.older = [{ day: '2026-06-01', weightGrams: 72_000 }];
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+// D-116 (the owner's A, 2026-11-18): Weight history by dates, as Progress's measurements (D-114): the
+// last 90 days, the phone's (Fri 31 Jul to Wed 28 Oct), at first; a year or Pick dates read older ones.
+describe('REQ-PRG-001 history by dates (D-116)', () => {
+  const rowNames = () => screen.getAllByLabelText(/^[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}( \d{4})?: /).map((row) => row.props.accessibilityLabel);
 
-    expect(await screen.findByText('Mon 1 Jun')).toBeOnTheScreen();
-    const older = server.calls.find((call) => call.path.endsWith('/weigh-ins'));
-    expect(older?.path).toBe(`/users/${'0f8e5a1c-9b7d-4c1e-8a2b-3c4d5e6f7a8b'}/weigh-ins`);
+  it('opens on the last 90 days, the phone’s, with the date choices and no Load older', async () => {
+    const { server } = await renderApp('history');
+
+    expect(await screen.findByText('No weigh-ins in the last 90 days.')).toBeOnTheScreen();
+    expect(screen.getAllByRole('radio').map((choice) => choice.props.accessibilityLabel).slice(0, 4)).toEqual(['Pick dates', 'Last 90 days', '2026', '2025']);
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Load older' })).toBeNull();
+    expect(server.state.weighInQueries).toEqual([]);
   });
 
-  it('REQ-PRG-001 an older range with no weigh-ins says so, its days written as everywhere else', async () => {
+  it('a year lists its weigh-ins read online, newest first with their year, under a count line', async () => {
     const { server } = await renderApp('history');
-    server.state.older = [];
+    server.state.older = [
+      { day: '2025-06-01', weightGrams: 72_000 },
+      { day: '2025-12-28', weightGrams: 71_500 },
+    ];
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
 
-    expect(await screen.findByText(/^No weights from [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} to [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}\.$/)).toBeOnTheScreen();
+    expect(await screen.findByText('2 weigh-ins · Wed 1 Jan 2025 – Wed 31 Dec 2025')).toBeOnTheScreen();
+    expect(rowNames()).toEqual(['Sun 28 Dec 2025: 71.5 kg', 'Sun 1 Jun 2025: 72.0 kg']);
+    expect(server.calls.find((call) => call.path.endsWith('/weigh-ins'))?.path).toBe(`/users/${'0f8e5a1c-9b7d-4c1e-8a2b-3c4d5e6f7a8b'}/weigh-ins`);
+    expect(server.state.weighInQueries).toEqual([{ from: '2025-01-01', to: '2025-12-31', cursor: null }]);
   });
 
-  it('ADR-0007 rule 6 "Load older" offline shows the named warning', async () => {
+  it('a year with none says so, its days written as everywhere else', async () => {
+    await renderApp('history');
+
+    await fireEvent.press(await screen.findByRole('radio', { name: '2023' }));
+
+    expect(await screen.findByText('No weigh-ins from Sun 1 Jan 2023 to Sun 31 Dec 2023.')).toBeOnTheScreen();
+  });
+
+  it('ADR-0007 rule 6 offline, says older weigh-ins need the internet; Try again loads them once online', async () => {
     const { server } = await renderApp('history');
+    server.state.older = [{ day: '2025-06-01', weightGrams: 72_000 }];
     server.state.offline = true;
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
 
-    expect(await screen.findByText('Loading older history needs an internet connection.')).toBeOnTheScreen();
+    expect(await screen.findByText('Weigh-ins older than 90 days need an internet connection.')).toBeOnTheScreen();
+    server.state.offline = false;
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('1 weigh-in · Wed 1 Jan 2025 – Wed 31 Dec 2025')).toBeOnTheScreen();
   });
 });

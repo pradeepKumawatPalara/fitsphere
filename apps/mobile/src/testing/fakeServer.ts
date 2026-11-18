@@ -84,8 +84,14 @@ export function fakeServer(now: Date) {
     barcodesUnavailable: false,
     /** The files in the fake storage, by key ("<mediaId>.jpg", "<mediaId>-thumb.jpg"). */
     files: new Map<string, Uint8Array>(),
-    /** What `GET /users/{id}/workouts` returns. */
+    /** Workouts `GET /users/{id}/workouts` returns besides those stored here, filtered by `from` and `to`. */
     olderWorkouts: [] as Workout[],
+    /** The `from`, `to` and `cursor` of each `GET /users/{id}/workouts` (D-116). */
+    workoutQueries: [] as { from: string | null; to: string | null; cursor: string | null }[],
+    /** Workouts a page holds; null puts them all on one page. */
+    workoutsPageSize: null as number | null,
+    /** Answer `GET /users/{id}/workouts` with this status instead. */
+    workoutsFailWith: null as number | null,
     /** The `from`, `to` and `cursor` of each `GET /users/{id}/measurements` (D-114). */
     measurementQueries: [] as { from: string | null; to: string | null; cursor: string | null }[],
     /** Measurements a page holds; null puts them all on one page. */
@@ -287,7 +293,26 @@ export function fakeServer(now: Date) {
       return json(200, { items: matching.slice(start, end), nextCursor: end < matching.length ? String(end) : null });
     }
     if (method === 'GET' && /^\/users\/[^/]+\/workouts$/.test(path)) {
-      return json(200, { items: state.olderWorkouts, nextCursor: null });
+      // The stored workouts not deleted, and the older ones given, oldest first, a page at a time.
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      const cursor = url.searchParams.get('cursor');
+      state.workoutQueries.push({ from, to, cursor });
+      if (state.workoutsFailWith) {
+        return json(state.workoutsFailWith, { error: { code: 'INTERNAL_ERROR', message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      const kept = [...entries('workouts').values()].filter((entry) => entry.deleted !== true) as unknown as Workout[];
+      const matching = [...kept, ...state.olderWorkouts]
+        .filter((entry) => (!from || entry.day >= from) && (!to || entry.day <= to))
+        .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : 0))
+        .map((entry) => {
+          const { deleted, ...workout } = entry as Workout & { deleted?: boolean };
+          void deleted;
+          return workout;
+        });
+      const start = Number(cursor ?? 0);
+      const end = start + (state.workoutsPageSize ?? matching.length);
+      return json(200, { items: matching.slice(start, end), nextCursor: end < matching.length ? String(end) : null });
     }
     if (method === 'GET' && /^\/users\/[^/]+\/weigh-ins$/.test(path)) {
       const from = url.searchParams.get('from');
