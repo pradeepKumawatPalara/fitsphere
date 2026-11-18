@@ -487,7 +487,8 @@ nothing to apply; both imports run from `main`). The steps:
 3. `npm run check:pooler -w @fitsphere/api`. PASS: Cloud Run's `database-url` is the transaction
    pooler (the session pooler's address with port 6543). FAIL: it is the session pooler's address.
 4. In Secret Manager, one secret each: `database-url`, `supabase-secret-key`,
-   `storage-s3-access-key-id` and `storage-s3-secret-access-key`. Give the Cloud Run runtime's
+   `storage-s3-access-key-id`, `storage-s3-secret-access-key` and (since D-115, AI meal reading)
+   `openai-api-key`, the owner's OpenAI key limited to the Responses API. Give the Cloud Run runtime's
    service account **Secret Manager Secret Accessor** on them. Paste each value from the password
    manager into the console; never into a file in the repository, a saved command or chat.
 5. At the root of a checkout of `main`, `gcloud meta list-files-for-upload` lists what the deploy
@@ -498,14 +499,17 @@ nothing to apply; both imports run from `main`). The steps:
      --source . --region asia-southeast1 \
      --allow-unauthenticated \
      --cpu 1 --memory 512Mi --min-instances 0 --max-instances 2 \
-     --set-env-vars HOST=0.0.0.0,LOG_LEVEL=info,SUPABASE_URL=...,SUPABASE_PUBLISHABLE_KEY=...,OFF_CONTACT=...,STORAGE_BUCKET=meal-photos,STORAGE_S3_ENDPOINT=...,STORAGE_S3_REGION=... \
-     --set-secrets DATABASE_URL=database-url:latest,SUPABASE_SECRET_KEY=supabase-secret-key:latest,STORAGE_S3_ACCESS_KEY_ID=storage-s3-access-key-id:latest,STORAGE_S3_SECRET_ACCESS_KEY=storage-s3-secret-access-key:latest
+     --set-env-vars HOST=0.0.0.0,LOG_LEVEL=info,SUPABASE_URL=...,SUPABASE_PUBLISHABLE_KEY=...,OFF_CONTACT=...,STORAGE_BUCKET=meal-photos,STORAGE_S3_ENDPOINT=...,STORAGE_S3_REGION=...,OPENAI_MODEL=gpt-6-luna \
+     --set-secrets DATABASE_URL=database-url:latest,SUPABASE_SECRET_KEY=supabase-secret-key:latest,STORAGE_S3_ACCESS_KEY_ID=storage-s3-access-key-id:latest,STORAGE_S3_SECRET_ACCESS_KEY=storage-s3-secret-access-key:latest,OPENAI_API_KEY=openai-api-key:latest
    ```
    `--allow-unauthenticated` is right: the API checks every request's Supabase token itself (the
-   access module, REQ-NFR-001); only `GET /v1/health` is public.
+   access module, REQ-NFR-001); only `GET /v1/health` is public. Without `OPENAI_API_KEY`, AI meal
+   reading answers 503 and everything else works.
 7. Check: `https://<service-url>/v1/health` answers `{"status":"ok"}`, and Cloud Run's logs show
    one line per request (route, status, time, user ID) and no secret, token, email address or
-   health data.
+   health data. Since D-115: `POST /v1/ai/meal-parse` with no sign-in token answers 401 (not 404:
+   the route is there); on a beta phone, Speak your meal reads a made-up meal, and the log holds the
+   route but not the meal's words.
 8. Keep at most 2 old revisions, and delete old images in Artifact Registry.
 
 **Rollback, not yet run:** send all traffic back to the revision before:
@@ -518,6 +522,13 @@ in `apps/mobile/eas.json` builds an APK for internal distribution with the servi
 `EXPO_PUBLIC_API_URL`, and the Supabase project's address and publishable key (both built into the
 app anyway). From `apps/mobile`: `npx eas-cli@26 build --platform android --profile preview`, then
 download the APK from the build's page; the owner shares it through Firebase App Distribution.
+- Since D-115 (pull request #123) the APK carries the speech module: build it from `main` at or after
+  #123, after `npm install`. The build log's app configuration lists `expo-speech-recognition` and
+  `expo-sqlite` with `useSQLCipher: true`. Speak your meal also needs the Cloud Run API deployed from
+  the same `main` with `openai-api-key` (steps 4 and 6); until then the row shows on beta phones and
+  a reading says "AI meal reading isn't available right now", with the words kept as a search.
+- Install it as **FitSphere**, never open the project in Expo Go: Expo Go has no SQLCipher (FitSphere
+  stops with "this phone's database cannot be encrypted") and no speech module.
 - Its app ID is the development build's (`com.fitsphere.app`), so on a phone that has the
   development build, installing the APK replaces it, and the other way round. If Android refuses
   to install one over the other, uninstall the other first: anything logged on that phone and not
