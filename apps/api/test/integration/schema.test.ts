@@ -347,6 +347,7 @@ describe('ADR-0002 second safety layer', () => {
     );
     expect(rows.map((row) => row.relname).sort()).toEqual([
       'ai_consents',
+      'ai_readings',
       'applied_changes',
       'barcode_products',
       'dishes',
