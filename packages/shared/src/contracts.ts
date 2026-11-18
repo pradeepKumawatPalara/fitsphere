@@ -1481,6 +1481,18 @@ export const weighInsPageSchema = z.object({
 });
 export type WeighInsPage = z.infer<typeof weighInsPageSchema>;
 
+// --- Measurements history: GET /v1/users/{userId}/measurements (D-114) ---
+
+/** The same query as the weigh-in history; the cursor is the route's own. */
+export const measurementsQuerySchema = weighInsQuerySchema;
+export type MeasurementsQuery = z.input<typeof measurementsQuerySchema>;
+
+export const measurementsPageSchema = z.object({
+  items: z.array(measurementSchema),
+  nextCursor: z.string().nullable(),
+});
+export type MeasurementsPage = z.infer<typeof measurementsPageSchema>;
+
 // --- Workout history: GET /v1/users/{userId}/workouts ---
 
 /** The same query as the weigh-in history; the cursor is the route's own. */

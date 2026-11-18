@@ -1981,9 +1981,16 @@ checksum), and the configuration template was left as it is.*
     calories, heart rate, note) shows, the whole page scrolls, the fields with it (the owner: "the
     whole screen should be scrollable while adding the timer and calories spend enter"). Save exercise
     is fixed at the foot, and steps aside while a list shows.
+    *Since 2026-11-17 (the owner's report: a short list left a large empty panel under its last choice):
+    a list is only as tall as its rows, under the fields; a longer one stops at the screen's foot and
+    scrolls.*
   - The name has a **chevron**, as Category's: it closes the list showing (and the keyboard), or opens
     it again: the matches of the words typed, the choice's exercises, or, with nothing typed or chosen,
     every exercise A to Z ("All exercises · 2,119"). Typing opens it again.
+    *Since 2026-11-17 (the owner's report: opened on an exercise picked, it listed only that one, under a
+    large empty space): opened on an exercise of the list already picked, it lists the choice's exercises,
+    or every one, the picked one highlighted (the accent's tint, bold, a tick) and scrolled to; typing in
+    the name searches again.*
   - An exercise of the list already picked that a new Category or Sub-group does not hold **leaves the
     name**, so the choice's exercises show to pick from; a name of the user's own stays.
 - MVP defaults:
@@ -2207,11 +2214,13 @@ checksum), and the configuration template was left as it is.*
   - The time comes from the phone's clock: leaving the screen, closing the app or turning the phone
     off does not stop it. A clock set back takes no time away; a timer shows 24 hours at most.
   - Mark done is not required: the workout is still saved at every change (D-29), and a workout logged
-    without the timer stays as it was. Mark done with no exercise is allowed and keeps the time.
+    without the timer stays as it was. Mark done with no exercise is allowed and keeps the time
+    (changed by D-108: Mark done waits for an exercise).
   - A workout whose timer has started is **listed** on Training and in Home's day sheet before its
     first exercise ("No exercises"), so a running workout is never lost; this changes D-65's "a workout
     with no exercise is not listed" for timed workouts only. It still **counts toward the week only once
-    it has an exercise** (D-41, unchanged).
+    it has an exercise** (D-41, unchanged). *Changed by D-108 (2026-11-16): a workout with no exercise is
+    not listed, marked or counted, even with its timer started; the Workout in progress pill opens it.*
   - Each workout has its own timer; two may run at once. Deleting a workout deletes its timer.
   - Not in this change: Reset to 0:00, laps and rest timers, sound or vibration, a lock-screen timer
     (it needs a native module and a new build), the time on Home, typing the total by hand, using the
@@ -3582,6 +3591,166 @@ checksum), and the configuration template was left as it is.*
 - Phone app only: no server change, no migration, no phone schema change, no new build (the icon is
   in the app's icon package).
 - Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
+
+## D-108 A workout with no exercise is not logged, even with its timer running
+- Status: **Accepted** (owner, in chat, 2026-11-16: "add the validations that tere should not be no
+  workout counts in the dat without any excecise. If the timer is continue it should continue but
+  without adding any excercise without will not be logged."). Built on branch `fix/empty-workouts`.
+- Problem: since D-71 a workout whose timer had started was listed before its first exercise, so a
+  day with only an empty, timed workout had a dumbbell on the date strips and in the header's
+  calendar, counted in the calendar's month ("1 workout"), and showed on Training as "No exercises;
+  Running · 12:34"; and Mark done could finish a workout with no exercise.
+- Answer (REQ-TRN-003, REQ-TRN-004; changes D-71's MVP default, restores D-65 for timed workouts):
+  - A workout is **logged only once it has an exercise** (D-41). Before that, timer or not, it is
+    not listed (By day, All workouts), marked (the dumbbells under the strips' dates and in the
+    calendar), counted (the month's count, Home's "3 of 4 workouts this week") or numbered.
+  - **The timer continues**: Start workout, Pause and Resume work on a workout with no exercise, and
+    the time counts as before. The Workout in progress pill (D-83) still shows it while its timer runs
+    or is paused, so it is never lost; the pill names it by its place, as its own screen does.
+  - **Mark done waits for an exercise**: greyed, with "Add an exercise to log this workout and mark
+    it done." above it in the timer's bar. The screen's empty box says "No exercises yet. Add one to
+    log this workout."
+  - Once the first exercise is added, the workout is listed, marked and counted at once, with its
+    time ("Running · 10:00"), and Mark done can be tapped.
+- MVP defaults: a workout whose last exercise is removed is no longer listed, timed or not (as D-65);
+  its timer is kept. The note on another workout's greyed Start workout (D-83) is unchanged. Phone
+  only: the server still stores a workout with no exercise, and does not refuse Mark done without one
+  (an older app may send it).
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003 and REQ-TRN-004; constraints' D-71 row and a D-108 row; the redesign's 4.1;
+  CLAUDE.md.
+
+## D-109 Profile: the address's State is chosen from a list of India's states and union territories
+- Status: **Accepted** (owner, in chat, 2026-11-16: "in the profile sections I want that state input
+  should be dropdown with all indian state + indian KEndra shashit pradesh"). Built on branch
+  `feat/profile-state-list`. Numbered D-109: D-108 is the empty workouts' (branch `fix/empty-workouts`).
+- Answer (REQ-ACC-011; with D-38 and D-100):
+  - On Profile, the address's **State** is a box like the others with a down arrow, "State" until
+    one is chosen. A tap opens a sheet titled State: **States**, India's 28, then **Union
+    territories** (Kendra Shasit Pradesh), its 8, each list in the order of the alphabet, the chosen
+    one ticked. A tap on one chooses it and closes the sheet; **Clear state** empties it.
+  - The names: Andhra Pradesh … West Bengal; Andaman and Nicobar Islands, Chandigarh, Dadra and Nagar
+    Haveli and Daman and Diu, Delhi, Jammu and Kashmir, Ladakh, Lakshadweep, Puducherry.
+  - The address's rules are unchanged (D-100): line 1, the city, the state and the PIN code, or none.
+- MVP defaults: a state saved before is shown with the list's spelling when it matches, ignoring case,
+  spaces and marks; one that does not match is shown and saved as it was, and the sheet says it isn't on
+  the list, until one is chosen. No search box (36 rows). Phone only: the server keeps D-100's rules for
+  the state and does not check the list.
+- Phone app only: no server change, no migration, no phone schema change, no new build (the arrow is
+  in the app's icon package).
+- Doc changes: REQ-ACC-011; constraints' MVP defaults; the redesign's 6.6; CLAUDE.md.
+
+## D-110 Home: no line under the date strip counting the week's workouts
+- Status: **Accepted** (owner, in chat, 2026-11-17: "on the home dashboard under the week strip there
+  is label called 4 workouts this week. I want to remove this label"). Built on branch
+  `fix/home-week-line`. Numbered D-110: D-108 and D-109 are on pull requests #117 and #118.
+- Answer (REQ-HOME-007; changes D-103's MVP default): Home's line under the date strip, "3 of 4 workouts
+  this week" (with "target achieved", "that week", "No workouts this week"), is gone. The strip's apple
+  and dumbbell under each date stay (REQ-HOME-002, D-103), on Home, Nutrition and Training.
+- Consequence: Home shows the weekly workout target nowhere; it is still set in Your targets and kept by
+  date in Target history (D-77).
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-HOME-007 and REQ-ROLE-007's criterion; constraints' D-103 row; the redesign's 2.3;
+  CLAUDE.md.
+
+## D-111 The exercise page scrolls less: everything shown, smaller; How to do it beside the name
+- Status: **Accepted** (owner, in chat, 2026-11-17: "In the Add Excercise tab while Adding the details it
+  has to much scrolling. for this come up with the better canva desing and plan and wait for my
+  approval"; of the canvas's A (fold the optional fields), B (everything shown, smaller) and C (the
+  optional fields in a sheet), version 113: "Lock it B with one small change like how to do it should be
+  side by side to the excercise name to right side. will only visible when the here is the value for the
+  excercise name"; locked in version 114). Plan: `docs/plans/exercise-sheet-compact.md`. Built on the
+  day's branch `daily/2026-11-17`.
+- Answer (REQ-TRN-003; with D-50, D-67, D-82, D-107):
+  - Add exercise and Edit exercise keep every field shown, one page as before, but smaller: each box 44
+    high (54 before), Category and Sub-group too, labels closer to their boxes and fields closer together.
+  - **Time spent beside Calories** (a cardio exercise: Calories alone), the heart rates beside each other,
+    with short labels: "Time spent", "Calories", "Average HR", "Highest HR". The calories' line sits under
+    the pair. The note is one line under its label, "Note (optional)", growing as it is typed (the owner kept the label after the phone test).
+  - **"Estimated" beside the Calories label** (the owner, 2026-11-17, after the phone test: "the calories
+    value is not visible. SO put the estimated label to label"): the half-wide box shows only the number
+    and kcal; the estimate's tag sits where D-107's Edited tag does (never both), the muted tag of the
+    page's other tags; on a narrow phone it goes under the label. Canvas version 115.
+  - **How to do it** moves from the tag line to the right of the Exercise name label, and shows only while
+    the name holds an exercise of the list.
+- MVP defaults: screen readers hear each field's whole name, as before; Time spent's own line ("Used only
+  to estimate the calories burned.") is gone, the calories' line saying the same; cardio's fields stay one
+  under another; nothing saved changes.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; the plan; CLAUDE.md.
+
+## D-112 Every set value whole: the units in the column headings
+- Status: **Accepted** (owner, in chat, 2026-11-17: with a screenshot of Edit exercise, Barbell Bear Crawl
+  Drag, "the value is not completely visible ... come up with the canva design and the canva design also
+  cover the other excercise scenario as well"; of the canvas's A (the units in the headings), B (a small
+  unit above each number) and C (three boxes over two lines), version 117, the owner chose A; locked in
+  version 118). Built on the day's branch `daily/2026-11-17`.
+- Problem: an exercise saved with reps and changed, on Edit, to one done with weight and time keeps its
+  reps as a third, optional column (D-50). Three boxes in a row, each with its unit, beside the set's
+  number and the bin, left the number about 28 points: "1.0" showed as ".0".
+- Answer (REQ-TRN-003; with D-50, D-63, D-111):
+  - The sets' column headings carry the units: "Weight · kg" (or lb), "Time · sec", "Reps"; a column the
+    type doesn't ask for has "optional" under its heading.
+  - Each box holds only its number, centred; 18 high with three boxes across (20 otherwise).
+  - A slim X (32 wide) removes a set, in place of the red bin (40).
+  - So the largest values show whole, three across: 2,204.6 lb, 3,600 s, 200 reps.
+- MVP defaults: screen readers hear each box's whole name as before ("Set 1, Weight in kg"); cardio's
+  boxes and the page's other boxes keep their units.
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003; constraints' MVP defaults; the redesign's 4.3; CLAUDE.md.
+
+## D-113 The exercise bar's Progress renamed Details, with an ⓘ icon
+- Status: **Accepted** (owner, in chat, 2026-11-17: "on the workout tab for each of the excercise there
+  are the KPI named Progress, Edit, Remove. So Here I want to rename the KPI of Progress somethings thaat
+  most suit to its purpose. So come up with the different name and icon for this. wait for my approval";
+  of five proposed (A Details with ⓘ, B Insights, C Stats, D Records, E Overview), "go with A"). Built
+  on branch `daily/2026-11-17-b`.
+- Problem: the button opens the exercise's whole page, Progress, History and How to (D-82), and on How
+  to for an exercise never logged; "Progress", with the Progress tab's own rising-line icon, named only
+  one of the three.
+- Answer (REQ-TRN-003, REQ-TRN-008; with D-82):
+  - The first button in the bar at each workout exercise's foot says **Details**, with Lucide's `Info`
+    icon (an i in a circle), in place of "Progress" and its rising line (`TrendingUp`).
+  - Same place, colour, size and page; Edit and Remove unchanged; the page's own tabs keep their names.
+- MVP default: screen readers hear the same as before, "<exercise>: progress, history and how to".
+- Phone app only: no server change, no migration, no phone schema change, no new build.
+- Doc changes: REQ-TRN-003's D-82 note, REQ-TRN-008; constraints' D-82 row; the redesign's 4.2 and 4.4;
+  CLAUDE.md.
+
+## D-114 Progress's measurements: the last 90 days at first, other dates by a year or Pick dates
+- Status: **Accepted** (owner, in chat, 2026-11-17: "in the progress tab when the Measurements is adds for the
+  previous years like 2024, 2000 these data is not visible on the show All Measurements. Please find out the
+  root cause"; then "By defualt the should shows only 90 days data. for the older data we need date range
+  when selected it should shows that data. for this desing the canva desing forst and wait for my approval";
+  of the canvas's A (a Dates button), B (a row of choices) and C (a second list), version 120, "go with B";
+  locked in version 122). Built on branch `daily/2026-11-17-b`.
+- Root cause: Progress read measurements only from the phone's last 90 days (D-30, ADR-0007 rule 1), while
+  D-106 let a measurement be saved on any day back to 2000; the server had no route to read them back but
+  the 42-day `/days`, so older entries were saved but never listed (backlog E-18).
+- Answer (REQ-PRG-006; with D-30, D-106):
+  - The card and "Show all measurements (N)" keep the last 90 days, from the phone; N counts them, and the
+    button shows from one entry (it needed two), so other dates can be reached.
+  - Unfolded, a row of choices above the list, scrolling sideways: **Pick dates** (with a calendar icon),
+    **Last 90 days** (chosen at first), then each year from this one back to 2000. A year shows 1 January to
+    31 December (this year: to today); Pick dates opens a sheet with From and To, each opening the calendar
+    (1 January 2000 to today), and Show.
+  - A count line under the choices names the dates: "2 measurements · Mon 1 Jan 2024 – Tue 31 Dec 2024";
+    each date of another year shows its year; each row still opens that day's measurements to edit.
+  - Days older than the phone's 90 are read online with the new `GET /v1/users/{userId}/measurements`
+    (the user's own only, as weigh-ins), kept in memory only (ADR-0007 rules 1 and 6); the phone's entries
+    win for their day. Loading: "Loading measurements…"; offline: "Measurements older than 90 days need
+    an internet connection." with Try again; none: "No measurements from <from> to <to>."
+  - With none in the last 90 days, the card says "No measurements in the last 90 days." (was "No
+    measurements yet.") with Add first and **Older measurements**, which unfolds the choices.
+- MVP defaults: the choices are the app's choice blocks (square, as the weight chart's ranges; the canvas
+  first drew them round); "Show fewer" folds the list and goes back to the last 90 days; a To before From
+  moves From to it, a From after To moves To; a server error says "Couldn't load these measurements." with
+  Try again; the dates sheet's Cancel keeps the dates shown. Progress's week table stays on the 90 days
+  (E-18's other half).
+- No migration, no phone schema change, no new build. A new API route: **the beta's Cloud Run API needs this
+  API before beta phones read older measurements; deploy only when the owner says so.**
+- Doc changes: REQ-PRG-006; api-conventions (the route); data model (the phone's older reads); constraints'
+  MVP defaults; backlog E-18; the redesign's 5.1; CLAUDE.md.
 
 ## D-115 Voice meal logging from the Search foods box; OpenAI reads the meal; consent asked once
 - Status: **Accepted** (owner, in chat, 2026-11-17: the feature brief "voice meal logging from the

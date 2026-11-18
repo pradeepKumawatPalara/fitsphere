@@ -37,7 +37,6 @@ export function ProgressScreen() {
         <WeightTrend
           weighIns={data.weighIns}
           today={today}
-          accountStart={accountStart}
           unit={unit}
           onAllWeighIns={() => router.push('/weight-history')}
         />
@@ -57,6 +56,8 @@ export function ProgressScreen() {
         <MeasurementsSection
           measurements={data.measurements}
           unit={data.lengthUnit}
+          today={today}
+          refresh={sheet}
           onAdd={() => setSheet({ mode: 'add', day: today })}
           onEdit={(day) => setSheet({ mode: 'edit', day })}
         />

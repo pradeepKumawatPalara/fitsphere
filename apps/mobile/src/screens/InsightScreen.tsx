@@ -1,7 +1,8 @@
 import { EARLIEST_DAY, isIstDay, istToday, MEAL_TYPES, type IstDay, type MealType, type TargetKind } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CalendarDays, ChartPie, Check, ChevronDown, ChevronUp, Info, Plus } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Pressable, ScrollView, View } from 'react-native';
 import { MEAL_ICONS } from '../components/MealSheets';
 import { NoTargetNote } from '../components/NoTargetNote';
@@ -58,6 +59,8 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [showAll, setShowAll] = useState(false);
   const [meals, setMeals] = useState<LocalMeal[] | null>(null);
   const [targets, setTargets] = useState<Partial<Record<TargetKind, number>>>({});
+  // The phone's own bottom bar (gesture area or buttons) takes room; with none, only a small margin.
+  const bottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -89,7 +92,7 @@ export function InsightScreen({ now = () => new Date() }: { now?: () => Date }) 
   const setTarget = day === today ? () => router.push('/targets') : null;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: 12 + bottom }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.date}>{day === today ? `Today · ${dayLabel}` : dayLabel}</Text>
 
       <View accessibilityRole="radiogroup" accessibilityLabel="Show" style={styles.tiles}>
@@ -257,23 +260,33 @@ function NutrientsCard({
   const styles = useStyles();
   const { colors } = useTheme();
   const meal = scope !== 'day';
+  const [keyName, setKeyName] = useState<string | null>(null);
   return (
     <View accessibilityLabel="Against your daily targets" style={[styles.card, styles.cardTight]}>
       <View style={styles.cardHead}>
-        <Text style={styles.cardTitle}>Against your daily targets</Text>
+        <Text style={[styles.cardTitle, styles.cardTitleFit]}>Against your daily targets</Text>
         {meal ? (
+          // Icons in place of the words, kept inside the card; touch (or hover) shows the name.
           <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={styles.key}>
-            <View style={styles.keyItem}>
-              <View style={[styles.keyMark, { backgroundColor: colors.inkMuted }]} />
-              <Text style={styles.keyText}>{scopeLabel(scope)}</Text>
-            </View>
-            <View style={styles.keyItem}>
-              <View style={[styles.keyMark, styles.faded, { backgroundColor: colors.inkMuted }]} />
-              <Text style={styles.keyText}>Rest of today</Text>
-            </View>
+            {(() => {
+              const MealIcon = MEAL_ICONS[scope];
+              return (
+                <>
+                  <Pressable onPress={() => setKeyName(scopeLabel(scope))} onHoverIn={() => setKeyName(scopeLabel(scope))} onHoverOut={() => setKeyName(null)} hitSlop={8} style={styles.keyItem}>
+                    <View style={[styles.keyMark, { backgroundColor: colors.inkMuted }]} />
+                    <MealIcon size={16} strokeWidth={2.25} color={colors.inkMuted} />
+                  </Pressable>
+                  <Pressable onPress={() => setKeyName('Rest of today')} onHoverIn={() => setKeyName('Rest of today')} onHoverOut={() => setKeyName(null)} hitSlop={8} style={styles.keyItem}>
+                    <View style={[styles.keyMark, styles.faded, { backgroundColor: colors.inkMuted }]} />
+                    <CalendarDays size={16} strokeWidth={2.25} color={colors.inkMuted} />
+                  </Pressable>
+                </>
+              );
+            })()}
           </View>
         ) : null}
       </View>
+      {meal && keyName ? <Text style={styles.keyText}>{keyName}</Text> : null}
       {nutrientLines(meals, scope, targets).map(({ nutrient, amount, dayAmount, target, missing }, index) => {
         const colour = colors[nutrient.colour];
         const eaten = amount ?? 0;
@@ -430,7 +443,7 @@ function MissingNote({ text }: { text: string }) {
 // tiles as Log meal's (D-58), five in a row; numbers in fixed-width digits.
 const useStyles = themedStyles((c) => ({
   screen: { flex: 1, backgroundColor: c.bg },
-  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 32, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24, gap: 10 },
   date: { ...TYPE.label, color: c.accent },
   tiles: { flexDirection: 'row', gap: 6 },
   tile: {
@@ -461,25 +474,26 @@ const useStyles = themedStyles((c) => ({
     justifyContent: 'center',
     backgroundColor: c.success,
   },
-  card: { gap: 10, padding: 16, borderRadius: 4, backgroundColor: c.surface },
-  cardTight: { gap: 0, paddingBottom: 8 },
+  card: { gap: 6, padding: 12, borderRadius: 4, backgroundColor: c.surface },
+  cardTight: { gap: 0, paddingBottom: 4 },
   cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: 4 },
+  cardTitleFit: { flexShrink: 1 },
   cardTitle: { ...TYPE.label, color: c.inkMuted },
   emptyTile: { width: 56, height: 56, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
-  body: { fontSize: 15, lineHeight: 22 },
-  small: { fontSize: 14, lineHeight: 20, color: c.inkMuted, fontVariant: ['tabular-nums'] },
-  note: { fontSize: 13, lineHeight: 18, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  body: { fontSize: 14, lineHeight: 19 },
+  small: { fontSize: 13, lineHeight: 18, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  note: { fontSize: 12, lineHeight: 16, color: c.inkMuted, fontVariant: ['tabular-nums'] },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
-  heroNumber: { ...TYPE.heroNumber, fontSize: 64, lineHeight: 66 },
-  heroUnit: { ...TYPE.metric, fontSize: 18, paddingBottom: 12, color: c.accent },
+  heroNumber: { ...TYPE.heroNumber, fontSize: 52, lineHeight: 54 },
+  heroUnit: { ...TYPE.metric, fontSize: 16, lineHeight: 17, paddingBottom: 8, color: c.accent },
   noTarget: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   kcalBar: { flexDirection: 'row', height: 14, borderRadius: 2, overflow: 'hidden', backgroundColor: c.track },
   kcalPart: { height: '100%', borderRightWidth: 2, borderRightColor: c.surface },
-  mealRow: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mealRow: { minHeight: 26, flexDirection: 'row', alignItems: 'center', gap: 8 },
   ruled: { borderTopWidth: 1, borderTopColor: c.border },
   swatch: { width: 8, height: 8, borderRadius: 2 },
-  mealName: { flex: 1, fontSize: 15, lineHeight: 20 },
-  mealValue: { fontSize: 15, lineHeight: 20, fontVariant: ['tabular-nums'] },
+  mealName: { flex: 1, fontSize: 14, lineHeight: 18 },
+  mealValue: { fontSize: 14, lineHeight: 18, fontVariant: ['tabular-nums'] },
   muted: { color: c.inkMuted },
   bold: { fontFamily: 'Barlow_700Bold', color: c.ink },
   semibold: { fontFamily: 'Barlow_600SemiBold' },
@@ -489,27 +503,27 @@ const useStyles = themedStyles((c) => ({
   keyMark: { width: 12, height: 6, borderRadius: 1 },
   keyText: { fontSize: 12, lineHeight: 16, color: c.inkMuted },
   faded: { opacity: 0.35 },
-  nutrient: { gap: 6, paddingVertical: 12 },
+  nutrient: { gap: 4, paddingVertical: 8 },
   nutrientHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { ...TYPE.label, letterSpacing: 1.2, color: c.inkMuted },
-  nutrientValue: { ...TYPE.metric, fontSize: 20, color: c.ink },
+  nutrientValue: { ...TYPE.metric, fontSize: 16, color: c.ink },
   bar: { flexDirection: 'row', height: 8, borderRadius: 2, overflow: 'hidden', backgroundColor: c.track },
   barText: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   missing: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingBottom: 4 },
   shrink: { flexShrink: 1 },
-  pills: { flexDirection: 'row', gap: 6, marginTop: 10, marginBottom: 6 },
+  pills: { flexDirection: 'row', gap: 6, marginTop: 6, marginBottom: 4 },
   pill: { flex: 1, paddingHorizontal: 2 },
   pillText: { fontSize: 14, letterSpacing: 0.3 },
-  none: { paddingVertical: 12 },
-  foodRow: { flexDirection: 'row', gap: 12, paddingVertical: 12 },
-  rank: { ...TYPE.metric, width: 18, fontSize: 20, lineHeight: 22, color: c.inkSubtle },
-  foodBody: { flex: 1, minWidth: 0, gap: 4 },
+  none: { paddingVertical: 8 },
+  foodRow: { flexDirection: 'row', gap: 10, paddingVertical: 8 },
+  rank: { ...TYPE.metric, width: 18, fontSize: 16, lineHeight: 18, color: c.inkSubtle },
+  foodBody: { flex: 1, minWidth: 0, gap: 3 },
   foodLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
-  foodName: { flexShrink: 1, fontSize: 16, lineHeight: 22, fontFamily: 'Barlow_500Medium' },
-  foodValue: { ...TYPE.metric, fontSize: 18, lineHeight: 22 },
+  foodName: { flexShrink: 1, fontSize: 15, lineHeight: 20, fontFamily: 'Barlow_500Medium' },
+  foodValue: { ...TYPE.metric, fontSize: 16, lineHeight: 20 },
   thinBar: { flexDirection: 'row', height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: c.track },
-  more: { alignSelf: 'flex-start', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  more: { alignSelf: 'flex-start', minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 4 },
   moreText: { ...TYPE.link, color: c.accent },
   pressed: { opacity: 0.6 },
 }));

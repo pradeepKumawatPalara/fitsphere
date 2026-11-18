@@ -1,6 +1,6 @@
 import { addDays, istToday, MAX_WORKOUT_EXERCISES, WORKOUT_DELETE, WORKOUT_SET, type WorkoutExercise, type WorkoutTimer } from '@fitsphere/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CircleCheck, Dumbbell, Flame, Play, Plus, SquarePen, Trash, TrendingUp, type LucideIcon } from 'lucide-react-native';
+import { CircleCheck, Dumbbell, Flame, Info, Play, Plus, SquarePen, Trash, type LucideIcon } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useNow } from '../clock';
@@ -25,6 +25,7 @@ import {
   exerciseLines,
   finishTimer,
   formatDuration,
+  isLogged,
   listedWorkouts,
   pauseTimer,
   resumeTimer,
@@ -41,15 +42,17 @@ type Sheet = { index: number | null };
 // (D-50), with an optional note (Q-042).
 // Every change is saved on the phone at once and synced (ADR-0007); there is no draft and no
 // "Finish" step (MVP default, D-29), and no Done: Save in the exercise sheet saves, and the header's
-// back arrow leaves (D-42). Each exercise has a bar at its foot with Progress (its page: progress,
-// history and how to, D-82), Edit and Remove; removing asks first. Named by its place among its day's workouts,
-// "Workout 2 · Tue 3 Nov". The workout counts toward the week once it has an exercise (D-41);
-// deleting it says what goes with it (D-63).
+// back arrow leaves (D-42). Each exercise has a bar at its foot with Details (its page: progress,
+// history and how to, D-82; named Progress until D-113), Edit and Remove; removing asks first. Named by its place among its day's workouts,
+// "Workout 2 · Tue 3 Nov". The workout is logged, listed and counts toward the week once it has an
+// exercise (D-41, D-108); deleting it says what goes with it (D-63).
 // The workout timer (D-71): a workout of today has "Start workout" in a bar at its foot; the bar
 // then shows the time counted, with Pause or Resume and "Mark done". A timer already started can be
 // paused, resumed and marked done whatever the date, so a workout that runs past midnight can be
 // finished. Marked done, the bar goes and a panel under the title shows the total, with Resume on a
 // workout of today, in case "Mark done" was tapped by mistake. Each step is saved and synced at once.
+// With no exercise the timer starts, counts on, pauses and resumes, but "Mark done" waits for an
+// exercise: until then the workout is not logged (D-108).
 export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -85,7 +88,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
     void Promise.all([getEntry(db, 'workout', id), rejectedChanges(db), listEntries(db, 'workout', addDays(loadDay, -1), loadDay)]).then(async ([entry, waiting, recent]) => {
       const sameDay = entry ? await listEntries(db, 'workout', entry.day, entry.day) : [];
       if (!active) return;
-      setOther(runningWorkout(recent.filter((each) => each.id !== id), loadDay));
+      setOther(runningWorkout(recent, loadDay, id));
       setWorkout(entry);
       // Numbered among the day's listed workouts, as Training and Home number them (D-65).
       setPlace(listedWorkouts(sameDay, id).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).findIndex((other) => other.id === id) + 1 || 1);
@@ -183,7 +186,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           <OtherTimerNote other={otherTimer} onOpen={() => router.push(`/workout/${other!.id}`)} />
         ) : null}
         <RejectedChanges entries={rejected} onDiscard={(changeId) => void sync.discard(changeId)} />
-        {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet.</Text> : null}
+        {workout.exercises.length === 0 ? <Text style={styles.empty}>No exercises yet. Add one to log this workout.</Text> : null}
         {workout.exercises.map((exercise, index) => {
           const { main, rows, detail } = exerciseLines(exercise, unit);
           return (
@@ -217,8 +220,8 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
               </Pressable>
               <View style={styles.exerciseActions}>
                 <ExerciseAction
-                  icon={TrendingUp}
-                  title="Progress"
+                  icon={Info}
+                  title="Details"
                   label={`${exercise.name}: progress, history and how to`}
                   color={colors.accent}
                   onPress={() => setDetailsFor(exercise.name)}
@@ -272,6 +275,7 @@ export function WorkoutScreen({ now = () => new Date() }: { now?: () => Date }) 
           state={timer}
           seconds={seconds}
           busy={stepping}
+          logged={isLogged(workout)}
           onStart={() => void step((_, at) => startTimer(at))}
           onPause={() => void step((current, at) => pauseTimer(current!, at))}
           onResume={() => void step((current, at) => resumeTimer(current!, at))}
@@ -392,7 +396,7 @@ const useStyles = themedStyles((c) => ({
   },
   exercise: { borderRadius: 4, backgroundColor: c.surface, overflow: 'hidden' },
   exerciseMain: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12, paddingLeft: 12, paddingRight: 14 },
-  // D-82: Progress, Edit and Remove in a bar at the card's foot, each a third of its width.
+  // D-82: Details (D-113), Edit and Remove in a bar at the card's foot, each a third of its width.
   exerciseActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.border },
   exerciseAction: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   exerciseActionMiddle: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: c.border },

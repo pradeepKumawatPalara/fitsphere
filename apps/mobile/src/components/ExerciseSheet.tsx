@@ -1,6 +1,6 @@
 import { EXERCISE_SETS_MAX, exerciseNameKey, type BodyWeightUnit, type IstDay, type ListedExercise, type WorkoutExercise } from '@fitsphere/shared';
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash } from 'lucide-react-native';
-import { useEffect, useState, type ReactNode } from 'react';
+import { BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Plus, RotateCcw, Search, Trash, X } from 'lucide-react-native';
+import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { AccessibilityInfo, Keyboard, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
 import { useFieldChecks, type FieldChecks } from '../fieldChecks';
 import { formatInteger, parseTwoDecimals, parseWholeNumber } from '../format';
@@ -112,6 +112,11 @@ function columnLabel(column: SetColumn, required: boolean, unit: BodyWeightUnit)
   return required ? label : `${label} (optional)`;
 }
 
+/** A set's column as its heading shows it, its unit after it (D-112): "Weight · kg", "Time · sec", "Reps". */
+function columnHeading(column: SetColumn, unit: BodyWeightUnit): string {
+  return column === 'reps' ? 'Reps' : column === 'weight' ? `Weight · ${unit}` : 'Time · sec';
+}
+
 // A page for one exercise (REQ-TRN-003; D-50), opened over the workout with a back arrow, as Search foods
 // (the owner, 2026-11-10: the sheet's matches had too little room; D-67). The name searches FitSphere's exercise list on
 // the phone, offline: up to 8 matches under it, each with its group; picking one shows its type's
@@ -151,12 +156,20 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   // and, opened with nothing typed or chosen, every exercise.
   const [listClosed, setListClosed] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
+  // The chevron opened on an exercise of the list already picked (the owner, 2026-11-17: it listed only
+  // that exercise, the name being its own search, under a large empty space): the choice's exercises, or
+  // every one, the picked one highlighted and scrolled to; typing in the name searches again.
+  const [browsingPicked, setBrowsingPicked] = useState(false);
+  const matchesView = useRef<ComponentRef<typeof ScrollView>>(null);
+  const scrolledToPicked = useRef(false);
   // The picked exercise's page, opened on How to (D-82); the form waits under it.
   const [howTo, setHowTo] = useState(false);
   const filtered = filter.category !== null || filter.subGroup !== null;
   const unnamed = text.name.trim() === '';
-  const browsingAll = showingAll && !filtered && unnamed;
-  const browsing = (filtered || browsingAll) && unnamed;
+  // The whole choice shows, not a search: with no name yet, or opened on the exercise picked.
+  const wholeChoice = unnamed || browsingPicked;
+  const browsingAll = showingAll && !filtered && wholeChoice;
+  const browsing = (filtered || browsingAll) && wholeChoice;
 
   /**
    * A new category or sub-group (D-67). An exercise of the list already picked that it does not hold
@@ -226,7 +239,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     const searching = !listClosed && (typingName || browsing);
     void Promise.all([
       findListedExercise(db, text.name),
-      searching ? searchExercises(db, text.name, browsingAll ? SHOWN_MAX : filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll) : [],
+      searching
+        ? searchExercises(db, browsingPicked ? '' : text.name, browsingAll ? SHOWN_MAX : filtered ? FILTERED_LIMIT : MATCHES_LIMIT, filter, browsingAll)
+        : [],
     ]).then(([found, list]) => {
       if (!active) return;
       setListed(found);
@@ -235,7 +250,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     return () => {
       active = false;
     };
-  }, [local.state, text.name, typingName, browsing, browsingAll, listClosed, filtered, filter]);
+  }, [local.state, text.name, typingName, browsing, browsingAll, browsingPicked, listClosed, filtered, filter]);
 
   // An exercise saved as cardio, now listed as done in sets or the other way round, keeps its own
   // fields while it keeps its name, as a name of the user's own.
@@ -249,6 +264,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   const listing = picking !== null || choosing;
   // Words typed in a category or sub-group that match none of its exercises (D-67).
   const noMatch = filtered && named && typingName && !listClosed && matches.length === 0 && listed === null;
+  const firstMatches = matches.slice(0, SHOWN_MAX);
+  const shownMatches =
+    browsingPicked && listed !== null && !firstMatches.some((exercise) => exercise.code === listed.code) ? [listed, ...firstMatches] : firstMatches;
   const listTitle = browsingAll
     ? `All exercises · ${formatInteger(counts?.total ?? matches.length)}`
     : !filtered
@@ -280,10 +298,18 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   function toggleList() {
     if (choosing) {
       setListClosed(true);
+      setBrowsingPicked(false);
       Keyboard.dismiss();
       return;
     }
     setListClosed(false);
+    // An exercise of the list picked: its choice's exercises, or every one, with it highlighted.
+    if (listed !== null && !unnamed) {
+      scrolledToPicked.current = false;
+      setBrowsingPicked(true);
+      if (!filtered) setShowingAll(true);
+      return;
+    }
     if (unnamed && !filtered) setShowingAll(true);
     else setTypingName(true);
   }
@@ -293,6 +319,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     setListed(exercise);
     setMatches([]);
     setTypingName(false);
+    setBrowsingPicked(false);
     setPicked(true);
   }
 
@@ -355,7 +382,25 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
         <ExercisePlacePickers filter={filter} counts={counts} open={picking} onOpen={setPicking} onChange={chooseFilter} />
         {picking === null ? (
       <View style={styles.field}>
-        <Text style={labelStyle}>Exercise name</Text>
+        {/* D-111 (the owner's B, with How to do it beside the name, 2026-11-17): How to do it at the label's
+            right, only while the name holds an exercise of the list. */}
+        <View style={styles.nameLabelRow}>
+          <Text style={[labelStyle, styles.nameLabel]}>Exercise name</Text>
+          {match ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`How to do ${match.name}`}
+              onPress={() => setHowTo(true)}
+              hitSlop={8}
+              testID="exercise-how-to"
+              style={({ pressed }) => [styles.howTo, pressed && styles.howToPressed]}
+            >
+              <BookOpen size={17} strokeWidth={2.25} color={colors.accent} />
+              <Text style={styles.howToText}>How to do it</Text>
+              <ChevronRight size={16} strokeWidth={2.5} color={colors.accent} />
+            </Pressable>
+          ) : null}
+        </View>
         <View style={[styles.box, styles.nameBox, (typingName || choosing) && styles.focused, problems.name ? styles.refused : null]}>
           <Search size={20} color={colors.inkMuted} />
           <TextInput
@@ -365,6 +410,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
               change({ name });
               setTypingName(true);
               setListClosed(false);
+              setBrowsingPicked(false);
             }}
             placeholder={filtered ? `Search ${filterLabel(filter)}` : 'Search or type an exercise'}
             autoCapitalize="sentences"
@@ -405,22 +451,35 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <Text style={labelStyle}>{listTitle}</Text>
           {/* A plain list, not a FlatList: it sits in the page's scroll view, which may not hold a
               virtualized list; at most SHOWN_MAX rows are drawn. */}
-          <View style={[styles.matches, styles.fill]}>
-            <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fill} testID="exercise-matches">
-              {matches.slice(0, SHOWN_MAX).map((exercise, index) => {
+          <View style={[styles.matches, styles.fit]} testID="exercise-matches-panel">
+            <ScrollView ref={matchesView} nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.fit} testID="exercise-matches">
+              {shownMatches.map((exercise, index) => {
                 const tag = matchTag(exercise, filter);
+                const isPicked = browsingPicked && listed !== null && exercise.code === listed.code;
                 return (
                   <Pressable
                     key={exercise.code}
                     accessibilityRole="button"
-                    accessibilityLabel={tag ? `${exercise.name}, ${tag}` : exercise.name}
+                    accessibilityLabel={`${tag ? `${exercise.name}, ${tag}` : exercise.name}${isPicked ? ', picked' : ''}`}
+                    accessibilityState={{ selected: isPicked }}
                     onPress={() => pick(exercise)}
-                    style={({ pressed }) => [styles.match, index > 0 && styles.divided, pressed && styles.pressed]}
+                    // The picked one is scrolled to once the list opens, a row of the others above it.
+                    onLayout={
+                      isPicked
+                        ? (event) => {
+                            if (scrolledToPicked.current) return;
+                            scrolledToPicked.current = true;
+                            matchesView.current?.scrollTo({ y: Math.max(0, event.nativeEvent.layout.y - 52), animated: false });
+                          }
+                        : undefined
+                    }
+                    style={({ pressed }) => [styles.match, index > 0 && styles.divided, isPicked && styles.matchPicked, pressed && styles.pressed]}
                   >
                     <View style={styles.matchText}>
-                      <Text style={styles.matchName}>{exercise.name}</Text>
+                      <Text style={[styles.matchName, isPicked && styles.matchNamePicked]}>{exercise.name}</Text>
                       {tag ? <Text style={styles.matchLine}>{tag}</Text> : null}
                     </View>
+                    {isPicked ? <Check size={20} strokeWidth={2.5} color={colors.accent} /> : null}
                   </Pressable>
                 );
               })}
@@ -455,19 +514,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       {named && !choosing ? (
         <>
           {match ? (
-            <View style={styles.typeLine}>
-              <Text style={styles.tag}>{matchTag(match, NO_FILTER)}</Text>
-              <Text style={styles.help}>{LOG_TYPE_LABELS[match.logType]}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`How to do ${match.name}`}
-                onPress={() => setHowTo(true)}
-                style={({ pressed }) => [styles.howTo, pressed && styles.howToPressed]}
-              >
-                <BookOpen size={17} strokeWidth={2.25} color={colors.accent} />
-                <Text style={styles.howToText}>How to do it</Text>
-                <ChevronRight size={16} strokeWidth={2.5} color={colors.accent} />
-              </Pressable>
+            // The tag, how it is logged and How to do it wrap onto the next line when they don't fit
+            // (the owner's report, 2026-11-17): a long tag, "Olympic Weightlifting · Jerk Family", left
+            // "Weight and reps" almost no width, so it stood one letter a line, hundreds of points tall,
+            // and the row's other two sat in the middle of a large gap.
+            <View testID="exercise-type-line" style={styles.typeLine}>
+              <Text style={[styles.tag, styles.typeTag]}>{matchTag(match, NO_FILTER)}</Text>
+              <Text testID="exercise-log-type" style={[styles.help, styles.typeLabel]}>
+                {LOG_TYPE_LABELS[match.logType]}
+              </Text>
             </View>
           ) : (
             <View style={styles.field}>
@@ -496,12 +551,15 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           {layout.kind === 'sets' ? (
             <View style={styles.field}>
               <Text style={labelStyle}>Sets</Text>
-              <View style={styles.setRow}>
+              {/* D-112 (the owner's A, 2026-11-17: values were cut off with three boxes in a row): the units in
+                  the headings, "optional" under a column the type doesn't ask for, the boxes only numbers. */}
+              <View testID="exercise-set-headings" style={[styles.setRow, styles.headingRow]}>
                 <View style={styles.numberSpace} />
                 {layout.columns.map(({ column, required }) => (
-                  <Text key={column} style={styles.columnLabel}>
-                    {columnLabel(column, required, unit)}
-                  </Text>
+                  <View key={column} style={styles.heading}>
+                    <Text style={styles.columnLabel}>{columnHeading(column, unit)}</Text>
+                    {required ? null : <Text style={styles.columnOptional}>optional</Text>}
+                  </View>
                 ))}
                 <View style={styles.binSpace} />
               </View>
@@ -580,60 +638,82 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           )}
 
           <View style={styles.rule} />
-          {layout.kind === 'sets' ? (
-            <View style={styles.field}>
-              <Text style={labelStyle}>Time spent in min (optional)</Text>
-              <Box
-                accessibilityLabel="Time spent in min (optional)"
-                value={text.spentMinutes}
-                onChangeText={(spentMinutes) => change({ spentMinutes })}
-                keyboardType="number-pad"
-                unit="min"
-                refused={problems.spent !== undefined}
-                {...watch('spentMinutes')}
-              />
-              {problems.spent ? <Problem text={problems.spent} /> : <Text style={styles.help}>Used only to estimate the calories burned.</Text>}
-            </View>
-          ) : null}
-          <View style={styles.field}>
-            {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
-                you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
-                the estimate back. */}
-            <View style={styles.labelRow}>
-              <View style={styles.labelWithTag}>
-                <Text style={labelStyle}>Calories burned (optional)</Text>
-                {changed ? <Text style={styles.editedTag}>Edited</Text> : null}
+          {/* D-111 (the owner's B): the optional fields two to a row, with short labels; screen readers
+              still hear each field's whole name. Sets: Time spent beside Calories; cardio: Calories alone. */}
+          {/* The labels in one row and the boxes in the next, so the two boxes line up whatever the labels
+              hold: Calories' info button and its tag made its label taller than Time spent's, and its box
+              sat lower (the owner, 2026-11-17: "the two input field is not align"). */}
+          <View testID="exercise-effort" style={styles.field}>
+            <View testID="exercise-effort-labels" style={[styles.pair, styles.pairLabels]}>
+              {layout.kind === 'sets' ? (
+                <View style={styles.half}>
+                  <Text style={labelStyle}>Time spent</Text>
+                </View>
+              ) : null}
+              {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
+                  you", B locked): an Edited tag beside the label, and an arrow at the box's end that puts
+                  the estimate back. */}
+              <View style={[styles.half, styles.labelRow]}>
+                {/* The estimate says so beside the label, not in the box, where it left the number too
+                    little room once the box was half the width (the owner, 2026-11-17). */}
+                <View style={styles.labelWithTag}>
+                  <Text style={labelStyle}>Calories</Text>
+                  {changed ? (
+                    <Text style={styles.editedTag}>Edited</Text>
+                  ) : text.kcal === null && estimate ? (
+                    <Text testID="calories-estimated" style={styles.tag}>
+                      Estimated
+                    </Text>
+                  ) : null}
+                </View>
+                <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
+                  <Info size={20} color={colors.accent} />
+                </IconButton>
               </View>
-              <IconButton label="How calories are estimated" onPress={() => setExplaining(true)}>
-                <Info size={22} color={colors.accent} />
-              </IconButton>
             </View>
-            <Box
-              accessibilityLabel="Calories burned (optional)"
-              value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
-              onChangeText={(kcal) => change({ kcal })}
-              keyboardType="number-pad"
-              unit="kcal"
-              {...(text.kcal === null && estimate ? { mark: 'estimated' } : {})}
-              refused={problems.kcal !== undefined}
-              {...watch('kcal')}
-              after={
-                changed ? (
-                  <>
-                    <View style={styles.divider} />
-                    <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
-                      <RotateCcw size={22} strokeWidth={2.25} color={colors.accent} />
-                    </IconButton>
-                  </>
-                ) : null
-              }
-            />
-            {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.help}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
+            <View testID="exercise-effort-boxes" style={styles.pair}>
+              {layout.kind === 'sets' ? (
+                <View style={styles.half}>
+                  <Box
+                    accessibilityLabel="Time spent in min (optional)"
+                    value={text.spentMinutes}
+                    onChangeText={(spentMinutes) => change({ spentMinutes })}
+                    keyboardType="number-pad"
+                    unit="min"
+                    refused={problems.spent !== undefined}
+                    {...watch('spentMinutes')}
+                  />
+                </View>
+              ) : null}
+              <View style={styles.half}>
+                <Box
+                  accessibilityLabel="Calories burned (optional)"
+                  value={text.kcal ?? (estimate ? String(estimate.kcal) : '')}
+                  onChangeText={(kcal) => change({ kcal })}
+                  keyboardType="number-pad"
+                  unit="kcal"
+                  refused={problems.kcal !== undefined}
+                  {...watch('kcal')}
+                  after={
+                    changed ? (
+                      <>
+                        <View style={styles.divider} />
+                        <IconButton label={`Use the estimate, ${formatInteger(changed.kcal)} kcal`} onPress={backToEstimate}>
+                          <RotateCcw size={20} strokeWidth={2.25} color={colors.accent} />
+                        </IconButton>
+                      </>
+                    ) : null
+                  }
+                />
+              </View>
+            </View>
           </View>
+          {problems.spent ? <Problem text={problems.spent} /> : null}
+          {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.afterPair}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
           <View style={styles.pair}>
             {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
               <View key={key} style={[styles.field, styles.half]}>
-                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}</Text>
+                <Text style={labelStyle}>{key === 'averageHeartRate' ? 'Average HR' : 'Highest HR'}</Text>
                 <Box
                   accessibilityLabel={key === 'averageHeartRate' ? 'Average heart rate (optional)' : 'Highest heart rate (optional)'}
                   value={text[key]}
@@ -651,6 +731,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
       ) : null}
 
       <View style={styles.field}>
+        {/* D-111: one line, growing as it is typed, under its label (the owner, 2026-11-17: keep the label,
+            not the name inside the box). */}
         <Text style={labelStyle}>Note (optional)</Text>
         <Box
           accessibilityLabel="Note (optional)"
@@ -804,6 +886,8 @@ function SetRow({
   return (
     <View style={styles.setRow}>
       <Text style={styles.setNumber}>{index + 1}</Text>
+      {/* D-112: only the number, centred (its unit is in the heading), 18 high with three boxes across, so
+          the largest values show whole: 2,204.6 lb, 3,600 s, 200 reps. */}
       {columns.map(({ column, required }, position) => (
         <Box
           key={column}
@@ -811,17 +895,24 @@ function SetRow({
           value={set[column]}
           onChangeText={(value) => onChange(index, column, value)}
           keyboardType={column === 'weight' ? 'decimal-pad' : 'number-pad'}
-          unit={column === 'weight' ? unit : column === 'seconds' ? 'sec' : ''}
           refused={refused.includes(`${index}:${column}`)}
           autoFocus={autoFocus && position === 0}
           compact
+          inSet
+          small={columns.length > 2}
           {...watch(setField(index, column))}
         />
       ))}
       {onRemove ? (
-        <IconButton label={`Remove set ${index + 1}`} onPress={onRemove}>
-          <Trash size={20} color={colors.danger} />
-        </IconButton>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Remove set ${index + 1}`}
+          onPress={onRemove}
+          hitSlop={6}
+          style={({ pressed }) => [styles.removeSet, pressed && styles.pressed]}
+        >
+          <X size={18} strokeWidth={2.25} color={colors.inkMuted} />
+        </Pressable>
       ) : (
         <View style={styles.binSpace} />
       )}
@@ -841,26 +932,45 @@ function AverageSpeed({ text }: { text: ExerciseText }) {
 }
 
 /**
- * A sunken box for one value, its unit after it, a `mark` such as "estimated" before the unit, and
- * `after` the unit a button of the box's own (the calories' arrow, D-107); the outline caramel while
- * typing and red when refused.
+ * A sunken box for one value, its unit after it, and `after` the unit a button of the box's own (the
+ * calories' arrow, D-107); the outline caramel while typing and red when refused. ("estimated" moved
+ * from the box to the calories' label, D-111.)
  */
 function Box({
   unit,
-  mark,
   after,
   refused,
   compact = false,
+  inSet = false,
+  small = false,
   note = false,
   onFocus,
   onBlur,
   ...input
-}: { unit?: string; mark?: string; after?: ReactNode; refused: boolean; compact?: boolean; note?: boolean } & TextInputProps) {
+}: {
+  unit?: string;
+  after?: ReactNode;
+  refused: boolean;
+  compact?: boolean;
+  /** A set's box (D-112): its number centred, little padding. */
+  inSet?: boolean;
+  /** Three boxes across: the number 18 high. */
+  small?: boolean;
+  note?: boolean;
+} & TextInputProps) {
   const styles = useStyles();
   const [focused, setFocused] = useState(false);
   return (
     <View
-      style={[styles.box, compact && styles.compact, note && styles.noteBox, after ? styles.withAfter : null, focused && styles.focused, refused && styles.refused]}
+      style={[
+        styles.box,
+        compact && styles.compact,
+        inSet && styles.setBox,
+        note && styles.noteBox,
+        after ? styles.withAfter : null,
+        focused && styles.focused,
+        refused && styles.refused,
+      ]}
     >
       <TextInput
         onFocus={(event) => {
@@ -871,10 +981,9 @@ function Box({
           setFocused(false);
           onBlur?.(event);
         }}
-        style={[styles.value, !note && styles.number, note && styles.note]}
+        style={[styles.value, !note && styles.number, small && styles.numberSmall, inSet && styles.centred, note && styles.note]}
         {...input}
       />
-      {mark ? <Text style={styles.help}>{mark}</Text> : null}
       {unit ? <Text style={styles.unit}>{unit}</Text> : null}
       {after}
     </View>
@@ -887,9 +996,11 @@ function Box({
 // exercise a red link at the foot of the form, away from Save, the one filled action.
 const useStyles = themedStyles((c) => ({
   saveHint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },
-  field: { gap: 8 },
+  // D-111 (the owner's B, 2026-11-17: too much scrolling): boxes 44 high (54 before), labels 6 above them,
+  // fields 12 apart (14), numbers 20 (24), the note one line.
+  field: { gap: 6 },
   box: {
-    minHeight: 54,
+    minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -900,11 +1011,16 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceSunken,
   },
   compact: { flex: 1, gap: 8, paddingHorizontal: 12 },
+  // A set's box (D-112): only its number, so little padding and the number centred.
+  setBox: { paddingHorizontal: 6 },
+  centred: { textAlign: 'center' },
+  numberSmall: { fontSize: 18, lineHeight: 22 },
   // A button at the box's end keeps its own room (D-107).
   withAfter: { paddingRight: 4 },
   divider: { width: 1, height: 28, backgroundColor: c.border },
   // The calories' label and, once changed by the user, the caramel Edited tag (D-107), as Home's Due badge.
-  labelWithTag: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // On a narrow phone the tag goes under the label rather than squeezing it (D-111: the box is half wide).
+  labelWithTag: { flexShrink: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 2 },
   editedTag: {
     ...TYPE.label,
     fontSize: 12,
@@ -917,24 +1033,27 @@ const useStyles = themedStyles((c) => ({
     color: c.onPrimary,
     backgroundColor: c.primary,
   },
-  noteBox: { minHeight: 84, alignItems: 'flex-start' },
+  noteBox: { alignItems: 'flex-start' },
   focused: { borderColor: c.accent },
   refused: { borderColor: c.danger },
-  value: { ...TYPE.input, flex: 1, paddingVertical: 12, fontVariant: ['tabular-nums'] },
-  number: { ...TYPE.metric, fontSize: 24, lineHeight: 28 },
-  note: { minHeight: 80, textAlignVertical: 'top', lineHeight: 24 },
+  value: { ...TYPE.input, flex: 1, paddingVertical: 8, fontVariant: ['tabular-nums'] },
+  number: { ...TYPE.metric, fontSize: 20, lineHeight: 24 },
+  note: { textAlignVertical: 'top', lineHeight: 24 },
   unit: { ...TYPE.label, fontSize: 15, lineHeight: 20, letterSpacing: 1, color: c.inkMuted },
   help: { ...TYPE.small, flexShrink: 1, color: c.inkMuted },
   header: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 6, paddingRight: 8 },
   title: { ...TYPE.screenHeader, flex: 1 },
   // The fields at the page's top; under them the open list, the matches or the form, each scrolling on its own.
-  top: { paddingHorizontal: 16, paddingTop: 4, gap: 14 },
+  top: { paddingHorizontal: 16, paddingTop: 4, gap: 12 },
   fill: { flex: 1 },
+  // A list as tall as its rows and no taller, shrunk to the page's room when longer, where it scrolls
+  // (the owner, 2026-11-17: a short list left a large empty panel under its last row).
+  fit: { flexGrow: 0, flexShrink: 1 },
   // Exactly the page's height, not at least it (`flexGrow`): a scroll view's content has no height of its
   // own, so only this gives the open list a height to scroll in.
   listing: { flex: 1 },
   listArea: { flex: 1, gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16 },
-  form: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 14 },
+  form: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 12 },
   listed: { gap: 8 },
   // The name's chevron, as Category's (D-67), at the box's end.
   nameBox: { paddingRight: 4 },
@@ -948,6 +1067,9 @@ const useStyles = themedStyles((c) => ({
   divided: { borderTopWidth: 1, borderTopColor: c.border },
   pressed: { opacity: 0.6 },
   matchName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
+  // The exercise picked, when the list opens on it: the accent's tint, its name bold, a tick at its end.
+  matchPicked: { backgroundColor: c.accentTint },
+  matchNamePicked: { fontWeight: '700' },
   // A group, as Search foods' source tags: the muted ink on the sunken colour.
   tag: {
     ...TYPE.label,
@@ -960,22 +1082,39 @@ const useStyles = themedStyles((c) => ({
     color: c.inkMuted,
     backgroundColor: c.surfaceSunken,
   },
-  typeLine: { marginTop: -6, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  howTo: { marginLeft: 'auto', minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // A line that wraps: a tag too long for the line takes it, wrapping inside its box; how the exercise
+  // is logged never shrinks, so it moves on rather than standing a letter a line.
+  typeLine: { marginTop: -6, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 2 },
+  typeTag: { flexShrink: 1 },
+  typeLabel: { flexShrink: 0 },
+  // How to do it at the name label's right (D-111): 28 high in the label's row, 44 to the touch.
+  nameLabelRow: { minHeight: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nameLabel: { flex: 1 },
+  howTo: { minHeight: 28, marginVertical: -6, flexDirection: 'row', alignItems: 'center', gap: 6 },
   howToPressed: { opacity: 0.7 },
   howToText: { ...TYPE.link, color: c.accent },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   choice: { paddingHorizontal: 12 },
   choiceText: { fontSize: 15, letterSpacing: 0.5 },
-  setRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  setNumber: { ...TYPE.metric, fontSize: 18, width: 24, textAlign: 'center', color: c.accent },
-  numberSpace: { width: 24 },
-  columnLabel: { ...TYPE.label, flex: 1, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted },
-  binSpace: { width: 40 },
+  // D-112: the set's number 20 wide, the boxes 8 apart, a slim X 32 wide to remove a set.
+  setRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  setNumber: { ...TYPE.metric, fontSize: 18, width: 20, textAlign: 'center', color: c.accent },
+  numberSpace: { width: 20 },
+  // The headings over their boxes, centred, lined up at their foot when one has "optional" under it.
+  headingRow: { alignItems: 'flex-end' },
+  heading: { flex: 1, minWidth: 0, alignItems: 'center' },
+  columnLabel: { ...TYPE.label, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted, textAlign: 'center' },
+  columnOptional: { fontSize: 12, lineHeight: 14, color: c.inkMuted, textAlign: 'center' },
+  binSpace: { width: 32 },
+  removeSet: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
   addSet: { alignItems: 'flex-start' },
   pair: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
   rule: { height: 1, backgroundColor: c.border },
+  // The calories' line, under Time spent and Calories, closer to them than the next pair.
+  afterPair: { ...TYPE.small, color: c.inkMuted, marginTop: -6 },
+  // Time spent's label beside Calories', centred on it: Calories' row holds a 44-high info button.
+  pairLabels: { alignItems: 'center' },
   labelRow: { minHeight: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: -10 },
   body: { fontSize: 15, lineHeight: 22 },
   example: { gap: 2, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 4, backgroundColor: c.surfaceSunken },

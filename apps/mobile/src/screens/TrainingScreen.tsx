@@ -108,8 +108,8 @@ function deleteWorkoutMessage(workout: { day: string; name: string; exercises: n
 // workout says what goes with it (D-63). A workout with no exercise is not listed, marked or counted,
 // and the others are numbered without it (D-65). No "No training plan yet" card for now (D-65): no one
 // can send a plan in the MVP (D-20). Each workout's row says its timer (D-71): "Running · 12:34",
-// counting, "Paused · 31:08" or "Done · 52:40"; a workout whose timer has started is listed before
-// its first exercise.
+// counting, "Paused · 31:08" or "Done · 52:40". A workout whose timer has started is not listed
+// before its first exercise either: it is not logged until it has one (D-108; the pill opens it).
 export function TrainingScreen({ now = () => new Date() }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();

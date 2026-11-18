@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { StyleSheet } from 'react-native';
 import { NutrientTargets } from '../components/NutrientTargets';
 import { TargetProgressCard } from '../components/TargetProgressCard';
-import { weekWorkoutsText } from '../components/WeekWorkouts';
 import { applyServerEntries, listTargets, pendingChanges } from '../local/store';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LIGHT_COLORS } from '../theme';
@@ -244,8 +243,8 @@ describe('REQ-HOME-003 and REQ-HOME-004 the calories card and the nutrients unde
     expect(await screen.findByText('0 of 1,800 kcal')).toBeOnTheScreen();
     expect(screen.getByLabelText('1,800 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByLabelText('Protein: none of 120 g')).toBeOnTheScreen();
-    // The week of 26 Oct takes its Sunday's workout target, set on Wednesday: a change counts for its week.
-    expect(screen.getByText('0 of 4 workouts this week')).toBeOnTheScreen();
+    // D-110: Home shows no line counting the week's workouts against their target.
+    expect(screen.queryByText(/workouts? this week/)).toBeNull();
 
     // Today: the new calorie target.
     await fireEvent.press(screen.getByRole('button', { name: 'Back to today' }));
@@ -267,14 +266,15 @@ describe('REQ-HOME-003 and REQ-HOME-004 the calories card and the nutrients unde
     expect(screen.getByText('No target on this day')).toBeOnTheScreen();
     expect(screen.getByLabelText('Protein: none, no daily target')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Set a target' })).toBeNull();
-    // This week has no workout target yet.
-    expect(screen.getByText('No workouts this week')).toBeOnTheScreen();
+    // D-110: no line counting the week's workouts.
+    expect(screen.queryByText('No workouts this week')).toBeNull();
   });
 
-  it('REQ-HOME-003 target 2000 and 1500 eaten: 75%, and 500 kcal remaining as the big number, with 20 plates', async () => {
+  it('REQ-HOME-003 target 2000 and 1500 eaten: 500 kcal remaining as the big number, with 20 plates, 75% to screen readers', async () => {
     await render(<TargetProgressCard title="Calories" unit="kcal" eaten={1_500} target={2_000} onSetTarget={jest.fn()} />);
 
-    expect(screen.getByText('75%')).toBeOnTheScreen();
+    // The UI changes of 2026-11-17 (branch ui-changes) took the percentage off the card; the bar still says it.
+    expect(screen.queryByText('75%')).toBeNull();
     expect(screen.getByLabelText('500 kcal remaining')).toBeOnTheScreen();
     expect(screen.getByText('500')).toBeOnTheScreen();
     expect(screen.getByText('1,500 of 2,000 kcal')).toBeOnTheScreen();
@@ -339,20 +339,5 @@ describe('D-103 REQ-HOME-004 protein, carbs, fat and fibre under the calories', 
 
     expect(screen.getByLabelText('Carbs: 150.0 g of 0 g, 150.0 g over')).toBeOnTheScreen();
     expect(screen.getByTestId('bar-carbs')).toHaveStyle({ width: '100%', backgroundColor: LIGHT_COLORS.warning });
-  });
-});
-
-describe('REQ-HOME-007 the workouts under the strip, against the week’s target (D-103)', () => {
-  it.each([
-    [1, 5, true, '1 of 5 workouts this week'],
-    [0, 1, true, '0 of 1 workout this week'],
-    [5, 5, true, '5 workouts this week · target achieved'],
-    [7, 5, false, '7 workouts that week · target achieved'],
-    [1, 1, true, '1 workout this week · target achieved'],
-    [2, null, false, '2 workouts that week'],
-    [1, null, true, '1 workout this week'],
-    [0, null, true, 'No workouts this week'],
-  ])('D-41 %i workouts against a target of %s (this week: %s) read "%s"', (count, target, thisWeek, text) => {
-    expect(weekWorkoutsText(count, target, thisWeek)).toBe(text);
   });
 });

@@ -84,6 +84,15 @@ export function authorizeWeighInRead(caller: Account, userId: string): void {
 }
 
 /**
+ * Who may read a person's measurements (permission matrix, body metrics; D-114). MVP (D-20): only
+ * the person themselves; anyone else gets 404, as for weigh-ins (T-01). Post-MVP (backlog B-19,
+ * B-20): their coach with an active link, and a Head Coach the trainee allows, read-only.
+ */
+export function authorizeMeasurementsRead(caller: Account, userId: string): void {
+  if (caller.id !== userId) throw new ApiError('NOT_FOUND');
+}
+
+/**
  * Who may upload or view a person's photos: their meal photos (permission matrix, meal logs) and
  * their profile photo (REQ-ACC-011). MVP (D-20): only the person themselves. Anyone else gets 404,
  * exactly as for a photo that does not exist (T-01). Post-MVP (backlog B-19, B-20): their coach with

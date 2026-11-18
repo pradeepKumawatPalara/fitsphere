@@ -51,7 +51,9 @@ export function NutrientTargets({ totals, targets }: Props) {
               <View style={[styles.swatch, { backgroundColor: colors[nutrient.colour] }]} />
               <Text style={styles.label}>{nutrient.label}</Text>
             </View>
-            <Text style={[styles.value, amount === null && styles.none]}>{formatGrams(amount)}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.value, amount === null && styles.none]}>
+              {formatGrams(amount)}
+            </Text>
             {target === null ? (
               <Text style={styles.note}>No target</Text>
             ) : (
@@ -81,9 +83,9 @@ const useStyles = themedStyles((c) => ({
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatch: { width: 8, height: 8, borderRadius: 2 },
   label: { ...TYPE.label, letterSpacing: 1.2, color: c.inkMuted },
-  value: { ...TYPE.metric, fontSize: 20, lineHeight: 22 },
+  value: { ...TYPE.metric, fontSize: 15, lineHeight: 18 },
   none: { color: c.inkSubtle },
-  note: { fontSize: 13, lineHeight: 18, color: c.inkMuted },
+  note: { fontSize: 12, lineHeight: 16, color: c.inkMuted },
   over: { color: c.warning },
   bar: { height: 4, marginTop: 2, borderRadius: 2, overflow: 'hidden', backgroundColor: c.track },
   fill: { height: 4 },
