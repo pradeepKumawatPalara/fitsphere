@@ -901,6 +901,18 @@ export function holdDays(db: SqlDb, from: IstDay, to: IstDay): void {
   heldDays.set(db, held);
 }
 
+/** The older days read whole from the server this app session (D-106): the phone holds all their data. */
+const serverDays = new WeakMap<SqlDb, { from: IstDay; to: IstDay }[]>();
+
+/**
+ * Whether the phone holds `day` as read whole from the server this app session (D-106): its entries
+ * there are the day's, changes made since included, so a copy read online for a list (D-114, D-116)
+ * gives way to them, one deleted since too.
+ */
+export function holdsServerDay(db: SqlDb, day: IstDay): boolean {
+  return (serverDays.get(db) ?? []).some((range) => range.from <= day && day <= range.to);
+}
+
 /** Where GET /v1/users/{id}/days sends each day kind's entries. */
 const DAYS_FIELDS: Partial<Record<EntryKind, keyof DaysResponse>> = {
   weighIn: 'weighIns',
@@ -929,6 +941,7 @@ export async function replaceDays(db: SqlDb, from: IstDay, to: IstDay, days: Day
     }
     await removeUnusedPhotos(db);
   });
+  serverDays.set(db, [...(serverDays.get(db) ?? []), { from, to }]);
 }
 
 // Weight, as the Skeleton's screens and tests use it.

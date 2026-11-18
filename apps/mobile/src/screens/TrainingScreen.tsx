@@ -1,18 +1,11 @@
-import {
-  addDays,
-  syncWindowStart,
-  WORKOUT_DELETE,
-  WORKOUT_SET,
-  type IstDay,
-  type Workout,
-} from '@fitsphere/shared';
+import { syncWindowStart, WORKOUT_DELETE, WORKOUT_SET, type IstDay } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import {
   CalendarDays,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   CircleCheck,
-  ClockArrowDown,
   Dumbbell,
   Flame,
   List,
@@ -20,43 +13,42 @@ import {
   Plus,
   SquarePen,
   Trash,
-  WifiOff,
   type LucideIcon,
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { useNow } from '../clock';
-import { useAuth } from '../auth/AuthProvider';
-import { TEXTS } from '../auth/texts';
+import { DateChoices, RangeStatusView } from '../components/DateChoices';
 import { ConfirmSheet } from '../components/MealSheets';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { isWaiting, ShowingDayBanner } from '../components/ShowingDayBanner';
 import { WeekStrip } from '../components/WeekStrip';
-import { Banner, IconButton, Text, TextButton, useChoiceStyles } from '../components/ui';
+import { IconButton, Text, TextButton, useChoiceStyles } from '../components/ui';
+import { choiceRange, LAST_90_DAYS, shownRange, useDatedList, type DateChoice } from '../dateRange';
 import { formatDay, formatInteger, formatMonth } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { listEntries, rejectedChanges, type OutboxEntry, type SyncState } from '../local/store';
+import { listEntries, rejectedChanges, type OutboxEntry } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { useShownOlderDays } from '../navigation/useShownOlderDays';
-import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
+import { WORKOUTS, type ListedWorkout } from '../olderWorkouts';
 import { useDataVersion, useSync } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { useWeekActivity } from '../weekActivity';
 import { caloriesBurned, deleteWorkoutEffects, listedWorkouts, timerLine, timerState, workoutSummary } from '../workouts';
 
-/** A workout of the history: one on the phone, or an older one read from the server. */
-type Row = {
-  id: string;
-  day: string;
-  exercises: Workout['exercises'];
-  timer: Workout['timer'];
-  recordedAt: string;
-  syncState: SyncState | null;
+/** A workout of the history: one on the phone, or an older one read from the server (no sync state). */
+type Row = ListedWorkout;
+
+/** What All workouts says while older dates are read, or why they could not be (D-116). */
+export const WORKOUTS_STATUS = {
+  loading: 'Loading workouts…',
+  offline: 'Workouts older than 90 days need an internet connection.',
+  failed: 'Couldn’t load these workouts.',
 };
 
-/** What "Load older" says: that a range was empty (info), or why it could not load (error). */
-type Message = { text: string; tone: 'info' | 'error'; offline?: boolean };
+/** What Pick dates says loads online (D-116). */
+export const WORKOUTS_ONLINE = 'Workouts older than 90 days load online.';
 
 /** The two ways to see the workouts (D-65). */
 type Shown = 'day' | 'all';
@@ -100,11 +92,14 @@ function deleteWorkoutMessage(workout: { day: string; name: string; exercises: n
 // The Training tab (REQ-TRN-002…004). Since D-65 it opens on the date strip, as Home's and
 // Nutrition's, with a green mark on each day with a workout, and two ways to see the workouts:
 // "By day" (the first) shows only the selected date's workouts, under "Log workout for today" or
-// "Log workout for Sat 31 Oct", which logs to that date; "All workouts" shows every workout the user
-// has logged, a card per date as before (D-34, D-42), grouped by month: the newest month open, the
-// others folded to one line ("October 2026 · 9 workouts on 8 days"). The last 90 IST days come from
-// the phone, older ones from the server online, 90 days at a time, view-only (ADR-0007 rules 1 and
-// 6; MVP default, D-29). A date picked on the strip or the header's calendar shows By day. Deleting a
+// "Log workout for Sat 31 Oct", which logs to that date; "All workouts" shows the workouts of the dates
+// chosen, a card per date as before (D-34, D-42), grouped by month: the newest month open, the others
+// folded to one line ("October 2026 · 9 workouts on 8 days"). Since D-116 (the owner's A) a row of
+// choices picks the dates, as Progress's measurements (D-114): Last 90 days, the phone's (ADR-0007
+// rule 1), at first; a year or Pick dates read the older days from the server online (rule 6), with a
+// count line naming the dates, in place of "Load older". An older card, read from the server, opens its
+// date in By day, which reads it whole (D-106). A date picked on the strip or the header's calendar
+// shows By day. Deleting a
 // workout says what goes with it (D-63). A workout with no exercise is not listed, marked or counted,
 // and the others are numbered without it (D-65). No "No training plan yet" card for now (D-65): no one
 // can send a plan in the MVP (D-20). Each workout's row says its timer (D-71): "Running · 12:34",
@@ -114,7 +109,6 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   const styles = useStyles();
   const { colors } = useTheme();
   const pill = useChoiceStyles();
-  const { deps } = useAuth();
   const local = useLocalDatabase();
   const sync = useSync();
   const version = useDataVersion();
@@ -125,15 +119,16 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   // A day before the phone's 90 is read from the server when shown (D-106).
   const olderDays = useShownOlderDays();
   const waiting = isWaiting(olderDays.day.status);
-  // All workouts lists the phone's 90 days, then older ones loaded with "Load older" (REQ-TRN-004).
+  // All workouts lists the phone's 90 days, or the dates chosen above it (D-116; REQ-TRN-004).
   const phoneFirstDay = syncWindowStart(today);
   const [recent, setRecent] = useState<Row[]>([]);
   // The selected date's workouts, read on their own: the date may be older than the 90 days (D-106).
   const [dayRows, setDayRows] = useState<Row[]>([]);
   const [rejected, setRejected] = useState<OutboxEntry[]>([]);
-  const [older, setOlder] = useState<Row[]>([]);
-  const [oldestLoaded, setOldestLoaded] = useState(phoneFirstDay);
-  const [message, setMessage] = useState<Message | null>(null);
+  const [choice, setChoice] = useState<DateChoice>(LAST_90_DAYS);
+  const range = choiceRange(choice, today);
+  const chosen = useDatedList(range, today, null, WORKOUTS);
+  const status = range ? chosen.status : 'ready';
   const [shown, setShown] = useState<Shown>('day');
   // A date picked anywhere, the strip or the header's calendar, shows that date (D-65).
   const [dayShown, setDayShown] = useState(selected);
@@ -147,7 +142,6 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
   const [deleting, setDeleting] = useState<{ id: string; day: string; name: string; exercises: number } | null>(null);
   // Each button fades only while its own action runs.
   const [starting, setStarting] = useState(false);
-  const [loadingOlder, setLoadingOlder] = useState(false);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
@@ -170,8 +164,11 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
 
   // Workouts with no exercise are not listed, marked or counted (D-65).
   const listed = listedWorkouts(recent);
-  const months = byMonth([...listed, ...listedWorkouts(older)]);
+  const allListed = range ? (status === 'ready' ? listedWorkouts(chosen.entries) : []) : listed;
+  const months = byMonth(allListed);
   const open = openMonths ?? new Set(months[0] ? [months[0].month] : []);
+  const dates = shownRange(choice, today);
+  const span = `${formatDay(dates.from, today)} – ${formatDay(dates.to, today)}`;
   const dayWorkouts = byDate(listedWorkouts(dayRows))[0]?.workouts ?? [];
   // The rows draw again each second only while a timer runs (D-71).
   const clock = useNow(now, listed.some((row) => timerState(row.timer) === 'running'));
@@ -193,6 +190,12 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     setShown('day');
   }
 
+  /** Other dates: the newest month of what they show opens (D-65). */
+  function choose(next: DateChoice) {
+    setChoice(next);
+    setOpenMonths(null);
+  }
+
   function toggleMonth(month: string) {
     const next = new Set(open);
     if (next.has(month)) next.delete(month);
@@ -200,38 +203,10 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     setOpenMonths(next);
   }
 
-  async function loadOlder() {
-    setLoadingOlder(true);
-    setMessage(null);
-    const to = addDays(oldestLoaded, -1);
-    const from = addDays(to, -(OLDER_CHUNK_DAYS - 1));
-    const result = await fetchOlder(from, to);
-    setLoadingOlder(false);
-    if (result === 'offline') {
-      setMessage({ text: TEXTS.needsInternet('Loading older workouts'), tone: 'error', offline: true });
-      return;
-    }
-    if (result === 'failed') {
-      setMessage({ text: TEXTS.tryLater, tone: 'error' });
-      return;
-    }
-    setOlder((rows) => [...rows, ...result]);
-    setOldestLoaded(from);
-    // The newest month just loaded opens, so what came is in sight (D-65).
-    const newest = result[0];
-    if (newest) setOpenMonths(new Set([...open, newest.day.slice(0, 7)]));
-    else setMessage({ text: `No workouts from ${formatDay(from)} to ${formatDay(to)}.`, tone: 'info' });
-  }
-
-  async function fetchOlder(from: IstDay, to: IstDay): Promise<Row[] | 'offline' | 'failed'> {
-    const result = await fetchOlderWorkouts(deps, from, to);
-    return typeof result === 'string' ? result : result.map((workout) => ({ ...workout, syncState: null }));
-  }
-
   /**
    * A date's workouts, each on its own row with edit and delete (D-42), then the day's calories
    * burned, typed or estimated (D-50; Training only, not Home). Older workouts, read from the server,
-   * are only viewed (MVP default, D-29).
+   * are only viewed here (MVP default, D-29): their card opens the date in By day (D-116).
    */
   function workoutRows(day: string, workouts: readonly Row[], viewOnly: boolean) {
     const burned = caloriesBurned(workouts.flatMap((workout) => workout.exercises));
@@ -271,23 +246,23 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
           return (
             <View key={workout.id} style={[styles.row, index > 0 && styles.ruled]}>
               {viewOnly ? (
-                <View accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}${timed ? `; ${timed}` : ''}`} style={styles.rowText}>
+                <View accessibilityLabel={`${formatDay(day, today)}, ${name}: ${summary}${timed ? `; ${timed}` : ''}`} style={styles.rowText}>
                   {text}
                 </View>
               ) : (
                 <>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`${formatDay(day)}, ${name}: ${summary}${timed ? `; ${timed}` : ''}`}
+                    accessibilityLabel={`${formatDay(day, today)}, ${name}: ${summary}${timed ? `; ${timed}` : ''}`}
                     onPress={() => openWorkout(workout.id)}
                     style={({ pressed }) => [styles.rowText, pressed && styles.pressed]}
                   >
                     {text}
                   </Pressable>
-                  <IconButton label={`Edit ${name} on ${formatDay(day)}`} onPress={() => openWorkout(workout.id)}>
+                  <IconButton label={`Edit ${name} on ${formatDay(day, today)}`} onPress={() => openWorkout(workout.id)}>
                     <SquarePen size={20} color={colors.accent} />
                   </IconButton>
-                  <IconButton label={`Delete ${name} on ${formatDay(day)}`} onPress={() => setDeleting({ id: workout.id, day, name, exercises: workout.exercises.length })}>
+                  <IconButton label={`Delete ${name} on ${formatDay(day, today)}`} onPress={() => setDeleting({ id: workout.id, day, name, exercises: workout.exercises.length })}>
                     <Trash size={20} color={colors.danger} />
                   </IconButton>
                 </>
@@ -312,16 +287,16 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
     );
   }
 
-  /** A date's card in All workouts, as before D-65: its date block, its workouts and "Log another workout" (D-34, D-42). */
+  /**
+   * A date's card in All workouts, as before D-65: its date block, its workouts and "Log another
+   * workout" (D-34, D-42). A card read from the server opens its date in By day, with a chevron (D-116).
+   */
   function dateCard(day: string, workouts: readonly Row[]) {
     const viewOnly = workouts.every((workout) => workout.syncState === null);
     const [weekday, date, month] = formatDay(day).split(' ');
-    return (
-      <View
-        key={day}
-        accessibilityLabel={`${formatDay(day)}: ${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}`}
-        style={[styles.card, viewOnly && styles.cardViewOnly]}
-      >
+    const label = `${formatDay(day, today)}: ${workouts.length} ${workouts.length === 1 ? 'workout' : 'workouts'}`;
+    const body = (
+      <>
         <View style={styles.dateBlock} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Text style={styles.weekday}>{weekday}</Text>
           <Text style={styles.date}>{date}</Text>
@@ -331,6 +306,25 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
           {workoutRows(day, workouts, viewOnly)}
           {viewOnly ? null : <TextButton title="Log another workout" icon={Plus} disabled={starting} onPress={() => void start(day)} />}
         </View>
+      </>
+    );
+    return viewOnly ? (
+      <Pressable
+        key={day}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityHint="Opens this day in By day"
+        onPress={() => pickDay(day)}
+        style={({ pressed }) => [styles.card, styles.cardViewOnly, pressed && styles.pressed]}
+      >
+        {body}
+        <View style={styles.opensDay}>
+          <ChevronRight size={20} strokeWidth={2.25} color={colors.accent} />
+        </View>
+      </Pressable>
+    ) : (
+      <View key={day} accessibilityLabel={label} style={styles.card}>
+        {body}
       </View>
     );
   }
@@ -412,6 +406,18 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
               onDiscard={(changeId) => void sync.discard(changeId)}
             />
             {shown === 'day' ? byDay : null}
+            {shown === 'all' ? (
+              <>
+                <DateChoices today={today} choice={choice} onChoose={choose} online={WORKOUTS_ONLINE} />
+                {status === 'ready' ? (
+                  months.length > 0 ? (
+                    <Text style={styles.count}>{`${monthSummary(byDate(allListed))} · ${span}`}</Text>
+                  ) : null
+                ) : (
+                  <RangeStatusView status={status} texts={WORKOUTS_STATUS} onRetry={chosen.retry} />
+                )}
+              </>
+            ) : null}
           </View>
         }
         renderItem={({ item: { month, days } }) => {
@@ -439,13 +445,11 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
             </View>
           );
         }}
-        ListEmptyComponent={shown === 'all' ? <Text style={styles.empty}>No workouts logged yet.</Text> : undefined}
-        ListFooterComponent={
-          shown === 'all' ? (
-            <View style={styles.footer}>
-              {message ? <Banner tone={message.tone} text={message.text} {...(message.offline ? { icon: WifiOff } : {})} /> : null}
-              <TextButton title="Load older" outlined wide icon={ClockArrowDown} disabled={loadingOlder} onPress={() => void loadOlder()} />
-            </View>
+        ListEmptyComponent={
+          shown === 'all' && status === 'ready' ? (
+            <Text style={styles.empty}>
+              {range ? `No workouts from ${formatDay(dates.from, today)} to ${formatDay(dates.to, today)}.` : 'No workouts in the last 90 days.'}
+            </Text>
           ) : undefined
         }
       />
@@ -470,7 +474,9 @@ export function TrainingScreen({ now = () => new Date() }: { now?: () => Date })
 // then the calories burned; a day with none, a dashed outline with a dumbbell. All workouts: each month
 // a panel, its name in condensed capitals over its total, with a chevron; under an open month its
 // dates' raised cards as before (locked 2026-11-03 and 2026-11-04), older ones view-only on the plain
-// card colour with no icons; Load older outlined across the screen, its message as a banner.
+// card colour with no icons. D-116 (the owner's A, 2026-11-18): above the months, the row of date
+// choices and a muted count line, as Progress's measurements; an older card ends in a chevron and
+// opens its date; no Load older.
 const useStyles = themedStyles((c) => ({
   content: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 12 },
   header: { gap: 12 },
@@ -524,6 +530,8 @@ const useStyles = themedStyles((c) => ({
     backgroundColor: c.surfaceRaised,
   },
   cardViewOnly: { backgroundColor: c.surface },
+  opensDay: { alignSelf: 'center', width: 32, alignItems: 'center', justifyContent: 'center' },
+  count: { marginTop: -4, fontSize: 13, lineHeight: 18, color: c.inkMuted },
   pressed: { opacity: 0.6 },
   dateBlock: { width: 54, height: 62, borderRadius: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: c.surfaceSunken },
   weekday: { ...TYPE.label, fontSize: 11, lineHeight: 13, letterSpacing: 1, color: c.inkMuted },
@@ -548,6 +556,5 @@ const useStyles = themedStyles((c) => ({
   runningDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.success },
   note: { ...TYPE.label, fontSize: 12, lineHeight: 14, letterSpacing: 1, color: c.inkMuted },
   problem: { color: c.danger },
-  empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted },
-  footer: { paddingTop: 8, gap: 12 },
+  empty: { padding: 16, borderRadius: 4, backgroundColor: c.surfaceSunken, fontSize: 15, lineHeight: 22, color: c.inkMuted },
 }));

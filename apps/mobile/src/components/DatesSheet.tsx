@@ -1,16 +1,18 @@
 import type { IstDay } from '@fitsphere/shared';
 import { Calendar } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
-import { Sheet } from '../components/Sheet';
-import { Text, TextButton } from '../components/ui';
 import { formatDay } from '../format';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { Sheet } from './Sheet';
+import { Text, TextButton } from './ui';
 
 type Props = {
   from: IstDay;
   to: IstDay;
   today: IstDay;
+  /** What loads online, e.g. "Workouts older than 90 days load online." */
+  online: string;
   /** Opens the calendar for From or To. */
   onChange(end: 'from' | 'to'): void;
   onShow(): void;
@@ -20,13 +22,12 @@ type Props = {
 /** What the dates sheet says (D-114). */
 export const DATES_TEXTS = {
   title: 'Pick dates',
-  online: 'Measurements older than 90 days load online.',
   rule: 'Any dates from 1 Jan 2000 to today. Each opens the calendar.',
 } as const;
 
-// Progress › Measurements › Pick dates (D-114, the owner's B on the canvas): From and To, each opening
+// Pick dates (D-114, the owner's B on the canvas; shared by D-116's lists): From and To, each opening
 // the calendar (from 1 Jan 2000 to today), then Show; Cancel leaves the list as it was.
-export function MeasurementDatesSheet({ from, to, today, onChange, onShow, onClose }: Props) {
+export function DatesSheet({ from, to, today, online, onChange, onShow, onClose }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   const ends = [
@@ -48,7 +49,7 @@ export function MeasurementDatesSheet({ from, to, today, onChange, onShow, onClo
         </View>
       }
     >
-      <Text style={styles.muted}>{DATES_TEXTS.online}</Text>
+      <Text style={styles.muted}>{online}</Text>
       <View style={styles.ends}>
         {ends.map(({ end, label, day }) => (
           <View key={end} style={styles.end}>

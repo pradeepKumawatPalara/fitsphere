@@ -16,6 +16,7 @@ export const PROGRESS_TEXTS = {
   measurementsLoading: 'Loading measurements…',
   measurementsOffline: 'Measurements older than 90 days need an internet connection.',
   measurementsFailed: 'Couldn’t load these measurements.',
+  measurementsOnline: 'Measurements older than 90 days load online.',
   noMeasurementsFrom: (from: string, to: string) => `No measurements from ${from} to ${to}.`,
   chartEmpty: 'Your trend shows once you have 2 weigh-ins in this range.',
   chartLoading: 'Loading older weigh-ins…',

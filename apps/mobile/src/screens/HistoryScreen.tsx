@@ -1,110 +1,109 @@
-import {
-  addDays,
-  istToday,
-  MAX_LIST_LIMIT,
-  syncWindowStart,
-  type MeResponse,
-  type WeighInsPage,
-} from '@fitsphere/shared';
-import { ClockArrowDown, WifiOff } from 'lucide-react-native';
+import { istToday, syncWindowStart, type IstDay, type WeighInsPage } from '@fitsphere/shared';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { callApi } from '../api/client';
-import { useAuth } from '../auth/AuthProvider';
-import { TEXTS } from '../auth/texts';
+import { View } from 'react-native';
+import { DateChoices, RangeStatusView } from '../components/DateChoices';
 import { WeighInList, type HistoryRow } from '../components/WeighInList';
-import { Banner, TextButton } from '../components/ui';
+import { Text } from '../components/ui';
+import { choiceRange, fetchDatedPages, LAST_90_DAYS, shownRange, useDatedList, type DatedSource, type DateChoice } from '../dateRange';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
-import { listWeighIns } from '../local/store';
+import { listWeighIns, type LocalWeighIn } from '../local/store';
 import { useDataVersion } from '../sync/SyncProvider';
+import { themedStyles } from '../theme';
 
-const CHUNK_DAYS = 90;
+/** What Weight history says while older dates are read, or why they could not be (D-116). */
+export const WEIGH_INS_STATUS = {
+  loading: 'Loading weigh-ins…',
+  offline: 'Weigh-ins older than 90 days need an internet connection.',
+  failed: 'Couldn’t load these weigh-ins.',
+};
 
-// Weight history (REQ-PRG-001; ADR-0007 rule 1): the last 90 IST days from the phone, and older
-// days read from the server online, 90 days at a time. Older days are shown, not stored.
+/** A weigh-in of the list: the phone's, with its sync state, or one read from the server (synced). */
+type Weighed = Pick<LocalWeighIn, 'day' | 'weightGrams' | 'syncState'>;
+
+/** The weigh-ins by dates (`useDatedList`): the phone's, then the server's older ones; one per day. */
+const WEIGH_INS: DatedSource<Weighed> = {
+  phone: listWeighIns,
+  online: async (deps, from, to) => {
+    const items = await fetchDatedPages<WeighInsPage['items'][number]>(deps, 'weigh-ins', from, to);
+    return typeof items === 'string' ? items : items.map(({ day, weightGrams }) => ({ day, weightGrams, syncState: 'synced' as const }));
+  },
+  key: (entry) => entry.day,
+};
+
+/** A list row: a weigh-in waiting to sync, or refused, says so (ADR-0007 rule 2). */
+function toRow(entry: Weighed): HistoryRow {
+  return {
+    day: entry.day,
+    weightGrams: entry.weightGrams,
+    ...(entry.syncState === 'pending' ? { note: 'waiting to sync' } : {}),
+    ...(entry.syncState === 'rejected' ? { note: 'not saved' } : {}),
+  };
+}
+
+/** "1 weigh-in" or "N weigh-ins". */
+function weighInCount(count: number): string {
+  return count === 1 ? '1 weigh-in' : `${count} weigh-ins`;
+}
+
+// Weight history (REQ-PRG-001; ADR-0007 rule 1): the last 90 IST days from the phone; since D-116 (the
+// owner's A) a row of choices above them, as Progress's measurements (D-114), picks other dates: a
+// year or Pick dates, the days older than the phone's read from the server online (rule 6), shown,
+// not stored, with a count line naming the dates. It replaces "Load older".
 export function HistoryScreen({ now = () => new Date() }: { now?: () => Date }) {
-  const { deps } = useAuth();
+  const styles = useStyles();
   const local = useLocalDatabase();
   const version = useDataVersion();
   const today = istToday(now());
   const windowStart = syncWindowStart(today);
-  const [recent, setRecent] = useState<HistoryRow[]>([]);
-  const [older, setOlder] = useState<HistoryRow[]>([]);
-  const [oldestLoaded, setOldestLoaded] = useState(windowStart);
-  const [message, setMessage] = useState<{ text: string; tone: 'info' | 'error'; offline?: boolean } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [recent, setRecent] = useState<Weighed[]>([]);
+  const [choice, setChoice] = useState<DateChoice>(LAST_90_DAYS);
+  const range = choiceRange(choice, today);
+  const chosen = useDatedList(range, today, null, WEIGH_INS);
+  const status = range ? chosen.status : 'ready';
+  const dates = shownRange(choice, today);
 
   useEffect(() => {
     if (local.state.status !== 'ready') return;
     let active = true;
     void listWeighIns(local.state.db, windowStart, today).then((entries) => {
-      if (!active) return;
-      setRecent(
-        entries.map((entry) => ({
-          day: entry.day,
-          weightGrams: entry.weightGrams,
-          ...(entry.syncState === 'pending' ? { note: 'waiting to sync' } : {}),
-          ...(entry.syncState === 'rejected' ? { note: 'not saved' } : {}),
-        })),
-      );
+      if (active) setRecent(entries);
     });
     return () => {
       active = false;
     };
   }, [local.state, windowStart, today, version]);
 
-  async function loadOlder() {
-    setBusy(true);
-    setMessage(null);
-    const to = addDays(oldestLoaded, -1);
-    const from = addDays(to, -(CHUNK_DAYS - 1));
-    const result = await fetchOlder(from, to);
-    setBusy(false);
-    if (result === 'offline') {
-      setMessage({ text: TEXTS.needsInternet('Loading older history'), tone: 'error', offline: true });
-      return;
-    }
-    if (result === 'failed') {
-      setMessage({ text: TEXTS.tryLater, tone: 'error' });
-      return;
-    }
-    setOlder((rows) => [...rows, ...result]);
-    setOldestLoaded(from);
-    // The days as everywhere else, e.g. "Fri 8 May" (the redesign's 5.2; they were shown as 2026-05-08).
-    if (result.length === 0) setMessage({ text: `No weights from ${formatDay(from)} to ${formatDay(to)}.`, tone: 'info' });
-  }
-
-  async function fetchOlder(from: string, to: string): Promise<HistoryRow[] | 'offline' | 'failed'> {
-    const session = (await deps.client.getSession()).data.session;
-    if (!session) return 'failed';
-    const options = { token: session.access_token, ...(deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {}) };
-    const me = await callApi<MeResponse>(deps.apiUrl, '/me', options);
-    if (me.kind !== 'ok') return me.kind === 'offline' ? 'offline' : 'failed';
-    const page = await callApi<WeighInsPage>(
-      deps.apiUrl,
-      `/users/${me.body.user.id}/weigh-ins?from=${from}&to=${to}&limit=${MAX_LIST_LIMIT}`,
-      options,
-    );
-    if (page.kind !== 'ok') return page.kind === 'offline' ? 'offline' : 'failed';
-    return [...page.body.items].reverse().map((item) => ({ day: item.day, weightGrams: item.weightGrams }));
-  }
+  const rows = status === 'ready' ? (range ? chosen.entries : recent).map(toRow) : [];
+  const day = (value: IstDay) => formatDay(value, today);
 
   return (
     <WeighInList
-      rows={[...recent, ...older]}
-      footer={
-        <View style={styles.footer}>
-          {message ? <Banner tone={message.tone} text={message.text} {...(message.offline ? { icon: WifiOff } : {})} /> : null}
-          <TextButton title="Load older" outlined wide icon={ClockArrowDown} disabled={busy} onPress={() => void loadOlder()} />
+      rows={rows}
+      today={today}
+      header={
+        <View style={styles.header}>
+          <DateChoices today={today} choice={choice} onChoose={setChoice} online="Weigh-ins older than 90 days load online." />
+          {status !== 'ready' ? (
+            <RangeStatusView status={status} texts={WEIGH_INS_STATUS} onRetry={chosen.retry} />
+          ) : rows.length > 0 ? (
+            <Text style={styles.count}>{`${weighInCount(rows.length)} · ${day(dates.from)} – ${day(dates.to)}`}</Text>
+          ) : null}
         </View>
+      }
+      empty={
+        status === 'ready' ? (
+          <Text style={styles.none}>{range ? `No weigh-ins from ${day(dates.from)} to ${day(dates.to)}.` : 'No weigh-ins in the last 90 days.'}</Text>
+        ) : null
       }
     />
   );
 }
 
-// The redesign's 5.2 (locked by the owner, 2026-11-03): as Training's Load older (4.1), across the
-// screen under the list, its message as a banner.
-const styles = StyleSheet.create({
-  footer: { paddingTop: 16, gap: 12 },
-});
+// The redesign's 5.2 (locked by the owner, 2026-11-03), with D-116's choices on top (the owner's A,
+// 2026-11-18): the row of choices edge to edge, a muted count line, a sunken box when there are none.
+const useStyles = themedStyles((c) => ({
+  header: { gap: 12, paddingBottom: 12 },
+  count: { marginTop: -4, fontSize: 13, lineHeight: 18, color: c.inkMuted },
+  none: { padding: 16, borderRadius: 4, backgroundColor: c.surfaceSunken, fontSize: 15, lineHeight: 22, color: c.inkMuted },
+}));

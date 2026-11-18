@@ -1,9 +1,8 @@
-import { addDays, exerciseVideoUrl, istToday, syncWindowStart, type BodyWeightUnit, type IstDay, type ListedExercise } from '@fitsphere/shared';
+import { exerciseVideoUrl, istToday, syncWindowStart, type BodyWeightUnit, type IstDay, type ListedExercise } from '@fitsphere/shared';
 import {
   BookOpen,
   CalendarDays,
   ChevronLeft,
-  ClockArrowDown,
   Dumbbell,
   ExternalLink,
   Gauge,
@@ -25,8 +24,7 @@ import {
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Linking, Pressable, ScrollView, View, type LayoutChangeEvent } from 'react-native';
 import Svg, { Circle, Line, Polygon, Polyline } from 'react-native-svg';
-import { useAuth } from '../auth/AuthProvider';
-import { TEXTS } from '../auth/texts';
+import { choiceRange, LAST_90_DAYS, shownRange, useDatedList, type DateChoice } from '../dateRange';
 import {
   effortKindOf,
   effortKindOfLogType,
@@ -54,7 +52,7 @@ import {
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { findListedExercise, listEntries } from '../local/store';
-import { fetchOlderWorkouts, OLDER_CHUNK_DAYS } from '../olderWorkouts';
+import { WORKOUTS, type ListedWorkout } from '../olderWorkouts';
 import { chartGeometry } from '../progress/chartGeometry';
 import { useLiftingWeightUnit } from '../settings/SettingsProvider';
 import { useDataVersion } from '../sync/SyncProvider';
@@ -63,13 +61,15 @@ import { TYPE } from '../typography';
 import { GROUP_LABELS } from '../workouts';
 import { FullScreen } from './FullScreen';
 import { WorkoutInProgress } from './WorkoutInProgress';
-import { Banner, IconButton, Text, TextButton, useChoiceStyles } from './ui';
+import { DateChoices, RangeStatusView } from './DateChoices';
+import { IconButton, Text, TextButton, useChoiceStyles } from './ui';
 
 // An exercise's page (D-82; the redesign's 4.4, locked 2026-11-11): Progress, History and How to, a
 // whole page over the workout or Add exercise, as the exercise page (D-67), with a back arrow. It opens
-// on Progress for an exercise logged before, otherwise on How to. Progress and History read the
-// workouts on the phone (the last 90 days) and older ones loaded on History, matched by the
-// exercise's name or other names; How to shows the library's details (D-81), the owner's file's as
+// on Progress for an exercise logged before, otherwise on How to. History lists the workouts of the
+// dates chosen above it (D-116, the owner's A, as Progress's measurements): the last 90 days, the
+// phone's, at first; a year or Pick dates read the older days online. Progress counts the last 90 days
+// and the dates chosen in History. Both match the exercise by its name or other names; How to shows the library's details (D-81), the owner's file's as
 // written, and its video, or the owner's default one, opened outside the app. A name of the user's own
 // has its progress and history, and no how-to or video.
 
@@ -86,8 +86,17 @@ function siteOf(url: string): string {
   return /^https?:\/\/(?:www\.)?([^/?#]+)/i.exec(url)?.[1] ?? url;
 }
 
-/** What "Load older" says: that a range was empty, or why it could not load. */
-type Message = { text: string; tone: 'info' | 'error' };
+/** What History says while older dates are read, or why they could not be (D-116). */
+const HISTORY_STATUS = {
+  loading: 'Loading workouts…',
+  offline: 'Workouts older than 90 days need an internet connection.',
+  failed: 'Couldn’t load these workouts.',
+};
+
+/** "1 workout with this exercise" or "N workouts with this exercise". */
+function sessionCount(count: number): string {
+  return `${count} ${count === 1 ? 'workout' : 'workouts'} with this exercise`;
+}
 
 type Props = {
   /** The exercise's name as saved in a workout or picked in Add exercise. */
@@ -106,16 +115,17 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
   const pill = useChoiceStyles();
   const local = useLocalDatabase();
   const version = useDataVersion();
-  const { deps } = useAuth();
   const unit = useLiftingWeightUnit();
   const today = istToday(now());
   const firstDay = syncWindowStart(today);
   const [listed, setListed] = useState<ListedExercise | null | undefined>(undefined);
   const [phone, setPhone] = useState<ExerciseWorkout[] | null>(null);
-  const [older, setOlder] = useState<ExerciseWorkout[]>([]);
-  const [oldestLoaded, setOldestLoaded] = useState(firstDay);
-  const [loadingOlder, setLoadingOlder] = useState(false);
-  const [message, setMessage] = useState<Message | null>(null);
+  // History's dates (D-116); Progress counts them too, with the last 90 days.
+  const [choice, setChoice] = useState<DateChoice>(LAST_90_DAYS);
+  const datesRead = choiceRange(choice, today);
+  const chosen = useDatedList(datesRead, today, null, WORKOUTS);
+  const historyStatus = datesRead ? chosen.status : 'ready';
+  const historyDates = shownRange(choice, today);
   const [tab, setTab] = useState<ExerciseTab | null>(initialTab ?? null);
   const [range, setRange] = useState<GraphRange>('12W');
   const [metric, setMetric] = useState<GraphMetric | null>(null);
@@ -137,11 +147,16 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
 
   const loaded = listed !== undefined && phone !== null;
   const names = listed ? [listed.name, ...listed.aliases] : [name];
-  const sessions = loaded ? exerciseSessions([...phone, ...older], names) : [];
+  // History: the dates chosen. Progress: the last 90 days and the dates chosen, each workout once.
+  const chosenWorkouts: ListedWorkout[] = datesRead && historyStatus === 'ready' ? chosen.entries : [];
+  const phoneIdsOf90 = new Set((phone ?? []).map((workout) => workout.id));
+  const sessions = loaded ? exerciseSessions([...phone, ...chosenWorkouts.filter((workout) => !phoneIdsOf90.has(workout.id))], names) : [];
+  const historySessions = loaded ? (datesRead ? exerciseSessions(chosenWorkouts, names) : exerciseSessions(phone, names)) : [];
   const kind: EffortKind = listed ? effortKindOfLogType(listed.logType) : sessions[0] ? effortKindOf(sessions[0].exercise) : 'weight_reps';
   const shown: ExerciseTab = tab ?? (sessions.length > 0 ? 'progress' : 'howto');
   if (loaded && tab === null) setTab(shown);
-  const phoneIds = new Set((phone ?? []).map((workout) => workout.id));
+  // A workout on the phone opens from its card; one read from the server is shown, not opened.
+  const phoneIds = new Set([...phoneIdsOf90, ...chosenWorkouts.filter((workout) => workout.syncState !== null).map((workout) => workout.id)]);
   const details = listed?.details ?? null;
   const subtitle = details
     ? details.musclesWorked.join(' · ')
@@ -150,21 +165,6 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
         ? [listed.places[0].category, listed.places[0].subGroup].filter(Boolean).join(' · ')
         : GROUP_LABELS[listed.group]
       : 'Your own exercise';
-
-  async function loadOlder() {
-    setLoadingOlder(true);
-    setMessage(null);
-    const to = addDays(oldestLoaded, -1);
-    const from = addDays(to, -(OLDER_CHUNK_DAYS - 1));
-    const result = await fetchOlderWorkouts(deps, from, to);
-    setLoadingOlder(false);
-    if (result === 'offline') return setMessage({ text: TEXTS.needsInternet('Loading older workouts'), tone: 'error' });
-    if (result === 'failed') return setMessage({ text: TEXTS.tryLater, tone: 'error' });
-    setOlder((rows) => [...rows, ...result]);
-    setOldestLoaded(from);
-    const found = exerciseSessions(result, names).length;
-    if (found === 0) setMessage({ text: `No workouts with this exercise from ${formatDay(from)} to ${formatDay(to)}.`, tone: 'info' });
-  }
 
   return (
     <FullScreen onClose={onClose}>
@@ -216,17 +216,29 @@ export function ExerciseDetailsPage({ name, onClose, onOpenWorkout, initialTab, 
           ) : null}
           {shown === 'history' ? (
             <>
-              {sessions.length === 0 ? <Text style={styles.empty}>No workouts with this exercise yet.</Text> : null}
+              <DateChoices today={today} choice={choice} onChoose={setChoice} online="Workouts older than 90 days load online." />
+              {historyStatus !== 'ready' ? (
+                <RangeStatusView status={historyStatus} texts={HISTORY_STATUS} onRetry={chosen.retry} />
+              ) : historySessions.length === 0 ? (
+                <Text style={styles.none90}>
+                  {datesRead
+                    ? `No workouts with this exercise from ${formatDay(historyDates.from, today)} to ${formatDay(historyDates.to, today)}.`
+                    : 'No workouts with this exercise in the last 90 days.'}
+                </Text>
+              ) : (
+                <Text style={styles.count}>
+                  {`${sessionCount(historySessions.length)} · ${formatDay(historyDates.from, today)} – ${formatDay(historyDates.to, today)}`}
+                </Text>
+              )}
               <HistoryCards
-                sessions={sessions}
+                sessions={historySessions}
+                today={today}
                 kind={kind}
                 unit={unit}
                 onOpen={onOpenWorkout}
                 phoneIds={phoneIds}
                 onGoTo={(y) => scroller.current?.scrollTo({ y: Math.max(0, y - 8), animated: true })}
               />
-              {message ? <Banner text={message.text} tone={message.tone} /> : null}
-              <TextButton title="Load older" outlined wide icon={ClockArrowDown} disabled={loadingOlder} onPress={() => void loadOlder()} />
             </>
           ) : null}
           {shown === 'howto' ? <HowToTab listed={listed} /> : null}
@@ -284,7 +296,7 @@ function ProgressTab({
       </View>
     );
   }
-  const records = exerciseRecords(sessions, kind, unit);
+  const records = exerciseRecords(sessions, kind, unit, today);
   const metrics = GRAPH_METRICS[kind];
   const points = graphPoints(sessions, kind, metric, rangeStart(range, today), unit);
   const last = points.at(-1);
@@ -307,7 +319,7 @@ function ProgressTab({
       </View>
       <View style={styles.summary}>
         <CalendarDays size={16} color={colors.accent} />
-        <Text style={styles.summaryText}>{sessionsSummary(sessions)}</Text>
+        <Text style={styles.summaryText}>{sessionsSummary(sessions, today)}</Text>
       </View>
       <View style={styles.card}>
         {metrics.length > 1 ? (
@@ -380,7 +392,7 @@ function ProgressTab({
           <Text style={styles.note}>An estimate from your best set each workout (weight × reps). It is a guide to the trend, not a lift to attempt.</Text>
         ) : null}
       </View>
-      <Text style={styles.note}>Your last 90 days. Load older in History adds earlier workouts.</Text>
+      <Text style={styles.note}>Your last 90 days, and the dates picked in History.</Text>
     </Pressable>
   );
 }
@@ -542,6 +554,7 @@ function bestIcon(best: ExerciseBest): LucideIcon {
  */
 function HistoryCards({
   sessions,
+  today,
   kind,
   unit,
   onOpen,
@@ -549,6 +562,7 @@ function HistoryCards({
   onGoTo,
 }: {
   sessions: readonly Session[];
+  today: IstDay;
   kind: EffortKind;
   unit: BodyWeightUnit;
   onOpen?: (id: string) => void;
@@ -558,7 +572,7 @@ function HistoryCards({
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const bests = exerciseBests(sessions, kind, unit);
+  const bests = exerciseBests(sessions, kind, unit, today);
   const placed = useRef(new Map<Session, number>());
   return (
     <>
@@ -594,7 +608,7 @@ function HistoryCards({
         </View>
       ) : null}
       {sessions.map((session, index) => {
-        const card = historyCard(session, kind, unit, bests);
+        const card = historyCard(session, kind, unit, bests, today);
         const opens = onOpen && phoneIds.has(session.workoutId);
         const body = (
           <>
@@ -741,7 +755,9 @@ const useStyles = themedStyles((c) => ({
   tab: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   // Room at the foot for the Workout in progress pill (D-83).
   content: { gap: 12, padding: 16, paddingBottom: 88 },
-  empty: { fontSize: 15, lineHeight: 22, color: c.inkMuted, textAlign: 'center', paddingVertical: 24 },
+  // D-116: History's count line under its date choices, muted; with none, a sunken box.
+  count: { marginTop: -4, fontSize: 13, lineHeight: 18, color: c.inkMuted },
+  none90: { padding: 16, borderRadius: 4, backgroundColor: c.surfaceSunken, fontSize: 15, lineHeight: 22, color: c.inkMuted },
   records: { flexDirection: 'row', gap: 8 },
   record: { flex: 1, minWidth: 0, gap: 4, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 4, backgroundColor: c.surface },
   recordLabel: { ...TYPE.label, fontSize: 12, lineHeight: 15, letterSpacing: 1, color: c.inkMuted },

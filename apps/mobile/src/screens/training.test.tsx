@@ -8,8 +8,9 @@ import { TrainingScreen, monthSummary } from './TrainingScreen';
 import { sameSets } from '../testing/exercises';
 
 // The Training tab (REQ-TRN-002…004; D-20, D-65): the date strip, "By day" (the selected date's
-// workouts and "Log workout for <date>") and "All workouts" (every workout, by month), older ones read
-// online (ADR-0007 rules 1 and 6), and rejected workout changes (ADR-0007 rule 2). The workout screen
+// workouts and "Log workout for <date>") and "All workouts" (the workouts by month, the last 90 days or
+// the dates chosen, D-116), older ones read online (ADR-0007 rules 1 and 6), and rejected workout
+// changes (ADR-0007 rule 2). The workout screen
 // is tested in workout.test.tsx. Today is Wed 28 Oct 2026.
 
 const mockRouter = { push: jest.fn(), back: jest.fn(), replace: jest.fn() };
@@ -43,6 +44,16 @@ async function renderTraining(workouts: [id: string, day: string, exercises: Ret
 
 async function showAll() {
   await fireEvent.press(await screen.findByRole('tab', { name: 'All workouts' }));
+}
+
+/**
+ * The Training tab, with workouts on the server from another phone: those older than the phone's 90
+ * days stay on the server, as sync sends only the 90 days (ADR-0007 rule 1); checked here.
+ */
+async function renderWithOlder(workouts: [id: string, day: string, exercises: ReturnType<typeof sameSets>[]][]) {
+  const app = await renderTraining(workouts);
+  for (const [id, day] of workouts) if (day < '2026-07-31') expect(await getEntry(app.db, 'workout', id)).toBeNull();
+  return app;
 }
 
 describe('D-65 the Training tab', () => {
@@ -260,7 +271,7 @@ describe('REQ-TRN-004 All workouts', () => {
     await waitFor(async () => expect(await getEntry(app.db, 'workout', ID_1)).toBeNull());
     await waitFor(() => expect(app.server.entries('workouts').get(ID_1)).toMatchObject({ deleted: true }));
     expect(screen.queryByLabelText('Mon 26 Oct: 1 workout')).toBeNull();
-    expect(screen.getByText('No workouts logged yet.')).toBeOnTheScreen();
+    expect(screen.getByText('No workouts in the last 90 days.')).toBeOnTheScreen();
   });
 
   it('D-63 deleting says what goes: an earlier week’s workout and its exercises', async () => {
@@ -272,57 +283,166 @@ describe('REQ-TRN-004 All workouts', () => {
       screen.getByText("Workout 1 on Tue 20 Oct will be deleted, with its 2 exercises. It will no longer count in that week's workouts. You can't undo this."),
     ).toBeOnTheScreen();
   });
+});
 
-  it('REQ-TRN-004 "Load older" reads the 90 days before the phone’s from the server and opens their newest month, view-only', async () => {
-    const { server } = await renderTraining();
-    server.state.olderWorkouts = [
-      { id: OLD_ID, day: '2026-07-01', exercises: [SQUAT], timer: null, recordedAt: '2026-07-01T02:00:00.000Z', updatedAt: '2026-07-01T02:00:00.000Z' },
-    ];
+// D-116 (the owner's A, 2026-11-18): All workouts by dates, as Progress's measurements (D-114): the last
+// 90 days, the phone's, at first; a year or Pick dates read the days before the phone's 90 online, in
+// place of "Load older". Today is Wed 28 Oct 2026, so the phone's 90 days are Fri 31 Jul to Wed 28 Oct.
+describe('D-116 All workouts by dates', () => {
+  const OLD_ID_2 = '8d3b0f51-2e4c-4a6b-8f7e-3c2d1b0a9f8e';
+
+  it('shows the last 90 days with a count line; the choices are Pick dates, Last 90 days and each year back to 2000; no Load older', async () => {
+    const { server } = await renderTraining([
+      [ID_1, '2026-10-26', [SQUAT]],
+      [ID_2, '2026-08-03', [PUSH_UP]],
+    ]);
     await showAll();
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
-
-    expect(await screen.findByLabelText('Wed 1 Jul, Workout 1: 1 exercise · Squat')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'July 2026: 1 workout on 1 day' }).props.accessibilityState).toEqual({ expanded: true });
-    expect(screen.queryByRole('button', { name: 'Wed 1 Jul, Workout 1: 1 exercise · Squat' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /on Wed 1 Jul$/ })).toBeNull();
-    const call = server.calls.find((entry) => entry.path.endsWith('/workouts'));
-    expect(call?.path).toBe(`/users/${ME.user.id}/workouts`);
+    expect(await screen.findByText('2 workouts on 2 days · Fri 31 Jul – Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.getAllByRole('radio').map((choice) => choice.props.accessibilityLabel).slice(0, 4)).toEqual(['Pick dates', 'Last 90 days', '2026', '2025']);
+    expect(screen.getByRole('radio', { name: '2000' })).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Load older' })).toBeNull();
+    // The last 90 days are the phone's: nothing is read online.
+    expect(server.state.workoutQueries).toEqual([]);
   });
 
-  it('REQ-TRN-004 says so when there are no older workouts', async () => {
+  it('a year lists its months read online, the newest open, its days with their year; an older card opens its date in By day', async () => {
+    const { server } = await renderWithOlder([
+      [ID_1, '2026-10-26', [SQUAT]],
+      [OLD_ID, '2025-12-27', [SQUAT]],
+      [OLD_ID_2, '2025-06-14', [PUSH_UP]],
+    ]);
+    await showAll();
+
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
+
+    expect(await screen.findByText('2 workouts on 2 days · Wed 1 Jan 2025 – Wed 31 Dec 2025')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: '2025' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'December 2025: 1 workout on 1 day' }).props.accessibilityState).toEqual({ expanded: true });
+    expect(screen.getByRole('button', { name: 'June 2025: 1 workout on 1 day' }).props.accessibilityState).toEqual({ expanded: false });
+    expect(screen.getByLabelText('Sat 27 Dec 2025, Workout 1: 1 exercise · Squat')).toBeOnTheScreen();
+    // Read from the server: shown, with no pencil or bin; the card opens its date.
+    expect(screen.queryByRole('button', { name: /on Sat 27 Dec 2025$/ })).toBeNull();
+    expect(server.state.workoutQueries).toEqual([{ from: '2025-01-01', to: '2025-12-31', cursor: null }]);
+    expect(server.calls.find((call) => call.path.endsWith('/workouts'))?.path).toBe(`/users/${ME.user.id}/workouts`);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sat 27 Dec 2025: 1 workout' }));
+
+    expect(screen.getByRole('tab', { name: 'By day' })).toBeSelected();
+    expect(screen.getByRole('button', { name: 'Log workout for Sat 27 Dec 2025' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'Sat 27 Dec 2025, Workout 1: 1 exercise · Squat' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Delete Workout 1 on Sat 27 Dec 2025' })).toBeOnTheScreen();
+  });
+
+  it('a workout deleted on its older day leaves the year’s list', async () => {
+    const { server } = await renderWithOlder([[OLD_ID, '2025-12-27', [SQUAT]]]);
+    await showAll();
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Sat 27 Dec 2025: 1 workout' }));
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Delete Workout 1 on Sat 27 Dec 2025' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(server.entries('workouts').get(OLD_ID)).toMatchObject({ deleted: true }));
+    await showAll();
+
+    expect(screen.getByRole('radio', { name: '2025' })).toBeChecked();
+    expect(await screen.findByText('No workouts from Wed 1 Jan 2025 to Wed 31 Dec 2025.')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Sat 27 Dec 2025: 1 workout')).toBeNull();
+  });
+
+  it('this year reads online only the days before the phone’s 90, and lists them with the phone’s', async () => {
+    const { server } = await renderWithOlder([
+      [ID_1, '2026-10-26', [SQUAT]],
+      [OLD_ID, '2026-03-02', [PUSH_UP]],
+    ]);
+    await showAll();
+
+    await fireEvent.press(await screen.findByRole('radio', { name: '2026' }));
+
+    expect(await screen.findByText('2 workouts on 2 days · Thu 1 Jan – Wed 28 Oct')).toBeOnTheScreen();
+    expect(server.state.workoutQueries).toEqual([{ from: '2026-01-01', to: '2026-07-30', cursor: null }]);
+    // The phone's keeps its pencil and bin; the older month is folded.
+    expect(screen.getByRole('button', { name: 'Delete Workout 1 on Mon 26 Oct' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'March 2026: 1 workout on 1 day' }).props.accessibilityState).toEqual({ expanded: false });
+  });
+
+  it('reads every page the server sends', async () => {
+    const { server } = await renderWithOlder([
+      [OLD_ID, '2025-12-27', [SQUAT]],
+      [OLD_ID_2, '2025-06-14', [PUSH_UP]],
+    ]);
+    server.state.workoutsPageSize = 1;
+    await showAll();
+
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
+
+    expect(await screen.findByText('2 workouts on 2 days · Wed 1 Jan 2025 – Wed 31 Dec 2025')).toBeOnTheScreen();
+    expect(server.state.workoutQueries.map((query) => query.cursor)).toEqual([null, '1']);
+  });
+
+  it('a year with none says so', async () => {
     await renderTraining();
     await showAll();
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+    await fireEvent.press(await screen.findByRole('radio', { name: '2023' }));
 
-    expect(await screen.findByText('No workouts from Sat 2 May to Thu 30 Jul.')).toBeOnTheScreen();
+    expect(await screen.findByText('No workouts from Sun 1 Jan 2023 to Sun 31 Dec 2023.')).toBeOnTheScreen();
   });
 
-  it('REQ-TRN-004 while older workouts load, only "Load older" waits; logging stays ready', async () => {
+  it('ADR-0007 rule 6 offline, says older workouts need the internet; Try again loads them once online', async () => {
+    const { server } = await renderWithOlder([[OLD_ID, '2025-12-27', [SQUAT]]]);
+    await showAll();
+    server.state.offline = true;
+
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
+
+    expect(await screen.findByText('Workouts older than 90 days need an internet connection.')).toBeOnTheScreen();
+    server.state.offline = false;
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('1 workout on 1 day · Wed 1 Jan 2025 – Wed 31 Dec 2025')).toBeOnTheScreen();
+  });
+
+  it('a server error says these could not load, with Try again', async () => {
+    const { server } = await renderTraining();
+    server.state.workoutsFailWith = 500;
+    await showAll();
+
+    await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
+
+    expect(await screen.findByText('Couldn’t load these workouts.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeOnTheScreen();
+  });
+
+  it('Pick dates: From from the calendar, and Show lists those dates', async () => {
+    const { server } = await renderWithOlder([[OLD_ID, '2026-07-01', [SQUAT]]]);
+    await showAll();
+
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Pick dates' }));
+    expect(screen.getByText('Workouts older than 90 days load online.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'From: Fri 31 Jul. Change' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Wednesday 1 July 2026' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Show' }));
+
+    expect(await screen.findByText('1 workout on 1 day · Wed 1 Jul – Wed 28 Oct')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Pick dates' })).toBeChecked();
+    expect(server.state.workoutQueries).toEqual([{ from: '2026-07-01', to: '2026-07-30', cursor: null }]);
+  });
+
+  it('while a year loads, logging stays ready', async () => {
     await renderTraining();
     await showAll();
     // The server doesn't answer yet.
     const pending = jest.spyOn(client, 'callApi').mockReturnValue(new Promise(() => {}));
     try {
-      await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+      await fireEvent.press(await screen.findByRole('radio', { name: '2025' }));
 
-      expect(screen.getByRole('button', { name: 'Load older' })).toBeDisabled();
+      expect(screen.getByText('Loading workouts…')).toBeOnTheScreen();
       await fireEvent.press(screen.getByRole('tab', { name: 'By day' }));
       expect(screen.getByRole('button', { name: 'Log workout for today' })).toBeEnabled();
     } finally {
       pending.mockRestore();
     }
-  });
-
-  it('ADR-0007 rule 6 "Load older" offline shows the named warning', async () => {
-    const { server } = await renderTraining();
-    server.state.offline = true;
-    await showAll();
-
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
-
-    expect(await screen.findByText('Loading older workouts needs an internet connection.')).toBeOnTheScreen();
   });
 });
 
@@ -413,7 +533,7 @@ describe('D-71 each workout’s timer on its row', () => {
     ];
     await showAll();
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'Load older' }));
+    await fireEvent.press(await screen.findByRole('radio', { name: '2026' }));
 
     expect(await screen.findByLabelText('Wed 1 Jul, Workout 1: 1 exercise · Squat; Done · 1:04:15')).toBeOnTheScreen();
   });
