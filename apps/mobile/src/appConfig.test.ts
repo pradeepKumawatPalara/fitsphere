@@ -27,10 +27,17 @@ describe('D-104 the iPhone app', () => {
     expect(expo.ios.bundleIdentifier).toBe(expo.android.package);
   });
 
-  it('asks for neither the microphone nor Face ID, which the app does not use', () => {
-    expect(pluginOptions('expo-camera')).toMatchObject({ microphonePermission: false });
-    expect(pluginOptions('expo-image-picker')).toMatchObject({ microphonePermission: false });
+  it('asks for no Face ID, which the app does not use', () => {
     expect(pluginOptions('expo-secure-store')).toMatchObject({ faceIDPermission: false });
+  });
+
+  it('D-115 asks for the microphone for Speak your meal only, with one text, and blocks it nowhere', () => {
+    const text = pluginOptions('expo-speech-recognition')?.microphonePermission;
+    expect(text).toMatch(/^FitSphere uses the microphone only when you tap Speak your meal/);
+    // `false` would make the image picker block Android's microphone permission, and empty iOS's text.
+    expect(pluginOptions('expo-camera')).toMatchObject({ microphonePermission: text, recordAudioAndroid: false });
+    expect(pluginOptions('expo-image-picker')).toMatchObject({ microphonePermission: text });
+    expect(pluginOptions('expo-speech-recognition')?.speechRecognitionPermission).toMatch(/^FitSphere turns what you say into text on your phone/);
   });
 
   it('says why it asks for the camera and the photos', () => {

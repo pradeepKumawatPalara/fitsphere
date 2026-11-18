@@ -183,10 +183,13 @@ export function MealFoodRows({
   items,
   empty = 'No foods yet.',
   onChange,
+  isAssumed,
 }: {
   items: readonly MealItem[];
   empty?: string;
   onChange(index: number): void;
+  /** A food added from what was said whose amount was not said (D-115): tagged until changed or saved. */
+  isAssumed?(item: MealItem): boolean;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -204,6 +207,12 @@ export function MealFoodRows({
               {formatAmount(item.amount)} · {formatKcal(item.kcal)} · {formatGrams(item.proteinG)} protein
               {item.estimated ? ' · estimated' : ''}
             </Text>
+            {isAssumed?.(item) ? (
+              <View accessible accessibilityLabel="Amount not said, check it" style={styles.assumed}>
+                <CircleAlert size={13} color={colors.accent} />
+                <Text style={styles.assumedText}>Amount not said · check it</Text>
+              </View>
+            ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -368,6 +377,8 @@ const useStyles = themedStyles((c) => ({
   itemText: { flex: 1, gap: 2 },
   itemName: { fontSize: 16, lineHeight: 22, fontWeight: '500' },
   itemDetail: { fontSize: 14, lineHeight: 20, color: c.inkMuted, fontVariant: ['tabular-nums'] },
+  assumed: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginTop: 4, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: c.accentTint },
+  assumedText: { fontSize: 12, lineHeight: 16, fontWeight: '600', color: c.accent },
   itemAction: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   change: { gap: 8 },
   gramsBox: {

@@ -351,7 +351,20 @@ only (MVP default, D-31).
 | `recorded_at` | `timestamptz` | Not null. Server time when the API received the change |
 
 - Rows are only added, never changed. Two changes at the same time are ordered by `id`.
-- Before each AI call, the AI module reads the latest row (invariant #3; slice 7).
+- Before each AI call, the AI module reads the latest row (invariant #3; slice 7). Since D-115 it
+  counts only consent given on the current text (`AI_CONSENT_TEXT_VERSION`); older versions
+  (`AI_CONSENT_OLDER_TEXT_VERSIONS`) are still recorded, so older apps keep working.
+
+### `ai_readings` — account data (D-115, migration 0034)
+AI readings made, a user an Asia/Kolkata day. Made for ADR-0005's limit of 15; since D-115 there is
+no daily limit, and the count is kept only to show use. Nothing of the meal text or the answer is
+kept. Not synced, never sent to the phone.
+
+| Column | Type | Rules |
+|---|---|---|
+| `user_id` | `uuid` | References `users`, deleted with the user. Primary key with `day` |
+| `day` | `date` | The Asia/Kolkata day of the reading (invariant #5) |
+| `count` | `integer` | Not null, 0–1,000. Raised by one for each reading made (held at 1,000); a reading refused for consent or failed is not counted |
 
 ### `meals` — Health
 The user's logged meals (REQ-LOG-001…003, REQ-LOG-007, REQ-NUT-*). Migration 0004.
@@ -818,6 +831,7 @@ searches. The setting lasts as long as the connection and is set at each start.
 | `food_portion_history` | Reference data, not personal; kept | Never removed |
 | `profiles` | While the account exists | With the account, its photo's files first (REQ-ACC-009, D-38) |
 | `ai_consents` | While the account exists, every change kept | With the account (REQ-ACC-009; Legal confirms, Q-049) |
+| `ai_readings` | While the account exists, one row a day of use | With the account (REQ-ACC-009) |
 | `media` | While the account exists; a deleted photo's files leave storage after the next sync | With the account: every file of the user's photos is removed from storage first, deleted photos included (REQ-ACC-009) |
 | `applied_changes` | While the account exists | With the account |
 | Phone database | See "On the phone" | Log out, as above; synced entries older than 90 days |

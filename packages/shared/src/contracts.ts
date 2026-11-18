@@ -33,6 +33,8 @@ export const REQUEST_ERROR_CODES = [
   'RATE_LIMITED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
+  // D-115: an AI reading asked for without consent given on the current text (invariant #3).
+  'AI_CONSENT_REQUIRED',
 ] as const;
 export type RequestErrorCode = (typeof REQUEST_ERROR_CODES)[number];
 
@@ -108,16 +110,23 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
  * D-31; Legal reviews it, Q-049). Each change of consent records the version shown. A new text gets
  * a new version, and the request schema then accepts both while older apps are in use.
  */
-export const AI_CONSENT_TEXT_VERSION = '2026-10-30';
+export const AI_CONSENT_TEXT_VERSION = '2026-11-17';
+// The owner approved this text on 2026-11-17 (D-115, ADR-0010: OpenAI in place of Gemini).
 export const AI_CONSENT_TEXT =
-  'When it is on, the meal text you type or speak, and the meal and label photos you choose to read, ' +
-  "are sent to Google's Gemini AI service to estimate what you ate. They may be processed outside " +
-  'India. You check the result before it is saved. Voice is turned into text on your phone; ' +
-  'recordings are not sent. Off by default; you can turn it off at any time.';
+  "When it is on, the meal text you type or speak is sent to OpenAI's AI service to find the foods " +
+  'and amounts you name. FitSphere takes the food values from its own food list. Your text may be ' +
+  'processed outside India and kept by OpenAI for up to 30 days for safety checks; it is not used to ' +
+  'train its models. Voice is turned into text on your phone; recordings are not sent. You check the ' +
+  'foods before they are saved.';
+/**
+ * Texts shown by older apps (2026-10-30: the Gemini text, D-31). Their changes are still recorded,
+ * but an AI reading needs consent given on the current text (D-115), so they are asked again.
+ */
+export const AI_CONSENT_OLDER_TEXT_VERSIONS = ['2026-10-30'] as const;
 
 export const aiConsentRequestSchema = z.strictObject({
   consented: z.boolean(),
-  textVersion: z.literal(AI_CONSENT_TEXT_VERSION),
+  textVersion: z.enum([AI_CONSENT_TEXT_VERSION, ...AI_CONSENT_OLDER_TEXT_VERSIONS]),
 });
 export type AiConsentRequest = z.infer<typeof aiConsentRequestSchema>;
 
@@ -128,6 +137,63 @@ export const aiConsentResponseSchema = z.object({
     .nullable(),
 });
 export type AiConsentResponse = z.infer<typeof aiConsentResponseSchema>;
+
+// --- AI meal reading: POST /v1/ai/meal-parse (ADR-0010, D-115; REQ-LOG-009) ---
+
+/** The meal text, typed or turned into text on the phone, in characters after trimming. */
+export const MEAL_TEXT_MIN = 2;
+export const MEAL_TEXT_MAX = 500;
+/** At most this many foods in one reading. */
+export const MEAL_PARSE_MAX_ITEMS = 20;
+/**
+ * The units the AI may give. The phone turns each into the food's own measure (`readSearch`'s words);
+ * "bowl" is read as katori, weights and volumes as g and ml where the food has them.
+ */
+export const SPOKEN_UNITS = [
+  'g',
+  'kg',
+  'ml',
+  'l',
+  'piece',
+  'slice',
+  'katori',
+  'plate',
+  'cup',
+  'glass',
+  'teaspoon',
+  'tablespoon',
+  'serving',
+  'scoop',
+  'handful',
+] as const;
+export type SpokenUnit = (typeof SPOKEN_UNITS)[number];
+
+export const mealParseRequestSchema = z.strictObject({
+  text: z.string().trim().min(MEAL_TEXT_MIN).max(MEAL_TEXT_MAX),
+});
+export type MealParseRequest = z.infer<typeof mealParseRequestSchema>;
+
+/**
+ * One food the user said. Never nutrition (D-115): the phone takes values from its food list. A
+ * strict object, so an answer carrying kcal or any other field is refused.
+ */
+export const parsedMealItemSchema = z.strictObject({
+  /** The words as said, for the review list ("ek katori dal"). */
+  spokenWords: z.string().min(1).max(200),
+  /** A plain English name to search the food list with ("toor dal"). */
+  name: z.string().min(1).max(120),
+  quantity: z.number().positive().max(10_000).nullable(),
+  unit: z.enum(SPOKEN_UNITS).nullable(),
+  preparation: z.string().min(1).max(80).nullable(),
+  /** What was unclear, in a few words each; empty when nothing was. */
+  ambiguity: z.array(z.string().min(1).max(120)).max(5),
+});
+export type ParsedMealItem = z.infer<typeof parsedMealItemSchema>;
+
+export const mealParseResponseSchema = z.strictObject({
+  items: z.array(parsedMealItemSchema).max(MEAL_PARSE_MAX_ITEMS),
+});
+export type MealParseResponse = z.infer<typeof mealParseResponseSchema>;
 
 // --- Sync: POST /v1/sync (ADR-0007) ---
 

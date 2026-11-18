@@ -6,7 +6,9 @@ import { registerAccess } from './access.ts';
 import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
 import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
+import type { MealParser } from './ai/mealParser.ts';
 import { registerAiConsentRoutes } from './routes/aiConsent.ts';
+import { registerAiMealParseRoute } from './routes/aiMealParse.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerDaysRoute } from './routes/days.ts';
 import { registerExercisesRoute } from './routes/exercises.ts';
@@ -34,6 +36,8 @@ export type AppDeps = {
   barcodes?: BarcodeSource;
   /** File storage for meal photos (ADR-0002 rule 4); tests pass a fake. Without it, photo links answer 503. */
   storage?: MediaStorage | null;
+  /** The AI module (ADR-0010); tests pass a fake. Without it, AI readings answer 503. */
+  mealParser?: MealParser | null;
 };
 
 // Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
@@ -87,6 +91,11 @@ export function buildApp(deps: AppDeps) {
   }));
   registerMeRoutes(app, deps);
   registerAiConsentRoutes(app, { db: deps.db, now: deps.now ?? (() => new Date()) });
+  registerAiMealParseRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    mealParser: deps.mealParser ?? null,
+  });
   registerSyncRoute(app, {
     db: deps.db,
     now: deps.now ?? (() => new Date()),

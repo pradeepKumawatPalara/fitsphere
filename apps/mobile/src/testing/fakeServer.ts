@@ -8,6 +8,7 @@ import {
   type ListedExercise,
   type MealItem,
   type PackagedFood,
+  type ParsedMealItem,
   type SyncResult,
   type TargetKind,
   type Workout,
@@ -97,6 +98,12 @@ export function fakeServer(now: Date) {
     daysFailWith: null as number | null,
     /** The latest AI consent record (REQ-ACC-004); null until the user chooses. */
     aiConsent: null as { consented: boolean; textVersion: string; recordedAt: string } | null,
+    /** What `POST /ai/meal-parse` answers (D-115): the foods named, or an error status and code. */
+    mealParse: { items: [] } as { items: ParsedMealItem[] } | { status: number; code: string },
+    /** `POST /ai/meal-parse` fails as a network failure would. */
+    mealParseOffline: false,
+    /** The texts sent to `POST /ai/meal-parse`. */
+    mealParseTexts: [] as string[],
     /** Answer `DELETE /me` with this status instead of deleting (503: not available). */
     deleteFailsWith: null as number | null,
     /** Set once `DELETE /me` succeeded. */
@@ -304,6 +311,15 @@ export function fakeServer(now: Date) {
       const { consented, textVersion } = body as { consented: boolean; textVersion: string };
       state.aiConsent = { consented, textVersion, recordedAt: now.toISOString() };
       return json(200, { aiConsent: state.aiConsent });
+    }
+    if (path === '/ai/meal-parse' && method === 'POST') {
+      if (state.mealParseOffline) throw new TypeError('Network request failed');
+      state.mealParseTexts.push((body as { text: string }).text);
+      const answer = state.mealParse;
+      if ('status' in answer) {
+        return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      return json(200, answer);
     }
     if (path === '/me' && method === 'DELETE') {
       if (state.deleteFailsWith) {

@@ -31,6 +31,11 @@ const ERRORS: Record<RequestErrorCode, { status: number; message: string; retrya
     message: 'The service is unavailable. Try again later.',
     retryable: true,
   },
+  AI_CONSENT_REQUIRED: {
+    status: 403,
+    message: 'Turn on AI meal reading first.',
+    retryable: false,
+  },
 };
 
 export class ApiError extends Error {

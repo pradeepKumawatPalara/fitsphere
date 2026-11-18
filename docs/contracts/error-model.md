@@ -61,9 +61,10 @@ Every error response has this body:
 | 403 | `ROLE_NOT_ENABLED` | The caller's own function needs a role they have not turned on, e.g. logging weight without the Personal Training User role (REQ-ROLE-002) | No | Offer to turn the role on |
 | 404 | `NOT_FOUND` | The resource does not exist, **or the caller may not see it** | No | Show "Not available" |
 | 413 | `PAYLOAD_TOO_LARGE` | Body over the size limit, or more than 100 changes in one sync | No | Send smaller batches |
-| 429 | `RATE_LIMITED` | Too many requests (reserved; not used in the Skeleton) | Yes, after `Retry-After` | Wait and retry |
+| 403 | `AI_CONSENT_REQUIRED` | An AI reading asked for when the user's latest consent is off, never given, or given on an older consent text (invariant #3, D-115). No AI call is made | No | Ask for consent once (REQ-ACC-004); keep the words as an ordinary search |
+| 429 | `RATE_LIMITED` | Too many requests (reserved; not used: AI readings have no daily limit, D-115) | Yes, after `Retry-After` | Wait and retry |
 | 500 | `INTERNAL_ERROR` | Unexpected server failure | Yes | Keep queued changes; retry later |
-| 503 | `SERVICE_UNAVAILABLE` | The database cannot be reached, e.g. the Supabase project is paused ([runbook](../operations/runbook.md#supabase-project-paused)) | Yes | Keep queued changes; retry later |
+| 503 | `SERVICE_UNAVAILABLE` | The database cannot be reached, e.g. the Supabase project is paused ([runbook](../operations/runbook.md#supabase-project-paused)); or an optional service is not set up or failed: for AI readings, no `OPENAI_API_KEY`, OpenAI failing or its monthly limit reached, or an answer out of contract (D-115) | Yes | Keep queued changes; retry later. AI readings: keep the words as a search |
 
 ### Errors for one sync change
 The sync endpoint answers `200` with a result for each change (ADR-0007). A change that cannot be

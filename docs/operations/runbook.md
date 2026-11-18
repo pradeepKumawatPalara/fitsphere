@@ -438,6 +438,8 @@ Names only. Values live in the password manager and in `.env` files that are nev
 | `STORAGE_BUCKET` | API, `check:storage` | The private meal-photo bucket | No |
 | `STORAGE_S3_ACCESS_KEY_ID` | API, `check:storage` | The S3 access key's ID | No, but kept in `.env` |
 | `STORAGE_S3_SECRET_ACCESS_KEY` | API, `check:storage` | The S3 access key's secret: full access to every bucket, bypassing storage policies. Server only, never in the app | **Yes** |
+| `OPENAI_API_KEY` | API | AI meal reading (D-115, ADR-0010): the owner's OpenAI project key, limited to the Responses API; the project's monthly spending limit is the cap. Without it, `POST /v1/ai/meal-parse` answers 503. Never printed, logged or committed. `npm run ai:check -w @fitsphere/api` sends about 30 made-up meals to the real model and prints the foods, time and tokens: it spends from the limit, so only on the owner's word | **Yes** |
+| `OPENAI_MODEL` | API | The model the AI module asks; `gpt-6-luna` (ADR-0010) | No |
 | `OFF_CONTACT` | API | A contact email address for the owner, sent to Open Food Facts in the User-Agent (`FitSphere/1.0 (<address>)`), as Open Food Facts asks. Without it, barcode lookups answer "not available right now" and nothing is sent | No, but kept in `.env` and never committed |
 | `EXPO_PUBLIC_SUPABASE_URL` | App | Same value as `SUPABASE_URL` | No (built into the app) |
 | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | App | The publishable key | No (built into the app) |
