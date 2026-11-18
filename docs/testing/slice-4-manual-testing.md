@@ -46,7 +46,7 @@
 | The workout timer: Start workout, Pause and Resume, Mark done, today only (D-71; migrations 0025 and 0026 on `fitsphere-dev` first) | Implemented | S4-22 to S4-26 |
 | Home workout tracker ("N of T · M left", "target reached", Mon to Sun circles) | Implemented | S4-02, S4-03, S4-11 to S4-15 |
 | Offline workouts and sync | Implemented | S4-14 |
-| "Load older": older workouts from the server, view-only | Implemented | S4-16 |
+| Older dates by a row of choices (D-116; "Load older" until then): older workouts from the server, their card opening the date in By day | Implemented | S4-16 |
 | Workouts come back after log out and sign in | Implemented | S4-17 |
 | Weight, steps and sleep still save (regression) | Implemented (slice 2) | S4-18 |
 | Up to 30 exercises per workout | Implemented | S4-19 (optional) |
@@ -111,7 +111,7 @@ exercises per workout.
 | 1 | Bottom bar: **Training** | — | The header with "Today · <date>" |
 | 2 | Look at the top of the screen | — | The date strip, today selected; under it **By day** (chosen) and **All workouts**; no "No training plan yet." box (D-65) |
 | 3 | Look below them | — | The button **Log workout for today**, the label "Today, Fri 30 Oct" and "No workouts on Fri 30 Oct." |
-| 4 | Tap **All workouts**; look at the bottom | — | "No workouts logged yet." and a **Load older** button |
+| 4 | Tap **All workouts** | — | A row of choices, **Pick dates**, **Last 90 days** (chosen), 2026, 2025 and on; under it "No workouts in the last 90 days."; no **Load older** button (D-116) |
 | 5 | Look for anything else | — | No workout list or templates, no exercise library, no plan to follow (not in the MVP) |
 
 **Final expected result:** the Training tab shows the empty state with its exact texts.
@@ -407,21 +407,22 @@ lowers the count again.
 - [ ] Fail
 - Actual result / notes:
 
-### S4-16 · "Load older": offline warning, then online
-**Screen:** Training › Load older · **Covers:** REQ-TRN-004, ADR-0007 rules 1 and 6 (D-29), plan phone check 7 · **Start:** Training · **Data:** none
+### S4-16 · Older dates: offline warning, then online (D-116; was "Load older")
+**Screen:** Training › All workouts · **Covers:** REQ-TRN-004, ADR-0007 rules 1 and 6 (D-29, D-116), plan phone check 7 · **Start:** Training · **Data:** none
 
 | # | Tap / do | Enter or select | You should see |
 |---|---|---|---|
-| 1 | Turn **aeroplane mode on** (Wi-Fi and data off). On Training, tap **All workouts**, scroll to the bottom; tap **Load older** | — | "Loading older workouts needs an internet connection." above the button |
-| 2 | Turn **aeroplane mode off**; wait about 10 seconds; tap **Load older** | — | The message changes to "No workouts from <day 179 days ago> to <day 90 days ago>." For today = Fri 30 Oct 2026: "No workouts from Mon 4 May to Sat 1 Aug." |
-| 3 | Tap **Load older** again | — | The next 90 days back: for today = 30 Oct, "No workouts from Tue 3 Feb to Sun 3 May." |
-| 4 | *Only if older workouts exist on the account:* look at the rows added under the list | — | They show date and summary, never "waiting to sync", and tapping them opens nothing (view-only) |
+| 1 | Turn **aeroplane mode on** (Wi-Fi and data off). On Training, tap **All workouts**; in the row of choices tap **2025** | — | "Workouts older than 90 days need an internet connection." with **Try again** |
+| 2 | Turn **aeroplane mode off**; wait about 10 seconds; tap **Try again** | — | "No workouts from Wed 1 Jan 2025 to Wed 31 Dec 2025.", or that year's months with a line such as "3 workouts on 3 days · Wed 1 Jan 2025 – Wed 31 Dec 2025" |
+| 3 | Tap **Pick dates**; tap **From**, pick a day in May; tap **Show** | — | **Pick dates** chosen; that day to today in the count line, or "No workouts from … to …." |
+| 4 | *Only if older workouts exist on the account:* tap an older card (no pencil or bin, a chevron at its right) | — | **By day** opens on that date, its workouts with their pencil and bin |
+| 5 | Tap **All workouts**, then **Last 90 days** | — | The last 90 days again, from the phone |
 
-If step 2 says "Something went wrong. Try again later.", the API could not answer: check Account ›
+If step 2 says "Couldn't load these workouts.", the API could not answer: check Account ›
 Development "API: ok", then Troubleshooting.
 
-**Final expected result:** older workouts need the internet and say so offline; online, each tap
-reads 90 more days from the server and shows them view-only, or says there are none.
+**Final expected result:** older dates need the internet and say so offline; online, a year or picked
+dates are read from the server and listed, or say there are none; an older card opens its date in By day.
 
 **Result**
 - [ ] Pass
@@ -654,7 +655,7 @@ finished.
 | Symptom | Likely cause and what to do |
 |---|---|
 | "Sync: failed" on Account, and workouts keep "waiting to sync" while online | Migration 0007 (or 0006) is not applied on `fitsphere-dev` (P-01); since D-71, migrations 0025 and 0026 too; check `.dev-phone/api.log` |
-| "Load older" says "Something went wrong. Try again later." | The API couldn't be reached or refused the request. Check "API: ok" on Account › Development and `.dev-phone/api.log` |
+| A year or picked dates say "Couldn't load these workouts." | The API couldn't be reached or refused the request. Check "API: ok" on Account › Development and `.dev-phone/api.log` |
 | App stuck on "Reloading…" | Force-stop the app (Android Settings › Apps › FitSphere › Force stop) and open it again |
 | A row says "not saved" in red, and Training or Home shows "This workout wasn't saved: … Edit or discard it." | The server refused the change. Note the reason text and the steps; don't discard it before reporting |
 | A workout was created on the wrong day | Read the button before tapping it: **Log workout for <date>** logs to the date it names, the one selected on the strip, which stays where you left it until you tap **Back to today** or restart the app |
@@ -677,7 +678,7 @@ finished.
 | S4-13 | Workout on a past date | | |
 | S4-14 | Offline workout and sync | | |
 | S4-15 | Target reached | | |
-| S4-16 | Load older | | |
+| S4-16 | Older dates (D-116) | | |
 | S4-17 | Data back after log out and sign in | | |
 | S4-18 | Weight, steps, sleep (regression) | | |
 | S4-19 | 30 exercises (optional) | | |

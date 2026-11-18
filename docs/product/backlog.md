@@ -72,7 +72,7 @@ and "Owner's actions and checks at the end of the slice" in
 | S5-03 | The chart: 1W, 1M and 3M switch (D-34); with fewer than 2 weigh-ins in a range, the empty state; 6M and All online; in airplane mode, the named warning | 3 |
 | S5-04 | "Add first" (or "Add measurements") opens the sheet; the saved entry is listed; Edit changes it, and Home's card shows the same entry | 4 |
 | S5-05 | Change a target in Your targets: the Target row and the calories card follow | 5 |
-| S5-06 | "All weigh-ins" opens the weight history, with "Load older" | 6 |
+| S5-06 | "All weigh-ins" opens the weight history, with its date choices (D-116; "Load older" until then) | 6 |
 | S5-07 | The table and the chart fit the screen without scrolling sideways | 7 |
 
 | ID | Settings check | Plan check |
@@ -146,7 +146,7 @@ arise only once coaches exist (B-17 to B-21, D-20).
 | E-13 | A dish removed from the list (no longer approved) while a phone still has a meal or saved meal naming it waiting to sync, or one is re-logged later | REQ-LOG-007, D-28 | The change is refused (`VALIDATION_FAILED`) and shown as rejected; meals already on the server keep their snapshot. Keep a withdrawn dish on the list, hidden from search, if this happens in practice |
 | E-14 | The other workout fields Q-042 listed: RPE and rest (per-set reps and weights, and times, came with D-50) | REQ-TRN-003, Q-042 | Each set has its own reps, weight and time; cardio its time; no RPE or rest (D-50) |
 | E-15 | Changing a workout's date after it was started | REQ-TRN-003, REQ-LOG-002 | The date is fixed when the workout starts; to log another day, the user picks that date first, or deletes the workout and starts again (D-29) |
-| E-16 | Editing or deleting workouts older than the 90 days the phone holds, online | REQ-TRN-004, ADR-0007 rule 1 | Older workouts are read with "Load older" and only viewed (D-29) |
+| E-16 | Editing or deleting workouts older than the 90 days the phone holds, online | REQ-TRN-004, ADR-0007 rule 1 | Older workouts were read with "Load older" and only viewed (D-29). Since D-106 an older date opened in By day is read whole and its workouts open, change and delete; since D-116 an older card in All workouts opens its date there |
 | E-17 | Exercise names suggested from the user's past workouts (the exercise list came with D-50) | REQ-TRN-003 | Names are searched in FitSphere's exercise list, or typed (D-50) |
 | E-18 | Progress's week table and measurements for weeks older than the 90 days the phone holds, online (measurements done: D-114, by a year or picked dates; the week table remains) | REQ-PRG-005, REQ-PRG-006, ADR-0007 rule 1 | The table shows this week and the 11 before it, and the measurements of the last 90 days; older weights are in the chart (26W, All) and "All weigh-ins" (D-30). Needs read routes for meals, steps and measurements |
 | E-19 | Tapping a point on the weight chart to see its value and date | REQ-PRG-004 | The chart shows the highest and lowest values and the first and last dates, and a screen reader hears a summary of the range (D-30) |

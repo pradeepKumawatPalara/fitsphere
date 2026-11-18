@@ -726,7 +726,9 @@ searches. The setting lasts as long as the connection and is set at each start.
   with `GET /v1/users/{userId}/days` (its week, or the calendar's month) into the same tables as synced entries, and held
   while the app is open: the prune leaves it until the app starts again (no schema change). Since D-114,
   Progress's measurements of a year or picked dates are read with `GET /v1/users/{userId}/measurements` for
-  the days before the 90 and kept in memory only, never written to the phone.
+  the days before the 90 and kept in memory only, never written to the phone. Since D-116 the same holds
+  for Training's All workouts and an exercise's History (`GET /v1/users/{userId}/workouts`) and Weight
+  history (`…/weigh-ins`), every page; a day held whole (D-106) is read from the phone alone.
 - **Schema versions:** `PRAGMA user_version` counts the local migrations, applied one at a time,
   each in a transaction. Version 2 (Home and daily tracking slice) adds `steps`, `sleep`,
   `measurements` and `targets`, keeps everything already on the phone, and clears the sync cursor

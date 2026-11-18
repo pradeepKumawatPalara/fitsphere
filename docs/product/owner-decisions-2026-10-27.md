@@ -3799,6 +3799,52 @@ checksum), and the configuration template was left as it is.*
 - Doc changes: ADR-0010, ADR-0005's status, the ADR index; REQ-LOG-005, REQ-LOG-009, REQ-ACC-004;
   backlog E-28; risk R-017; CLAUDE.md.
 
+## D-116 Older dates by a row of choices, in place of "Load older": All workouts, Weight history, an exercise's History
+- Status: **Accepted** (owner, in chat, 2026-11-18: "fitsphere -> Training tab -> all workouts the Load
+  Older button is confused the end user. SO I want the New Ui desgin, plan to load the previous data like
+  Beyond the 3 months data. may be I want the custom date picker. or also check are we showing the load
+  older button some where else in the fitsphere. Do not start building first wait for my approval"; of the
+  canvas's A (a row of choices, as D-114), B (every month listed) and C (older months loading at the end of
+  the list), version 124: "1 lock it A", "2 yes it should behave same it is right now. tapping should work",
+  "3 Yes apply the same changes"; locked in version 125). Plan: `docs/plans/older-history.md`. Built on
+  branch `feat/older-history`.
+- Why: "Load older" sat under a long list, did not say how far it read (90 days a tap) or which dates were
+  shown, took several taps to reach last year, left the user guessing after an empty stretch, read at most
+  500 workouts a tap, and brought greyed cards that did nothing. It was on three screens: Training › All
+  workouts, Progress › All weigh-ins (Weight history) and an exercise's History.
+- Answer (REQ-TRN-004, REQ-TRN-008, REQ-PRG-001; with D-29, D-30, D-82, D-106, D-114):
+  - The three screens lose "Load older" and get Progress's measurements' row of choices (D-114): **Pick
+    dates** (From and To, each from the calendar, 1 January 2000 to today, then Show), **Last 90 days**
+    (chosen at first, the phone's, ADR-0007 rule 1), then each year from this one back to 2000.
+  - A count line under it names what is shown: "21 workouts on 19 days · Fri 31 Jul – Wed 28 Oct", "18
+    weigh-ins · …", "6 workouts with this exercise · …"; a date of another year shows its year.
+  - Days older than the phone's 90 are read online with the existing `GET /v1/users/{userId}/workouts` and
+    `…/weigh-ins`, every page (500 a page, at most 20), kept in memory only (rule 6); an entry on the phone
+    wins over the server's, and a day the phone has read whole (D-106) is the phone's alone, so a workout
+    deleted there leaves the list. Loading: "Loading workouts…"; offline: "Workouts older than 90 days need
+    an internet connection." with Try again; a server error: "Couldn't load these workouts." with Try
+    again; none: "No workouts from <from> to <to>." (weigh-ins and an exercise's alike).
+  - **All workouts:** the months of the dates chosen, the newest open, as before (D-65). A card read from
+    the server keeps its look (no pencil or bin) and now opens: a tap, or its chevron, shows that date in
+    By day, which reads it whole (D-106), where its workouts open, change and delete as any day's (answer
+    2, read as: tapping works, the card otherwise as now).
+  - **An exercise's History:** the row under the tabs; the three bests are those of the dates shown; a
+    card on the phone opens its workout, one read from the server is shown only (as before). Progress
+    counts the last 90 days and the dates chosen in History: "Your last 90 days, and the dates picked in
+    History."
+- MVP defaults: the years go back to 2000 (as D-114) even where empty; the choice stays while the screen
+  is open (Training's while the app is open) and starts on Last 90 days; with none in the last 90 days, "No
+  workouts in the last 90 days." (was "No workouts logged yet."), "No weigh-ins in the last 90 days." and
+  "No workouts with this exercise in the last 90 days."; the online part is read once per dates chosen,
+  again on Try again; screen readers hear each choice as a radio button and an older card as a button
+  that "Opens this day in By day". The shared pieces: `dateRange.ts`, `components/DateChoices.tsx`,
+  `components/DatesSheet.tsx` (was Progress's own).
+- No server change, no migration, no phone schema change, no new build, no Cloud Run deploy (the routes
+  read are the beta's already).
+- Doc changes: REQ-TRN-004, REQ-TRN-008, REQ-PRG-001; constraints' MVP defaults; the data model (the
+  phone's older reads); the redesign's 4.1, 4.4 and 5.2; CLAUDE.md. Canvas boards `OlderWorkouts*` and
+  `OlderElsewhere*`, A locked (version 125).
+
 ---
 
 ---
