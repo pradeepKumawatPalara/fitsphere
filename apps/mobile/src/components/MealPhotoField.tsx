@@ -47,7 +47,7 @@ export function MealPhotoField({
   /** The camera icon beside Speak your meal was tapped: "Add a photo" is open (the owner's redesign, 2026-11-18). */
   chooser: boolean;
   onChooserClose(): void;
-  /** A photo was taken or chosen: its shrunk copy, for AI to read the foods in it (D-118). */
+  /** A photo was taken or chosen: its shrunk copy, for AI to read the foods in it (D-118). When given, the photo is not attached to the meal. */
   onPicked?(imageBase64: string): void;
 }) {
   const styles = useStyles();
@@ -68,8 +68,9 @@ export function MealPhotoField({
     const outcome = await pickPhoto(source).catch(() => ({ kind: 'failed' }) as const);
     setBusy(false);
     if (outcome.kind === 'picked') {
-      onChange({ kind: 'photo', mediaId: newId(), files: outcome.files });
-      onPicked?.(outcome.files.full);
+      // With a reader (Log meal), the picture is only read by AI and not attached (the owner, 2026-11-19).
+      if (onPicked) onPicked(outcome.files.full);
+      else onChange({ kind: 'photo', mediaId: newId(), files: outcome.files });
     }
     else if (outcome.kind === 'noPermission') setProblem('FitSphere needs the camera to take a photo. You can choose one from the gallery instead.');
     else if (outcome.kind === 'failed') setProblem('This photo could not be used. Try another one.');
@@ -108,7 +109,7 @@ export function MealPhotoField({
       ) : null}
       {chooser ? (
         <Sheet title="Add a photo" onClose={onChooserClose} actions={<TextButton title="Cancel" outlined wide onPress={onChooserClose} />}>
-          <Text style={styles.body}>Attach a photo to this meal and AI finds the foods in it, or attach an image link.</Text>
+          <Text style={styles.body}>AI finds the foods in a photo of your meal, or you can attach an image link.</Text>
           <ChooserRow
             icon={Camera}
             title="Take photo"

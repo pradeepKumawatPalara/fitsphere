@@ -91,7 +91,9 @@ describe('D-58 Log meal in steps (the owner’s "3.5 Log meal in steps", locked 
 
   it('says what to tap at the step to do now: the meal, then a way to add food, then Save; no frame', async () => {
     await render();
-    expect(await screen.findByText('Start here: tap your meal')).toBeOnTheScreen();
+    // No heading above the meal tiles at the start (the owner, 2026-11-19).
+    expect(await screen.findByRole('radio', { name: 'Breakfast' })).toBeOnTheScreen();
+    expect(cue('Start here: tap your meal')).toBeNull();
     // The owner removed the step's caramel frame (2026-11-06).
     expect(screen.getByTestId('step-1')).not.toHaveStyle({ borderWidth: 1.5 });
     expect(screen.getByTestId('step-1')).not.toHaveStyle({ backgroundColor: LIGHT_COLORS.accentTint });

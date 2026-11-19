@@ -98,21 +98,16 @@ describe('REQ-LOG-006 a meal photo in Log meal', () => {
     expect(screen.queryByRole('button', { name: 'Take photo' })).toBeNull();
   });
 
-  it('a photo taken is shown, saved with the meal on the phone, and uploaded after the sync', async () => {
+  it('a photo taken is handed to AI to read and is not attached: no photo shows under the meal', async () => {
     pick.mockResolvedValue({ kind: 'picked', files: FILES });
-    const { db, server } = await logMealWithFood();
+    await logMealWithFood();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Take photo' }));
     expect(pick).toHaveBeenCalledWith('camera');
-    expect(await screen.findByLabelText('Meal photo')).toHaveProp('source', { uri: `data:image/jpeg;base64,${FILES.thumbnail}` });
-    await fireEvent.press(screen.getByRole('button', { name: 'Save lunch' }));
-
-    const meal = await savedMeal(db);
-    expect(meal?.photo).toEqual({ kind: 'photo', mediaId: expect.any(String) });
-    const mediaId = (meal!.photo as { mediaId: string }).mediaId;
-    await waitFor(() => expect(server.state.files.has(`${mediaId}.jpg`)).toBe(true));
-    expect(server.state.files.has(`${mediaId}-thumb.jpg`)).toBe(true);
+    // Search foods opens to read it (consent first); the picture is not attached to the meal.
+    expect(await screen.findByText('Read your photo with AI?')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Meal photo')).toBeNull();
   });
 
   it('says what to do when the camera is not allowed, or the photo cannot be used', async () => {

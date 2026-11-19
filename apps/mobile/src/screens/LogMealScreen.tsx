@@ -852,7 +852,8 @@ type StepState = 'now' | 'later';
 
 /** What to tap, with the step to do now (D-58; D-68). */
 export const STEP_CUES = {
-  meal: 'Start here: tap your meal',
+  /** No heading at the start (the owner, 2026-11-19): the meal tiles speak for themselves. */
+  meal: '',
   mealToSave: 'Choose the meal to save',
   another: 'Next: tap another meal',
   food: 'Next: tap how to add your food',
@@ -886,7 +887,7 @@ function Step({
   const styles = useStyles();
   const { colors } = useTheme();
   const now = state === 'now';
-  const cueLine = now ? (
+  const cueLine = now && cue !== '' ? (
     <View accessibilityLiveRegion="polite" style={styles.cue}>
       {cueBelow ? <ChevronUp size={18} strokeWidth={2.25} color={colors.accent} /> : <ArrowDown size={18} strokeWidth={2.25} color={colors.accent} />}
       <Text style={styles.cueText}>{cue}</Text>
