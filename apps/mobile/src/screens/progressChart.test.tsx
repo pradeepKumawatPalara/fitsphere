@@ -51,7 +51,8 @@ describe('REQ-PRG-004 weight trend chart', () => {
     expect(await screen.findByLabelText('4 weigh-ins, 80.0 kg on Thu 1 Oct to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
     expect(range('1 month')).toBeSelected();
     for (const name of ['1 week', '3 months', '6 months', 'All']) expect(range(name)).not.toBeSelected();
-    expect(screen.getByText('80.0 kg')).toBeOnTheScreen();
+    // A sparkline: no scale, no dates; a weigh-in shows when it is touched.
+    expect(screen.queryByText('80.0 kg')).toBeNull();
   });
 
   it('switches between the ranges the phone holds without asking the server', async () => {

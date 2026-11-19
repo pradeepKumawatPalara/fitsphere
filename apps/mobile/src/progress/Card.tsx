@@ -29,7 +29,7 @@ export function Card({ title, action, children }: { title: string; /** A control
 // The redesign's 5.1 (locked by the owner, 2026-11-03), as Home's panels (2.3): square corners, the
 // title in muted condensed capitals, 12 between the parts of a card.
 const useStyles = themedStyles((c) => ({
-  card: { padding: 16, borderRadius: 4, gap: 12, backgroundColor: c.surface },
+  card: { padding: 12, borderRadius: 4, gap: 10, backgroundColor: c.surface },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   title: { ...TYPE.label, color: c.inkMuted },
 }));

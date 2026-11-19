@@ -35,11 +35,13 @@ it('REQ-ACC-003 shows every Progress weight in the body-weight unit setting', as
     await weighInsAndTarget(db, { '2026-09-30': 80_000, '2026-10-28': 78_800 });
   });
 
-  // On the card, and as the lowest value on the chart's scale (1M reaches back to 28 Sep, D-34).
+  // The tile's large figure (the sparkline has no scale); 1M reaches back to 28 Sep (D-34).
   expect(await screen.findByText('Weight over 4 weeks · lb')).toBeOnTheScreen();
-  expect(screen.getAllByText('173.7 lb')).toHaveLength(1);
+  expect(screen.getByLabelText('Latest weigh-in · Wed 28 Oct: 173.7 lb')).toBeOnTheScreen();
   expect(screen.getByLabelText('Down 2.6 lb since Wed 30 Sep')).toBeOnTheScreen();
   expect(screen.getByLabelText('Down 0.7 lb a week')).toBeOnTheScreen();
+  // The week table is folded under "Show table" in the weeks tile.
+  await fireEvent.press(screen.getByRole('button', { name: 'Show table' }));
   expect(screen.getByText('Weight (lb)', { includeHiddenElements: true })).toBeOnTheScreen();
   expect(screen.getByLabelText('Target: weight 165.3 lb, no calories, no protein, no steps')).toBeOnTheScreen();
   expect(screen.getByLabelText('This week: weight 173.7 lb, no calories, no protein, no steps')).toBeOnTheScreen();
@@ -64,6 +66,7 @@ it('REQ-ACC-003 changing the body-weight unit while Progress is open converts ev
   expect(screen.getByLabelText('Down 0.3 kg a week')).toBeOnTheScreen();
   // 1M, the range shown first, reaches back to 28 Sep (D-34).
   expect(screen.getByLabelText('3 weigh-ins, 80.0 kg on Wed 30 Sep to 78.8 kg on Wed 28 Oct')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: 'Show table' }));
   expect(screen.getByText('Weight (kg)', { includeHiddenElements: true })).toBeOnTheScreen();
   expect(screen.getByLabelText('Target: weight 75.0 kg, no calories, no protein, no steps')).toBeOnTheScreen();
   expect(screen.getByLabelText('This week: weight 78.8 kg, no calories, no protein, no steps')).toBeOnTheScreen();
@@ -75,8 +78,8 @@ it('REQ-ACC-003 changing the body-weight unit while Progress is open converts ev
   // The card, the chart, the table's heading, Target row and weeks: all in lb at once.
   expect(await screen.findByLabelText('Down 2.6 lb since Wed 30 Sep')).toBeOnTheScreen();
   expect(screen.getByLabelText('Down 0.7 lb a week')).toBeOnTheScreen();
-  // On the card, and as the lowest value on the chart's scale.
-  expect(screen.getAllByText('173.7 lb')).toHaveLength(1);
+  // The tile's large figure.
+  expect(screen.getByLabelText('Latest weigh-in · Wed 28 Oct: 173.7 lb')).toBeOnTheScreen();
   expect(screen.getByLabelText('3 weigh-ins, 176.4 lb on Wed 30 Sep to 173.7 lb on Wed 28 Oct')).toBeOnTheScreen();
   expect(screen.getByText('Weight (lb)', { includeHiddenElements: true })).toBeOnTheScreen();
   expect(screen.getByLabelText('Target: weight 165.3 lb, no calories, no protein, no steps')).toBeOnTheScreen();

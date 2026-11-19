@@ -85,10 +85,24 @@ beforeEach(() => {
 });
 
 describe('REQ-LOG-006 a meal photo in Log meal', () => {
+  it('the camera icon beside Speak your meal opens Add a photo with its three ways; the Photo (optional) section is gone (the owner, 2026-11-18)', async () => {
+    await logMealWithFood();
+
+    expect(screen.queryByText('Photo (optional)')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Take photo' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
+    expect(screen.getByRole('button', { name: 'Take photo' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Choose from gallery' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Add an image link instead' })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('button', { name: 'Take photo' })).toBeNull();
+  });
+
   it('a photo taken is shown, saved with the meal on the phone, and uploaded after the sync', async () => {
     pick.mockResolvedValue({ kind: 'picked', files: FILES });
     const { db, server } = await logMealWithFood();
 
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Take photo' }));
     expect(pick).toHaveBeenCalledWith('camera');
     expect(await screen.findByLabelText('Meal photo')).toHaveProp('source', { uri: `data:image/jpeg;base64,${FILES.thumbnail}` });
@@ -105,10 +119,12 @@ describe('REQ-LOG-006 a meal photo in Log meal', () => {
     await logMealWithFood();
 
     pick.mockResolvedValue({ kind: 'noPermission' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Take photo' }));
     expect(await screen.findByText(/FitSphere needs the camera to take a photo/)).toBeOnTheScreen();
 
     pick.mockResolvedValue({ kind: 'failed' });
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Choose from gallery' }));
     expect(await screen.findByText('This photo could not be used. Try another one.')).toBeOnTheScreen();
     expect(pick).toHaveBeenLastCalledWith('library');
@@ -137,6 +153,7 @@ describe('REQ-LOG-010 a public image link instead of a photo', () => {
   it('accepts https links only, and saves one only after the privacy warning is confirmed', async () => {
     const { db } = await logMealWithFood();
 
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Add an image link instead' }));
     await fireEvent.changeText(screen.getByLabelText('Image link'), 'http://images.example.com/meal.jpg');
     expect(screen.getByText('Enter a link that starts with https://')).toBeOnTheScreen();
@@ -148,6 +165,7 @@ describe('REQ-LOG-010 a public image link instead of a photo', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByText(/Image link:/)).toBeNull();
 
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Add an image link instead' }));
     await fireEvent.changeText(screen.getByLabelText('Image link'), 'https://images.example.com/meal.jpg');
     await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));

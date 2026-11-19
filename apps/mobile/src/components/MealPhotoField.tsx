@@ -1,5 +1,5 @@
 import { isPublicLink } from '@fitsphere/shared';
-import { Image as ImageIcon, Link, TriangleAlert, WifiOff, X } from 'lucide-react-native';
+import { Camera, Image as ImageIcon, Link, TriangleAlert, WifiOff, X, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 import type { PhotoFiles } from '../local/photos';
@@ -9,6 +9,7 @@ import { pickPhoto } from '../photos/takePhoto';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { ActionsSheet } from './MealSheets';
+import { Sheet } from './Sheet';
 import { Banner, Field, Problem, Text, TextButton } from './ui';
 import { useFieldChecks } from '../fieldChecks';
 
@@ -35,11 +36,16 @@ export function MealPhotoField({
   value,
   onChange,
   newId,
+  chooser,
+  onChooserClose,
 }: {
   mealId: string;
   value: PhotoDraft;
   onChange(draft: PhotoDraft): void;
   newId(): string;
+  /** The camera icon beside Speak your meal was tapped: "Add a photo" is open (the owner's redesign, 2026-11-18). */
+  chooser: boolean;
+  onChooserClose(): void;
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -67,25 +73,7 @@ export function MealPhotoField({
   const offline = loaded.kind === 'offline';
   return (
     <View style={styles.field}>
-      <Text accessibilityRole="header" style={styles.heading}>
-        Photo (optional)
-      </Text>
-      {value === null ? (
-        <>
-          <View style={styles.pickRow}>
-            <PickButton title="Take photo" disabled={busy} onPress={() => void pick('camera')} />
-            <PickButton title="Choose from gallery" disabled={busy} onPress={() => void pick('library')} />
-          </View>
-          <TextButton
-            title="Add an image link instead"
-            disabled={busy}
-            onPress={() => {
-              setLinkText('');
-              setLinkStep('enter');
-            }}
-          />
-        </>
-      ) : (
+      {value !== null ? (
         <View style={styles.attached}>
           {value.kind === 'photo' && thumbnail ? (
             <Image accessibilityLabel="Meal photo" source={{ uri: jpegDataUri(thumbnail) }} style={styles.thumbnail} />
@@ -111,7 +99,46 @@ export function MealPhotoField({
             <TextButton title={value.kind === 'link' ? 'Remove link' : 'Remove photo'} icon={X} onPress={() => onChange(null)} />
           </View>
         </View>
-      )}
+      ) : null}
+      {chooser ? (
+        <Sheet title="Add a photo" onClose={onChooserClose} actions={<TextButton title="Cancel" outlined wide onPress={onChooserClose} />}>
+          <Text style={styles.body}>Optional. Attach a photo or an image link to this meal.</Text>
+          <ChooserRow
+            icon={Camera}
+            title="Take photo"
+            tint={colors.accentTint}
+            ink={colors.accent}
+            disabled={busy}
+            onPress={() => {
+              onChooserClose();
+              void pick('camera');
+            }}
+          />
+          <ChooserRow
+            icon={ImageIcon}
+            title="Choose from gallery"
+            tint={colors.fatTint}
+            ink={colors.fat}
+            disabled={busy}
+            onPress={() => {
+              onChooserClose();
+              void pick('library');
+            }}
+          />
+          <ChooserRow
+            icon={Link}
+            title="Add an image link instead"
+            tint={colors.warningTint}
+            ink={colors.warning}
+            disabled={busy}
+            onPress={() => {
+              onChooserClose();
+              setLinkText('');
+              setLinkStep('enter');
+            }}
+          />
+        </Sheet>
+      ) : null}
       {busy ? (
         <View style={styles.busy}>
           <ActivityIndicator color={colors.accent} />
@@ -154,8 +181,22 @@ export function MealPhotoField({
   );
 }
 
-/** Taking or choosing a photo: half the row each, outlined, as Log meal's other choices (3.5). */
-function PickButton({ title, disabled, onPress }: { title: string; disabled: boolean; onPress(): void }) {
+/** One way to add a photo, in "Add a photo": its icon on its own tint, its name beside it. */
+function ChooserRow({
+  icon: Icon,
+  title,
+  tint,
+  ink,
+  disabled,
+  onPress,
+}: {
+  icon: LucideIcon;
+  title: string;
+  tint: string;
+  ink: string;
+  disabled: boolean;
+  onPress(): void;
+}) {
   const styles = useStyles();
   return (
     <Pressable
@@ -166,29 +207,33 @@ function PickButton({ title, disabled, onPress }: { title: string; disabled: boo
       onPress={onPress}
       style={({ pressed }) => [styles.pick, pressed && styles.pressed, disabled && styles.disabled]}
     >
+      <View style={[styles.pickIcon, { backgroundColor: tint }]}>
+        <Icon size={24} color={ink} />
+      </View>
       <Text style={styles.pickText}>{title}</Text>
     </Pressable>
   );
 }
 
-// The redesign's 3.9 (locked by the owner, 2026-11-03): headed as Log meal's other parts; the photo,
+// The redesign's 3.9 (locked by the owner, 2026-11-03), now opened by the camera icon beside Speak your meal
+// (the owner, 2026-11-18): no heading of its own; the photo,
 // or a tile for a photo still loading or a link, with Remove beside it on a raised card; the link's
 // warning as a caramel banner.
 const useStyles = themedStyles((c) => ({
   field: { gap: 10 },
-  heading: { ...TYPE.label, color: c.inkMuted },
-  pickRow: { flexDirection: 'row', gap: 8 },
   pick: {
-    flex: 1,
-    minHeight: 44,
+    minHeight: 60,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 12,
     paddingHorizontal: 8,
     borderRadius: 4,
     borderWidth: 1.5,
     borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
   },
-  pickText: { ...TYPE.buttonSecondary, fontSize: 15, letterSpacing: 1, textAlign: 'center' },
+  pickIcon: { width: 44, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
+  pickText: { ...TYPE.buttonSecondary, flex: 1, fontSize: 16, letterSpacing: 1 },
   pressed: { opacity: 0.6 },
   disabled: { opacity: 0.4 },
   attached: {

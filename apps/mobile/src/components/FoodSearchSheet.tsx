@@ -34,7 +34,7 @@ import { FoodDetail, type FoodResult } from './FoodDetail';
 import { BRAND_LABEL_CREDIT, DISH_ESTIMATES_CREDIT, HOME_FOODS_CREDIT } from './foodSources';
 import { FullScreen } from './FullScreen';
 import { OwnFoodSheet } from './OwnFoodSheet';
-import { useVoiceMeal } from './VoiceMeal';
+import { useVoiceMeal, type VoiceBegin } from './VoiceMeal';
 import { Sheet } from './Sheet';
 import { IconButton, Message, Text, TextButton, TextInput } from './ui';
 
@@ -582,8 +582,11 @@ export function FoodSearchSheet({
   onAdd,
   onOwnFood,
   onClose,
+  begin,
 }: {
   today: IstDay;
+  /** Opened from Log meal's box: already listening, or reading the words typed there. */
+  begin?: VoiceBegin | null;
   /** The foods added; `voice` when they came from what was said (D-115), with those whose amount was assumed. */
   onAdd(items: MealItem[], voice?: { assumed: MealItem[] }): void;
   /** Enter a food the list doesn't have as your own, named as said (D-115). */
@@ -669,6 +672,7 @@ export function FoodSearchSheet({
 
   // D-115: "Speak your meal", where the phone can recognise speech on the device.
   const voice = useVoiceMeal({
+    ...(begin ? { begin } : {}),
     setQuery: changeQuery,
     search: searchFoodList,
     onAdd(items, assumed, stay) {

@@ -64,7 +64,9 @@ describe('REQ-PRG-001 weight over 4 weeks', () => {
     // On the card, and as the lowest value on the chart's scale.
     // The card's weight has no unit: it is in the heading ("Weight over 4 weeks · kg"); the week table's has it.
     expect(screen.getByText('Weight over 4 weeks · kg')).toBeOnTheScreen();
-    expect(screen.getAllByText('78.8 kg')).toHaveLength(1);
+    // The sparkline has no scale (the owner's B, 2026-11-18): the value is the tile's large figure.
+    expect(screen.getByLabelText('Latest weigh-in · Wed 28 Oct: 78.8 kg')).toBeOnTheScreen();
+    expect(screen.queryByText('78.8 kg')).toBeNull();
     expect(screen.getByLabelText('Down 1.2 kg since Wed 30 Sep')).toBeOnTheScreen();
     expect(screen.getByLabelText('Down 0.3 kg a week')).toBeOnTheScreen();
   });
@@ -101,18 +103,19 @@ describe('REQ-PRG-002 and REQ-PRG-003 the last 4 weeks of eating', () => {
       await applyServerEntries(db, 'target', [{ kind: 'calories', day: '2026-10-20', value: 2000, setAt: AT, setByUserId: null }]);
     });
 
-    expect(await screen.findByText('1,733 kcal a day')).toBeOnTheScreen();
-    expect(screen.getByText('Target 2,000 kcal a day')).toBeOnTheScreen();
-    expect(screen.getByText('Meals logged: 3 of 28 days')).toBeOnTheScreen();
+    // Two rings (the owner's B, 2026-11-18), each read out in full.
+    expect(await screen.findByLabelText('Average 1,733 kcal a day, target 2,000')).toBeOnTheScreen();
+    expect(screen.getByText('kcal a day · target 2,000')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Meals logged: 3 of 28 days')).toBeOnTheScreen();
   });
 
   it('with nothing logged and no target, says so and offers "Set a target"; a new account counts from today', async () => {
     await renderInApp(<ProgressScreen />);
 
-    expect(await screen.findByText('No meals logged in the last 4 weeks.')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('No meals logged in the last 4 weeks.')).toBeOnTheScreen();
     expect(screen.getByText('No calorie target')).toBeOnTheScreen();
     // The fake account was created today (GET /v1/me).
-    expect(await screen.findByText('Meals logged: 0 of 1 day')).toBeOnTheScreen();
+    expect(await screen.findByLabelText('Meals logged: 0 of 1 day')).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: 'Set a target' }));
     expect(mockRouter.push).toHaveBeenCalledWith('/targets');
   });
@@ -135,6 +138,8 @@ describe('REQ-PRG-005 week by week', () => {
       ]);
     });
 
+    // The table is folded under "Show table" in the weeks tile (the owner's B, 2026-11-18).
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show table' }));
     expect(await screen.findByLabelText('Target: weight 75.0 kg, 2,000 kcal, 120 g protein, no steps')).toBeOnTheScreen();
     expect(screen.getByLabelText('This week: weight 80.3 kg, 2,000 kcal, 95 g protein, 9,000 steps')).toBeOnTheScreen();
     expect(screen.getByLabelText('19 Oct: weight 81.0 kg, no calories, no protein, no steps')).toBeOnTheScreen();
@@ -143,9 +148,30 @@ describe('REQ-PRG-005 week by week', () => {
     expect(screen.getByText('Weight (kg)', { includeHiddenElements: true })).toBeOnTheScreen();
   });
 
+  it('Pick dates offers start and end dates, or start and end years; the years the wrong way round cannot be shown', async () => {
+    await renderInApp(<ProgressScreen />);
+
+    await fireEvent.press(await screen.findByRole('radio', { name: 'Pick dates, weeks' }));
+    // Start date to end date first: From and To open the calendar.
+    expect(screen.getByRole('tab', { name: 'Start date to end date' })).toBeSelected();
+    expect(screen.getByRole('button', { name: /^From: .* Change$/ })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Start year to end year' }));
+    expect(screen.queryByRole('button', { name: /^From: / })).toBeNull();
+    // Both years are this year at first; a To year before the From year says so and greys Show.
+    await fireEvent.press(screen.getByRole('radio', { name: 'To year 2025' }));
+    expect(screen.getByText('To year can’t be before From year.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Show these weeks' })).toBeDisabled();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'From year 2024' }));
+    expect(screen.getByText(/^2 years · Mon 1 Jan 2024 – Wed 31 Dec 2025\./)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Show these weeks' })).toBeEnabled();
+  });
+
   it('starts at the week the account was created', async () => {
     await renderInApp(<ProgressScreen />);
 
+    await fireEvent.press(await screen.findByRole('button', { name: 'Show table' }));
     expect(await screen.findByLabelText('This week: no weight, no calories, no protein, no steps')).toBeOnTheScreen();
     expect(screen.getByLabelText('Target: no weight, no calories, no protein, no steps')).toBeOnTheScreen();
     await waitFor(() => expect(screen.queryByLabelText(/^19 Oct:/)).toBeNull());
@@ -270,12 +296,18 @@ describe('D-114 measurements by dates', () => {
     });
   }
 
+  /** The measurements' row of choices, not the weeks tile's. */
+  function measurementChoices() {
+    return screen.queryAllByRole('radio').filter((choice) => !String(choice.props.accessibilityLabel).endsWith(', weeks'));
+  }
+
   it('unfolded, shows the last 90 days with a count line; the choices are Pick dates, Last 90 days and each year back to 2000', async () => {
     const { server } = await renderWithOlder();
 
     await fireEvent.press(await screen.findByRole('button', { name: 'Show all measurements (1)' }));
 
-    expect(screen.getAllByRole('radio').map((choice) => choice.props.accessibilityLabel).slice(0, 4)).toEqual(['Pick dates', 'Last 90 days', '2026', '2025']);
+    // The weeks tile has its own row of choices, named "…, weeks".
+    expect(measurementChoices().map((choice) => choice.props.accessibilityLabel).slice(0, 4)).toEqual(['Pick dates', 'Last 90 days', '2026', '2025']);
     expect(screen.getByRole('radio', { name: '2000' })).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
     expect(screen.getByText('1 measurement · Fri 31 Jul – Wed 28 Oct')).toBeOnTheScreen();
@@ -299,7 +331,7 @@ describe('D-114 measurements by dates', () => {
     expect(server.state.measurementQueries).toEqual([{ from: '2024-01-01', to: '2024-12-31', cursor: null }]);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Show fewer' }));
-    expect(screen.queryByRole('radio')).toBeNull();
+    expect(measurementChoices()).toHaveLength(0);
     await fireEvent.press(screen.getByRole('button', { name: 'Show all measurements (1)' }));
     expect(screen.getByRole('radio', { name: 'Last 90 days' })).toBeChecked();
   });

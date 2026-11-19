@@ -50,7 +50,8 @@ function AppStack() {
       <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
       <Stack.Screen name="target-history" options={{ title: 'Target history' }} />
       <Stack.Screen name="profile" options={{ title: 'Profile' }} />
-      <Stack.Screen name="log-meal" options={{ title: 'Log meal' }} />
+      {/* Log meal draws its own header row: the title at the left, the date at the right (the owner, 2026-11-18). */}
+      <Stack.Screen name="log-meal" options={{ title: 'Log meal', headerShown: false }} />
       {/* A saved meal (D-69): made new from its name, or opened to change. */}
       <Stack.Screen
         name="saved-meal"

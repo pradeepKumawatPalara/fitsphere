@@ -13,13 +13,15 @@ type Props = {
   unit: BodyWeightUnit;
   /** This week's Monday. */
   thisWeek: IstDay;
+  /** No card around it: it sits inside the weeks tile. */
+  bare?: boolean;
 };
 
 type Cells = { weight: string; kcal: string; protein: string; steps: string };
 
 // The week-by-week table (REQ-PRG-005): a Target row with the user's own targets (D-20), then each
 // week's averages over the days with entries (Q-043). No "Pre" row or week details (B-02).
-export function WeekTable({ rows, targets, unit, thisWeek }: Props) {
+export function WeekTable({ rows, targets, unit, thisWeek, bare = false }: Props) {
   const styles = useStyles();
   const target: Cells = {
     weight: weightCell(targets.body_weight ?? null, unit),
@@ -27,8 +29,8 @@ export function WeekTable({ rows, targets, unit, thisWeek }: Props) {
     protein: wholeCell(targets.protein ?? null),
     steps: wholeCell(targets.steps ?? null),
   };
-  return (
-    <Card title="Week by week">
+  const content = (
+    <>
       <View style={[styles.row, styles.headingRow]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {['Week', `Weight (${unit})`, 'kcal', 'Protein (g)', 'Steps'].map((heading, index) => (
           <Text key={heading} style={[styles.heading, index === 0 ? styles.labelColumn : styles.valueColumn]}>
@@ -51,8 +53,10 @@ export function WeekTable({ rows, targets, unit, thisWeek }: Props) {
         />
       ))}
       <Text style={styles.small}>Averages over the days with entries.</Text>
-    </Card>
+    </>
   );
+  // Inside the weeks tile (the tile has its own title and padding), or as a card of its own.
+  return bare ? <View style={styles.bare}>{content}</View> : <Card title="Week by week">{content}</Card>;
 }
 
 function Row({ label, cells, unit, highlight = false }: { label: string; cells: Cells; unit: BodyWeightUnit; highlight?: boolean }) {
@@ -93,6 +97,7 @@ function rowDescription(cells: Cells, unit: BodyWeightUnit): string {
 // logged) fits a value column at 360dp. The redesign's 5.1 (locked by the owner, 2026-11-03): the
 // headings in small muted capitals, the Target row on a caramel tint, each week ruled.
 const useStyles = themedStyles((c) => ({
+  bare: { gap: 12 },
   row: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4 },
   headingRow: { minHeight: 0, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: c.border },
   ruled: { borderBottomWidth: 1, borderBottomColor: c.border },

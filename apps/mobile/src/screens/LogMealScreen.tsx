@@ -16,30 +16,36 @@ import { useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import {
   ArrowDown,
   Bookmark,
-  Calendar,
+  Camera,
   Check,
   ChevronDown,
   ChevronUp,
   CircleAlert,
+  ChevronLeft,
   CircleCheck,
+  Mic,
   PenLine,
   ScanBarcode,
   Search,
+  Sparkles,
   Utensils,
   type LucideIcon,
 } from 'lucide-react-native';
 import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { BarcodeSheet } from '../components/BarcodeSheet';
 import { CalendarSheet } from '../components/CalendarSheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealFoodRows, useMealFoods } from '../components/MealFoods';
+import { MealTips } from '../components/MealTips';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
 import { OwnFoodSheet } from '../components/OwnFoodSheet';
 import { Sheet as BottomSheet } from '../components/Sheet';
-import { Text, TextButton } from '../components/ui';
+import type { VoiceBegin } from '../components/VoiceMeal';
+import { IconButton, Text, TextButton, TextInput } from '../components/ui';
+import { speechEngine } from '../speech';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getEntry, listMealsOfDay, listSavedMeals, mealCounts, type LocalMeal, type LocalSavedMeal } from '../local/store';
@@ -105,6 +111,13 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [ownName, setOwnName] = useState('');
   const [busy, setBusy] = useState(false);
+  // The AI box (the owner's redesign, 2026-11-18): the words typed there, and how Search foods opens
+  // from it: already listening ("Speak your meal"), or reading those words.
+  const [said, setSaid] = useState('');
+  const [begin, setBegin] = useState<VoiceBegin | null>(null);
+  const [canSpeak] = useState(() => speechEngine().canListen());
+  // "Add a photo", opened by the camera icon beside Speak your meal.
+  const [photoChooser, setPhotoChooser] = useState(false);
 
   // Logging (D-68): the date's meals as saved (null while they load); the changes of the meals not on
   // show (the one on show is `items` and `photo`); what was last saved, said until the next change.
@@ -399,24 +412,32 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   // The meal the photo is for: the one edited, the newest of the meal on show, or a new one.
   const photoMealId = editing || mealType === null ? id : (newestOf(meals, mealType)?.id ?? newIdFor(mealType));
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {editing ? (
-          <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
-            {formatDay(day)}
+    // The AI box is a text field on this screen: it stays above the keyboard (REQ-ACC-001).
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: 8 + (insets?.top ?? 0) }]} keyboardShouldPersistTaps="handled">
+        <View style={styles.headerRow}>
+          <IconButton label="Back" onPress={() => router.back()}>
+            <ChevronLeft size={24} strokeWidth={2.25} color={colors.accent} />
+          </IconButton>
+          <Text accessibilityRole="header" numberOfLines={1} style={styles.headerTitle}>
+            Log meal
           </Text>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Date: ${formatDay(day)}`}
-            onPress={() => setSheet('day')}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-          >
-            <Calendar size={18} color={colors.accent} />
-            <Text style={styles.chipText}>{day === today ? `Today, ${formatDay(day)}` : formatDay(day)}</Text>
-            <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
-          </Pressable>
-        )}
+          {editing ? (
+            <Text accessibilityLabel={`Date: ${formatDay(day)}`} style={styles.date}>
+              {formatDay(day)}
+            </Text>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Date: ${formatDay(day)}`}
+              onPress={() => setSheet('day')}
+              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            >
+              <Text style={styles.chipText}>{day === today ? 'Today' : formatDay(day)}</Text>
+              <ChevronDown size={18} strokeWidth={2.25} color={colors.accent} />
+            </Pressable>
+          )}
+        </View>
 
         {fromSaved ? (
           <View style={styles.fromSaved}>
@@ -428,15 +449,83 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           </View>
         ) : null}
 
-        <Step number={1} title="Meal" state={steps.meal} cue={editing ? (items.length > 0 ? STEP_CUES.mealToSave : STEP_CUES.meal) : mealCue} cueBelow>
+        <Step number={1} title="Meal" hideTitle state={steps.meal} cue={editing ? (items.length > 0 ? STEP_CUES.mealToSave : STEP_CUES.meal) : mealCue} cueBelow>
           <SlotPicker value={mealType} onChange={chooseMeal} logged={logged} />
         </Step>
 
         {/* "AI meal reading is coming soon" is left out for now (D-68); AI meal reading is slice 7. */}
 
-        <Step number={2} title="Add food" state={steps.food} cue={STEP_CUES.food}>
+        <Step number={2} title="Add food" hideTitle state={steps.food} cue={STEP_CUES.food}>
+          <View style={styles.aiBox}>
+            <TextInput
+              accessibilityLabel="Speak or type what you ate"
+              value={said}
+              onChangeText={setSaid}
+              placeholder="Speak or type what you ate…"
+              multiline
+              maxLength={500}
+              style={styles.aiInput}
+            />
+            <Text style={styles.small}>e.g. 100 g cooked rice, 50 g roti, 1 scoop whey protein, 50 g raw moong dal, 1 tbsp oil</Text>
+            <View style={styles.aiActions}>
+              <View style={styles.aiMain}>
+                {said.trim().length >= 2 ? (
+                  <TextButton
+                    title="Read my meal"
+                    icon={Sparkles}
+                    filled
+                    wide
+                    onPress={() => {
+                      setBegin({ text: said.trim() });
+                      setSaid('');
+                      setSheet('search');
+                    }}
+                  />
+                ) : canSpeak ? (
+                  <TextButton
+                    title="Speak your meal"
+                    icon={Mic}
+                    filled
+                    wide
+                    onPress={() => {
+                      setBegin({ listen: true });
+                      setSheet('search');
+                    }}
+                  />
+                ) : null}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add a photo"
+                onPress={() => setPhotoChooser(true)}
+                style={({ pressed }) => [styles.cameraButton, pressed && styles.pressed]}
+              >
+                <Camera size={22} strokeWidth={2.25} color={colors.accent} />
+              </Pressable>
+            </View>
+            <Text style={styles.small}>Read by AI. Only the words are sent, never audio.</Text>
+          </View>
+          {/* The photo or link attached, and "Add a photo" (REQ-LOG-006, REQ-LOG-010), moved from its own section (the owner, 2026-11-18). */}
+          <MealPhotoField
+            mealId={photoMealId}
+            value={photo}
+            onChange={setPhoto}
+            newId={sync.newId}
+            chooser={photoChooser}
+            onChooserClose={() => setPhotoChooser(false)}
+          />
           <View testID="add-food-ways" style={styles.methods}>
-            <MethodTile icon={Search} name="Search foods" label={'Search\nfoods'} tint={colors.accentTint} ink={colors.accent} onPress={() => setSheet('search')} />
+            <MethodTile
+              icon={Search}
+              name="Search foods"
+              label={'Search\nfoods'}
+              tint={colors.accentTint}
+              ink={colors.accent}
+              onPress={() => {
+                setBegin(null);
+                setSheet('search');
+              }}
+            />
             <MethodTile icon={ScanBarcode} name="Scan barcode" label={'Scan\nbarcode'} tint={colors.fatTint} ink={colors.fat} onPress={() => setSheet('barcode')} />
             <MethodTile
               icon={PenLine}
@@ -451,12 +540,10 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             />
             <MethodTile icon={Bookmark} name="Saved meals" label={'Saved\nmeals'} tint={colors.warningTint} ink={colors.warning} onPress={() => setSheet('saved')} />
           </View>
-          <Text style={styles.tips}>
-            Tips: give amounts in grams; say whether a food is raw or cooked; add each food separately.
-          </Text>
         </Step>
 
-        <MealPhotoField mealId={photoMealId} value={photo} onChange={setPhoto} newId={sync.newId} />
+        {/* Best practices and Examples (folds away), above the photo (the owner, 2026-11-18). */}
+        <MealTips />
 
         <Step number={3} title="Review and save" state={steps.review} cue={reviewCue}>
           {voiceAdded > 0 ? (
@@ -549,6 +636,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
       {sheet === 'search' ? (
         <FoodSearchSheet
           today={today}
+          {...(begin ? { begin } : {})}
           onAdd={addFromSearch}
           onOwnFood={(name) => {
             setOwnName(name);
@@ -592,7 +680,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           onStay={() => setLeaving(null)}
         />
       ) : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -747,7 +835,7 @@ export const STEP_CUES = {
 } as const;
 
 /**
- * A step of logging a meal (D-58): numbered, the number on caramel for the one to do now, with a line
+ * A step of logging a meal (D-58): since 2026-11-18 with no number (the owner), and with the title only on Review and save; a line
  * saying what to tap (above its content, or below it with cueBelow). No step turns green: green is for
  * the meals with food (D-68, the owner's option A). No frame (the owner, 2026-11-06). Every step can
  * still be used whatever its state.
@@ -758,6 +846,7 @@ function Step({
   state,
   cue,
   cueBelow = false,
+  hideTitle = false,
   children,
 }: {
   number: number;
@@ -765,6 +854,8 @@ function Step({
   state: StepState;
   cue: string;
   cueBelow?: boolean;
+  /** The step's title is not shown (the owner, 2026-11-18); its number and cue stay. */
+  hideTitle?: boolean;
   children: ReactNode;
 }) {
   const styles = useStyles();
@@ -778,14 +869,11 @@ function Step({
   ) : null;
   return (
     <View testID={`step-${number}`} style={styles.step}>
-      <View style={styles.stepHead}>
-        <View accessible accessibilityLabel={`Step ${number}`} style={[styles.badge, now && styles.badgeNow]}>
-          <Text style={[styles.badgeText, now && styles.badgeTextNow]}>{number}</Text>
-        </View>
+      {hideTitle ? null : (
         <Text accessibilityRole="header" style={[styles.stepTitle, now && styles.stepTitleNow]}>
           {title}
         </Text>
-      </View>
+      )}
       {cueBelow ? null : cueLine}
       {children}
       {cueBelow ? cueLine : null}
@@ -841,9 +929,16 @@ const useStyles = themedStyles((c) => ({
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 22 },
   missing: { flex: 1, padding: 24, gap: 16, justifyContent: 'center' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  headerTitle: { ...TYPE.screenHeader, flex: 1, minWidth: 0 },
+  aiBox: { gap: 10, padding: 12, borderRadius: 4, borderWidth: 1.5, borderColor: c.accent, backgroundColor: c.surface },
+  aiActions: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
+  aiMain: { flex: 1 },
+  cameraButton: { width: 52, minHeight: 52, borderRadius: 4, borderWidth: 1, borderColor: c.accent, backgroundColor: c.accentTint, alignItems: 'center', justifyContent: 'center' },
+  aiInput: { minHeight: 84, textAlignVertical: 'top' },
+  small: { ...TYPE.small, color: c.inkMuted },
   date: TYPE.metric,
   chip: {
-    alignSelf: 'flex-start',
     minHeight: 44,
     flexDirection: 'row',
     alignItems: 'center',
@@ -856,11 +951,6 @@ const useStyles = themedStyles((c) => ({
   },
   chipText: { ...TYPE.buttonSecondary, fontSize: 16, letterSpacing: 1 },
   step: { gap: 10 },
-  stepHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badge: { width: 24, height: 24, borderRadius: 4, borderWidth: 1.5, borderColor: c.inkSubtle, alignItems: 'center', justifyContent: 'center' },
-  badgeNow: { borderColor: c.primary, backgroundColor: c.primary },
-  badgeText: { ...TYPE.buttonSecondary, fontSize: 15, lineHeight: 18, letterSpacing: 0, color: c.inkMuted },
-  badgeTextNow: { color: c.onPrimary },
   stepTitle: { ...TYPE.label, fontSize: 15, lineHeight: 18, color: c.inkMuted },
   stepTitleNow: { color: c.ink },
   cue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -886,7 +976,6 @@ const useStyles = themedStyles((c) => ({
   methodIcon: { width: 44, height: 44, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
   methodText: { ...TYPE.buttonSecondary, fontSize: 14, lineHeight: 16, letterSpacing: 0.3, textAlign: 'center' },
   pressed: { opacity: 0.6 },
-  tips: { ...TYPE.small, color: c.inkMuted },
   voiceAdded: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 4, backgroundColor: c.accentTint },
   voiceAddedText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: '600', color: c.ink },
   hint: { ...TYPE.small, color: c.inkMuted, textAlign: 'center' },

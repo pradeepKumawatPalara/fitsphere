@@ -127,6 +127,7 @@ describe('REQ-ACC-001 every field has room for its text and stays above the keyb
     expect(fieldProblems()).toEqual([]);
     await fireEvent.press(screen.getByRole('button', { name: 'Back to the meal' }));
 
+    await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Add an image link instead' }));
     expect(screen.getByLabelText('Image link')).toBeOnTheScreen();
     expect(fieldProblems()).toEqual([]);

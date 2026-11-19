@@ -18,6 +18,11 @@ export const PROGRESS_TEXTS = {
   measurementsFailed: 'Couldn’t load these measurements.',
   measurementsOnline: 'Measurements older than 90 days load online.',
   noMeasurementsFrom: (from: string, to: string) => `No measurements from ${from} to ${to}.`,
+  // Week by week, by dates.
+  weeksOnline: 'Weeks older than 90 days load online.',
+  weeksLoading: 'Loading weeks…',
+  weeksOffline: 'Weeks older than 90 days need an internet connection.',
+  weeksFailed: 'Couldn’t load these weeks.',
   chartEmpty: 'Your trend shows once you have 2 weigh-ins in this range.',
   chartLoading: 'Loading older weigh-ins…',
   /** The step named in "… needs an internet connection." for the ranges read online (ADR-0007 rule 6). */

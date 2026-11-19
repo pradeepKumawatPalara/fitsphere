@@ -99,7 +99,7 @@ const consentOn = (server: FakeServer) => {
 
 /** Taps Speak your meal, says the words, then Done. */
 async function speak(words: string) {
-  await fireEvent.press(screen.getByRole('button', { name: 'Speak your meal' }));
+  await fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
   await waitFor(() => expect(mockSpeech.events).not.toBeNull());
   await act(async () => mockSpeech.events!.onWords(words, true));
   await fireEvent.press(screen.getByRole('button', { name: 'Done speaking' }));
@@ -127,7 +127,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
 
   it('the words heard fill the search box while listening, in English (India) by default', async () => {
     await openSearch(consentOn);
-    await fireEvent.press(screen.getByRole('button', { name: 'Speak your meal' }));
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
     await waitFor(() => expect(mockSpeech.events).not.toBeNull());
     await act(async () => mockSpeech.events!.onWords('do roti', false));
 
@@ -138,7 +138,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
 
   it('a pause does not end listening: the recognizer is started again and the pieces are joined; only Done reads them', async () => {
     const { server } = await openSearch(consentOn);
-    await fireEvent.press(screen.getByRole('button', { name: 'Speak your meal' }));
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
     await waitFor(() => expect(mockSpeech.listens).toBe(1));
 
     // The phone ends on a pause by itself, after the first piece.
@@ -165,7 +165,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
   it('the owner’s quiet time with no words ends listening by itself, and the words are read', async () => {
     const { server } = await openSearch(consentOn);
     mockSpeech.silenceMs = 600;
-    await fireEvent.press(screen.getByRole('button', { name: 'Speak your meal' }));
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
     await waitFor(() => expect(mockSpeech.listens).toBe(1));
     await act(async () => mockSpeech.events!.onWords(MEAL, true));
 
@@ -178,7 +178,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
     mockSpeech.permission = 'ask';
     mockSpeech.grantOnAsk = false;
     await openSearch(consentOn);
-    await fireEvent.press(screen.getByRole('button', { name: 'Speak your meal' }));
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
 
     expect(await screen.findByText(/FitSphere can't use the microphone/)).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Open phone settings' })).toBeOnTheScreen();
@@ -281,12 +281,12 @@ describe('REQ-LOG-009 a spoken meal, end to end', () => {
 
     expect(await screen.findByText(message)).toBeOnTheScreen();
     expect(screen.getByLabelText('Search foods')).toHaveDisplayValue(MEAL);
-    expect(screen.getByRole('button', { name: 'Speak your meal' })).toBeOnTheScreen();
+    expect(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!).toBeOnTheScreen();
   });
 
   it('Cancel while listening: no reading, the words stay as a search', async () => {
     const { server } = await openSearch(consentOn);
-    await fireEvent.press(screen.getByRole('button', { name: 'Speak your meal' }));
+    await fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
     await waitFor(() => expect(mockSpeech.events).not.toBeNull());
     await act(async () => mockSpeech.events!.onWords(MEAL, false));
     await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
@@ -294,5 +294,42 @@ describe('REQ-LOG-009 a spoken meal, end to end', () => {
     expect(screen.getByLabelText('Search foods')).toHaveDisplayValue(MEAL);
     expect(screen.queryByText(/Listening/)).toBeNull();
     expect(server.state.mealParseTexts).toEqual([]);
+  });
+});
+
+describe('Log meal’s box (the owner’s redesign, 2026-11-18)', () => {
+  async function openLogMeal(setUp: (server: FakeServer) => void = () => undefined) {
+    mockParams = { day: '2026-10-28', slot: 'lunch' };
+    return renderInApp(<LogMealScreen now={() => NOW} />, undefined, async (db: SqlDb, server) => {
+      server.state.foods = [ROTI, DAL, CHAI];
+      await replaceFoods(db, server.state.foodsVersion, [ROTI, DAL, CHAI]);
+      server.state.mealParse = { items: [said('roti', 2, 'piece'), said('toor dal', 1, 'katori')] };
+      setUp(server);
+    });
+  }
+
+  it('Speak your meal opens Search foods already listening', async () => {
+    await openLogMeal(consentOn);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Speak your meal' }));
+
+    await waitFor(() => expect(mockSpeech.events).not.toBeNull());
+    expect(await screen.findByText(/Listening/)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Done speaking' })).toBeOnTheScreen();
+  });
+
+  it('words typed in the box are read by AI, and the foods found show as in Search foods', async () => {
+    const { server } = await openLogMeal(consentOn);
+    await fireEvent.changeText(await screen.findByLabelText('Speak or type what you ate'), MEAL);
+    await fireEvent.press(screen.getByRole('button', { name: 'Read my meal' }));
+
+    await waitFor(() => expect(server.state.mealParseTexts).toEqual([MEAL]));
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+  });
+
+  it('the box is there on a phone that can’t listen, but with no Speak your meal button', async () => {
+    mockSpeech.can = false;
+    await openLogMeal();
+    expect(await screen.findByLabelText('Speak or type what you ate')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Speak your meal' })).toBeNull();
   });
 });

@@ -17,11 +17,24 @@ export type FoundFood = {
   item: MealItem;
   /** No amount said, or one the food can't be measured in: the page's opening amount, to check. */
   assumed: boolean;
+  /** One of several foods of the name: listed unticked, the user ticks the one eaten (the owner, 2026-11-18). */
+  several: boolean;
 };
+
+export type FoodListSearch = (db: SqlDb, text: string) => Promise<{ results: SearchResult[] }>;
+
+/** The most options listed for one food said; "Search" shows the rest. */
+export const MAX_CHOICES = 20;
 
 export type SpokenMeal = { found: FoundFood[]; missing: ParsedMealItem[] };
 
-export type FoodListSearch = (db: SqlDb, text: string) => Promise<{ results: SearchResult[] }>;
+/** The food built with the amount said (null when it can't be built). */
+async function buildChosen(db: SqlDb, said: ParsedMealItem, option: SearchResult, several: boolean): Promise<FoundFood | null> {
+  const { amount, otherUnits } = amountSaid(said);
+  const result = await wholeFood(db, option);
+  const made = result ? spokenItemOf(result, amount, otherUnits) : null;
+  return result && made ? { said, result, ...made, several } : null;
+}
 
 /** Grams in one of each weight or volume the AI may say (a millilitre taken as a gram, as Search foods does). */
 const WEIGHTS: Partial<Record<SpokenUnit, number>> = { g: 1, kg: 1000, ml: 1, l: 1000 };
@@ -58,18 +71,22 @@ export async function findSpokenFoods(db: SqlDb, said: readonly ParsedMealItem[]
   const found: FoundFood[] = [];
   const missing: ParsedMealItem[] = [];
   for (const food of said) {
-    const { amount, otherUnits } = amountSaid(food);
     // "boiled egg" first, when a way of cooking was said, then the name alone.
     const searches = food.preparation ? [`${food.preparation} ${food.name}`, food.name] : [food.name];
-    let built: { result: FoodResult; item: MealItem; assumed: boolean } | null = null;
+    let built: FoundFood[] = [];
     for (const text of searches) {
-      const first = (await search(db, text)).results[0];
-      const result = first ? await wholeFood(db, first) : null;
-      const made = result ? spokenItemOf(result, amount, otherUnits) : null;
-      built = result && made ? { result, ...made } : null;
-      if (built) break;
+      const { results } = await search(db, text);
+      const options = results.slice(0, MAX_CHOICES);
+      const made: FoundFood[] = [];
+      for (const option of options) {
+        const one = await buildChosen(db, food, option, options.length > 1);
+        if (one) made.push(one);
+      }
+      // Several foods of the name: none is ticked for the user; only one, as before.
+      built = made.length === 1 ? [{ ...made[0]!, several: false }] : made;
+      if (built.length > 0) break;
     }
-    if (built) found.push({ said: food, ...built });
+    if (built.length > 0) found.push(...built);
     else missing.push(food);
   }
   return { found, missing };

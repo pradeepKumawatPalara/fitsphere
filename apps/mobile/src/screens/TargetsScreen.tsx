@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import {
   Calendar,
   ChevronRight,
+  CircleGauge,
   Droplet,
   Dumbbell,
   Drumstick,
@@ -10,7 +11,6 @@ import {
   Footprints,
   History,
   Leaf,
-  Scale,
   SquarePen,
   Wheat,
   type LucideIcon,
@@ -36,7 +36,7 @@ export const TARGET_ICONS: Record<TargetKind, LucideIcon> = {
   fibre: Leaf,
   steps: Footprints,
   weekly_workouts: Dumbbell,
-  body_weight: Scale,
+  body_weight: CircleGauge,
 };
 
 // "Your targets" (REQ-ROLE-007, D-20): the user sets their own daily calories, protein, carbs, fat,
