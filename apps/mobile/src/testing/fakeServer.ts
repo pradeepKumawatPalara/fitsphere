@@ -8,6 +8,7 @@ import {
   type ListedExercise,
   type MealItem,
   type PackagedFood,
+  type BarcodeEstimateResponse,
   type ParsedMealItem,
   type SyncResult,
   type TargetKind,
@@ -110,6 +111,10 @@ export function fakeServer(now: Date) {
     mealParseOffline: false,
     /** The texts sent to `POST /ai/meal-parse`. */
     mealParseTexts: [] as string[],
+    /** What `POST /ai/barcode-estimate` answers (D-117): the estimate, or an error status and code. */
+    barcodeEstimate: null as BarcodeEstimateResponse | { status: number; code: string } | null,
+    /** The bodies sent to `POST /ai/barcode-estimate`. */
+    barcodeEstimateBodies: [] as { barcode: string; name: string }[],
     /** Answer `DELETE /me` with this status instead of deleting (503: not available). */
     deleteFailsWith: null as number | null,
     /** Set once `DELETE /me` succeeded. */
@@ -343,6 +348,15 @@ export function fakeServer(now: Date) {
       const answer = state.mealParse;
       if ('status' in answer) {
         return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      return json(200, answer);
+    }
+    if (path === '/ai/barcode-estimate' && method === 'POST') {
+      state.barcodeEstimateBodies.push(body as { barcode: string; name: string });
+      const answer = state.barcodeEstimate;
+      if (!answer || 'status' in answer) {
+        const failure = answer ?? { status: 503, code: 'SERVICE_UNAVAILABLE' };
+        return json(failure.status, { error: { code: failure.code, message: 'x', retryable: true, requestId: 'r', details: null } });
       }
       return json(200, answer);
     }

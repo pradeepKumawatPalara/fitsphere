@@ -15,6 +15,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'GET /v1/me/ai-consent': 'test/integration/ai-consent.test.ts',
   'PUT /v1/me/ai-consent': 'test/integration/ai-consent.test.ts',
   'POST /v1/ai/meal-parse': 'test/integration/ai-meal-parse.test.ts',
+  'POST /v1/ai/barcode-estimate': 'test/integration/ai-barcode-estimate.test.ts',
   'POST /v1/sync': 'test/integration/sync.test.ts',
   'GET /v1/users/:userId/workouts': 'test/integration/workouts.test.ts',
   'GET /v1/users/:userId/weigh-ins': 'test/integration/weigh-ins.test.ts',

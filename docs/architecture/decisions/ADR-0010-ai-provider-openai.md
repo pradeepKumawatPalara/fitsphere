@@ -62,6 +62,15 @@ ADR-0005's, unchanged:
 - **The key** is in the API's environment only (`OPENAI_API_KEY`); never printed, logged or committed.
   Without it, the route answers 503.
 
+- **Amendment, 2026-11-19 (owner's word): a barcode not found anywhere.** When a scanned barcode
+  (8 to 14 digits) is in neither `app.barcode_products` nor Open Food Facts, nor, by the product name the
+  user types, in FitSphere's own food list, the AI may give an estimate of the product's values per
+  100 g from that name and the barcode. It is the one exception to "never gives nutrition": shown as
+  **Estimated**, editable, logged only after the user confirms, kept for that user alone and never put
+  in the shared `app.barcode_products`. Same consent, same server check before the call (invariant #3),
+  same AI module, same `store: false`; if the AI fails, the answer stays "not found" and non-AI logging
+  is unaffected (invariant #4). Plan: `docs/plans/barcode-ai-fallback.md` (to be written).
+
 ## Why this option wins
 It meets the must criteria on the provider's published terms, it is set up with a hard spending limit
 now, and its strict-schema output fits the module. Removing nutrition from the AI's answer makes the

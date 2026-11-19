@@ -7,7 +7,9 @@ import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
 import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
 import type { MealParser } from './ai/mealParser.ts';
+import type { ProductEstimator } from './ai/productEstimator.ts';
 import { registerAiConsentRoutes } from './routes/aiConsent.ts';
+import { registerAiBarcodeEstimateRoute } from './routes/aiBarcodeEstimate.ts';
 import { registerAiMealParseRoute } from './routes/aiMealParse.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerDaysRoute } from './routes/days.ts';
@@ -38,6 +40,8 @@ export type AppDeps = {
   storage?: MediaStorage | null;
   /** The AI module (ADR-0010); tests pass a fake. Without it, AI readings answer 503. */
   mealParser?: MealParser | null;
+  /** The AI module's product estimate (ADR-0010's amendment); tests pass a fake. Without it, estimates answer 503. */
+  productEstimator?: ProductEstimator | null;
 };
 
 // Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
@@ -95,6 +99,11 @@ export function buildApp(deps: AppDeps) {
     db: deps.db,
     now: deps.now ?? (() => new Date()),
     mealParser: deps.mealParser ?? null,
+  });
+  registerAiBarcodeEstimateRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    productEstimator: deps.productEstimator ?? null,
   });
   registerSyncRoute(app, {
     db: deps.db,

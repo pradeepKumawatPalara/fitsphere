@@ -3845,6 +3845,32 @@ checksum), and the configuration template was left as it is.*
   phone's older reads); the redesign's 4.1, 4.4 and 5.2; CLAUDE.md. Canvas boards `OlderWorkouts*` and
   `OlderElsewhere*`, A locked (version 125).
 
+## D-117 A barcode found nowhere: name it, our own list first, then an AI estimate
+- Status: **Accepted** (owner, in chat, 2026-11-19: chose "Suggestion 1, with Suggestion 3's step first";
+  "you can amend the small change in the ADR-0010"; "Go with option A"; "apply this in barcode
+  search"). Plan: `docs/plans/barcode-ai-fallback.md`. Built on branch `feat/barcode-ai-estimate`.
+  **Waiting for the owner:** the new consent wording (below) and locking the canvas.
+- Why: a scanned 8 to 14 digit barcode in neither our table nor Open Food Facts ended in "not found".
+  OpenAI cannot look a barcode up, so the user names the product and the name does the work.
+- Answer (REQ-LOG-007, REQ-ACC-004; amends ADR-0010, which said the AI never gives nutrition):
+  - In the Scan barcode sheet, "not found" gets **Name this product**; Search our food list searches the
+    phone's own list (no AI). Matches: "Show the matches" opens Search foods on the name, or "None of
+    these: get an estimate". No match goes straight to the estimate.
+  - `POST /v1/ai/barcode-estimate` `{ barcode, name }` (one AI module, `apps/api/src/ai/productEstimator.ts`):
+    consent checked on the server right before the call (invariant #3), the reading counted, nothing
+    logged or stored; values per 100 g within My foods' limits, and kcal must agree with the macros.
+  - The estimate opens in "Enter your own food" (Check the estimate): a banner, every value editable,
+    added only after the user taps Add, marked `estimated`, and kept as the user's own My food (per user,
+    never in the shared `app.barcode_products`).
+  - Any failure ends as before: "Enter your own food" (invariant #4).
+- MVP defaults: five matches are counted, "5 or more"; the match list is Search foods itself, not rows
+  inside the sheet (a smaller change than the drawn screen 3).
+- Consent text: version `2026-11-19` adds the barcode estimate; **proposed wording, the owner approves it**;
+  everyone who agreed to `2026-11-17` is asked once more.
+- No migration, no phone schema change, no new build. **The beta's Cloud Run API needs this API before beta
+  phones can estimate; deploy only when the owner says so.**
+- Doc changes: ADR-0010 (the amendment), this record, the plan; risk R-018 (an estimate may be wrong).
+
 ---
 
 ---

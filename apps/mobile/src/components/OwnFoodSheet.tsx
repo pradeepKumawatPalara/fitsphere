@@ -1,5 +1,5 @@
 import { MY_FOOD_NAME_MAX, MY_FOOD_NAME_MIN, MY_FOOD_UNITS, myFoodValueMax, type MealItem, type MyFoodUnit } from '@fitsphere/shared';
-import { Trash } from 'lucide-react-native';
+import { Sparkles, Trash } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View, type KeyboardTypeOptions } from 'react-native';
 import type { LocalMyFood } from '../local/store';
@@ -10,7 +10,7 @@ import { useSync } from '../sync/SyncProvider';
 import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
-import { CheckBox, Field, Problem, Text, TextButton, TextInput, useChoiceStyles, useFieldLabelStyle } from './ui';
+import { Banner, CheckBox, Field, Problem, Text, TextButton, TextInput, useChoiceStyles, useFieldLabelStyle } from './ui';
 
 // "Enter your own food" (REQ-LOG-007; D-39, the owner's addition, 2026-11-04): the food's unit, its
 // values from the label per 100 g or 100 ml, or for one of its other unit (a slice, a bowl…), and the
@@ -46,10 +46,16 @@ function textOf(value: number | null): string {
 export function OwnFoodSheet({
   initialName = '',
   editing = null,
+  estimate = null,
   onAdd,
   onClose,
 }: {
   initialName?: string;
+  /**
+   * An AI estimate per 100 g of a barcode found nowhere (D-117): the boxes start with it, a banner says
+   * it is an estimate, and the food is added marked `estimated`.
+   */
+  estimate?: ({ kcal: number; proteinG: number; carbsG: number; fatG: number; fibreG: number | null }) | null;
   /** A My food to change or delete, instead of a food to add. */
   editing?: LocalMyFood | null;
   onAdd?(item: MealItem): void;
@@ -61,13 +67,16 @@ export function OwnFoodSheet({
   const sync = useSync();
   const [name, setName] = useState(editing?.name ?? initialName);
   const [unit, setUnit] = useState<MyFoodUnit>(editing?.unit ?? 'g');
+  const start = editing ?? estimate;
   const [texts, setTexts] = useState<Record<Key, string>>({
-    kcal: textOf(editing?.kcal ?? null),
-    proteinG: textOf(editing?.proteinG ?? null),
-    carbsG: textOf(editing?.carbsG ?? null),
-    fatG: textOf(editing?.fatG ?? null),
-    fibreG: textOf(editing?.fibreG ?? null),
+    kcal: textOf(start?.kcal ?? null),
+    proteinG: textOf(start?.proteinG ?? null),
+    carbsG: textOf(start?.carbsG ?? null),
+    fatG: textOf(start?.fatG ?? null),
+    fibreG: textOf(start?.fibreG ?? null),
   });
+  /** An estimate's item is marked estimated (D-117), so the meal shows it as one. */
+  const marked = (item: MealItem): MealItem => (estimate && !editing ? { ...item, estimated: true } : item);
   const [quantityText, setQuantityText] = useState('');
   const [keep, setKeep] = useState(true);
   const [deleting, setDeleting] = useState(false);
@@ -106,7 +115,7 @@ export function OwnFoodSheet({
     if (!valid || quantity === null) return;
     const id = keep ? sync.newId() : null;
     if (id) await sync.save('myFood', { id, ...food() });
-    onAdd?.(itemFromOwn(food(), quantity, id));
+    onAdd?.(marked(itemFromOwn(food(), quantity, id)));
     onClose();
   }
 
@@ -141,7 +150,7 @@ export function OwnFoodSheet({
   const preview = editing === null && valid && quantity !== null ? itemFromOwn(food(), quantity, null) : null;
   return (
     <Sheet
-      title={editing ? 'Edit My food' : 'Enter your own food'}
+      title={editing ? 'Edit My food' : estimate ? 'Check the estimate' : 'Enter your own food'}
       onClose={onClose}
       actions={
         <>
@@ -152,6 +161,13 @@ export function OwnFoodSheet({
         </>
       }
     >
+      {estimate && !editing ? (
+        <Banner
+          tone="info"
+          icon={Sparkles}
+          text="Estimated by AI from the name, not read from a label. Check the pack and change what is off."
+        />
+      ) : null}
       <Field
         label="Food name"
         value={name}

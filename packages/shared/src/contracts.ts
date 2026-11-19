@@ -110,19 +110,22 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
  * D-31; Legal reviews it, Q-049). Each change of consent records the version shown. A new text gets
  * a new version, and the request schema then accepts both while older apps are in use.
  */
-export const AI_CONSENT_TEXT_VERSION = '2026-11-17';
-// The owner approved this text on 2026-11-17 (D-115, ADR-0010: OpenAI in place of Gemini).
+export const AI_CONSENT_TEXT_VERSION = '2026-11-19';
+// 2026-11-17 text approved by the owner (D-115, ADR-0010: OpenAI in place of Gemini). 2026-11-19 adds
+// the barcode estimate (D-117, ADR-0010's amendment): PROPOSED wording, waiting for the owner's approval.
 export const AI_CONSENT_TEXT =
   "When it is on, the meal text you type or speak is sent to OpenAI's AI service to find the foods " +
-  'and amounts you name. FitSphere takes the food values from its own food list. Your text may be ' +
-  'processed outside India and kept by OpenAI for up to 30 days for safety checks; it is not used to ' +
-  'train its models. Voice is turned into text on your phone; recordings are not sent. You check the ' +
-  'foods before they are saved.';
+  'and amounts you name. FitSphere takes the food values from its own food list. When a scanned ' +
+  'barcode is in no list, the product name you type and the barcode number are also sent, and ' +
+  "OpenAI estimates the product's values; they are shown as estimates for you to check and change. " +
+  'Your text may be processed outside India and kept by OpenAI for up to 30 days for safety checks; ' +
+  'it is not used to train its models. Voice is turned into text on your phone; recordings are not ' +
+  'sent. You check everything before it is saved.';
 /**
  * Texts shown by older apps (2026-10-30: the Gemini text, D-31). Their changes are still recorded,
  * but an AI reading needs consent given on the current text (D-115), so they are asked again.
  */
-export const AI_CONSENT_OLDER_TEXT_VERSIONS = ['2026-10-30'] as const;
+export const AI_CONSENT_OLDER_TEXT_VERSIONS = ['2026-10-30', '2026-11-17'] as const;
 
 export const aiConsentRequestSchema = z.strictObject({
   consented: z.boolean(),
@@ -1441,6 +1444,34 @@ export const barcodeLookupSchema = z.object({
   product: barcodeProductSchema.nullable(),
 });
 export type BarcodeLookup = z.infer<typeof barcodeLookupSchema>;
+
+// --- Barcode found nowhere: POST /v1/ai/barcode-estimate (ADR-0010's amendment, D-117) ---
+
+/** The product's name as the user typed it: 2 to 120 characters, as My foods. */
+export const BARCODE_ESTIMATE_NAME_MIN = 2;
+export const BARCODE_ESTIMATE_NAME_MAX = 120;
+
+export const barcodeEstimateRequestSchema = z.strictObject({
+  barcode: barcodeSchema,
+  name: z.string().trim().min(BARCODE_ESTIMATE_NAME_MIN).max(BARCODE_ESTIMATE_NAME_MAX),
+});
+export type BarcodeEstimateRequest = z.infer<typeof barcodeEstimateRequestSchema>;
+
+/**
+ * An AI estimate of a product's values per 100 g (the one exception to "the AI never gives
+ * nutrition", ADR-0010's amendment). Within My foods' limits for a food per 100 g (kcal to 900, grams
+ * to 100), so a value out of range is refused rather than shown.
+ */
+export const barcodeEstimateResponseSchema = z.strictObject({
+  name: z.string().trim().min(1).max(BARCODE_ESTIMATE_NAME_MAX),
+  brand: z.string().trim().min(1).max(80).nullable(),
+  kcal: z.number().min(0).max(900),
+  proteinG: z.number().min(0).max(100),
+  carbsG: z.number().min(0).max(100),
+  fatG: z.number().min(0).max(100),
+  fibreG: z.number().min(0).max(100).nullable(),
+});
+export type BarcodeEstimateResponse = z.infer<typeof barcodeEstimateResponseSchema>;
 
 // --- Meal photo files: /v1/users/{userId}/media/{mediaId} (ADR-0002 rules 3 and 4) ---
 

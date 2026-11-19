@@ -120,7 +120,7 @@ describe('REQ-LOG-007 when the barcode cannot be used, your own food is offered 
 
     await fireEvent.press(screen.getByRole('button', { name: 'Fake scan' }));
 
-    expect(await screen.findByText('This product isn’t in Open Food Facts yet. Enter the values from the label.')).toBeOnTheScreen();
+    expect(await screen.findByText('This product isn’t in Open Food Facts yet. Type its name and AI will estimate the values.')).toBeOnTheScreen();
     await fireEvent.press(ownFoodInSheet());
     expect(screen.getByRole('header', { name: 'Enter your own food' })).toBeOnTheScreen();
     expect(screen.getByLabelText('Food name')).toHaveDisplayValue('');

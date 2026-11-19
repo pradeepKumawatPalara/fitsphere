@@ -583,8 +583,11 @@ export function FoodSearchSheet({
   onOwnFood,
   onClose,
   begin,
+  initialQuery = '',
 }: {
   today: IstDay;
+  /** The words the box starts with: a barcode found nowhere, named by the user (D-117). */
+  initialQuery?: string;
   /** Opened from Log meal's box: already listening, or reading the words typed there. */
   begin?: VoiceBegin | null;
   /** The foods added; `voice` when they came from what was said (D-115), with those whose amount was assumed. */
@@ -597,7 +600,7 @@ export function FoodSearchSheet({
   const { colors } = useTheme();
   const local = useLocalDatabase();
   const version = useDataVersion();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   // D-72: the text searched for, once typing pauses; and the results, with the text they are for.
   const [searched, setSearched] = useState('');
   // D-96: with the amount typed with the search, and the foods it names when it joins several.

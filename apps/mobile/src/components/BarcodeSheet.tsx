@@ -1,27 +1,49 @@
-import { barcodeSchema, OFF_ATTRIBUTION, type BarcodeProduct, type MealItem } from '@fitsphere/shared';
-import { PenLine, ScanBarcode, WifiOff } from 'lucide-react-native';
+import {
+  AI_CONSENT_TEXT,
+  AI_CONSENT_TEXT_VERSION,
+  barcodeSchema,
+  BARCODE_ESTIMATE_NAME_MAX,
+  BARCODE_ESTIMATE_NAME_MIN,
+  OFF_ATTRIBUTION,
+  type BarcodeEstimateResponse,
+  type BarcodeProduct,
+  type MealItem,
+} from '@fitsphere/shared';
+import { PenLine, ScanBarcode, Search, Sparkles, WifiOff } from 'lucide-react-native';
 import { useState, type ComponentType } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { readAiConsent, saveAiConsent } from '../api/account';
+import { estimateProduct } from '../api/barcodeEstimate';
 import { lookUpBarcode } from '../api/barcodes';
 import { useAuth } from '../auth/AuthProvider';
 import { TEXTS } from '../auth/texts';
 import { GRAMS_RULE, hasKcalAndProtein, itemFromBarcode, parseGrams, productName } from '../mealItems';
 import { useFieldChecks } from '../fieldChecks';
+import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import { searchFoods, setMeta } from '../local/store';
 import { formatGrams, formatKcal } from '../meals';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { BarcodeCamera, type ScannerProps } from './BarcodeCamera';
 import { GramsBox } from './GramsBox';
 import { Sheet } from './Sheet';
-import { Banner, Problem, Text, TextButton, TextInput, useFieldInputStyle } from './ui';
+import { Banner, Field, Problem, Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
 type Step =
   | { kind: 'scan' }
   | { kind: 'looking' }
   | { kind: 'found'; barcode: string; product: BarcodeProduct }
-  | { kind: 'notFound' }
+  /** D-117: the barcode is found nowhere; the name box opens at once and the user names the product. */
+  | { kind: 'naming' }
+  | { kind: 'listed'; name: string; count: number }
+  | { kind: 'consent'; name: string }
+  | { kind: 'estimating' }
+  | { kind: 'aiOff' }
   | { kind: 'offline' }
   | { kind: 'unavailable' };
+
+/** The values an AI estimate hands to "Enter your own food", per 100 g. */
+export type ProductEstimateValues = Pick<BarcodeEstimateResponse, 'kcal' | 'proteinG' | 'carbsG' | 'fatG' | 'fibreG'>;
 
 // Scan a barcode (REQ-LOG-007; ADR-0006 rule 2): the camera or the typed digits, looked up through
 // the FitSphere API, which asks Open Food Facts with the barcode only. Needs the internet; when
@@ -30,12 +52,15 @@ type Step =
 export function BarcodeSheet({
   onAdd,
   onOwnFood,
+  onSearchList,
   onClose,
   Scanner = BarcodeCamera,
 }: {
   onAdd(item: MealItem): void;
-  /** Opens "Enter your own food", with the product's name when there is one. */
-  onOwnFood(name: string): void;
+  /** Opens "Enter your own food", with the product's name when there is one, and an AI estimate's values (D-117). */
+  onOwnFood(name: string, estimate?: ProductEstimateValues): void;
+  /** Opens Search foods on the name the user typed for a barcode found nowhere (D-117). */
+  onSearchList(name: string): void;
   onClose(): void;
   Scanner?: ComponentType<ScannerProps>;
 }) {
@@ -43,20 +68,69 @@ export function BarcodeSheet({
   const { colors } = useTheme();
   const fieldInput = useFieldInputStyle();
   const { deps } = useAuth();
+  const local = useLocalDatabase();
   const [step, setStep] = useState<Step>({ kind: 'scan' });
+  const [barcodeSeen, setBarcodeSeen] = useState('');
+  const [nameText, setNameText] = useState('');
   const [typed, setTyped] = useState('');
   const [typing, setTyping] = useState(false);
   const [gramsText, setGramsText] = useState('100');
 
   async function lookUp(barcode: string) {
+    setBarcodeSeen(barcode);
     setStep({ kind: 'looking' });
     const outcome = await lookUpBarcode(deps, barcode);
     if (outcome.kind === 'found') {
       setGramsText('100');
       setStep({ kind: 'found', barcode, product: outcome.product });
     } else {
-      setStep({ kind: outcome.kind });
+      setStep({ kind: outcome.kind === 'notFound' ? 'naming' : outcome.kind });
     }
+  }
+
+  const productNameText = nameText.trim();
+  const nameValid = productNameText.length >= BARCODE_ESTIMATE_NAME_MIN && productNameText.length <= BARCODE_ESTIMATE_NAME_MAX;
+
+  // The user's other choice (D-117): our own list (the phone's, no AI); no match goes on to an estimate.
+  async function searchList() {
+    if (!nameValid) return;
+    const db = local.state.status === 'ready' ? local.state.db : null;
+    const matches = db ? await searchFoods(db, productNameText, 5) : [];
+    if (matches.length > 0) setStep({ kind: 'listed', name: productNameText, count: matches.length });
+    else await estimate(productNameText);
+  }
+
+  /** Consent first: asked once, when never chosen or chosen on an older text (REQ-ACC-004, invariant #3). */
+  async function estimate(name: string) {
+    setStep({ kind: 'estimating' });
+    const consent = await readAiConsent(deps);
+    if (consent.kind === 'offline') return setStep({ kind: 'offline' });
+    if (consent.kind !== 'ok') return setStep({ kind: 'unavailable' });
+    const db = local.state.status === 'ready' ? local.state.db : null;
+    if (db) await setMeta(db, 'ai_consent', JSON.stringify(consent.consent));
+    if (consent.consent === null || consent.consent.textVersion !== AI_CONSENT_TEXT_VERSION) return setStep({ kind: 'consent', name });
+    if (!consent.consent.consented) return setStep({ kind: 'aiOff' });
+    await runEstimate(name);
+  }
+
+  async function answerConsent(name: string, consented: boolean) {
+    if (!consented) return setStep({ kind: 'aiOff' });
+    setStep({ kind: 'estimating' });
+    const saved = await saveAiConsent(deps, true);
+    const db = local.state.status === 'ready' ? local.state.db : null;
+    if (saved.kind === 'ok' && db) await setMeta(db, 'ai_consent', JSON.stringify(saved.consent));
+    if (saved.kind !== 'ok') return setStep({ kind: saved.kind === 'offline' ? 'offline' : 'unavailable' });
+    await runEstimate(name);
+  }
+
+  async function runEstimate(name: string) {
+    setStep({ kind: 'estimating' });
+    const result = await estimateProduct(deps, barcodeSeen, name);
+    if (result.kind === 'consent') return setStep({ kind: 'consent', name });
+    if (result.kind !== 'ok') return setStep({ kind: result.kind });
+    const { name: tidy, brand, ...values } = result.estimate;
+    onClose();
+    onOwnFood((brand ? `${tidy} (${brand})` : tidy).slice(0, BARCODE_ESTIMATE_NAME_MAX), values);
   }
 
   const typedValid = barcodeSchema.safeParse(typed.trim()).success;
@@ -90,6 +164,9 @@ export function BarcodeSheet({
         <>
           {step.kind === 'scan' ? (
             <TextButton title="Look up" filled disabled={!typedValid} onPress={() => void lookUp(typed.trim())} />
+          ) : null}
+          {step.kind === 'naming' ? (
+            <TextButton title="Search with AI" filled icon={Sparkles} disabled={!nameValid} onPress={() => void estimate(productNameText)} />
           ) : null}
           {usable ? (
             <TextButton
@@ -175,12 +252,58 @@ export function BarcodeSheet({
         </>
       ) : null}
 
-      {step.kind === 'notFound' ? (
+      {step.kind === 'naming' ? (
         <>
           <Text accessibilityRole="alert" style={styles.body}>
-            This product isn’t in Open Food Facts yet. Enter the values from the label.
+            This product isn’t in Open Food Facts yet. Type its name and AI will estimate the values.
           </Text>
-          {ownFood()}
+          <Field label="Product name" value={nameText} onChangeText={setNameText} autoCapitalize="words" maxLength={BARCODE_ESTIMATE_NAME_MAX} />
+          <Text style={styles.attribution}>Barcode {barcodeSeen}. Add the brand if you know it.</Text>
+          <TextButton title="Search our food list" outlined wide icon={Search} disabled={!nameValid} onPress={() => void searchList()} />
+          {ownFood(productNameText)}
+          {scanAgain}
+        </>
+      ) : null}
+
+      {step.kind === 'listed' ? (
+        <>
+          <Banner tone="success" text={`${step.count === 5 ? '5 or more foods' : step.count === 1 ? '1 food' : `${step.count} foods`} in our list match “${step.name}”.`} />
+          <TextButton
+            title="Show the matches"
+            filled
+            wide
+            icon={Search}
+            onPress={() => {
+              onClose();
+              onSearchList(step.name);
+            }}
+          />
+          <TextButton title="None of these: get an estimate" outlined wide icon={Sparkles} onPress={() => void estimate(step.name)} />
+        </>
+      ) : null}
+
+      {step.kind === 'consent' ? (
+        <>
+          <Text style={styles.body}>{AI_CONSENT_TEXT}</Text>
+          <Text style={styles.muted}>You can change this at any time in Settings › AI meal reading.</Text>
+          <TextButton title="Agree and estimate" filled wide icon={Sparkles} onPress={() => void answerConsent(step.name, true)} />
+          <TextButton title="Not now" wide onPress={() => void answerConsent(step.name, false)} />
+        </>
+      ) : null}
+
+      {step.kind === 'estimating' ? (
+        <View style={styles.looking}>
+          <ActivityIndicator color={colors.accent} />
+          <Text accessibilityRole="progressbar" style={styles.muted}>
+            Estimating the values…
+          </Text>
+        </View>
+      ) : null}
+
+      {step.kind === 'aiOff' ? (
+        <>
+          <Banner tone="info" text="AI is off, so there is no estimate. Turn it on in Settings › AI meal reading, or enter the values yourself." />
+          {ownFood(productNameText)}
           {scanAgain}
         </>
       ) : null}

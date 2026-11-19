@@ -34,7 +34,7 @@ import {
 import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { BarcodeSheet } from '../components/BarcodeSheet';
+import { BarcodeSheet, type ProductEstimateValues } from '../components/BarcodeSheet';
 import { CalendarSheet } from '../components/CalendarSheet';
 import { FoodSearchSheet } from '../components/FoodSearchSheet';
 import { MealFoodRows, useMealFoods } from '../components/MealFoods';
@@ -110,6 +110,10 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   const [saved, setSaved] = useState<LocalSavedMeal[]>([]);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [ownName, setOwnName] = useState('');
+  // An AI estimate of a barcode found nowhere, opened in "Enter your own food" (D-117); and the name
+  // that Search foods starts with from the barcode sheet.
+  const [ownEstimate, setOwnEstimate] = useState<ProductEstimateValues | null>(null);
+  const [searchStart, setSearchStart] = useState('');
   const [busy, setBusy] = useState(false);
   // The AI box (the owner's redesign, 2026-11-18): the words typed there, and how Search foods opens
   // from it: already listening ("Speak your meal"), or reading those words.
@@ -535,6 +539,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
               ink={colors.success}
               onPress={() => {
                 setOwnName('');
+                setOwnEstimate(null);
                 setSheet('own');
               }}
             />
@@ -637,25 +642,38 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         <FoodSearchSheet
           today={today}
           {...(begin ? { begin } : {})}
+          initialQuery={searchStart}
           onAdd={addFromSearch}
           onOwnFood={(name) => {
             setOwnName(name);
+            setOwnEstimate(null);
             setSheet('own');
           }}
-          onClose={() => setSheet(null)}
+          onClose={() => {
+            setSearchStart('');
+            setSheet(null);
+          }}
         />
       ) : null}
       {sheet === 'barcode' ? (
         <BarcodeSheet
           onAdd={(item) => addItems([item])}
-          onOwnFood={(name) => {
+          onOwnFood={(name, estimate) => {
             setOwnName(name);
+            setOwnEstimate(estimate ?? null);
             setSheet('own');
+          }}
+          onSearchList={(name) => {
+            setBegin(null);
+            setSearchStart(name);
+            setSheet('search');
           }}
           onClose={() => setSheet(null)}
         />
       ) : null}
-      {sheet === 'own' ? <OwnFoodSheet initialName={ownName} onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} /> : null}
+      {sheet === 'own' ? (
+        <OwnFoodSheet initialName={ownName} estimate={ownEstimate} onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} />
+      ) : null}
       {sheet === 'saved' ? (
         <ActionsSheet
           title={saved.length === 0 ? 'No saved meals yet' : 'Add a saved meal'}
