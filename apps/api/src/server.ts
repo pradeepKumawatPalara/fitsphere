@@ -1,4 +1,5 @@
 import { mealParserFromEnv } from './ai/mealParser.ts';
+import { productEstimatorFromEnv } from './ai/productEstimator.ts';
 import { buildApp } from './app.ts';
 import { createSupabaseAuth } from './auth.ts';
 import { createPool } from './db/pool.ts';
@@ -43,6 +44,7 @@ const app = buildApp({
   // Optional: AI meal reading answers 503 until OPENAI_API_KEY is set (D-115, runbook). The key is
   // never printed or logged.
   mealParser: mealParserFromEnv(process.env),
+  productEstimator: productEstimatorFromEnv(process.env),
 });
 
 // Cloud Run stops an instance with SIGTERM, and SIGKILL 10 seconds later. In a container the API

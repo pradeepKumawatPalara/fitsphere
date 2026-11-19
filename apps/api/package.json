@@ -16,6 +16,7 @@
     "check:storage": "node --env-file-if-exists=.env scripts/check-storage.ts",
     "check:pooler": "node --env-file-if-exists=.env scripts/check-pooler.ts",
     "ai:check": "node --env-file-if-exists=.env scripts/meal-parse-check.ts",
+    "ai:estimate": "node --env-file-if-exists=.env scripts/product-estimate-check.ts",
     "foods:import": "node --env-file-if-exists=.env scripts/foods-import.ts",
     "exercises:import": "node --env-file-if-exists=.env scripts/exercises-import.ts",
     "usda:convert": "node scripts/usda-convert.ts",

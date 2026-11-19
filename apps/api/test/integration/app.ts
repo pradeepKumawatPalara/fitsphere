@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { AGE_CONFIRMATION_TEXT_VERSION } from '@fitsphere/shared';
 import type { MealParser } from '../../src/ai/mealParser.ts';
+import type { ProductEstimator } from '../../src/ai/productEstimator.ts';
 import { buildApp, type LogOptions } from '../../src/app.ts';
 import type { BarcodeSource } from '../../src/foods/openFoodFacts.ts';
 import type { MediaStorage } from '../../src/storage/mediaStorage.ts';
@@ -20,6 +21,8 @@ export async function startTestApi(
     storage?: MediaStorage | null;
     /** A fake AI module (never OpenAI in tests); leave out for a server without a key. */
     mealParser?: MealParser | null;
+    /** A fake product estimator (never OpenAI in tests); leave out for a server without a key. */
+    productEstimator?: ProductEstimator | null;
     /** The Supabase secret key; null for a server without one. */
     secretKey?: string | null;
   } = {},
