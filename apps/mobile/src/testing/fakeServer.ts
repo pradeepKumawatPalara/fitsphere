@@ -9,6 +9,7 @@ import {
   type MealItem,
   type PackagedFood,
   type BarcodeEstimateResponse,
+  type FoodLookupResponse,
   type ParsedMealItem,
   type SyncResult,
   type TargetKind,
@@ -115,6 +116,16 @@ export function fakeServer(now: Date) {
     barcodeEstimate: null as BarcodeEstimateResponse | { status: number; code: string } | null,
     /** The bodies sent to `POST /ai/barcode-estimate`. */
     barcodeEstimateBodies: [] as { barcode: string; name: string }[],
+    /** What `POST /ai/photo-parse` answers (D-118): the foods seen, or an error status and code. */
+    photoParse: { items: [] } as { items: ParsedMealItem[] } | { status: number; code: string },
+    /** `POST /ai/photo-parse` fails as a network failure would. */
+    photoParseOffline: false,
+    /** The pictures (base64) sent to `POST /ai/photo-parse`. */
+    photoParseImages: [] as string[],
+    /** What `POST /ai/food-lookup` answers (D-118): the food found, or an error status and code. */
+    foodLookup: null as FoodLookupResponse | { status: number; code: string } | null,
+    /** The bodies sent to `POST /ai/food-lookup`. */
+    foodLookupBodies: [] as { name: string }[],
     /** Answer `DELETE /me` with this status instead of deleting (503: not available). */
     deleteFailsWith: null as number | null,
     /** Set once `DELETE /me` succeeded. */
@@ -348,6 +359,24 @@ export function fakeServer(now: Date) {
       const answer = state.mealParse;
       if ('status' in answer) {
         return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      return json(200, answer);
+    }
+    if (path === '/ai/photo-parse' && method === 'POST') {
+      if (state.photoParseOffline) throw new TypeError('Network request failed');
+      state.photoParseImages.push((body as { imageBase64: string }).imageBase64);
+      const answer = state.photoParse;
+      if ('status' in answer) {
+        return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      return json(200, answer);
+    }
+    if (path === '/ai/food-lookup' && method === 'POST') {
+      state.foodLookupBodies.push(body as { name: string });
+      const answer = state.foodLookup;
+      if (!answer || 'status' in answer) {
+        const failure = answer ?? { status: 503, code: 'SERVICE_UNAVAILABLE' };
+        return json(failure.status, { error: { code: failure.code, message: 'x', retryable: true, requestId: 'r', details: null } });
       }
       return json(200, answer);
     }

@@ -107,3 +107,56 @@ describe('ADR-0006 rule 2 the Open Food Facts client', () => {
     });
   });
 });
+
+// A food looked up by name (D-118): only the name is sent; the first product with kcal, protein, carbs
+// and fat per 100 g that agree is used; anything else is "nothing found".
+describe('D-118 the Open Food Facts name search', () => {
+  const PRODUCT = {
+    product_name: 'Zorblax Crunch Bar',
+    brands: 'Zorblax, Other',
+    nutriments: {
+      'energy-kcal_100g': 430,
+      'energy-kcal_unit': 'kcal',
+      proteins_100g: 9,
+      carbohydrates_100g: 60,
+      fat_100g: 17,
+      fiber_100g: 3,
+    },
+  };
+  const search = (body: unknown, status = 200) => {
+    const fake = fakeFetch(status, body);
+    return { fake, found: createOpenFoodFacts({ contact: 'owner@example.test', fetchImpl: fake.fetchImpl }).searchByName('zorblax crunch bar') };
+  };
+
+  it('sends only the name, in the query, with FitSphere’s User-Agent', async () => {
+    const { fake, found } = search({ products: [PRODUCT] });
+    await found;
+    expect(fake.calls).toHaveLength(1);
+    const url = new URL(fake.calls[0]!.url);
+    expect(url.origin + url.pathname).toBe('https://world.openfoodfacts.org/cgi/search.pl');
+    expect(url.searchParams.get('search_terms')).toBe('zorblax crunch bar');
+    expect([...url.searchParams.keys()].sort()).toEqual(['action', 'fields', 'json', 'page_size', 'search_simple', 'search_terms', 'sort_by']);
+    expect(fake.calls[0]!.headers).toEqual({ 'User-Agent': 'FitSphere/1.0 (owner@example.test)', Accept: 'application/json' });
+  });
+
+  it('returns the first usable product’s values per 100 g, skipping one without protein or with values that disagree', async () => {
+    const noProtein = { ...PRODUCT, product_name: 'No protein', nutriments: { ...PRODUCT.nutriments, proteins_100g: undefined } };
+    const disagree = { ...PRODUCT, product_name: 'Disagrees', nutriments: { ...PRODUCT.nutriments, 'energy-kcal_100g': 120 } };
+    const { found } = search({ products: [noProtein, disagree, null, PRODUCT] });
+    expect(await found).toEqual({ name: 'Zorblax Crunch Bar', brand: 'Zorblax', kcal: 430, proteinG: 9, carbsG: 60, fatG: 17, fibreG: 3 });
+  });
+
+  it('finds nothing for no products, an error, an odd body, a network failure or no contact address', async () => {
+    expect(await search({ products: [] }).found).toBeNull();
+    expect(await search({ products: [{ product_name: ' ', nutriments: PRODUCT.nutriments }] }).found).toBeNull();
+    expect(await search({}, 503).found).toBeNull();
+    expect(await search({ nothing: true }).found).toBeNull();
+    const failing = (async () => {
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    expect(await createOpenFoodFacts({ contact: 'owner@example.test', fetchImpl: failing }).searchByName('x y')).toBeNull();
+    const noContact = fakeFetch(200, { products: [PRODUCT] });
+    expect(await createOpenFoodFacts({ contact: undefined, fetchImpl: noContact.fetchImpl }).searchByName('zorblax')).toBeNull();
+    expect(noContact.calls).toEqual([]);
+  });
+});

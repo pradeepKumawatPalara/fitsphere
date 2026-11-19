@@ -1,6 +1,6 @@
-import { AI_CONSENT_OLDER_TEXT_VERSIONS, AI_CONSENT_TEXT_VERSION, type BarcodeEstimateRequest, type BarcodeEstimateResponse } from '@fitsphere/shared';
+import { AI_CONSENT_OLDER_TEXT_VERSIONS, AI_CONSENT_TEXT_VERSION, type BarcodeEstimateResponse } from '@fitsphere/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { ProductEstimatorFailed, type ProductEstimator } from '../../src/ai/productEstimator.ts';
+import { ProductEstimatorFailed, type ProductEstimateRequest, type ProductEstimator } from '../../src/ai/productEstimator.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 
@@ -13,7 +13,7 @@ const BARCODE = '8901234567895';
 const NAME = 'Zorblax Crunch Bar';
 const ANSWER: BarcodeEstimateResponse = { name: 'Zorblax Crunch Bar', brand: 'Zorblax', kcal: 430, proteinG: 9, carbsG: 60, fatG: 17, fibreG: 3 };
 
-const fake = { requests: [] as BarcodeEstimateRequest[], failWith: null as Error | null };
+const fake = { requests: [] as ProductEstimateRequest[], failWith: null as Error | null };
 const estimator: ProductEstimator = {
   async estimate(request) {
     fake.requests.push(request);

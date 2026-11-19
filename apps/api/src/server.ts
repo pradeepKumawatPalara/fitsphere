@@ -1,4 +1,5 @@
 import { mealParserFromEnv } from './ai/mealParser.ts';
+import { photoParserFromEnv } from './ai/photoParser.ts';
 import { productEstimatorFromEnv } from './ai/productEstimator.ts';
 import { buildApp } from './app.ts';
 import { createSupabaseAuth } from './auth.ts';
@@ -28,6 +29,9 @@ try {
 
 const db = createPool(process.env.DATABASE_URL!);
 
+// Optional: barcode lookups and food-name lookups answer 503 or find nothing until the owner sets the contact (runbook).
+const offClient = createOpenFoodFacts({ contact: process.env.OFF_CONTACT });
+
 const app = buildApp({
   db,
   auth: createSupabaseAuth({
@@ -37,14 +41,15 @@ const app = buildApp({
     ...(process.env.SUPABASE_SECRET_KEY ? { secretKey: process.env.SUPABASE_SECRET_KEY } : {}),
   }),
   log: { level: process.env.LOG_LEVEL ?? 'info' },
-  // Optional: barcode lookups answer 503 until the owner sets the contact (runbook).
-  barcodes: createOpenFoodFacts({ contact: process.env.OFF_CONTACT }),
+  barcodes: offClient,
+  foodNames: offClient,
   // Optional: meal photo links answer 503 until the owner sets up storage (runbook).
   storage: mediaStorageFromEnv(process.env),
   // Optional: AI meal reading answers 503 until OPENAI_API_KEY is set (D-115, runbook). The key is
   // never printed or logged.
   mealParser: mealParserFromEnv(process.env),
   productEstimator: productEstimatorFromEnv(process.env),
+  photoParser: photoParserFromEnv(process.env),
 });
 
 // Cloud Run stops an instance with SIGTERM, and SIGKILL 10 seconds later. In a container the API

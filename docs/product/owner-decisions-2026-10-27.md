@@ -3871,6 +3871,19 @@ checksum), and the configuration template was left as it is.*
   phones can estimate; deploy only when the owner says so.**
 - Doc changes: ADR-0010 (the amendment), this record, the plan; risk R-018 (an estimate may be wrong).
 
+## D-118 A photo of a meal: AI names the foods, our list first, then online, then an estimate
+- Status: **Proposed** (the owner asked in chat, 2026-11-19: "the same if I upload or capture the image ...
+  AI sends the food name, search in our table, then the free food API, else OpenAI"; answers: the free API is
+  Open Food Facts, as for barcodes; no image links, only camera and gallery; every food found goes to Log meal
+  for review). Plan: `docs/plans/photo-meal-ai.md`. Branch `feat/photo-meal-ai`.
+  **Waiting for the owner:** the consent wording (version `2026-11-20`) and locking the design.
+- Answer: Search foods gets Take a photo and Choose a photo; the shrunk photo goes to `POST /v1/ai/photo-parse`;
+  foods are found in the phone's list as Speak your meal does; a food not found has Look up online
+  (`POST /v1/ai/food-lookup`: Open Food Facts by name, else an AI estimate), opened in "Check the estimate".
+- Amends ADR-0006 (a name search on Open Food Facts) and ADR-0010 (a photo as AI input).
+- No migration, no phone schema change, no new build. **The beta's Cloud Run API needs this API; deploy only when
+  the owner says so.**
+
 ---
 
 ---
