@@ -11,6 +11,23 @@ export function backToSignIn(router: { canGoBack(): boolean; back(): void; repla
   else router.replace('/sign-in');
 }
 
+/** Sign in, or Sign in with Delete account's notice. */
+type SignInHref = '/sign-in' | { pathname: '/sign-in'; params: { notice: 'accountDeleted' } };
+
+/**
+ * Sign in with no screen under it, after Log out or Delete account (REQ-ACC-008, REQ-ACC-009): the
+ * screens above the stack's first are closed, then that first one, Home's tabs, becomes Sign in. Only
+ * replacing Settings left Home under Sign in, and Android's Back showed it again, signed out (the
+ * owner's phone test, 2026-11-19; tracker ACC-10).
+ */
+export function signInAlone(
+  router: { canDismiss(): boolean; dismissAll(): void; replace(href: SignInHref): void },
+  href: SignInHref = '/sign-in',
+) {
+  if (router.canDismiss()) router.dismissAll();
+  router.replace(href);
+}
+
 /** Where to go once the account check is done; returns a text to show when staying put. */
 type Navigator = { replace(href: '/home' | '/account-setup' | '/sign-in'): void };
 

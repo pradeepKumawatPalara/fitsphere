@@ -10,6 +10,7 @@ import { Message, Text, TextButton } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { signInAlone } from './navigation';
 
 // What deleting the account deletes, each with its icon.
 const DELETED: { icon: LucideIcon; text: string }[] = [
@@ -42,7 +43,8 @@ export function DeleteAccountScreen() {
     if (result === 'deleted') {
       await local.remove();
       await signOutLocally(deps);
-      router.replace({ pathname: '/sign-in', params: { notice: 'accountDeleted' } });
+      // Nothing under Sign in, so Back cannot show Settings or Home again, signed out (ACC-10).
+      signInAlone(router, { pathname: '/sign-in', params: { notice: 'accountDeleted' } });
       return;
     }
     setBusy(false);
