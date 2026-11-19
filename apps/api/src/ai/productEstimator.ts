@@ -4,12 +4,15 @@
 // ID, and nothing about a request or its answer is logged (invariant #7). Consent is checked by the
 // route before `estimate` is called (invariant #3). The answer is an estimate: the phone shows it as
 // "Estimated" and the user edits it before it is used.
-import { barcodeEstimateResponseSchema, type BarcodeEstimateRequest, type BarcodeEstimateResponse } from '@fitsphere/shared';
+import { barcodeEstimateResponseSchema, type BarcodeEstimateResponse } from '@fitsphere/shared';
 import OpenAI from 'openai';
+
+/** A scanned product has a barcode; a food looked up by name (D-118) has none. */
+export type ProductEstimateRequest = { name: string; barcode?: string };
 
 export interface ProductEstimator {
   /** Throws ProductEstimatorFailed on any failure: the provider, its limit, or an answer out of contract. */
-  estimate(request: BarcodeEstimateRequest): Promise<BarcodeEstimateResponse>;
+  estimate(request: ProductEstimateRequest): Promise<BarcodeEstimateResponse>;
 }
 
 /** Any failure of an estimate. Its message never holds the name, the barcode or the answer. */
@@ -77,7 +80,7 @@ export function createOpenAiProductEstimator(options: {
         response = await client.responses.create({
           model: options.model,
           instructions: PRODUCT_ESTIMATE_INSTRUCTIONS,
-          input: JSON.stringify({ productName: request.name, barcode: request.barcode }),
+          input: JSON.stringify(request.barcode === undefined ? { productName: request.name } : { productName: request.name, barcode: request.barcode }),
           reasoning: { effort: 'none' },
           store: false,
           max_output_tokens: PRODUCT_ESTIMATE_MAX_OUTPUT_TOKENS,

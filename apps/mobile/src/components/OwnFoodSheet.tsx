@@ -43,10 +43,14 @@ function textOf(value: number | null): string {
   return value === null ? '' : String(value);
 }
 
+/** Where an estimate came from (D-118): Open Food Facts' name search, or OpenAI. */
+export type EstimateSource = 'open_food_facts' | 'ai_estimate';
+
 export function OwnFoodSheet({
   initialName = '',
   editing = null,
   estimate = null,
+  estimateSource = 'ai_estimate',
   onAdd,
   onClose,
 }: {
@@ -56,6 +60,7 @@ export function OwnFoodSheet({
    * it is an estimate, and the food is added marked `estimated`.
    */
   estimate?: ({ kcal: number; proteinG: number; carbsG: number; fatG: number; fibreG: number | null }) | null;
+  estimateSource?: EstimateSource;
   /** A My food to change or delete, instead of a food to add. */
   editing?: LocalMyFood | null;
   onAdd?(item: MealItem): void;
@@ -165,7 +170,11 @@ export function OwnFoodSheet({
         <Banner
           tone="info"
           icon={Sparkles}
-          text="Estimated by AI from the name, not read from a label. Check the pack and change what is off."
+          text={
+            estimateSource === 'open_food_facts'
+              ? 'Found on Open Food Facts by name; it may be a different product. Check the pack and change what is off.'
+              : 'Estimated by AI from the name, not read from a label. Check the pack and change what is off.'
+          }
         />
       ) : null}
       <Field

@@ -41,7 +41,7 @@ import { MealFoodRows, useMealFoods } from '../components/MealFoods';
 import { MealTips } from '../components/MealTips';
 import { MealPhotoField, type PhotoDraft } from '../components/MealPhotoField';
 import { ActionsSheet, SlotPicker } from '../components/MealSheets';
-import { OwnFoodSheet } from '../components/OwnFoodSheet';
+import { OwnFoodSheet, type EstimateSource } from '../components/OwnFoodSheet';
 import { Sheet as BottomSheet } from '../components/Sheet';
 import type { VoiceBegin } from '../components/VoiceMeal';
 import { IconButton, Text, TextButton, TextInput } from '../components/ui';
@@ -113,6 +113,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
   // An AI estimate of a barcode found nowhere, opened in "Enter your own food" (D-117); and the name
   // that Search foods starts with from the barcode sheet.
   const [ownEstimate, setOwnEstimate] = useState<ProductEstimateValues | null>(null);
+  const [ownSource, setOwnSource] = useState<EstimateSource>('ai_estimate');
   const [searchStart, setSearchStart] = useState('');
   const [busy, setBusy] = useState(false);
   // The AI box (the owner's redesign, 2026-11-18): the words typed there, and how Search foods opens
@@ -517,6 +518,10 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
             newId={sync.newId}
             chooser={photoChooser}
             onChooserClose={() => setPhotoChooser(false)}
+            onPicked={(imageBase64) => {
+              setBegin({ photo: imageBase64 });
+              setSheet('search');
+            }}
           />
           <View testID="add-food-ways" style={styles.methods}>
             <MethodTile
@@ -644,9 +649,10 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           {...(begin ? { begin } : {})}
           initialQuery={searchStart}
           onAdd={addFromSearch}
-          onOwnFood={(name) => {
+          onOwnFood={(name, estimate, source) => {
             setOwnName(name);
-            setOwnEstimate(null);
+            setOwnEstimate(estimate ?? null);
+            setOwnSource(source ?? 'ai_estimate');
             setSheet('own');
           }}
           onClose={() => {
@@ -658,9 +664,10 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
       {sheet === 'barcode' ? (
         <BarcodeSheet
           onAdd={(item) => addItems([item])}
-          onOwnFood={(name, estimate) => {
+          onOwnFood={(name, estimate, source) => {
             setOwnName(name);
             setOwnEstimate(estimate ?? null);
+            setOwnSource(source ?? 'ai_estimate');
             setSheet('own');
           }}
           onSearchList={(name) => {
@@ -672,7 +679,7 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
         />
       ) : null}
       {sheet === 'own' ? (
-        <OwnFoodSheet initialName={ownName} estimate={ownEstimate} onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} />
+        <OwnFoodSheet initialName={ownName} estimate={ownEstimate} estimateSource={ownSource} onAdd={(item) => addItems([item])} onClose={() => setSheet(null)} />
       ) : null}
       {sheet === 'saved' ? (
         <ActionsSheet

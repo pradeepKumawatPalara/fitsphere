@@ -110,22 +110,25 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
  * D-31; Legal reviews it, Q-049). Each change of consent records the version shown. A new text gets
  * a new version, and the request schema then accepts both while older apps are in use.
  */
-export const AI_CONSENT_TEXT_VERSION = '2026-11-19';
+export const AI_CONSENT_TEXT_VERSION = '2026-11-20';
 // 2026-11-17 text approved by the owner (D-115, ADR-0010: OpenAI in place of Gemini). 2026-11-19 adds
-// the barcode estimate (D-117, ADR-0010's amendment): PROPOSED wording, waiting for the owner's approval.
+// the barcode estimate (D-117, ADR-0010's amendment). 2026-11-20 adds a photo of a meal (D-118) and the
+// food names looked up online: PROPOSED wording, waiting for the owner's approval.
 export const AI_CONSENT_TEXT =
   "When it is on, the meal text you type or speak is sent to OpenAI's AI service to find the foods " +
   'and amounts you name. FitSphere takes the food values from its own food list. When a scanned ' +
   'barcode is in no list, the product name you type and the barcode number are also sent, and ' +
   "OpenAI estimates the product's values; they are shown as estimates for you to check and change. " +
-  'Your text may be processed outside India and kept by OpenAI for up to 30 days for safety checks; ' +
-  'it is not used to train its models. Voice is turned into text on your phone; recordings are not ' +
+  'When you take or choose a photo of a meal to be read, that photo is sent to OpenAI to name the ' +
+  'foods in it, and a food name may also be looked up on Open Food Facts; the photo is not kept by ' +
+  'FitSphere for this. Your text and photos may be processed outside India and kept by OpenAI for up to 30 days for safety checks; ' +
+  'they are not used to train its models. Voice is turned into text on your phone; recordings are not ' +
   'sent. You check everything before it is saved.';
 /**
  * Texts shown by older apps (2026-10-30: the Gemini text, D-31). Their changes are still recorded,
  * but an AI reading needs consent given on the current text (D-115), so they are asked again.
  */
-export const AI_CONSENT_OLDER_TEXT_VERSIONS = ['2026-10-30', '2026-11-17'] as const;
+export const AI_CONSENT_OLDER_TEXT_VERSIONS = ['2026-10-30', '2026-11-17', '2026-11-19'] as const;
 
 export const aiConsentRequestSchema = z.strictObject({
   consented: z.boolean(),
@@ -1472,6 +1475,29 @@ export const barcodeEstimateResponseSchema = z.strictObject({
   fibreG: z.number().min(0).max(100).nullable(),
 });
 export type BarcodeEstimateResponse = z.infer<typeof barcodeEstimateResponseSchema>;
+
+// --- A photo of a meal, read by AI (D-118): POST /v1/ai/photo-parse and POST /v1/ai/food-lookup ---
+
+/**
+ * The photo as the phone shrinks it for the meal photo (a JPEG, long edge 1,280 px, about 200 KB;
+ * metadata removed), as base64. The cap is generous for that copy and well under the API's body limit.
+ */
+export const PHOTO_PARSE_IMAGE_MAX_CHARS = 700_000;
+export const photoParseRequestSchema = z.strictObject({
+  imageBase64: z.string().min(100).max(PHOTO_PARSE_IMAGE_MAX_CHARS).regex(/^[A-Za-z0-9+/]+={0,2}$/),
+});
+export type PhotoParseRequest = z.infer<typeof photoParseRequestSchema>;
+/** The answer is `mealParseResponseSchema`: the foods seen, never nutrition; the phone finds each in its own list. */
+
+/** A food the phone's own list does not have: looked up by name (Open Food Facts first, then an AI estimate). */
+export const foodLookupRequestSchema = z.strictObject({
+  name: z.string().trim().min(BARCODE_ESTIMATE_NAME_MIN).max(BARCODE_ESTIMATE_NAME_MAX),
+});
+export type FoodLookupRequest = z.infer<typeof foodLookupRequestSchema>;
+
+export const FOOD_LOOKUP_SOURCES = ['open_food_facts', 'ai_estimate'] as const;
+export const foodLookupResponseSchema = barcodeEstimateResponseSchema.extend({ source: z.enum(FOOD_LOOKUP_SOURCES) });
+export type FoodLookupResponse = z.infer<typeof foodLookupResponseSchema>;
 
 // --- Meal photo files: /v1/users/{userId}/media/{mediaId} (ADR-0002 rules 3 and 4) ---
 

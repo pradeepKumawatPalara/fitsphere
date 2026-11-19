@@ -26,6 +26,7 @@ import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { BarcodeCamera, type ScannerProps } from './BarcodeCamera';
 import { GramsBox } from './GramsBox';
+import { type EstimateSource } from './OwnFoodSheet';
 import { Sheet } from './Sheet';
 import { Banner, Field, Problem, Text, TextButton, TextInput, useFieldInputStyle } from './ui';
 
@@ -58,7 +59,7 @@ export function BarcodeSheet({
 }: {
   onAdd(item: MealItem): void;
   /** Opens "Enter your own food", with the product's name when there is one, and an AI estimate's values (D-117). */
-  onOwnFood(name: string, estimate?: ProductEstimateValues): void;
+  onOwnFood(name: string, estimate?: ProductEstimateValues, source?: EstimateSource): void;
   /** Opens Search foods on the name the user typed for a barcode found nowhere (D-117). */
   onSearchList(name: string): void;
   onClose(): void;

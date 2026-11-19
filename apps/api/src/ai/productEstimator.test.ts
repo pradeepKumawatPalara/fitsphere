@@ -109,3 +109,11 @@ describe('D-117 set-up from the settings', () => {
     expect(productEstimatorFromEnv({ OPENAI_API_KEY: 'k' })).not.toBeNull();
   });
 });
+
+describe('D-118 a food looked up by name has no barcode', () => {
+  it('sends only the name when there is no barcode', async () => {
+    const { estimator, calls } = estimatorWith({ output_text: JSON.stringify(GOOD) });
+    expect(await estimator.estimate({ name: 'zorblax crunch bar' })).toEqual(GOOD);
+    expect(calls[0]?.input).toBe(JSON.stringify({ productName: 'zorblax crunch bar' }));
+  });
+});

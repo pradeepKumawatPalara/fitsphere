@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { barcodeEstimateRequestSchema, barcodeEstimateResponseSchema } from './contracts.ts';
+import {
+  barcodeEstimateRequestSchema,
+  barcodeEstimateResponseSchema,
+  foodLookupRequestSchema,
+  foodLookupResponseSchema,
+  PHOTO_PARSE_IMAGE_MAX_CHARS,
+  photoParseRequestSchema,
+} from './contracts.ts';
 
 // POST /v1/ai/barcode-estimate (ADR-0010's amendment, D-117).
 
@@ -30,5 +37,45 @@ describe('D-117 the estimate answer', () => {
     for (const bad of [{ ...GOOD, kcal: 901 }, { ...GOOD, kcal: -1 }, { ...GOOD, fatG: 101 }, { ...GOOD, proteinG: undefined }, { ...GOOD, sodiumMg: 4 }]) {
       expect(barcodeEstimateResponseSchema.safeParse(bad).success).toBe(false);
     }
+  });
+});
+
+// POST /v1/ai/photo-parse and POST /v1/ai/food-lookup (D-118).
+
+describe('D-118 the photo reading request', () => {
+  const image = 'QUJD'.repeat(40);
+  it('accepts base64 of a plausible size and nothing else', () => {
+    expect(photoParseRequestSchema.safeParse({ imageBase64: image }).success).toBe(true);
+    expect(photoParseRequestSchema.safeParse({ imageBase64: 'A'.repeat(PHOTO_PARSE_IMAGE_MAX_CHARS) }).success).toBe(true);
+  });
+  it('refuses a tiny or oversized image, characters that are not base64, a missing field and an extra one', () => {
+    for (const body of [
+      { imageBase64: 'QUJD' },
+      { imageBase64: 'A'.repeat(PHOTO_PARSE_IMAGE_MAX_CHARS + 1) },
+      { imageBase64: `data:image/jpeg;base64,${image}` },
+      { imageBase64: `${image} ${image}` },
+      {},
+      { imageBase64: image, userId: 'x' },
+      null,
+    ]) {
+      expect(photoParseRequestSchema.safeParse(body).success).toBe(false);
+    }
+  });
+});
+
+describe('D-118 the food lookup', () => {
+  it('the request takes a name of 2 to 120 characters, trimmed, and nothing else', () => {
+    expect(foodLookupRequestSchema.parse({ name: '  paneer tikka ' })).toEqual({ name: 'paneer tikka' });
+    for (const body of [{ name: 'a' }, { name: 'x'.repeat(121) }, {}, { name: 'paneer', barcode: '1' }]) {
+      expect(foodLookupRequestSchema.safeParse(body).success).toBe(false);
+    }
+  });
+  it('the answer carries its source, one of the two, with values in range', () => {
+    const base = { name: 'Paneer tikka', brand: null, kcal: 260, proteinG: 18, carbsG: 6, fatG: 18, fibreG: null };
+    expect(foodLookupResponseSchema.safeParse({ ...base, source: 'open_food_facts' }).success).toBe(true);
+    expect(foodLookupResponseSchema.safeParse({ ...base, source: 'ai_estimate' }).success).toBe(true);
+    expect(foodLookupResponseSchema.safeParse(base).success).toBe(false);
+    expect(foodLookupResponseSchema.safeParse({ ...base, source: 'web' }).success).toBe(false);
+    expect(foodLookupResponseSchema.safeParse({ ...base, source: 'ai_estimate', kcal: 950 }).success).toBe(false);
   });
 });

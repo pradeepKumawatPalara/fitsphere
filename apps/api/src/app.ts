@@ -5,11 +5,14 @@ import type pg from 'pg';
 import { registerAccess } from './access.ts';
 import type { Auth } from './auth.ts';
 import { errorBody, handleError } from './errors.ts';
-import { createOpenFoodFacts, type BarcodeSource } from './foods/openFoodFacts.ts';
+import { createOpenFoodFacts, type BarcodeSource, type FoodNameSource } from './foods/openFoodFacts.ts';
 import type { MealParser } from './ai/mealParser.ts';
+import type { PhotoParser } from './ai/photoParser.ts';
 import type { ProductEstimator } from './ai/productEstimator.ts';
 import { registerAiConsentRoutes } from './routes/aiConsent.ts';
 import { registerAiBarcodeEstimateRoute } from './routes/aiBarcodeEstimate.ts';
+import { registerAiFoodLookupRoute } from './routes/aiFoodLookup.ts';
+import { registerAiPhotoParseRoute } from './routes/aiPhotoParse.ts';
 import { registerAiMealParseRoute } from './routes/aiMealParse.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
 import { registerDaysRoute } from './routes/days.ts';
@@ -42,6 +45,10 @@ export type AppDeps = {
   mealParser?: MealParser | null;
   /** The AI module's product estimate (ADR-0010's amendment); tests pass a fake. Without it, estimates answer 503. */
   productEstimator?: ProductEstimator | null;
+  /** The AI module's photo reading (D-118); tests pass a fake. Without it, photo readings answer 503. */
+  photoParser?: PhotoParser | null;
+  /** Open Food Facts by name (D-118); tests pass a fake. Without one, nothing is found by name. */
+  foodNames?: FoodNameSource;
 };
 
 // Never logged (api-conventions, "Logging"; invariant #7): bodies, headers including
@@ -103,6 +110,17 @@ export function buildApp(deps: AppDeps) {
   registerAiBarcodeEstimateRoute(app, {
     db: deps.db,
     now: deps.now ?? (() => new Date()),
+    productEstimator: deps.productEstimator ?? null,
+  });
+  registerAiPhotoParseRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    photoParser: deps.photoParser ?? null,
+  });
+  registerAiFoodLookupRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    foodNames: deps.foodNames ?? createOpenFoodFacts({ contact: undefined }),
     productEstimator: deps.productEstimator ?? null,
   });
   registerSyncRoute(app, {
