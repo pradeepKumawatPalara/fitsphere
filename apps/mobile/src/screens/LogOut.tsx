@@ -8,6 +8,7 @@ import { Text, TextButton } from '../components/ui';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { logOutDecision } from '../local/store';
 import { themedStyles, useTheme } from '../theme';
+import { signInAlone } from './navigation';
 
 // Log out (REQ-ACC-008; MVP default, D-18): deletes the phone's database and its key. With entries
 // not yet on the server, the app warns first and deletes them only if the user confirms. The
@@ -31,7 +32,8 @@ export function LogOut({ after }: { after?: ReactNode }) {
     }
     await local.remove();
     await signOutLocally(deps);
-    router.replace('/sign-in');
+    // Nothing under Sign in, so Back cannot show Home again, signed out (ACC-10).
+    signInAlone(router);
   }
 
   // Destructive, so red and never filled; in the warning, staying signed in comes first and weighs

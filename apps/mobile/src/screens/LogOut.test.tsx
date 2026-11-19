@@ -6,7 +6,7 @@ import { deps, fakeApi, fakeAuthClient, fakeSession } from '../testing/fakes';
 import { memoryDb } from '../testing/memoryDb';
 import { LogOut } from './LogOut';
 
-const mockRouter = { replace: jest.fn() };
+const mockRouter = { replace: jest.fn(), canDismiss: jest.fn(() => true), dismissAll: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter }));
 
 async function renderLogOut(pendingEntries: number) {
@@ -34,6 +34,7 @@ async function renderLogOut(pendingEntries: number) {
 
 beforeEach(() => {
   mockRouter.replace.mockClear();
+  mockRouter.dismissAll.mockClear();
 });
 
 describe('REQ-ACC-008 Log out', () => {
@@ -44,7 +45,10 @@ describe('REQ-ACC-008 Log out', () => {
 
     expect(remove).toHaveBeenCalled();
     expect(client.signOut).toHaveBeenCalledWith({ scope: 'local' });
+    // The screens under Settings are closed first, so Sign in has nothing under it (ACC-10).
+    expect(mockRouter.dismissAll).toHaveBeenCalled();
     expect(mockRouter.replace).toHaveBeenCalledWith('/sign-in');
+    expect(mockRouter.dismissAll.mock.invocationCallOrder[0]).toBeLessThan(mockRouter.replace.mock.invocationCallOrder[0]!);
   });
 
   it('REQ-ACC-008 with entries waiting, warns first; "Stay signed in" keeps everything', async () => {
