@@ -96,6 +96,8 @@ onFlowComplete:
       text: "Add measurements|Edit measurements"
     direction: DOWN
     timeout: 15000
+# One more scroll, so the button isn't tapped under the tabs or the + Log button
+- scroll
 - tapOn: "Add measurements|Edit measurements"
 - extendedWaitUntil:
     visible: 'Upper waist \(cm\)'
@@ -180,6 +182,8 @@ onFlowComplete:
       text: "Your targets"
     direction: DOWN
     timeout: 15000
+# One more scroll, so the row isn't tapped at the foot of the screen, on the phone's gesture bar
+- scroll
 - tapOn: "Your targets"
 - scrollUntilVisible:
     element:
@@ -223,12 +227,13 @@ onFlowComplete:
     childOf:
       text: "Weight: 71.0 kg"
 - assertVisible: "146 kcal eaten|146 of [0-9,]+ kcal"
-# The card's note is under its last row: bring the row to the middle of the screen, above the tabs
+# The card's note is under its last row: scroll to the note itself
 - scrollUntilVisible:
     element:
-      text: "Lower waist: 79.0 cm"
+      text: "Waiting to sync"
+      below:
+        text: "Lower waist: 79.0 cm"
     direction: DOWN
-    centerElement: true
     timeout: 15000
 - assertVisible:
     text: "Waiting to sync"

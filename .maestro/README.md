@@ -118,9 +118,12 @@ maestro test -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro
 - Read the labels in the app's code (most controls have an accessibility label), or point at them
   in `maestro studio`. A test ID (`testID`) is found with `id:`.
 - A flow's `name` becomes the folder of its report, and Windows refuses `" : / \ | ? * < >` in it.
-- Wait with `extendedWaitUntil`, never a fixed pause. Before checking a line under a row near the
-  foot of the screen, scroll the row to the middle (`centerElement: true`): the tabs and the + Log
-  button cover the foot.
+- Wait with `extendedWaitUntil`, never a fixed pause.
+- `scrollUntilVisible` stops once any of the element is on screen: found with only its top edge
+  showing, it is then tapped on the phone's gesture bar, or under the tabs and the + Log button. Before
+  tapping something found near the end of a page, `scroll` once more. To check a line, scroll to the
+  line itself (with `below:` when the same words show elsewhere). Not `centerElement`: an element near
+  the end of a page never reaches the middle.
 - Meal slots on Nutrition start folded: "Show Lunch meals" opens Lunch.
 
 ## If a flow stops halfway

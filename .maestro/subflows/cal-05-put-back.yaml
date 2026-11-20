@@ -51,6 +51,8 @@ appId: com.fitsphere.app
       text: "Add measurements|Edit measurements"
     direction: DOWN
     timeout: 15000
+# One more scroll, so the button isn't tapped under the tabs or the + Log button
+- scroll
 - tapOn: "Add measurements|Edit measurements"
 - extendedWaitUntil:
     visible: 'Upper waist \(cm\)'
@@ -102,6 +104,8 @@ appId: com.fitsphere.app
       text: "Your targets"
     direction: DOWN
     timeout: 15000
+# One more scroll, so the row isn't tapped at the foot of the screen, on the phone's gesture bar
+- scroll
 - tapOn: "Your targets"
 - scrollUntilVisible:
     element:
