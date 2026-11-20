@@ -120,6 +120,8 @@ onFlowComplete:
     visible: "Log out"
     timeout: 5000
 - assertNotVisible: ".*not on the server yet.*"
+# Settings is a page of its own, without the tabs: back to them first
+- tapOn: "Navigate up|Back"
 - tapOn: "Home"
 - scrollUntilVisible:
     element:
