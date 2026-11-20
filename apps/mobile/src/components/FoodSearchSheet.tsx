@@ -584,6 +584,7 @@ export function FoodSearchSheet({
   onOwnFood,
   onClose,
   begin,
+  onAnotherPhoto,
   initialQuery = '',
 }: {
   today: IstDay;
@@ -595,6 +596,8 @@ export function FoodSearchSheet({
   onAdd(items: MealItem[], voice?: { assumed: MealItem[] }): void;
   /** Enter a food the list doesn't have as your own, named as said (D-115). */
   onOwnFood?(name: string, estimate?: ProductEstimateValues, source?: EstimateSource): void;
+  /** A photo could not be read: close Search foods and open "Add a photo" again (D-120). */
+  onAnotherPhoto?(): void;
   onClose(): void;
 }) {
   const styles = useStyles();
@@ -679,11 +682,14 @@ export function FoodSearchSheet({
     ...(begin ? { begin } : {}),
     setQuery: changeQuery,
     search: searchFoodList,
-    onAdd(items, assumed, stay) {
-      onAdd(items, { assumed });
+    onAdd(items, assumed, stay, photo) {
+      // The foods of a photo are not "what you said" (D-120): Log meal counts only spoken ones.
+      if (photo) onAdd(items);
+      else onAdd(items, { assumed });
       if (!stay) onClose();
     },
     ...(onOwnFood ? { onOwnFood } : {}),
+    ...(onAnotherPhoto ? { onAnotherPhoto } : {}),
   });
 
   /** The text typed or cleared (D-72): an emptied box clears the search and its results at once. */

@@ -1,6 +1,6 @@
 # Plan: a photo of a meal, read by AI, foods found in our list, then online, then an estimate
 
-- Status: **Proposed** (the owner asked for it on 2026-11-19 and answered three questions; this plan waits for approval)
+- Status: **Proposed**, then replaced for a photo on 2026-11-20 by `docs/plans/photo-estimate-ai.md` (D-120, ADR-0012): a photo no longer uses the food list, "Look up online" or the consent step. This plan's server `food-lookup` route and its lookup for voice stay.
 - Requirements: REQ-LOG-006 (meal photo), REQ-LOG-009 and REQ-ACC-004 (AI reading and consent), REQ-LOG-007, REQ-LOG-011
 - Decision: D-118 (to be recorded on approval); builds on D-115 (voice) and D-117 (barcode estimate)
 - Invariants touched: #3 (consent on the server before every call), #4 (non-AI logging always works), #6, #7

@@ -3914,6 +3914,39 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-120 A photo of a meal: estimated by AI (foods, amounts, nutrition), no food list, no consent step
+- Status: **Accepted** (owner, in chat, 2026-11-20: "When searching food by photo, do not use existing food
+  from DB, rather use LLM to identify items, quantity and nutrition values"; "this is for upload image and
+  take image only, not for voice and barcode"; "for now drop the DB part completely, if AI is not working
+  then we will show no data available"; "do not ask the consent, directly send these image to AI"; "option
+  b"; "No we will not change the model"; "go with your suggestion" on whether an AI-off Settings still
+  blocks a photo; the notice approved; "keep as usual" for the consent text; the six screens locked).
+  Plan: `docs/plans/photo-estimate-ai.md`. ADR: ADR-0012. Branch `feat/photo-estimate-ai`. Replaces D-118's
+  steps for a photo (the food list, "Look up online"); voice, typed words and the barcode estimate keep D-115,
+  D-117 and D-118's lookup.
+- Answer:
+  - The camera icon's "Add a photo" (Take photo, Choose from gallery) sends the shrunk photo at once to the new
+    `POST /v1/ai/photo-estimate`: no consent step. The AI (`gpt-6-luna`, unchanged) names each food and gives the
+    amount seen, the portion's weight in grams and the values per 100 g. The server leaves out a food whose kcal is
+    far from its macros. Nothing is stored or logged.
+  - The food list and Open Food Facts are not used for a photo. Each food is listed ticked, tagged Estimated, opens
+    in "Check the estimate" (name, grams, values per 100 g, all editable) and is added as an estimated food of the
+    user's own, in grams.
+  - Any failure (offline, no key, OpenAI failing or at its limit, an answer out of contract, no food seen): "No data
+    available", with Try another photo, Enter your own food and Close (invariant #4).
+  - A user who switched AI meal reading off in Settings is still not read ("AI reading is off", Open Settings): not
+    asking is not the same as ignoring a refusal. A user who never chose, or chose on an older text, is read.
+  - The notice on "Add a photo": "The photo is read by AI (OpenAI) to estimate the foods and their nutrition. It is
+    not saved."
+  - The consent text and its version (`2026-11-20`) are left as they are.
+- Exception to invariant #3 and REQ-ACC-004, for a photo only, written in `.claude/rules/project-invariants.md`.
+  Legal has not reviewed it (Q-049): if Legal requires consent for photos, the consent check returns to the route and
+  the phone asks once (a small change, ADR-0012's counterfactual). Risks R-017 and R-018 widened.
+- Amends ADR-0010 and ADR-0005 in part (ADR-0012). No migration, no phone schema change, no new build. **The beta's
+  Cloud Run API needs this API before beta phones can read photos this way; deploy only when the owner says so.**
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

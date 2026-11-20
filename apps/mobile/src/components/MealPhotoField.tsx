@@ -109,7 +109,7 @@ export function MealPhotoField({
       ) : null}
       {chooser ? (
         <Sheet title="Add a photo" onClose={onChooserClose} actions={<TextButton title="Cancel" outlined wide onPress={onChooserClose} />}>
-          <Text style={styles.body}>AI finds the foods in a photo of your meal, or you can attach an image link.</Text>
+          <Banner tone="info" text="The photo is read by AI (OpenAI) to estimate the foods and their nutrition. It is not saved." />
           <ChooserRow
             icon={Camera}
             title="Take photo"

@@ -649,6 +649,11 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           {...(begin ? { begin } : {})}
           initialQuery={searchStart}
           onAdd={addFromSearch}
+          onAnotherPhoto={() => {
+            setBegin(null);
+            setSheet(null);
+            setPhotoChooser(true);
+          }}
           onOwnFood={(name, estimate, source) => {
             setOwnName(name);
             setOwnEstimate(estimate ?? null);
