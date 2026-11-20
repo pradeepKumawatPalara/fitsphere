@@ -25,7 +25,7 @@
   - no row for the day: the import adds one, tagged Health Connect;
   - a row tagged Health Connect: the import updates it (steps grow through the day; a newer weigh-in replaces it);
   - **a row the user typed: never touched** (ADR-0013, "manual wins").
-- **Steps over the table's limit:** `step_counts` allows up to 100,000 a day; a day over that is skipped, not clipped. (Check this against D-100's 200,000 when building; if the owner wants the wider limit for imports, that is a migration change.)
+- **Steps over the limit:** `step_counts` allows 1 to 200,000 a day (migration 0032, D-100); a day over 200,000, or with 0 steps, is skipped, not clipped. *(The first draft said 100,000, the limit before 0032; found in step 2. The owner's answer to Q-B, "skip", stands: only the number is corrected.)*
 - **The same read twice** makes no change and no duplicate.
 - **Never an AI call, never logged:** the values and the reasons for a skip are never logged (invariant #7); only counts and error kinds, on the phone.
 
@@ -106,6 +106,6 @@ The registry and README were read directly; Google's pages only through search s
 
 ## Owner's answers (2026-11-20)
 - **Q-A:** the connection record is on the phone only (`sync_meta`); no server table.
-- **Q-B:** a day over 100,000 steps is skipped, not clipped; the limit is not widened.
+- **Q-B:** a day over the limit is skipped, not clipped; the limit is not widened (200,000 steps, not the 100,000 first written: see "The rules for what is imported").
 - **Q-C:** the owner accepts a proposed layout (the "What the user sees" section above) in place of a canvas board. Once built, the owner checks it on the phone before it counts as locked.
 - **Q-D:** the first test device is a **Fastrack** watch. Phase 2 starts with it; other devices are added later. Whether the Fastrack's app writes steps and weight to Health Connect is unknown until tested; if it does not, the row stays unlisted (ADR-0013 criterion 12).

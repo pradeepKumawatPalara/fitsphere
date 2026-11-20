@@ -4,6 +4,10 @@ import {
   AI_CONSENT_OLDER_TEXT_VERSIONS,
   AI_CONSENT_TEXT,
   AI_CONSENT_TEXT_VERSION,
+  CHANGE_ERROR_CODES,
+  DATA_SOURCES,
+  stepCountSchema,
+  weighInSchema,
   aiConsentRequestSchema,
   MEAL_PARSE_MAX_ITEMS,
   MEAL_TEXT_MAX,
@@ -1085,5 +1089,40 @@ describe('REQ-LOG-006 and REQ-LOG-010 a meal’s photo or public link (D-26)', (
     ]) {
       expect(isPublicLink(text), text).toBe(false);
     }
+  });
+});
+
+describe('D-121 source of steps and weight', () => {
+  const steps = { day: '2026-10-27', steps: 8_000, recordedAt: '2026-10-27T02:45:10.123Z' };
+
+  it('the sources are manual and health_connect, and the sync has a code for a refused import', () => {
+    expect(DATA_SOURCES).toEqual(['manual', 'health_connect']);
+    expect(CHANGE_ERROR_CODES).toContain('MANUAL_VALUE_EXISTS');
+  });
+
+  it('a change may leave the source out (a phone before D-121) or name either source', () => {
+    expect(weighInSetDataSchema.parse(validData)).toEqual(validData);
+    expect(stepsSetDataSchema.parse(steps)).toEqual(steps);
+    for (const source of DATA_SOURCES) {
+      expect(weighInSetDataSchema.parse({ ...validData, source }).source).toBe(source);
+      expect(stepsSetDataSchema.parse({ ...steps, source }).source).toBe(source);
+    }
+  });
+
+  it('any other source, or one that is not text, is refused', () => {
+    for (const source of ['fitbit', '', 'Manual', 1, null]) {
+      expect(weighInSetDataSchema.safeParse({ ...validData, source }).success, String(source)).toBe(false);
+      expect(stepsSetDataSchema.safeParse({ ...steps, source }).success, String(source)).toBe(false);
+    }
+  });
+
+  it('a pulled value without a source reads as manual (a server before D-121); one with it keeps it', () => {
+    const pulledWeight = { day: '2026-10-27', weightGrams: 70_000, recordedAt: validData.recordedAt, updatedAt: validData.recordedAt };
+    const pulledSteps = { day: '2026-10-27', steps: 8_000, recordedAt: validData.recordedAt, updatedAt: validData.recordedAt };
+    expect(weighInSchema.parse(pulledWeight).source).toBe('manual');
+    expect(stepCountSchema.parse(pulledSteps).source).toBe('manual');
+    expect(weighInSchema.parse({ ...pulledWeight, source: 'health_connect' }).source).toBe('health_connect');
+    expect(stepCountSchema.parse({ ...pulledSteps, source: 'health_connect' }).source).toBe('health_connect');
+    expect(weighInSchema.safeParse({ ...pulledWeight, source: 'fitbit' }).success).toBe(false);
   });
 });

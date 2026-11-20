@@ -3,6 +3,7 @@ import {
   DEFAULT_LIST_LIMIT,
   validationDetails,
   weighInsQuerySchema,
+  type DataSource,
   type WeighInsPage,
 } from '@fitsphere/shared';
 import type { FastifyInstance } from 'fastify';
@@ -24,8 +25,8 @@ export function registerWeighInsRoute(app: FastifyInstance, deps: { db: pg.Pool 
     const afterDay = cursor === undefined ? null : decodeDayCursor(cursor);
     if (afterDay === undefined) throw new ApiError('VALIDATION_FAILED', [{ field: 'cursor', issue: 'invalid_format' }]);
 
-    const { rows } = await deps.db.query<{ day: string; weight_grams: number; recorded_at: Date; updated_at: Date }>(
-      `select day::text as day, weight_grams, recorded_at, updated_at
+    const { rows } = await deps.db.query<{ day: string; weight_grams: number; recorded_at: Date; updated_at: Date; source: DataSource }>(
+      `select day::text as day, weight_grams, recorded_at, updated_at, source
        from app.weigh_ins
        where user_id = $1 and day between $2 and $3 and ($4::date is null or day > $4::date)
        order by day
@@ -39,6 +40,7 @@ export function registerWeighInsRoute(app: FastifyInstance, deps: { db: pg.Pool 
         weightGrams: row.weight_grams,
         recordedAt: row.recorded_at.toISOString(),
         updatedAt: row.updated_at.toISOString(),
+        source: row.source,
       })),
       nextCursor: rows.length > limit && page.length > 0 ? encodeDayCursor(page.at(-1)!.day) : null,
     };

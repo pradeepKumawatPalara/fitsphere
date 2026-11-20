@@ -89,8 +89,8 @@ describe('D-106 GET /v1/users/:userId/days: an older week, as the sync pull send
 
     expect(response.statusCode).toBe(200);
     const body = response.json() as DaysResponse;
-    expect(body.weighIns).toEqual([{ day: OLD, weightGrams: 74_100, recordedAt: AT, updatedAt: expect.any(String) }]);
-    expect(body.steps).toEqual([{ day: OLD, steps: 8_410, recordedAt: AT, updatedAt: expect.any(String) }]);
+    expect(body.weighIns).toEqual([{ day: OLD, weightGrams: 74_100, recordedAt: AT, updatedAt: expect.any(String), source: 'manual' }]);
+    expect(body.steps).toEqual([{ day: OLD, steps: 8_410, recordedAt: AT, updatedAt: expect.any(String), source: 'manual' }]);
     expect(body.sleep).toEqual([{ day: addDays(OLD, 1), sleepMinutes: 430, recordedAt: AT, updatedAt: expect.any(String) }]);
     expect(body.measurements).toEqual([]);
     expect(body.workouts).toEqual([expect.objectContaining({ id: workoutId, day: addDays(OLD, 2), deleted: false, exercises: [PLANK] })]);

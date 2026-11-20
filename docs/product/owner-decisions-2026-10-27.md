@@ -3890,7 +3890,7 @@ checksum), and the configuration template was left as it is.*
 
 ## D-121 Health Connect (Android) as a source of steps and body weight, on a Connections screen
 - Status: **Accepted** (the owner, 2026-11-20, in chat: ADR-0013's defaults accepted, backlog work, the plan
-  approved, Q-A phone only, Q-B skip days over 100,000 steps, Q-C a proposed layout in place of a canvas board,
+  approved, Q-A phone only, Q-B skip days over the limit (200,000 steps), Q-C a proposed layout in place of a canvas board,
   Q-D the Fastrack watch first). Number taken as the next free one (D-119 and D-120 are on other branches);
   the owner may renumber. Plan: `docs/plans/health-connect.md`; ADR-0013; backlog B-29. Branch `feat/health-connect`.
 - Answer: Settings gets Connections; Health Connect, read on the phone, brings in steps and body weight (30 days

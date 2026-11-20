@@ -44,6 +44,8 @@ export const CHANGE_ERROR_CODES = [
   'ROLE_NOT_ENABLED',
   'NOT_ALLOWED',
   'UNKNOWN_CHANGE_TYPE',
+  // D-121: an import from the phone's health store for a day whose value the user typed.
+  'MANUAL_VALUE_EXISTS',
 ] as const;
 export type ChangeErrorCode = (typeof CHANGE_ERROR_CODES)[number];
 
@@ -214,12 +216,22 @@ export function syncWindowStart(today: IstDay): IstDay {
   return addDays(today, -(SYNC_WINDOW_DAYS - 1));
 }
 
+/**
+ * Where a day's steps or weight came from (D-121, ADR-0013): typed by the user, or read from the
+ * phone's health store. A value the user typed is never replaced by an import.
+ */
+export const DATA_SOURCES = ['manual', 'health_connect'] as const;
+export type DataSource = (typeof DATA_SOURCES)[number];
+export const dataSourceSchema = z.enum(DATA_SOURCES);
+
 export const WEIGH_IN_SET = 'weighIn.set';
 
 export const weighInSetDataSchema = z.strictObject({
   day: istDaySchema,
   weightGrams: weightGramsSchema,
   recordedAt: instantSchema,
+  /** Left out: the user typed it ('manual'), as every phone before D-121 sends. */
+  source: dataSourceSchema.optional(),
 });
 export type WeighInSetData = z.infer<typeof weighInSetDataSchema>;
 
@@ -232,6 +244,8 @@ export const stepsSetDataSchema = z.strictObject({
   day: istDaySchema,
   steps: z.int().min(STEPS_MIN).max(STEPS_MAX),
   recordedAt: instantSchema,
+  /** Left out: the user typed it ('manual'). */
+  source: dataSourceSchema.optional(),
 });
 export type StepsSetData = z.infer<typeof stepsSetDataSchema>;
 
@@ -885,6 +899,7 @@ export const weighInSchema = z.object({
   weightGrams: z.int(),
   recordedAt: instantSchema,
   updatedAt: instantSchema,
+  source: dataSourceSchema.default('manual'),
 });
 export type WeighIn = z.infer<typeof weighInSchema>;
 
@@ -893,6 +908,7 @@ export const stepCountSchema = z.object({
   steps: z.int(),
   recordedAt: instantSchema,
   updatedAt: instantSchema,
+  source: dataSourceSchema.default('manual'),
 });
 export type StepCount = z.infer<typeof stepCountSchema>;
 

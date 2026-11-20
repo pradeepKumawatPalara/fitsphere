@@ -920,7 +920,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - A value the user typed is never changed by a read; an imported value is tagged "Health Connect" and a later
     read may update it until the user edits it, which makes it the user's own. The API refuses a change that
     would turn a typed value into an imported one.
-  - A day over 100,000 steps, or a weight outside 20 to 300 kg, is skipped.
+  - A day over 200,000 steps (or with none), or a weight outside 20 to 300 kg, is skipped.
   - Disconnect stops reading at once and asks Keep or Remove; Remove deletes only the values still tagged
     Health Connect. Access withdrawn in Android shows as Not connected at the next app open.
   - A failed read keeps the old values and says "Couldn't read. Try again."; logging by hand is never affected
