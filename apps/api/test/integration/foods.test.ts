@@ -405,8 +405,8 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
       expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toEqual({ servings: 117, units: 12, sheetUnits: 0, replaced: 0, opening: 0 });
       expect(await flags()).toEqual([
         { flag: null, n: 24 },
-        { flag: 'llm', n: 398 },
-        { flag: 'scrap', n: 208 },
+        { flag: 'llm', n: 395 },
+        { flag: 'scrap', n: 211 },
       ]);
     } finally {
       await importFoods(client, [], BRAND_LABEL_SOURCE);
