@@ -121,9 +121,10 @@ maestro test -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro
 - Wait with `extendedWaitUntil`, never a fixed pause.
 - `scrollUntilVisible` stops once any of the element is on screen: found with only its top edge
   showing, it is then tapped on the phone's gesture bar, or under the tabs and the + Log button. Before
-  tapping something found near the end of a page, `scroll` once more. To check a line, scroll to the
-  line itself (with `below:` when the same words show elsewhere). Not `centerElement`: an element near
-  the end of a page never reaches the middle.
+  tapping something found near the end of a page, `scroll` once more, or scroll with
+  `centerElement: true` (Maestro stops centring after 4 tries, so give it a longer timeout, as
+  `smoke-05` does). To check a line, scroll to the line itself (with `below:` when the same words
+  show elsewhere).
 - Meal slots on Nutrition start folded: "Show Lunch meals" opens Lunch.
 
 ## If a flow stops halfway
