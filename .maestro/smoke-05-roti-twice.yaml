@@ -117,6 +117,12 @@ tags:
 - extendedWaitUntil:
     visible: "Lunch saved · 2 foods.*"
     timeout: 10000
+# The back arrow scrolls with the page (Log meal since 19 Nov): back up to it first
+- scrollUntilVisible:
+    element:
+      text: "Back|Navigate up"
+    direction: UP
+    timeout: 10000
 - tapOn: "Back|Navigate up"
 
 # Home: 6 roti in all
