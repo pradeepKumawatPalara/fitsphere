@@ -7,7 +7,7 @@ import {
   type LengthUnit,
   type MeasurementsSetData,
 } from '@fitsphere/shared';
-import { ChevronDown, ChevronLeft, ChevronRight, CircleAlert, X } from 'lucide-react-native';
+import { CalendarDays, ChevronDown, ChevronRight, CircleAlert, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { formatDay, measurementRange, parseLength } from '../format';
@@ -17,6 +17,8 @@ import { getEntry, getMeta, setMeta } from '../local/store';
 import { useOlderDays } from '../sync/SyncProvider';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
+import { CalendarSheet } from './CalendarSheet';
+import { ConfirmSheet } from './MealSheets';
 import { Sheet } from './Sheet';
 import { Text, TextButton, TextInput, useChoiceStyles, useFieldInputStyle, useFieldLabelStyle } from './ui';
 
@@ -75,6 +77,12 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   // The length being typed in: its outline caramel.
   const [focused, setFocused] = useState<LengthKey | null>(null);
   const [busy, setBusy] = useState(false);
+  // The date's calendar (D-33's Log meal date, now here too), and a day chosen while typed values are
+  // not saved: asked about before they are dropped.
+  const [calendar, setCalendar] = useState(false);
+  const [dropFor, setDropFor] = useState<IstDay | null>(null);
+  // Something was typed since the day's entry was last filled in.
+  const [dirty, setDirty] = useState(false);
   // A day before the phone's 90 is read from the server; its entry is read again once it is (D-106).
   const monday = istWeekStart(day);
   const older = useOlderDays(monday, addDays(monday, 6), today);
@@ -89,6 +97,7 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
       if (!active) return;
       const shownUnit: LengthUnit = saved === 'in' ? 'in' : 'cm';
       setUnit(shownUnit);
+      setDirty(false);
       if (!entry) {
         setTexts(EMPTY);
         setNotes('');
@@ -139,6 +148,13 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
   const range = measurementRange(unit);
   const rule = `Enter ${range.min.toFixed(1)} to ${range.max.toFixed(1)} ${unit}.`;
 
+  /** A day from the calendar: typed values not saved are asked about first. */
+  function chooseDay(next: IstDay) {
+    if (next === day) return;
+    if (dirty) setDropFor(next);
+    else setDay(next);
+  }
+
   async function save() {
     const length = (key: LengthKey) => {
       const value = lengths[key];
@@ -171,7 +187,10 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
           <TextInput
             accessibilityLabel={`${label} (${unit})`}
             value={texts[key]}
-            onChangeText={(text) => setTexts((current) => ({ ...current, [key]: text }))}
+            onChangeText={(text) => {
+              setDirty(true);
+              setTexts((current) => ({ ...current, [key]: text }));
+            }}
             onFocus={() => {
               setFocused(key);
               checks.focus(key);
@@ -232,31 +251,16 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             {formatDay(day, today)}
           </Text>
         ) : (
-          <View style={styles.row}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Previous day"
-              accessibilityState={{ disabled: day <= firstDay }}
-              disabled={day <= firstDay}
-              onPress={() => setDay(addDays(day, -1))}
-              style={({ pressed }) => [styles.square, day <= firstDay && styles.dimmed, pressed && styles.pressed]}
-            >
-              <ChevronLeft size={20} strokeWidth={2.25} color={day <= firstDay ? colors.inkSubtle : colors.accent} />
-            </Pressable>
-            <Text accessibilityLabel={`Date: ${formatDay(day, today)}`} style={[styles.date, styles.dateBetween]}>
-              {formatDay(day, today)}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Next day"
-              accessibilityState={{ disabled: day >= today }}
-              disabled={day >= today}
-              onPress={() => setDay(addDays(day, 1))}
-              style={({ pressed }) => [styles.square, day >= today && styles.dimmed, pressed && styles.pressed]}
-            >
-              <ChevronRight size={20} strokeWidth={2.25} color={day >= today ? colors.inkSubtle : colors.accent} />
-            </Pressable>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Date: ${formatDay(day, today)}`}
+            accessibilityHint="Opens the calendar to choose another day"
+            onPress={() => setCalendar(true)}
+            style={({ pressed }) => [styles.dateChip, pressed && styles.pressed]}
+          >
+            <CalendarDays size={20} strokeWidth={2.25} color={colors.accent} />
+            <Text style={styles.date}>{formatDay(day, today)}</Text>
+          </Pressable>
         )}
         <View style={styles.units}>
           {(['cm', 'in'] as const).map((option) => (
@@ -296,7 +300,10 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             <TextInput
               accessibilityLabel="Notes"
               value={notes}
-              onChangeText={setNotes}
+              onChangeText={(text) => {
+                setDirty(true);
+                setNotes(text);
+              }}
               onFocus={() => checks.focus('notes')}
               onBlur={() => checks.blur('notes')}
               multiline
@@ -314,6 +321,26 @@ export function MeasurementsSheet({ mode, initialDay, today, firstDay, onSave, o
             )}
           </View>
         </>
+      ) : null}
+      {calendar ? (
+        <CalendarSheet
+          title="Measurements for"
+          today={today}
+          firstDay={firstDay}
+          selected={day}
+          onSelect={chooseDay}
+          onClose={() => setCalendar(false)}
+        />
+      ) : null}
+      {dropFor ? (
+        <ConfirmSheet
+          title="Change the date?"
+          message="The values you typed for this day aren't saved. Changing the date drops them."
+          cancelLabel="Keep typing"
+          confirmLabel="Change date"
+          onConfirm={() => setDay(dropFor)}
+          onClose={() => setDropFor(null)}
+        />
       ) : null}
     </Sheet>
   );
@@ -336,10 +363,18 @@ const useStyles = themedStyles((c) => ({
     justifyContent: 'center',
   },
   dateRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dimmed: { opacity: 0.45 },
+  dateChip: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceRaised,
+  },
   date: { ...TYPE.metric, fontVariant: ['tabular-nums'] },
-  dateBetween: { minWidth: 96, textAlign: 'center' },
   units: { flexDirection: 'row', gap: 6 },
   unit: { width: 52, paddingHorizontal: 0 },
   pressed: { opacity: 0.6 },
