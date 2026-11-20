@@ -36,10 +36,10 @@ describe('D-49 the committed brand-labels sheet', () => {
     expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
   });
 
-  it('flags the 199 rows read from the web as scrap, the 408 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
+  it('flags the 208 rows read from the web as scrap, the 398 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
     const { foods } = readBrandLabelsSheet(COMMITTED);
-    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(199);
-    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(408);
+    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(208);
+    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(398);
     expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
   });
 
