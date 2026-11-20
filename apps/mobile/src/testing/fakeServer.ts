@@ -11,6 +11,7 @@ import {
   type BarcodeEstimateResponse,
   type FoodLookupResponse,
   type ParsedMealItem,
+  type PhotoEstimateResponse,
   type SyncResult,
   type TargetKind,
   type Workout,
@@ -116,12 +117,12 @@ export function fakeServer(now: Date) {
     barcodeEstimate: null as BarcodeEstimateResponse | { status: number; code: string } | null,
     /** The bodies sent to `POST /ai/barcode-estimate`. */
     barcodeEstimateBodies: [] as { barcode: string; name: string }[],
-    /** What `POST /ai/photo-parse` answers (D-118): the foods seen, or an error status and code. */
-    photoParse: { items: [] } as { items: ParsedMealItem[] } | { status: number; code: string },
-    /** `POST /ai/photo-parse` fails as a network failure would. */
-    photoParseOffline: false,
-    /** The pictures (base64) sent to `POST /ai/photo-parse`. */
-    photoParseImages: [] as string[],
+    /** What `POST /ai/photo-estimate` answers (D-120): the foods seen with their estimates, or an error status and code. */
+    photoEstimate: { items: [] } as PhotoEstimateResponse | { status: number; code: string },
+    /** `POST /ai/photo-estimate` fails as a network failure would. */
+    photoEstimateOffline: false,
+    /** The pictures (base64) sent to `POST /ai/photo-estimate`. */
+    photoEstimateImages: [] as string[],
     /** What `POST /ai/food-lookup` answers (D-118): the food found, or an error status and code. */
     foodLookup: null as FoodLookupResponse | { status: number; code: string } | null,
     /** The bodies sent to `POST /ai/food-lookup`. */
@@ -362,10 +363,10 @@ export function fakeServer(now: Date) {
       }
       return json(200, answer);
     }
-    if (path === '/ai/photo-parse' && method === 'POST') {
-      if (state.photoParseOffline) throw new TypeError('Network request failed');
-      state.photoParseImages.push((body as { imageBase64: string }).imageBase64);
-      const answer = state.photoParse;
+    if (path === '/ai/photo-estimate' && method === 'POST') {
+      if (state.photoEstimateOffline) throw new TypeError('Network request failed');
+      state.photoEstimateImages.push((body as { imageBase64: string }).imageBase64);
+      const answer = state.photoEstimate;
       if ('status' in answer) {
         return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
       }
