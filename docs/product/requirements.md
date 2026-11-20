@@ -905,6 +905,28 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   shown is the latest weigh-in on the phone (the last 90 days); a photo is cropped to its middle
   square.
 
+### REQ-ACC-012 — Connections: steps and weight from Health Connect
+- Type: Functional, Privacy
+- Requirement: On Android, the user can connect Health Connect in Settings › Connections so that their steps and
+  body weight are read into FitSphere. Only those two types are asked for, on Android's own permission screen;
+  they are read, never written. *(Backlog B-29; the owner's request, D-121, ADR-0013.)*
+- Acceptance criteria:
+  - Given Health Connect is missing or the phone cannot have it, then the row says so and nothing is read.
+  - Given the user refuses the permission, then the row stays Not connected and nothing is read.
+  - On connect the last 30 days are read once; after that, on app open and on pull to refresh, one read at a
+    time. Never in the background.
+  - A day's steps are Health Connect's own total for that day in Asia/Kolkata (invariant #5); a weigh-in is dated
+    by its time in Asia/Kolkata, kept in whole grams (invariant #6), the latest of the day.
+  - A value the user typed is never changed by a read; an imported value is tagged "Health Connect" and a later
+    read may update it until the user edits it, which makes it the user's own. The API refuses a change that
+    would turn a typed value into an imported one.
+  - A day over 100,000 steps, or a weight outside 20 to 300 kg, is skipped.
+  - Disconnect stops reading at once and asks Keep or Remove; Remove deletes only the values still tagged
+    Health Connect. Access withdrawn in Android shows as Not connected at the next app open.
+  - A failed read keeps the old values and says "Couldn't read. Try again."; logging by hand is never affected
+    (invariant #4). No value and no reason for a skip is logged (invariant #7). Nothing is sent to an AI service.
+  - A device or app is named on the screen only after the owner's test marks it Works, Partial or Not supported.
+
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
 - Requirement: A person can create an account and sign in with email and password before using any role view; this is the only sign-in method in phase 1 (D-05). Users must be 18 or older: sign-up requires an "I am 18 or older" confirmation (D-18, answers Q-066 for the MVP). *(Not in the BRD, which mentions only change password, log out and delete account.)*
