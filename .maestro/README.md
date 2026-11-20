@@ -1,10 +1,13 @@
-# Maestro smoke tests
+# Maestro tests
 
-Ten flows that drive the FitSphere app on a real Android phone over USB (D-119; no emulator, D-19).
-Run them before each hand-over of a build to testers. Each flow starts from a clean app
-(`clearState`), signs in with the robot account and cleans up after itself, so they can run in any
-order and again and again. The tracker rows are those of the tester's tracker, kept outside the
-repository with the tester's guide.
+Flows that drive the FitSphere app on a real Android phone over USB (D-119; no emulator, D-19): ten
+smoke flows, run before each hand-over of a build to testers, and five regression flows for the
+tracker's Critical rows. Each flow starts from a clean app (`clearState`), signs in with the robot
+account (but `smoke-03` and `regression-acc-03`, which never sign in) and cleans up after itself, so
+they can run in any order and again and again. The tracker rows are those of the tester's tracker,
+kept outside the repository with the tester's guide.
+
+## Smoke flows (tag `smoke`)
 
 | Flow | What it checks | Tracker rows |
 |---|---|---|
@@ -19,9 +22,21 @@ repository with the tester's guide.
 | `smoke-09-calorie-target.yaml` | A new calorie target holds from today, a day last week keeps its old one; remaining = target minus eaten | SET-02, HOME-04 |
 | `smoke-10-log-out.yaml` | Log out opens Sign in with nothing of the user, after Back and after a relaunch | ACC-10 |
 
+## Regression flows (tag `regression`)
+
+| Flow | What it checks | Tracker rows |
+|---|---|---|
+| `regression-acc-03-age-unticked.yaml` | With a good email and password, Sign up stays greyed until "I am 18 or older" is ticked and greys again when it is unticked; Sign up is never pressed | ACC-03 |
+| `regression-food-01-search-paneer.yaml` | "paneer" in Search foods logs IFCT's Paneer (1 katori, 395 kcal) to Lunch; Lunch gets its green tick and Home shows 395 kcal; the lunch is deleted | FOOD-01 |
+| `regression-food-14-quantity-scaling.yaml` | Chapati/Roti at 2, 4 and 1 chapati: calories, protein, carbs, fat and fibre each worked out from the grams (doubled 4.2 g of protein shows 8.5 g, as 4.23 g doubled is 8.46 g); nothing is added | FOOD-14 |
+| `regression-cal-05-offline-saves.yaml` | In flight mode a meal, a workout, steps, sleep, weight, measurements and the protein target save on the phone and wait to sync; with flight mode off they sync; the day is put back | CAL-05 |
+| `regression-acc-11-log-out-unsent.yaml` | In flight mode a lunch logged makes Log out warn first; Stay signed in keeps it; Log out and delete them deletes it, and signing in again online shows it never reached the server | ACC-11 |
+
+`subflows/` holds steps the flows share (`cal-05-put-back.yaml`, `delete-roti-lunch.yaml`). Maestro runs
+only the top-level files of a folder, so they never run on their own.
+
 Left to people: dragging the pill and reopening the app (TRAIN-14), the timer while the phone is
-locked (TRAIN-16), kg to lb (HOME-08), log out with unsent data in flight mode (ACC-11), and the
-target limits (SET-01).
+locked (TRAIN-16), kg to lb (HOME-08), and the target limits (SET-01).
 
 ## Install on Windows
 
@@ -29,7 +44,8 @@ target limits (SET-01).
 2. Maestro: download `maestro.zip` from the latest release at
    <https://github.com/mobile-dev-inc/maestro/releases>, unzip it (for example to `C:\maestro`) and add
    its `bin` folder (`C:\maestro\maestro\bin`) to the user's `Path`. Check with `maestro --version` in
-   a new PowerShell window.
+   a new PowerShell window. On a recent Java it prints three "WARNING: Final field …" lines on each
+   run: they are harmless.
 3. `adb`: Android SDK Platform-Tools, the standalone download (no Android Studio, D-19), its folder on
    `Path`.
 
@@ -57,8 +73,11 @@ target limits (SET-01).
 
 One account on the development project with made-up data only, signed up in the app with its email
 confirmed (an unconfirmed account also gets "Email or password is incorrect."). Its email and
-password are given with `-e` on each run and never written into a file. `smoke-09` sets a calorie
-target, which can't be removed; `smoke-04` and `smoke-05` read Home with or without one.
+password are given with `-e` on each run and never written into a file. Targets can't be removed:
+`smoke-09` sets a calorie target, so `smoke-04`, `smoke-05` and `regression-food-01` read Home with or
+without one; `regression-cal-05` keeps a daily protein target of 120 g, which no other flow reads.
+Today's steps, sleep, weight and measurements are one per day and are left as 7,500 steps, 7 h, 70 kg
+and waists of 80 and 78 cm.
 
 ## Run
 
@@ -69,16 +88,44 @@ example values:
 # one flow
 maestro test -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro/smoke-04-log-lunch.yaml
 
-# all ten
+# the smoke flows, or the regression flows
+maestro test --include-tags smoke -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro
+maestro test --include-tags regression -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro
+
+# all of them
 maestro test -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro
 ```
 
-- With more than one phone connected, add `--device` and the phone's id from `adb devices`.
+- With more than one phone connected, add `--device` and the phone's id from `adb devices`
+  (`maestro --device <id> test …`).
 - A JUnit report: `--format junit --output results.xml` (kept out of git).
 - Each run's screenshots, screen dumps and logs are saved under `%USERPROFILE%\.maestro\tests\`,
   outside the repository; a failed step names its folder.
 
-If a flow stops halfway, what it logged stays and can make later flows fail too (a lunch left by 05
-makes 09 fail), so tidy up by hand before the next run: delete today's lunch (04, 05) or
-workout (07, 08; this also stops its timer). For 09, run it again the same day, so today's calorie
-target ends on 2,000 kcal again.
+## Flight mode (`regression-cal-05`, `regression-acc-11`)
+
+- Maestro's `setAirplaneMode` (Android only). Both flows turn flight mode off in `onFlowComplete`,
+  which runs whether the flow passes or fails. Stopping Maestro with Ctrl+C skips it: then turn flight
+  mode off by hand, or with `adb shell cmd connectivity airplane-mode disable`. Maestro reaches the
+  phone over the cable, so flight mode does not cut it off.
+- Each flow checks the phone really is offline: an entry still says "Waiting to sync" a minute after
+  it was saved. On the owner's OnePlus flight mode cut the network on the first run (2026-11-20).
+  Android 13 and later keep Wi-Fi on in flight mode once it was turned back on there; such a phone
+  fails that check. Turn flight mode on, Wi-Fi off and flight mode off once by hand, and it forgets.
+
+## Writing a flow
+
+- Read the labels in the app's code (most controls have an accessibility label), or point at them
+  in `maestro studio`. A test ID (`testID`) is found with `id:`.
+- A flow's `name` becomes the folder of its report, and Windows refuses `" : / \ | ? * < >` in it.
+- Wait with `extendedWaitUntil`, never a fixed pause. Before checking a line under a row near the
+  foot of the screen, scroll the row to the middle (`centerElement: true`): the tabs and the + Log
+  button cover the foot.
+- Meal slots on Nutrition start folded: "Show Lunch meals" opens Lunch.
+
+## If a flow stops halfway
+
+What it logged stays and can make later flows fail too (a lunch left by 05 makes 09 fail), so tidy up
+by hand before the next run: delete today's lunch (04, 05, `regression-food-01`) or workout (07, 08;
+this also stops its timer). For 09, run it again the same day, so today's calorie target ends on
+2,000 kcal again. `regression-cal-05` and `regression-acc-11` tidy their own leftovers at their start.

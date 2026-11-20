@@ -1,0 +1,272 @@
+appId: com.fitsphere.app
+name: Flight mode, meal, workout, steps, sleep, weight, measurements and a target save on the phone (CAL-05)
+tags:
+  - regression
+# Flight mode is turned off after the flow whether it passes or fails
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+# Signs in online, turns flight mode on, logs one of each, and checks each is on the phone. Entries
+# not yet on the server say "Waiting to sync" (a target, "Set by you · waiting to sync"); still saying
+# so a minute after the first one was saved shows the phone really is offline. Then flight mode off,
+# everything syncs, and the day is put back.
+# The day is put back first as well as last (subflows/cal-05-put-back.yaml): a run that stops halfway
+# leaves its entries, which sync once flight mode goes off. Put back means: CAL-05's lunch and workout
+# deleted; steps, sleep, weight and measurements (one per day, never deleted) at 7,500 steps, 7 h,
+# 70 kg (as smoke-06 leaves them) and waists of 80 and 78 cm; daily protein 120 g (the target no other
+# flow reads; a target can't be removed). Offline the run saves other values (8,000, 8 h, 71 kg, 81 and
+# 79 cm, 121 g), so each offline save is a change.
+
+# Sign in (as smoke-04), online
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+- extendedWaitUntil:
+    visible: "Steps: .*"
+    timeout: 30000
+
+# Put the day back, then start from a day with no lunch and no workout
+- runFlow: subflows/cal-05-put-back.yaml
+- scrollUntilVisible:
+    element:
+      text: "0 kcal eaten|0 of [0-9,]+ kcal"
+    direction: UP
+    timeout: 30000
+- tapOn: "Training"
+- extendedWaitUntil:
+    visible: "No workouts on .*"
+    timeout: 30000
+- tapOn: "Home"
+
+# ================= Flight mode on =================
+- setAirplaneMode: enabled
+
+# ---- Steps, sleep and weight from the Home tiles (as smoke-06) ----
+- tapOn: "Steps: .*"
+- extendedWaitUntil:
+    visible: "Steps · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "8000"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Steps: 8,000 steps"
+    timeout: 10000
+
+- tapOn: "Sleep: .*"
+- extendedWaitUntil:
+    visible: "Sleep · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "8"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Sleep: 8.0 h"
+    timeout: 10000
+
+- tapOn: "Weight: .*"
+- extendedWaitUntil:
+    visible: "Weight · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "71"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Weight: 71.0 kg"
+    timeout: 10000
+
+# ---- Measurements: waists of 81 and 79 cm ----
+- scrollUntilVisible:
+    element:
+      text: "Add measurements|Edit measurements"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Add measurements|Edit measurements"
+- extendedWaitUntil:
+    visible: 'Upper waist \(cm\)'
+    timeout: 10000
+- tapOn: 'Upper waist \(cm\)'
+- eraseText: 10
+- inputText: "81"
+- tapOn: 'Lower waist \(cm\)'
+- eraseText: 10
+- inputText: "79"
+- tapOn: "Save measurements"
+- extendedWaitUntil:
+    visible: "Upper waist: 81.0 cm"
+    timeout: 10000
+- assertVisible: "Lower waist: 79.0 cm"
+
+# ---- A meal: 2 roti to Lunch (as smoke-04); search works offline ----
+- tapOn: "Nutrition"
+- tapOn: "Add to Breakfast"
+- extendedWaitUntil:
+    visible: "Search foods"
+    timeout: 10000
+- tapOn: "Lunch"
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "2 roti"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Chapati/Roti, 202 kcal per 100 g, estimated"
+    timeout: 60000
+- tapOn: "Chapati/Roti, 202 kcal per 100 g, estimated"
+- extendedWaitUntil:
+    visible: "Quantity: 2"
+    timeout: 10000
+- tapOn: "Add"
+- tapOn: "Save lunch"
+- extendedWaitUntil:
+    visible: "Lunch saved.*"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: "Back|Navigate up"
+    direction: UP
+    timeout: 10000
+- tapOn: "Back|Navigate up"
+
+# ---- A workout: a 20-minute walk (as smoke-07) ----
+- tapOn: "Training"
+- tapOn: "Log workout for today"
+- extendedWaitUntil:
+    visible: "Add exercise"
+    timeout: 10000
+- tapOn: "Add exercise"
+- extendedWaitUntil:
+    visible: "Search or type an exercise"
+    timeout: 10000
+- tapOn: "Search or type an exercise"
+- inputText: "walking"
+- extendedWaitUntil:
+    visible: "Walking, .*"
+    timeout: 30000
+- tapOn: "Walking, .*"
+- tapOn: "Time, minutes"
+- inputText: "20"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "(?i)estimated"
+    timeout: 5000
+- tapOn: "Save exercise"
+- extendedWaitUntil:
+    visible: "Walking: 20:00, .*kcal · estimated"
+    timeout: 10000
+- tapOn: "Navigate up|Back"
+- extendedWaitUntil:
+    visible: ".*, Workout 1: 1 exercise · Walking"
+    timeout: 10000
+
+# ---- A target: daily protein 121 g (Account, Your targets; as smoke-09) ----
+- tapOn: "Account"
+- scrollUntilVisible:
+    element:
+      text: "Your targets"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Your targets"
+- scrollUntilVisible:
+    element:
+      text: "Daily protein: .*"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Daily protein: .*"
+- extendedWaitUntil:
+    visible: "Daily protein in g"
+    timeout: 5000
+- eraseText: 10
+- inputText: "121"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Daily protein: 121 g"
+    timeout: 10000
+- assertVisible:
+    text: "Set by you . waiting to sync"
+    label: "The protein target is on the phone, waiting to sync"
+- tapOn: "Navigate up|Back"
+- tapOn: "Navigate up|Back"
+
+# ================= All on the phone, still offline =================
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "Steps: 8,000 steps"
+    direction: UP
+    timeout: 10000
+- assertVisible:
+    text: "Waiting to sync"
+    childOf:
+      text: "Steps: 8,000 steps"
+    label: "Steps still waiting to sync a minute later: flight mode really is offline (if not, Wi-Fi may have stayed on)"
+- assertVisible:
+    text: "Waiting to sync"
+    childOf:
+      text: "Sleep: 8.0 h"
+- assertVisible:
+    text: "Waiting to sync"
+    childOf:
+      text: "Weight: 71.0 kg"
+- assertVisible: "146 kcal eaten|146 of [0-9,]+ kcal"
+# The card's note is under its last row: bring the row to the middle of the screen, above the tabs
+- scrollUntilVisible:
+    element:
+      text: "Lower waist: 79.0 cm"
+    direction: DOWN
+    centerElement: true
+    timeout: 15000
+- assertVisible:
+    text: "Waiting to sync"
+    below:
+      text: "Lower waist: 79.0 cm"
+    label: "The measurements are on the phone, waiting to sync"
+# Meal slots start folded: open Lunch to see its meal (already open when the put-back opened it)
+- tapOn: "Nutrition"
+- runFlow:
+    when:
+      visible: "Show Lunch meals"
+    commands:
+      - tapOn: "Show Lunch meals"
+- assertVisible:
+    text: "Waiting to sync"
+    label: "The lunch is on the phone, waiting to sync"
+- tapOn: "Training"
+- assertVisible: ".*, Workout 1: 1 exercise · Walking"
+
+# ================= Flight mode off: everything syncs =================
+- setAirplaneMode: disabled
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "Steps: 8,000 steps"
+    direction: UP
+    timeout: 10000
+- extendedWaitUntil:
+    notVisible: "Waiting to sync"
+    timeout: 120000
+
+# ================= Put the day back (online) =================
+- runFlow: subflows/cal-05-put-back.yaml
+- scrollUntilVisible:
+    element:
+      text: "0 kcal eaten|0 of [0-9,]+ kcal"
+    direction: UP
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Waiting to sync"
+    timeout: 60000

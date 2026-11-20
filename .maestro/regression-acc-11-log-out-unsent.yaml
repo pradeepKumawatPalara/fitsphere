@@ -1,0 +1,193 @@
+appId: com.fitsphere.app
+name: Log out with a meal not yet sent warns first, then deletes it only when asked (ACC-11)
+tags:
+  - regression
+# Flight mode is turned off after the flow whether it passes or fails
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+# Signs in online, turns flight mode on and logs 2 roti to Lunch, so one entry is not on the server.
+# Log out then warns instead of logging out. Stay signed in keeps the user and the lunch; Log out and
+# delete them opens Sign in and deletes the lunch with the phone's copy of the data. It never reached
+# the server, so signing in again online shows no lunch, and there is nothing to clean up.
+# A run that stops while the lunch is on the phone, signed in, sends it once flight mode goes off:
+# the next run deletes that lunch first (subflows/delete-roti-lunch.yaml).
+
+# Sign in (as smoke-04), online
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+
+# A lunch left by a run that stopped halfway: give the day's entries up to 15 s to come from the
+# server (no lunch: the wait runs out and the flow goes on), then delete it
+- tapOn: "Nutrition"
+- extendedWaitUntil:
+    visible: "Show Lunch meals"
+    timeout: 15000
+    optional: true
+- runFlow: subflows/delete-roti-lunch.yaml
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "0 kcal eaten|0 of [0-9,]+ kcal"
+    direction: UP
+    timeout: 15000
+
+# ================= Flight mode on =================
+- setAirplaneMode: enabled
+
+# 2 roti to Lunch (as smoke-04)
+- tapOn: "Nutrition"
+- tapOn: "Add to Breakfast"
+- extendedWaitUntil:
+    visible: "Search foods"
+    timeout: 10000
+- tapOn: "Lunch"
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "2 roti"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Chapati/Roti, 202 kcal per 100 g, estimated"
+    timeout: 120000
+- tapOn: "Chapati/Roti, 202 kcal per 100 g, estimated"
+- extendedWaitUntil:
+    visible: "Quantity: 2"
+    timeout: 10000
+- tapOn: "Add"
+- tapOn: "Save lunch"
+- extendedWaitUntil:
+    visible: "Lunch saved.*"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: "Back|Navigate up"
+    direction: UP
+    timeout: 10000
+- tapOn: "Back|Navigate up"
+
+# The lunch is on the phone, not on the server (meal slots start folded: open Lunch)
+- tapOn: "Nutrition"
+- runFlow:
+    when:
+      visible: "Show Lunch meals"
+    commands:
+      - tapOn: "Show Lunch meals"
+- assertVisible:
+    text: "Waiting to sync"
+    label: "The lunch is waiting to sync: flight mode really is offline (if not, Wi-Fi may have stayed on)"
+
+# ================= Log out: the warning, then Stay signed in =================
+- tapOn: "Account"
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Log out"
+- extendedWaitUntil:
+    visible: "(1 entry is|[0-9]+ entries are) not on the server yet. If you log out now, they are deleted from this phone."
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: "Log out and delete them"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Stay signed in"
+- tapOn: "Stay signed in"
+
+# Still signed in: Log out is back, the warning gone, and the lunch still on Home
+- extendedWaitUntil:
+    visible: "Log out"
+    timeout: 5000
+- assertNotVisible: ".*not on the server yet.*"
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "146 kcal eaten|146 of [0-9,]+ kcal"
+    direction: UP
+    timeout: 10000
+
+# ================= Log out again: Log out and delete them =================
+- tapOn: "Account"
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Log out"
+- extendedWaitUntil:
+    visible: "(1 entry is|[0-9]+ entries are) not on the server yet. If you log out now, they are deleted from this phone."
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      text: "Log out and delete them"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Log out and delete them"
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- assertNotVisible: "Calories"
+- assertNotVisible: "Hi, .*"
+
+# ================= Flight mode off, sign in again: no lunch =================
+# Flight mode goes off first; typing the email and password gives the phone time to reconnect, and
+# a sign-in tried before it has is tried once more
+- setAirplaneMode: disabled
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories|Signing in needs an internet connection."
+    timeout: 90000
+- runFlow:
+    when:
+      visible: "Signing in needs an internet connection."
+    commands:
+      - tapOn:
+          text: "Sign in"
+          below:
+            text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+
+# The lunch deleted at Log out never reached the server: give the day up to 15 s to come in, then
+# Lunch has no meal and Home nothing eaten
+- tapOn: "Nutrition"
+- extendedWaitUntil:
+    visible: "Show Lunch meals"
+    timeout: 15000
+    optional: true
+- assertNotVisible:
+    text: "Show Lunch meals|Hide Lunch meals"
+    label: "No lunch on the server: the unsent lunch was deleted at Log out, never sent"
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "0 kcal eaten|0 of [0-9,]+ kcal"
+    direction: UP
+    timeout: 15000

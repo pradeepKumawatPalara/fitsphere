@@ -1,0 +1,96 @@
+appId: com.fitsphere.app
+name: Log paneer to Lunch by search, the tick on Lunch and Home's total, then delete it (FOOD-01)
+tags:
+  - regression
+---
+# Sign in (as smoke-04)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+
+# Start from an empty day. Home says "0 kcal eaten" with no calorie target,
+# or "0 of 2,000 kcal" under the remaining once one is set (smoke-09 sets one)
+- extendedWaitUntil:
+    visible: "0 kcal eaten|0 of [0-9,]+ kcal"
+    timeout: 30000
+
+# Nutrition: + on Breakfast, then choose Lunch; Lunch has no tick yet
+- tapOn: "Nutrition"
+- tapOn: "Add to Breakfast"
+- extendedWaitUntil:
+    visible: "Search foods"
+    timeout: 10000
+- tapOn: "Lunch"
+- assertNotVisible:
+    id: "has-food-lunch"
+
+# Search foods: "paneer", then IFCT's plain Paneer (L003, 258 kcal per 100 g).
+# The brands' paneer is one "Paneer, N brands" row, so scroll to the plain one if needed
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "paneer"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Paneer, .*kcal per 100 g.*"
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      text: "Paneer, 258 kcal per 100 g"
+    timeout: 20000
+- tapOn: "Paneer, 258 kcal per 100 g"
+
+# The food's page opens on 1 katori (153 g): 258 x 1.53 = 394.74, shown as 395
+- extendedWaitUntil:
+    visible: "Adds 395 kcal"
+    timeout: 10000
+- tapOn: "Add"
+
+# Save lunch: the note, and the green tick on Lunch
+- tapOn: "Save lunch"
+- extendedWaitUntil:
+    visible: "Lunch saved . 1 food . 395 kcal"
+    timeout: 10000
+- assertVisible:
+    id: "has-food-lunch"
+
+# The back arrow scrolls with the page: back up to it first
+- scrollUntilVisible:
+    element:
+      text: "Back|Navigate up"
+    direction: UP
+    timeout: 10000
+- tapOn: "Back|Navigate up"
+
+# Home shows 395 kcal
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "395 kcal eaten|395 of [0-9,]+ kcal"
+    timeout: 10000
+
+# Clean up: Nutrition, open Lunch, remove Paneer, Delete meal
+- tapOn: "Nutrition"
+- tapOn: "Show Lunch meals"
+- tapOn: "Remove Paneer from Lunch"
+- assertVisible: "It is the only food in this meal, so the meal is deleted."
+- tapOn: "Delete meal"
+
+# Home back to 0 kcal
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "0 kcal eaten|0 of [0-9,]+ kcal"
+    timeout: 10000

@@ -1,0 +1,46 @@
+appId: com.fitsphere.app
+name: Sign up stays greyed until the 18 or older box is ticked, nothing is sent (ACC-03)
+tags:
+  - regression
+---
+# Sign up is never pressed, so no account is made and there is nothing to clean up
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Create an account"
+
+# A good email and an 8-character password, both made up; the box left unticked
+- tapOn: "Email"
+- inputText: "acc03.never.sent@example.com"
+- hideKeyboard
+- tapOn: "Password"
+- inputText: "abcdefgh"
+- hideKeyboard
+- assertVisible:
+    text: "I am 18 or older"
+    checked: false
+- extendedWaitUntil:
+    visible: "Tick .I am 18 or older. to continue."
+    timeout: 10000
+- assertVisible:
+    text: "Sign up"
+    enabled: false
+
+# Ticked, the hint goes and Sign up could be pressed (it is not)
+- tapOn: "I am 18 or older"
+- assertVisible:
+    text: "I am 18 or older"
+    checked: true
+- assertNotVisible: "Tick .I am 18 or older. to continue."
+- assertVisible:
+    text: "Sign up"
+    enabled: true
+
+# Unticked again, the hint is back and Sign up greys again
+- tapOn: "I am 18 or older"
+- assertVisible: "Tick .I am 18 or older. to continue."
+- assertVisible:
+    text: "Sign up"
+    enabled: false

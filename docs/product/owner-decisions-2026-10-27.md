@@ -3909,6 +3909,18 @@ checksum), and the configuration template was left as it is.*
   is locked, kg to lb, log out with unsent data in flight mode, the target limits.
 - No app change, no migration, no new build. Doc changes: this record, the test strategy, `.maestro/README.md`,
   `.gitignore`.
+- Extended (owner, in chat, 2026-11-20: "automate the remaining Critical tracker rows, one flow at a time";
+  tagged "regression", not "smoke"). Branch `test/maestro-critical`. Five regression flows, one per row:
+  ACC-03 (Sign up greyed until "I am 18 or older" is ticked, never pressed), FOOD-01 (paneer by search to
+  Lunch), FOOD-14 (a quantity doubled and halved, every value from the grams), CAL-05 (seven kinds of entry
+  saved in flight mode) and ACC-11 (Log out with an unsent lunch warns first; Log out and delete them deletes
+  it before it reaches the server). Flight mode is Maestro's `setAirplaneMode`, turned off in
+  `onFlowComplete` whether the flow passes or fails; each flow checks the phone really is offline (an entry
+  still waiting to sync a minute later), which held on the owner's OnePlus on the first run. CAL-05 and
+  ACC-11 put the day back at their start too, so a run that stopped halfway doesn't trip the next one;
+  CAL-05 keeps a daily protein target of 120 g, which no other flow reads. ACC-11 leaves the list of rows
+  left to people. Shared steps in `.maestro/subflows/`. Doc changes: this note, the test strategy,
+  `.maestro/README.md`.
 
 ---
 

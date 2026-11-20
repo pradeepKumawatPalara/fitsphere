@@ -1,0 +1,123 @@
+appId: com.fitsphere.app
+---
+# CAL-05's day, put back (online; from any tab, ends on Home): 7,500 steps, 7 h, 70 kg (as smoke-06
+# leaves them), waists of 80 and 78 cm, daily protein 120 g, and CAL-05's lunch (2 roti) and workout
+# (Workout 1, a walk) deleted when they are there. CAL-05 runs it first as well as last, so a run that
+# stopped halfway, whose entries synced once flight mode went off, doesn't trip the next one.
+# Save takes an unchanged value too, so the values are saved whatever the day holds. The lunch and
+# the workout are looked for last: by then the day's entries have come from the server.
+
+# ---- Steps 7,500, sleep 7 h, weight 70 kg ----
+- tapOn: "Home"
+- scrollUntilVisible:
+    element:
+      text: "Steps: .*"
+    direction: UP
+    timeout: 10000
+- tapOn: "Steps: .*"
+- extendedWaitUntil:
+    visible: "Steps · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "7500"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Steps: 7,500 steps"
+    timeout: 10000
+- tapOn: "Sleep: .*"
+- extendedWaitUntil:
+    visible: "Sleep · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "7"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Sleep: 7.0 h"
+    timeout: 10000
+- tapOn: "Weight: .*"
+- extendedWaitUntil:
+    visible: "Weight · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "70"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Weight: 70.0 kg"
+    timeout: 10000
+
+# ---- Waists of 80 and 78 cm (Add, or the pencil when today has some) ----
+- scrollUntilVisible:
+    element:
+      text: "Add measurements|Edit measurements"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Add measurements|Edit measurements"
+- extendedWaitUntil:
+    visible: 'Upper waist \(cm\)'
+    timeout: 10000
+- tapOn: 'Upper waist \(cm\)'
+- eraseText: 10
+- inputText: "80"
+- tapOn: 'Lower waist \(cm\)'
+- eraseText: 10
+- inputText: "78"
+- tapOn: "Save measurements"
+- extendedWaitUntil:
+    visible: "Upper waist: 80.0 cm"
+    timeout: 10000
+
+# ---- CAL-05's lunch, when there ----
+- runFlow: delete-roti-lunch.yaml
+
+# ---- CAL-05's workout, when there (as smoke-07) ----
+- tapOn: "Training"
+- runFlow:
+    when:
+      visible: ".*, Workout 1: 1 exercise · Walking"
+    commands:
+      - tapOn: ".*, Workout 1: 1 exercise · Walking"
+      - scrollUntilVisible:
+          element:
+            text: "Delete workout"
+          direction: DOWN
+          timeout: 10000
+      - tapOn: "Delete workout"
+      - extendedWaitUntil:
+          visible: 'Delete Workout 1 on .*\?'
+          timeout: 5000
+      - scrollUntilVisible:
+          element:
+            text: "Delete"
+          direction: DOWN
+          timeout: 10000
+      - tapOn: "Delete"
+      - extendedWaitUntil:
+          visible: "No workouts on .*"
+          timeout: 10000
+
+# ---- Daily protein 120 g ----
+- tapOn: "Account"
+- scrollUntilVisible:
+    element:
+      text: "Your targets"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Your targets"
+- scrollUntilVisible:
+    element:
+      text: "Daily protein: .*"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Daily protein: .*"
+- extendedWaitUntil:
+    visible: "Daily protein in g"
+    timeout: 5000
+- eraseText: 10
+- inputText: "120"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Daily protein: 120 g"
+    timeout: 10000
+- tapOn: "Navigate up|Back"
+- tapOn: "Navigate up|Back"
+- tapOn: "Home"

@@ -1,0 +1,18 @@
+appId: com.fitsphere.app
+---
+# Today's lunch of 2 roti, deleted when it is there: the lunch CAL-05 and ACC-11 log, left on the
+# server by a run that stopped halfway. Only that meal: removing its one food deletes it. Online;
+# ends on Nutrition.
+- tapOn: "Nutrition"
+- runFlow:
+    when:
+      visible: "Show Lunch meals"
+    commands:
+      - tapOn: "Show Lunch meals"
+- runFlow:
+    when:
+      visible: "Remove Chapati/Roti from Lunch"
+    commands:
+      - tapOn: "Remove Chapati/Roti from Lunch"
+      - assertVisible: "It is the only food in this meal, so the meal is deleted."
+      - tapOn: "Delete meal"
