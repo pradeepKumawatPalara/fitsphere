@@ -1,0 +1,121 @@
+appId: com.fitsphere.app
+name: Log a workout with a squat (3 sets) and a 20-minute walk; it shows on Training, then delete it (TRAIN-02, TRAIN-05)
+tags:
+  - smoke
+---
+# The list has no exercise named just "Squat": "squat" is another name of "Back Squat (High Bar)"
+# (Barbell · Legs), which a search for "squat" lists first. "Walking" is in the list as itself.
+# The workout timer is not started (smoke test 8). The workout is deleted at the end, so the test
+# can run again; it starts only from a day with no workouts, so this one is "Workout 1".
+
+# Sign in (as smoke-01)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+
+# Training, By day, today: no workout yet
+- tapOn: "Training"
+- extendedWaitUntil:
+    visible: "No workouts on .*"
+    timeout: 30000
+- tapOn: "Log workout for today"
+
+# ---- The squat: 3 sets of 40 kg x 10 ----
+- extendedWaitUntil:
+    visible: "Add exercise"
+    timeout: 10000
+- tapOn: "Add exercise"
+- extendedWaitUntil:
+    visible: "Search or type an exercise"
+    timeout: 10000
+- tapOn: "Search or type an exercise"
+- inputText: "squat"
+- extendedWaitUntil:
+    visible: 'Back Squat \(High Bar\), .*'
+    timeout: 60000
+- tapOn: 'Back Squat \(High Bar\), .*'
+- tapOn: "Set 1, Weight in kg"
+- inputText: "40"
+- tapOn: "Set 1, Reps"
+- inputText: "10"
+- hideKeyboard
+# Add set copies the last set
+- tapOn: "Add set"
+- tapOn: "Add set"
+- assertVisible: "Set 3, Reps"
+- tapOn: "Save exercise"
+- extendedWaitUntil:
+    visible: 'Back Squat \(High Bar\): 3 sets, 10 × 40.0 kg.*'
+    timeout: 10000
+
+# ---- The walk: 20 minutes ----
+- tapOn: "Add exercise"
+- extendedWaitUntil:
+    visible: "Search or type an exercise"
+    timeout: 10000
+- tapOn: "Search or type an exercise"
+- inputText: "walking"
+- extendedWaitUntil:
+    visible: "Walking, .*"
+    timeout: 10000
+- tapOn: "Walking, .*"
+- tapOn: "Time, minutes"
+- inputText: "20"
+- hideKeyboard
+# A calories estimate appears (its number depends on the latest weight, so it is not checked)
+- extendedWaitUntil:
+    visible: "(?i)estimated"
+    timeout: 5000
+- tapOn: "Save exercise"
+- extendedWaitUntil:
+    visible: "Walking: 20:00, .*kcal · estimated"
+    timeout: 10000
+
+# ---- Back to Training: By day lists it, today's date has the dumbbell ----
+- tapOn: "Navigate up|Back"
+- extendedWaitUntil:
+    visible: '.*, Workout 1: 2 exercises · Back Squat \(High Bar\), Walking'
+    timeout: 10000
+- assertVisible: "[0-9,]+ kcal burned, estimated"
+- assertVisible: ".*, today, .*1 workout logged"
+
+# ---- Delete it from the workout itself (TRAIN-05): it asks first and says what goes ----
+- tapOn: '.*, Workout 1: 2 exercises · Back Squat \(High Bar\), Walking'
+- scrollUntilVisible:
+    element:
+      text: "Delete workout"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Delete workout"
+- extendedWaitUntil:
+    visible: 'Delete Workout 1 on .*\?'
+    timeout: 5000
+- assertVisible: "Its 2 exercises will be deleted too. It will no longer count in this week.s workouts. You can.t undo this."
+- assertVisible: "Keep"
+- scrollUntilVisible:
+    element:
+      text: "Delete"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Delete"
+
+# Training no longer lists it, and today has no dumbbell
+- extendedWaitUntil:
+    visible: "No workouts on .*"
+    timeout: 10000
+- assertNotVisible: ".*, today, .*workout.*logged.*"

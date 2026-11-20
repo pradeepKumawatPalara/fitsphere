@@ -29,6 +29,15 @@ apps/mobile/ios/
 # npm run dev:phone: the API and tunnel output (the tunnel log holds its address)
 .dev-phone/
 
+# Maestro smoke tests (D-119): only the flows and their README are committed. Reports, screenshots,
+# screen dumps and logs stay on the PC; the robot account's email and password come in with -e.
+results.xml
+report.xml
+.maestro/**/*.png
+.maestro/**/*.json
+.maestro/**/*.xml
+.maestro/**/*.log
+
 # Source PDFs read for the food data: never committed, because of their publishers' terms. The
 # originals are kept outside the repository; docs/sources/README.md lists them with their hashes.
 docs/sources/*.pdf

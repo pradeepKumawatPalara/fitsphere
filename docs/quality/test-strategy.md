@@ -2,7 +2,8 @@
 
 - Status: Accepted — agreed with the Skeleton plan, which the owner approved on 2026-10-28
 - Owner: Project owner (D-01)
-- Last updated: 2026-10-30 (Settings slice, step 5: settings and account tests, and the Settings
+- Last updated: 2026-11-19 (D-119: Maestro smoke tests on the phone over USB, before each hand-over).
+  2026-10-30 (Settings slice, step 5: settings and account tests, and the Settings
   slice's device checks; D-31). 2026-10-29 (Training slice, step 1: workouts in the authorization
   and sync cases; D-29). 2026-10-28 (D-20: self-access authorization; push and iOS checks moved to the
   backlog)
@@ -39,6 +40,7 @@ There is no coverage percentage target (Q-050: no numeric targets for the MVP). 
 | Database | Constraints and transactions in ADR-0003's validation | As integration |
 | App components | Screens and hooks with Supabase and the API replaced by fakes | Code only |
 | Device checks (manual) | What only a phone or the real Supabase project can show: offline behaviour, encryption, emails, the Data API switch | The owner's Android phone with an EAS development build (no emulator, D-19), the Supabase development project |
+| Device smoke flows (Maestro, D-119) | Ten flows from the tester's tracker, run on the installed app: sign in and out, meals, Home's tiles, workouts and the timer, targets by date ([`.maestro/README.md`](../../.maestro/README.md)) | The test APK (EAS `preview`) on the owner's phone over USB, driven from the PC (no emulator, D-19); the robot account on the development project |
 
 Tokens in automated tests are signed by a test key that the test run creates; the API under test
 trusts only that key. Automated tests never call Supabase.
@@ -336,6 +338,8 @@ these checks are backlog S6-01 to S6-09, to run before the release (accepted ris
   Supabase development project use the owner's own inbox, with made-up health values.
 - The Supabase development project holds synthetic data only. No production data is ever copied
   into a development or test database.
+- The Maestro flows sign in with one robot account on the development project, with made-up data only;
+  its email and password are given with `-e` on each run and never written into a file (D-119).
 - Fixtures build only the rows a test needs, through the same functions the API uses where
   possible.
 
@@ -349,6 +353,7 @@ these checks are backlog S6-01 to S6-09, to run before the release (accepted ris
 | Integration, authorization and database tests | Yes, with a local PostgreSQL | Yes, with a PostgreSQL service container |
 | Log-content test | Yes | Yes |
 | Device checks | Manual | No |
+| Maestro smoke flows (D-119) | Yes, with the phone on USB, before each hand-over of a build | No: no phone |
 | Checks against the Supabase project | Manual | No |
 
 CI rules:
@@ -371,6 +376,7 @@ above do not depend on the tools.
 | Lint and types | ESLint with typescript-eslint; for the app also `eslint-plugin-react-hooks` and `eslint-plugin-expo`. TypeScript `~6.0` in strict mode, the version Expo SDK 58 uses | Whole repository |
 | Test database | PostgreSQL 17: installed natively on the PC (D-18 answer 14); a service container in CI | `TEST_DATABASE_URL` |
 | Device checks | An EAS development build (`development` profile) on the owner's phone; live code through Expo's tunnel; the API through a Cloudflare Quick Tunnel, only while testing (D-19 answer 6), started with Expo by `npm run dev:phone` (D-22 answer 5); `adb` only for checks marked "USB + adb" (D-19) | `apps/mobile/eas.json`, `apps/api/scripts/dev-phone.ts` |
+| Device smoke flows (D-119) | Maestro on the PC, driving the phone over USB through `adb`; the installed test APK, not the development build | [`.maestro/`](../../.maestro/) and its README |
 | `dev:phone` helpers: reading the tunnel's address, rewriting `apps/mobile/.env`, the health wait | Vitest; sample addresses are built at run time, so CI's check for committed tunnel addresses stays clean | `apps/api/scripts/` |
 | CI | GitHub Actions: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | — |
 

@@ -1,0 +1,82 @@
+appId: com.fitsphere.app
+name: Log 2 roti to Lunch, see it on Home, then delete it (FOOD-10, HOME-04)
+tags:
+  - smoke
+---
+# Sign in (as smoke-01)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+
+# Start from an empty day. Home says "0 kcal eaten" with no calorie target,
+# or "0 of 2,000 kcal" under the remaining once one is set (test 9 sets one)
+- extendedWaitUntil:
+    visible: "0 kcal eaten|0 of [0-9,]+ kcal"
+    timeout: 30000
+
+# Nutrition: + on Breakfast, then choose Lunch
+- tapOn: "Nutrition"
+- tapOn: "Add to Breakfast"
+- extendedWaitUntil:
+    visible: "Search foods"
+    timeout: 10000
+- tapOn: "Lunch"
+
+# Search foods: "2 roti", then Chapati/Roti
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "2 roti"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Chapati/Roti, 202 kcal per 100 g, estimated"
+    timeout: 120000
+- tapOn: "Chapati/Roti, 202 kcal per 100 g, estimated"
+
+# The food's page opens on 2 chapati
+- extendedWaitUntil:
+    visible: "Quantity: 2"
+    timeout: 10000
+- assertVisible: "Adds 146 kcal"
+- tapOn: "Add"
+
+# Log meal: Save lunch, then the back arrow
+# ("Navigate up" before the Log meal redesign of 19 Nov, "Back" after it)
+- tapOn: "Save lunch"
+- extendedWaitUntil:
+    visible: "Lunch saved.*"
+    timeout: 10000
+- tapOn: "Back|Navigate up"
+
+# Home shows 146 kcal
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "146 kcal eaten|146 of [0-9,]+ kcal"
+    timeout: 10000
+
+# Nutrition: open Lunch, remove Chapati/Roti, Delete meal
+- tapOn: "Nutrition"
+- tapOn: "Show Lunch meals"
+- tapOn: "Remove Chapati/Roti from Lunch"
+- assertVisible: "It is the only food in this meal, so the meal is deleted."
+- tapOn: "Delete meal"
+
+# Home back to 0 kcal
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "0 kcal eaten|0 of [0-9,]+ kcal"
+    timeout: 10000
