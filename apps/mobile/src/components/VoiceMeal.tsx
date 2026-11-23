@@ -2,7 +2,8 @@ import { AI_CONSENT_TEXT, AI_CONSENT_TEXT_VERSION, type MealItem, type ParsedMea
 import { Camera, CameraOff, Check, CircleAlert, Info, Mic, MicOff, Square, SquareCheck, WifiOff } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'expo-router';
-import { Linking, Pressable, View } from 'react-native';
+import { Image, Linking, Pressable, View } from 'react-native';
+import { jpegDataUri } from '../photos/bytes';
 import { readMeal } from '../api/aiMeal';
 import { readAiConsent, saveAiConsent } from '../api/account';
 import { lookUpFood } from '../api/foodLookup';
@@ -47,7 +48,10 @@ const NOTICES = {
   unavailable: "AI meal reading isn't available right now. Your words are kept: search them as typed, or try again later.",
   permission: "FitSphere can't use the microphone. Allow it in your phone's Settings › Apps › FitSphere › Permissions, then tap Speak your meal again.",
   nothing: 'Nothing was heard. Tap Speak your meal and say what you ate.',
-  language: "This language isn't ready for speech on this phone. Choose another in Settings › Voice language.",
+  language: "This language isn't ready for speech on this phone. Download its speech pack, or choose another in Settings › Voice language.",
+  downloading: "Getting the speech pack ready on your phone. This can take a minute and may wait for Wi-Fi. Then tap Speak your meal again.",
+  manualPack:
+    "Your phone can't download the speech pack from here. Open the Google app › Settings › Voice › Offline speech recognition, download English (India), then tap Speak your meal again.",
   photoPermission: "FitSphere can't use the camera. Allow it in your phone's Settings › Apps › FitSphere › Permissions, then tap Take a photo again.",
 } as const;
 type Notice = keyof typeof NOTICES;
@@ -55,11 +59,12 @@ type Notice = keyof typeof NOTICES;
 type Stage =
   | { kind: 'idle'; notice: Notice | null }
   | { kind: 'listening'; words: string; seconds: number }
-  | { kind: 'reading'; photo: boolean }
+  /** `picture`: the photo being read, as base64, shown on the reading screen; held only while it is read and reviewed. */
+  | { kind: 'reading'; photo: boolean; picture?: string }
   | { kind: 'consent'; text: string }
   | { kind: 'review'; found: FoundFood[]; ticked: boolean[]; missing: ParsedMealItem[] }
   /** The foods of a photo (D-120): estimated by the AI, each with its weight and values. */
-  | { kind: 'photoReview'; foods: PhotoFood[]; ticked: boolean[] }
+  | { kind: 'photoReview'; foods: PhotoFood[]; ticked: boolean[]; picture?: string }
   /** A photo could not be read: offline, the AI unavailable, an answer out of contract, or no food seen. */
   | { kind: 'photoNoData' }
   /** AI meal reading is switched off in Settings, so the photo was not sent. */
@@ -111,6 +116,8 @@ export function useVoiceMeal({
   /** A food of the review being looked up online, or one that could not be found. */
   const [lookup, setLookup] = useState<{ at: number; state: 'busy' | 'failed' } | null>(null);
   const [stage, setStage] = useState<Stage>({ kind: 'idle', notice: null });
+  // The language the last try used, for the pack to download.
+  const lastLanguage = useRef<VoiceLanguage>(DEFAULT_VOICE_LANGUAGE);
   // A food of the review whose amount is being changed on its page.
   const [changing, setChanging] = useState<number | null>(null);
   // A food of a photo's review being checked on its own page.
@@ -173,6 +180,12 @@ export function useVoiceMeal({
     setStage((current) => (current.kind === 'listening' ? { ...current, words: text } : current));
   }
 
+  /** Asks the phone to download the language's speech pack; where it can't, says where to turn it on by hand. */
+  async function getPack(language: VoiceLanguage) {
+    const asked = await engine.downloadLanguage(language);
+    setStage({ kind: 'idle', notice: asked ? 'downloading' : 'manualPack' });
+  }
+
   async function start() {
     if (!db) return;
     cancelled.current = false;
@@ -184,6 +197,10 @@ export function useVoiceMeal({
       return;
     }
     const language = await voiceLanguageOf(await getMeta(db, 'voice_language'));
+    lastLanguage.current = language;
+    // The language's offline pack is not on this phone (most phones other than the owner's Samsung):
+    // ask the phone to download it, and say so, instead of a recognizer that fails.
+    if (!languageInstalled(await engine.installedLanguages(), language)) return void getPack(language);
     const now = Date.now();
     session.current = { language, startedAt: now, heardAt: now, said: '', piece: '', finishing: false, over: false };
     setStage({ kind: 'listening', words: '', seconds: 0 });
@@ -209,6 +226,7 @@ export function useVoiceMeal({
       onError(code) {
         if (cancelled.current || session.current.over || code === 'aborted') return;
         // The microphone or the language can't be used: stop, saying why.
+        lastLanguage.current = session.current.language;
         if (code === 'not-allowed' || code === 'language-not-supported' || code === 'service-not-allowed' || code === 'audio-capture') {
           endSession();
           setStage({ kind: 'idle', notice: code === 'not-allowed' ? 'permission' : code === 'language-not-supported' ? 'language' : 'unavailable' });
@@ -286,7 +304,7 @@ export function useVoiceMeal({
   async function readThePhoto() {
     const photo = pendingPhoto.current;
     if (photo === null) return;
-    setStage({ kind: 'reading', photo: true });
+    setStage({ kind: 'reading', photo: true, picture: photo });
     const reading = await estimatePhoto(deps, photo);
     // Whatever the answer, the picture is let go of.
     pendingPhoto.current = null;
@@ -294,7 +312,7 @@ export function useVoiceMeal({
     if (reading.kind === 'off') return setStage({ kind: 'photoOff' });
     if (reading.kind !== 'ok' || reading.items.length === 0) return setStage({ kind: 'photoNoData' });
     const foods = photoFoodsOf(reading.items);
-    setStage({ kind: 'photoReview', foods, ticked: foods.map(() => true) });
+    setStage({ kind: 'photoReview', foods, ticked: foods.map(() => true), picture: photo });
   }
 
   async function afterInput(text: string) {
@@ -396,6 +414,7 @@ export function useVoiceMeal({
             <View style={styles.noticeWords}>
               <Text style={styles.small}>{NOTICES[stage.notice]}</Text>
               {stage.notice === 'permission' || stage.notice === 'photoPermission' ? <TextButton title="Open phone settings" onPress={() => void Linking.openSettings()} /> : null}
+              {stage.notice === 'language' ? <TextButton title="Download speech pack" onPress={() => void getPack(lastLanguage.current)} /> : null}
             </View>
           </View>
         ) : null}
@@ -414,16 +433,6 @@ export function useVoiceMeal({
         </Text>
         <Text style={styles.small}>Say what you ate and how much, then tap Done speaking. It also stops after 6 seconds of quiet, or at 0:30.</Text>
       </View>
-    ) : stage.kind === 'reading' ? (
-      <View style={styles.panel}>
-        <Text accessibilityLiveRegion="polite" style={[styles.overline, styles.center]}>
-          {stage.photo ? 'Finding the foods in your picture…' : 'Finding the foods you said…'}
-        </Text>
-        <View style={[styles.skeleton, { width: '70%' }]} />
-        <View style={[styles.skeleton, { width: '50%' }]} />
-        <View style={[styles.skeleton, { width: '60%' }]} />
-        {stage.photo ? <Text style={[styles.small, styles.center]}>Estimating each food and its nutrition. This can take up to half a minute.</Text> : null}
-      </View>
     ) : null;
 
   const footer =
@@ -431,10 +440,6 @@ export function useVoiceMeal({
       <View style={styles.footer}>
         {/* The canvas's VoiceMealDone, C locked (2026-11-17): "Done speaking" with a tick. */}
         <TextButton title="Done speaking" icon={Check} filled wide onPress={done} />
-        <TextButton title="Cancel" wide onPress={cancel} />
-      </View>
-    ) : stage.kind === 'reading' ? (
-      <View style={styles.footer}>
         <TextButton title="Cancel" wide onPress={cancel} />
       </View>
     ) : null;
@@ -457,6 +462,29 @@ export function useVoiceMeal({
 
   const sheets = (
     <>
+      {/* The reading screen (the canvas's PhotoEstimate "Reading", locked, for a photo and for the words
+          said): a sheet over the dimmed screen with the mic or the camera in a ring, what it is doing,
+          three bars waiting, and Cancel. */}
+      {stage.kind === 'reading' ? (
+        <Sheet onClose={cancel} scroll={false} actions={<TextButton title="Cancel" outlined wide onPress={cancel} />}>
+          <View style={styles.panel}>
+            {stage.picture ? (
+              <Image accessibilityLabel="The photo being read" source={{ uri: jpegDataUri(stage.picture) }} style={styles.picture} resizeMode="cover" />
+            ) : (
+              <View style={styles.ring}>{stage.photo ? <Camera size={30} color={colors.accent} /> : <Mic size={30} color={colors.accent} />}</View>
+            )}
+            <Text accessibilityLiveRegion="polite" style={[styles.overline, styles.center]}>
+              {stage.photo ? 'Finding the foods in your picture…' : 'Finding the foods you said…'}
+            </Text>
+            <View style={[styles.skeleton, styles.bar, { width: '70%' }]} />
+            <View style={[styles.skeleton, styles.bar, { width: '50%' }]} />
+            <View style={[styles.skeleton, styles.bar, { width: '60%' }]} />
+            <Text style={[styles.small, styles.center]}>
+              {stage.photo ? 'Estimating each food and its nutrition. This can take up to half a minute.' : 'Finding each food and its amount in our food list.'}
+            </Text>
+          </View>
+        </Sheet>
+      ) : null}
       {stage.kind === 'consent' ? (
         <Sheet
           title="Read your meal with AI?"
@@ -486,6 +514,9 @@ export function useVoiceMeal({
             />
           }
         >
+          {photoReview.picture ? (
+            <Image accessibilityLabel="Your photo" source={{ uri: jpegDataUri(photoReview.picture) }} style={styles.pictureSmall} resizeMode="cover" />
+          ) : null}
           <Text style={styles.small}>Estimated by AI from your photo. Tap a food to check or change it.</Text>
           <View style={styles.card}>
             {photoReview.foods.map((food, index) => {
@@ -744,6 +775,11 @@ const useStyles = themedStyles((c) => ({
   ring: { width: 72, height: 72, borderRadius: 36, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
   heard: { fontSize: 20, lineHeight: 28, fontWeight: '500', color: c.ink, minHeight: 28 },
   skeleton: { height: 12, borderRadius: 2, backgroundColor: c.track },
+  // The photo being read, on the reading screen, and smaller above the foods found.
+  picture: { height: 180, borderRadius: 4, alignSelf: 'stretch', backgroundColor: c.track },
+  pictureSmall: { height: 120, borderRadius: 4, alignSelf: 'stretch', backgroundColor: c.track },
+  // The reading sheet's bars (the canvas: 16 high, centred).
+  bar: { height: 16, borderRadius: 4, alignSelf: 'center' },
   footer: { gap: 8 },
   card: { paddingLeft: 14, paddingRight: 6, borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   foodRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },

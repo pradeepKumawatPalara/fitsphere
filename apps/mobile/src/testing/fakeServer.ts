@@ -121,6 +121,8 @@ export function fakeServer(now: Date) {
     photoEstimate: { items: [] } as PhotoEstimateResponse | { status: number; code: string },
     /** `POST /ai/photo-estimate` fails as a network failure would. */
     photoEstimateOffline: false,
+    /** While set, `POST /ai/photo-estimate` waits for it before answering (a test holds the reading screen). */
+    photoEstimateGate: null as Promise<void> | null,
     /** The pictures (base64) sent to `POST /ai/photo-estimate`. */
     photoEstimateImages: [] as string[],
     /** What `POST /ai/food-lookup` answers (D-118): the food found, or an error status and code. */
@@ -375,6 +377,7 @@ export function fakeServer(now: Date) {
     if (path === '/ai/photo-estimate' && method === 'POST') {
       if (state.photoEstimateOffline) throw new TypeError('Network request failed');
       state.photoEstimateImages.push((body as { imageBase64: string }).imageBase64);
+      if (state.photoEstimateGate) await state.photoEstimateGate;
       const answer = state.photoEstimate;
       if ('status' in answer) {
         return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });

@@ -7,6 +7,7 @@ import { sameSets, TEST_EXERCISE_LIST, withExerciseList } from '../testing/exerc
 import { exerciseRules, type SetText } from '../workouts';
 import { TrainingScreen } from './TrainingScreen';
 import { WorkoutScreen } from './WorkoutScreen';
+import { effortFields } from '../components/ExerciseSheet';
 import { setCheckPause } from '../fieldChecks';
 
 const RULES = exerciseRules('kg');
@@ -25,7 +26,9 @@ const mockRouter = {
 };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
 
+// Time spent and Calories are hidden in the app for now (2026-11-24); the tests of the calories show them.
 beforeEach(() => {
+  effortFields.show = true;
   mockParams.id = '';
   mockRouter.push.mockClear();
   mockRouter.back.mockClear();
@@ -1550,5 +1553,19 @@ describe('D-71 the workout timer', () => {
     expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ day: '2026-10-28', timer: { countedSeconds: 57_600 } }));
+  });
+});
+
+describe('Time spent and Calories burned are hidden for now (the owner, 2026-11-24)', () => {
+  it('Add exercise has neither, and keeps heart rate and the note', async () => {
+    effortFields.show = false;
+    await startWorkout();
+    await openSheet();
+    await pick('push', 'Push-up');
+
+    expect(screen.queryByTestId('exercise-effort')).toBeNull();
+    expect(screen.queryByLabelText('Calories burned (optional)')).toBeNull();
+    expect(screen.queryByLabelText('Time spent in min (optional)')).toBeNull();
+    expect(screen.getByLabelText('Average heart rate (optional)')).toBeTruthy();
   });
 });

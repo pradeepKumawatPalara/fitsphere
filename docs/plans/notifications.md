@@ -1,6 +1,6 @@
 # Plan: notifications on the phone (local reminders, goal and nudge alerts, an in-app bell)
 
-- Status: **Proposed** (drafted 2026-11-23, waiting for the owner's approval and answers to the open questions below)
+- Status: **Built, steps 1 to 4 (2026-11-24), waiting for the owner's approval and answers to the open questions below.** Nothing is merged; the real notification module has not run on a phone yet (tests use a fake phone).
 - Owner: Project owner (D-01)
 - Requirements: REQ-NOT-001 to REQ-NOT-007 (new, proposed below; to be added to `docs/product/requirements.md` on approval), REQ-ACC-011 and Settings (REQ-ACC-001 to REQ-ACC-003 for where the switches live), REQ-NFR-004 (offline), REQ-ROLE-016 (the server Notifications list: post-MVP, not built here)
 - Decision: D-122 (to be recorded on approval; next free number, confirm); ADR-0014 (Proposed)
@@ -100,3 +100,28 @@ Numbers are the rows of the competitor table the owner shared.
 - **Q-G:** Android first, iPhone with the iOS release?
 - **Q-H:** Keep 90 days in the list, as the phone keeps its data?
 - **Q-I:** Which daily targets count for "Daily target reached": calories, protein, carbs, fat, fibre, steps? (Proposed: calories and protein only, to avoid several alerts a day.)
+
+## As built (steps 1 to 4, 2026-11-24)
+Where the build differs from the text above. The owner confirms or changes each.
+- **Choices in one JSON text, not a `notification_settings` table:** every reminder, goal, nudge setting is in `sync_meta` (`notification_settings`); the master switch in `notifications_enabled`; the day the app was last opened in `last_open_day`. Only the `notifications` table is new (migration 25, phone schema version 25). Simpler and needs no schema change to add a setting.
+- **Design D:** each card has an action button and an X (dismiss). "Mark as unread" (the plan's row menu) is not built.
+- **Daily target reached means the protein target** (Q-I: calories is a ceiling, not a goal). Text: "You reached today's target."
+- **The nudge counts opening the app as activity** and moves to "X days from the last open" at every open; it is listed when it came due while the app was closed.
+- **Quiet hours (10:00 pm to 7:00 am) and the cap of 4 a day are fixed** (the proposal, Q-C); the settings screen says so and has no control for them. They apply to the schedule, the list and a goal shown now; not to the test.
+- **Goal alerts only while the app is open:** nothing can be scheduled for a goal not yet reached, so one logged on the phone shows then; the phone cannot tell while the app is closed.
+- **The list is filled when the app opens** for a reminder that fired while it was closed (a reminder not yet due is not in the list).
+- **Signing out clears the schedule** (a signed-out phone fires nothing of the last user's).
+- **Android:** the permission `POST_NOTIFICATIONS`, three channels (Reminders, Goals, Nudges), inexact times; the plugin `expo-notifications` in `app.json`. **A new development build is needed; the owner is told before any build (D-19).** No iOS build without the owner's word.
+
+## Phone checks (backlog N-01 to N-10), on the new build, before the release
+Not run: they need a build that has `expo-notifications`. Deferred, not passed (risk R-006's rule).
+- N-01 Turn notifications on in Settings › Notifications: the phone asks its permission once, then "Notifications are on".
+- N-02 Refuse the permission: the card says so and offers Open phone settings; the bell list still works.
+- N-03 "Send a test notification": it arrives in a few seconds; a tap opens the list.
+- N-04 Switch lunch on two minutes ahead: with the app closed, it arrives at that time (India's clock), and a tap opens Log meal on lunch.
+- N-05 Log lunch first: no lunch reminder arrives that day.
+- N-06 Restart the phone: tomorrow's reminders still arrive.
+- N-07 Battery saver on: note whether a reminder is late (accepted risk R-020).
+- N-08 Reach today's protein target with Daily target on: a notification shows at once, and one row in the list.
+- N-09 Set a reminder at 11:00 pm: none arrives.
+- N-10 Sign out: nothing arrives afterwards.

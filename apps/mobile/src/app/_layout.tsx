@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { createAuthDeps } from '../auth/supabase';
 import { HealthSyncProvider } from '../health/HealthSyncProvider';
+import { NotificationsRuntime } from '../components/NotificationsRuntime';
 import { Text } from '../components/ui';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import { SettingsProvider } from '../settings/SettingsProvider';
@@ -61,6 +62,9 @@ function AppStack() {
       />
       {/* A meal's or the day's Insight (D-70), from a logged meal's Insight icon. */}
       <Stack.Screen name="insight" options={{ title: 'Insight' }} />
+      {/* The notification list (ADR-0014), from the header's bell. */}
+      <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+      <Stack.Screen name="notification-settings" options={{ title: 'Notification settings' }} />
       <Stack.Screen name="workout/[id]" options={{ title: 'Workout' }} />
       <Stack.Screen name="weight-history" options={{ title: 'Weight history' }} />
     </Stack>
@@ -89,6 +93,7 @@ export default function RootLayout() {
             <SettingsProvider>
               <ThemeProvider>
                 <AppStack />
+                <NotificationsRuntime />
               </ThemeProvider>
             </SettingsProvider>
           </HealthSyncProvider>

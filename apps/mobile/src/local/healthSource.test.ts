@@ -102,13 +102,13 @@ describe('D-121 local schema version 24', () => {
     const old = memoryDb();
     try {
       await migrateLocal(old);
-      await old.execAsync('ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; PRAGMA user_version = 23;');
+      await old.execAsync('DROP TABLE notifications; ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; PRAGMA user_version = 23;');
       await old.runAsync(`INSERT INTO steps (day, steps, recorded_at, sync_state) VALUES (?, 5000, ?, 'synced')`, [DAY, AT]);
       await old.runAsync(`INSERT INTO weigh_ins (day, weight_grams, recorded_at, sync_state) VALUES (?, 70000, ?, 'pending')`, [DAY, AT]);
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 24 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 25 });
       expect(await getEntry(old, 'steps', DAY)).toMatchObject({ steps: 5_000, source: 'manual', syncState: 'synced' });
       expect(await getEntry(old, 'weighIn', DAY)).toMatchObject({ weightGrams: 70_000, source: 'manual', syncState: 'pending' });
     } finally {
@@ -125,7 +125,7 @@ describe('D-121 a database already at version 24 from another branch', () => {
       // Version 24 as another branch made it: the steps and weight tables never got `source`.
       await other.execAsync('ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source;');
       await other.runAsync(`INSERT INTO steps (day, steps, recorded_at, sync_state) VALUES (?, 5000, ?, 'synced')`, [DAY, AT]);
-      expect(await other.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 24 });
+      expect(await other.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 25 });
 
       await migrateLocal(other);
       await migrateLocal(other);

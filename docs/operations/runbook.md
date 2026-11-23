@@ -566,6 +566,16 @@ their prerequisites are in `docs/plans/ios-app.md`. From `apps/mobile`:
 - Apple's encryption question (export compliance) is asked at each upload; the owner answers it
   (D-104).
 
+### Notifications on the phone (ADR-0014)
+Local notifications: the phone schedules them and the operating system fires them; no server, no key, no deploy.
+- **A build with `expo-notifications` is needed** (a native module; older builds quietly show no notification card). **Tell the owner before every build (D-19).**
+- **Android 13 and later** asks for permission when the user turns notifications on in Settings › Notifications, never at start. Three channels (Reminders, Goals, Nudges) can be silenced apart in the phone's settings.
+- **Battery savers** on some phones (Xiaomi, Oppo, Vivo, Samsung's sleeping apps) delay or drop a local notification. Tell a tester to allow FitSphere in the battery settings if a reminder is late (accepted risk R-020).
+- **iPhone** keeps at most 64 pending; FitSphere holds at most 40, the next 7 days, rebuilt each time the app opens. No iOS build without the owner's word (D-104).
+- Reminders are made when the app opens; a phone not opened for 7 days runs out of reminders.
+- To see it work: Settings › Notifications › Send a test notification (a few seconds).
+- Nothing about notifications is logged or sent; their text carries no health values.
+
 ## Monitoring
 *Not yet written.* The owner-review triggers for moving to Supabase Pro or adding backups
 (D-16, R-005) are:

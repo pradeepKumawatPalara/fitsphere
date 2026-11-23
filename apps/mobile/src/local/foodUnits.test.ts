@@ -88,12 +88,12 @@ describe('Local schema version 23', () => {
       delete barBefore.opensOn;
       await replaceFoods(old, 'v9', [riceBefore], [], [barBefore]);
       // Version 22 as phones have it.
-      await old.execAsync('ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; ALTER TABLE foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN portions; ALTER TABLE packaged_foods DROP COLUMN opens_on; PRAGMA user_version = 22;');
+      await old.execAsync('DROP TABLE notifications; ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; ALTER TABLE foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN portions; ALTER TABLE packaged_foods DROP COLUMN opens_on; PRAGMA user_version = 22;');
       await setMeta(old, 'food_list_version', 'v9');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 24 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 25 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // The foods stay, as before, till the list comes.
       expect(await getFood(old, 'indb', 'T901')).toEqual(riceBefore);

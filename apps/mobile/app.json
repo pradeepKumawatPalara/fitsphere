@@ -22,7 +22,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.health.READ_STEPS",
-        "android.permission.health.READ_WEIGHT"
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
@@ -64,6 +65,12 @@
         }
       ],
       "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#B58863"
+        }
+      ],
       "react-native-health-connect",
       [
         "expo-build-properties",

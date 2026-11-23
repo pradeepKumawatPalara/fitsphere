@@ -32,7 +32,7 @@
 - **Post-MVP** marks a requirement, or part of one, that is not in the MVP (D-18,
   `mvp-scope.md` section 3).
 
-Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN · PRG · ACC · NFR
+Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN · PRG · ACC · NOT · NFR
 
 ---
 
@@ -370,6 +370,20 @@ B-22).
 ---
 
 ## MEAS — Measurements logging (BRD §4)
+
+
+### REQ-HOME-009 — Calories / Workout toggle (D-123)
+- Requirement: A two-icon toggle at the left of the header of Home's first card turns Calories into a Workout view and back. The title and the link at the right follow it: "Calories" with "By meal" (REQ-HOME-003, REQ-HOME-005), or "Workout" with "By workout", which opens Training on the selected date. Calories is unchanged. The Workout view shows the selected date's calories burned (typed or estimated, D-50) with a full bar, and under a divider one row per workout ("Workout 1", its exercise count, its kcal) with a bar against the day's biggest workout. There is no burn goal. The last choice is kept on this phone and the card opens on it next time.
+- Acceptance criteria:
+  - Given the app was never toggled, then Home opens on Calories, as before.
+  - Given Workout is chosen and the app is closed and opened again, then Home opens on Workout.
+  - Given two workouts of 300 and 220 kcal, then the view shows 520 kcal burned, and the bars are full and 73%.
+  - Given a workout with no exercise, then it is not listed (D-108) and the others are numbered as Training numbers them.
+  - Given a workout whose exercises have no calories, then its row says "– kcal" with an empty bar; given none at all, the total is "–".
+  - Given part of the calories is estimated, then "Includes estimated calories" shows.
+  - Given a date with no workout, then "No workouts logged" shows, with "Log workout" on today only.
+  - Given a day older than the phone's 90 not yet loaded (D-106), then the view shows dashes.
+- MVP default (D-18): the choice is kept on this phone only (`sync_meta` `home_card_view`); no server change, no migration, no phone schema change. Built on `feat/home-workout-toggle`; plan `docs/plans/home-workout-toggle.md`.
 
 ### REQ-MEAS-001 — Measurements sheet
 - Requirement: Measurements open as a bottom sheet from the Home card or Progress screen.
@@ -954,6 +968,47 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Minimum age (D-18, Q-066): 18 or older in the MVP. The confirmation is self-declared; FitSphere does not verify age (threat model, open risks). **Post-MVP:** use by people under 18 (backlog B-16); what it would need is for Legal (Q-049).
 
 ---
+
+## NOT — Notifications on the phone (Proposed: D-122 and Q-A are not yet answered by the owner)
+Plan: `docs/plans/notifications.md`; ADR-0014 (Proposed). Local only: no server, no remote push (ADR-0004, post-MVP). Branch `fitsphere-notification`.
+
+### REQ-NOT-001 — The bell and the Notifications list
+- Requirement: A bell in the header, beside the calendar and the profile photo, shows how many notifications are unread and opens Notifications: newest first, filter chips All, Reminders, Goals and Nudges, "Mark all read", and a button on each card that marks it read and opens what it is about. An X on each card dismisses it. Rows older than 90 days are removed.
+- Acceptance criteria:
+  - Given 3 unread, then the bell says "3 unread" to screen readers and shows 3; given 10 or more, it shows 9+.
+  - Given the Goals chip, then only goal rows show.
+  - Given a card's button is pressed, then the row is read and its screen opens.
+  - Given a card's X is pressed, then it leaves the list and is not made again the same day.
+- MVP default (D-18): "Mark as unread" is not built; the X replaces a row menu.
+
+### REQ-NOT-002 — Reminders
+- Requirement: Workout (the user's days and time), breakfast, lunch, dinner, snack, and measurements due (more than 7 days, Home's rule, D-85; made at most once a week). Each has its own switch, off at first, and its time in 30-minute steps. A reminder is left out when pointless: the meal already has food, the day already has a logged workout (D-108).
+- Acceptance criteria:
+  - Given nothing was switched on, then nothing is scheduled or listed.
+  - Given lunch on at 1:00 pm and lunch logged today, then today's lunch reminder is not scheduled and not listed.
+  - Given a reminder's time passed with the app closed, then the next time the app opens it is in the list once.
+  - Times are India's (Asia/Kolkata) whatever zone the phone is in (invariant #5).
+
+### REQ-NOT-003 — Goal alerts
+- Requirement: Daily target reached (today's protein target) and weekly workouts reached (this Monday-to-Sunday week's target), each with its own switch, off at first, each once (a day, a week). Told while the app is open.
+- Acceptance criteria:
+  - Given today's protein reaches the target, then one Goals row is made, and with notifications on, outside quiet hours and under the day's cap, one is shown now.
+  - Given the same day opened again, then no second row.
+
+### REQ-NOT-004 — Inactivity nudge
+- Requirement: After 2 to 7 days (3 at first) without opening the app, one nudge at the user's time (6:30 pm at first), off until switched on. Opening the app moves it forward; one at most in each stretch of that many days.
+
+### REQ-NOT-005 — Switches, quiet hours, cap and test
+- Requirement: Settings › Notifications has the master card (turns notifications on, asks the phone's permission only then; "Open phone settings" when refused; "Send a test notification"; "Turn off"), and each type's switch and time. Nothing is sent from 10:00 pm to 7:00 am or beyond 4 a day (the test excepted). The list works with notifications off.
+- Acceptance criteria:
+  - Given a reminder set at 10:30 pm, then it is not scheduled; given 5 reminders on one day, then the 4 earliest are kept.
+
+### REQ-NOT-006 — Text and permission
+- Requirement: Notification text names the kind of event only: no food, weight, number or name. The phone's permission is asked in context, never at start.
+
+### REQ-NOT-007 — Offline, no server, no AI
+- Requirement: Notifications read only what is on the phone and work offline; they never depend on a server or on AI (invariant #4). Signing out clears what is scheduled.
+- MVP default (D-18): choices live on this phone only (`sync_meta` `notification_settings`, one JSON text); no server change, no migration of the API; phone schema version 25 (`notifications`).
 
 ## NFR — Non-functional (not in BRD; proposed, need owner targets)
 

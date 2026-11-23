@@ -1,6 +1,7 @@
 // The phone's copy of the user's data (data-model "On the phone"; ADR-0007 rules 1, 2 and 7).
 // The server is the permanent record; pending and rejected entries are never deleted
 // automatically (D-14).
+import { withSetCalories } from '../setCalories';
 import {
   currentExercises,
   exerciseNameKey,
@@ -720,6 +721,21 @@ const MIGRATIONS = [
   // from Health Connect ('health_connect').
   `ALTER TABLE weigh_ins ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
    ALTER TABLE steps ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';`,
+  // The notification list (ADR-0014): kept on this phone only, never synced, with no health values in
+  // it. A row's `dedupe_key` (kind and day) keeps it from being made twice; a dismissed row stays,
+  // hidden, so it is not made again either.
+  `CREATE TABLE notifications (
+     id TEXT PRIMARY KEY,
+     kind TEXT NOT NULL,
+     category TEXT NOT NULL CHECK (category IN ('reminder', 'goal', 'nudge')),
+     title TEXT NOT NULL,
+     route TEXT NOT NULL,
+     source TEXT NOT NULL DEFAULT 'local',
+     created_at TEXT NOT NULL,
+     read_at TEXT,
+     dismissed_at TEXT,
+     dedupe_key TEXT NOT NULL UNIQUE
+   );`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -766,11 +782,18 @@ export type MetaKey =
   | 'account_created_day'
   | 'ai_consent'
   | 'workout_pill_corner'
+  // Home's first card: 'calories' or 'workout' (D-123), on this phone only.
+  | 'home_card_view'
   // The mic's language, on this phone only (D-115): 'en-IN' or 'hi-IN'.
   | 'voice_language'
   // Health Connect (D-121, on this phone only): when it was connected, and when it was last read.
   | 'health_connect_connected_at'
-  | 'health_connect_read_at';
+  | 'health_connect_read_at'
+  // The notifications master switch (ADR-0014, on this phone only): '1' on, '0' off.
+  | 'notifications_enabled'
+  // The reminders the user chose, as JSON (notificationSettings.ts): which are on, and their times.
+  | 'notification_settings'
+  | 'last_open_day';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);
@@ -818,7 +841,31 @@ export async function saveEntry<K extends EntryKind>(
 export async function getEntry<K extends EntryKind>(db: SqlDb, kind: K, key: string): Promise<LocalEntries[K] | null> {
   const spec = KINDS[kind];
   const row = await db.getFirstAsync<Record<string, BindValue>>(`SELECT * FROM ${spec.table} WHERE ${tableKey(spec)} = ?`, [key]);
-  return row ? (toEntry(spec, row) as LocalEntries[K]) : null;
+  if (!row) return null;
+  const entry = toEntry(spec, row) as LocalEntries[K];
+  return kind === 'workout' ? ((await withLiveCalories(db, [entry as LocalEntries['workout']]))[0] as LocalEntries[K]) : entry;
+}
+
+/**
+ * Workouts with the calories of their set-based exercises read from the sets (setCalories.ts), with the
+ * weigh-in on or before each workout's day, so Home, Training and the workout agree and follow every change.
+ */
+async function withLiveCalories(db: SqlDb, workouts: LocalEntries['workout'][]): Promise<LocalEntries['workout'][]> {
+  const listed = new Map<string, ListedExercise | null>();
+  const weights = new Map<IstDay, number | null>();
+  const out: LocalEntries['workout'][] = [];
+  for (const workout of workouts) {
+    if (!workout.exercises.some((exercise) => exercise.kind === 'sets' && !(exercise.calories && !exercise.calories.estimated))) {
+      out.push(workout);
+      continue;
+    }
+    for (const exercise of workout.exercises) {
+      if (!listed.has(exercise.name)) listed.set(exercise.name, await findListedExercise(db, exercise.name));
+    }
+    if (!weights.has(workout.day)) weights.set(workout.day, await weighInOnOrBefore(db, workout.day));
+    out.push({ ...workout, exercises: withSetCalories(workout.exercises, (name) => listed.get(name) ?? null, weights.get(workout.day) ?? null) });
+  }
+  return out;
 }
 
 /**
@@ -858,7 +905,8 @@ export async function listEntries<K extends Exclude<EntryKind, 'target' | 'setti
     `SELECT * FROM ${spec.table} WHERE day BETWEEN ? AND ? ORDER BY day DESC, recorded_at DESC`,
     [fromDay, toDay],
   );
-  return rows.map((row) => toEntry(spec, row) as LocalEntries[K]);
+  const entries = rows.map((row) => toEntry(spec, row) as LocalEntries[K]);
+  return kind === 'workout' ? ((await withLiveCalories(db, entries as LocalEntries['workout'][])) as LocalEntries[K][]) : entries;
 }
 
 /** Every target value on the phone, each with the IST day it starts, oldest first (D-77, REQ-ROLE-018). */

@@ -134,6 +134,18 @@ describe('ADR-0012 a photo is read with no consent step', () => {
     expect(server.state.aiConsent).toBeNull();
   });
 
+  it('shows the photo taken or chosen, on the reading screen and above the foods found', async () => {
+    const { server } = await openLogMeal();
+    let release = () => undefined as void;
+    server.state.photoEstimateGate = new Promise<void>((resolve) => (release = resolve));
+    await takePhoto('Choose from gallery');
+
+    expect(await screen.findByLabelText('The photo being read')).toBeOnTheScreen();
+    release();
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Your photo')).toBeOnTheScreen();
+  });
+
   it('Choose from gallery uses the gallery', async () => {
     await openLogMeal();
     await takePhoto('Choose from gallery');
