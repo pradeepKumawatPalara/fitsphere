@@ -237,3 +237,44 @@ describe('D-121 the weigh-in history sends the source', () => {
     ]);
   });
 });
+
+describe('D-121 healthImport.remove (Disconnect, then Remove)', () => {
+  const remove = (data: unknown = { removedAt: NOW.toISOString() }) => ({ changeId: randomUUID(), type: 'healthImport.remove', data });
+
+  it('deletes the caller imported steps and weights and keeps the ones the user typed', async () => {
+    const user = await api.signUpWithAccount();
+    await syncOk(user, [
+      weighIn(YESTERDAY, 70_000, 'health_connect'),
+      weighIn(TODAY, 70_500),
+      steps(YESTERDAY, 5_000, 'health_connect'),
+      steps(TODAY, 6_000),
+    ]);
+
+    const reply = await syncOk(user, [remove()]);
+
+    expect(reply.results[0]).toMatchObject({ status: 'accepted', error: null });
+    expect(await stored('weigh_ins', user.id)).toEqual([{ day: TODAY, value: 70_500, source: 'manual' }]);
+    expect(await stored('step_counts', user.id)).toEqual([{ day: TODAY, value: 6_000, source: 'manual' }]);
+  });
+
+  it('REQ-NFR-001 never touches the imported values of another user', async () => {
+    const owner = await api.signUpWithAccount();
+    const other = await api.signUpWithAccount();
+    await syncOk(owner, [weighIn(TODAY, 70_000, 'health_connect'), steps(TODAY, 5_000, 'health_connect')]);
+
+    await syncOk(other, [remove()]);
+
+    expect(await stored('weigh_ins', owner.id)).toHaveLength(1);
+    expect(await stored('step_counts', owner.id)).toHaveLength(1);
+  });
+
+  it('a change that names anything else (a user, a day) is VALIDATION_FAILED and deletes nothing', async () => {
+    const user = await api.signUpWithAccount();
+    await syncOk(user, [weighIn(TODAY, 70_000, 'health_connect')]);
+
+    const reply = await syncOk(user, [remove({ removedAt: NOW.toISOString(), day: TODAY }), remove({})]);
+
+    expect(reply.results.map((result) => result.error?.code)).toEqual(['VALIDATION_FAILED', 'VALIDATION_FAILED']);
+    expect(await stored('weigh_ins', user.id)).toHaveLength(1);
+  });
+});

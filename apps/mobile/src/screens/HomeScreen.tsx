@@ -64,7 +64,7 @@ const TILE_ICONS = {
 } as const;
 
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
-type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState }>>;
+type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState; fromHealthConnect: boolean }>>;
 type Targets = Partial<Record<TargetKind, number>>;
 
 // Home (REQ-HOME-*): the selected day's data. The date, the calendar and the avatar are in the
@@ -148,6 +148,8 @@ export function HomeScreen() {
                     {
                       value: Number(entry[texts[kind].field]),
                       syncState: entry.syncState,
+                      // Steps and weight read from Health Connect carry a tag (D-121).
+                      fromHealthConnect: entry.source === 'health_connect',
                     },
                   ],
                 ]
@@ -306,6 +308,7 @@ export function HomeScreen() {
                 })()}
                 shownValue={kind === 'steps' && entry ? formatInteger(entry.value) : undefined}
                 syncState={entry?.syncState ?? null}
+                tag={entry?.fromHealthConnect ? 'Health Connect' : null}
                 waiting={waiting && !entry}
                 onPress={() =>
                   setSheet({

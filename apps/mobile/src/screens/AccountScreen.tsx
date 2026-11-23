@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import {
   ChevronRight,
   Globe,
+  HeartPulse,
   KeyRound,
   Moon,
   Smartphone,
@@ -118,6 +119,7 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
       <Section title="Account">
         <View style={styles.rows}>
           <LinkRow title="Your targets" icon={Target} onPress={() => router.push('/targets')} />
+          <LinkRow title="Connections" icon={HeartPulse} onPress={() => router.push('/connections')} divided />
           <LinkRow title="Change password" icon={KeyRound} onPress={() => router.push('/change-password')} divided />
         </View>
         <View style={styles.leave}>

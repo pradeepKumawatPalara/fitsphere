@@ -6,6 +6,7 @@ import {
   AI_CONSENT_TEXT_VERSION,
   CHANGE_ERROR_CODES,
   DATA_SOURCES,
+  healthImportRemoveDataSchema,
   stepCountSchema,
   weighInSchema,
   aiConsentRequestSchema,
@@ -1124,5 +1125,14 @@ describe('D-121 source of steps and weight', () => {
     expect(weighInSchema.parse({ ...pulledWeight, source: 'health_connect' }).source).toBe('health_connect');
     expect(stepCountSchema.parse({ ...pulledSteps, source: 'health_connect' }).source).toBe('health_connect');
     expect(weighInSchema.safeParse({ ...pulledWeight, source: 'fitbit' }).success).toBe(false);
+  });
+});
+
+describe('D-121 healthImport.remove data', () => {
+  it('is a time and nothing else', () => {
+    expect(healthImportRemoveDataSchema.safeParse({ removedAt: '2026-10-27T02:45:10.123Z' }).success).toBe(true);
+    expect(healthImportRemoveDataSchema.safeParse({}).success).toBe(false);
+    expect(healthImportRemoveDataSchema.safeParse({ removedAt: 'yesterday' }).success).toBe(false);
+    expect(healthImportRemoveDataSchema.safeParse({ removedAt: '2026-10-27T02:45:10.123Z', day: '2026-10-27' }).success).toBe(false);
   });
 });

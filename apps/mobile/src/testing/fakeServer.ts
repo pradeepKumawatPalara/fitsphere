@@ -245,6 +245,15 @@ export function fakeServer(now: Date) {
       const results = request.changes.map((change) => {
         const known = seen.get(change.changeId);
         if (known) return known;
+        // Disconnect, then Remove (D-121): the values read from Health Connect go; typed ones stay.
+        if (change.type === 'healthImport.remove') {
+          for (const [slot, { item }] of [...stored]) {
+            if ((slot.startsWith('weighIns|') || slot.startsWith('steps|')) && item.source === 'health_connect') stored.delete(slot);
+          }
+          const removed = { changeId: change.changeId, status: 'accepted', error: null } as SyncResult;
+          seen.set(change.changeId, removed);
+          return removed;
+        }
         const type = change.type in KINDS ? (change.type as ChangeType) : null;
         const day = change.data.day;
         const code =

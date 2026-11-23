@@ -104,6 +104,22 @@ The registry and README were read directly; Google's pages only through search s
 
 **Q-E, answered by the owner (2026-11-20): yes** — `react-native-health-connect` 4.1.3, pinned, added in step 4 (not before).
 
+## Step 3 as built, and where it differs from the plan above (2026-11-23)
+- **No pull to refresh.** The app has no pull-to-refresh anywhere, so a read happens when the app opens, when
+  it returns to the foreground, and on **Read now** on the Connections screen. (The plan said "pull to refresh
+  on Home"; building that gesture is a separate change.)
+- **Each read covers the last 30 days**, not only new data: it is idempotent, and picks up late-arriving data.
+- **Remove needed a server change** the plan had missed: `healthImport.remove` (shared contract, API handler,
+  tests, `api-conventions.md`). Other signed-in phones keep their copies until those leave their 90 days.
+- **The tag is on Home's Steps and Weight tiles only.** Progress, Weight history and the sheets do not show it yet.
+- **The adapter is a stub** (`src/health/healthSource.ts`, answers "not supported") until step 4; the Connections
+  screen therefore says "Not available on this phone." in every build made now.
+- **Phone schema version 24** (`weigh_ins.source`, `steps.source`, default `manual`); the phone keeps the
+  connection record in `sync_meta` (Q-A).
+- New: `src/health/` (`types`, `healthSource`, `importHealth`, `HealthSyncProvider`), `ConnectionsScreen`, route
+  `connections`, a Connections row in Settings, `QuickTile`'s `tag`, `removeImportedValues` and `countImported`
+  in `local/store.ts`, a quiet drop of an import the server refused (`MANUAL_VALUE_EXISTS`).
+
 ## Owner's answers (2026-11-20)
 - **Q-A:** the connection record is on the phone only (`sync_meta`); no server table.
 - **Q-B:** a day over the limit is skipped, not clipped; the limit is not widened (200,000 steps, not the 100,000 first written: see "The rules for what is imported").

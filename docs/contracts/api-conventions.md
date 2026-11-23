@@ -229,6 +229,7 @@ Request:
   |---|---|---|
   | `weighIn.set` | `day`, `weightGrams`, `recordedAt`, `source` | Whole grams, 20,000 to 300,000 (Q-028). `source` is `manual` (left out: the user typed it) or `health_connect` (D-121, read from the phone's health store); see the rule below |
   | `steps.set` | `day`, `steps`, `recordedAt`, `source` | Whole steps, 1 to 200,000 (D-100; was 0 to 100,000, Q-028). `source` as for `weighIn.set` |
+  | `healthImport.remove` | `removedAt` | Disconnect, then Remove (D-121): deletes the caller's steps and weights whose `source` is `health_connect`; typed ones stay. No day or ID. Other phones keep their copies until those leave their 90 days |
   | `sleep.set` | `day`, `sleepMinutes`, `recordedAt` | Whole minutes, 0 to 1,440 (Q-028) |
   | `measurements.set` | `day`, `upperWaistMm`, `lowerWaistMm`, `chestMm`, `hipsMm`, `armMm`, `thighMm`, `notes`, `recordedAt` | Both waist values required; the others `null` when not entered. Whole millimetres, 100 to 2,500 (Q-028). `notes` 1 to 500 characters, or `null` |
   | `workout.set` | `id`, `day`, `exercises`, `recordedAt`, `timer` | `id` is a UUID made on the phone. 0 to 30 exercises, each as the data model's `workouts` sets out (D-50). `timer` (D-71) is `{ startedAt, countedSeconds, runningSince, doneAt }`, `countedSeconds` 0 to 86,400, never running and done at once, or `null`; a change without it, from an app before D-71, keeps the timer stored |

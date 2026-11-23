@@ -249,6 +249,17 @@ export const stepsSetDataSchema = z.strictObject({
 });
 export type StepsSetData = z.infer<typeof stepsSetDataSchema>;
 
+/**
+ * Disconnect, then Remove (D-121, ADR-0013): deletes the user's steps and weights whose source is
+ * `health_connect`; the values the user typed stay. No day or ID: it names no one else's data.
+ */
+export const HEALTH_IMPORT_REMOVE = 'healthImport.remove';
+
+export const healthImportRemoveDataSchema = z.strictObject({
+  removedAt: instantSchema,
+});
+export type HealthImportRemoveData = z.infer<typeof healthImportRemoveDataSchema>;
+
 export const SLEEP_SET = 'sleep.set';
 
 export const sleepSetDataSchema = z.strictObject({

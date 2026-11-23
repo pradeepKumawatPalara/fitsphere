@@ -179,7 +179,7 @@ describe('Local schema version 6', () => {
       // Version 5 as phones have it: build it with the current migrations, then drop what 6 and 7 add.
       await migrateLocal(old);
       await old.execAsync(
-        'DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; DROP TABLE workouts; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 5;',
+        'ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; DROP TABLE exercises; DROP TABLE packaged_foods; DROP TABLE my_foods; ALTER TABLE foods DROP COLUMN portions; DROP TABLE profile; DROP TABLE workouts; DROP TABLE settings; ALTER TABLE foods DROP COLUMN measures; PRAGMA user_version = 5;',
       );
       await old.runAsync(`INSERT INTO weigh_ins VALUES ('2026-10-20', 70000, ?, 'synced')`, [AT]);
       await old.runAsync(`INSERT INTO steps VALUES ('2026-10-20', 4000, ?, 'pending')`, [AT]);
@@ -191,7 +191,7 @@ describe('Local schema version 6', () => {
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 23 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 24 });
       expect(await getWeighIn(old, '2026-10-20')).toMatchObject({ weightGrams: 70_000 });
       expect((await pendingChanges(old, 10)).map((change) => change.changeId)).toEqual(['c1']);
       expect(await getMeta(old, 'cursor')).toBeNull();
@@ -230,13 +230,13 @@ describe('Local schema version 18', () => {
     try {
       // Version 17 as phones have it: build it with the current migrations, then drop what 18 adds.
       await migrateLocal(old);
-      await old.execAsync('ALTER TABLE foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN portions; ALTER TABLE packaged_foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; ALTER TABLE exercises DROP COLUMN details; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 17;');
+      await old.execAsync('ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; ALTER TABLE foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN portions; ALTER TABLE packaged_foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; ALTER TABLE exercises DROP COLUMN details; ALTER TABLE workouts DROP COLUMN timer; PRAGMA user_version = 17;');
       await old.runAsync(`INSERT INTO workouts VALUES (?, ?, ?, ?, 'synced')`, [ID_A, DAY, JSON.stringify([SQUAT]), AT]);
       await old.runAsync(`INSERT INTO workouts VALUES (?, ?, ?, ?, 'pending')`, [ID_B, DAY, '[]', LATER]);
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 23 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 24 });
       expect(await getEntry(old, 'workout', ID_A)).toEqual({ ...workout(ID_A), syncState: 'synced' });
       expect(await getEntry(old, 'workout', ID_B)).toEqual({ ...workout(ID_B, { exercises: [], recordedAt: LATER }), syncState: 'pending' });
     } finally {

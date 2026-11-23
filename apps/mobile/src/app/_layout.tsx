@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { createAuthDeps } from '../auth/supabase';
+import { HealthSyncProvider } from '../health/HealthSyncProvider';
 import { Text } from '../components/ui';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import { SettingsProvider } from '../settings/SettingsProvider';
@@ -50,6 +51,7 @@ function AppStack() {
       <Stack.Screen name="targets" options={{ title: 'Your targets' }} />
       <Stack.Screen name="target-history" options={{ title: 'Target history' }} />
       <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+      <Stack.Screen name="connections" options={{ title: 'Connections' }} />
       {/* Log meal draws its own header row: the title at the left, the date at the right (the owner, 2026-11-18). */}
       <Stack.Screen name="log-meal" options={{ title: 'Log meal', headerShown: false }} />
       {/* A saved meal (D-69): made new from its name, or opened to change. */}
@@ -83,11 +85,13 @@ export default function RootLayout() {
     <AuthProvider deps={authDeps}>
       <LocalDatabaseForUser>
         <SyncProvider>
-          <SettingsProvider>
-            <ThemeProvider>
-              <AppStack />
-            </ThemeProvider>
-          </SettingsProvider>
+          <HealthSyncProvider>
+            <SettingsProvider>
+              <ThemeProvider>
+                <AppStack />
+              </ThemeProvider>
+            </SettingsProvider>
+          </HealthSyncProvider>
         </SyncProvider>
       </LocalDatabaseForUser>
     </AuthProvider>

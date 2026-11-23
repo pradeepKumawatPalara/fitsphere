@@ -39,6 +39,8 @@ import {
   weighInSetDataSchema,
   WORKOUT_DELETE,
   WORKOUT_SET,
+  HEALTH_IMPORT_REMOVE,
+  healthImportRemoveDataSchema,
   workoutDeleteDataSchema,
   workoutSetDataSchema,
   type ChangeError,
@@ -189,6 +191,17 @@ async function writeWithSource(client: pg.PoolClient, sql: string, values: unkno
 }
 
 const HANDLERS = new Map<string, Handler>([
+  [
+    HEALTH_IMPORT_REMOVE,
+    // The user's own imported steps and weights go; typed ones stay. Other phones keep their copies
+    // until those leave their 90 days (the pull carries no deletions for day data).
+    async (client, account, input) => {
+      if (!healthImportRemoveDataSchema.safeParse(input).success) return 'VALIDATION_FAILED';
+      await client.query(`delete from app.weigh_ins where user_id = $1 and source = 'health_connect'`, [account.id]);
+      await client.query(`delete from app.step_counts where user_id = $1 and source = 'health_connect'`, [account.id]);
+      return null;
+    },
+  ],
   [
     WEIGH_IN_SET,
     dayChange(weighInSetDataSchema, (client, userId, data) =>
