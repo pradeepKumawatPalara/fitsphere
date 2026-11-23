@@ -162,7 +162,7 @@ export function exerciseRules(unit: BodyWeightUnit) {
     speed: 'Enter a speed from 0.1 to 40.0 km/h, with at most one decimal, or leave it empty.',
     incline: 'Enter an incline from 0.0 to 40.0 %, with at most one decimal, or leave it empty.',
     level: `Enter a level from 1 to ${EXERCISE_LEVEL_MAX}, or leave it empty.`,
-    spent: `Enter the time spent in minutes, from 1 to ${formatInteger(EXERCISE_SECONDS_MAX / 60)}, or leave it empty.`,
+    spent: 'Enter the time spent in minutes and seconds, up to 24 hours, or leave it empty.',
     kcal: `Enter calories from 1 to ${formatInteger(EXERCISE_KCAL_MAX)} kcal, or leave it empty.`,
     heartRate: `Enter a heart rate from ${HEART_RATE_BPM_MIN} to ${HEART_RATE_BPM_MAX} beats a minute, or leave it empty.`,
     heartRateOrder: "The highest heart rate can't be below the average.",
@@ -175,8 +175,9 @@ export type SetText = Record<SetColumn, string>;
 
 /**
  * The exercise sheet's fields as typed; `timeMinutes` and `timeSeconds` are cardio's time,
- * `spentMinutes` the time spent on sets, and `kcal` the calories typed in place of the estimate, null
- * while the estimate is used (D-50).
+ * `spentMinutes` and `spentSeconds` the time spent on sets, and `kcal` the calories typed in place of the
+ * estimate, null while the estimate is used (D-50). `timeAuto` while the time spent follows the reps
+ * (the exercise-time plan: reps × the seconds one rep takes), until the user types it.
  */
 export type ExerciseText = {
   name: string;
@@ -189,6 +190,8 @@ export type ExerciseText = {
   incline: string;
   level: string;
   spentMinutes: string;
+  spentSeconds: string;
+  timeAuto: boolean;
   kcal: string | null;
   averageHeartRate: string;
   highestHeartRate: string;
@@ -208,6 +211,8 @@ export const EMPTY_EXERCISE: ExerciseText = {
   incline: '',
   level: '',
   spentMinutes: '',
+  spentSeconds: '',
+  timeAuto: true,
   kcal: null,
   averageHeartRate: '',
   highestHeartRate: '',
@@ -230,7 +235,10 @@ export function toExerciseText(exercise: WorkoutExercise, unit: BodyWeightUnit):
   if (exercise.kind === 'sets') {
     return {
       ...text,
-      spentMinutes: typed(exercise.durationSeconds, (seconds) => String(Math.round(seconds / 60))),
+      spentMinutes: typed(exercise.durationSeconds, (seconds) => String(Math.floor(seconds / 60))),
+      spentSeconds: typed(exercise.durationSeconds, (seconds) => String(seconds % 60).padStart(2, '0')),
+      // A saved time is the user's until it is seen to match the reps (the sheet decides, with the list).
+      timeAuto: exercise.durationSeconds === null,
       sets: exercise.sets.map((set) => ({
         reps: typed(set.reps, String),
         weight: typed(set.weightGrams, (grams) => fromGrams(grams, unit).toFixed(1)),
@@ -283,6 +291,41 @@ export type ExerciseProblems = {
   note?: string;
 };
 
+/**
+ * The time spent on sets as typed, in minutes and seconds: its seconds, 'empty' when neither is typed,
+ * 'invalid' when it is not a time from 1 second to 24 hours.
+ */
+export function spentSecondsOf(text: Pick<ExerciseText, 'spentMinutes' | 'spentSeconds'>): number | 'empty' | 'invalid' {
+  if (text.spentMinutes.trim() === '' && text.spentSeconds.trim() === '') return 'empty';
+  const minutes = parseWholeNumber(text.spentMinutes.trim() || '0', 0, EXERCISE_SECONDS_MAX / 60);
+  const seconds = parseWholeNumber(text.spentSeconds.trim() || '0', 0, 59);
+  if (minutes === null || seconds === null) return 'invalid';
+  const total = minutes * 60 + seconds;
+  return total >= 1 && total <= EXERCISE_SECONDS_MAX ? total : 'invalid';
+}
+
+/** The reps of every set added up (a set with none, or none that can be used, adds nothing); null with none. */
+export function totalReps(sets: readonly SetText[]): number | null {
+  const total = sets.reduce((sum, set) => sum + (parseWholeNumber(set.reps, 1, EXERCISE_REPS_MAX) ?? 0), 0);
+  return total > 0 ? total : null;
+}
+
+/**
+ * The time worked out from the reps (the exercise-time plan): every rep of every set × the seconds one rep
+ * takes, rest between sets not counted; null with no reps, or no time for one rep (the types not done in
+ * reps, an exercise of the user's own).
+ */
+export function timeFromReps(sets: readonly SetText[], secondsPerRep: number | null | undefined): number | null {
+  const reps = totalReps(sets);
+  if (reps === null || secondsPerRep === null || secondsPerRep === undefined) return null;
+  return Math.min(EXERCISE_SECONDS_MAX, reps * secondsPerRep);
+}
+
+/** A time as the two boxes show it: "2" minutes and "05" seconds. */
+export function spentTexts(seconds: number): { spentMinutes: string; spentSeconds: string } {
+  return { spentMinutes: String(Math.floor(seconds / 60)), spentSeconds: String(seconds % 60).padStart(2, '0') };
+}
+
 /** What a calorie estimate needs from the sheet (D-50): the time, and the speed when it is known. */
 export function effortOf(text: ExerciseText, layout: Layout): { seconds: number | null; speedKmh: number | null } {
   if (layout.kind === 'cardio') {
@@ -295,8 +338,8 @@ export function effortOf(text: ExerciseText, layout: Layout): { seconds: number 
     if (speed !== null && speed > 0) return { seconds, speedKmh: speed };
     return { seconds, speedKmh: km !== null && km > 0 && seconds !== null ? km / (seconds / 3600) : null };
   }
-  const spent = text.spentMinutes.trim() === '' ? null : parseWholeNumber(text.spentMinutes, 1, EXERCISE_SECONDS_MAX / 60);
-  if (spent !== null) return { seconds: spent * 60, speedKmh: null };
+  const spent = spentSecondsOf(text);
+  if (typeof spent === 'number') return { seconds: spent, speedKmh: null };
   if (!layout.columns.some(({ column }) => column === 'seconds')) return { seconds: null, speedKmh: null };
   const times = text.sets.map((set) => parseWholeNumber(set.seconds, 1, EXERCISE_SET_SECONDS_MAX));
   const total = times.reduce<number | null>((sum, time) => (sum === null || time === null ? null : sum + time), 0);
@@ -390,10 +433,10 @@ export function parseExercise(
       }
       return { reps: values.reps, weightGrams: values.weight, seconds: values.seconds };
     });
-    const spent = text.spentMinutes.trim() === '' ? null : parseWholeNumber(text.spentMinutes, 1, EXERCISE_SECONDS_MAX / 60);
-    if (spent === null && text.spentMinutes.trim() !== '') problems.spent = rules.spent;
+    const spent = spentSecondsOf(text);
+    if (spent === 'invalid') problems.spent = rules.spent;
     if (hasProblems(problems)) return { problems };
-    return { exercise: { kind: 'sets', ...common, sets, durationSeconds: spent === null ? null : spent * 60 } };
+    return { exercise: { kind: 'sets', ...common, sets, durationSeconds: typeof spent === 'number' ? spent : null } };
   }
 
   const minutes = parseWholeNumber(text.timeMinutes.trim() || '0', 0, EXERCISE_SECONDS_MAX / 60);
@@ -541,6 +584,16 @@ export function caloriesBurned(exercises: readonly Pick<WorkoutExercise, 'calori
   const counted = exercises.flatMap((exercise) => (exercise.calories ? [exercise.calories] : []));
   if (counted.length === 0) return null;
   return { kcal: counted.reduce((sum, calories) => sum + calories.kcal, 0), estimated: counted.some((calories) => calories.estimated) };
+}
+
+/**
+ * What the time spent says under the boxes (the exercise-time plan): how it was worked out from the reps,
+ * or, once the user typed their own, what the arrow brings back; null with no time from the reps.
+ */
+export function timeHelp(following: boolean, reps: number | null, secondsPerRep: number | null | undefined, fromReps: number | null): string | null {
+  if (reps === null || secondsPerRep === null || secondsPerRep === undefined || fromReps === null) return null;
+  const sum = `${reps} ${reps === 1 ? 'rep' : 'reps'} × ${secondsPerRep} s = ${estimateTime(fromReps)}`;
+  return following ? `From ${sum}, rest not counted. Type your own time to replace it.` : `Your own time. The arrow brings back ${sum}.`;
 }
 
 /** An estimate's time as its help reads it: "30 min", or "2:15". */

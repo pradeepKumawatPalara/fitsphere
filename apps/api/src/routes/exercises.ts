@@ -33,7 +33,10 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
       compendium_code: string | null;
       met: string | null;
       places: ExercisePlace[];
-    }>('select code, name, exercise_group, log_type, aliases, compendium_code, met, places from app.exercises order by code');
+      seconds_per_rep: number | null;
+    }>(
+      'select code, name, exercise_group, log_type, aliases, compendium_code, met, places, seconds_per_rep from app.exercises order by code',
+    );
     const speeds = await deps.db.query<{ exercise_code: string; from_kmh: string; compendium_code: string; met: string }>(
       'select exercise_code, from_kmh, compendium_code, met from app.exercise_speed_mets order by exercise_code, from_kmh',
     );
@@ -94,6 +97,7 @@ export function registerExercisesRoute(app: FastifyInstance, deps: { db: Pick<pg
         compendiumCode: row.compendium_code,
         met: row.met === null ? null : Number(row.met),
         speedMets: speedMetsOf.get(row.code) ?? [],
+        secondsPerRep: row.seconds_per_rep,
         places: row.places,
         details: detailsOf.get(row.code) ?? null,
       })),

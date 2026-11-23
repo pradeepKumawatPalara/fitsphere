@@ -3,7 +3,7 @@ import type { ExercisesResponse } from '@fitsphere/shared';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { readExerciseDetails } from '../../src/exercises/exerciseDetails.ts';
-import { importExercises, readExerciseLibrary, readExerciseList, readSpeedMets } from '../../src/exercises/exerciseList.ts';
+import { importExercises, readExerciseLibrary, readExerciseList, readSpeedMets, readTypeTimes } from '../../src/exercises/exerciseList.ts';
 import { createTestKeys, signToken } from '../helpers/auth.ts';
 import { startTestApi } from './app.ts';
 import { connect } from './database.ts';
@@ -12,9 +12,12 @@ import { connect } from './database.ts';
 // exercises and places (D-67) and each library row's details (D-81).
 
 const LIBRARY = readFileSync(new URL('../../../../docs/data/exercise-library-sheet.csv', import.meta.url), 'utf8');
-const LIST = readSpeedMets(
-  readFileSync(new URL('../../../../data/exercises/speed-mets.csv', import.meta.url), 'utf8'),
-  readExerciseLibrary(LIBRARY, readExerciseList(readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8'))),
+const LIST = readTypeTimes(
+  readFileSync(new URL('../../../../data/exercises/type-times.csv', import.meta.url), 'utf8'),
+  readSpeedMets(
+    readFileSync(new URL('../../../../data/exercises/speed-mets.csv', import.meta.url), 'utf8'),
+    readExerciseLibrary(LIBRARY, readExerciseList(readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8'))),
+  ),
 );
 const DETAILS = readExerciseDetails(
   readFileSync(new URL('../../../../docs/data/exercise-library-details.csv', import.meta.url), 'utf8'),
@@ -174,10 +177,15 @@ describe('authorization: GET /v1/exercises', () => {
       compendiumCode: '02022',
       met: 3.8,
       speedMets: [],
+      // The seconds one rep takes, by type (a bodyweight exercise: 3).
+      secondsPerRep: 3,
       places: [{ category: 'Bodyweight / Calisthenics', subGroup: 'Push' }],
       details: expect.objectContaining({ place: { category: 'Bodyweight / Calisthenics', subGroup: 'Push' }, primaryMuscle: 'Chest' }),
     });
     expect(body.items?.find((exercise) => exercise.code === 'kabaddi')?.places).toEqual([]);
+    // Only the types done in reps have a time for one rep: weights 4, bodyweight 3, running none.
+    expect(body.items?.find((exercise) => exercise.code === 'dumbbell-incline-bench-press')?.secondsPerRep).toBe(4);
+    expect(body.items?.find((exercise) => exercise.code === 'running')?.secondsPerRep).toBeNull();
     expect(body.items?.find((exercise) => exercise.code === 'running')?.speedMets.slice(0, 2)).toEqual([
       { fromKmh: 4.2, compendiumCode: '12026', met: 3.3 },
       { fromKmh: 6.4, compendiumCode: '12028', met: 6.5 },

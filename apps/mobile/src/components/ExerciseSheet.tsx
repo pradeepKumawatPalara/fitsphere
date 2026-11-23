@@ -22,6 +22,7 @@ import {
   effortOf,
   EMPTY_EXERCISE,
   estimateCalories,
+  estimateTime,
   exerciseLayout,
   exerciseRules,
   GROUP_LABELS,
@@ -31,7 +32,12 @@ import {
   logTypeKind,
   parseExercise,
   speedAndPace,
+  spentSecondsOf,
+  spentTexts,
+  timeFromReps,
+  timeHelp,
   toExerciseText,
+  totalReps,
   type CardioField,
   type ExerciseProblems,
   type ExerciseText,
@@ -258,6 +264,20 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     editing !== null && listed !== null && exerciseNameKey(text.name) === exerciseNameKey(editing.name) && logTypeKind(listed.logType) !== editing.kind;
   const match = savedOtherwise ? null : listed;
   const layout = exerciseLayout(match, text.logAs, editing);
+  // The time spent follows the reps (the exercise-time plan): reps × the seconds one rep takes, until the
+  // user types it. `view` is the text with that time in it; everything below reads `view`.
+  const autoSeconds = layout.kind === 'sets' ? timeFromReps(text.sets, match?.secondsPerRep) : null;
+  const view: ExerciseText = text.timeAuto && autoSeconds !== null ? { ...text, ...spentTexts(autoSeconds) } : text;
+  // A saved time that equals what its reps give was not typed: it goes on following them.
+  const timeDecided = useRef(editing === null);
+  useEffect(() => {
+    if (timeDecided.current || editing === null || editing.kind !== 'sets' || match === null) return;
+    timeDecided.current = true;
+    // Runs once, to decide whether a saved time was typed or worked out from its reps; not a render-driven update.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (editing.durationSeconds !== null && timeFromReps(text.sets, match.secondsPerRep) === editing.durationSeconds) setText((current) => ({ ...current, timeAuto: true }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match]);
   const named = text.name.trim() !== '';
   const choosing = !listClosed && (typingName || browsing) && matches.length > 0;
   // A list fills the page under the fields: a choice's, or the matches.
@@ -274,16 +294,30 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
     : browsing
       ? `${filterLabel(filter)} · ${matches.length} ${matches.length === 1 ? 'exercise' : 'exercises'}`
       : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} in ${filterLabel(filter)}`;
-  const estimated = estimateCalories(match, effortOf(text, layout), weightGrams);
+  const estimated = estimateCalories(match, effortOf(view, layout), weightGrams);
   const estimate = 'estimate' in estimated ? estimated.estimate : null;
   // The user's own number, or an empty box, where there is an estimate to go back to (D-107).
   const changed = caloriesChanged(text.kcal, estimated);
+  // How the time was worked out from the reps, under the boxes (the exercise-time plan).
+  const timeLine = layout.kind === 'sets' ? timeHelp(text.timeAuto, totalReps(text.sets), match?.secondsPerRep, autoSeconds) : null;
 
   function change(fields: Partial<ExerciseText>) {
     setText((current) => ({ ...current, ...fields }));
   }
 
   /** The arrow (D-107): the estimate again, which then follows the time and distance as before. */
+  /** The time's boxes: the time shown becomes the user's own, with this change. */
+  function changeTime(field: 'spentMinutes' | 'spentSeconds', value: string) {
+    change({ spentMinutes: view.spentMinutes, spentSeconds: view.spentSeconds, [field]: value, timeAuto: false });
+  }
+
+  /** The time's arrow: the time from the reps again, which then follows them. */
+  function backToReps() {
+    if (autoSeconds === null) return;
+    change({ timeAuto: true });
+    AccessibilityInfo.announceForAccessibility(`Time spent: from the reps, ${estimateTime(autoSeconds)}`);
+  }
+
   function backToEstimate() {
     if (changed === null) return;
     change({ kcal: null });
@@ -315,7 +349,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   }
 
   function pick(exercise: ListedExercise) {
-    change({ name: exercise.name });
+    change({ name: exercise.name, timeAuto: true, spentMinutes: '', spentSeconds: '' });
     setListed(exercise);
     setMatches([]);
     setTypingName(false);
@@ -332,9 +366,9 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
 
   // Each problem worked out from what is typed now; each shows once its field settles: typing in it
   // has paused, or it was left (an empty one only once left). Save waits while there is one (D-99).
-  const parsed = parseExercise(text, layout, unit, estimated, editing);
+  const parsed = parseExercise(view, layout, unit, estimated, editing);
   const typed: ExerciseProblems = 'problems' in parsed ? parsed.problems : { refused: [] };
-  const checks = useFieldChecks(exerciseTexts(text, layout));
+  const checks = useFieldChecks(exerciseTexts(view, layout));
   const problems = shownProblems(typed, checks, text, layout, unit, choosing);
   const saveHint = 'problems' in parsed ? whatToFix(typed, problems) : null;
   /** Focus and blur for a field, for its checks. */
@@ -646,8 +680,17 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           <View testID="exercise-effort" style={styles.field}>
             <View testID="exercise-effort-labels" style={[styles.pair, styles.pairLabels]}>
               {layout.kind === 'sets' ? (
-                <View style={styles.half}>
-                  <Text style={labelStyle}>Time spent</Text>
+                <View style={[styles.half, styles.labelRow]}>
+                  {/* From the reps, or the user's own once typed, with an arrow back to the reps' time. */}
+                  <View style={styles.labelWithTag}>
+                    <Text style={labelStyle}>Time spent</Text>
+                    {autoSeconds !== null ? <Text style={text.timeAuto ? styles.tag : styles.editedTag}>{text.timeAuto ? 'From reps' : 'Edited'}</Text> : null}
+                  </View>
+                  {autoSeconds !== null && !text.timeAuto && spentSecondsOf(view) !== autoSeconds ? (
+                    <IconButton label={`Use the time from the reps, ${estimateTime(autoSeconds)}`} onPress={backToReps}>
+                      <RotateCcw size={20} strokeWidth={2.25} color={colors.accent} />
+                    </IconButton>
+                  ) : null}
                 </View>
               ) : null}
               {/* Changed by the user while there is an estimate (D-107, canvas "Calories burned changed by
@@ -673,16 +716,33 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             </View>
             <View testID="exercise-effort-boxes" style={styles.pair}>
               {layout.kind === 'sets' ? (
-                <View style={styles.half}>
-                  <Box
-                    accessibilityLabel="Time spent in min (optional)"
-                    value={text.spentMinutes}
-                    onChangeText={(spentMinutes) => change({ spentMinutes })}
-                    keyboardType="number-pad"
-                    unit="min"
-                    refused={problems.spent !== undefined}
-                    {...watch('spentMinutes')}
-                  />
+                <View style={[styles.half, styles.timePair]}>
+                  <View style={styles.half}>
+                    <Box
+                      accessibilityLabel="Time spent, minutes (optional)"
+                      value={view.spentMinutes}
+                      onChangeText={(value) => changeTime('spentMinutes', value)}
+                      keyboardType="number-pad"
+                      unit="min"
+                      refused={problems.spent !== undefined}
+                      compact
+                      time
+                      {...watch('spentMinutes')}
+                    />
+                  </View>
+                  <View style={styles.half}>
+                    <Box
+                      accessibilityLabel="Time spent, seconds (optional)"
+                      value={view.spentSeconds}
+                      onChangeText={(value) => changeTime('spentSeconds', value)}
+                      keyboardType="number-pad"
+                      unit="sec"
+                      refused={problems.spent !== undefined}
+                      compact
+                      time
+                      {...watch('spentSeconds')}
+                    />
+                  </View>
                 </View>
               ) : null}
               <View style={styles.half}>
@@ -709,6 +769,7 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
             </View>
           </View>
           {problems.spent ? <Problem text={problems.spent} /> : null}
+          {timeLine && !problems.spent ? <Text style={styles.afterPair}>{timeLine}</Text> : null}
           {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.afterPair}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
           <View style={styles.pair}>
             {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
@@ -791,6 +852,7 @@ function exerciseTexts(text: ExerciseText, layout: Layout): Record<string, strin
     incline: text.incline,
     level: text.level,
     spentMinutes: text.spentMinutes,
+    spentSeconds: text.spentSeconds,
     kcal: text.kcal ?? '',
     averageHeartRate: text.averageHeartRate,
     highestHeartRate: text.highestHeartRate,
@@ -840,7 +902,7 @@ function shownProblems(
     ...shown('speed', 'speed'),
     ...shown('incline', 'incline'),
     ...shown('level', 'level'),
-    ...shown('spent', 'spentMinutes'),
+    ...(typed.spent !== undefined && (checks.shows('spentMinutes') || checks.shows('spentSeconds')) ? { spent: typed.spent } : {}),
     ...shown('kcal', 'kcal'),
     ...shown('averageHeartRate', 'averageHeartRate'),
     ...shown('highestHeartRate', 'highestHeartRate', checks.isSettled('averageHeartRate')),
@@ -943,6 +1005,7 @@ function Box({
   compact = false,
   inSet = false,
   small = false,
+  time = false,
   note = false,
   onFocus,
   onBlur,
@@ -956,6 +1019,8 @@ function Box({
   inSet?: boolean;
   /** Three boxes across: the number 18 high. */
   small?: boolean;
+  /** One of the two time spent boxes, min and sec side by side in half a row: less padding, smaller figures and unit. */
+  time?: boolean;
   note?: boolean;
 } & TextInputProps) {
   const styles = useStyles();
@@ -965,6 +1030,7 @@ function Box({
       style={[
         styles.box,
         compact && styles.compact,
+        time && styles.timeBox,
         inSet && styles.setBox,
         note && styles.noteBox,
         after ? styles.withAfter : null,
@@ -981,10 +1047,10 @@ function Box({
           setFocused(false);
           onBlur?.(event);
         }}
-        style={[styles.value, !note && styles.number, small && styles.numberSmall, inSet && styles.centred, note && styles.note]}
+        style={[styles.value, !note && styles.number, small && styles.numberSmall, time && styles.numberTime, inSet && styles.centred, note && styles.note]}
         {...input}
       />
-      {unit ? <Text style={styles.unit}>{unit}</Text> : null}
+      {unit ? <Text style={[styles.unit, time && styles.unitTime]}>{unit}</Text> : null}
       {after}
     </View>
   );
@@ -1013,6 +1079,10 @@ const useStyles = themedStyles((c) => ({
   compact: { flex: 1, gap: 8, paddingHorizontal: 12 },
   // A set's box (D-112): only its number, so little padding and the number centred.
   setBox: { paddingHorizontal: 6 },
+  // The time spent's min and sec boxes (the owner, 2026-11-20: smaller): little padding, figures 16, the unit 11.
+  timeBox: { gap: 4, paddingHorizontal: 8 },
+  numberTime: { fontSize: 16, lineHeight: 20 },
+  unitTime: { fontSize: 11, lineHeight: 14, letterSpacing: 0.5 },
   centred: { textAlign: 'center' },
   numberSmall: { fontSize: 18, lineHeight: 22 },
   // A button at the box's end keeps its own room (D-107).
@@ -1109,6 +1179,7 @@ const useStyles = themedStyles((c) => ({
   removeSet: { width: 32, height: 44, alignItems: 'center', justifyContent: 'center' },
   addSet: { alignItems: 'flex-start' },
   pair: { flexDirection: 'row', gap: 12 },
+  timePair: { flexDirection: 'row', gap: 6 },
   half: { flex: 1 },
   rule: { height: 1, backgroundColor: c.border },
   // The calories' line, under Time spent and Calories, closer to them than the next pair.

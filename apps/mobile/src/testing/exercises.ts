@@ -70,7 +70,7 @@ export const TEST_DETAILS: Record<string, ExerciseDetails> = {
 };
 
 /** One exercise of each type, a few more dumbbell ones to search among, and two of the library's (D-67), most with places. */
-const LISTED: Omit<ListedExercise, 'details'>[] = [
+const LISTED: Omit<ListedExercise, 'details' | 'secondsPerRep'>[] = [
   { code: 'dumbbell-bench-press', name: 'Dumbbell bench press', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell press'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Chest' }] },
   { code: 'dumbbell-curl', name: 'Dumbbell curl', group: 'dumbbell', logType: 'weight_reps', aliases: [], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Biceps' }] },
   { code: 'hammer-curl', name: 'Hammer curl', group: 'dumbbell', logType: 'weight_reps', aliases: ['dumbbell hammer curl'], compendiumCode: '02054', met: 3.5, speedMets: [], places: [{ category: 'Dumbbell', subGroup: 'Biceps' }] },
@@ -92,8 +92,15 @@ const LISTED: Omit<ListedExercise, 'details'>[] = [
   { code: 'sled-drag-harness', name: 'Sled Drag (Harness)', group: 'other', logType: 'weight_time', aliases: [], compendiumCode: null, met: null, speedMets: [], places: [{ category: 'Sandbag / Strongman', subGroup: 'Strongman' }] },
 ];
 
-/** The test list, two of them with how to do them (D-82). */
-export const TEST_EXERCISE_LIST: ListedExercise[] = LISTED.map((exercise) => ({ ...exercise, details: TEST_DETAILS[exercise.code] ?? null }));
+/** The seconds one rep takes, by type, as data/exercises/type-times.csv gives them: weights 4, bodyweight 3, the rest none. */
+const SECONDS_PER_REP: Partial<Record<ListedExercise['logType'], number>> = { weight_reps: 4, reps: 3 };
+
+/** The test list, two of them with how to do them (D-82), with the time one rep takes by type. */
+export const TEST_EXERCISE_LIST: ListedExercise[] = LISTED.map((exercise) => ({
+  ...exercise,
+  secondsPerRep: SECONDS_PER_REP[exercise.logType] ?? null,
+  details: TEST_DETAILS[exercise.code] ?? null,
+}));
 
 /** A `renderInApp` step: the test list on the server, and already on the phone at the server's version. */
 export async function withExerciseList(db: SqlDb, server: ReturnType<typeof fakeServer>): Promise<void> {

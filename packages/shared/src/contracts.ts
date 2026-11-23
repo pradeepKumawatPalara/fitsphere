@@ -1395,6 +1395,11 @@ export const listedExerciseSchema = z.object({
   compendiumCode: z.string().nullable(),
   met: z.number().nullable(),
   speedMets: z.array(speedMetSchema).default([]),
+  /**
+   * Seconds one rep takes, for the types done in reps (weights, bodyweight): the exercise's time is the
+   * reps' total × this, rest not counted; null for the others and for an older list.
+   */
+  secondsPerRep: z.int().min(1).max(30).nullable().default(null),
   /** Every category and sub-group the library lists it under (D-67); none for most of FitSphere's own. */
   places: z.array(exercisePlaceSchema).default([]),
   /** How to do it (D-82), from its first place in the library; null when the library has none. */
