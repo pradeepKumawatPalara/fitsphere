@@ -53,6 +53,11 @@ export function daysLoggedText({ logged, total }: { logged: number; total: numbe
   return `Meals logged: ${logged} of ${total} ${total === 1 ? 'day' : 'days'}`;
 }
 
+/** Under the Meals logged ring: what its days count from. */
+export function daysLoggedCaption(sinceJoined: boolean): string {
+  return sinceJoined ? 'days logged since you joined' : 'days logged in the last 90 days';
+}
+
 /** A week table cell for a weight: one decimal in the unit, "–" when there is none. */
 export function weightCell(grams: number | null, unit: BodyWeightUnit): string {
   return grams === null ? '–' : fromGrams(grams, unit).toFixed(1);

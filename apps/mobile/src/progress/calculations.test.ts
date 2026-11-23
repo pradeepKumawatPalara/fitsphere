@@ -113,20 +113,25 @@ describe('REQ-PRG-002 averageCalories', () => {
 describe('REQ-PRG-003 daysLogged (Q-044)', () => {
   const nutrition = meals({ '2026-09-30': 1, '2026-10-01': 1, '2026-10-20': 1, '2026-10-27': 1, [TODAY]: 1 });
 
-  it('counts out of 28 days for an account older than 4 weeks', () => {
-    expect(daysLogged(nutrition, TODAY, '2026-08-01')).toEqual({ logged: 4, total: 28 });
+  it('counts from the day the account was created, not only the last 4 weeks', () => {
+    // 2026-08-01 to 2026-10-28 is 89 days; all four meals on a day count the day once.
+    expect(daysLogged(nutrition, TODAY, '2026-08-01')).toEqual({ logged: 5, total: 89, sinceJoined: true });
   });
 
   it('counts from the day a newer account was created', () => {
-    expect(daysLogged(nutrition, TODAY, '2026-10-26')).toEqual({ logged: 2, total: 3 });
+    expect(daysLogged(nutrition, TODAY, '2026-10-26')).toEqual({ logged: 2, total: 3, sinceJoined: true });
   });
 
-  it('counts the whole period while the creation day is unknown', () => {
-    expect(daysLogged(nutrition, TODAY, null)).toEqual({ logged: 4, total: 28 });
+  it('stops at the 90 days the phone holds for an older account, and says so', () => {
+    expect(daysLogged(nutrition, TODAY, '2025-01-01')).toEqual({ logged: 5, total: 90, sinceJoined: false });
+  });
+
+  it('counts the 90 days while the creation day is unknown', () => {
+    expect(daysLogged(nutrition, TODAY, null)).toEqual({ logged: 5, total: 90, sinceJoined: false });
   });
 
   it('counts today alone for an account created today', () => {
-    expect(daysLogged({}, TODAY, TODAY)).toEqual({ logged: 0, total: 1 });
+    expect(daysLogged({}, TODAY, TODAY)).toEqual({ logged: 0, total: 1, sinceJoined: true });
   });
 });
 

@@ -794,6 +794,7 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 ### REQ-PRG-003 — Days logged
 - Requirement: Shows meals logged as days with ≥1 meal out of total days (e.g. "0 of 27 days").
 - MVP default (D-18): total days count from the day the account was created, capped at the last 28 days (Q-044).
+- Changed (the owner, 2026-11-20): the total counts from the day the account was created, no longer capped at 28 days, up to the 90 days the phone holds; a day with meals counts once however many of breakfast, lunch, dinner and snacks were logged. Under the ring: "days logged since you joined", or "days logged in the last 90 days" for an account older than that. The Avg calories tile stays on the last 4 weeks.
 - MVP default (D-30): the account's creation day is read from `GET /v1/me` once and kept on the phone; while it is unknown (offline), 28 days are counted.
 
 ### REQ-PRG-004 — Weight trend chart

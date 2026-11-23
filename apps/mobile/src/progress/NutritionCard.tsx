@@ -6,7 +6,7 @@ import { formatInteger } from '../format';
 import { themedStyles, useTheme } from '../theme';
 import { TYPE } from '../typography';
 import { averageCalories, daysLogged, type DayNutrition } from './calculations';
-import { daysLoggedText, PROGRESS_TEXTS } from './texts';
+import { daysLoggedCaption, daysLoggedText, PROGRESS_TEXTS } from './texts';
 
 type Props = {
   nutrition: Readonly<Record<IstDay, DayNutrition>>;
@@ -55,9 +55,10 @@ function Ring({ share, color, text, label }: { share: number; color: string; tex
   );
 }
 
-// The last 4 weeks of eating as two tiles side by side (the owner's B, 2026-11-18): average daily
-// calories against the user's own target (REQ-PRG-002) and "Meals logged: X of Y days" (REQ-PRG-003,
-// Q-044), each a ring. The sums are unchanged.
+// Eating as two tiles side by side (the owner's B, 2026-11-18): average daily calories over the last 4
+// weeks against the user's own target (REQ-PRG-002) and "Meals logged: X of Y days" (REQ-PRG-003, Q-044),
+// each a ring. Meals logged counts from the day the account was created, up to the phone's 90 days
+// (the owner, 2026-11-20), a day once however many of its meals were logged.
 export function NutritionCard({ nutrition, today, accountStart, calorieTarget, onSetTarget }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
@@ -98,7 +99,7 @@ export function NutritionCard({ nutrition, today, accountStart, calorieTarget, o
           text={`${logged.logged}/${logged.total}`}
           label={daysLoggedText(logged)}
         />
-        <Text style={styles.caption}>days in the last 4 weeks</Text>
+        <Text style={styles.caption}>{daysLoggedCaption(logged.sinceJoined)}</Text>
       </View>
     </View>
   );

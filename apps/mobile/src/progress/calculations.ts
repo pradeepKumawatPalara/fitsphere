@@ -79,19 +79,26 @@ export function averageCalories(nutrition: Readonly<Record<IstDay, DayNutrition>
 }
 
 /**
- * "Meals logged: X of Y days" (REQ-PRG-003): X is the days in the period with at least one meal;
- * Y counts from the day the account was created, at most 28 (Q-044). An unknown creation day
- * counts the whole period.
+ * "Meals logged: X of Y days" (REQ-PRG-003): X is the days with at least one meal (breakfast, lunch,
+ * dinner and snacks together count a day once); Y counts from the day the account was created (the
+ * owner, 2026-11-20: not only the last 4 weeks), at most the 90 days the phone holds (ADR-0007 rule 1).
+ * An unknown creation day counts the whole 90 days. `sinceJoined` is false when the account is older
+ * than that, so the tile says so.
  */
 export function daysLogged(
   nutrition: Readonly<Record<IstDay, DayNutrition>>,
   today: IstDay,
   accountStart: IstDay | null,
-): { logged: number; total: number } {
-  let from = periodStart(today);
-  if (accountStart !== null && accountStart > from) from = accountStart <= today ? accountStart : today;
+): { logged: number; total: number; sinceJoined: boolean } {
+  const windowStart = syncWindowStart(today);
+  let from = windowStart;
+  let sinceJoined = false;
+  if (accountStart !== null && accountStart >= windowStart) {
+    from = accountStart <= today ? accountStart : today;
+    sinceJoined = true;
+  }
   const logged = Object.keys(nutrition).filter((day) => day >= from && day <= today).length;
-  return { logged, total: daysBetween(from, today) + 1 };
+  return { logged, total: daysBetween(from, today) + 1, sinceJoined };
 }
 
 export type WeekRow = {
