@@ -23,7 +23,9 @@ function plural(count: number, one: string, many: string): string {
   return `${formatInteger(count)} ${count === 1 ? one : many}`;
 }
 
-export function ConnectionsScreen({ now = () => new Date() }: { now?: () => Date }) {
+const systemNow = (): Date => new Date();
+
+export function ConnectionsScreen({ now = systemNow }: { now?: () => Date }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const health = useHealth();
