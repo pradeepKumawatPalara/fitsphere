@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { insertNewPhoto, type PhotoFiles } from '../local/photos';
-import { deleteEntry, discardRejected, holdDays, PROFILE_KEY, replaceDays, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
+import { deleteEntry, discardRejected, holdDays, PROFILE_KEY, removeImportedValues, replaceDays, saveEntry, type ChangeData, type DeletableKind, type EntryKind } from '../local/store';
 import type { SqlDb } from '../local/sql';
 import { useScreenInView } from '../navigation/screenInView';
 import { fetchDays, olderPart, rangeKey, type OlderDaysStatus } from './olderDays';
@@ -62,6 +62,8 @@ type SyncContextValue = {
   /** Saves a new workout with no exercises on `day` and returns its ID; it counts once it has one (D-41). */
   startWorkout(day: string): Promise<string>;
   discard(changeId: string): Promise<void>;
+  /** Disconnect, then Remove (D-121): the steps and weights read from Health Connect leave this phone and the server. */
+  removeImported(): Promise<void>;
   /** Reads the days `from` to `to`, all before the phone's 90, from the server onto the phone (D-106). */
   loadOlder(from: IstDay, to: IstDay): Promise<void>;
 };
@@ -261,9 +263,16 @@ export function SyncProvider({
     [db, run, phoneData],
   );
 
+  const removeImported = useCallback(async () => {
+    if (!db) return;
+    await removeImportedValues(db, { changeId: newId(), removedAt: now().toISOString() });
+    phoneData.changed();
+    void run();
+  }, [db, newId, now, run, phoneData]);
+
   const actions = useMemo(
-    () => ({ save, remove, newId, saveWeight, startWorkout, discard, loadOlder }),
-    [save, remove, newId, saveWeight, startWorkout, discard, loadOlder],
+    () => ({ save, remove, newId, saveWeight, startWorkout, discard, removeImported, loadOlder }),
+    [save, remove, newId, saveWeight, startWorkout, discard, removeImported, loadOlder],
   );
   return (
     <SyncContext.Provider value={actions}>

@@ -10,6 +10,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "autoIncrement": true,
       "android": {
         "buildType": "apk"
       },
@@ -32,5 +33,10 @@
         "buildType": "app-bundle"
       }
     }
+  },
+  "submit": {
+    "development": {},
+    "preview": {},
+    "production": {}
   }
 }

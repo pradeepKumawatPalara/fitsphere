@@ -35,9 +35,17 @@ describe('REQ-ACC-001…006 the Settings screen', () => {
     expect(screen.getByText('India · Kolkata')).toBeOnTheScreen();
     // The signed-in email is on the Profile card (6.1).
     expect(within(screen.getByLabelText('Profile')).getByText('user@example.test')).toBeOnTheScreen();
-    for (const button of ['Edit profile', 'Your targets', 'Change password', 'Log out', 'Delete account']) {
+    for (const button of ['Edit profile', 'Your targets', 'Connections', 'Change password', 'Log out', 'Delete account']) {
       expect(screen.getByRole('button', { name: button })).toBeOnTheScreen();
     }
+  });
+
+  it('D-121 the Connections row opens the Connections screen', async () => {
+    await renderInApp(<AccountScreen showDevTools={false} />);
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Connections' }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith('/connections');
   });
 
   it('REQ-ACC-001 System is chosen at first, with its helper text; choosing Dark saves it and shows its text', async () => {

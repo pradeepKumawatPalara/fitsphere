@@ -35,6 +35,19 @@ Cloud Run beta shares.** **The beta's Cloud Run API needs a deploy of `main` wit
 `openai-api-key` and `OPENAI_MODEL` (runbook, "The API on Cloud Run") before beta phones can read
 meals; deploy only when the owner says so.**
 
+**A photo of a meal estimated by AI (foods, amounts, nutrition), no food list, no consent step — built on branch
+`feat/photo-estimate-ai` (D-120, ADR-0012, 2026-11-20), in `D:\fitsphere`.** Plan: `docs/plans/photo-estimate-ai.md`
+(Accepted); canvas `PhotoEstimate screens` (dark and light, locked). For the camera icon's photo only (voice, typed
+words and the barcode estimate unchanged): the shrunk photo goes at once to `POST /v1/ai/photo-estimate`
+(`apps/api/src/routes/aiPhotoEstimate.ts`, `ai/photoEstimator.ts`); OpenAI `gpt-6-luna` (unchanged) names each food and
+gives its weight and values per 100 g; the server drops a food whose kcal is far from its macros; the food list and
+"Look up online" are not used. Foods are listed Estimated, each opens in "Check the estimate"
+(`components/PhotoFoodSheet.tsx`, `src/photoMeal.ts`) and is added as an estimated own food in grams. Any failure: "No
+data available"; a user who switched AI reading off in Settings is not read ("AI reading is off"). An exception to
+invariant #3, written in the rules file; Legal has not reviewed it (Q-049). The consent text is unchanged. No migration,
+no phone schema change, no new build. **The beta's Cloud Run API needs this API before beta phones read photos this way;
+deploy only when the owner says so.**
+
 **Older dates without "Load older" — built on branch `feat/older-history` (D-116, 2026-11-18), in
 `D:\fitsphere`.** Plan: `docs/plans/older-history.md` (Accepted); canvas boards `OlderWorkouts*` and
 `OlderElsewhere*` A locked (version 125). Training's All workouts, Weight history and an exercise's History

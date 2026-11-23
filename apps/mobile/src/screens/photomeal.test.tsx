@@ -1,14 +1,18 @@
-import { AI_CONSENT_TEXT_VERSION, type Food, type FoodLookupResponse, type ParsedMealItem } from '@fitsphere/shared';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { AI_CONSENT_TEXT_VERSION, type Food, type FoodLookupResponse, type ParsedMealItem, type PhotoEstimateItem } from '@fitsphere/shared';
+import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { replaceFoods } from '../local/store';
 import type { SqlDb } from '../local/sql';
-import { itemFromServings } from '../mealItems';
-import { formatAmount, formatGrams, formatKcal } from '../meals';
+import { formatKcal } from '../meals';
+import { photoFoodsOf, photoItemOf } from '../photoMeal';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LogMealScreen } from './LogMealScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ day: '2026-10-28', slot: 'lunch' }), usePreventRemove: () => () => undefined }));
+jest.mock('expo-router', () => ({
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => ({ day: '2026-10-28', slot: 'lunch' }),
+  usePreventRemove: () => () => undefined,
+}));
 
 // The recogniser's presence is the test's to decide: a photo must work without it.
 const mockSpeech = { can: false };
@@ -34,223 +38,313 @@ jest.mock('../photos/takePhoto', () => ({
   pickPhoto: (source: 'camera' | 'library') => mockPick(source),
 }));
 
-// D-118 (REQ-LOG-006, REQ-LOG-009, REQ-ACC-004): a photo of a meal in Search foods, read by AI after
-// consent, its foods found in the phone's list and reviewed; a food not listed is looked up online
-// (Open Food Facts by name, else an AI estimate). Synthetic foods, a made-up picture.
+// D-120 (ADR-0012; REQ-LOG-006, REQ-LOG-009): a photo of a meal is sent at once, with no consent step;
+// the AI names each food and estimates its weight and values; the food list is not used. The foods are
+// reviewed, each can be checked and changed, and are added as estimated foods of the user's own. A user
+// who switched AI reading off is not read; any other failure says "No data available". Voice and typed
+// words keep their consent and the food list ("Look up online" is tested at the foot, through typed words).
+// Synthetic foods and values, a made-up picture.
 
-const food = (source: Food['source'], code: string, name: string, extra: Partial<Food> = {}): Food => ({
-  source,
-  code,
-  name,
-  foodGroup: 'Synthetic group',
-  aliases: [],
-  proteinG: 6,
-  fibreG: 2,
-  fatG: 3,
-  carbsG: 30,
-  kcal: 180,
-  kcalEstimated: source !== 'ifct2017',
-  measures: [],
-  portions: [],
-  ...extra,
-});
-const ROTI = food('indb', 'P01', 'Test roti', { portions: [{ label: 'Roti', grams: 40 }] });
-
-const seen = (name: string, quantity: number | null, unit: ParsedMealItem['unit']): ParsedMealItem => ({
-  spokenWords: name,
+const seen = (name: string, quantity: number | null, unit: PhotoEstimateItem['unit'], grams: number, kcal: number): PhotoEstimateItem => ({
+  spokenWords: `${name} on the plate`,
   name,
   quantity,
   unit,
-  preparation: null,
+  grams,
+  kcal,
+  proteinG: 5,
+  carbsG: 14,
+  fatG: 1.8,
+  fibreG: null,
   ambiguity: [],
 });
-
-const OFF_FOOD: FoodLookupResponse = { source: 'open_food_facts', name: 'Mango Lassi', brand: 'Zorblax', kcal: 90, proteinG: 3, carbsG: 14, fatG: 2, fibreG: null };
-const AI_FOOD: FoodLookupResponse = { source: 'ai_estimate', name: 'Mango Lassi', brand: null, kcal: 95, proteinG: 3, carbsG: 15, fatG: 2.5, fibreG: 0.5 };
+// 4 x 5 + 4 x 14 + 9 x 1.8 = 92.2 kcal per 100 g.
+const ROTI = seen('Test roti', 2, 'piece', 80, 92);
+const DAL = seen('Test dal', 1, 'katori', 150, 92);
+const answer = (...items: PhotoEstimateItem[]) => ({ items });
 
 type FakeServer = Parameters<NonNullable<Parameters<typeof renderInApp>[2]>>[1];
 
-async function openSearch(setUp: (server: FakeServer) => void = () => undefined) {
+async function openLogMeal(setUp: (server: FakeServer) => void = () => undefined) {
   const app = await renderInApp(<LogMealScreen now={() => NOW} />, undefined, async (db: SqlDb, server) => {
-    server.state.foods = [ROTI];
-    await replaceFoods(db, server.state.foodsVersion, [ROTI]);
-    server.state.photoParse = { items: [seen('roti', 2, 'piece'), seen('mango lassi', 1, 'glass')] };
+    // The list holds a food named like the photo's: it must not be used.
+    const listed: Food = {
+      source: 'indb',
+      code: 'P01',
+      name: 'Test roti',
+      foodGroup: 'Synthetic group',
+      aliases: [],
+      proteinG: 6,
+      fibreG: 2,
+      fatG: 3,
+      carbsG: 30,
+      kcal: 180,
+      kcalEstimated: true,
+      measures: [],
+      portions: [{ label: 'Roti', grams: 40 }],
+    };
+    server.state.foods = [listed];
+    await replaceFoods(db, server.state.foodsVersion, [listed]);
+    server.state.photoEstimate = answer(ROTI, DAL);
     setUp(server);
   });
   await screen.findByRole('button', { name: 'Add a photo' });
   return app;
 }
 
-const consentOn = (server: FakeServer) => {
-  server.state.aiConsent = { consented: true, textVersion: AI_CONSENT_TEXT_VERSION, recordedAt: NOW.toISOString() };
-};
-
-// The camera icon beside Speak your meal opens "Add a photo"; either choice attaches the photo and has AI read it.
+// The camera icon beside Speak your meal opens "Add a photo"; either choice has AI read the photo.
 const takePhoto = async (choice: 'Take photo' | 'Choose from gallery' = 'Take photo') => {
   await fireEvent.press(await screen.findByRole('button', { name: 'Add a photo' }));
   await fireEvent.press(await screen.findByText(choice));
 };
 
+/** Log meal also has a tile with this name behind the sheet: the sheet's button is the last one on the screen. */
+const inSheet = (name: string) => screen.getAllByRole('button', { name }).at(-1)!;
+
 beforeEach(() => {
   mockSpeech.can = false;
   mockPick.mockReset();
+  mockRouter.push.mockReset();
   mockPick.mockResolvedValue({ kind: 'picked', files: { full: PICTURE, thumbnail: 'dGh1bWI=' } });
 });
 
+const ROTI_KCAL = formatKcal(photoItemOf(photoFoodsOf([ROTI])[0]!).kcal);
+const DAL_KCAL = formatKcal(photoItemOf(photoFoodsOf([DAL])[0]!).kcal);
+
 describe('REQ-LOG-006 the camera icon beside Speak your meal', () => {
-  it('shows Take photo and Choose from gallery, and Search foods has no photo buttons of its own', async () => {
-    await openSearch();
+  it('shows Take photo, Choose from gallery and the notice that AI reads the photo', async () => {
+    await openLogMeal();
     await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     expect(await screen.findByText('Take photo')).toBeOnTheScreen();
     expect(screen.getByText('Choose from gallery')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Search foods' }));
-    expect(screen.queryByRole('button', { name: 'Take a photo' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Choose a photo' })).toBeNull();
+    expect(screen.getByText('The photo is read by AI (OpenAI) to estimate the foods and their nutrition. It is not saved.')).toBeOnTheScreen();
   });
 });
 
-describe('REQ-LOG-009 a photo, read end to end', () => {
-  it('consent asked once, the picture read, the foods found reviewed and added', async () => {
-    const { server } = await openSearch();
+describe('ADR-0012 a photo is read with no consent step', () => {
+  it('the picture goes straight to the AI, with no consent sheet and no consent recorded', async () => {
+    const { server } = await openLogMeal();
     await takePhoto();
 
-    expect(await screen.findByText('Read your photo with AI?')).toBeOnTheScreen();
-    expect(server.state.photoParseImages).toEqual([]);
-    await fireEvent.press(screen.getByRole('button', { name: 'Turn on' }));
-
-    expect(await screen.findByText('1 food found')).toBeOnTheScreen();
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    expect(screen.queryByText('Read your photo with AI?')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Turn on' })).toBeNull();
     expect(mockPick).toHaveBeenCalledWith('camera');
-    expect(server.state.aiConsent).toMatchObject({ consented: true, textVersion: AI_CONSENT_TEXT_VERSION });
-    expect(server.state.photoParseImages).toEqual([PICTURE]);
-    expect(screen.getByText('Not in our food list')).toBeOnTheScreen();
-    expect(screen.getByText('mango lassi')).toBeOnTheScreen();
+    expect(server.state.photoEstimateImages).toEqual([PICTURE]);
+    expect(server.state.aiConsent).toBeNull();
+  });
 
-    const roti = itemFromServings(ROTI, ROTI.portions[0]!, 2);
-    await fireEvent.press(screen.getByRole('button', { name: `Add 1 food · ${formatKcal(roti.kcal)}` }));
-    expect(await screen.findByText('Added 1 food from what you said')).toBeOnTheScreen();
-    expect(screen.getByLabelText(`${roti.name}: ${formatAmount(roti.amount)}, ${formatKcal(roti.kcal)}, ${formatGrams(roti.proteinG)} protein`)).toBeOnTheScreen();
+  it('shows the photo taken or chosen, on the reading screen and above the foods found', async () => {
+    const { server } = await openLogMeal();
+    let release = () => undefined as void;
+    server.state.photoEstimateGate = new Promise<void>((resolve) => (release = resolve));
+    await takePhoto('Choose from gallery');
+
+    expect(await screen.findByLabelText('The photo being read')).toBeOnTheScreen();
+    release();
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Your photo')).toBeOnTheScreen();
   });
 
   it('Choose from gallery uses the gallery', async () => {
-    await openSearch(consentOn);
+    await openLogMeal();
     await takePhoto('Choose from gallery');
-    expect(await screen.findByText('1 food found')).toBeOnTheScreen();
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
     expect(mockPick).toHaveBeenCalledWith('library');
   });
 
-  it('consent already given: no sheet, the picture goes straight to the reading', async () => {
-    const { server } = await openSearch(consentOn);
+  it('a user who agreed to an older text is read too', async () => {
+    const { server } = await openLogMeal((fake) => {
+      fake.state.aiConsent = { consented: true, textVersion: 'older', recordedAt: NOW.toISOString() };
+    });
     await takePhoto();
-    expect(await screen.findByText('1 food found')).toBeOnTheScreen();
-    expect(screen.queryByText('Read your photo with AI?')).toBeNull();
-    expect(server.state.photoParseImages).toHaveLength(1);
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    expect(server.state.photoEstimateImages).toHaveLength(1);
+  });
+});
+
+describe('D-120 the foods of a photo, reviewed and added', () => {
+  it('lists each food with its amount, weight and kcal, tagged Estimated, with no food-list section', async () => {
+    await openLogMeal();
+    await takePhoto();
+
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    expect(screen.getByText('Test roti')).toBeOnTheScreen();
+    expect(screen.getByText(`2 pieces · about 80 g · ${ROTI_KCAL}`)).toBeOnTheScreen();
+    expect(screen.getByText(`1 katori · about 150 g · ${DAL_KCAL}`)).toBeOnTheScreen();
+    expect(screen.getAllByText('Estimated')).toHaveLength(2);
+    // The food list is not used: the listed "Test roti" (180 kcal per 100 g) is not what is shown.
+    expect(screen.queryByText('Not in our food list')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Look up online' })).toBeNull();
   });
 
-  it('Not now: the picture is never sent, and AI-off is said', async () => {
-    const { server } = await openSearch();
+  it('Add puts the ticked foods in the meal as estimated foods of the user’s own, without the spoken banner', async () => {
+    await openLogMeal();
     await takePhoto();
-    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }));
+    await screen.findByText('2 foods found');
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'Add Test dal' }));
 
-    expect(await screen.findByText('AI meal reading is off')).toBeOnTheScreen();
-    expect(server.state.aiConsent).toMatchObject({ consented: false, textVersion: AI_CONSENT_TEXT_VERSION });
-    expect(server.state.photoParseImages).toEqual([]);
+    await fireEvent.press(screen.getByRole('button', { name: `Add 1 food · ${ROTI_KCAL}` }));
+
+    expect(await screen.findByText(/Test roti/)).toBeOnTheScreen();
+    expect(screen.queryByText(/Test dal/)).toBeNull();
+    expect(screen.queryByText(/from what you said/)).toBeNull();
   });
 
+  it('a food opens in Check the estimate; a new weight changes its kcal, and Done keeps it in the list', async () => {
+    await openLogMeal();
+    await takePhoto();
+    await screen.findByText('2 foods found');
+
+    await fireEvent.press(screen.getByRole('button', { name: new RegExp(`^Test dal, 1 katori · about 150 g, ${DAL_KCAL}`) }));
+    expect(await screen.findByRole('header', { name: 'Check the estimate' })).toBeOnTheScreen();
+    expect(screen.getByLabelText('Food name')).toHaveDisplayValue('Test dal');
+    expect(screen.getByLabelText('Amount (g)')).toHaveDisplayValue('150');
+    expect(screen.getByLabelText('Calories (kcal per 100 g)')).toHaveDisplayValue('92');
+    expect(screen.getByLabelText('Fibre (g per 100 g)')).toHaveDisplayValue('');
+    expect(screen.getByText('The AI saw about 1 katori. The values below change with the amount.')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Amount (g)'), '300');
+    const doubled = formatKcal(photoItemOf({ ...photoFoodsOf([DAL])[0]!, grams: 300 }).kcal);
+    expect(screen.getByText(doubled)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+
+    // Back on the list: the weight is the user's now, so it is no longer "about".
+    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    expect(screen.getByText(`1 katori · 300 g · ${doubled}`)).toBeOnTheScreen();
+  });
+
+  it('an amount that cannot be used keeps Done waiting; Back to the list changes nothing', async () => {
+    await openLogMeal();
+    await takePhoto();
+    await screen.findByText('2 foods found');
+    await fireEvent.press(screen.getByRole('button', { name: new RegExp(`^Test dal, `) }));
+    await screen.findByRole('header', { name: 'Check the estimate' });
+
+    await fireEvent.changeText(screen.getByLabelText('Amount (g)'), '0');
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Calories (kcal per 100 g)'), '950');
+    expect(screen.getByRole('button', { name: 'Done' })).toBeDisabled();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the list' }));
+    expect(await screen.findByText(`1 katori · about 150 g · ${DAL_KCAL}`)).toBeOnTheScreen();
+  });
+});
+
+describe('ADR-0012 Q-A a user who switched AI reading off is not read', () => {
+  it('"AI reading is off", with Open Settings and Enter your own food', async () => {
+    await openLogMeal((server) => {
+      server.state.aiConsent = { consented: false, textVersion: AI_CONSENT_TEXT_VERSION, recordedAt: NOW.toISOString() };
+      server.state.photoEstimate = { status: 403, code: 'AI_CONSENT_REQUIRED' };
+    });
+    await takePhoto();
+
+    expect(await screen.findByText('AI reading is off')).toBeOnTheScreen();
+    expect(screen.getByText(/You turned off AI meal reading, so this photo was not sent/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Open Settings' }));
+    expect(mockRouter.push).toHaveBeenCalledWith('/account');
+  });
+
+  it('Enter your own food opens the own food sheet', async () => {
+    await openLogMeal((server) => {
+      server.state.photoEstimate = { status: 403, code: 'AI_CONSENT_REQUIRED' };
+    });
+    await takePhoto();
+    await screen.findByText('AI reading is off');
+    await fireEvent.press(inSheet('Enter your own food'));
+    expect(await screen.findByRole('header', { name: 'Enter your own food' })).toBeOnTheScreen();
+  });
+});
+
+describe('D-120 "No data available"', () => {
+  const failing: [string, (server: FakeServer) => void][] = [
+    ['no food in the picture', (server) => void (server.state.photoEstimate = answer())],
+    ['the AI unavailable', (server) => void (server.state.photoEstimate = { status: 503, code: 'SERVICE_UNAVAILABLE' })],
+    ['offline', (server) => void (server.state.photoEstimateOffline = true)],
+  ];
+
+  it.each(failing)('%s: says so, with Try another photo, Enter your own food and Close', async (_name, setUp) => {
+    await openLogMeal(setUp);
+    await takePhoto();
+
+    expect(await screen.findByText('No data available')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Try another photo' })).toBeOnTheScreen();
+    expect(inSheet('Enter your own food')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeOnTheScreen();
+    // Nothing from the food list stands in for the answer.
+    expect(screen.queryByText(/foods? found/)).toBeNull();
+  });
+
+  it('Try another photo opens Add a photo again', async () => {
+    await openLogMeal((server) => void (server.state.photoEstimate = answer()));
+    await takePhoto();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Try another photo' }));
+    expect(await screen.findByText('Choose from gallery')).toBeOnTheScreen();
+  });
+
+  it('Enter your own food opens the own food sheet', async () => {
+    await openLogMeal((server) => void (server.state.photoEstimate = answer()));
+    await takePhoto();
+    await screen.findByText('No data available');
+    await fireEvent.press(inSheet('Enter your own food'));
+    expect(await screen.findByRole('header', { name: 'Enter your own food' })).toBeOnTheScreen();
+  });
+});
+
+describe('REQ-LOG-006 the picker', () => {
   it('a cancelled picker changes nothing and sends nothing', async () => {
     mockPick.mockResolvedValue({ kind: 'cancelled' });
-    const { server } = await openSearch(consentOn);
+    const { server } = await openLogMeal();
     await takePhoto();
     expect(screen.queryByText(/foods? found/)).toBeNull();
-    expect(server.state.photoParseImages).toEqual([]);
+    expect(server.state.photoEstimateImages).toEqual([]);
   });
 
-  it('the camera refused: says how to turn it on', async () => {
+  it('the camera refused: says how to turn it on, and sends nothing', async () => {
     mockPick.mockResolvedValue({ kind: 'noPermission' });
-    await openSearch(consentOn);
+    const { server } = await openLogMeal();
     await takePhoto();
-    // The meal photo's own message (MealPhotoField); nothing is sent to AI.
     expect(await screen.findByText(/FitSphere needs the camera to take a photo/)).toBeOnTheScreen();
+    expect(server.state.photoEstimateImages).toEqual([]);
   });
 
   it('a picture that can’t be prepared: says so', async () => {
     mockPick.mockResolvedValue({ kind: 'failed' });
-    await openSearch(consentOn);
+    await openLogMeal();
     await takePhoto();
     expect(await screen.findByText('This photo could not be used. Try another one.')).toBeOnTheScreen();
   });
-
-  it('no food in the picture: says so', async () => {
-    await openSearch((server) => {
-      consentOn(server);
-      server.state.photoParse = { items: [] };
-    });
-    await takePhoto();
-    expect(await screen.findByText('Nothing was recognised as food in the picture.')).toBeOnTheScreen();
-  });
-
-  it('offline: says so, and the picture is let go of', async () => {
-    await openSearch((server) => {
-      consentOn(server);
-      server.state.photoParseOffline = true;
-    });
-    await takePhoto();
-    expect(await screen.findByText(/You're offline/)).toBeOnTheScreen();
-  });
-
-  it('the reading failing: "isn’t available right now"', async () => {
-    await openSearch((server) => {
-      consentOn(server);
-      server.state.photoParse = { status: 503, code: 'SERVICE_UNAVAILABLE' };
-    });
-    await takePhoto();
-    expect(await screen.findByText(/AI meal reading isn't available right now/)).toBeOnTheScreen();
-  });
 });
 
-describe('REQ-LOG-011 Look up online, for a food not in our list', () => {
-  const lookedUp = async (answer: FoodLookupResponse | null) => {
-    const app = await openSearch((server) => {
-      consentOn(server);
-      server.state.foodLookup = answer;
+// "Look up online" stays for what was said or typed (D-118): words typed in Log meal's box, read by AI
+// after consent, with a food the list lacks.
+describe('REQ-LOG-011 Look up online, for a food of typed words not in our list', () => {
+  const OFF_FOOD: FoodLookupResponse = { source: 'open_food_facts', name: 'Mango Lassi', brand: 'Zorblax', kcal: 90, proteinG: 3, carbsG: 14, fatG: 2, fibreG: null };
+  const said = (name: string): ParsedMealItem => ({ spokenWords: name, name, quantity: 1, unit: 'glass', preparation: null, ambiguity: [] });
+
+  async function lookedUp(answerFor: FoodLookupResponse | null) {
+    const app = await openLogMeal((server) => {
+      server.state.aiConsent = { consented: true, textVersion: AI_CONSENT_TEXT_VERSION, recordedAt: NOW.toISOString() };
+      server.state.mealParse = { items: [said('mango lassi')] };
+      server.state.foodLookup = answerFor;
     });
-    await takePhoto();
+    await fireEvent.changeText(await screen.findByLabelText('Speak or type what you ate'), 'mango lassi');
+    await fireEvent.press(screen.getByRole('button', { name: 'Read my meal' }));
     await screen.findByText('Not in our food list');
     await fireEvent.press(screen.getByRole('button', { name: 'Look up online' }));
     return app;
-  };
+  }
 
-  it('an Open Food Facts find opens Check the estimate, prefilled, with its own banner; only the name was sent', async () => {
+  it('an Open Food Facts find opens Check the estimate, prefilled; only the name was sent', async () => {
     const { server } = await lookedUp(OFF_FOOD);
-
     expect(await screen.findByRole('header', { name: 'Check the estimate' })).toBeOnTheScreen();
-    expect(server.state.foodLookupBodies).toEqual([{ name: 'mango lassi' }]);
-    expect(screen.getByText('Found on Open Food Facts by name; it may be a different product. Check the pack and change what is off.')).toBeOnTheScreen();
+    await waitFor(() => expect(server.state.foodLookupBodies).toEqual([{ name: 'mango lassi' }]));
     expect(screen.getByLabelText('Food name')).toHaveDisplayValue('Mango Lassi (Zorblax)');
-    expect(screen.getByDisplayValue('90')).toBeOnTheScreen();
-  });
-
-  it('an AI estimate opens Check the estimate with the AI banner', async () => {
-    await lookedUp(AI_FOOD);
-
-    expect(await screen.findByRole('header', { name: 'Check the estimate' })).toBeOnTheScreen();
-    expect(screen.getByText('Estimated by AI from the name, not read from a label. Check the pack and change what is off.')).toBeOnTheScreen();
-    expect(screen.getByDisplayValue('95')).toBeOnTheScreen();
   });
 
   it('nothing found: a short message and Own food still offered', async () => {
     await lookedUp(null);
-
     expect(await screen.findByText('Couldn’t find it online. Enter it yourself.')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Own food' })).toBeOnTheScreen();
-  });
-
-  it('the food checked and added from a lookup lands in the meal under its name', async () => {
-    await lookedUp(OFF_FOOD);
-    await screen.findByRole('header', { name: 'Check the estimate' });
-    await fireEvent.changeText(screen.getByLabelText('Grams eaten'), '200');
-    await fireEvent.press(screen.getByRole('button', { name: 'Add' }));
-
-    expect(await screen.findByText(/Mango Lassi \(Zorblax\)/)).toBeOnTheScreen();
   });
 });

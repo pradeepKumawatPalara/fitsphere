@@ -1,6 +1,7 @@
 // The phone's copy of the user's data (data-model "On the phone"; ADR-0007 rules 1, 2 and 7).
 // The server is the permanent record; pending and rejected entries are never deleted
 // automatically (D-14).
+import { withSetCalories } from '../setCalories';
 import {
   currentExercises,
   exerciseNameKey,
@@ -16,6 +17,7 @@ import {
   SETTING_SET,
   SLEEP_SET,
   STEPS_SET,
+  HEALTH_IMPORT_REMOVE,
   syncWindowStart,
   TARGET_SET,
   WEIGH_IN_SET,
@@ -170,7 +172,10 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['day', 'day'],
       ['weight_grams', 'weightGrams'],
       ['recorded_at', 'recordedAt'],
+      ['source', 'source'],
     ],
+    // A value the user typed carries no source: it is 'manual' (D-121).
+    derive: manualUnlessSourced,
     pullColumns: [],
     dayData: true,
   },
@@ -182,7 +187,9 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['day', 'day'],
       ['steps', 'steps'],
       ['recorded_at', 'recordedAt'],
+      ['source', 'source'],
     ],
+    derive: manualUnlessSourced,
     pullColumns: [],
     dayData: true,
   },
@@ -361,6 +368,11 @@ function outboxKey(spec: KindSpec): string {
 /** SQL for an entry's key in its table, compared with `= ?`, as `keyOf` makes it. */
 function tableKey(spec: KindSpec): string {
   return spec.key2 ? `${spec.key} || '|' || ${spec.key2}` : spec.key;
+}
+
+/** Steps and weight: where the value came from (D-121); left out, the user typed it. */
+function manualUnlessSourced(fields: Record<string, unknown>): Record<string, BindValue> {
+  return { source: (fields.source as string | undefined) ?? 'manual' };
 }
 
 function deriveTotals(fields: Record<string, unknown>): Record<string, BindValue> {
@@ -705,6 +717,25 @@ const MIGRATIONS = [
    ALTER TABLE packaged_foods ADD COLUMN portions TEXT NOT NULL DEFAULT '[]';
    ALTER TABLE packaged_foods ADD COLUMN opens_on TEXT;
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // Where a day's steps or weight came from (D-121): typed ('manual', every value saved before) or read
+  // from Health Connect ('health_connect').
+  `ALTER TABLE weigh_ins ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
+   ALTER TABLE steps ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';`,
+  // The notification list (ADR-0014): kept on this phone only, never synced, with no health values in
+  // it. A row's `dedupe_key` (kind and day) keeps it from being made twice; a dismissed row stays,
+  // hidden, so it is not made again either.
+  `CREATE TABLE notifications (
+     id TEXT PRIMARY KEY,
+     kind TEXT NOT NULL,
+     category TEXT NOT NULL CHECK (category IN ('reminder', 'goal', 'nudge')),
+     title TEXT NOT NULL,
+     route TEXT NOT NULL,
+     source TEXT NOT NULL DEFAULT 'local',
+     created_at TEXT NOT NULL,
+     read_at TEXT,
+     dismissed_at TEXT,
+     dedupe_key TEXT NOT NULL UNIQUE
+   );`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -714,6 +745,21 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
     await db.withTransactionAsync(async () => {
       await db.execAsync(`${MIGRATIONS[version]}\nPRAGMA user_version = ${version + 1};`);
     });
+  }
+  await ensureSourceColumns(db);
+}
+
+/**
+ * Steps and weight need `source` (D-121, version 24). A phone database that reached version 24 on another
+ * branch, whose version 24 was something else, never ran this one: the columns are added here when
+ * missing, so the app never queries a column that is not there.
+ */
+async function ensureSourceColumns(db: SqlDb): Promise<void> {
+  for (const table of ['weigh_ins', 'steps']) {
+    const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`, []);
+    if (columns.length > 0 && !columns.some((column) => column.name === 'source')) {
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'`);
+    }
   }
 }
 
@@ -736,8 +782,18 @@ export type MetaKey =
   | 'account_created_day'
   | 'ai_consent'
   | 'workout_pill_corner'
+  // Home's first card: 'calories' or 'workout' (D-123), on this phone only.
+  | 'home_card_view'
   // The mic's language, on this phone only (D-115): 'en-IN' or 'hi-IN'.
-  | 'voice_language';
+  | 'voice_language'
+  // Health Connect (D-121, on this phone only): when it was connected, and when it was last read.
+  | 'health_connect_connected_at'
+  | 'health_connect_read_at'
+  // The notifications master switch (ADR-0014, on this phone only): '1' on, '0' off.
+  | 'notifications_enabled'
+  // The reminders the user chose, as JSON (notificationSettings.ts): which are on, and their times.
+  | 'notification_settings'
+  | 'last_open_day';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);
@@ -785,7 +841,31 @@ export async function saveEntry<K extends EntryKind>(
 export async function getEntry<K extends EntryKind>(db: SqlDb, kind: K, key: string): Promise<LocalEntries[K] | null> {
   const spec = KINDS[kind];
   const row = await db.getFirstAsync<Record<string, BindValue>>(`SELECT * FROM ${spec.table} WHERE ${tableKey(spec)} = ?`, [key]);
-  return row ? (toEntry(spec, row) as LocalEntries[K]) : null;
+  if (!row) return null;
+  const entry = toEntry(spec, row) as LocalEntries[K];
+  return kind === 'workout' ? ((await withLiveCalories(db, [entry as LocalEntries['workout']]))[0] as LocalEntries[K]) : entry;
+}
+
+/**
+ * Workouts with the calories of their set-based exercises read from the sets (setCalories.ts), with the
+ * weigh-in on or before each workout's day, so Home, Training and the workout agree and follow every change.
+ */
+async function withLiveCalories(db: SqlDb, workouts: LocalEntries['workout'][]): Promise<LocalEntries['workout'][]> {
+  const listed = new Map<string, ListedExercise | null>();
+  const weights = new Map<IstDay, number | null>();
+  const out: LocalEntries['workout'][] = [];
+  for (const workout of workouts) {
+    if (!workout.exercises.some((exercise) => exercise.kind === 'sets' && !(exercise.calories && !exercise.calories.estimated))) {
+      out.push(workout);
+      continue;
+    }
+    for (const exercise of workout.exercises) {
+      if (!listed.has(exercise.name)) listed.set(exercise.name, await findListedExercise(db, exercise.name));
+    }
+    if (!weights.has(workout.day)) weights.set(workout.day, await weighInOnOrBefore(db, workout.day));
+    out.push({ ...workout, exercises: withSetCalories(workout.exercises, (name) => listed.get(name) ?? null, weights.get(workout.day) ?? null) });
+  }
+  return out;
 }
 
 /**
@@ -825,7 +905,8 @@ export async function listEntries<K extends Exclude<EntryKind, 'target' | 'setti
     `SELECT * FROM ${spec.table} WHERE day BETWEEN ? AND ? ORDER BY day DESC, recorded_at DESC`,
     [fromDay, toDay],
   );
-  return rows.map((row) => toEntry(spec, row) as LocalEntries[K]);
+  const entries = rows.map((row) => toEntry(spec, row) as LocalEntries[K]);
+  return kind === 'workout' ? ((await withLiveCalories(db, entries as LocalEntries['workout'][])) as LocalEntries[K][]) : entries;
 }
 
 /** Every target value on the phone, each with the IST day it starts, oldest first (D-77, REQ-ROLE-018). */
@@ -1004,6 +1085,39 @@ export async function markRejected(db: SqlDb, changeId: string, errorCode: Chang
   await settle(db, changeId, async () => {
     await db.runAsync(`UPDATE outbox SET status = 'rejected', error_code = ? WHERE change_id = ?`, [errorCode, changeId]);
   });
+  // An import the server refused because the user typed a value for that day (D-121), from another phone
+  // or before this one knew: the import goes quietly, the server's value comes back with the next sync.
+  if (errorCode === 'MANUAL_VALUE_EXISTS') await discardRejected(db, changeId);
+}
+
+/**
+ * Disconnect, then Remove (D-121): the values read from Health Connect leave this phone, the imports
+ * still waiting to be sent are dropped, and the server is told to delete its copies. Values the user
+ * typed stay.
+ */
+export async function removeImportedValues(db: SqlDb, entry: { changeId: string; removedAt: string }): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (const spec of [KINDS.weighIn, KINDS.steps]) {
+      await db.runAsync(`DELETE FROM outbox WHERE type = ? AND json_extract(data, '$.source') = 'health_connect'`, [spec.changeType]);
+      await db.runAsync(`DELETE FROM ${spec.table} WHERE source = 'health_connect'`, []);
+    }
+    await db.runAsync(`INSERT INTO outbox (change_id, type, data, created_at, status) VALUES (?, ?, ?, ?, 'pending')`, [
+      entry.changeId,
+      HEALTH_IMPORT_REMOVE,
+      JSON.stringify({ removedAt: entry.removedAt }),
+      entry.removedAt,
+    ]);
+  });
+}
+
+/** How many steps days and weigh-ins on this phone came from Health Connect (D-121). */
+export async function countImported(db: SqlDb): Promise<{ steps: number; weights: number }> {
+  const row = await db.getFirstAsync<{ steps: number; weights: number }>(
+    `SELECT (SELECT count(*) FROM steps WHERE source = 'health_connect') AS steps,
+            (SELECT count(*) FROM weigh_ins WHERE source = 'health_connect') AS weights`,
+    [],
+  );
+  return { steps: row?.steps ?? 0, weights: row?.weights ?? 0 };
 }
 
 /**

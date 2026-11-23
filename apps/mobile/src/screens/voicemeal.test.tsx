@@ -23,6 +23,10 @@ const mockSpeech = {
   listens: 0,
   /** The quiet that ends listening: long here, so a slow test never ends by it; short in its own test. */
   silenceMs: 60_000,
+  /** The languages whose offline pack is on the phone; null when the phone can't say. */
+  installed: null as string[] | null,
+  downloadOk: true,
+  downloads: [] as string[],
 };
 jest.mock('../speech', () => ({
   ...jest.requireActual('../speech'),
@@ -39,8 +43,11 @@ jest.mock('../speech', () => ({
     },
     stop: () => mockSpeech.events?.onEnd(),
     abort: () => undefined,
-    installedLanguages: async () => null,
-    downloadLanguage: async () => true,
+    installedLanguages: async () => mockSpeech.installed,
+    downloadLanguage: async (language: string) => {
+      mockSpeech.downloads.push(language);
+      return mockSpeech.downloadOk;
+    },
   }),
 }));
 
@@ -116,6 +123,9 @@ beforeEach(() => {
   mockSpeech.language = null;
   mockSpeech.listens = 0;
   mockSpeech.silenceMs = 60_000;
+  mockSpeech.installed = null;
+  mockSpeech.downloadOk = true;
+  mockSpeech.downloads = [];
 });
 
 describe('REQ-LOG-005 Speak your meal', () => {
@@ -331,5 +341,52 @@ describe('Log meal’s box (the owner’s redesign, 2026-11-18)', () => {
     await openLogMeal();
     expect(await screen.findByLabelText('Speak or type what you ate')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Speak your meal' })).toBeNull();
+  });
+});
+
+describe('the speech pack of a language missing from the phone (the owner, 2026-11-24)', () => {
+  const tapSpeak = async () => fireEvent.press(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!);
+
+  it('asks the phone to download English (India) and says so, instead of listening', async () => {
+    mockSpeech.installed = ['hi-IN'];
+    await openSearch(consentOn);
+
+    await tapSpeak();
+
+    expect(await screen.findByText(/Getting the speech pack ready/)).toBeOnTheScreen();
+    expect(mockSpeech.downloads).toEqual(['en-IN']);
+    expect(mockSpeech.listens).toBe(0);
+  });
+
+  it('says where to turn it on by hand when the phone cannot download it from the app', async () => {
+    mockSpeech.installed = [];
+    mockSpeech.downloadOk = false;
+    await openSearch(consentOn);
+
+    await tapSpeak();
+
+    expect(await screen.findByText(/Offline speech recognition/)).toBeOnTheScreen();
+    expect(mockSpeech.listens).toBe(0);
+  });
+
+  it('listens as before when the pack is on the phone, or the phone cannot say', async () => {
+    mockSpeech.installed = ['en-IN'];
+    await openSearch(consentOn);
+    await tapSpeak();
+    await waitFor(() => expect(mockSpeech.listens).toBe(1));
+    expect(mockSpeech.downloads).toEqual([]);
+  });
+
+  it('a "language not supported" error offers the download, and the button asks for it', async () => {
+    await openSearch(consentOn);
+    await tapSpeak();
+    await waitFor(() => expect(mockSpeech.events).not.toBeNull());
+    await act(async () => mockSpeech.events!.onError('language-not-supported'));
+
+    expect(await screen.findByText(/This language isn't ready for speech/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Download speech pack' }));
+
+    expect(await screen.findByText(/Getting the speech pack ready/)).toBeOnTheScreen();
+    expect(mockSpeech.downloads).toEqual(['en-IN']);
   });
 });

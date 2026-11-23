@@ -1,11 +1,12 @@
 import { syncWindowStart } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
-import { Calendar } from 'lucide-react-native';
+import { Bell, Calendar } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { formatDay } from '../format';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
+import { unreadCount, useNotificationsVersion } from '../local/notificationStore';
 import { listEntries, mealCounts } from '../local/store';
 import { useSelectedDay } from '../navigation/SelectedDayProvider';
 import { greetingName } from '../profile';
@@ -59,6 +60,20 @@ export function HeaderActions() {
   const monthOlder = useOlderDays(shownMonth.from, shownMonth.to, today);
   // The meals and listed workouts on the phone (D-84), read when the calendar opens; null until then.
   const [activity, setActivity] = useState<CalendarActivity | null>(null);
+  // The notifications not yet read, for the bell's badge (ADR-0014); read again when the list changes.
+  const notificationsVersion = useNotificationsVersion();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (local.state.status !== 'ready') return;
+    let active = true;
+    void unreadCount(local.state.db).then((count) => {
+      if (active) setUnread(count);
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state, notificationsVersion]);
 
   useEffect(() => {
     if (!calendarOpen || local.state.status !== 'ready') return;
@@ -84,6 +99,20 @@ export function HeaderActions() {
         style={({ pressed }) => [styles.calendar, pressed && styles.pressed]}
       >
         <Calendar size={22} color={colors.accent} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+        onPress={() => router.push('/notifications')}
+        hitSlop={2}
+        style={({ pressed }) => [styles.calendar, pressed && styles.pressed]}
+      >
+        <Bell size={22} color={colors.accent} />
+        {unread > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unread > 9 ? '9+' : String(unread)}</Text>
+          </View>
+        ) : null}
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -129,5 +158,21 @@ const useStyles = themedStyles((c) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // The bell's count: a small caramel square at its top-right corner.
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: c.bg,
+    backgroundColor: c.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { ...TYPE.tab, fontSize: 12, lineHeight: 14, letterSpacing: 0, color: c.onPrimary },
   pressed: { opacity: 0.6 },
 }));

@@ -75,12 +75,12 @@ describe('Local schema version 22', () => {
       await migrateLocal(old);
       await replaceFoods(old, 'v9', [], [], [product('8901234500101', 'Test toned milk', 'Test Dairy')]);
       // Version 21 as phones have it.
-      await old.execAsync('ALTER TABLE foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN portions; ALTER TABLE packaged_foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; PRAGMA user_version = 21;');
+      await old.execAsync('DROP TABLE notifications; ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source; ALTER TABLE foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN portions; ALTER TABLE packaged_foods DROP COLUMN opens_on; ALTER TABLE packaged_foods DROP COLUMN aliases; ALTER TABLE packaged_foods DROP COLUMN search_aliases; PRAGMA user_version = 21;');
       await setMeta(old, 'food_list_version', 'v9');
 
       await migrateLocal(old);
 
-      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 23 });
+      expect(await old.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 25 });
       expect(await getMeta(old, 'food_list_version')).toBeNull();
       // The products stay, searched by name as before, with no other names till the list comes.
       expect(await searchPackaged(old, 'toned milk')).toEqual([product('8901234500101', 'Test toned milk', 'Test Dairy')]);

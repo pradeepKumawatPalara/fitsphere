@@ -385,14 +385,38 @@ describe('REQ-MEAS-001…006 measurements sheet', () => {
       { day: '2026-10-20', upperWaistMm: 800, lowerWaistMm: 830, ...NO_OPTIONAL, notes: 'Synthetic', recordedAt: '2026-10-20T03:00:00.000Z' },
     ]);
     await openSheet();
-    expect(screen.getByRole('button', { name: 'Next day' })).toBeDisabled();
+    // No arrows: the date is a button opening the calendar, where later days are not available.
+    expect(screen.queryByRole('button', { name: 'Previous day' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Next day' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: /^Date: / }));
+    expect(screen.getByRole('button', { name: /29 October.*not available/ })).toBeDisabled();
 
-    for (let day = 0; day < 8; day += 1) await fireEvent.press(screen.getByRole('button', { name: 'Previous day' }));
+    await fireEvent.press(screen.getByRole('button', { name: /20 October/ }));
 
     expect(screen.getByLabelText('Date: Tue 20 Oct')).toBeOnTheScreen();
     await waitFor(() => expect(screen.getByLabelText('Upper waist (cm)')).toHaveDisplayValue('80.0'));
     expect(screen.getByLabelText('Notes')).toHaveDisplayValue('Synthetic');
-    await fireEvent.press(screen.getByRole('button', { name: 'Next day' }));
+    await fireEvent.press(screen.getByRole('button', { name: /^Date: / }));
+    await fireEvent.press(screen.getByRole('button', { name: /28 October/ }));
+    await waitFor(() => expect(screen.getByLabelText('Upper waist (cm)')).toHaveDisplayValue(''));
+  });
+
+  it('a new date asks before dropping typed values, and Keep typing leaves them', async () => {
+    await renderInApp(<HomeScreen />);
+    await openSheet();
+    await type('Upper waist (cm)', '81.2');
+
+    await fireEvent.press(screen.getByRole('button', { name: /^Date: / }));
+    await fireEvent.press(screen.getByRole('button', { name: /20 October/ }));
+    expect(await screen.findByText('Change the date?')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Keep typing' }));
+    expect(screen.getByLabelText('Upper waist (cm)')).toHaveDisplayValue('81.2');
+    expect(screen.getByLabelText('Date: Wed 28 Oct')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: /^Date: / }));
+    await fireEvent.press(screen.getByRole('button', { name: /20 October/ }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'Change date' }));
+    expect(screen.getByLabelText('Date: Tue 20 Oct')).toBeOnTheScreen();
     await waitFor(() => expect(screen.getByLabelText('Upper waist (cm)')).toHaveDisplayValue(''));
   });
 

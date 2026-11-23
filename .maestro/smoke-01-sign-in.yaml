@@ -1,0 +1,23 @@
+appId: com.fitsphere.app
+name: Sign in with a valid account (ACC-06)
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000

@@ -1,8 +1,10 @@
 import { AI_CONSENT_TEXT, type BodyWeightUnit, type ThemePreference } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import {
+  Bell,
   ChevronRight,
   Globe,
+  HeartPulse,
   KeyRound,
   Moon,
   Smartphone,
@@ -118,6 +120,8 @@ export function AccountScreen({ showDevTools = __DEV__ }: { showDevTools?: boole
       <Section title="Account">
         <View style={styles.rows}>
           <LinkRow title="Your targets" icon={Target} onPress={() => router.push('/targets')} />
+          <LinkRow title="Notifications" icon={Bell} onPress={() => router.push('/notification-settings')} divided />
+          <LinkRow title="Connections" icon={HeartPulse} onPress={() => router.push('/connections')} divided />
           <LinkRow title="Change password" icon={KeyRound} onPress={() => router.push('/change-password')} divided />
         </View>
         <View style={styles.leave}>
@@ -297,12 +301,16 @@ function VoiceLanguageSetting() {
       />
       {missing ? (
         <>
-          <Text style={styles.body}>Hindi needs its offline speech pack on this phone. Until it's downloaded, the mic uses English (India).</Text>
+          <Text style={styles.body}>
+            {language === 'hi-IN'
+              ? "Hindi needs its offline speech pack on this phone. Until it's downloaded, the mic uses English (India)."
+              : 'English (India) needs its offline speech pack on this phone, so the mic can hear you.'}
+          </Text>
           {asked ? (
             <Text style={styles.help}>Your phone is downloading it. It may wait for Wi-Fi.</Text>
           ) : (
             <TextButton
-              title="Download Hindi speech pack"
+              title={language === 'hi-IN' ? 'Download Hindi speech pack' : 'Download English speech pack'}
               onPress={() => {
                 setAsked(true);
                 void engine.downloadLanguage(language);

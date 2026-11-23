@@ -596,7 +596,7 @@ describe('REQ-LOG-003 and the review before saving', () => {
     // Snack stays on show with its saved food; the next step is another meal. Save waits for a change.
     expect(screen.getByRole('radio', { name: 'Snack' })).toBeChecked();
     expect(screen.getByLabelText('Wheat flour, atta: 60 g, 192 kcal, 6.3 g protein')).toBeOnTheScreen();
-    expect(screen.getByText('Next: tap another meal')).toBeOnTheScreen();
+    expect(screen.queryByText('Next: tap another meal')).toBeNull();
     expect(screen.getByRole('button', { name: 'Save meal' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
 

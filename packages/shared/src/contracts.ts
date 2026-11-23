@@ -44,6 +44,8 @@ export const CHANGE_ERROR_CODES = [
   'ROLE_NOT_ENABLED',
   'NOT_ALLOWED',
   'UNKNOWN_CHANGE_TYPE',
+  // D-121: an import from the phone's health store for a day whose value the user typed.
+  'MANUAL_VALUE_EXISTS',
 ] as const;
 export type ChangeErrorCode = (typeof CHANGE_ERROR_CODES)[number];
 
@@ -214,12 +216,22 @@ export function syncWindowStart(today: IstDay): IstDay {
   return addDays(today, -(SYNC_WINDOW_DAYS - 1));
 }
 
+/**
+ * Where a day's steps or weight came from (D-121, ADR-0013): typed by the user, or read from the
+ * phone's health store. A value the user typed is never replaced by an import.
+ */
+export const DATA_SOURCES = ['manual', 'health_connect'] as const;
+export type DataSource = (typeof DATA_SOURCES)[number];
+export const dataSourceSchema = z.enum(DATA_SOURCES);
+
 export const WEIGH_IN_SET = 'weighIn.set';
 
 export const weighInSetDataSchema = z.strictObject({
   day: istDaySchema,
   weightGrams: weightGramsSchema,
   recordedAt: instantSchema,
+  /** Left out: the user typed it ('manual'), as every phone before D-121 sends. */
+  source: dataSourceSchema.optional(),
 });
 export type WeighInSetData = z.infer<typeof weighInSetDataSchema>;
 
@@ -232,8 +244,21 @@ export const stepsSetDataSchema = z.strictObject({
   day: istDaySchema,
   steps: z.int().min(STEPS_MIN).max(STEPS_MAX),
   recordedAt: instantSchema,
+  /** Left out: the user typed it ('manual'). */
+  source: dataSourceSchema.optional(),
 });
 export type StepsSetData = z.infer<typeof stepsSetDataSchema>;
+
+/**
+ * Disconnect, then Remove (D-121, ADR-0013): deletes the user's steps and weights whose source is
+ * `health_connect`; the values the user typed stay. No day or ID: it names no one else's data.
+ */
+export const HEALTH_IMPORT_REMOVE = 'healthImport.remove';
+
+export const healthImportRemoveDataSchema = z.strictObject({
+  removedAt: instantSchema,
+});
+export type HealthImportRemoveData = z.infer<typeof healthImportRemoveDataSchema>;
 
 export const SLEEP_SET = 'sleep.set';
 
@@ -885,6 +910,7 @@ export const weighInSchema = z.object({
   weightGrams: z.int(),
   recordedAt: instantSchema,
   updatedAt: instantSchema,
+  source: dataSourceSchema.default('manual'),
 });
 export type WeighIn = z.infer<typeof weighInSchema>;
 
@@ -893,6 +919,7 @@ export const stepCountSchema = z.object({
   steps: z.int(),
   recordedAt: instantSchema,
   updatedAt: instantSchema,
+  source: dataSourceSchema.default('manual'),
 });
 export type StepCount = z.infer<typeof stepCountSchema>;
 
@@ -1488,6 +1515,43 @@ export const photoParseRequestSchema = z.strictObject({
 });
 export type PhotoParseRequest = z.infer<typeof photoParseRequestSchema>;
 /** The answer is `mealParseResponseSchema`: the foods seen, never nutrition; the phone finds each in its own list. */
+
+// --- A photo of a meal, estimated by AI (D-120, ADR-0012): POST /v1/ai/photo-estimate ---
+
+/** At most this many foods in one photo reading, as a spoken meal. */
+export const PHOTO_ESTIMATE_MAX_ITEMS = 20;
+/** The most grams one food of a photo can weigh: the meal item's own limit would allow more, a plate rarely does. */
+export const PHOTO_ESTIMATE_GRAMS_MAX = 2_000;
+
+/**
+ * One food seen in a photo with the AI's estimate (ADR-0012): its name, the amount as seen, the portion's
+ * weight and the values per 100 g, within My foods' limits (kcal to 900, grams to 100), so a value out of
+ * range is refused rather than shown. Strict: nothing else is accepted. The request is
+ * `photoParseRequestSchema`, the same shrunk picture.
+ */
+export const photoEstimateItemSchema = z.strictObject({
+  /** What was seen, in a few words ("2 roti on the plate"), for the review list. */
+  spokenWords: z.string().min(1).max(200),
+  name: z.string().trim().min(1).max(BARCODE_ESTIMATE_NAME_MAX),
+  /** The amount as seen (3 roti, 1 katori); null when it was not clear. */
+  quantity: z.number().positive().max(10_000).nullable(),
+  unit: z.enum(SPOKEN_UNITS).nullable(),
+  /** The whole portion's weight in grams. */
+  grams: z.number().gt(0).max(PHOTO_ESTIMATE_GRAMS_MAX),
+  kcal: z.number().min(0).max(900),
+  proteinG: z.number().min(0).max(100),
+  carbsG: z.number().min(0).max(100),
+  fatG: z.number().min(0).max(100),
+  fibreG: z.number().min(0).max(100).nullable(),
+  /** What was unclear, in a few words each; empty when nothing was. */
+  ambiguity: z.array(z.string().min(1).max(120)).max(5),
+});
+export type PhotoEstimateItem = z.infer<typeof photoEstimateItemSchema>;
+
+export const photoEstimateResponseSchema = z.strictObject({
+  items: z.array(photoEstimateItemSchema).max(PHOTO_ESTIMATE_MAX_ITEMS),
+});
+export type PhotoEstimateResponse = z.infer<typeof photoEstimateResponseSchema>;
 
 /** A food the phone's own list does not have: looked up by name (Open Food Facts first, then an AI estimate). */
 export const foodLookupRequestSchema = z.strictObject({

@@ -649,6 +649,11 @@ export function LogMealScreen({ now = () => new Date() }: { now?: () => Date }) 
           {...(begin ? { begin } : {})}
           initialQuery={searchStart}
           onAdd={addFromSearch}
+          onAnotherPhoto={() => {
+            setBegin(null);
+            setSheet(null);
+            setPhotoChooser(true);
+          }}
           onOwnFood={(name, estimate, source) => {
             setOwnName(name);
             setOwnEstimate(estimate ?? null);
@@ -855,7 +860,8 @@ export const STEP_CUES = {
   /** No heading at the start (the owner, 2026-11-19): the meal tiles speak for themselves. */
   meal: '',
   mealToSave: 'Choose the meal to save',
-  another: 'Next: tap another meal',
+  /** No heading after Save either (the owner, 2026-11-24): the meal tiles speak for themselves. */
+  another: '',
   food: 'Next: tap how to add your food',
   review: 'Last: check your foods, then Save meal',
 } as const;
