@@ -1,0 +1,153 @@
+appId: com.fitsphere.app
+name: Roti added again to one meal asks join or keep apart; both work (FOOD-05)
+tags:
+  - smoke
+---
+# Sign in (as smoke-01)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+
+# Start from an empty day. Home says "0 kcal eaten" with no calorie target,
+# or "0 of 2,000 kcal" under the remaining once one is set (test 9 sets one)
+- extendedWaitUntil:
+    visible: "0 kcal eaten|0 of [0-9,]+ kcal"
+    timeout: 30000
+
+# Nutrition: + on Breakfast, then choose Lunch
+- tapOn: "Nutrition"
+- tapOn: "Add to Breakfast"
+- extendedWaitUntil:
+    visible: "Search foods"
+    timeout: 10000
+- tapOn: "Lunch"
+
+# 1st time: 2 roti
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "2 roti"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Chapati/Roti, 202 kcal per 100 g, estimated"
+    timeout: 120000
+- tapOn: "Chapati/Roti, 202 kcal per 100 g, estimated"
+- extendedWaitUntil:
+    visible: "Quantity: 2"
+    timeout: 10000
+- tapOn: "Add"
+
+# 2nd time: 2 roti again, the question, then "Add to existing" (join)
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "2 roti"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Chapati/Roti, 202 kcal per 100 g, estimated"
+    timeout: 30000
+- tapOn: "Chapati/Roti, 202 kcal per 100 g, estimated"
+- extendedWaitUntil:
+    visible: "Quantity: 2"
+    timeout: 10000
+- tapOn: "Add"
+- extendedWaitUntil:
+    visible: "Already in this meal"
+    timeout: 10000
+- assertVisible: "Chapati/Roti is already in this meal .*for 4 .*in all.*"
+- assertVisible: "Add to existing"
+- assertVisible: "Keep separate"
+- tapOn: "Add to existing"
+
+# Joined: one line of 4 roti (291 kcal), no line of 2
+- scrollUntilVisible:
+    element:
+      text: "Chapati/Roti: 4 .*291 kcal.*"
+    direction: DOWN
+    timeout: 10000
+- assertNotVisible: "Chapati/Roti: 2 .*"
+
+# 3rd time: 2 roti again, the question, then "Keep separate"
+- scrollUntilVisible:
+    element:
+      text: "Search foods"
+    direction: UP
+    timeout: 10000
+- tapOn: "Search foods"
+- tapOn: "e.g. atta, dal, paneer"
+- inputText: "2 roti"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Chapati/Roti, 202 kcal per 100 g, estimated"
+    timeout: 30000
+- tapOn: "Chapati/Roti, 202 kcal per 100 g, estimated"
+- extendedWaitUntil:
+    visible: "Quantity: 2"
+    timeout: 10000
+- tapOn: "Add"
+- extendedWaitUntil:
+    visible: "Already in this meal"
+    timeout: 10000
+- assertVisible: "Chapati/Roti is already in this meal .*for 6 .*in all.*"
+- tapOn: "Keep separate"
+
+# Kept apart: two lines, 4 roti (291 kcal) and 2 roti (146 kcal)
+- scrollUntilVisible:
+    element:
+      text: "Chapati/Roti: 2 .*146 kcal.*"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Chapati/Roti: 4 .*291 kcal.*"
+
+# Save the lunch: one meal with two foods, then the back arrow
+- tapOn: "Save lunch"
+- extendedWaitUntil:
+    visible: "Lunch saved · 2 foods.*"
+    timeout: 10000
+# The back arrow scrolls with the page (Log meal since 19 Nov): back up to it first
+- scrollUntilVisible:
+    element:
+      text: "Back|Navigate up"
+    direction: UP
+    timeout: 10000
+- tapOn: "Back|Navigate up"
+
+# Home: 6 roti in all
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "437 kcal eaten|437 of [0-9,]+ kcal"
+    timeout: 10000
+
+# Nutrition: open Lunch, delete the whole meal
+# (centred, so the trash icon is clear of the floating Log button at the bottom right;
+# Maestro stops centring after 4 tries, hence the longer timeout)
+- tapOn: "Nutrition"
+- tapOn: "Show Lunch meals"
+- scrollUntilVisible:
+    element:
+      text: "Delete Lunch: Chapati/Roti.*"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- tapOn: "Delete Lunch: Chapati/Roti.*"
+- assertVisible: 'Delete this meal\?'
+- tapOn: "Delete"
+
+# Home back to 0 kcal
+- tapOn: "Home"
+- extendedWaitUntil:
+    visible: "0 kcal eaten|0 of [0-9,]+ kcal"
+    timeout: 10000

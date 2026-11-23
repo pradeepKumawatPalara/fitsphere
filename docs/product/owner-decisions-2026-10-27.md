@@ -3884,6 +3884,32 @@ checksum), and the configuration template was left as it is.*
 - No migration, no phone schema change, no new build. **The beta's Cloud Run API needs this API; deploy only when
   the owner says so.**
 
+## D-119 Maestro smoke tests on the phone over USB, run before each hand-over
+- Status: **Accepted** (owner, in chat, 2026-11-19: "Save the Maestro smoke tests in the repository";
+  "Maestro smoke tests on a real phone over USB, no emulator (D-19), run before each hand-over"). Branch
+  `test/maestro-smoke`.
+- Why: the tester's tracker (kept outside the repository, with the tester's guide) was run by hand only.
+  Ten of its rows can be driven on the phone by a machine, and the first runs found a real bug: Back after
+  Log out showed Home again, signed out (ACC-10; fixed in pull request #126).
+- Answer (`docs/quality/test-strategy.md`):
+  - `.maestro/` at the repository root: ten flows, `smoke-01` to `smoke-10`, and a README with each flow's
+    tracker rows, the set-up on Windows and the phone, and the run commands.
+  - Maestro on the PC drives the owner's phone over USB through `adb`: no emulator, no Android Studio (D-19).
+    Not in CI: GitHub Actions has no phone.
+  - The flows test the installed test APK (EAS `preview`), not the development build, which opens on its
+    launcher after `clearState`; new code needs a new APK first (tell the owner before every build, D-19).
+  - One robot account on `fitsphere-dev` with made-up data only (invariant #7). Its email and password come
+    in with `-e` on each run and are never written into a file; reports, screenshots, screen dumps and logs
+    are kept out of git (`.gitignore`).
+  - Each flow starts from a clean app (`clearState`) and cleans up after itself: its meal or workout is
+    deleted; steps, sleep and weight are one per day and replaced; the calorie target ends on 2,000 kcal.
+    A calorie target can't be removed, so `smoke-04` and `smoke-05` read Home with or without one.
+  - Run before each hand-over of a build to testers. `smoke-10` passes once the APK has pull request #126.
+- Left to people (listed in the README): dragging the pill and reopening the app, the timer while the phone
+  is locked, kg to lb, log out with unsent data in flight mode, the target limits.
+- No app change, no migration, no new build. Doc changes: this record, the test strategy, `.maestro/README.md`,
+  `.gitignore`.
+
 ---
 
 ---

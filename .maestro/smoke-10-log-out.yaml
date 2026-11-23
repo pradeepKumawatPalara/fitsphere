@@ -1,0 +1,67 @@
+appId: com.fitsphere.app
+name: Log out lands on Sign in; nothing of the user shows, after Back or a relaunch (ACC-10)
+tags:
+  - smoke
+---
+# With everything on the server, Log out asks nothing: it deletes the phone's copy of the data and
+# the sign-in, then opens Sign in. Only with entries not sent yet does it warn first (ACC-11).
+# Nothing is changed on the server, so the test can run again and again.
+
+# Sign in (as smoke-01)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+# Signed in: Home, with the header's greeting ("Hi, <name>")
+- assertVisible: "Hi, .*"
+
+# ---- Settings > Log out ----
+- tapOn: "Account"
+- scrollUntilVisible:
+    element:
+      text: "Log out"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Log out"
+
+# Sign in, both boxes empty, nothing of the user
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- assertVisible: "Sign in"
+- assertVisible: "Enter your email address and password to sign in."
+- assertNotVisible: "Calories"
+- assertNotVisible: "Hi, .*"
+- assertNotVisible: ".*@.*"
+
+# Android's Back does not bring Home back (the app may close, or stay on Sign in)
+- pressKey: Back
+- extendedWaitUntil:
+    notVisible: "Calories"
+    timeout: 10000
+- assertNotVisible: "Hi, .*"
+
+# ---- Relaunch WITHOUT clearState: still Sign in, still nothing of the user ----
+- launchApp
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- assertVisible: "Sign in"
+- assertVisible: "Enter your email address and password to sign in."
+- assertNotVisible: "Calories"
+- assertNotVisible: "Hi, .*"
+- assertNotVisible: ".*@.*"

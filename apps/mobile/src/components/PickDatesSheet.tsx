@@ -131,7 +131,13 @@ export function PickDatesSheet({ from, to, today, online, onChange, onShow, onCl
             {lists.map(({ key, label, chosen, set }) => (
               <View key={key} style={styles.listColumn}>
                 <Text style={styles.label}>{label}</Text>
-                <ScrollView accessibilityLabel={label} nestedScrollEnabled style={styles.list} contentContainerStyle={styles.listBody}>
+                <ScrollView
+                  accessibilityLabel={label}
+                  nestedScrollEnabled
+                  keyboardShouldPersistTaps="handled"
+                  style={styles.list}
+                  contentContainerStyle={styles.listBody}
+                >
                   {years.map((year) => {
                     const selected = year === chosen;
                     return (
