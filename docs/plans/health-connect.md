@@ -120,6 +120,20 @@ The registry and README were read directly; Google's pages only through search s
   `connections`, a Connections row in Settings, `QuickTile`'s `tag`, `removeImportedValues` and `countImported`
   in `local/store.ts`, a quiet drop of an import the server refused (`MANUAL_VALUE_EXISTS`).
 
+## Step 4 as built (2026-11-23)
+- `react-native-health-connect` 4.1.3, pinned, and `expo-build-properties` (minSdkVersion 26) added; plugin in
+  `apps/mobile/app.json`. **Checked with a local `expo prebuild`:** the plugin adds only Health Connect's
+  permission-explanation screen, **not** the permissions, so `android.permissions` in `app.json` names
+  `android.permission.health.READ_STEPS` and `READ_WEIGHT`, and the built manifest holds those two health
+  permissions and no others.
+- **Steps use Health Connect's own aggregate** (`aggregateRecord`, `COUNT_TOTAL`) for each India day, so
+  overlapping apps are counted once: the library does expose it. Weights are read as records, every page, from
+  `weight.inGrams`.
+- Loaded only on Android and only when first asked (`src/health/healthSource.ts`): a build made before this one,
+  an iPhone, or a failed load answers "not supported".
+- Not testable here: Health Connect on a phone. The adapter is tested against a fake of the library; the first
+  EAS build is the compatibility proof with Expo 58 and React Native 0.88, and Phase 2 is the real test.
+
 ## Owner's answers (2026-11-20)
 - **Q-A:** the connection record is on the phone only (`sync_meta`); no server table.
 - **Q-B:** a day over the limit is skipped, not clipped; the limit is not widened (200,000 steps, not the 100,000 first written: see "The rules for what is imported").
