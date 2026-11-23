@@ -6,6 +6,14 @@ phone: **write nothing from the app's data into this file except the result and 
 
 A device or app is named on the Connections screen only after a row below says Works, Partial or Not supported.
 
+## Step 0: does the device's data reach Health Connect? (no FitSphere needed)
+Open Android's Health Connect app › Data and access › Steps, then Weight, and read the list of sources.
+- The device's app, or the app it syncs through (the owner's Fastrack is connected through **Google Fit**), is
+  listed with data: go on. Record the route in the results table (for example, "Fastrack > Google Fit > Health Connect").
+- It is not listed: the route does not reach Health Connect. Check that app's settings for a Health Connect option;
+  if there is none, record **Not supported** for that route and try the device's own app instead.
+Google Fit is a separate app from Health Connect: that it passes data on is not assumed, it is checked here.
+
 ## Before you start
 1. The development build is installed; Settings › Connections shows **Health Connect** with a Connect button
    (not "Not available on this phone"). If it says Not available, note the phone's Android version here and stop.
@@ -36,7 +44,8 @@ Do this over **three days** so a full day's total and a few weigh-ins can be com
 
 | Device or app | Android version | Tested on | Result (Works / Partial / Not supported) | Notes (what failed or differed) |
 |---|---|---|---|---|
-| Fastrack (watch) | | | | |
+| Fastrack (watch), through Google Fit | | | | Route: Fastrack > Google Fit > Health Connect; record what step 0 shows |
+| Fastrack (watch), through its own app | | | | Only if its app offers Health Connect |
 
 **Works:** checks 1 to 12 pass for steps and weight. **Partial:** connects and reads, but one thing fails (say which:
 for example, a watch that writes steps but not weight). **Not supported:** the device's app writes nothing to Health
