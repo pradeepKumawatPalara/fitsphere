@@ -273,6 +273,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
   useEffect(() => {
     if (timeDecided.current || editing === null || editing.kind !== 'sets' || match === null) return;
     timeDecided.current = true;
+    // Runs once, to decide whether a saved time was typed or worked out from its reps; not a render-driven update.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (editing.durationSeconds !== null && timeFromReps(text.sets, match.secondsPerRep) === editing.durationSeconds) setText((current) => ({ ...current, timeAuto: true }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match]);
