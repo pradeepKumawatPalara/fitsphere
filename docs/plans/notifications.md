@@ -91,7 +91,8 @@ Numbers are the rows of the competitor table the owner shared.
 - Legal's review (Q-049) should include the notification texts and "inactive for X days".
 
 ## Open questions
-- **Q-A (needs the owner):** Bring a phone-only Notifications list and local push into the MVP, amending `mvp-scope.md`? (D-20 and D-18 list "Notifications list" and "push" as post-MVP; this plan treats them as the *server* kinds and builds only the local one.)
+- **Q-A: answered YES by the owner (2026-11-24):** the phone-only Notifications list and local notifications are in the MVP (`mvp-scope.md` and D-122 still to be recorded by the owner, ADR-0014 still Proposed). The owner also wants server push for events like a new message: kept as a plan only, `docs/plans/server-push.md`.
+- ~~Q-A (was open):~~ Bring a phone-only Notifications list and local push into the MVP, amending `mvp-scope.md`? (D-20 and D-18 list "Notifications list" and "push" as post-MVP; this plan treats them as the *server* kinds and builds only the local one.)
 - **Q-B:** All types off until the user turns them on (proposed), or on with default times (breakfast 08:30, lunch 13:00, dinner 20:00, workout 18:00)?
 - **Q-C:** Quiet hours 22:00 to 07:00 and a cap of 4 a day: right?
 - **Q-D:** Lock-screen text with no health values (proposed): agree?
