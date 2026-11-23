@@ -159,6 +159,7 @@ One body-weight value per user per IST day (REQ-HOME-006, REQ-PRG-001).
 | `user_id` | `uuid` | References `users`, deleted with the user |
 | `day` | `date` | Not null. The IST day the user chose (invariant #5). Not later than today in IST (REQ-DATE-001; Q-017 MVP default) |
 | `weight_grams` | `integer` | Not null, **Health**. 20,000 to 300,000 (20–300 kg; Q-028 MVP default) |
+| `source` | `text` | Not null, default `manual`; `manual` or `health_connect` (D-121, migration 0036). A `manual` value is never replaced by a `health_connect` one (the sync refuses it, `MANUAL_VALUE_EXISTS`); a typed value replaces either |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC). Kept as a record; it does not decide conflicts |
 | `change_seq` | `bigint` | Not null. Taken from the sequence `app.change_seq` on every insert and update; used by the sync pull |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |
@@ -185,6 +186,7 @@ post-MVP (Q-015, backlog B-14).
 | `user_id` | `uuid` | References `users`, deleted with the user |
 | `day` | `date` | Not null. The IST day the user chose (invariant #5); not later than today in IST |
 | `steps` | `integer` | Not null, **Health**. 1 to 200,000 (D-100; was 0 to 100,000, Q-028; the check is `not valid`, so a day saved with 0 before stays) |
+| `source` | `text` | Not null, default `manual`; `manual` or `health_connect`; the same rule as `weigh_ins.source` (D-121, migration 0036) |
 | `recorded_at` | `timestamptz` | Not null. When the user saved it on the phone (UTC) |
 | `change_seq` | `bigint` | Not null. From `app.change_seq` on every insert and update |
 | `created_at`, `updated_at` | `timestamptz` | Not null. Server times |

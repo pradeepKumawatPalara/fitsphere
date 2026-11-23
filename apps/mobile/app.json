@@ -19,7 +19,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_WEIGHT"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -59,7 +63,16 @@
           "androidSpeechServicePackages": ["com.google.android.as", "com.google.android.googlequicksearchbox"]
         }
       ],
-      "expo-font"
+      "expo-font",
+      "react-native-health-connect",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

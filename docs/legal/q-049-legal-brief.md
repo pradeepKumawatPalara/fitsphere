@@ -45,6 +45,7 @@ the owner's choice, not Legal's approval.
 | Google (Gemini AI) | Meal text and photos, only after the user turns on AI meal reading (invariant #3, REQ-ACC-004). No name, email or user ID (ADR-0005) | AI meal reading, MVP slice 7, not built | May be outside India (ADR-0005) |
 | Resend | Email addresses, for sign-up and password-reset emails (ADR-0004) | Release slice, not set up | Not recorded |
 | Google Play | The app's listing and downloads | Release | Not applicable |
+| Health Connect (Android, on the phone) | Nothing leaves the phone to Google: FitSphere reads the user's steps and body weight from it, after the user allows it (D-121, ADR-0013). The values then go to FitSphere's server like the user's typed values | Backlog B-29, not built | The user's phone, then FitSphere's database |
 | Expo (EAS Build) | The app's source code, to build it; no user data | Development and release | Not applicable |
 | Cloudflare Quick Tunnel | Test traffic between the owner's phone and PC, synthetic data only (D-19) | Development only | Not recorded |
 
@@ -299,6 +300,19 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
 - Questions: may FitSphere use dish names taken from a recipe site's list? Does using INDB's and
   IFCT's values to set typical values raise the questions of L-15 and R-007 again? Is "estimated"
   enough for users to know these are not measured?
+
+### I. Steps and weight from the phone's health store (D-121, ADR-0013, accepted risk R-019)
+
+**L-20 Health Connect data (backlog B-29, not built).**
+- Facts: on Android, the user may connect Health Connect (Google's on-phone health store) so that FitSphere reads
+  their steps and body weight, which watches and scales write there. Android's own screen asks the permission and
+  the user can withdraw it at any time. The values travel from the phone to FitSphere's server through the same
+  sync as the user's typed values, are stored in the same two tables with a "source" mark, are shown to the user
+  tagged, and can be removed by the user. They are never sent to an AI service and never logged. Google Play
+  asks for a Health Connect declaration before a release that reads it.
+- Questions: does reading these two data types need a consent beyond Android's permission screen and the privacy
+  notice? Does Google Play's Health Connect policy need anything FitSphere has not planned (for example, limits
+  on what the data is used for)? Does the deletion page need to name this data?
 
 ### H. Anything else before real users
 

@@ -57,10 +57,10 @@ describe('D-106 older days on the phone', () => {
     await replaceDays(db, '2025-03-10', '2025-03-16', {
       ...NONE,
       weighIns: [
-        { day: '2025-03-11', weightGrams: 74_150, recordedAt: AT, updatedAt: AT },
-        { day: '2025-03-12', weightGrams: 70_000, recordedAt: AT, updatedAt: AT },
+        { day: '2025-03-11', weightGrams: 74_150, recordedAt: AT, updatedAt: AT, source: 'manual' },
+        { day: '2025-03-12', weightGrams: 70_000, recordedAt: AT, updatedAt: AT, source: 'manual' },
       ],
-      steps: [{ day: '2025-03-13', steps: 8_410, recordedAt: AT, updatedAt: AT }],
+      steps: [{ day: '2025-03-13', steps: 8_410, recordedAt: AT, updatedAt: AT, source: 'manual' }],
     });
 
     expect(await getWeighIn(db, '2025-03-10')).toBeNull();
@@ -71,7 +71,7 @@ describe('D-106 older days on the phone', () => {
   });
 
   it('held older days stay through a prune while the app is open; others older than the 90 days go', async () => {
-    await replaceDays(db, '2025-03-10', '2025-03-16', { ...NONE, weighIns: [{ day: '2025-03-11', weightGrams: 74_150, recordedAt: AT, updatedAt: AT }] });
+    await replaceDays(db, '2025-03-10', '2025-03-16', { ...NONE, weighIns: [{ day: '2025-03-11', weightGrams: 74_150, recordedAt: AT, updatedAt: AT, source: 'manual' }] });
     await savedAndSynced('2025-04-01', 73_000);
     holdDays(db, '2025-05-01', '2025-05-07');
     await savedAndSynced('2025-05-02', 72_000); // logged on a held day, then synced
@@ -84,7 +84,7 @@ describe('D-106 older days on the phone', () => {
   });
 
   it('the next app start holds nothing: the first prune removes them (a new database connection here)', async () => {
-    await replaceDays(db, '2025-03-10', '2025-03-16', { ...NONE, weighIns: [{ day: '2025-03-11', weightGrams: 74_150, recordedAt: AT, updatedAt: AT }] });
+    await replaceDays(db, '2025-03-10', '2025-03-16', { ...NONE, weighIns: [{ day: '2025-03-11', weightGrams: 74_150, recordedAt: AT, updatedAt: AT, source: 'manual' }] });
     const reopened: SqlDb = { ...db };
 
     await pruneSynced(reopened, TODAY);

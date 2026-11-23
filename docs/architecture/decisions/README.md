@@ -24,6 +24,7 @@ Answered Q- items stay listed: they record what the decision rests on.
 | ADR-0009 | [Packaged food search](ADR-0009-packaged-food-search.md) — chosen: Open Food Facts' data export, its products sold in India, in their own table and on the phone, searchable by name and brand; amends ADR-0006 rule 2 | Accepted (D-48) | Q-049, C-005, C-008, D-47 |
 | ADR-0010 | [AI meal reading's provider](ADR-0010-ai-provider-openai.md) — chosen: OpenAI `gpt-6-luna` through the Responses API, in ADR-0005's one AI module; the AI names foods and never gives nutrition; unmatched foods are "Not in our food list"; supersedes ADR-0005 in part | Accepted (D-115) | Q-040, Q-049, Q-094, C-003, C-004, C-008 |
 | ADR-0011 | [A training section on Home](ADR-0011-home-training-section.md) — proposed: a card for the selected date's workouts, with the day's training numbers, read from the phone's own data; the weekly workout line stays out unless D-110 is reversed | Proposed | C-005, D-103, D-108, D-110 |
+| ADR-0013 | [Health stores as a source of the user's own data](ADR-0013-health-store-connections.md) — proposed: Health Connect first (steps and weight), read on the phone, through the existing sync; manual entries win; Apple Health, brands' direct APIs, file import and aggregators later | Accepted (the owner, 2026-11-20; backlog B-29) | Q-049, C-005, C-006, D-19, D-20 |
 
 Recommended order: ADR-0001 → 0002 → 0003 → 0004, then 0007 before offline logging is built,
 0005/0006 before the features that need them, and 0008 before the audio/video release. Each is

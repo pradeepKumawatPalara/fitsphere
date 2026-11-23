@@ -3947,6 +3947,22 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-121 Health Connect (Android) as a source of steps and body weight, on a Connections screen
+- Status: **Accepted** (the owner, 2026-11-20, in chat: ADR-0013's defaults accepted, backlog work, the plan
+  approved, Q-A phone only, Q-B skip days over the limit (200,000 steps), Q-C a proposed layout in place of a canvas board,
+  Q-D the Fastrack watch first). Number taken as the next free one after D-120;
+  the owner may renumber. Plan: `docs/plans/health-connect.md`; ADR-0013; backlog B-29. Branch `feat/health-connect`.
+- Answer: Settings gets Connections; Health Connect, read on the phone, brings in steps and body weight (30 days
+  at first connect, then on app open and pull to refresh, never in the background); a value the user typed is never
+  changed; an imported value is tagged and can be edited (then it is the user's) or removed; each device is listed
+  only after the owner's test marks it Works, Partial or Not supported.
+- Does not change D-20's MVP: backlog work, built after the bug fixes.
+- Migration `0036_health_source.sql` (a `source` on steps and weigh-ins), one phone schema version, a new EAS
+  development build (the owner is told first, D-19). **On `fitsphere-dev`: the migration before the updated API;
+  only when the owner says so.**
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*

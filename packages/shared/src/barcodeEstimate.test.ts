@@ -117,7 +117,8 @@ describe('D-120 the photo estimate answer', () => {
     ]) {
       expect(photoEstimateResponseSchema.safeParse({ items: [bad] }).success).toBe(false);
     }
-    const { kcal: _kcal, ...withoutKcal } = item;
+    const { kcal, ...withoutKcal } = item;
+    void kcal;
     expect(photoEstimateResponseSchema.safeParse({ items: [withoutKcal] }).success).toBe(false);
     expect(photoEstimateResponseSchema.safeParse({ items: [item], total: 1 }).success).toBe(false);
   });

@@ -113,7 +113,7 @@ describe('ADR-0007 sync', () => {
     expect(reply.results).toEqual([{ changeId: change.changeId, status: 'accepted', error: null }]);
     expect(reply.pull).toEqual({
       weighIns: [
-        { day: TODAY, weightGrams: 70_250, recordedAt: `${TODAY}T02:00:00.000Z`, updatedAt: expect.stringMatching(/Z$/) },
+        { day: TODAY, weightGrams: 70_250, recordedAt: `${TODAY}T02:00:00.000Z`, updatedAt: expect.stringMatching(/Z$/), source: 'manual' },
       ],
       steps: [],
       sleep: [],

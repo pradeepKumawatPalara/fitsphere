@@ -39,10 +39,13 @@ import {
   weighInSetDataSchema,
   WORKOUT_DELETE,
   WORKOUT_SET,
+  HEALTH_IMPORT_REMOVE,
+  healthImportRemoveDataSchema,
   workoutDeleteDataSchema,
   workoutSetDataSchema,
   type ChangeError,
   type ChangeErrorCode,
+  type DataSource,
   type DaysResponse,
   type IstDay,
   type MealItem,
@@ -67,6 +70,7 @@ const CHANGE_MESSAGES: Record<ChangeErrorCode, string> = {
   ROLE_NOT_ENABLED: 'This needs the Personal Training User role.',
   NOT_ALLOWED: 'You cannot change this.',
   UNKNOWN_CHANGE_TYPE: 'This kind of change is not supported.',
+  MANUAL_VALUE_EXISTS: 'A value you typed is already saved for this day.',
 };
 
 // The cursor is opaque to the phone: the last change number it has seen.
@@ -163,31 +167,64 @@ function dayChange<T extends { day: IstDay }>(
     const data = schema.safeParse(input);
     if (!data.success) return 'VALIDATION_FAILED';
     if (isFutureIstDay(data.data.day, now)) return 'DAY_IN_FUTURE';
-    await write(client, account.id, data.data);
-    return null;
+    const written = await write(client, account.id, data.data);
+    return written === MANUAL_WINS ? 'MANUAL_VALUE_EXISTS' : null;
   };
+}
+
+/**
+ * What a day's writer returns when it left the stored value alone because the user typed it and the
+ * change is an import from the health store (D-121, ADR-0013). The rule is the server's, not only
+ * the phone's: an import can arrive from another phone, or late.
+ */
+const MANUAL_WINS = Symbol('manual wins');
+
+/**
+ * Steps and weight take a `source`. A value the user typed ('manual') is replaced only by another
+ * typed value; an import ('health_connect') fills an empty day or updates an earlier import; a typed
+ * value over an import makes it the user's own. `insert ... on conflict ... where` returns no row when
+ * the typed value was kept.
+ */
+async function writeWithSource(client: pg.PoolClient, sql: string, values: unknown[]): Promise<unknown> {
+  const { rowCount } = await client.query(sql, values);
+  return rowCount === 0 ? MANUAL_WINS : null;
 }
 
 const HANDLERS = new Map<string, Handler>([
   [
+    HEALTH_IMPORT_REMOVE,
+    // The user's own imported steps and weights go; typed ones stay. Other phones keep their copies
+    // until those leave their 90 days (the pull carries no deletions for day data).
+    async (client, account, input) => {
+      if (!healthImportRemoveDataSchema.safeParse(input).success) return 'VALIDATION_FAILED';
+      await client.query(`delete from app.weigh_ins where user_id = $1 and source = 'health_connect'`, [account.id]);
+      await client.query(`delete from app.step_counts where user_id = $1 and source = 'health_connect'`, [account.id]);
+      return null;
+    },
+  ],
+  [
     WEIGH_IN_SET,
     dayChange(weighInSetDataSchema, (client, userId, data) =>
-      client.query(
-        `insert into app.weigh_ins (user_id, day, weight_grams, recorded_at) values ($1, $2, $3, $4)
+      writeWithSource(
+        client,
+        `insert into app.weigh_ins (user_id, day, weight_grams, recorded_at, source) values ($1, $2, $3, $4, $5)
          on conflict (user_id, day) do update
-           set weight_grams = excluded.weight_grams, recorded_at = excluded.recorded_at`,
-        [userId, data.day, data.weightGrams, data.recordedAt],
+           set weight_grams = excluded.weight_grams, recorded_at = excluded.recorded_at, source = excluded.source
+           where not (app.weigh_ins.source = 'manual' and excluded.source <> 'manual')`,
+        [userId, data.day, data.weightGrams, data.recordedAt, data.source ?? 'manual'],
       ),
     ),
   ],
   [
     STEPS_SET,
     dayChange(stepsSetDataSchema, (client, userId, data) =>
-      client.query(
-        `insert into app.step_counts (user_id, day, steps, recorded_at) values ($1, $2, $3, $4)
+      writeWithSource(
+        client,
+        `insert into app.step_counts (user_id, day, steps, recorded_at, source) values ($1, $2, $3, $4, $5)
          on conflict (user_id, day) do update
-           set steps = excluded.steps, recorded_at = excluded.recorded_at`,
-        [userId, data.day, data.steps, data.recordedAt],
+           set steps = excluded.steps, recorded_at = excluded.recorded_at, source = excluded.source
+           where not (app.step_counts.source = 'manual' and excluded.source <> 'manual')`,
+        [userId, data.day, data.steps, data.recordedAt, data.source ?? 'manual'],
       ),
     ),
   ],
@@ -629,8 +666,8 @@ function result(changeId: string, errorCode: ChangeErrorCode | null): SyncResult
 // with the session's offset, so they are turned into UTC with Z before they are returned.
 type Times = { recordedAt: string; updatedAt: string };
 type ChangedRow = { change_seq: string } & (
-  | { kind: 'weighIn'; item: { day: IstDay; weightGrams: number } & Times }
-  | { kind: 'steps'; item: { day: IstDay; steps: number } & Times }
+  | { kind: 'weighIn'; item: { day: IstDay; weightGrams: number; source: DataSource } & Times }
+  | { kind: 'steps'; item: { day: IstDay; steps: number; source: DataSource } & Times }
   | { kind: 'sleep'; item: { day: IstDay; sleepMinutes: number } & Times }
   | { kind: 'measurements'; item: SyncResponse['pull']['measurements'][number] }
   | { kind: 'workout'; item: StoredWorkout }
@@ -666,10 +703,11 @@ type StoredWorkout = Omit<Workout, 'exercises'> & { deleted: boolean; exercises:
 const DAY_KIND_ROWS = [
   `select 'weighIn' as kind, change_seq,
          json_build_object('day', day::text, 'weightGrams', weight_grams,
-           'recordedAt', recorded_at, 'updatedAt', updated_at) as item
+           'recordedAt', recorded_at, 'updatedAt', updated_at, 'source', source) as item
        from app.weigh_ins where user_id = $1`,
   `select 'steps', change_seq,
-         json_build_object('day', day::text, 'steps', steps, 'recordedAt', recorded_at, 'updatedAt', updated_at)
+         json_build_object('day', day::text, 'steps', steps, 'recordedAt', recorded_at, 'updatedAt', updated_at,
+           'source', source)
        from app.step_counts where user_id = $1`,
   `select 'sleep', change_seq,
          json_build_object('day', day::text, 'sleepMinutes', sleep_minutes,

@@ -79,6 +79,7 @@ never removes it automatically (ADR-0007 rule 2, D-14).
 | `ROLE_NOT_ENABLED` | The change needs a role the user has not turned on |
 | `NOT_ALLOWED` | The user may not change this data, e.g. the link it depended on has ended (T-02). Not reachable in the Skeleton, where users write only their own data |
 | `UNKNOWN_CHANGE_TYPE` | The server does not know the change `type` |
+| `MANUAL_VALUE_EXISTS` | A steps or weight change with `source` `health_connect` (D-121) for a day whose stored value the user typed. The typed value is kept; the phone drops the import without telling the user |
 
 A rejected change's `error` is `{ "code", "message", "details" }`, with `details` always `null`,
 so a change sent again gets exactly the same reply (api-conventions, "Once only").

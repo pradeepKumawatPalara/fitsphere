@@ -55,6 +55,7 @@ describe('ADR-0007 outbox', () => {
       day: '2026-10-27',
       weightGrams: 70_250,
       recordedAt: '2026-10-27T03:00:00.000Z',
+      source: 'manual',
       syncState: 'pending',
     });
     const pending = await pendingChanges(db, 100);

@@ -65,7 +65,7 @@ describe('REQ-HOME-006 steps and sleep', () => {
 
     expect(reply.results.map((result) => result.status)).toEqual(['accepted', 'accepted']);
     expect(reply.pull.steps).toEqual([
-      { day: TODAY, steps: 8_432, recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },
+      { day: TODAY, steps: 8_432, recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/), source: 'manual' },
     ]);
     expect(reply.pull.sleep).toEqual([
       { day: TODAY, sleepMinutes: 450, recordedAt: RECORDED_AT, updatedAt: expect.stringMatching(/Z$/) },

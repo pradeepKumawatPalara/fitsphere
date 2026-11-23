@@ -16,6 +16,7 @@ import {
   SETTING_SET,
   SLEEP_SET,
   STEPS_SET,
+  HEALTH_IMPORT_REMOVE,
   syncWindowStart,
   TARGET_SET,
   WEIGH_IN_SET,
@@ -170,7 +171,10 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['day', 'day'],
       ['weight_grams', 'weightGrams'],
       ['recorded_at', 'recordedAt'],
+      ['source', 'source'],
     ],
+    // A value the user typed carries no source: it is 'manual' (D-121).
+    derive: manualUnlessSourced,
     pullColumns: [],
     dayData: true,
   },
@@ -182,7 +186,9 @@ const KINDS: Record<EntryKind, KindSpec> = {
       ['day', 'day'],
       ['steps', 'steps'],
       ['recorded_at', 'recordedAt'],
+      ['source', 'source'],
     ],
+    derive: manualUnlessSourced,
     pullColumns: [],
     dayData: true,
   },
@@ -361,6 +367,11 @@ function outboxKey(spec: KindSpec): string {
 /** SQL for an entry's key in its table, compared with `= ?`, as `keyOf` makes it. */
 function tableKey(spec: KindSpec): string {
   return spec.key2 ? `${spec.key} || '|' || ${spec.key2}` : spec.key;
+}
+
+/** Steps and weight: where the value came from (D-121); left out, the user typed it. */
+function manualUnlessSourced(fields: Record<string, unknown>): Record<string, BindValue> {
+  return { source: (fields.source as string | undefined) ?? 'manual' };
 }
 
 function deriveTotals(fields: Record<string, unknown>): Record<string, BindValue> {
@@ -705,6 +716,10 @@ const MIGRATIONS = [
    ALTER TABLE packaged_foods ADD COLUMN portions TEXT NOT NULL DEFAULT '[]';
    ALTER TABLE packaged_foods ADD COLUMN opens_on TEXT;
    DELETE FROM sync_meta WHERE key = 'food_list_version';`,
+  // Where a day's steps or weight came from (D-121): typed ('manual', every value saved before) or read
+  // from Health Connect ('health_connect').
+  `ALTER TABLE weigh_ins ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
+   ALTER TABLE steps ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -737,7 +752,10 @@ export type MetaKey =
   | 'ai_consent'
   | 'workout_pill_corner'
   // The mic's language, on this phone only (D-115): 'en-IN' or 'hi-IN'.
-  | 'voice_language';
+  | 'voice_language'
+  // Health Connect (D-121, on this phone only): when it was connected, and when it was last read.
+  | 'health_connect_connected_at'
+  | 'health_connect_read_at';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);
@@ -1004,6 +1022,39 @@ export async function markRejected(db: SqlDb, changeId: string, errorCode: Chang
   await settle(db, changeId, async () => {
     await db.runAsync(`UPDATE outbox SET status = 'rejected', error_code = ? WHERE change_id = ?`, [errorCode, changeId]);
   });
+  // An import the server refused because the user typed a value for that day (D-121), from another phone
+  // or before this one knew: the import goes quietly, the server's value comes back with the next sync.
+  if (errorCode === 'MANUAL_VALUE_EXISTS') await discardRejected(db, changeId);
+}
+
+/**
+ * Disconnect, then Remove (D-121): the values read from Health Connect leave this phone, the imports
+ * still waiting to be sent are dropped, and the server is told to delete its copies. Values the user
+ * typed stay.
+ */
+export async function removeImportedValues(db: SqlDb, entry: { changeId: string; removedAt: string }): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (const spec of [KINDS.weighIn, KINDS.steps]) {
+      await db.runAsync(`DELETE FROM outbox WHERE type = ? AND json_extract(data, '$.source') = 'health_connect'`, [spec.changeType]);
+      await db.runAsync(`DELETE FROM ${spec.table} WHERE source = 'health_connect'`, []);
+    }
+    await db.runAsync(`INSERT INTO outbox (change_id, type, data, created_at, status) VALUES (?, ?, ?, ?, 'pending')`, [
+      entry.changeId,
+      HEALTH_IMPORT_REMOVE,
+      JSON.stringify({ removedAt: entry.removedAt }),
+      entry.removedAt,
+    ]);
+  });
+}
+
+/** How many steps days and weigh-ins on this phone came from Health Connect (D-121). */
+export async function countImported(db: SqlDb): Promise<{ steps: number; weights: number }> {
+  const row = await db.getFirstAsync<{ steps: number; weights: number }>(
+    `SELECT (SELECT count(*) FROM steps WHERE source = 'health_connect') AS steps,
+            (SELECT count(*) FROM weigh_ins WHERE source = 'health_connect') AS weights`,
+    [],
+  );
+  return { steps: row?.steps ?? 0, weights: row?.weights ?? 0 };
 }
 
 /**
