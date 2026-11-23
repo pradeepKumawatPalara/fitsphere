@@ -690,6 +690,7 @@ export function FoodSearchSheet({
     },
     ...(onOwnFood ? { onOwnFood } : {}),
     ...(onAnotherPhoto ? { onAnotherPhoto } : {}),
+    onLeave: onClose,
   });
 
   /** The text typed or cleared (D-72): an emptied box clears the search and its results at once. */
@@ -760,6 +761,10 @@ export function FoodSearchSheet({
         <TextButton title={`Add ${tickedItems.length} ${tickedItems.length === 1 ? 'food' : 'foods'}`} filled onPress={() => addAll(tickedItems)} />
       </View>
     ) : undefined;
+
+  // Opened by Log meal's camera icon: the photo's own sheets (Reading, Foods found, Check the estimate, No data
+  // available) show over Log meal, not over Search foods (the owner, 2026-11-20; the locked boards).
+  if (begin && 'photo' in begin) return <>{voice.sheets}</>;
 
   return (
     <FullScreen onClose={onClose} footer={voice.active ? voice.footer : bar}>

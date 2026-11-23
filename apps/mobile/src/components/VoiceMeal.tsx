@@ -86,6 +86,7 @@ export function useVoiceMeal({
   onAdd,
   onOwnFood,
   onAnotherPhoto,
+  onLeave,
 }: {
   /** The search box's text: the words heard go in it, so they stay as a search whatever happens. */
   setQuery(text: string): void;
@@ -95,6 +96,8 @@ export function useVoiceMeal({
   onOwnFood?(name: string, estimate?: ProductEstimateValues, source?: EstimateSource): void;
   /** "Try another photo" after a photo could not be read: Log meal closes Search foods and opens "Add a photo". */
   onAnotherPhoto?(): void;
+  /** A photo's sheets are over Log meal, with no Search foods behind them: once the user is done with them, this closes it. */
+  onLeave?(): void;
   begin?: VoiceBegin | null;
 }): { active: boolean; row: ReactNode; panel: ReactNode; footer: ReactNode; sheets: ReactNode } {
   const styles = useStyles();
@@ -111,6 +114,13 @@ export function useVoiceMeal({
   /** A food of the review being looked up online, or one that could not be found. */
   const [lookup, setLookup] = useState<{ at: number; state: 'busy' | 'failed' } | null>(null);
   const [stage, setStage] = useState<Stage>({ kind: 'idle', notice: null });
+  // Opened by Log meal's camera icon: the photo's sheets show over Log meal, not over Search foods (the owner, 2026-11-20).
+  const isPhotoStart = begin !== undefined && begin !== null && 'photo' in begin;
+  /** A photo's sheet was closed: back to Log meal. */
+  function leavePhoto() {
+    setStage({ kind: 'idle', notice: null });
+    if (isPhotoStart) onLeave?.();
+  }
   // A food of the review whose amount is being changed on its page.
   const [changing, setChanging] = useState<number | null>(null);
   // A food of a photo's review being checked on its own page.
@@ -268,6 +278,7 @@ export function useVoiceMeal({
     if (stage.kind === 'listening') engine.abort();
     endSession();
     setStage({ kind: 'idle', notice: null });
+    if (isPhotoStart) onLeave?.();
   }
 
   /** Consent first: asked once, when never chosen or chosen on an older text (D-115). */
@@ -472,10 +483,26 @@ export function useVoiceMeal({
           <Text style={styles.small}>You can change this at any time in Settings › AI meal reading.</Text>
         </Sheet>
       ) : null}
+      {stage.kind === 'reading' && stage.photo ? (
+        <Sheet onClose={cancel} actions={<TextButton title="Cancel" outlined wide onPress={cancel} />}>
+          <View style={[styles.panel, styles.readingPanel]}>
+            <View style={styles.ring}>
+              <Camera size={30} color={colors.accent} />
+            </View>
+            <Text accessibilityLiveRegion="polite" style={[styles.overline, styles.center]}>
+              Finding the foods in your picture…
+            </Text>
+            <View style={[styles.skeleton, styles.skeletonRow, { width: '70%' }]} />
+            <View style={[styles.skeleton, styles.skeletonRow, { width: '50%' }]} />
+            <View style={[styles.skeleton, styles.skeletonRow, { width: '60%' }]} />
+            <Text style={[styles.small, styles.center]}>Estimating each food and its nutrition. This can take up to half a minute.</Text>
+          </View>
+        </Sheet>
+      ) : null}
       {photoReview && !checkingFood ? (
         <Sheet
           title={`${photoReview.foods.length} ${photoReview.foods.length === 1 ? 'food' : 'foods'} found`}
-          onClose={() => setStage({ kind: 'idle', notice: null })}
+          onClose={() => leavePhoto()}
           actions={
             <TextButton
               title={tickedPhotoFoods.length > 0 ? `Add ${tickedPhotoFoods.length} ${tickedPhotoFoods.length === 1 ? 'food' : 'foods'} · ${formatKcal(tickedPhotoKcal)}` : 'Add foods'}
@@ -537,7 +564,7 @@ export function useVoiceMeal({
       {stage.kind === 'photoNoData' ? (
         <Sheet
           header={<SheetHeading icon={CircleAlert} title="No data available" danger />}
-          onClose={() => setStage({ kind: 'idle', notice: null })}
+          onClose={() => leavePhoto()}
           actions={
             <>
               {onAnotherPhoto ? (
@@ -563,7 +590,7 @@ export function useVoiceMeal({
                   }}
                 />
               ) : null}
-              <TextButton title="Close" wide onPress={() => setStage({ kind: 'idle', notice: null })} />
+              <TextButton title="Close" wide onPress={() => leavePhoto()} />
             </>
           }
         >
@@ -575,7 +602,7 @@ export function useVoiceMeal({
       {stage.kind === 'photoOff' ? (
         <Sheet
           header={<SheetHeading icon={CameraOff} title="AI reading is off" />}
-          onClose={() => setStage({ kind: 'idle', notice: null })}
+          onClose={() => leavePhoto()}
           actions={
             <>
               <TextButton
@@ -583,7 +610,7 @@ export function useVoiceMeal({
                 filled
                 wide
                 onPress={() => {
-                  setStage({ kind: 'idle', notice: null });
+                  leavePhoto();
                   router.push('/account');
                 }}
               />
@@ -744,6 +771,8 @@ const useStyles = themedStyles((c) => ({
   ring: { width: 72, height: 72, borderRadius: 36, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: c.accentTint },
   heard: { fontSize: 20, lineHeight: 28, fontWeight: '500', color: c.ink, minHeight: 28 },
   skeleton: { height: 12, borderRadius: 2, backgroundColor: c.track },
+  skeletonRow: { alignSelf: 'center', height: 16, borderRadius: 4 },
+  readingPanel: { marginHorizontal: 0 },
   footer: { gap: 8 },
   card: { paddingLeft: 14, paddingRight: 6, borderRadius: 4, borderWidth: 1, borderColor: c.border, backgroundColor: c.surfaceRaised },
   foodRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10 },

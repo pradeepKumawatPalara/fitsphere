@@ -127,6 +127,8 @@ describe('ADR-0012 a photo is read with no consent step', () => {
     await takePhoto();
 
     expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
+    // The photo's sheets are over Log meal: the Search foods screen is never shown for a photo.
+    expect(screen.queryByRole('button', { name: 'Close search' })).toBeNull();
     expect(screen.queryByText('Read your photo with AI?')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Turn on' })).toBeNull();
     expect(mockPick).toHaveBeenCalledWith('camera');
@@ -216,6 +218,17 @@ describe('D-120 the foods of a photo, reviewed and added', () => {
 
     await fireEvent.press(screen.getByRole('button', { name: 'Back to the list' }));
     expect(await screen.findByText(`1 katori · about 150 g · ${DAL_KCAL}`)).toBeOnTheScreen();
+  });
+});
+
+describe('D-120 the photo’s sheets are over Log meal', () => {
+  it('closing "No data available" leaves Log meal as it was, with no Search foods behind it', async () => {
+    await openLogMeal((server) => void (server.state.photoEstimate = answer()));
+    await takePhoto();
+    await fireEvent.press(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByText('No data available')).toBeNull());
+    expect(screen.queryByRole('button', { name: 'Close search' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add a photo' })).toBeOnTheScreen();
   });
 });
 
