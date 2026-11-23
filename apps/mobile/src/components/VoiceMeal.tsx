@@ -1,13 +1,15 @@
 import { AI_CONSENT_TEXT, AI_CONSENT_TEXT_VERSION, type MealItem, type ParsedMealItem } from '@fitsphere/shared';
-import { CameraOff, Check, CircleAlert, Mic, MicOff, Square, SquareCheck, WifiOff } from 'lucide-react-native';
+import { Camera, CameraOff, Check, CircleAlert, Info, Mic, MicOff, Square, SquareCheck, WifiOff } from 'lucide-react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'expo-router';
 import { Linking, Pressable, View } from 'react-native';
 import { readMeal } from '../api/aiMeal';
 import { readAiConsent, saveAiConsent } from '../api/account';
 import { lookUpFood } from '../api/foodLookup';
-import { readPhoto } from '../api/photoMeal';
+import { estimatePhoto } from '../api/photoMeal';
 import { useAuth } from '../auth/AuthProvider';
 import { formatAmount, formatKcal } from '../meals';
+import { photoFoodsOf, photoItemOf, photoLine, type PhotoFood } from '../photoMeal';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import { getMeta, setMeta } from '../local/store';
 import { DEFAULT_VOICE_LANGUAGE, languageInstalled, LISTEN_MAX_MS, silenceAllowedMs, speechEngine, VOICE_LANGUAGES, type VoiceLanguage } from '../speech';
@@ -17,7 +19,8 @@ import { findSpokenFoods, type FoodListSearch, type FoundFood } from '../voiceMe
 import type { ProductEstimateValues } from './BarcodeSheet';
 import { FoodDetail } from './FoodDetail';
 import type { EstimateSource } from './OwnFoodSheet';
-import { Sheet } from './Sheet';
+import { PhotoFoodSheet } from './PhotoFoodSheet';
+import { Sheet, SheetHeading } from './Sheet';
 import { Text, TextButton } from './ui';
 
 // Voice meal logging in Search foods (D-115; the canvas's VoiceMealLocked, locked 2026-11-17: option C
@@ -29,10 +32,13 @@ import { Text, TextButton } from './ui';
 // the foods it names are found in the phone's food list (voiceMeal.ts) and listed, ticked, on a
 // sheet, with those not found under "Not in our food list". Add puts the ticked foods in the meal.
 // Every failure keeps the words in the box as an ordinary search.
-// D-118: Log meal's camera icon (Take photo, Choose from gallery) hands the shrunk picture to this
-// hook (`begin.photo`); it is read by AI only on the same consent, and the foods seen go through the
-// same review. This step keeps nothing of the picture (the meal photo is attached by Log meal). A food not in our list has
-// "Look up online": Open Food Facts by name, else an AI estimate, opened in "Check the estimate".
+// D-118, changed by D-120 (ADR-0012): Log meal's camera icon (Take photo, Choose from gallery) hands the
+// shrunk picture to this hook (`begin.photo`). A photo is sent at once, with no consent step, and the AI
+// names each food and estimates its weight and its values per 100 g: the food list is not used. The foods
+// seen are listed, ticked and marked Estimated; each opens in "Check the estimate" (`PhotoFoodSheet`).
+// A user who switched AI meal reading off in Settings is not read ("AI reading is off"); any other failure
+// says "No data available". This step keeps nothing of the picture (the meal photo is attached by Log meal).
+// Voice, and the words typed in Log meal's box, are unchanged: consent, the food list, "Look up online".
 
 /** What a failure says, under the "Speak your meal" row (the canvas's VoiceMealShared). */
 const NOTICES = {
@@ -43,8 +49,6 @@ const NOTICES = {
   nothing: 'Nothing was heard. Tap Speak your meal and say what you ate.',
   language: "This language isn't ready for speech on this phone. Choose another in Settings › Voice language.",
   photoPermission: "FitSphere can't use the camera. Allow it in your phone's Settings › Apps › FitSphere › Permissions, then tap Take a photo again.",
-  photoFailed: "That picture couldn't be read. Try another.",
-  photoNothing: 'Nothing was recognised as food in the picture.',
 } as const;
 type Notice = keyof typeof NOTICES;
 
@@ -53,7 +57,13 @@ type Stage =
   | { kind: 'listening'; words: string; seconds: number }
   | { kind: 'reading'; photo: boolean }
   | { kind: 'consent'; text: string }
-  | { kind: 'review'; found: FoundFood[]; ticked: boolean[]; missing: ParsedMealItem[] };
+  | { kind: 'review'; found: FoundFood[]; ticked: boolean[]; missing: ParsedMealItem[] }
+  /** The foods of a photo (D-120): estimated by the AI, each with its weight and values. */
+  | { kind: 'photoReview'; foods: PhotoFood[]; ticked: boolean[] }
+  /** A photo could not be read: offline, the AI unavailable, an answer out of contract, or no food seen. */
+  | { kind: 'photoNoData' }
+  /** AI meal reading is switched off in Settings, so the photo was not sent. */
+  | { kind: 'photoOff' };
 
 /** The mic's language: Settings' choice, English (India) when Hindi isn't on the phone (D-115). */
 export async function voiceLanguageOf(value: string | null): Promise<VoiceLanguage> {
@@ -75,17 +85,21 @@ export function useVoiceMeal({
   search,
   onAdd,
   onOwnFood,
+  onAnotherPhoto,
 }: {
   /** The search box's text: the words heard go in it, so they stay as a search whatever happens. */
   setQuery(text: string): void;
   search: FoodListSearch;
   /** The foods ticked, and those of them whose amount was assumed; `stay` keeps Search foods open. */
-  onAdd(items: MealItem[], assumed: MealItem[], stay: boolean): void;
+  onAdd(items: MealItem[], assumed: MealItem[], stay: boolean, photo?: boolean): void;
   onOwnFood?(name: string, estimate?: ProductEstimateValues, source?: EstimateSource): void;
+  /** "Try another photo" after a photo could not be read: Log meal closes Search foods and opens "Add a photo". */
+  onAnotherPhoto?(): void;
   begin?: VoiceBegin | null;
 }): { active: boolean; row: ReactNode; panel: ReactNode; footer: ReactNode; sheets: ReactNode } {
   const styles = useStyles();
   const { colors } = useTheme();
+  const router = useRouter();
   const { deps } = useAuth();
   const local = useLocalDatabase();
   const db = local.state.status === 'ready' ? local.state.db : null;
@@ -99,6 +113,8 @@ export function useVoiceMeal({
   const [stage, setStage] = useState<Stage>({ kind: 'idle', notice: null });
   // A food of the review whose amount is being changed on its page.
   const [changing, setChanging] = useState<number | null>(null);
+  // A food of a photo's review being checked on its own page.
+  const [checking, setChecking] = useState<number | null>(null);
   // The listening session (D-115, the owner's 2026-11-17 phone test): it runs until Done, 6 seconds
   // with no words, or 30 seconds; a shorter pause doesn't end it. The recognizer gives the words in
   // pieces, and may end on a short pause by itself: the final pieces are added up, and it is started
@@ -266,8 +282,24 @@ export function useVoiceMeal({
     setStage(next);
   }
 
+  /** A photo is sent at once: no consent step (ADR-0012); the server refuses one whose Settings are off. */
+  async function readThePhoto() {
+    const photo = pendingPhoto.current;
+    if (photo === null) return;
+    setStage({ kind: 'reading', photo: true });
+    const reading = await estimatePhoto(deps, photo);
+    // Whatever the answer, the picture is let go of.
+    pendingPhoto.current = null;
+    if (cancelled.current) return;
+    if (reading.kind === 'off') return setStage({ kind: 'photoOff' });
+    if (reading.kind !== 'ok' || reading.items.length === 0) return setStage({ kind: 'photoNoData' });
+    const foods = photoFoodsOf(reading.items);
+    setStage({ kind: 'photoReview', foods, ticked: foods.map(() => true) });
+  }
+
   async function afterInput(text: string) {
-    setStage({ kind: 'reading', photo: pendingPhoto.current !== null });
+    if (pendingPhoto.current !== null) return readThePhoto();
+    setStage({ kind: 'reading', photo: false });
     const consent = await readAiConsent(deps);
     if (cancelled.current) return;
     if (consent.kind === 'offline') return letGo({ kind: 'idle', notice: 'offline' });
@@ -279,8 +311,7 @@ export function useVoiceMeal({
   }
 
   async function answerConsent(text: string, consented: boolean) {
-    setStage(consented ? { kind: 'reading', photo: pendingPhoto.current !== null } : { kind: 'idle', notice: 'off' });
-    if (!consented) pendingPhoto.current = null;
+    setStage(consented ? { kind: 'reading', photo: false } : { kind: 'idle', notice: 'off' });
     const saved = await saveAiConsent(deps, consented);
     if (saved.kind === 'ok' && db) await setMeta(db, 'ai_consent', JSON.stringify(saved.consent));
     if (!consented || cancelled.current) return;
@@ -289,16 +320,12 @@ export function useVoiceMeal({
   }
 
   async function read(text: string) {
-    const photo = pendingPhoto.current;
-    setStage({ kind: 'reading', photo: photo !== null });
-    const reading = photo !== null ? await readPhoto(deps, photo) : await readMeal(deps, text);
+    setStage({ kind: 'reading', photo: false });
+    const reading = await readMeal(deps, text);
     if (cancelled.current) return;
     if (reading.kind === 'consent') return setStage({ kind: 'consent', text });
-    // Whatever the answer, the picture is let go of; only a consent step keeps it, to ask once.
-    pendingPhoto.current = null;
     if (reading.kind !== 'ok') return setStage({ kind: 'idle', notice: reading.kind });
     if (!db) return setStage({ kind: 'idle', notice: 'unavailable' });
-    if (photo !== null && reading.items.length === 0) return setStage({ kind: 'idle', notice: 'photoNothing' });
     const { found, missing } = await findSpokenFoods(db, reading.items, search);
     if (cancelled.current) return;
     setStage({ kind: 'review', found, ticked: found.map((food) => !food.several), missing });
@@ -395,6 +422,7 @@ export function useVoiceMeal({
         <View style={[styles.skeleton, { width: '70%' }]} />
         <View style={[styles.skeleton, { width: '50%' }]} />
         <View style={[styles.skeleton, { width: '60%' }]} />
+        {stage.photo ? <Text style={[styles.small, styles.center]}>Estimating each food and its nutrition. This can take up to half a minute.</Text> : null}
       </View>
     ) : null;
 
@@ -411,6 +439,17 @@ export function useVoiceMeal({
       </View>
     ) : null;
 
+  const photoReview = stage.kind === 'photoReview' ? stage : null;
+  const tickedPhotoFoods = photoReview ? photoReview.foods.filter((_, index) => photoReview.ticked[index]) : [];
+  const tickedPhotoKcal = tickedPhotoFoods.reduce((sum, food) => sum + photoItemOf(food).kcal, 0);
+  const checkingFood = photoReview && checking !== null ? photoReview.foods[checking] : undefined;
+
+  /** Adds the ticked foods of a photo to the meal, as estimated foods of the user's own, and closes the review. */
+  function addPhoto(foods: PhotoFood[]) {
+    if (foods.length > 0) onAdd(foods.map(photoItemOf), [], false, true);
+    setStage({ kind: 'idle', notice: null });
+  }
+
   const review = stage.kind === 'review' ? stage : null;
   const tickedFoods = review ? tickedOf(review) : [];
   const tickedKcal = tickedFoods.reduce((sum, food) => sum + food.item.kcal, 0);
@@ -420,7 +459,7 @@ export function useVoiceMeal({
     <>
       {stage.kind === 'consent' ? (
         <Sheet
-          title={pendingPhoto.current !== null ? 'Read your photo with AI?' : 'Read your meal with AI?'}
+          title="Read your meal with AI?"
           onClose={() => void answerConsent(stage.text, false)}
           actions={
             <>
@@ -431,6 +470,140 @@ export function useVoiceMeal({
         >
           <Text style={styles.body}>{AI_CONSENT_TEXT}</Text>
           <Text style={styles.small}>You can change this at any time in Settings › AI meal reading.</Text>
+        </Sheet>
+      ) : null}
+      {photoReview && !checkingFood ? (
+        <Sheet
+          title={`${photoReview.foods.length} ${photoReview.foods.length === 1 ? 'food' : 'foods'} found`}
+          onClose={() => setStage({ kind: 'idle', notice: null })}
+          actions={
+            <TextButton
+              title={tickedPhotoFoods.length > 0 ? `Add ${tickedPhotoFoods.length} ${tickedPhotoFoods.length === 1 ? 'food' : 'foods'} · ${formatKcal(tickedPhotoKcal)}` : 'Add foods'}
+              filled
+              wide
+              disabled={tickedPhotoFoods.length === 0}
+              onPress={() => addPhoto(tickedPhotoFoods)}
+            />
+          }
+        >
+          <Text style={styles.small}>Estimated by AI from your photo. Tap a food to check or change it.</Text>
+          <View style={styles.card}>
+            {photoReview.foods.map((food, index) => {
+              const on = photoReview.ticked[index] === true;
+              const item = photoItemOf(food);
+              return (
+                <View key={index} style={[styles.foodRow, index > 0 && styles.ruled]}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${food.name}, ${photoLine(food)}, ${formatKcal(item.kcal)}, estimated, check or change it`}
+                    onPress={() => setChecking(index)}
+                    style={styles.foodText}
+                  >
+                    <Text style={styles.foodName}>{food.name}</Text>
+                    <Text style={styles.foodDetail}>
+                      {photoLine(food)} · {formatKcal(item.kcal)}
+                    </Text>
+                    <View style={styles.tag}>
+                      <Info size={13} color={colors.accent} />
+                      <Text style={styles.tagText}>Estimated</Text>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={`Add ${food.name}`}
+                    accessibilityState={{ checked: on }}
+                    hitSlop={10}
+                    onPress={() => setStage({ ...photoReview, ticked: photoReview.ticked.map((value, at) => (at === index ? !value : value)) })}
+                    style={styles.tick}
+                  >
+                    {on ? <SquareCheck size={26} color={colors.accent} /> : <Square size={26} color={colors.inkMuted} />}
+                  </Pressable>
+                </View>
+              );
+            })}
+          </View>
+        </Sheet>
+      ) : null}
+      {photoReview && checkingFood && checking !== null ? (
+        <PhotoFoodSheet
+          food={checkingFood}
+          onBack={() => setChecking(null)}
+          onDone={(food) => {
+            setStage({ ...photoReview, foods: photoReview.foods.map((existing, at) => (at === checking ? food : existing)) });
+            setChecking(null);
+          }}
+        />
+      ) : null}
+      {stage.kind === 'photoNoData' ? (
+        <Sheet
+          header={<SheetHeading icon={CircleAlert} title="No data available" danger />}
+          onClose={() => setStage({ kind: 'idle', notice: null })}
+          actions={
+            <>
+              {onAnotherPhoto ? (
+                <TextButton
+                  title="Try another photo"
+                  icon={Camera}
+                  filled
+                  wide
+                  onPress={() => {
+                    setStage({ kind: 'idle', notice: null });
+                    onAnotherPhoto();
+                  }}
+                />
+              ) : null}
+              {onOwnFood ? (
+                <TextButton
+                  title="Enter your own food"
+                  outlined
+                  wide
+                  onPress={() => {
+                    setStage({ kind: 'idle', notice: null });
+                    onOwnFood('');
+                  }}
+                />
+              ) : null}
+              <TextButton title="Close" wide onPress={() => setStage({ kind: 'idle', notice: null })} />
+            </>
+          }
+        >
+          <Text style={styles.body}>
+            We couldn't read foods from this photo. It may be unclear, show no food, or the AI may be unavailable right now. Try another photo, or enter your own food.
+          </Text>
+        </Sheet>
+      ) : null}
+      {stage.kind === 'photoOff' ? (
+        <Sheet
+          header={<SheetHeading icon={CameraOff} title="AI reading is off" />}
+          onClose={() => setStage({ kind: 'idle', notice: null })}
+          actions={
+            <>
+              <TextButton
+                title="Open Settings"
+                filled
+                wide
+                onPress={() => {
+                  setStage({ kind: 'idle', notice: null });
+                  router.push('/account');
+                }}
+              />
+              {onOwnFood ? (
+                <TextButton
+                  title="Enter your own food"
+                  outlined
+                  wide
+                  onPress={() => {
+                    setStage({ kind: 'idle', notice: null });
+                    onOwnFood('');
+                  }}
+                />
+              ) : null}
+            </>
+          }
+        >
+          <Text style={styles.body}>
+            You turned off AI meal reading, so this photo was not sent. Turn it on in Settings › AI meal reading to read photos, or enter your own food.
+          </Text>
         </Sheet>
       ) : null}
       {review && !changingFood ? (

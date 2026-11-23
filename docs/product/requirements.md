@@ -658,6 +658,13 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given OpenAI's monthly limit is reached, or the reading fails, then the user's words are kept and ordinary search is offered (`SERVICE_UNAVAILABLE`).
   - D-115: there is no daily limit; the criterion above on 15 AI readings a day no longer applies.
 
+- Changed by D-120 (ADR-0012), **for a photo of a meal only** (Log meal's camera icon): the AI also gives each food's amount seen, the portion's weight and its values per 100 g, and the food list is not used.
+  - Given a photo is taken or chosen, then it is sent at once with no consent step, and the foods seen are listed, ticked, each marked **Estimated**; tapping one opens "Check the estimate" to change its name, grams and values; Add puts the ticked foods in Log meal as estimated foods of the user's own, in grams.
+  - Given the AI cannot answer (offline, no key, OpenAI failing or at its limit, an answer out of contract) or sees no food, then "No data available" is shown with Try another photo and Enter your own food; nothing from the food list stands in for it.
+  - Given the user switched AI meal reading off in Settings, then the photo is not sent and "AI reading is off" is shown, with Open Settings.
+  - Given a food whose kcal is far from its macros' energy, then the server leaves it out of the answer.
+  - Voice and typed words are unchanged: consent, the food list, "Not in our food list" and "Look up online".
+
 ### REQ-LOG-010 — Public link instead of an upload
 - Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, meal photos only (REQ-LOG-006; D-16, confirmed). Links to their own videos come with the audio/video release (future scope). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
 - Type: Functional, Privacy
@@ -838,6 +845,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - MVP (D-31): the switch and the record are built in the Settings slice (slice 6), with no AI call: each change goes to `PUT /v1/me/ai-consent`, online only, and the server records its own time (data model, `ai_consents`). The consent text and its version are in the shared package (`AI_CONSENT_TEXT`). The check before each AI call comes with slice 7 (invariant #3).
 - D-115 (2026-11-17): **asked once.** The first time a reading would be sent and the user has never chosen, or chose on an older consent text, a sheet shows the consent text with Turn on and Not now; the choice is recorded as from the Settings switch, and the sheet does not come back. The text names OpenAI (ADR-0010), with a new version; the server accepts only consent given on the current version, so people who agreed to the Gemini text are asked once again. Without it, the API refuses with `AI_CONSENT_REQUIRED` and calls no AI.
   - Given the user chose Not now, when they use the mic again, then no sheet is shown, the words stay as a search, and a line says AI meal reading can be turned on in Settings.
+
+- D-120 (2026-11-20, ADR-0012): **a photo of a meal read in Log meal needs no consent step.** The photo is sent at once, a notice on "Add a photo" says AI reads it, and a user who switched AI meal reading off in Settings is still not read ("AI reading is off", with Open Settings). Voice, typed words and the barcode estimate keep the rule above. Legal has not reviewed this (Q-049).
 
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
