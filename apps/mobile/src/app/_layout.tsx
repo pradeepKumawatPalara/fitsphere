@@ -21,7 +21,7 @@ function LocalDatabaseForUser({ children }: { children: ReactNode }) {
 }
 
 // App start and the sign-in screens draw their own heading, so they have no header.
-const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup'];
+const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup', 'onboarding'];
 
 // The screens. Their header as the tabs': the theme's colours, a flat edge, the back arrow in caramel;
 // the title in condensed capitals (the redesign's 3.5, locked by the owner 2026-11-03).

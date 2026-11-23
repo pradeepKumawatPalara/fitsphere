@@ -8,6 +8,7 @@ import { TabBar } from '../../components/TabBar';
 import { WorkoutInProgress } from '../../components/WorkoutInProgress';
 import { InViewWhenFocused } from '../../navigation/inViewRoute';
 import { SelectedDayProvider } from '../../navigation/SelectedDayProvider';
+import { useOnboardingGate } from '../../onboardingGate';
 import { useTheme } from '../../theme';
 
 /** The header's height below the status bar: the date over the greeting, with room around them. */
@@ -23,6 +24,8 @@ const TAB_BAR = 64;
 export default function TabsLayout() {
   const { colors } = useTheme();
   const router = useRouter();
+  // A new user with no target is sent to "Set your targets" once, after the first sync.
+  useOnboardingGate();
   // None outside the app (tests).
   const insets = useContext(SafeAreaInsetsContext);
   const top = insets?.top ?? 0;

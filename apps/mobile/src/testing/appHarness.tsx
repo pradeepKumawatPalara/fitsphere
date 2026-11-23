@@ -3,7 +3,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { AuthProvider } from '../auth/AuthProvider';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
-import { migrateLocal } from '../local/store';
+import { migrateLocal, setMeta } from '../local/store';
 import { SelectedDayProvider } from '../navigation/SelectedDayProvider';
 import { SettingsProvider } from '../settings/SettingsProvider';
 import { SyncProvider } from '../sync/SyncProvider';
@@ -29,9 +29,11 @@ function newId() {
  * The providers a router's screens need (renderRouter's `wrapper`): the account, an in-memory phone
  * database and sync, with the fake API. The header reads the profile from the phone (REQ-ACC-011).
  */
-export async function routerProviders() {
+export async function routerProviders({ onboardingDone = true }: { onboardingDone?: boolean } = {}) {
   const db: SqlDb = memoryDb();
   await migrateLocal(db);
+  // The tabs send a user with no target to "Set your targets" once; most tests are about the screens, not that.
+  if (onboardingDone) await setMeta(db, 'onboarding_done', '1');
   const server = fakeServer(NOW);
   const client = fakeAuthClient(fakeSession());
   return function Providers({ children }: { children: ReactNode }) {

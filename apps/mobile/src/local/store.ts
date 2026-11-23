@@ -751,6 +751,8 @@ export type MetaKey =
   | 'account_created_day'
   | 'ai_consent'
   | 'workout_pill_corner'
+  // The first sign-in's "Set your targets" was finished or skipped, on this phone ("1").
+  | 'onboarding_done'
   // The mic's language, on this phone only (D-115): 'en-IN' or 'hi-IN'.
   | 'voice_language'
   // Health Connect (D-121, on this phone only): when it was connected, and when it was last read.
