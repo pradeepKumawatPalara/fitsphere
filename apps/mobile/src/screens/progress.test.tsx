@@ -106,7 +106,10 @@ describe('REQ-PRG-002 and REQ-PRG-003 the last 4 weeks of eating', () => {
     // Two rings (the owner's B, 2026-11-18), each read out in full.
     expect(await screen.findByLabelText('Average 1,733 kcal a day, target 2,000')).toBeOnTheScreen();
     expect(screen.getByText('kcal a day · target 2,000')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Meals logged: 3 of 28 days')).toBeOnTheScreen();
+    // From the day the account was created (1 Aug, 89 days), a day once however many meals it holds (the owner, 2026-11-20).
+    expect(screen.getByLabelText('Meals logged: 4 of 89 days')).toBeOnTheScreen();
+    expect(screen.getByText('days logged since you joined')).toBeOnTheScreen();
+    expect(screen.queryByText('days in the last 4 weeks')).toBeNull();
   });
 
   it('with nothing logged and no target, says so and offers "Set a target"; a new account counts from today', async () => {
