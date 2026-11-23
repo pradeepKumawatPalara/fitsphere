@@ -47,7 +47,9 @@ target limits (SET-01).
    adb shell settings put global transition_animation_scale 0
    adb shell settings put global animator_duration_scale 0
    ```
-4. Install the test APK (EAS profile `preview`, runbook "Android test build"). The flows test the code
+4. **Do Not Disturb on** while the flows run: a notification banner over the top of the screen hides
+   the header's buttons, and a tap meant for Account lands on the banner instead.
+5. Install the test APK (EAS profile `preview`, runbook "Android test build"). The flows test the code
    inside the installed app: new code needs a new APK. The development build is not used: after
    `clearState` it opens on its launcher, not on Sign in.
 
@@ -76,6 +78,7 @@ maestro test -e "EMAIL=robot@example.com" -e "PASSWORD=robot-password" .maestro
 - Each run's screenshots, screen dumps and logs are saved under `%USERPROFILE%\.maestro\tests\`,
   outside the repository; a failed step names its folder.
 
-If a flow stops halfway, tidy up by hand before the next run: delete today's lunch (04, 05) or
+If a flow stops halfway, what it logged stays and can make later flows fail too (a lunch left by 05
+makes 09 fail), so tidy up by hand before the next run: delete today's lunch (04, 05) or
 workout (07, 08; this also stops its timer). For 09, run it again the same day, so today's calorie
 target ends on 2,000 kcal again.
