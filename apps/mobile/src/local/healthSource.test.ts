@@ -116,3 +116,24 @@ describe('D-121 local schema version 24', () => {
     }
   });
 });
+
+describe('D-121 a database already at version 24 from another branch', () => {
+  it('gets the source columns, keeps its values as typed, and a second start changes nothing', async () => {
+    const other = memoryDb();
+    try {
+      await migrateLocal(other);
+      // Version 24 as another branch made it: the steps and weight tables never got `source`.
+      await other.execAsync('ALTER TABLE weigh_ins DROP COLUMN source; ALTER TABLE steps DROP COLUMN source;');
+      await other.runAsync(`INSERT INTO steps (day, steps, recorded_at, sync_state) VALUES (?, 5000, ?, 'synced')`, [DAY, AT]);
+      expect(await other.getFirstAsync('PRAGMA user_version', [])).toEqual({ user_version: 24 });
+
+      await migrateLocal(other);
+      await migrateLocal(other);
+
+      expect(await getEntry(other, 'steps', DAY)).toMatchObject({ steps: 5_000, source: 'manual' });
+      expect(await countImported(other)).toEqual({ steps: 0, weights: 0 });
+    } finally {
+      await other.closeAsync();
+    }
+  });
+});
