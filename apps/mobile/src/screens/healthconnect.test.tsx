@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { HealthSyncProvider } from '../health/HealthSyncProvider';
 import type { DaySteps, HealthAvailability, WeightReading } from '../health/types';
 import { countImported, getEntry, getMeta, pendingChanges, saveEntry, setMeta } from '../local/store';
@@ -19,10 +19,14 @@ const mockHealth = {
   failReads: false,
   asked: 0,
   installOpened: 0,
+  availabilityCalls: 0,
 };
 jest.mock('../health/healthSource', () => ({
   healthSource: () => ({
-    availability: async () => mockHealth.availability,
+    availability: async () => {
+      mockHealth.availabilityCalls += 1;
+      return mockHealth.availability;
+    },
     hasAccess: async () => mockHealth.access,
     requestAccess: async () => {
       mockHealth.asked += 1;
@@ -61,6 +65,7 @@ beforeEach(() => {
     failReads: false,
     asked: 0,
     installOpened: 0,
+    availabilityCalls: 0,
   });
   mockRouter.push.mockClear();
 });
@@ -104,6 +109,30 @@ describe('D-121 what the row says', () => {
     expect(await screen.findByText('Not connected')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Connect' })).toBeTruthy();
     expect(screen.getByText(/only reads/)).toBeTruthy();
+  });
+});
+
+describe('D-121 the provider without a clock of its own (as the app mounts it)', () => {
+  it('asks the store a few times at most, not again and again (a read loop drained the phone, 2026-11-23)', async () => {
+    mockHealth.access = true;
+    mockHealth.steps = [{ day: TODAY, steps: 3_300 }];
+
+    // No `now` prop: the app's own clock, a default that once changed on every render.
+    await renderInApp(
+      <HealthSyncProvider>
+        <ConnectionsScreen />
+      </HealthSyncProvider>,
+      clock,
+      async (database) => {
+        await setMeta(database, 'health_connect_connected_at', '2026-10-27T05:00:00.000Z');
+      },
+    );
+    await screen.findByText(/Read just now/);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    });
+
+    expect(mockHealth.availabilityCalls).toBeLessThanOrEqual(3);
   });
 });
 

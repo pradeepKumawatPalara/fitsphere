@@ -730,6 +730,21 @@ export async function migrateLocal(db: SqlDb): Promise<void> {
       await db.execAsync(`${MIGRATIONS[version]}\nPRAGMA user_version = ${version + 1};`);
     });
   }
+  await ensureSourceColumns(db);
+}
+
+/**
+ * Steps and weight need `source` (D-121, version 24). A phone database that reached version 24 on another
+ * branch, whose version 24 was something else, never ran this one: the columns are added here when
+ * missing, so the app never queries a column that is not there.
+ */
+async function ensureSourceColumns(db: SqlDb): Promise<void> {
+  for (const table of ['weigh_ins', 'steps']) {
+    const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`, []);
+    if (columns.length > 0 && !columns.some((column) => column.name === 'source')) {
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'`);
+    }
+  }
 }
 
 /**
