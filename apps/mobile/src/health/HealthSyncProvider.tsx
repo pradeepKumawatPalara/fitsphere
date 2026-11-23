@@ -49,7 +49,13 @@ const INITIAL: HealthState = {
 const StateContext = createContext<HealthState>(INITIAL);
 const ActionsContext = createContext<HealthActions | null>(null);
 
-export function HealthSyncProvider({ children, now = () => new Date() }: { children: ReactNode; now?: () => Date }) {
+/**
+ * The clock when none is given. A function made once: a default written in the parameter list is a new
+ * function on every render, and the read below depends on it, so each render started another read (a loop).
+ */
+const systemNow = (): Date => new Date();
+
+export function HealthSyncProvider({ children, now = systemNow }: { children: ReactNode; now?: () => Date }) {
   const { state: local } = useLocalDatabase();
   const db = local.status === 'ready' ? local.db : null;
   const sync = useSync();
