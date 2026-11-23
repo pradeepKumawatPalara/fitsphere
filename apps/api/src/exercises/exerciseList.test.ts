@@ -7,13 +7,16 @@ import {
   readExerciseLibrary,
   readExerciseList,
   readSpeedMets,
+  readTypeTimes,
   SPEED_METS_HEADER,
+  TYPE_TIMES_HEADER,
 } from './exerciseList.ts';
 
 // The exercise list (D-50): FitSphere's own names and types, with the 2024 Adult Compendium's MET; and
 // the exercise library (D-67): the owner's file of exercises by category and sub-group.
 
 const LIST = readFileSync(new URL('../../../../data/exercises/exercise-list.csv', import.meta.url), 'utf8');
+const TYPE_TIMES = readFileSync(new URL('../../../../data/exercises/type-times.csv', import.meta.url), 'utf8');
 const SPEEDS = readFileSync(new URL('../../../../data/exercises/speed-mets.csv', import.meta.url), 'utf8');
 const LIBRARY = readFileSync(new URL('../../../../docs/data/exercise-library-sheet.csv', import.meta.url), 'utf8');
 const HEADER = EXERCISE_LIST_HEADER.join(',');
@@ -43,6 +46,7 @@ describe('D-50 the exercise list', () => {
       compendiumCode: '12145',
       met: 10.5,
       speedMets: [],
+      secondsPerRep: null,
       places: [],
       details: null,
     });
@@ -161,5 +165,37 @@ describe('D-67 the exercise library', () => {
       { category: 'Barbell', subGroup: 'Legs' },
       { category: 'Smith Machine', subGroup: null },
     ]);
+  });
+});
+
+// The time one rep takes (docs/plans/exercise-time-per-rep.md): one value per type done in reps.
+describe('the time one rep takes, by type', () => {
+  const list = readExerciseList(LIST);
+  const header = TYPE_TIMES_HEADER.join(',');
+
+  it('gives every weights exercise 4 seconds and every bodyweight exercise 3, and the other types none', () => {
+    const timed = readTypeTimes(TYPE_TIMES, list);
+    expect(timed).toHaveLength(list.length);
+    for (const exercise of timed) {
+      expect(exercise.secondsPerRep).toBe(exercise.logType === 'weight_reps' ? 4 : exercise.logType === 'reps' ? 3 : null);
+    }
+    expect(timed.some((exercise) => exercise.secondsPerRep === 4)).toBe(true);
+    expect(timed.some((exercise) => exercise.secondsPerRep === 3)).toBe(true);
+  });
+
+  it('a type with no row has none', () => {
+    const timed = readTypeTimes(`${header}\nweight_reps,5`, list);
+    expect(timed.find((exercise) => exercise.logType === 'reps')?.secondsPerRep).toBeNull();
+    expect(timed.find((exercise) => exercise.logType === 'weight_reps')?.secondsPerRep).toBe(5);
+  });
+
+  it('refuses a wrong header, a type not done in reps, a repeated type and seconds out of range', () => {
+    expect(() => readTypeTimes('type,seconds\nweight_reps,4', list)).toThrow(ExerciseListError);
+    expect(() => readTypeTimes(`${header}\ntreadmill,4`, list)).toThrow(/not a type done in reps/);
+    expect(() => readTypeTimes(`${header}\nreps,3\nreps,4`, list)).toThrow(/listed twice/);
+    for (const seconds of ['0', '31', '2.5', 'x', '']) {
+      expect(() => readTypeTimes(`${header}\nreps,${seconds}`, list)).toThrow(/must be a whole number from 1 to 30/);
+    }
+    expect(() => readTypeTimes(`${header}\nreps`, list)).toThrow(/1 fields, not 2/);
   });
 });

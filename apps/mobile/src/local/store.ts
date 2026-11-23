@@ -720,6 +720,10 @@ const MIGRATIONS = [
   // from Health Connect ('health_connect').
   `ALTER TABLE weigh_ins ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';
    ALTER TABLE steps ADD COLUMN source TEXT NOT NULL DEFAULT 'manual';`,
+  // How long one rep takes (exercise-time plan): an exercise's time is worked out from its reps; null for
+  // the types not done in reps. The exercise list's version is cleared, so the next download brings it.
+  `ALTER TABLE exercises ADD COLUMN seconds_per_rep INTEGER;
+   DELETE FROM sync_meta WHERE key = 'exercise_list_version';`,
 ];
 
 /** Brings the local tables up to date, one version at a time; one signed-in user per database. */
@@ -1729,6 +1733,7 @@ type ExerciseRow = {
   compendium_code: string | null;
   met: number | null;
   speed_mets: string;
+  seconds_per_rep: number | null;
   places: string;
   details: string | null;
 };
@@ -1743,6 +1748,7 @@ function toListedExercise(row: ExerciseRow): ListedExercise {
     compendiumCode: row.compendium_code,
     met: row.met,
     speedMets: JSON.parse(row.speed_mets) as ListedExercise['speedMets'],
+    secondsPerRep: row.seconds_per_rep,
     places: JSON.parse(row.places) as ListedExercise['places'],
     details: row.details === null ? null : (JSON.parse(row.details) as ListedExercise['details']),
   };
@@ -1771,8 +1777,8 @@ function placeCondition(filter: ExerciseFilter | undefined): SqlPart | null {
   return { sql: `place_keys LIKE ? ESCAPE '\\'`, params: [pattern] };
 }
 
-/** Exercises a statement writes when the list is replaced: 12 values each, within SQLite's 999. */
-const EXERCISE_ROWS_PER_INSERT = 80;
+/** Exercises a statement writes when the list is replaced: 14 values each, within SQLite's 999. */
+const EXERCISE_ROWS_PER_INSERT = 70;
 
 /** Replaces the cached exercise list (D-50) and records its version, in one transaction. */
 export async function replaceExercises(db: SqlDb, version: string, exercises: readonly ListedExercise[]): Promise<void> {
@@ -1781,8 +1787,8 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
     for (let start = 0; start < exercises.length; start += EXERCISE_ROWS_PER_INSERT) {
       const batch = exercises.slice(start, start + EXERCISE_ROWS_PER_INSERT);
       await db.runAsync(
-        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, places, details, place_keys, search_text, name_keys)
-         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, speed_mets, seconds_per_rep, places, details, place_keys, search_text, name_keys)
+         VALUES ${batch.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ')}`,
         batch.flatMap((exercise) => [
           exercise.code,
           exercise.name,
@@ -1792,6 +1798,7 @@ export async function replaceExercises(db: SqlDb, version: string, exercises: re
           exercise.compendiumCode,
           exercise.met,
           JSON.stringify(exercise.speedMets),
+          exercise.secondsPerRep,
           JSON.stringify(exercise.places),
           exercise.details === null ? null : JSON.stringify(exercise.details),
           placeKeys(exercise.places),

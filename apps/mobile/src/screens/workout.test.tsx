@@ -204,6 +204,8 @@ describe('D-50 picking from the exercise list', () => {
             { reps: 6, weightGrams: 25_000, seconds: null },
           ],
           ...NONE,
+          // D-120-style: the time follows the reps, 24 reps × 4 s (the exercise-time plan).
+          durationSeconds: 96,
         },
       ]),
     );
@@ -235,7 +237,7 @@ describe('D-50 picking from the exercise list', () => {
     expect(screen.getByText('3 sets')).toBeOnTheScreen();
     expect(screen.getByText('15 reps')).toBeOnTheScreen();
     expect(screen.queryByText('Set 1')).toBeNull();
-    await waitFor(() => expect(server.entries('workouts').get(id)?.exercises).toEqual([sameSets('Push-up', 3, 15, null)]));
+    await waitFor(() => expect(server.entries('workouts').get(id)?.exercises).toEqual([{ ...sameSets('Push-up', 3, 15, null), durationSeconds: 135 }]));
   });
 
   it('a set can be removed while another is left', async () => {
@@ -754,9 +756,11 @@ describe('D-50 calories burned and heart rate', () => {
     await openSheet();
     await pick('db bench', 'Dumbbell bench press');
     await fillSets([{ reps: '10', weight: '20' }]);
-    expect(await screen.findByText('Add the time spent to see an estimate.')).toBeOnTheScreen();
+    // The time comes from the reps: 10 reps × 4 s = 40 s (the exercise-time plan).
+    expect(await screen.findByText('Estimated: 3.5 MET × 70.0 kg × 0:40. Type the number from your machine or watch to replace it.')).toBeOnTheScreen();
 
-    await fireEvent.changeText(screen.getByLabelText('Time spent in min (optional)'), '12');
+    await fireEvent.changeText(screen.getByLabelText('Time spent, minutes (optional)'), '12');
+    await fireEvent.changeText(screen.getByLabelText('Time spent, seconds (optional)'), '0');
     expect(await screen.findByText('Estimated: 3.5 MET × 70.0 kg × 12 min. Type the number from your machine or watch to replace it.')).toBeOnTheScreen();
     await save();
     await waitFor(() =>
@@ -1108,7 +1112,8 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
     // labels hold (the owner, 2026-11-17: Calories' info button and tag had set its box lower).
     const boxes = screen.getByTestId('exercise-effort-boxes');
     expect(boxes).toHaveStyle({ flexDirection: 'row' });
-    expect(within(boxes).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();
+    expect(within(boxes).getByLabelText('Time spent, minutes (optional)')).toBeOnTheScreen();
+    expect(within(boxes).getByLabelText('Time spent, seconds (optional)')).toBeOnTheScreen();
     expect(within(boxes).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
     const labels = screen.getByTestId('exercise-effort-labels');
     expect(labels).toHaveStyle({ flexDirection: 'row' });
@@ -1119,12 +1124,12 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
     expect(within(effort).queryByText('estimated')).toBeNull();
     expect(within(effort).getByText('Time spent')).toBeOnTheScreen();
     expect(within(effort).getByText('Calories')).toBeOnTheScreen();
-    expect(within(effort).getByLabelText('Time spent in min (optional)')).toBeOnTheScreen();
+    expect(within(effort).getByLabelText('Time spent, minutes (optional)')).toBeOnTheScreen();
     expect(within(effort).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
     expect(screen.getByText('Average HR')).toBeOnTheScreen();
     expect(screen.getByText('Highest HR')).toBeOnTheScreen();
     expect(screen.getByLabelText('Average heart rate (optional)')).toBeOnTheScreen();
-    expect(screen.queryByText('Time spent in min (optional)')).toBeNull();
+    expect(screen.queryByText('Time spent, minutes (optional)')).toBeNull();
     // The note: one line under its label (the owner, 2026-11-17: keep the label), nothing inside it.
     expect(screen.getByText('Note (optional)')).toBeOnTheScreen();
     expect(screen.getByLabelText('Note (optional)')).not.toHaveProp('placeholder');
@@ -1136,7 +1141,7 @@ describe('D-111 the exercise page with less scrolling (the owner’s B, 2026-11-
     await pick('running', 'Running');
 
     const effort = screen.getByTestId('exercise-effort');
-    expect(within(effort).queryByLabelText('Time spent in min (optional)')).toBeNull();
+    expect(within(effort).queryByLabelText('Time spent, minutes (optional)')).toBeNull();
     expect(within(effort).getByLabelText('Calories burned (optional)')).toBeOnTheScreen();
   });
 });
@@ -1194,7 +1199,8 @@ describe('D-112 every set value whole (the owner’s A, 2026-11-17)', () => {
     for (const label of ['Set 1, Weight in kg', 'Set 1, Time in sec', 'Set 1, Reps (optional)']) {
       expect(screen.getByLabelText(label)).toHaveStyle({ textAlign: 'center', fontSize: 18 });
     }
-    expect(screen.queryByText('sec')).toBeNull();
+    // The set's time has no unit beside it (its heading says Time · sec); the time spent's boxes are not on a timed exercise's sets.
+    expect(screen.queryAllByText('sec')).toHaveLength(1);
 
     // The slim X removes a set, as the bin did.
     await fireEvent.press(screen.getByRole('button', { name: 'Remove set 2' }));
@@ -1550,5 +1556,163 @@ describe('D-71 the workout timer', () => {
     expect(screen.getByText('Workout 1 · Wed 28 Oct')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Resume' })).toBeNull();
     await waitFor(() => expect(server.entries('workouts').get(id)).toMatchObject({ day: '2026-10-28', timer: { countedSeconds: 57_600 } }));
+  });
+});
+
+// The time spent follows the reps (docs/plans/exercise-time-per-rep.md): every rep of every set × the
+// seconds one rep takes (weights 4, bodyweight 3), rest not counted; typed, it is the user's own, and the
+// calories follow whichever time is shown. Made-up numbers.
+describe('the time spent from the reps', () => {
+  const time = () => ({
+    minutes: screen.getByLabelText('Time spent, minutes (optional)'),
+    seconds: screen.getByLabelText('Time spent, seconds (optional)'),
+  });
+
+  it('a weights exercise starts with its reps × 4 s, shown as minutes and seconds, and grows with the sets and reps', async () => {
+    await startWorkout(undefined, 70_000);
+    await openSheet();
+    await pick('db bench', 'Dumbbell bench press');
+    await fillSets([{ reps: '10', weight: '20' }]);
+
+    // 10 reps × 4 s = 40 s; calories: 3.5 MET × 70 kg × 40 s = 2.7 kcal, rounded to 3.
+    expect(time().minutes).toHaveDisplayValue('0');
+    expect(time().seconds).toHaveDisplayValue('40');
+    expect(screen.getByText('From reps')).toBeOnTheScreen();
+    expect(screen.getByText('From 10 reps × 4 s = 0:40, rest not counted. Type your own time to replace it.')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('3');
+
+    // Two more sets of 10: 30 reps × 4 s = 2 minutes; 3.5 × 70 × 120 / 3600 = 8.2 kcal.
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
+    expect(time().minutes).toHaveDisplayValue('2');
+    expect(time().seconds).toHaveDisplayValue('00');
+    expect(screen.getByLabelText('Calories burned (optional)').props.value).toBe('8');
+
+    // More reps in one set: 40 reps × 4 s = 160 s = 2:40.
+    await fireEvent.changeText(screen.getByLabelText(/^Set 1, Reps/), '20');
+    expect(time().minutes).toHaveDisplayValue('2');
+    expect(time().seconds).toHaveDisplayValue('40');
+  });
+
+  it('a bodyweight exercise takes 3 s a rep', async () => {
+    await startWorkout(undefined, 70_000);
+    await openSheet();
+    await pick('push', 'Push-up');
+    await fillSets([{ reps: '15' }, {}, {}]);
+
+    // 3 sets × 15 reps × 3 s = 135 s = 2:15.
+    expect(time().minutes).toHaveDisplayValue('2');
+    expect(time().seconds).toHaveDisplayValue('15');
+  });
+
+  it('typing the time makes it the user’s own: it stops following the reps, says Edited, and the arrow brings the reps’ time back', async () => {
+    await startWorkout(undefined, 70_000);
+    await openSheet();
+    await pick('db bench', 'Dumbbell bench press');
+    await fillSets([{ reps: '10', weight: '20' }]);
+
+    await fireEvent.changeText(time().minutes, '5');
+    expect(time().seconds).toHaveDisplayValue('40');
+    expect(screen.getByText('Edited')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
+    // Not followed any more: still 5:40.
+    expect(time().minutes).toHaveDisplayValue('5');
+    expect(screen.getByText('Your own time. The arrow brings back 20 reps × 4 s = 1:20.')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Use the time from the reps, 1:20' }));
+    expect(time().minutes).toHaveDisplayValue('1');
+    expect(time().seconds).toHaveDisplayValue('20');
+    expect(screen.getByText('From reps')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: /^Use the time from the reps/ })).toBeNull();
+  });
+
+  it('saves the time shown, in seconds, with the estimate worked out from it', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await openSheet();
+    await pick('db bench', 'Dumbbell bench press');
+    await fillSets([{ reps: '10', weight: '20' }, { reps: '10', weight: '20' }, { reps: '10', weight: '20' }]);
+    await save();
+
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ durationSeconds: 120, calories: { kcal: 8, estimated: true } }] }),
+    );
+  });
+
+  it('calories typed still win over the estimate from the reps’ time', async () => {
+    const { server, id } = await startWorkout(undefined, 70_000);
+    await openSheet();
+    await pick('db bench', 'Dumbbell bench press');
+    await fillSets([{ reps: '10', weight: '20' }]);
+    await fireEvent.changeText(screen.getByLabelText('Calories burned (optional)'), '50');
+    await save();
+
+    await waitFor(() =>
+      expect(server.entries('workouts').get(id)).toMatchObject({ exercises: [{ durationSeconds: 40, calories: { kcal: 50, estimated: false } }] }),
+    );
+  });
+
+  it('a time that is not minutes and seconds is refused, with the rule', async () => {
+    await startWorkout();
+    await openSheet();
+    await pick('db bench', 'Dumbbell bench press');
+    await fillSets([{ reps: '10', weight: '20' }]);
+    await fireEvent.changeText(time().seconds, '75');
+
+    expect(await screen.findByText('Enter the time spent in minutes and seconds, up to 24 hours, or leave it empty.')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Save exercise' })).toBeDisabled();
+  });
+
+  it('an exercise of the user’s own gets no time from reps', async () => {
+    await startWorkout(undefined, 70_000);
+    await openSheet();
+    await typeName('Hill sprints');
+    await fillSets([{ reps: '10' }]);
+    expect(time().minutes).toHaveDisplayValue('');
+    expect(time().seconds).toHaveDisplayValue('');
+    expect(screen.queryByText('From reps')).toBeNull();
+  });
+});
+
+describe('the time spent of a saved exercise', () => {
+  const saved = (name: string, durationSeconds: number) => ({
+    kind: 'sets',
+    name,
+    sets: [{ reps: 10, weightGrams: 20_000, seconds: null }],
+    durationSeconds,
+    calories: null,
+    averageHeartRateBpm: null,
+    highestHeartRateBpm: null,
+    note: null,
+  });
+
+  it('goes on following the reps when it matches them; another time stays the user’s', async () => {
+    const id = '0b9e1d2c-3a4f-4e5d-8c7b-6a5f4e3d2c2d';
+    mockParams.id = id;
+    await renderInApp(<WorkoutScreen now={() => NOW} />, undefined, async (db, server) => {
+      await withExerciseList(db, server);
+      const data = {
+        id,
+        day: '2026-10-28',
+        exercises: [saved('Dumbbell bench press', 40), saved('Barbell bench press', 90)],
+        recordedAt: '2026-10-28T02:00:00.000Z',
+        timer: null,
+      } as unknown as WorkoutData;
+      await saveEntry(db, 'workout', { changeId: '00000000-0000-4000-8000-0000000000a3', data });
+    });
+
+    // 10 reps × 4 s = 40 s: the saved time was the reps', so another set grows it to 80 s.
+    await fireEvent.press((await screen.findAllByRole('button', { name: /^Dumbbell bench press: / }))[0]!);
+    await waitFor(() => expect(screen.getByLabelText('Time spent, seconds (optional)')).toHaveDisplayValue('40'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
+    await waitFor(() => expect(screen.getByLabelText('Time spent, seconds (optional)')).toHaveDisplayValue('20'));
+    expect(screen.getByLabelText('Time spent, minutes (optional)')).toHaveDisplayValue('1');
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to the workout' }));
+
+    // 90 s is not what 10 reps give: it stays the user's, whatever the reps do.
+    await fireEvent.press((await screen.findAllByRole('button', { name: /^Barbell bench press: / }))[0]!);
+    await waitFor(() => expect(screen.getByLabelText('Time spent, seconds (optional)')).toHaveDisplayValue('30'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Add set' }));
+    expect(screen.getByLabelText('Time spent, minutes (optional)')).toHaveDisplayValue('1');
+    expect(screen.getByLabelText('Time spent, seconds (optional)')).toHaveDisplayValue('30');
   });
 });

@@ -106,6 +106,7 @@ function checkedExercise(
     compendiumCode: compendiumCode === '' ? null : compendiumCode,
     met: met === '' ? null : Number(met),
     speedMets: [],
+    secondsPerRep: null,
     places: [],
     details: null,
   };
@@ -216,6 +217,35 @@ export function readSpeedMets(text: string, exercises: readonly ListedExercise[]
   return exercises.map((exercise) => ({ ...exercise, speedMets: bands.get(exercise.code) ?? [] }));
 }
 
+export const TYPE_TIMES_HEADER: readonly string[] = ['log_type', 'seconds_per_rep'];
+/** The types done in reps: the only ones with a time for one rep. */
+const REP_TYPES: readonly string[] = ['weight_reps', 'reps'];
+
+/**
+ * Reads the time one rep takes, one row per type of exercise, and gives `exercises` with it (the
+ * exercise-time plan): every exercise of a type takes its row's seconds; the other types have none. Only
+ * the types done in reps have a row, each once, in whole seconds from 1 to 30. Any problem refuses the file.
+ */
+export function readTypeTimes(text: string, exercises: readonly ListedExercise[]): ListedExercise[] {
+  const [header, ...rows] = parseCsv(text);
+  if (header?.join(',') !== TYPE_TIMES_HEADER.join(',')) {
+    throw new ExerciseListError(`The type times' header must be: ${TYPE_TIMES_HEADER.join(',')}`);
+  }
+  const seconds = new Map<string, number>();
+  rows.forEach((fields, index) => {
+    const refuse = (problem: string): never => {
+      throw new ExerciseListError(`Type times, line ${index + 2}: ${problem}`);
+    };
+    if (fields.length !== TYPE_TIMES_HEADER.length) refuse(`${fields.length} fields, not ${TYPE_TIMES_HEADER.length}`);
+    const [logType, value] = fields as [string, string];
+    if (!REP_TYPES.includes(logType)) refuse(`"${logType}" is not a type done in reps (${REP_TYPES.join(', ')})`);
+    if (seconds.has(logType)) refuse(`${logType} is listed twice`);
+    if (!/^\d{1,2}$/.test(value) || Number(value) < 1 || Number(value) > 30) refuse(`the seconds "${value}" must be a whole number from 1 to 30`);
+    seconds.set(logType, Number(value));
+  });
+  return exercises.map((exercise) => ({ ...exercise, secondsPerRep: seconds.get(exercise.logType) ?? null }));
+}
+
 /**
  * Replaces app.exercises with the list, app.exercise_speed_mets with its bands and app.exercise_details
  * with the library's details (D-81), in one transaction; returns how many exercises were imported.
@@ -229,10 +259,10 @@ export async function importExercises(
   try {
     await client.query('delete from app.exercises');
     await client.query(
-      `insert into app.exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, places)
-       select code, name, exercise_group, log_type, aliases, compendium_code, met, places
+      `insert into app.exercises (code, name, exercise_group, log_type, aliases, compendium_code, met, places, seconds_per_rep)
+       select code, name, exercise_group, log_type, aliases, compendium_code, met, places, seconds_per_rep
        from jsonb_to_recordset($1::jsonb) as row (code text, name text, exercise_group text, log_type text, aliases text[],
-         compendium_code text, met numeric, places jsonb)`,
+         compendium_code text, met numeric, places jsonb, seconds_per_rep smallint)`,
       [
         JSON.stringify(
           exercises.map((exercise) => ({
@@ -244,6 +274,7 @@ export async function importExercises(
             compendium_code: exercise.compendiumCode,
             met: exercise.met,
             places: exercise.places,
+            seconds_per_rep: exercise.secondsPerRep,
           })),
         ),
       ],
