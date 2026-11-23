@@ -12,6 +12,8 @@ import type { ProductEstimator } from './ai/productEstimator.ts';
 import { registerAiConsentRoutes } from './routes/aiConsent.ts';
 import { registerAiBarcodeEstimateRoute } from './routes/aiBarcodeEstimate.ts';
 import { registerAiFoodLookupRoute } from './routes/aiFoodLookup.ts';
+import type { PhotoEstimator } from './ai/photoEstimator.ts';
+import { registerAiPhotoEstimateRoute } from './routes/aiPhotoEstimate.ts';
 import { registerAiPhotoParseRoute } from './routes/aiPhotoParse.ts';
 import { registerAiMealParseRoute } from './routes/aiMealParse.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
@@ -47,6 +49,8 @@ export type AppDeps = {
   productEstimator?: ProductEstimator | null;
   /** The AI module's photo reading (D-118); tests pass a fake. Without it, photo readings answer 503. */
   photoParser?: PhotoParser | null;
+  /** The AI module's photo estimate (D-120, ADR-0012); tests pass a fake. Without it, the estimate answers 503. */
+  photoEstimator?: PhotoEstimator | null;
   /** Open Food Facts by name (D-118); tests pass a fake. Without one, nothing is found by name. */
   foodNames?: FoodNameSource;
 };
@@ -116,6 +120,11 @@ export function buildApp(deps: AppDeps) {
     db: deps.db,
     now: deps.now ?? (() => new Date()),
     photoParser: deps.photoParser ?? null,
+  });
+  registerAiPhotoEstimateRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    photoEstimator: deps.photoEstimator ?? null,
   });
   registerAiFoodLookupRoute(app, {
     db: deps.db,

@@ -4,7 +4,9 @@ import {
   barcodeEstimateResponseSchema,
   foodLookupRequestSchema,
   foodLookupResponseSchema,
+  PHOTO_ESTIMATE_MAX_ITEMS,
   PHOTO_PARSE_IMAGE_MAX_CHARS,
+  photoEstimateResponseSchema,
   photoParseRequestSchema,
 } from './contracts.ts';
 
@@ -77,5 +79,51 @@ describe('D-118 the food lookup', () => {
     expect(foodLookupResponseSchema.safeParse(base).success).toBe(false);
     expect(foodLookupResponseSchema.safeParse({ ...base, source: 'web' }).success).toBe(false);
     expect(foodLookupResponseSchema.safeParse({ ...base, source: 'ai_estimate', kcal: 950 }).success).toBe(false);
+  });
+});
+
+// POST /v1/ai/photo-estimate (D-120, ADR-0012): the foods seen with their weight and values per 100 g.
+describe('D-120 the photo estimate answer', () => {
+  const item = {
+    spokenWords: '2 roti on the plate',
+    name: 'roti',
+    quantity: 2,
+    unit: 'piece',
+    grams: 80,
+    kcal: 297,
+    proteinG: 9.8,
+    carbsG: 46,
+    fatG: 7.5,
+    fibreG: 4.9,
+    ambiguity: [],
+  };
+
+  it('takes foods with a weight and values in range, and an empty list', () => {
+    expect(photoEstimateResponseSchema.safeParse({ items: [item] }).success).toBe(true);
+    expect(photoEstimateResponseSchema.safeParse({ items: [{ ...item, quantity: null, unit: null, fibreG: null }] }).success).toBe(true);
+    expect(photoEstimateResponseSchema.safeParse({ items: [] }).success).toBe(true);
+  });
+
+  it('refuses a value out of range, a weight of 0 or over 2,000 g, an unknown unit and any other field', () => {
+    for (const bad of [
+      { ...item, kcal: 950 },
+      { ...item, proteinG: -1 },
+      { ...item, carbsG: 101 },
+      { ...item, grams: 0 },
+      { ...item, grams: 2001 },
+      { ...item, unit: 'bucket' },
+      { ...item, name: '' },
+      { ...item, totalKcal: 1 },
+    ]) {
+      expect(photoEstimateResponseSchema.safeParse({ items: [bad] }).success).toBe(false);
+    }
+    const { kcal: _kcal, ...withoutKcal } = item;
+    expect(photoEstimateResponseSchema.safeParse({ items: [withoutKcal] }).success).toBe(false);
+    expect(photoEstimateResponseSchema.safeParse({ items: [item], total: 1 }).success).toBe(false);
+  });
+
+  it('holds at most 20 foods', () => {
+    expect(photoEstimateResponseSchema.safeParse({ items: Array(PHOTO_ESTIMATE_MAX_ITEMS).fill(item) }).success).toBe(true);
+    expect(photoEstimateResponseSchema.safeParse({ items: Array(PHOTO_ESTIMATE_MAX_ITEMS + 1).fill(item) }).success).toBe(false);
   });
 });

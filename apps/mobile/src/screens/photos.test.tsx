@@ -105,8 +105,10 @@ describe('REQ-LOG-006 a meal photo in Log meal', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
     await fireEvent.press(screen.getByRole('button', { name: 'Take photo' }));
     expect(pick).toHaveBeenCalledWith('camera');
-    // Search foods opens to read it (consent first); the picture is not attached to the meal.
-    expect(await screen.findByText('Read your photo with AI?')).toBeOnTheScreen();
+    // Search foods opens to read it at once, with no consent step (D-120; the fake server's empty answer
+    // reads as "No data available"); the picture is not attached to the meal.
+    expect(await screen.findByText('No data available')).toBeOnTheScreen();
+    expect(screen.queryByText('Read your photo with AI?')).toBeNull();
     expect(screen.queryByLabelText('Meal photo')).toBeNull();
   });
 

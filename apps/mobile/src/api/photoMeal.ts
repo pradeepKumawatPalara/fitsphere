@@ -1,27 +1,28 @@
-import { mealParseResponseSchema, type ParsedMealItem } from '@fitsphere/shared';
+import { photoEstimateResponseSchema, type PhotoEstimateItem } from '@fitsphere/shared';
 import type { AuthDeps } from '../auth/service';
 import { callApi } from './client';
 
 export type PhotoReading =
-  | { kind: 'ok'; items: ParsedMealItem[] }
-  /** Consent not given on the current text: ask once. */
-  | { kind: 'consent' }
+  | { kind: 'ok'; items: PhotoEstimateItem[] }
+  /** AI meal reading is switched off in Settings: the photo is not read (ADR-0012). */
+  | { kind: 'off' }
   | { kind: 'offline' }
   /** No key on the server, OpenAI failing or at its limit, or any other answer. */
   | { kind: 'unavailable' };
 
-/** Longer than the server's wait for OpenAI, so the server's answer arrives first. */
-export const PHOTO_READING_TIMEOUT_MS = 25_000;
+/** Longer than the server's wait for OpenAI (30 s), so the server's answer arrives first. */
+export const PHOTO_READING_TIMEOUT_MS = 35_000;
 
-// POST /v1/ai/photo-parse (D-118): the shrunk picture leaves the phone, as base64, only after consent
-// on the current text; the answer names the foods seen, never nutrition. One session refresh after a
-// 401 (error model). The picture is not kept by the phone or saved to the meal.
-export async function readPhoto(auth: AuthDeps, imageBase64: string): Promise<PhotoReading> {
+// POST /v1/ai/photo-estimate (D-120, ADR-0012): the shrunk picture leaves the phone, as base64, with no
+// consent step; a user who switched AI meal reading off in Settings is refused by the server. The answer
+// gives each food seen with its amount, its weight and its values per 100 g: an estimate. One session
+// refresh after a 401 (error model). The picture is not kept by the phone or saved to the meal.
+export async function estimatePhoto(auth: AuthDeps, imageBase64: string): Promise<PhotoReading> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const session =
       attempt === 0 ? (await auth.client.getSession()).data.session : (await auth.client.refreshSession()).data.session;
     if (!session) return { kind: 'unavailable' };
-    const response = await callApi<unknown>(auth.apiUrl, '/ai/photo-parse', {
+    const response = await callApi<unknown>(auth.apiUrl, '/ai/photo-estimate', {
       method: 'POST',
       token: session.access_token,
       body: { imageBase64 },
@@ -31,10 +32,10 @@ export async function readPhoto(auth: AuthDeps, imageBase64: string): Promise<Ph
     if (response.kind === 'offline') return { kind: 'offline' };
     if (response.kind === 'error') {
       if (response.status === 401 && attempt === 0) continue;
-      if (response.code === 'AI_CONSENT_REQUIRED') return { kind: 'consent' };
+      if (response.code === 'AI_CONSENT_REQUIRED') return { kind: 'off' };
       return { kind: 'unavailable' };
     }
-    const parsed = mealParseResponseSchema.safeParse(response.body);
+    const parsed = photoEstimateResponseSchema.safeParse(response.body);
     return parsed.success ? { kind: 'ok', items: parsed.data.items } : { kind: 'unavailable' };
   }
   return { kind: 'unavailable' };
