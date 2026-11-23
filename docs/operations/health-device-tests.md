@@ -44,7 +44,7 @@ Do this over **three days** so a full day's total and a few weigh-ins can be com
 
 | Device or app | Android version | Tested on | Result (Works / Partial / Not supported) | Notes (what failed or differed) |
 |---|---|---|---|---|
-| Fastrack (watch), through Google Fit | | | | Route: Fastrack > Google Fit > Health Connect; record what step 0 shows |
+| Fastrack (watch), through Google Fit | | | | Route: Fastrack > Google Fit > Health Connect. Step 0 (owner, 2026-11-23): Google Fit is listed in Health Connect and connected; still to confirm it is listed under both Steps and Weight |
 | Fastrack (watch), through its own app | | | | Only if its app offers Health Connect |
 
 **Works:** checks 1 to 12 pass for steps and weight. **Partial:** connects and reads, but one thing fails (say which:
