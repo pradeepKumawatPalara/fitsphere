@@ -132,3 +132,18 @@ Answered by the owner on 2026-11-20:
 - `docs/plans/photo-estimate-ai.md`; ADR-0010, ADR-0005, ADR-0006; D-115, D-117, D-118
 - `.claude/rules/project-invariants.md` #3, #4, #6, #7; C-004; REQ-ACC-004; R-017, R-018; Q-049
 - OpenAI data controls: requests to `/v1/responses` kept up to 30 days (read 2026-11-17, ADR-0010)
+
+## Amendment, 2026-11-24 (D-122): a spoken meal is estimated the same way
+The owner extended this decision to what the user SPEAKS in Search foods ("use photo rule, no consent step"):
+- `POST /v1/ai/voice-estimate` takes the spoken words (text, never audio; 2 to 500 characters) and answers the same
+  shape as `POST /v1/ai/photo-estimate`, from the same OpenAI module (`estimateText`, its own fixed instructions,
+  the same strict schema and consistency check). No consent step; a recorded "off" in Settings blocks it; counted by
+  day, no daily limit; nothing logged or stored.
+- The phone does not use the food list for a spoken meal; the foods are Estimated, open in "Check the estimate" and
+  are added as the user's own estimated foods in grams. "Check the estimate" gains a Quantity box that moves with the
+  amount.
+- Typed words in Search foods use the food list; words typed in Log meal's box and the barcode estimate keep
+  ADR-0010's consent and food-list matching.
+- This partly reverses ADR-0010 for voice ("the AI never gives nutrition"). Validation 1 (the accuracy of the
+  estimates) should be run for spoken meals as for photos before release; Legal's answer on the exception (Q-049)
+  covers both. Revisit if Legal requires consent.

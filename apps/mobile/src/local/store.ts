@@ -793,7 +793,13 @@ export type MetaKey =
   | 'notifications_enabled'
   // The reminders the user chose, as JSON (notificationSettings.ts): which are on, and their times.
   | 'notification_settings'
-  | 'last_open_day';
+  | 'last_open_day'
+  // First sign-in onboarding (D-124, on this phone only): the step to resume at; '1' once the account is
+  // finished with it (a copy of the server's onboardedAt, so app start needs no internet) or '0' while not;
+  // and '1' while the finished flag has not reached the server yet.
+  | 'onboarding_step'
+  | 'onboarded'
+  | 'onboarding_flag_pending';
 
 export async function getMeta(db: SqlDb, key: MetaKey): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM sync_meta WHERE key = ?', [key]);

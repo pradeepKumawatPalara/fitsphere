@@ -48,6 +48,15 @@ invariant #3, written in the rules file; Legal has not reviewed it (Q-049). The 
 no phone schema change, no new build. **The beta's Cloud Run API needs this API before beta phones read photos this way;
 deploy only when the owner says so.**
 
+**Speak your meal estimated by AI, with a Quantity box — built on branch `feat/health-connect-refresh-guide`
+(D-122, ADR-0012 amended, 2026-11-24).** Plan: `docs/plans/voice-estimate-ai.md` (Accepted). What the user speaks in
+Search foods goes (words only) to `POST /v1/ai/voice-estimate` with no consent step (a recorded "off" still blocks it):
+OpenAI `gpt-6-luna` gives each food's weight and values per 100 g, listed Estimated and checked in "Check the
+estimate", which gains a Quantity box that moves with the amount. Typed search stays on the food list; Log meal's
+typed words and the barcode estimate are unchanged. An exception to invariant #3 for voice, written in the rules
+file; Legal has not reviewed it (Q-049). No migration, no phone schema change, no new build. **The beta's Cloud Run
+API needs this API before beta phones estimate a spoken meal; deploy only when the owner says so.**
+
 **Older dates without "Load older" — built on branch `feat/older-history` (D-116, 2026-11-18), in
 `D:\fitsphere`.** Plan: `docs/plans/older-history.md` (Accepted); canvas boards `OlderWorkouts*` and
 `OlderElsewhere*` A locked (version 125). Training's All workouts, Weight history and an exercise's History

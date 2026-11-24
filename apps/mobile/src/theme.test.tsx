@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+﻿import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Text, TextInput } from './components/ui';
+import { useLocalDatabase } from './local/LocalDatabaseProvider';
 import { applyServerEntries } from './local/store';
 import { useSettings } from './settings/SettingsProvider';
 import { renderInApp } from './testing/appHarness';
@@ -9,6 +10,15 @@ import { TYPE } from './typography';
 // Appearance (REQ-ACC-001; MVP defaults, D-31): System follows the phone; Light and Dark override
 // it. Every colour comes from the theme's tokens, and text is readable in both palettes.
 
+// The phone's own copy of the last choice (settings/deviceTheme.ts), kept in memory here.
+let mockDevice: 'system' | 'light' | 'dark' | null = null;
+jest.mock('./settings/deviceTheme', () => ({
+  readDeviceTheme: async () => mockDevice,
+  writeDeviceTheme: async (value: 'system' | 'light' | 'dark') => {
+    mockDevice = value;
+  },
+}));
+
 let mockPhoneScheme: 'light' | 'dark' | null = 'light';
 jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
   __esModule: true,
@@ -16,6 +26,7 @@ jest.mock('react-native/Libraries/Utilities/useColorScheme', () => ({
 }));
 
 beforeEach(() => {
+  mockDevice = null;
   mockPhoneScheme = 'light';
 });
 
@@ -245,5 +256,50 @@ describe('REQ-ACC-001 every colour comes from the theme', () => {
       })
       .map((file) => relative(__dirname, file));
     expect(found).toEqual([]);
+  });
+});
+
+describe('REQ-ACC-001 the choice survives log out (the owner, 2026-11-24)', () => {
+  function LogOutProbe() {
+    const local = useLocalDatabase();
+    return (
+      <Text accessibilityRole="button" onPress={() => void local.remove()}>
+        Delete phone data
+      </Text>
+    );
+  }
+
+  it('Light stays Light on a dark phone when the signed-in data is deleted at log out', async () => {
+    mockPhoneScheme = 'dark';
+    await renderInApp(
+      <ThemeProvider>
+        <Probe />
+        <LogOutProbe />
+      </ThemeProvider>,
+      undefined,
+      (db) => applyServerEntries(db, 'setting', [{ name: 'theme', value: 'light', setAt: '2026-10-28T02:00:00.000Z' }]),
+    );
+    expect(await screen.findByText(`light ${LIGHT_COLORS.bg}`)).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByText('Delete phone data'));
+
+    await waitFor(() => expect(mockDevice).toBe('light'));
+    expect(screen.getByText(`light ${LIGHT_COLORS.bg}`)).toBeOnTheScreen();
+    expect(screen.queryByText(`dark ${DARK_COLORS.bg}`)).toBeNull();
+  });
+
+  it('a user who has not chosen yet keeps the last choice, and one who has chosen gets their own', async () => {
+    mockPhoneScheme = 'light';
+    mockDevice = 'dark';
+    await renderWithTheme();
+    expect(await screen.findByText(`dark ${DARK_COLORS.bg}`)).toBeOnTheScreen();
+  });
+
+  it('the account’s own choice wins over the one kept on the phone, and is kept for next time', async () => {
+    mockPhoneScheme = 'light';
+    mockDevice = 'light';
+    await renderWithTheme('dark');
+    expect(await screen.findByText(`dark ${DARK_COLORS.bg}`)).toBeOnTheScreen();
+    await waitFor(() => expect(mockDevice).toBe('dark'));
   });
 });

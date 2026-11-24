@@ -46,6 +46,7 @@ export function SignUpScreen() {
     const result = await signUp(deps, email, password);
     setBusy(false);
     if (result === 'offline') setMessage(TEXTS.needsInternet('Signing up'));
+    else if (result === 'exists') setMessage(TEXTS.accountExists);
     else router.replace('/check-email');
   }
 

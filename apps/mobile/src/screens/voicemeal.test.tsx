@@ -1,9 +1,9 @@
-import { AI_CONSENT_TEXT_VERSION, type Food, type ParsedMealItem } from '@fitsphere/shared';
+import { AI_CONSENT_TEXT_VERSION, type Food, type ParsedMealItem, type PhotoEstimateItem } from '@fitsphere/shared';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { replaceFoods } from '../local/store';
 import type { SqlDb } from '../local/sql';
-import { itemFromFood, itemFromFoodUnits, itemFromServings } from '../mealItems';
-import { formatAmount, formatGrams, formatKcal } from '../meals';
+import { formatKcal } from '../meals';
+import { photoFoodsOf, photoItemOf } from '../photoMeal';
 import type { ListenEvents } from '../speech';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { LogMealScreen } from './LogMealScreen';
@@ -84,6 +84,23 @@ const said = (name: string, quantity: number | null, unit: ParsedMealItem['unit'
   ambiguity: [],
 });
 
+/** A food the AI heard (voice, 2026-11-24): its weight and its values per 100 g are estimates. */
+const heard = (name: string, quantity: number | null, unit: PhotoEstimateItem['unit'], grams: number, kcal: number): PhotoEstimateItem => ({
+  spokenWords: name,
+  name,
+  quantity,
+  unit,
+  grams,
+  kcal,
+  proteinG: 5,
+  carbsG: 14,
+  fatG: 1.8,
+  fibreG: null,
+  ambiguity: [],
+});
+const ROTI_HEARD = heard('Test roti', 2, 'piece', 80, 297);
+const DAL_HEARD = heard('Test dal', 1, 'katori', 150, 92);
+
 type FakeServer = Parameters<NonNullable<Parameters<typeof renderInApp>[2]>>[1];
 
 const MEAL = 'do roti aur ek katori dal';
@@ -94,6 +111,7 @@ async function openSearch(setUp: (server: FakeServer) => void = () => undefined)
     server.state.foods = [ROTI, DAL, CHAI];
     await replaceFoods(db, server.state.foodsVersion, [ROTI, DAL, CHAI]);
     server.state.mealParse = { items: [said('roti', 2, 'piece'), said('toor dal', 1, 'katori')] };
+    server.state.voiceEstimate = { items: [ROTI_HEARD, DAL_HEARD] };
     setUp(server);
   });
   await fireEvent.press(await screen.findByRole('button', { name: 'Search foods' }));
@@ -111,9 +129,6 @@ async function speak(words: string) {
   await act(async () => mockSpeech.events!.onWords(words, true));
   await fireEvent.press(screen.getByRole('button', { name: 'Done speaking' }));
 }
-
-const rowOf = (item: { name: string; amount: Parameters<typeof formatAmount>[0]; kcal: number; proteinG: number }) =>
-  `${item.name}: ${formatAmount(item.amount)}, ${formatKcal(item.kcal)}, ${formatGrams(item.proteinG)} protein`;
 
 beforeEach(() => {
   mockSpeech.can = true;
@@ -156,7 +171,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
     await act(async () => mockSpeech.events!.onEnd());
     await waitFor(() => expect(mockSpeech.listens).toBe(2));
     expect(screen.getByText(/Listening/)).toBeOnTheScreen();
-    expect(server.state.mealParseTexts).toEqual([]);
+    expect(server.state.voiceEstimateTexts).toEqual([]);
 
     // Silence reported as "no speech": still listening.
     await act(async () => mockSpeech.events!.onError('no-speech'));
@@ -168,7 +183,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
     expect(screen.getByLabelText('Search foods')).toHaveDisplayValue(MEAL);
 
     await fireEvent.press(screen.getByRole('button', { name: 'Done speaking' }));
-    await waitFor(() => expect(server.state.mealParseTexts).toEqual([MEAL]));
+    await waitFor(() => expect(server.state.voiceEstimateTexts).toEqual([MEAL]));
     expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
   });
 
@@ -180,7 +195,7 @@ describe('REQ-LOG-005 Speak your meal', () => {
     await act(async () => mockSpeech.events!.onWords(MEAL, true));
 
     // No Done: the quiet after the words ends it.
-    await waitFor(() => expect(server.state.mealParseTexts).toEqual([MEAL]), { timeout: 4000 });
+    await waitFor(() => expect(server.state.voiceEstimateTexts).toEqual([MEAL]), { timeout: 4000 });
     expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
   });
 
@@ -196,102 +211,99 @@ describe('REQ-LOG-005 Speak your meal', () => {
   });
 });
 
-describe('REQ-LOG-009 a spoken meal, end to end', () => {
-  it('consent asked once, then the foods found go into the meal with the values a search gives them', async () => {
+describe('REQ-LOG-009 a spoken meal, end to end (voice is estimated by AI, the owner 2026-11-24)', () => {
+  it('no consent step: the words go to the AI at once, and the foods heard are listed Estimated, not taken from the food list', async () => {
     const { server } = await openSearch();
     await speak(MEAL);
-
-    expect(await screen.findByText('Read your meal with AI?')).toBeOnTheScreen();
-    expect(server.state.mealParseTexts).toEqual([]);
-    await fireEvent.press(screen.getByRole('button', { name: 'Turn on' }));
 
     expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
-    expect(server.state.aiConsent).toMatchObject({ consented: true, textVersion: AI_CONSENT_TEXT_VERSION });
-    expect(server.state.mealParseTexts).toEqual([MEAL]);
-
-    const roti = itemFromServings(ROTI, ROTI.portions[0]!, 2);
-    const dal = itemFromFoodUnits(DAL, DAL.measures[0]!, 1);
-    await fireEvent.press(screen.getByRole('button', { name: `Add 2 foods · ${formatKcal(roti.kcal + dal.kcal)}` }));
-
-    expect(await screen.findByText('Added 2 foods from what you said')).toBeOnTheScreen();
-    expect(screen.getByLabelText(rowOf(roti))).toBeOnTheScreen();
-    expect(screen.getByLabelText(rowOf(dal))).toBeOnTheScreen();
-  });
-
-  it('Not now: no reading, the words stay as a search, and the sheet is not asked again', async () => {
-    const { server } = await openSearch();
-    await speak(MEAL);
-    await fireEvent.press(await screen.findByRole('button', { name: 'Not now' }));
-
-    expect(await screen.findByText('AI meal reading is off')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Search foods')).toHaveDisplayValue(MEAL);
-    expect(server.state.aiConsent).toMatchObject({ consented: false, textVersion: AI_CONSENT_TEXT_VERSION });
-
-    mockSpeech.events = null;
-    await speak('ek katori dal');
-    expect(await screen.findByText('AI meal reading is off')).toBeOnTheScreen();
     expect(screen.queryByText('Read your meal with AI?')).toBeNull();
+    expect(server.state.voiceEstimateTexts).toEqual([MEAL]);
     expect(server.state.mealParseTexts).toEqual([]);
+    expect(screen.getAllByText('Estimated')).toHaveLength(2);
+    expect(screen.getByText(/Estimated by AI from what you said/)).toBeOnTheScreen();
+    expect(screen.queryByText('Not in our food list')).toBeNull();
+
+    const [roti, dal] = photoFoodsOf([ROTI_HEARD, DAL_HEARD]).map(photoItemOf);
+    await fireEvent.press(screen.getByRole('button', { name: `Add 2 foods · ${formatKcal(roti!.kcal + dal!.kcal)}` }));
+    expect(await screen.findByText(/Test roti/)).toBeOnTheScreen();
+    expect(screen.getByText(/Test dal/)).toBeOnTheScreen();
   });
 
-  it('consent given on the older (Gemini) text is asked again', async () => {
+  it('Quantity: changing it changes the amount, the portion kcal and the list; changing the amount changes the quantity', async () => {
+    await openSearch();
+    await speak(MEAL);
+    await screen.findByText('2 foods found');
+
+    await fireEvent.press(screen.getByRole('button', { name: /^Test roti, 2 pieces · about 80 g/ }));
+    expect(await screen.findByRole('header', { name: 'Check the estimate' })).toBeOnTheScreen();
+    expect(screen.getByText(/The AI heard about 2 pieces/)).toBeOnTheScreen();
+    expect(screen.getByLabelText('Quantity (pieces)')).toHaveDisplayValue('2');
+
+    // 2 pieces are 80 g, so 3 pieces are 120 g.
+    await fireEvent.changeText(screen.getByLabelText('Quantity (pieces)'), '3');
+    expect(screen.getByLabelText('Amount (g)')).toHaveDisplayValue('120');
+    const three = formatKcal(photoItemOf({ ...photoFoodsOf([ROTI_HEARD])[0]!, grams: 120 }).kcal);
+    expect(screen.getByText(three)).toBeOnTheScreen();
+
+    // And the other way: 40 g is one piece.
+    await fireEvent.changeText(screen.getByLabelText('Amount (g)'), '40');
+    expect(screen.getByLabelText('Quantity (piece)')).toHaveDisplayValue('1');
+
+    await fireEvent.changeText(screen.getByLabelText('Quantity (piece)'), '3');
+    await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+    expect(await screen.findByText(`3 pieces · 120 g · ${three}`)).toBeOnTheScreen();
+  });
+
+  it('a quantity of 0 or more than two decimals cannot be kept', async () => {
+    await openSearch();
+    await speak(MEAL);
+    await screen.findByText('2 foods found');
+    await fireEvent.press(screen.getByRole('button', { name: /^Test roti, 2 pieces/ }));
+    await screen.findByRole('header', { name: 'Check the estimate' });
+
+    for (const bad of ['0', '1.234', '']) {
+      await fireEvent.changeText(screen.getByLabelText(/^Quantity/), bad);
+      expect(screen.getByRole('button', { name: 'Done' })).toBeDisabled();
+    }
+  });
+
+  it('a food heard with no amount is one portion', async () => {
     await openSearch((server) => {
-      server.state.aiConsent = { consented: true, textVersion: '2026-10-30', recordedAt: NOW.toISOString() };
+      server.state.voiceEstimate = { items: [heard('Test chai', null, null, 150, 50)] };
+    });
+    await speak('chai');
+    await fireEvent.press(await screen.findByRole('button', { name: /^Test chai, about 150 g/ }));
+    expect(await screen.findByLabelText('Quantity (portion)')).toHaveDisplayValue('1');
+  });
+
+  it('AI reading switched off in Settings: "AI reading is off", nothing is added', async () => {
+    await openSearch((server) => {
+      server.state.voiceEstimate = { status: 403, code: 'AI_CONSENT_REQUIRED' };
     });
     await speak(MEAL);
-    expect(await screen.findByText('Read your meal with AI?')).toBeOnTheScreen();
-  });
 
-  it('a food unticked stays out; an amount not said is tagged; a food not listed is named', async () => {
-    await openSearch((server) => {
-      consentOn(server);
-      server.state.mealParse = { items: [said('roti', 2, 'piece'), said('chai', null, null), said('mango lassi', 1, 'glass')] };
-    });
-    await speak('do roti, chai aur mango lassi');
-
-    expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
-    expect(screen.getByText('Not in our food list')).toBeOnTheScreen();
-    expect(screen.getByText('mango lassi')).toBeOnTheScreen();
-    expect(screen.getByText('Amount not said · check it')).toBeOnTheScreen();
-
-    await fireEvent.press(screen.getByRole('checkbox', { name: `Add ${ROTI.name}` }));
-    const chai = itemFromFood(CHAI, 100);
-    await fireEvent.press(screen.getByRole('button', { name: `Add 1 food · ${formatKcal(chai.kcal)}` }));
-
-    expect(await screen.findByText('Added 1 food from what you said')).toBeOnTheScreen();
-    expect(screen.getByLabelText(rowOf(chai))).toBeOnTheScreen();
-    expect(screen.getByLabelText('Amount not said, check it')).toBeOnTheScreen();
-    expect(screen.queryByText(/^Test roti/)).toBeNull();
-  });
-
-  it('nothing found: "No foods found", and the words stay in the box', async () => {
-    await openSearch((server) => {
-      consentOn(server);
-      server.state.mealParse = { items: [said('mango lassi', 1, 'glass')] };
-    });
-    await speak('ek glass mango lassi');
-
-    expect(await screen.findByText('No foods found')).toBeOnTheScreen();
-    expect(screen.getByText('Not in our food list')).toBeOnTheScreen();
-    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
-    expect(screen.getByLabelText('Search foods')).toHaveDisplayValue('ek glass mango lassi');
+    expect(await screen.findByText('AI reading is off')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Try another photo' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Open Settings' }));
+    expect(mockRouter.push).toHaveBeenCalledWith('/account');
   });
 
   it.each([
-    ['too many requests (no daily limit since D-115, so said as unavailable)', { status: 429, code: 'RATE_LIMITED' }, false, /AI meal reading isn't available right now/],
-    ['the service unavailable, OpenAI’s monthly limit included', { status: 503, code: 'SERVICE_UNAVAILABLE' }, false, /AI meal reading isn't available right now/],
-    ['offline', { items: [] }, true, /You're offline/],
-  ])('%s: its own message, and the words kept as a search', async (_name, answer, offline, message) => {
+    ['no food heard', { items: [] }, false],
+    ['the service unavailable', { status: 503, code: 'SERVICE_UNAVAILABLE' }, false],
+    ['offline', { items: [] }, true],
+  ])('%s: "No data available", and the words are kept in the box', async (_name, answer, offline) => {
     await openSearch((server) => {
-      consentOn(server);
-      server.state.mealParse = answer;
-      server.state.mealParseOffline = offline;
+      server.state.voiceEstimate = answer;
+      server.state.voiceEstimateOffline = offline;
     });
     await speak(MEAL);
 
-    expect(await screen.findByText(message)).toBeOnTheScreen();
+    expect(await screen.findByText('No data available')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Try another photo' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Close' }));
     expect(screen.getByLabelText('Search foods')).toHaveDisplayValue(MEAL);
-    expect(screen.getAllByRole('button', { name: 'Speak your meal' }).at(-1)!).toBeOnTheScreen();
   });
 
   it('Cancel while listening: no reading, the words stay as a search', async () => {
@@ -303,7 +315,7 @@ describe('REQ-LOG-009 a spoken meal, end to end', () => {
 
     expect(screen.getByLabelText('Search foods')).toHaveDisplayValue(MEAL);
     expect(screen.queryByText(/Listening/)).toBeNull();
-    expect(server.state.mealParseTexts).toEqual([]);
+    expect(server.state.voiceEstimateTexts).toEqual([]);
   });
 });
 

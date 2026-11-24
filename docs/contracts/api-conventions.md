@@ -548,7 +548,7 @@ The app talks to Supabase Auth for these; the FitSphere API is not involved unti
 
 | Flow | Behaviour | Requirements |
 |---|---|---|
-| Sign up | Email, password and a required "I am 18 or older" box. Afterwards the app always shows the neutral sign-up text, whatever Supabase returns | REQ-ACC-010, D-11, D-18 |
+| Sign up | Email, password and a required "I am 18 or older" box. Afterwards the app shows "Check your email", except that an address that already has an account is told so ("This email already has an account…", D-125; Supabase answers it with no error and a user with no identities) | REQ-ACC-010, D-11, D-18, D-125 |
 | Verify email | The link in the email confirms the address, then opens the app, which asks the user to sign in. An unverified account cannot sign in. Links expire within 24 hours | REQ-ACC-010; Q-080 MVP default |
 | Sign in | Email and password. Then `GET /v1/me`, and `POST /v1/me` if the account is not set up | REQ-ACC-010 |
 | Forgot password | The app always shows the neutral reset text. The link opens the app on a "Set a new password" screen | REQ-ACC-010, D-11 |
@@ -559,6 +559,8 @@ The app talks to Supabase Auth for these; the FitSphere API is not involved unti
 - Session tokens are kept in the phone's secure storage (ADR-0004 rule 3). Expo sets no size
   limit there, so the app handles storage errors instead of assuming a fixed limit.
 - The texts are in the [error model](error-model.md#texts-the-app-shows).
+- Sign-up now says when an address is registered (D-125), which accepts that an address's registration can be
+  learned through the sign-up screen; sign-in and password reset keep their neutral texts.
 - The app's neutral texts hide the answer only on the phone. Anyone can call Supabase Auth
   directly with the publishable key, so Supabase itself must not reveal registration either. Its
   docs say sign-up answers "User already registered" unless both **Confirm email** and **Confirm

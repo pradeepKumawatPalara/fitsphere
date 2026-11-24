@@ -17,6 +17,10 @@ export type PhotoFood = {
   ambiguity: string[];
   /** The user changed the grams or a value: "about" is no longer said of the weight. */
   edited: boolean;
+  /** How many of `unit` the grams are (2 roti): the Quantity box's number. 1 "portion" when none was seen. */
+  quantity: number;
+  /** The measure's word in the singular ("piece", "katori"); "portion" when none was seen. */
+  unit: string;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -48,6 +52,18 @@ export function seenAmount(quantity: number | null, unit: SpokenUnit | null): st
   return `${number} ${quantity === 1 ? words.one : words.many}`;
 }
 
+/** The measure word for a quantity: "piece" or "pieces", "portion" or "portions". */
+export function unitWordFor(unit: string, quantity: number): string {
+  const known = (UNIT_WORDS as Record<string, { one: string; many: string } | undefined>)[unit];
+  if (known) return quantity === 1 ? known.one : known.many;
+  return quantity === 1 ? unit : `${unit}s`;
+}
+
+/** Grams in one of the unit (the Quantity box's step); never 0. */
+export function gramsPerUnit(food: Pick<PhotoFood, 'grams' | 'quantity'>): number {
+  return food.quantity > 0 ? food.grams / food.quantity : food.grams;
+}
+
 /** The foods of an answer, ready for the review. */
 export function photoFoodsOf(items: readonly PhotoEstimateItem[]): PhotoFood[] {
   return items.map((item) => ({
@@ -63,6 +79,8 @@ export function photoFoodsOf(items: readonly PhotoEstimateItem[]): PhotoFood[] {
     seen: seenAmount(item.quantity, item.unit),
     ambiguity: item.ambiguity,
     edited: false,
+    quantity: item.quantity !== null && item.unit !== null && item.quantity > 0 ? Math.round(item.quantity * 100) / 100 : 1,
+    unit: item.quantity !== null && item.unit !== null && item.quantity > 0 ? UNIT_WORDS[item.unit].one : 'portion',
   }));
 }
 

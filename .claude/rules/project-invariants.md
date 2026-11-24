@@ -20,8 +20,10 @@ refer to `docs/product/owner-decisions-2026-10-27.md`.
    sending any meal text, photo, voice or label to an AI service. (C-004, REQ-ACC-004)
    **Exception, a photo of a meal read in Log meal (D-120, ADR-0012; the owner, 2026-11-20):** no
    consent step; the photo is sent at once, with a notice that AI reads it. A recorded "off" in
-   Settings still blocks it. Legal has not reviewed this (Q-049); voice, typed words and the barcode
-   estimate keep this rule unchanged.
+   Settings still blocks it. Legal has not reviewed this (Q-049). **The same exception covers a meal
+   SPOKEN in Search foods (D-122, ADR-0012; the owner, 2026-11-24):** the words (never audio) are sent at
+   once, no consent step, and a recorded "off" still blocks them. Words typed in Log meal's box and the
+   barcode estimate keep this rule unchanged.
 4. **Non-AI logging always works.** Food database, barcode and saved meals must not depend
    on AI. (C-005)
 5. **Phase 1 serves India only.** "Today" and day membership use Asia/Kolkata, never server

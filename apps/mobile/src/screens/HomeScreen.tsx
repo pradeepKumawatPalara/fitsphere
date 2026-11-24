@@ -334,12 +334,12 @@ export function HomeScreen() {
               action={
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="By workout"
+                  accessibilityLabel="By training"
                   hitSlop={8}
                   onPress={() => router.push('/training')}
                   style={({ pressed }) => [styles.byMeal, pressed && { opacity: 0.6 }]}
                 >
-                  <Text style={styles.byMealText}>By workout</Text>
+                  <Text style={styles.byMealText}>By training</Text>
                   <ChevronRight size={16} strokeWidth={2.25} color={colors.accent} />
                 </Pressable>
               }

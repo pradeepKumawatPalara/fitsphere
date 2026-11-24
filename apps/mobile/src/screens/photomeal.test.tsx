@@ -211,7 +211,8 @@ describe('D-120 the foods of a photo, reviewed and added', () => {
 
     // Back on the list: the weight is the user's now, so it is no longer "about".
     expect(await screen.findByText('2 foods found')).toBeOnTheScreen();
-    expect(screen.getByText(`1 katori · 300 g · ${doubled}`)).toBeOnTheScreen();
+    // The quantity follows the amount: 300 g is 2 katori.
+    expect(screen.getByText(`2 katori · 300 g · ${doubled}`)).toBeOnTheScreen();
   });
 
   it('an amount that cannot be used keeps Done waiting; Back to the list changes nothing', async () => {

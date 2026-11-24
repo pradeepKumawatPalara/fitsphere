@@ -1,4 +1,4 @@
-import { AI_CONSENT_TEXT, type BodyWeightUnit, type ThemePreference } from '@fitsphere/shared';
+﻿import { AI_CONSENT_TEXT, type BodyWeightUnit, type ThemePreference } from '@fitsphere/shared';
 import { useRouter } from 'expo-router';
 import {
   Bell,
@@ -49,7 +49,7 @@ const THEMES: { value: ThemePreference; label: string; help: string; icon: Lucid
   { value: 'light', label: 'Light', help: 'Always light.', icon: Sun },
   { value: 'dark', label: 'Dark', help: 'Always dark.', icon: Moon },
 ];
-const UNITS: { value: BodyWeightUnit; label: string }[] = [
+export const UNITS: { value: BodyWeightUnit; label: string }[] = [
   { value: 'kg', label: 'kg' },
   { value: 'lb', label: 'lb' },
 ];
@@ -213,7 +213,7 @@ function LinkRow({ title, icon: Icon, onPress, divided = false }: { title: strin
  * One choice from a few, as square blocks; the chosen one filled. `fill`: the blocks share the row
  * (Appearance, with icons); otherwise each is 56 wide (the units).
  */
-function Choice<T extends string>({
+export function Choice<T extends string>({
   label,
   options,
   value,

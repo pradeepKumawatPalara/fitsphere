@@ -1,9 +1,10 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+﻿import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { HealthSyncProvider } from '../health/HealthSyncProvider';
 import type { DaySteps, HealthAvailability, WeightReading } from '../health/types';
 import { countImported, getEntry, getMeta, pendingChanges, saveEntry, setMeta } from '../local/store';
 import { NOW, renderInApp } from '../testing/appHarness';
 import { ConnectionsScreen } from './ConnectionsScreen';
+import { HealthGuideScreen } from './HealthGuideScreen';
 import { HomeScreen } from './HomeScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
@@ -47,7 +48,7 @@ jest.mock('../health/healthSource', () => ({
   }),
 }));
 
-// D-121 (REQ-ACC-012, ADR-0013, docs/plans/health-connect.md): Settings › Connections, Health Connect
+// D-121 (REQ-ACC-012, ADR-0013, docs/plans/health-connect.md): Settings â€º Connections, Health Connect
 // read into steps and weight, end to end on a fake store. Synthetic values only.
 
 const TODAY = '2026-10-28';
@@ -362,5 +363,78 @@ describe('D-121 Settings and Home', () => {
     expect(await screen.findByRole('button', { name: /^Steps: .*from Health Connect$/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /^Weight: [^,]*$/ })).toBeTruthy();
     expect(screen.getAllByText('Health Connect')).toHaveLength(1);
+  });
+});
+
+describe('D-121 the 20-minute refresh, the reads card and the guide (docs/plans/health-connect-sleep.md)', () => {
+  it('reads again every 20 minutes while connected, and stops when disconnected', async () => {
+    mockHealth.steps = [{ day: TODAY, steps: 2_100 }];
+    const timers = jest.spyOn(globalThis, 'setInterval');
+    const cleared = jest.spyOn(globalThis, 'clearInterval');
+    try {
+      const { db } = await renderConnections();
+      await fireEvent.press(await screen.findByRole('button', { name: 'Connect' }));
+      await screen.findByText(/Read just now/);
+
+      const refresh = timers.mock.calls.find((call) => call[1] === 20 * 60 * 1000);
+      expect(refresh).toBeTruthy();
+      mockHealth.steps = [{ day: TODAY, steps: 7_000 }];
+      await act(async () => {
+        (refresh![0] as () => void)();
+      });
+      await waitFor(async () => expect(await getEntry(db, 'steps', TODAY)).toMatchObject({ steps: 7_000 }));
+
+      const clearedBefore = cleared.mock.calls.length;
+      await fireEvent.press(screen.getByRole('button', { name: 'Disconnect' }));
+      await fireEvent.press(await screen.findByRole('button', { name: 'Keep them' }));
+      await waitFor(() => expect(cleared.mock.calls.length).toBeGreaterThan(clearedBefore));
+    } finally {
+      timers.mockRestore();
+      cleared.mockRestore();
+    }
+  });
+
+  it('connected, says when it last updated and shows today\'s steps and weight', async () => {
+    mockHealth.steps = [{ day: TODAY, steps: 3_300 }];
+    await renderConnections();
+
+    await fireEvent.press(await screen.findByRole('button', { name: 'Connect' }));
+
+    expect(await screen.findByText('Updates about every 20 minutes')).toBeTruthy();
+    expect(screen.getByText(/^Last updated /)).toBeTruthy();
+    expect(screen.getByText('What FitSphere reads')).toBeTruthy();
+    expect(await screen.findByLabelText('Steps, Today: 3,300')).toBeTruthy();
+    expect(screen.getByLabelText('Weight, Today: None yet')).toBeTruthy();
+  });
+
+  it('not connected, lists what to do first, and How to connect opens the guide', async () => {
+    await renderConnections();
+
+    expect(await screen.findByText('Before you connect')).toBeTruthy();
+    expect(screen.getByText('Install Health Connect.')).toBeTruthy();
+    expect(screen.queryByText('What FitSphere reads')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'How to connect' }));
+
+    expect(mockRouter.push).toHaveBeenCalledWith('/health-guide');
+  });
+
+  it('the guide gives the four steps and goes back to Connections', async () => {
+    await renderInApp(
+      <HealthSyncProvider now={clock}>
+        <HealthGuideScreen />
+      </HealthSyncProvider>,
+      clock,
+    );
+
+    expect(await screen.findByText('Install Health Connect')).toBeTruthy();
+    expect(screen.getByText('Open Health Connect')).toBeTruthy();
+    expect(screen.getByText('Connect your other apps to it')).toBeTruthy();
+    expect(screen.getByLabelText('Profile, then Connections, then Health Connect')).toBeTruthy();
+    expect(screen.getByText(/about every 20 minutes/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Go to Connections' }));
+
+    expect(mockRouter.back).toHaveBeenCalled();
   });
 });

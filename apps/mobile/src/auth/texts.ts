@@ -4,6 +4,8 @@ export const TEXTS = {
   // After sign-up, as a heading and its text (the redesign's 1.3, D-35).
   signUpSentHeading: 'Check your email',
   signUpSent: "If this address can be used for a new account, we've sent a link to finish signing up.",
+  // D-125: sign-up says so when the address already has an account (it replaces D-11's neutral text here).
+  accountExists: 'This email already has an account. Sign in instead, or reset your password if you forgot it.',
   resetSent: "If an account uses this address, we've sent a link to reset the password.",
   signInFailed: 'Email or password is incorrect.',
   ageConfirmation: 'I am 18 or older',

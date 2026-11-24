@@ -12,6 +12,7 @@ import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import type { SqlDb } from '../local/sql';
 import { listSettings, type LocalSetting } from '../local/store';
 import { sameData } from '../sameData';
+import { readDeviceTheme, writeDeviceTheme } from './deviceTheme';
 import { type EntryInput, useDataVersion, useSync } from '../sync/SyncProvider';
 
 // The user's settings (REQ-ACC-001…003; MVP default, D-31): kept on the phone and synced like
@@ -35,9 +36,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const db = state.status === 'ready' ? state.db : null;
   const { save } = useSync();
   const version = useDataVersion();
-  // The settings read from this database; another user's, or none, never apply.
-  const [loaded, setLoaded] = useState<{ db: SqlDb; settings: Settings } | null>(null);
-  const settings = db && loaded?.db === db ? loaded.settings : DEFAULT_SETTINGS;
+  // The settings read from this database; another user's, or none, never apply. `themeStored` says whether
+  // this user has chosen an Appearance yet.
+  const [loaded, setLoaded] = useState<{ db: SqlDb; settings: Settings; themeStored: boolean } | null>(null);
+  // The last Appearance choice kept on the phone (deviceTheme.ts): it applies when no database is open (after
+  // log out, on the sign-in screens) and until this user's own choice is read; null until it is read.
+  const [deviceTheme, setDeviceTheme] = useState<ThemePreference | null>(null);
+  useEffect(() => {
+    let active = true;
+    void readDeviceTheme().then((saved) => {
+      if (active && saved) setDeviceTheme((current) => current ?? saved);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const fallbackTheme = deviceTheme ?? DEFAULT_SETTINGS.theme;
+  const settings = useMemo<Settings>(() => {
+    if (db && loaded?.db === db) return loaded.themeStored ? loaded.settings : { ...loaded.settings, theme: fallbackTheme };
+    return { ...DEFAULT_SETTINGS, theme: fallbackTheme };
+  }, [db, loaded, fallbackTheme]);
 
   // Read again whenever local data may have changed, e.g. after a sync brought another phone's choice.
   useEffect(() => {
@@ -46,13 +64,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void listSettings(db).then((rows) => {
       if (!active) return;
       const read = toSettings(rows);
+      const themeStored = rows.some((row) => row.name === 'theme' && toSettings([row]).theme === row.value);
+      // The user's own choice, once known, is the one kept on the phone for the next log out (deviceTheme.ts).
+      if (themeStored) {
+        setDeviceTheme(read.theme);
+        void writeDeviceTheme(read.theme);
+      }
       // Unchanged, the settings already shown stay, so nothing that reads them draws again.
-      setLoaded((current) => (current?.db === db && sameData(current.settings, read) ? current : { db, settings: read }));
+      setLoaded((current) =>
+        current?.db === db && current.themeStored === themeStored && sameData(current.settings, read) ? current : { db, settings: read, themeStored },
+      );
     });
     return () => {
       active = false;
     };
   }, [db, version]);
+
 
   const saveSetting = useCallback(
     async <N extends SettingName>(name: N, value: Settings[N]) => {
@@ -61,7 +88,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setLoaded((current) => ({
         db,
         settings: { ...(current?.db === db ? current.settings : DEFAULT_SETTINGS), [name]: value },
+        themeStored: name === 'theme' || (current?.db === db && current.themeStored),
       }));
+      if (name === 'theme') {
+        setDeviceTheme(value as ThemePreference);
+        void writeDeviceTheme(value as ThemePreference);
+      }
       await save('setting', { name, value } as EntryInput['setting']);
     },
     [db, save],

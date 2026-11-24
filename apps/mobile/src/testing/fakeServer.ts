@@ -1,4 +1,4 @@
-import {
+﻿import {
   istToday,
   mealTotals,
   syncWindowStart,
@@ -125,12 +125,20 @@ export function fakeServer(now: Date) {
     photoEstimateGate: null as Promise<void> | null,
     /** The pictures (base64) sent to `POST /ai/photo-estimate`. */
     photoEstimateImages: [] as string[],
+    /** What `POST /ai/voice-estimate` answers (voice, 2026-11-24): the foods heard with their estimates, or an error status and code. */
+    voiceEstimate: { items: [] } as PhotoEstimateResponse | { status: number; code: string },
+    /** `POST /ai/voice-estimate` fails as a network failure would. */
+    voiceEstimateOffline: false,
+    /** The words sent to `POST /ai/voice-estimate`. */
+    voiceEstimateTexts: [] as string[],
     /** What `POST /ai/food-lookup` answers (D-118): the food found, or an error status and code. */
     foodLookup: null as FoodLookupResponse | { status: number; code: string } | null,
     /** The bodies sent to `POST /ai/food-lookup`. */
     foodLookupBodies: [] as { name: string }[],
     /** Answer `DELETE /me` with this status instead of deleting (503: not available). */
     deleteFailsWith: null as number | null,
+    /** What /me says of first sign-in onboarding (D-124): undefined sends nothing, as an older server. */
+    onboardedAt: undefined as string | null | undefined,
     /** Set once `DELETE /me` succeeded. */
     deleted: false,
   };
@@ -204,7 +212,12 @@ export function fakeServer(now: Date) {
         error: { code: 'INTERNAL_ERROR', message: 'x', retryable: true, requestId: 'r', details: null },
       });
     }
-    if (method === 'GET' && path === '/me') return json(200, ME);
+    const meBody = () => (state.onboardedAt === undefined ? ME : { ...ME, user: { ...ME.user, onboardedAt: state.onboardedAt } });
+    if (method === 'GET' && path === '/me') return json(200, meBody());
+    if (method === 'POST' && path === '/me/onboarding') {
+      state.onboardedAt ??= now.toISOString();
+      return json(200, meBody());
+    }
     if (method === 'GET' && path === '/foods') {
       const current = url.searchParams.get('version') === state.foodsVersion;
       return json(200, {
@@ -379,6 +392,15 @@ export function fakeServer(now: Date) {
       state.photoEstimateImages.push((body as { imageBase64: string }).imageBase64);
       if (state.photoEstimateGate) await state.photoEstimateGate;
       const answer = state.photoEstimate;
+      if ('status' in answer) {
+        return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
+      }
+      return json(200, answer);
+    }
+    if (path === '/ai/voice-estimate' && method === 'POST') {
+      if (state.voiceEstimateOffline) throw new TypeError('Network request failed');
+      state.voiceEstimateTexts.push((body as { text: string }).text);
+      const answer = state.voiceEstimate;
       if ('status' in answer) {
         return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
       }

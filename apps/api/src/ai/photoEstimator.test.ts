@@ -9,6 +9,7 @@ import {
   PHOTO_ESTIMATE_MAX_OUTPUT_TOKENS,
   PhotoEstimatorFailed,
   photoEstimatorFromEnv,
+  VOICE_ESTIMATE_INSTRUCTIONS,
 } from './photoEstimator.ts';
 
 // The AI module's photo estimate (D-120, ADR-0012) with a fake client: no test calls OpenAI. Synthetic
@@ -154,5 +155,32 @@ describe('D-120 set-up from the settings', () => {
     expect(photoEstimatorFromEnv({})).toBeNull();
     expect(photoEstimatorFromEnv({ OPENAI_API_KEY: '  ' })).toBeNull();
     expect(photoEstimatorFromEnv({ OPENAI_API_KEY: 'k' })).not.toBeNull();
+  });
+});
+
+describe('voice: the AI module estimates a spoken meal from its words', () => {
+  it('sends only the words, with the voice instructions, the same strict schema, no storing and no reasoning', async () => {
+    const { estimator, calls } = estimatorWith({ output_text: JSON.stringify(GOOD) });
+    expect(await estimator.estimateText('2 roti and a katori of dal')).toEqual(GOOD);
+    expect(calls).toEqual([
+      {
+        model: 'test-model',
+        instructions: VOICE_ESTIMATE_INSTRUCTIONS,
+        input: [{ role: 'user', content: [{ type: 'input_text', text: '2 roti and a katori of dal' }] }],
+        reasoning: { effort: 'none' },
+        store: false,
+        max_output_tokens: PHOTO_ESTIMATE_MAX_OUTPUT_TOKENS,
+        text: { format: { type: 'json_schema', name: 'photo_meal_estimate', strict: true, schema: PHOTO_ESTIMATE_JSON_SCHEMA } },
+      },
+    ]);
+  });
+
+  it('drops a food whose kcal is far from its macros, and fails on a provider error or an answer out of contract', async () => {
+    const odd = { ...ROTI, kcal: 700 };
+    const { estimator } = estimatorWith({ output_text: JSON.stringify({ items: [odd, DAL] }) });
+    expect(await estimator.estimateText('roti and dal')).toEqual({ items: [DAL] });
+    for (const answer of [new Error('boom'), { output_text: 'not json' }, { output_text: '{"items":[{"name":"x"}]}' }, { status: 'incomplete' }]) {
+      await expect(estimatorWith(answer).estimator.estimateText('roti')).rejects.toBeInstanceOf(PhotoEstimatorFailed);
+    }
   });
 });

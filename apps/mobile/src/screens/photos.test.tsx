@@ -15,6 +15,13 @@ const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
 let mockParams: Record<string, string> = {};
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 jest.mock('../photos/takePhoto', () => ({ pickPhoto: jest.fn() }));
+// The image-link option is hidden by default (the owner, 2026-11-24); these tests turn it on, one turns it off.
+const mockFlags = { link: true };
+jest.mock('../featureFlags', () => ({
+  get SHOW_IMAGE_LINK() {
+    return mockFlags.link;
+  },
+}));
 
 // A meal's photo or image link in Log meal and Nutrition (REQ-LOG-006, REQ-LOG-010, REQ-NFR-006;
 // MVP defaults, D-26). The camera is a fake that returns synthetic base64 text, not an image.
@@ -85,6 +92,19 @@ beforeEach(() => {
 });
 
 describe('REQ-LOG-006 a meal photo in Log meal', () => {
+  it('the image-link option is hidden by default (the owner, 2026-11-24): Add a photo offers the camera and the gallery only', async () => {
+    mockFlags.link = false;
+    try {
+      await logMealWithFood();
+      await fireEvent.press(screen.getByRole('button', { name: 'Add a photo' }));
+      expect(screen.getByRole('button', { name: 'Take photo' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Choose from gallery' })).toBeOnTheScreen();
+      expect(screen.queryByRole('button', { name: 'Add an image link instead' })).toBeNull();
+    } finally {
+      mockFlags.link = true;
+    }
+  });
+
   it('the camera icon beside Speak your meal opens Add a photo with its three ways; the Photo (optional) section is gone (the owner, 2026-11-18)', async () => {
     await logMealWithFood();
 

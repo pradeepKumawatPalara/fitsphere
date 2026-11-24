@@ -81,7 +81,7 @@ describe('authorization: GET /v1/me', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      user: { id: userA.id, email: userA.email, createdAt: expect.stringMatching(/Z$/) },
+      user: { id: userA.id, email: userA.email, createdAt: expect.stringMatching(/Z$/), onboardedAt: null },
       roles: ['personal'],
     });
   });
@@ -174,5 +174,48 @@ describe('authorization: POST /v1/me', () => {
 
     expect(responses.map((response) => response.statusCode).sort()).toEqual([200, 201]);
     expect(await userRows(user.subject)).toHaveLength(1);
+  });
+});
+
+// D-124, REQ-ACC-013 (docs/plans/onboarding.md): the first sign-in flow is shown once, then never again.
+describe('authorization: POST /v1/me/onboarding', () => {
+  function finish(token?: string) {
+    return api.app.inject({
+      method: 'POST',
+      url: '/v1/me/onboarding',
+      headers: token ? { authorization: `Bearer ${token}` } : {},
+    });
+  }
+
+  it('REQ-NFR-001 no token gets 401, and signed in without an account gets ACCOUNT_SETUP_REQUIRED', async () => {
+    expect((await finish()).statusCode).toBe(401);
+    const user = await api.signUp();
+    const response = await finish(user.token);
+    expect(response.statusCode).toBe(403);
+    expect(response.json().error.code).toBe('ACCOUNT_SETUP_REQUIRED');
+  });
+
+  it('REQ-ACC-013 a new account has no finished time, finishing sets it, and a second call keeps the first time', async () => {
+    const user = await api.signUpWithAccount();
+    expect((await getMe(user.token)).json().user.onboardedAt).toBeNull();
+
+    const first = await finish(user.token);
+    expect(first.statusCode).toBe(200);
+    const at = first.json().user.onboardedAt as string;
+    expect(at).toMatch(/Z$/);
+    expect((await getMe(user.token)).json().user.onboardedAt).toBe(at);
+
+    const second = await finish(user.token);
+    expect(second.json().user.onboardedAt).toBe(at);
+  });
+
+  it('REQ-ROLE-001 finishing only changes the caller’s own account', async () => {
+    const userA = await api.signUpWithAccount();
+    const userB = await api.signUpWithAccount();
+
+    await finish(userA.token);
+
+    expect((await getMe(userA.token)).json().user.onboardedAt).not.toBeNull();
+    expect((await getMe(userB.token)).json().user.onboardedAt).toBeNull();
   });
 });
