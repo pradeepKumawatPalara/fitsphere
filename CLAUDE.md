@@ -12,6 +12,19 @@ Coach and Head Coach are post-MVP.
 tests on the phone and reports bugs; each fix, or small group, is its own branch and pull request
 off `main`. Data-loss and sync bugs first.
 
+**The food and exercise lists read only when a phone is behind — built on branch
+`fix/reference-list-egress` (D-126, 2026-11-24), in `D:\fitsphere`.** Plan:
+`docs/plans/reference-list-egress.md` (Accepted). Supabase egress reached 11 GB in a month (R-005's
+trigger is 4 GB): `GET /v1/foods` and `GET /v1/exercises` read their nine tables whole on every sync to
+work out the version. Migration `0038_reference_lists.sql` keeps each list's `generation` and `version`
+in `app.reference_lists`, moved by statement-level triggers (`reference_list_changed`) on those tables;
+the routes answer a current phone after that one row (`src/routes/referenceList.ts`), read a list once
+per generation in one repeatable-read transaction, keep it packed in memory and write the version back
+(2-second lock timeout, never delaying the reply). Same versions as before: phones download nothing
+new. A new table read by a list needs its trigger (the integration test checks). No phone change, no
+new build. **On `fitsphere-dev`: migration 0038 before the updated API, then the Cloud Run deploy; only
+when the owner says so.**
+
 **Voice meal logging from the Search foods box, read by OpenAI — merged (pull request #123,
 2026-11-18; D-115, ADR-0010).** Plan:
 `docs/plans/voice-meal-logging.md` (Accepted). A "Speak your meal" row under Search foods (E-28, on-device
