@@ -5,7 +5,8 @@ import { getEntry, getMeta, listSettings, saveEntry, setMeta, targetsOn } from '
 import { NOW, renderInApp } from '../testing/appHarness';
 import { OnboardingScreen } from './OnboardingScreen';
 
-const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn() };
+// Log out goes through signInAlone (navigation.ts), which asks canDismiss and may call dismissAll.
+const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canDismiss: jest.fn(() => false), dismissAll: jest.fn() };
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({}), usePreventRemove: () => () => undefined }));
 
 // A fake of the phone's health store: the test says whether it is there and whether access is given.
