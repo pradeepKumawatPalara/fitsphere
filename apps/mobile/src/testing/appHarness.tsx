@@ -28,8 +28,9 @@ function newId() {
 /**
  * The providers a router's screens need (renderRouter's `wrapper`): the account, an in-memory phone
  * database and sync, with the fake API. The header reads the profile from the phone (REQ-ACC-011).
+ * `removeDatabase` stands in for deleting the phone database (log out, delete account).
  */
-export async function routerProviders() {
+export async function routerProviders({ removeDatabase }: { removeDatabase?: () => Promise<void> } = {}) {
   const db: SqlDb = memoryDb();
   await migrateLocal(db);
   const server = fakeServer(NOW);
@@ -37,7 +38,11 @@ export async function routerProviders() {
   return function Providers({ children }: { children: ReactNode }) {
     return (
       <AuthProvider deps={deps(client, server.fetchImpl)}>
-        <LocalDatabaseProvider owner="user-1" open={async () => ({ db, cipherVersion: '4.6.1' })}>
+        <LocalDatabaseProvider
+          owner="user-1"
+          open={async () => ({ db, cipherVersion: '4.6.1' })}
+          {...(removeDatabase ? { remove: removeDatabase } : {})}
+        >
           <SyncProvider newId={newId} network={noNetworkEvents}>
             {children}
           </SyncProvider>

@@ -15,7 +15,7 @@ import { SignInScreen } from './SignInScreen';
 // delete account (REQ-ACC-009). The units on the other screens are in units.test.tsx; the theme in
 // theme.test.tsx.
 
-const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() };
+const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn(), canDismiss: jest.fn(() => false), dismissAll: jest.fn() };
 const mockParams: { notice?: string } = {};
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams }));
 
