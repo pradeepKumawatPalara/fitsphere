@@ -25,6 +25,19 @@ new. A new table read by a list needs its trigger (the integration test checks).
 new build. **On `fitsphere-dev`: migration 0038 before the updated API, then the Cloud Run deploy; only
 when the owner says so.**
 
+**Brand labels read from real labels in place of the AI tool's estimates — built on branch
+`data/brand-label-sources` (D-127, 2026-11-20 to 2026-11-24), in its own folder `D:\fitsphere-brand-sources`
+(removed once merged).** D-53's 408 `llm` rows of `docs/data/brand-labels-sheet.csv` were read again: 286 now
+carry values from a real label (the brand's site, a shop's listing, FatSecret for one row, or a photo of the
+pack found by image search and read by Claude) or, for 3 plain spices printed only per teaspoon, IFCT 2017's;
+122 keep the estimate. Every row is checked (energy against protein, carbs and fat, the page names the
+product); the owner's rules settle doubtful readings (D-127). 22 products renamed to the product or variant
+actually sold (code kept, old name a search word); 17 not sold under their names stay as they are. A row per
+100 ml may hold up to 150 g (syrups; `brandLabels.ts`). Flags: brand site empty, everything else `scrap`,
+estimates `llm`. The working files, photos and tools stay in `D:\fitsphere-data` (outside the repository); the
+Serper.dev key there (`brand-check-tools\serper.env`) is never printed or committed. No migration, no phone
+change, no new build. **On `fitsphere-dev`: `foods:import` after merging; only when the owner says so.**
+
 **Voice meal logging from the Search foods box, read by OpenAI — merged (pull request #123,
 2026-11-18; D-115, ADR-0010).** Plan:
 `docs/plans/voice-meal-logging.md` (Accepted). A "Speak your meal" row under Search foods (E-28, on-device

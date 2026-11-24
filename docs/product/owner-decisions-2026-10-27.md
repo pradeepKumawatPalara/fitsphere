@@ -4042,6 +4042,45 @@ checksum), and the configuration template was left as it is.*
   ADR-0007. Migration 0038 goes to `fitsphere-dev` before the updated API (the old API keeps working after it), then the
   Cloud Run deploy, **only when the owner says so**.
 
+## D-127 Brand labels: the AI tool's estimates replaced by values read from real labels
+- Status: **Accepted** (the owner, in chat, 2026-11-20 to 2026-11-24: volunteers to read the products' pages, then the
+  Serper.dev image-search plan and "run the full 315"; the five rules for readings on hold, "yes apply these rules"; "use
+  Ruchi Star values"; "Lets Rename the 13 products. Keep the 17 as it is."; the spice-blend, syrup and IFCT choices, "yes
+  go ahead with all of it"; "Push"). Number taken as the next free one after D-126 (D-123 is reserved for the Home
+  workout toggle); the owner may renumber. Branch `data/brand-label-sources`.
+- Problem: D-53's 408 brand labels hold an AI tool's estimates from its general knowledge, shown like real labels (R-012).
+- Answer: every row was read again from a real source and checked; 286 now carry label values (3 of them IFCT's, below),
+  122 keep the estimate (`llm`).
+  - Sources, in this order: the brand's own site; a shop's listing (BigBasket, Blinkit, Instamart, Zepto, Amazon,
+    Flipkart and others); a calorie app (FatSecret, one row, agreeing with BigBasket); a photo of the pack's label found
+    by image search (Serper.dev, two searches a product) and read by Claude; IFCT 2017 for three plain spices (Everest
+    Coriander, Tikhalal Chilli and Turmeric) whose packs print values only per teaspoon. Volunteers read pages with
+    claude.ai; Claude read the photos, never filling a value from memory.
+  - Checks on every row: energy against protein, carbs and fat (4, 4, 9); the sheet's limits; the page or pack names
+    this brand and variant; 18 photos re-read at random, and every renamed or fixed row's photo, all matching.
+  - The owner's rules for doubtful readings (2026-11-24): a table on the product's own listing page counts though no
+    brand is printed on it; labels that disagree by less than 15% in energy: the newest or the brand site's; an export
+    pack's per-100 g table when no Indian one exists; an unclear variant renames the row to the variant read; per-spoon
+    values only for plain sugar and tea; energy more than 15% from 4-4-9 is held, except spice blends (MDH), loaded as
+    printed. Every decision and its reason is kept with the working files.
+  - Flags: a brand site's values keep an empty flag; a shop's, a calorie app's, an image-search photo on a shop's page and
+    IFCT's carry `scrap`; estimates stay `llm`. Each row's notes say how it was read ("Volunteer reading:", "Label photo
+    reading:" with the photo's address, "Typical values:"), what was printed and any decision.
+  - 22 products renamed, the code kept so logged meals and foods stay valid, the old name kept as a search word: 13 sold
+    under another name (e.g. Tang Nimbu Pani is Tang Lemon Instant Drink Mix, Mapro Aam Panna is Raw Mango Crush) and 9
+    named for the variant read (e.g. Organic Tattva Organic Moong Dal (Yellow Split)). 17 products no shop sells under
+    their names keep them and their estimates (the owner).
+  - A row per 100 ml may hold up to 150 g of a nutrient: a syrup is heavier than water (Rooh Afza prints 103.5 g of
+    carbohydrate per 100 ml); per 100 g it stays at most 100 (`brandLabels.ts`, with a test). The database and the food
+    contract set no such limit.
+- What stays: 122 rows keep the estimate: packs that print no table (plain dals, spices, tea, coffee), products with no
+  back-of-pack photo online (shops such as BigBasket, Blinkit and Zepto refuse scripts), labels held for a stated reason.
+  The photos, the volunteers' files and the tools stay on the owner's PC (`D:\fitsphere-data`), outside the repository;
+  only each page's and photo's address is kept. The Serper.dev key is never printed or committed.
+- No migration, no phone change, no new build. `foods:import` on `fitsphere-dev` (which the Cloud Run beta shares) after
+  merging, **only when the owner says so**; logged meals keep their own values. Risks R-010 and R-012 updated; Legal is
+  told (Q-049, L-16).
+
 ---
 
 ## Proposed replacement wording for the two invariants

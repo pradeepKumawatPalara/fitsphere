@@ -468,7 +468,7 @@ product or a file the owner made with another AI tool, and approved by the owner
 | `brand`, `product` | As the page names them; listed as "brand product" unless the product starts with the brand |
 | `status` | `proposed` (read, waiting for the owner's OK: not imported) or `approved` (imported) |
 | `basis` | `100 g`, or `100 ml` for a drink (taken as 100 g) |
-| `kcal`, `protein_g`, `carbs_g`, `fat_g` | Per 100 g or ml, at most two decimals; nutrients 0 to 100, kcal at most 1,000; the energy must agree with them (4, 4 and 9 kcal a gram, within a quarter or 20 kcal) |
+| `kcal`, `protein_g`, `carbs_g`, `fat_g` | Per 100 g or ml, at most two decimals; nutrients 0 to 100 (to 150 per 100 ml: a syrup is heavier than water, D-127), kcal at most 1,000; the energy must agree with them (4, 4 and 9 kcal a gram, within a quarter or 20 kcal) |
 | `fibre_g` | As above, or empty when the label gives none (shown as unknown) |
 | `serving`, `serving_grams` | Together or both empty: the serving as printed ("1 slice") and its grams or ml, at most 2,000 |
 | `source_url`, `read_on` | The https address of the page the values were read from (empty for an `llm` row only), and the date |
@@ -492,6 +492,14 @@ product or a file the owner made with another AI tool, and approved by the owner
   drinks, namkeen, sweets, chocolate, breakfast foods and others), 408 in all. They show in the app
   like the other brand labels (R-012). Products already in the database, as brand labels or Open Food Facts' packaged
   products, were left out.
+- Real labels in place of estimates (D-127, 2026-11-24): 286 of the 408 estimates were read again
+  from a real source and replaced: the brand's site (no flag); a shop's listing, a calorie app
+  (FatSecret, one row) or a photo of the pack's label found by image search and read by Claude (all
+  `scrap`); and, for three plain spices whose packs print values only per teaspoon, IFCT 2017's
+  values (`scrap`, notes "Typical values:"). Each row's notes say how it was read, the page and the
+  photo's address, what was printed and any decision (the owner's rules for doubtful readings are in
+  D-127). 22 rows were renamed to the product or variant actually sold, keeping their code and their
+  old name as a search word. 122 rows keep the estimate.
 - `npm run foods:import` checks the whole sheet and refuses all of it if any row is wrong, naming
   the line; only approved rows reach `app.foods` (source `brand_label`) and their servings
   `app.food_portions`. Never approve a row without the owner's word.
