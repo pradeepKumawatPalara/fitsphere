@@ -2,7 +2,7 @@
 
 - Status: Draft — written for the Skeleton slice
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-17 (`GET /v1/users/{userId}/measurements`, D-114). 2026-11-11 (`details` in `GET /v1/exercises`, D-82). Earlier the same day (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
+- Last updated: 2026-11-24 (`GET /v1/foods` and `GET /v1/exercises` answered from the stored version, D-126; responses unchanged). 2026-11-17 (`GET /v1/users/{userId}/measurements`, D-114). 2026-11-11 (`details` in `GET /v1/exercises`, D-82). Earlier the same day (`day` in `target.set` and the pulled targets, D-77). 2026-11-10 (`timer` in `workout.set`, the pull and the workout history, D-71). 2026-11-05 (`GET /v1/exercises` and the exercise's new shape in `workout.set`, D-50). 2026-11-04 (the profile, REQ-ACC-011, D-38). Before that: 2026-10-30 (Settings slice, step 2: `DELETE /v1/me`; D-31). Earlier the same day
   (Settings slice, step 1: `setting.set` and the settings in the pull, and the AI consent routes). 2026-10-29 (Training slice, step 1: workouts through sync, and
   the workout history route; D-29). 2026-10-29 (Home and daily tracking slice, step 2: steps,
   sleep, measurements and targets through sync; D-23). 2026-10-28 (D-20: self-access only in the
@@ -455,6 +455,9 @@ Query: `version` (optional), the version of the list the phone already holds.
 - `version` changes whenever any value the phone receives changes, dishes and units included. When the
   query's `version` is already current, `items` and `dishes` are `null`, so the phone downloads
   the list only when it changed.
+- Since D-126 the server keeps the version in `app.reference_lists` (data-model) and reads the list's
+  tables only when the query's `version` is not the stored one, once per change of the list; a current
+  phone's request costs one small read. The responses and the versions are unchanged.
 - The list is reference data, not personal, and is the same for every signed-in user. Where its
   values are shown, the app shows the IFCT acknowledgement (D-25).
 
@@ -496,7 +499,7 @@ Query: `version` (optional), the version of the list the phone already holds.
   address (the first any of its places gives, else null; the phone then opens the owner's default
   video, `EXERCISE_DEFAULT_VIDEO_URL`). Null when the library does not list it.
 - `version` changes whenever any value changes; when the query's `version` is already current,
-  `items` is `null`.
+  `items` is `null`. As for the food list, the version is kept in `app.reference_lists` (D-126).
 - Reference data, not personal, the same for every signed-in user. A workout keeps each exercise's
   name, not its code, so a change to the list never changes or refuses a saved workout.
 

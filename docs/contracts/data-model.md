@@ -2,7 +2,8 @@
 
 - Status: Draft — written for the Skeleton slice; other entities are added with the slices that need them
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-16 (a food's page with the units of the owner's food database, D-102: migration 0033,
+- Last updated: 2026-11-24 (the reference lists' versions, D-126: `reference_lists`, migration 0038, triggers on
+  the food and exercise lists' tables). 2026-11-16 (a food's page with the units of the owner's food database, D-102: migration 0033,
   `foods.opens_on`, `packaged_foods.opens_on`, `packaged_food_portions`, `food_portion_history`, a meal's totals
   numeric(10,2), one food in a meal up to 10,000 g, counts with two decimals, phone schema version 23).
   2026-11-12 (gym members, D-90: `users.is_gym_member`, migration 0029, for the
@@ -620,6 +621,18 @@ its rows gives, for its page's How to; the other rows stay on the server.
 | `how_to` | `text[]` | 1 to 3 steps, in order, each 1 to 300 characters (checked by the import) |
 | `watch_for` | `text` | 1 to 300 characters |
 | `video_url` | `text` | Null (every row for now), or starting with `https://` or `http://`, at most 500 characters |
+
+### `reference_lists` — reference data
+The food and exercise lists' versions (D-126, migration 0038; `docs/plans/reference-list-egress.md`),
+so `GET /v1/foods` and `GET /v1/exercises` answer a phone whose copy is current without reading the
+lists. Two rows, made by the migration. Not personal data; row level security on, no policies; never sent
+to the phone as such.
+
+| Column | Type | Rules |
+|---|---|---|
+| `name` | `text` | Primary key; `foods` or `exercises` |
+| `generation` | `bigint` | 1 or more. Goes up by one with every statement (insert, update, delete or truncate, even one changing no row) on one of the list's tables: `foods`, `dishes`, `food_measures`, `food_portions`, `packaged_foods` and `packaged_food_portions` for `foods`; `exercises`, `exercise_speed_mets` and `exercise_details` for `exercises` (trigger `reference_list_changed`) |
+| `version` | `text` | Null, or 1 to 64 characters: the version the phone receives for this generation (a hash of every value the list holds), written by the API once it has read the list at this generation. Cleared by the trigger with each change |
 
 ### `usda_foods`, `usda_food_portions` — archive
 USDA's FNDDS foods and their servings (D-39), archived, not served (D-47): the same columns as

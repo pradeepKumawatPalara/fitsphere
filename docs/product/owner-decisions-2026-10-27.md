@@ -4021,6 +4021,26 @@ checksum), and the configuration template was left as it is.*
   so by calling Supabase Auth directly, api-conventions). An account whose email was never verified still gets "Check
   your email" (Supabase sends the link again).
 - No server change, no migration, no phone schema change, no new build.
+---
+
+## D-126 The food and exercise lists' versions kept in the database: "no change" answered without reading the lists
+- Status: **Accepted** (the owner, in chat, 2026-11-24: of the options for Supabase's 11 GB of egress in a month, "go with
+  option 3, write the plan doc", then "go ahead, build it"). Number taken as the next free one after D-125; the owner may
+  renumber. Plan: `docs/plans/reference-list-egress.md`; branch `fix/reference-list-egress`.
+- Problem: `GET /v1/foods` read six tables whole, and `GET /v1/exercises` three, to work out the list's version before
+  comparing it with the phone's. The phone asks after every sync (app start, foreground, reconnection, every save), so
+  each sync read about 5.5 MB from the database even when nothing had changed: 11 GB of egress in a month, past the Free
+  plan's 5 GB and R-005's 4 GB trigger.
+- Answer: migration `0038_reference_lists.sql` keeps each list's `generation` and `version` in `app.reference_lists`;
+  statement-level triggers on the lists' nine tables add 1 to the generation and clear the version on any insert, update,
+  delete or truncate (imports, migrations and dashboard edits alike). The routes read that one row first; a phone whose
+  version is the stored one gets `items: null` with no other query. Otherwise the API reads the list once per generation
+  in one read-only, repeatable-read transaction, keeps it in memory packed (JSON and gzip), and writes the version back for
+  the next request (only at the generation read, with a 2-second lock timeout, never delaying the reply). The version is
+  the same hash as before, so a phone whose copy is current stays current.
+- Does not change the routes' contracts, the phone (no change, no schema change, no new build), ADR-0006 rule 1 or
+  ADR-0007. Migration 0038 goes to `fitsphere-dev` before the updated API (the old API keeps working after it), then the
+  Cloud Run deploy, **only when the owner says so**.
 
 ---
 

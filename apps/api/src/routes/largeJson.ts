@@ -4,18 +4,26 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 
 const gzipAsync = promisify(gzip);
 
+/** A large JSON body, written out once and gzipped once, so it can be kept and sent many times. */
+export type PackedJson = { json: Buffer; gzipped: Buffer };
+
+/** Writes a body out as JSON and gzips it: about a tenth of the size. */
+export async function packJson(body: unknown): Promise<PackedJson> {
+  const json = Buffer.from(JSON.stringify(body), 'utf8');
+  return { json, gzipped: await gzipAsync(json) };
+}
+
 /**
  * Sends a large JSON body (the food list, 6 MB since D-102's units; the exercise list) gzipped when
  * the client accepts gzip: about a tenth of the size. The phone asks for it (OkHttp and iOS's URL
  * loading add "Accept-Encoding: gzip" and unpack it unseen); the PC sends it to the phone through the
  * tunnel, often over a phone's hotspot, where 6 MB took longer than the phone waits (2026-11-16).
- * Otherwise the body goes as it is.
+ * Otherwise the body goes as it is. Since D-126 the body comes packed (`packJson`), kept in memory.
  */
-export async function sendLargeJson(request: FastifyRequest, reply: FastifyReply, body: unknown): Promise<unknown> {
-  void reply.header('vary', 'accept-encoding');
-  if (!acceptsGzip(request.headers['accept-encoding'])) return body;
-  const packed = await gzipAsync(JSON.stringify(body));
-  return reply.header('content-type', 'application/json; charset=utf-8').header('content-encoding', 'gzip').send(packed);
+export function sendLargeJson(request: FastifyRequest, reply: FastifyReply, packed: PackedJson): FastifyReply {
+  void reply.header('vary', 'accept-encoding').header('content-type', 'application/json; charset=utf-8');
+  if (!acceptsGzip(request.headers['accept-encoding'])) return reply.send(packed.json);
+  return reply.header('content-encoding', 'gzip').send(packed.gzipped);
 }
 
 /** Whether an Accept-Encoding header takes gzip: named, and not with q=0. */
