@@ -2,7 +2,8 @@
 
 - Status: Draft
 - Owner: Project owner (D-01)
-- Last updated: 2026-11-16 (D-104: "The iOS app", the EAS profiles `ios-simulator` and
+- Last updated: 2026-11-24 (D-126: "The reference lists' versions", migration 0038, the egress note under
+  Monitoring). 2026-11-16 (D-104: "The iOS app", the EAS profiles `ios-simulator` and
   `production`). 2026-11-13 (D-101: the first deploy, the test APK's EAS profile `preview`). Earlier
   the same day (D-101: the API on Cloud Run for the beta, `HOST`, the image, "The API on Cloud Run"). 2026-10-30 (Settings slice, step 2: `SUPABASE_SECRET_KEY`, D-31). Earlier the
   same day (the dashboard paths still to confirm, with what Supabase's docs say).
@@ -546,6 +547,31 @@ download the APK from the build's page; the owner shares it through Firebase App
 - EAS also loads its `preview` environment for this profile, which holds the phone-only test
   build's `EXPO_PUBLIC_UAT_PASSWORDS`; nothing on `main` reads it, so it is not built into the APK.
 
+### The reference lists' versions (D-126)
+`GET /v1/foods` and `GET /v1/exercises` read their tables only when a phone's copy is behind, once per
+change of the list (`docs/plans/reference-list-egress.md`). Before D-126 every sync read about 5.5 MB
+from the database: 11 GB of egress in a month. Rolling it out, **only at the owner's word**:
+1. Before: in the Supabase SQL editor, note how often the lists' queries have run (or start the counts
+   again with `select pg_stat_statements_reset();`, the owner's choice):
+   ```sql
+   select calls, rows, left(query, 70) as query
+   from pg_stat_statements
+   where query ~ 'app\.(foods|dishes|food_measures|food_portions|packaged_food|exercise|reference_lists)'
+   order by calls desc;
+   ```
+2. `npm run migrate -w @fitsphere/api` from the PC (migration 0038). The API before D-126 keeps
+   working after it; the API after D-126 needs it (without `app.reference_lists` both routes answer 500).
+3. `npm run check:pooler -w @fitsphere/api` (it now also checks the version's read, the read in one
+   transaction and the write-back), then deploy the API to Cloud Run ("The API on Cloud Run", step 6),
+   and restart the PC API (`npm run dev:phone`).
+4. After 2 to 3 days, the same query: the full-table queries' calls grow by about the number of times
+   a list was read whole (the API logs one `reference list built` line each, with the list and its
+   generation), and `select generation, version from app.reference_lists` by about the number of
+   syncs; the daily egress on the Supabase usage page falls.
+
+An import (`foods:import`, `exercises:import`) needs nothing more: the triggers mark the list changed,
+and the next phone to sync is sent it.
+
 ### The iOS app (D-104)
 iPhone only. EAS builds and signs in the cloud, so no Mac is needed. **Tell the owner before every
 build** (D-19): the free plan counts iOS builds apart from Android's. The steps to the App Store and
@@ -583,7 +609,9 @@ Local notifications: the phone schedules them and the operating system fires the
 - files over 800 MB (Free plan limit: 1 GB);
 - monthly active users near 50,000;
 - monthly viewing traffic (egress) over 4 GB. The Free plan has 5 GB of egress and a separate
-  5 GB of cached egress (Supabase pricing page, checked 2026-10-27); watch both;
+  5 GB of cached egress (Supabase pricing page, checked 2026-10-27); watch both. Reached 11 GB in a
+  month by November 2026, from the food and exercise lists read whole on every sync; fixed by D-126
+  ("The reference lists' versions" above);
 - any pause;
 - any data-loss incident.
 

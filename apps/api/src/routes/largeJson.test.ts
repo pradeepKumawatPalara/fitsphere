@@ -1,7 +1,7 @@
 import { gunzipSync } from 'node:zlib';
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
-import { acceptsGzip, sendLargeJson } from './largeJson.ts';
+import { acceptsGzip, packJson, sendLargeJson } from './largeJson.ts';
 
 // D-102: the food list, 6 MB with the units of the owner's food database, goes gzipped to a client
 // that accepts it, so the phone gets it through the tunnel before it stops waiting (2026-11-16).
@@ -15,7 +15,9 @@ describe('a large JSON body', () => {
   it('is sent gzipped when the client accepts it, and as it is otherwise', async () => {
     const app = Fastify();
     const body = { version: 'v1', items: Array.from({ length: 500 }, (_, index) => ({ code: `T${index}`, name: 'Test food', portions: [{ label: 'Katori', grams: 129 }] })) };
-    app.get('/list', async (request, reply) => sendLargeJson(request, reply, body));
+    // Packed once (D-126), sent as often as asked.
+    const packedBody = await packJson(body);
+    app.get('/list', async (request, reply) => sendLargeJson(request, reply, packedBody));
     try {
       const packed = await app.inject({ method: 'GET', url: '/list', headers: { 'accept-encoding': 'gzip, deflate, br' } });
       expect(packed.statusCode).toBe(200);

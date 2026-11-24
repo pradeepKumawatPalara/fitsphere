@@ -54,6 +54,35 @@ const checks: [label: string, run: () => Promise<unknown>][] = [
       client.release();
     }
   }],
+  // D-126 (migration 0038): the lists' stored version, and a list read as of one moment.
+  ["A list's version, and a read of the list as of one moment (read only)", async () => {
+    await pool.query('select generation, version from app.reference_lists where name = $1', ['foods']);
+    const client = await pool.connect();
+    try {
+      await client.query('begin isolation level repeatable read read only');
+      await client.query('select generation, version from app.reference_lists where name = $1', ['foods']);
+      await client.query('select count(*)::int as n from app.dishes');
+      await client.query('commit');
+    } finally {
+      client.release();
+    }
+  }],
+  // D-126: the version written back, with its lock timeout. Generation 0 never exists, so no row is
+  // touched, and the transaction is rolled back.
+  ["A list's version written back, with a lock timeout (changes nothing, rolled back)", async () => {
+    const client = await pool.connect();
+    try {
+      await client.query('begin');
+      await client.query(`set local lock_timeout = '2s'`);
+      await client.query(
+        'update app.reference_lists set version = $1 where name = $2 and generation = $3 and version is distinct from $1',
+        ['check-pooler', 'foods', '0'],
+      );
+      await client.query('rollback');
+    } finally {
+      client.release();
+    }
+  }],
 ];
 
 let failed = 0;
