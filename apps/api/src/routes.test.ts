@@ -17,6 +17,7 @@ const AUTHORIZATION_TESTS: Record<string, string> = {
   'POST /v1/ai/meal-parse': 'test/integration/ai-meal-parse.test.ts',
   'POST /v1/ai/barcode-estimate': 'test/integration/ai-barcode-estimate.test.ts',
   'POST /v1/ai/photo-parse': 'test/integration/ai-photo-parse.test.ts',
+  'POST /v1/ai/photo-estimate': 'test/integration/ai-photo-estimate.test.ts',
   'POST /v1/ai/food-lookup': 'test/integration/ai-food-lookup.test.ts',
   'POST /v1/sync': 'test/integration/sync.test.ts',
   'GET /v1/users/:userId/workouts': 'test/integration/workouts.test.ts',

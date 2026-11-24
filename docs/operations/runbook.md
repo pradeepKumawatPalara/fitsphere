@@ -522,6 +522,16 @@ in `apps/mobile/eas.json` builds an APK for internal distribution with the servi
 `EXPO_PUBLIC_API_URL`, and the Supabase project's address and publishable key (both built into the
 app anyway). From `apps/mobile`: `npx eas-cli@26 build --platform android --profile preview`, then
 download the APK from the build's page; the owner shares it through Firebase App Distribution.
+- **A new version for each share:** from the repository root, `npm run share:android` (tell the owner
+  first, D-19) makes the same build with a new version name: `app.json`'s major and minor, then the
+  build number this build takes, so Firebase lists 1.0.2 (2), 1.0.3 (3) and so on. Each `preview`
+  build takes the next build number (`autoIncrement`; EAS keeps the number, as `appVersionSource` is
+  `remote`, so it never repeats). The script writes the version into `apps/mobile/app.json` only while
+  EAS takes the project, then puts the file back: nothing to commit. `npm run share:android -- --dry-run`
+  only says the next version; other arguments go to `eas build` (`-- --no-wait`). For 1.1.x, change
+  `version` in `app.json` to 1.1.0 and merge it. The plain `eas build` above still works but keeps
+  the version name of `app.json` (1.0.0); a `development` build reuses the last number without moving
+  it on.
 - Since D-115 (pull request #123) the APK carries the speech module: build it from `main` at or after
   #123, after `npm install`. The build log's app configuration lists `expo-speech-recognition` and
   `expo-sqlite` with `useSQLCipher: true`. Speak your meal also needs the Cloud Run API deployed from
@@ -555,6 +565,16 @@ their prerequisites are in `docs/plans/ios-app.md`. From `apps/mobile`:
   Security), build the `development` profile for iOS, then `npm run dev:phone` as for Android.
 - Apple's encryption question (export compliance) is asked at each upload; the owner answers it
   (D-104).
+
+### Notifications on the phone (ADR-0014)
+Local notifications: the phone schedules them and the operating system fires them; no server, no key, no deploy.
+- **A build with `expo-notifications` is needed** (a native module; older builds quietly show no notification card). **Tell the owner before every build (D-19).**
+- **Android 13 and later** asks for permission when the user turns notifications on in Settings › Notifications, never at start. Three channels (Reminders, Goals, Nudges) can be silenced apart in the phone's settings.
+- **Battery savers** on some phones (Xiaomi, Oppo, Vivo, Samsung's sleeping apps) delay or drop a local notification. Tell a tester to allow FitSphere in the battery settings if a reminder is late (accepted risk R-020).
+- **iPhone** keeps at most 64 pending; FitSphere holds at most 40, the next 7 days, rebuilt each time the app opens. No iOS build without the owner's word (D-104).
+- Reminders are made when the app opens; a phone not opened for 7 days runs out of reminders.
+- To see it work: Settings › Notifications › Send a test notification (a few seconds).
+- Nothing about notifications is logged or sent; their text carries no health values.
 
 ## Monitoring
 *Not yet written.* The owner-review triggers for moving to Supabase Pro or adding backups

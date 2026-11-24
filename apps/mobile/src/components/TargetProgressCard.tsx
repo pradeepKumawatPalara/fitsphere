@@ -17,6 +17,8 @@ type Props = {
   onSetTarget: (() => void) | null;
   /** At the right of the title, on its line (Home's "By meal"). */
   action?: ReactNode;
+  /** At the left of the title, on its line (Home's Calories / Workout toggle, D-123). */
+  leading?: ReactNode;
 };
 
 // The calories card (REQ-HOME-003), Home's hero. With no target, only the amount eaten and "Set a
@@ -24,7 +26,7 @@ type Props = {
 // redesign's 2.3 (locked by the owner, 2026-11-03): the bar is 20 plates filled in caramel, and the
 // hero counts down what is left. Since D-103 the protein card it also drew is gone: protein shows with
 // carbs, fat and fibre under it (NutrientTargets).
-export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, action }: Props) {
+export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, action, leading }: Props) {
   const styles = useStyles();
   const { colors } = useTheme();
   // A day before the phone's 90 not loaded yet (D-106): dashes, an empty bar, its target still shown.
@@ -32,7 +34,10 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, ac
     return (
       <View style={styles.card}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.titleGroup}>
+            {leading}
+            <Text style={styles.title}>{title}</Text>
+          </View>
           {action}
         </View>
         <Hero value="–" unit={unit} word="eaten" over={false} waiting />
@@ -55,7 +60,10 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, ac
     return (
       <View style={styles.card}>
         <View style={styles.titleRow}>
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.titleGroup}>
+            {leading}
+            <Text style={styles.title}>{title}</Text>
+          </View>
           {action}
         </View>
         <Hero value={formatInteger(eaten)} unit={unit} word="eaten" over={false} />
@@ -77,7 +85,10 @@ export function TargetProgressCard({ title, unit, eaten, target, onSetTarget, ac
   return (
     <View style={styles.card}>
       <View style={styles.titleRow}>
-          <Text style={styles.title}>{title}</Text>
+          <View style={styles.titleGroup}>
+            {leading}
+            <Text style={styles.title}>{title}</Text>
+          </View>
           {action}
         </View>
       <Hero value={formatInteger(over ? eaten - target : target - eaten)} unit={unit} word={over ? 'over' : 'remaining'} over={over} />
@@ -122,6 +133,7 @@ function Hero({ value, unit, word, over, waiting = false }: { value: string; uni
 const useStyles = themedStyles((c) => ({
   card: { gap: 6 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  titleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { ...TYPE.label, color: c.inkMuted },
   over: { color: c.warning },
   waiting: { color: c.inkSubtle },

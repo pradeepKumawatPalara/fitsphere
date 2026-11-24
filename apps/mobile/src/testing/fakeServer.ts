@@ -11,6 +11,7 @@ import {
   type BarcodeEstimateResponse,
   type FoodLookupResponse,
   type ParsedMealItem,
+  type PhotoEstimateResponse,
   type SyncResult,
   type TargetKind,
   type Workout,
@@ -116,12 +117,14 @@ export function fakeServer(now: Date) {
     barcodeEstimate: null as BarcodeEstimateResponse | { status: number; code: string } | null,
     /** The bodies sent to `POST /ai/barcode-estimate`. */
     barcodeEstimateBodies: [] as { barcode: string; name: string }[],
-    /** What `POST /ai/photo-parse` answers (D-118): the foods seen, or an error status and code. */
-    photoParse: { items: [] } as { items: ParsedMealItem[] } | { status: number; code: string },
-    /** `POST /ai/photo-parse` fails as a network failure would. */
-    photoParseOffline: false,
-    /** The pictures (base64) sent to `POST /ai/photo-parse`. */
-    photoParseImages: [] as string[],
+    /** What `POST /ai/photo-estimate` answers (D-120): the foods seen with their estimates, or an error status and code. */
+    photoEstimate: { items: [] } as PhotoEstimateResponse | { status: number; code: string },
+    /** `POST /ai/photo-estimate` fails as a network failure would. */
+    photoEstimateOffline: false,
+    /** While set, `POST /ai/photo-estimate` waits for it before answering (a test holds the reading screen). */
+    photoEstimateGate: null as Promise<void> | null,
+    /** The pictures (base64) sent to `POST /ai/photo-estimate`. */
+    photoEstimateImages: [] as string[],
     /** What `POST /ai/food-lookup` answers (D-118): the food found, or an error status and code. */
     foodLookup: null as FoodLookupResponse | { status: number; code: string } | null,
     /** The bodies sent to `POST /ai/food-lookup`. */
@@ -245,6 +248,15 @@ export function fakeServer(now: Date) {
       const results = request.changes.map((change) => {
         const known = seen.get(change.changeId);
         if (known) return known;
+        // Disconnect, then Remove (D-121): the values read from Health Connect go; typed ones stay.
+        if (change.type === 'healthImport.remove') {
+          for (const [slot, { item }] of [...stored]) {
+            if ((slot.startsWith('weighIns|') || slot.startsWith('steps|')) && item.source === 'health_connect') stored.delete(slot);
+          }
+          const removed = { changeId: change.changeId, status: 'accepted', error: null } as SyncResult;
+          seen.set(change.changeId, removed);
+          return removed;
+        }
         const type = change.type in KINDS ? (change.type as ChangeType) : null;
         const day = change.data.day;
         const code =
@@ -362,10 +374,11 @@ export function fakeServer(now: Date) {
       }
       return json(200, answer);
     }
-    if (path === '/ai/photo-parse' && method === 'POST') {
-      if (state.photoParseOffline) throw new TypeError('Network request failed');
-      state.photoParseImages.push((body as { imageBase64: string }).imageBase64);
-      const answer = state.photoParse;
+    if (path === '/ai/photo-estimate' && method === 'POST') {
+      if (state.photoEstimateOffline) throw new TypeError('Network request failed');
+      state.photoEstimateImages.push((body as { imageBase64: string }).imageBase64);
+      if (state.photoEstimateGate) await state.photoEstimateGate;
+      const answer = state.photoEstimate;
       if ('status' in answer) {
         return json(answer.status, { error: { code: answer.code, message: 'x', retryable: true, requestId: 'r', details: null } });
       }

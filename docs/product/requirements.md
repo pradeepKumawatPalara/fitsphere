@@ -32,7 +32,7 @@
 - **Post-MVP** marks a requirement, or part of one, that is not in the MVP (D-18,
   `mvp-scope.md` section 3).
 
-Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN · PRG · ACC · NFR
+Areas: NAV · ROLE · DATE · HOME · MEAS · NUT · PLAN · SAVED · LOG · TRN · PRG · ACC · NOT · NFR
 
 ---
 
@@ -371,6 +371,20 @@ B-22).
 
 ## MEAS — Measurements logging (BRD §4)
 
+
+### REQ-HOME-009 — Calories / Workout toggle (D-123)
+- Requirement: A two-icon toggle at the left of the header of Home's first card turns Calories into a Workout view and back. The title and the link at the right follow it: "Calories" with "By meal" (REQ-HOME-003, REQ-HOME-005), or "Workout" with "By workout", which opens Training on the selected date. Calories is unchanged. The Workout view shows the selected date's calories burned (typed or estimated, D-50) with a full bar, and under a divider one row per workout ("Workout 1", its exercise count, its kcal) with a bar against the day's biggest workout. There is no burn goal. The last choice is kept on this phone and the card opens on it next time.
+- Acceptance criteria:
+  - Given the app was never toggled, then Home opens on Calories, as before.
+  - Given Workout is chosen and the app is closed and opened again, then Home opens on Workout.
+  - Given two workouts of 300 and 220 kcal, then the view shows 520 kcal burned, and the bars are full and 73%.
+  - Given a workout with no exercise, then it is not listed (D-108) and the others are numbered as Training numbers them.
+  - Given a workout whose exercises have no calories, then its row says "– kcal" with an empty bar; given none at all, the total is "–".
+  - Given part of the calories is estimated, then "Includes estimated calories" shows.
+  - Given a date with no workout, then "No workouts logged" shows, with "Log workout" on today only.
+  - Given a day older than the phone's 90 not yet loaded (D-106), then the view shows dashes.
+- MVP default (D-18): the choice is kept on this phone only (`sync_meta` `home_card_view`); no server change, no migration, no phone schema change. Built on `feat/home-workout-toggle`; plan `docs/plans/home-workout-toggle.md`.
+
 ### REQ-MEAS-001 — Measurements sheet
 - Requirement: Measurements open as a bottom sheet from the Home card or Progress screen.
 
@@ -658,6 +672,13 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   - Given OpenAI's monthly limit is reached, or the reading fails, then the user's words are kept and ordinary search is offered (`SERVICE_UNAVAILABLE`).
   - D-115: there is no daily limit; the criterion above on 15 AI readings a day no longer applies.
 
+- Changed by D-120 (ADR-0012), **for a photo of a meal only** (Log meal's camera icon): the AI also gives each food's amount seen, the portion's weight and its values per 100 g, and the food list is not used.
+  - Given a photo is taken or chosen, then it is sent at once with no consent step, and the foods seen are listed, ticked, each marked **Estimated**; tapping one opens "Check the estimate" to change its name, grams and values; Add puts the ticked foods in Log meal as estimated foods of the user's own, in grams.
+  - Given the AI cannot answer (offline, no key, OpenAI failing or at its limit, an answer out of contract) or sees no food, then "No data available" is shown with Try another photo and Enter your own food; nothing from the food list stands in for it.
+  - Given the user switched AI meal reading off in Settings, then the photo is not sent and "AI reading is off" is shown, with Open Settings.
+  - Given a food whose kcal is far from its macros' energy, then the server leaves it out of the answer.
+  - Voice and typed words are unchanged: consent, the food list, "Not in our food list" and "Look up online".
+
 ### REQ-LOG-010 — Public link instead of an upload
 - Requirement: Instead of uploading, a user can add a public link (e.g. YouTube) to their own content — in phase 1, meal photos only (REQ-LOG-006; D-16, confirmed). Links to their own videos come with the audio/video release (future scope). Before the link is saved, the app shows a privacy warning, e.g. "Anyone who has this link can view it, even if you later remove your coach. FitSphere cannot delete content stored on YouTube or other sites.", and the user must confirm to continue. When a link between people ends, FitSphere hides the external link from the former coach or Head Coach, but cannot revoke access to the content itself (accepted risk R-004, invariant 1).
 - Type: Functional, Privacy
@@ -839,6 +860,8 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - D-115 (2026-11-17): **asked once.** The first time a reading would be sent and the user has never chosen, or chose on an older consent text, a sheet shows the consent text with Turn on and Not now; the choice is recorded as from the Settings switch, and the sheet does not come back. The text names OpenAI (ADR-0010), with a new version; the server accepts only consent given on the current version, so people who agreed to the Gemini text are asked once again. Without it, the API refuses with `AI_CONSENT_REQUIRED` and calls no AI.
   - Given the user chose Not now, when they use the mic again, then no sheet is shown, the words stay as a search, and a line says AI meal reading can be turned on in Settings.
 
+- D-120 (2026-11-20, ADR-0012): **a photo of a meal read in Log meal needs no consent step.** The photo is sent at once, a notice on "Add a photo" says AI reads it, and a user who switched AI meal reading off in Settings is still not read ("AI reading is off", with Open Settings). Voice, typed words and the barcode estimate keep the rule above. Legal has not reviewed this (Q-049).
+
 ### REQ-ACC-005 — Non-AI logging always available
 - Requirement: Food database, barcodes and saved meals work with AI turned off.
 
@@ -905,6 +928,28 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
   shown is the latest weigh-in on the phone (the last 90 days); a photo is cropped to its middle
   square.
 
+### REQ-ACC-012 — Connections: steps and weight from Health Connect
+- Type: Functional, Privacy
+- Requirement: On Android, the user can connect Health Connect in Settings › Connections so that their steps and
+  body weight are read into FitSphere. Only those two types are asked for, on Android's own permission screen;
+  they are read, never written. *(Backlog B-29; the owner's request, D-121, ADR-0013.)*
+- Acceptance criteria:
+  - Given Health Connect is missing or the phone cannot have it, then the row says so and nothing is read.
+  - Given the user refuses the permission, then the row stays Not connected and nothing is read.
+  - On connect the last 30 days are read once; after that, on app open and on pull to refresh, one read at a
+    time. Never in the background.
+  - A day's steps are Health Connect's own total for that day in Asia/Kolkata (invariant #5); a weigh-in is dated
+    by its time in Asia/Kolkata, kept in whole grams (invariant #6), the latest of the day.
+  - A value the user typed is never changed by a read; an imported value is tagged "Health Connect" and a later
+    read may update it until the user edits it, which makes it the user's own. The API refuses a change that
+    would turn a typed value into an imported one.
+  - A day over 200,000 steps (or with none), or a weight outside 20 to 300 kg, is skipped.
+  - Disconnect stops reading at once and asks Keep or Remove; Remove deletes only the values still tagged
+    Health Connect. Access withdrawn in Android shows as Not connected at the next app open.
+  - A failed read keeps the old values and says "Couldn't read. Try again."; logging by hand is never affected
+    (invariant #4). No value and no reason for a skip is logged (invariant #7). Nothing is sent to an AI service.
+  - A device or app is named on the screen only after the owner's test marks it Works, Partial or Not supported.
+
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
 - Requirement: A person can create an account and sign in with email and password before using any role view; this is the only sign-in method in phase 1 (D-05). Users must be 18 or older: sign-up requires an "I am 18 or older" confirmation (D-18, answers Q-066 for the MVP). *(Not in the BRD, which mentions only change password, log out and delete account.)*
@@ -923,6 +968,47 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
 - Minimum age (D-18, Q-066): 18 or older in the MVP. The confirmation is self-declared; FitSphere does not verify age (threat model, open risks). **Post-MVP:** use by people under 18 (backlog B-16); what it would need is for Legal (Q-049).
 
 ---
+
+## NOT — Notifications on the phone (Proposed: D-122 and Q-A are not yet answered by the owner)
+Plan: `docs/plans/notifications.md`; ADR-0014 (Proposed). Local only: no server, no remote push (ADR-0004, post-MVP). Branch `fitsphere-notification`.
+
+### REQ-NOT-001 — The bell and the Notifications list
+- Requirement: A bell in the header, beside the calendar and the profile photo, shows how many notifications are unread and opens Notifications: newest first, filter chips All, Reminders, Goals and Nudges, "Mark all read", and a button on each card that marks it read and opens what it is about. An X on each card dismisses it. Rows older than 90 days are removed.
+- Acceptance criteria:
+  - Given 3 unread, then the bell says "3 unread" to screen readers and shows 3; given 10 or more, it shows 9+.
+  - Given the Goals chip, then only goal rows show.
+  - Given a card's button is pressed, then the row is read and its screen opens.
+  - Given a card's X is pressed, then it leaves the list and is not made again the same day.
+- MVP default (D-18): "Mark as unread" is not built; the X replaces a row menu.
+
+### REQ-NOT-002 — Reminders
+- Requirement: Workout (the user's days and time), breakfast, lunch, dinner, snack, and measurements due (more than 7 days, Home's rule, D-85; made at most once a week). Each has its own switch, off at first, and its time in 30-minute steps. A reminder is left out when pointless: the meal already has food, the day already has a logged workout (D-108).
+- Acceptance criteria:
+  - Given nothing was switched on, then nothing is scheduled or listed.
+  - Given lunch on at 1:00 pm and lunch logged today, then today's lunch reminder is not scheduled and not listed.
+  - Given a reminder's time passed with the app closed, then the next time the app opens it is in the list once.
+  - Times are India's (Asia/Kolkata) whatever zone the phone is in (invariant #5).
+
+### REQ-NOT-003 — Goal alerts
+- Requirement: Daily target reached (today's protein target) and weekly workouts reached (this Monday-to-Sunday week's target), each with its own switch, off at first, each once (a day, a week). Told while the app is open.
+- Acceptance criteria:
+  - Given today's protein reaches the target, then one Goals row is made, and with notifications on, outside quiet hours and under the day's cap, one is shown now.
+  - Given the same day opened again, then no second row.
+
+### REQ-NOT-004 — Inactivity nudge
+- Requirement: After 2 to 7 days (3 at first) without opening the app, one nudge at the user's time (6:30 pm at first), off until switched on. Opening the app moves it forward; one at most in each stretch of that many days.
+
+### REQ-NOT-005 — Switches, quiet hours, cap and test
+- Requirement: Settings › Notifications has the master card (turns notifications on, asks the phone's permission only then; "Open phone settings" when refused; "Send a test notification"; "Turn off"), and each type's switch and time. Nothing is sent from 10:00 pm to 7:00 am or beyond 4 a day (the test excepted). The list works with notifications off.
+- Acceptance criteria:
+  - Given a reminder set at 10:30 pm, then it is not scheduled; given 5 reminders on one day, then the 4 earliest are kept.
+
+### REQ-NOT-006 — Text and permission
+- Requirement: Notification text names the kind of event only: no food, weight, number or name. The phone's permission is asked in context, never at start.
+
+### REQ-NOT-007 — Offline, no server, no AI
+- Requirement: Notifications read only what is on the phone and work offline; they never depend on a server or on AI (invariant #4). Signing out clears what is scheduled.
+- MVP default (D-18): choices live on this phone only (`sync_meta` `notification_settings`, one JSON text); no server change, no migration of the API; phone schema version 25 (`notifications`).
 
 ## NFR — Non-functional (not in BRD; proposed, need owner targets)
 

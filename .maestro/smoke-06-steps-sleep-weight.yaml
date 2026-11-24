@@ -1,0 +1,165 @@
+appId: com.fitsphere.app
+name: Log steps, sleep and weight from the Home tiles (HOME-06, HOME-07, HOME-08)
+tags:
+  - smoke
+---
+# Each value is one per day: saving again replaces it, so this test can run again and again.
+# A tile's sheet opens with its box focused and the day's value in it; eraseText clears it
+# before typing. No hideKeyboard in the sheets: Back would close a sheet, and Save sits above
+# the keyboard. A refused value shows its rule 0.3 s after typing stops, and Save stays greyed.
+
+# Sign in (as smoke-01)
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "Sign in"
+    below:
+      text: "Forgot password?"
+- extendedWaitUntil:
+    visible: "Calories"
+    timeout: 90000
+- extendedWaitUntil:
+    visible: "Steps: .*"
+    timeout: 30000
+
+# ---- Steps (HOME-06): 0, 200,001 and letters refused; 1 and 200,000 accepted ----
+- tapOn: "Steps: .*"
+- extendedWaitUntil:
+    visible: "Steps · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "0"
+- extendedWaitUntil:
+    visible: "Enter whole steps from 1 to 200,000."
+    timeout: 5000
+- assertVisible:
+    text: "Save"
+    enabled: false
+- eraseText: 10
+- inputText: "200001"
+- extendedWaitUntil:
+    visible: "Enter whole steps from 1 to 200,000."
+    timeout: 5000
+- assertVisible:
+    text: "Save"
+    enabled: false
+# Letters: the number keys can't type them; whatever reaches the box, Save stays greyed
+- eraseText: 10
+- inputText: "abc"
+- assertVisible:
+    text: "Save"
+    enabled: false
+- eraseText: 10
+- inputText: "1"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Steps: 1 step"
+    timeout: 10000
+
+- tapOn: "Steps: .*"
+- extendedWaitUntil:
+    visible: "Steps · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "200000"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Steps: 200,000 steps"
+    timeout: 10000
+
+# The day's steps: 7,500
+- tapOn: "Steps: .*"
+- extendedWaitUntil:
+    visible: "Steps · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "7500"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Steps: 7,500 steps"
+    timeout: 10000
+
+# ---- Sleep (HOME-07): 24.1 and two decimals refused; 0.5 h and 24 h accepted ----
+- tapOn: "Sleep: .*"
+- extendedWaitUntil:
+    visible: "Sleep · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "24.1"
+- extendedWaitUntil:
+    visible: "Enter hours of sleep from 0.0 to 24.0, with at most one decimal."
+    timeout: 5000
+- assertVisible:
+    text: "Save"
+    enabled: false
+- eraseText: 10
+- inputText: "7.25"
+- extendedWaitUntil:
+    visible: "Enter hours of sleep from 0.0 to 24.0, with at most one decimal."
+    timeout: 5000
+- assertVisible:
+    text: "Save"
+    enabled: false
+- eraseText: 10
+- inputText: "0.5"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Sleep: 0.5 h"
+    timeout: 10000
+
+- tapOn: "Sleep: .*"
+- extendedWaitUntil:
+    visible: "Sleep · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "24"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Sleep: 24.0 h"
+    timeout: 10000
+
+# The day's sleep: 7 hours
+- tapOn: "Sleep: .*"
+- extendedWaitUntil:
+    visible: "Sleep · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "7"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Sleep: 7.0 h"
+    timeout: 10000
+
+# ---- Weight (HOME-08), in kg: 70.5 first, so 70.0 is a new value even on a second run ----
+- tapOn: "Weight: .*"
+- extendedWaitUntil:
+    visible: "Weight · .*"
+    timeout: 10000
+- assertVisible: "Weight in kg"
+- eraseText: 10
+- inputText: "70.5"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Weight: 70.5 kg"
+    timeout: 10000
+
+# The day's weight: 70 kg
+- tapOn: "Weight: .*"
+- extendedWaitUntil:
+    visible: "Weight · .*"
+    timeout: 10000
+- eraseText: 10
+- inputText: "70"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Weight: 70.0 kg"
+    timeout: 10000

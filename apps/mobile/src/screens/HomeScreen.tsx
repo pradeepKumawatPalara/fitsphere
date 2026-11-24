@@ -19,6 +19,7 @@ import { ChevronDown, ChevronRight, ChevronUp, CircleGauge, Footprints, Moon } f
 import { LayoutAnimation, Platform, Pressable, ScrollView, UIManager, View } from 'react-native';
 import { useAuth } from '../auth/AuthProvider';
 import { ensureAccount } from '../auth/service';
+import { CardViewToggle } from '../components/CardViewToggle';
 import { CutCorner } from '../components/CutCorner';
 import { LogMealButton } from '../components/LogMealButton';
 import { MeasurementsCard, measurementsSince } from '../components/MeasurementsCard';
@@ -29,16 +30,20 @@ import { QuickTile } from '../components/QuickTile';
 import { RejectedChanges } from '../components/RejectedChanges';
 import { isWaiting, ShowingDayBanner } from '../components/ShowingDayBanner';
 import { TargetProgressCard } from '../components/TargetProgressCard';
+import { WorkoutBurnCard } from '../components/WorkoutBurnCard';
 import { WeekStrip } from '../components/WeekStrip';
 import { Text } from '../components/ui';
 import { DAY_VALUE_ORDER, dayValues, type DayValueKind } from '../dayValues';
 import { formatDay, formatInteger } from '../format';
+import { readCardView, workoutBurn, type HomeCardView } from '../homeCardView';
 import { useLocalDatabase } from '../local/LocalDatabaseProvider';
 import {
   dayNutrition,
   getEntry,
   getMeta,
   latestMeasurementsDay,
+  listEntries,
+  setMeta,
   targetsOn,
   rejectedChanges,
   type LocalMeasurements,
@@ -64,7 +69,7 @@ const TILE_ICONS = {
 } as const;
 
 type Sheet = { kind: DayValueKind; day: IstDay; initial: number | null };
-type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState }>>;
+type DayValues = Partial<Record<DayValueKind, { value: number; syncState: SyncState; fromHealthConnect: boolean }>>;
 type Targets = Partial<Record<TargetKind, number>>;
 
 // Home (REQ-HOME-*): the selected day's data. The date, the calendar and the avatar are in the
@@ -97,6 +102,9 @@ export function HomeScreen() {
   } | null>(null);
   const measurementsOpen = measurementsSheet !== null;
   const [eaten, setEaten] = useState<MealTotals | null>(null);
+  // Home's first card shows the day's food or its workouts (D-123); the choice is kept on this phone.
+  const [view, setView] = useState<HomeCardView>('calories');
+  const [dayWorkouts, setDayWorkouts] = useState<Awaited<ReturnType<typeof listEntries<'workout'>>>>([]);
   // The strip's week: an apple and a dumbbell under each day (D-103); no line counting its workouts (D-110).
   const activity = useWeekActivity(stripStart);
   // A day before the phone's 90 is read from the server when shown; till then its cards show dashes (D-106).
@@ -107,6 +115,22 @@ export function HomeScreen() {
   function toggleWeek() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setWeekOpen((open) => !open);
+  }
+
+  useEffect(() => {
+    if (local.state.status !== 'ready') return;
+    let active = true;
+    void getMeta(local.state.db, 'home_card_view').then((saved) => {
+      if (active) setView(readCardView(saved));
+    });
+    return () => {
+      active = false;
+    };
+  }, [local.state]);
+
+  function chooseView(next: HomeCardView) {
+    setView(next);
+    if (local.state.status === 'ready') void setMeta(local.state.db, 'home_card_view', next);
   }
 
   useEffect(() => {
@@ -135,7 +159,8 @@ export function HomeScreen() {
       dayNutrition(db, selected),
       latestMeasurementsDay(db, today),
       getMeta(db, 'account_created_day'),
-    ]).then(([entries, waiting, onDay, dayMeasurements, unit, nutrition, lastDay, accountDay]) => {
+      listEntries(db, 'workout', selected, selected),
+    ]).then(([entries, waiting, onDay, dayMeasurements, unit, nutrition, lastDay, accountDay, workouts]) => {
       if (!active) return;
       setValues(
         Object.fromEntries(
@@ -148,6 +173,8 @@ export function HomeScreen() {
                     {
                       value: Number(entry[texts[kind].field]),
                       syncState: entry.syncState,
+                      // Steps and weight read from Health Connect carry a tag (D-121).
+                      fromHealthConnect: entry.source === 'health_connect',
                     },
                   ],
                 ]
@@ -162,6 +189,7 @@ export function HomeScreen() {
       setLastMeasured({ day: lastDay, accountDay });
       setLengthUnit(unit === 'in' ? 'in' : 'cm');
       setEaten(nutrition);
+      setDayWorkouts(workouts);
     });
     return () => {
       active = false;
@@ -224,6 +252,13 @@ export function HomeScreen() {
   }
 
   const sheetText = sheet ? texts[sheet.kind] : null;
+  const toggle = <CardViewToggle view={view} onChange={chooseView} />;
+  const burnOfDay = workoutBurn(dayWorkouts);
+  /** A new workout on the selected day, saved at once and opened, as Training's Log workout does (D-41). */
+  async function logWorkout() {
+    const id = await sync.startWorkout(selected);
+    router.push(`/workout/${id}`);
+  }
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -264,32 +299,58 @@ export function HomeScreen() {
             under the calories since D-103. */}
         <View style={styles.panel}>
           <CutCorner />
-          <TargetProgressCard
-            title="Calories"
-            unit="kcal"
-            eaten={waiting ? null : Math.round(eaten?.kcal ?? 0)}
-            target={targets.calories ?? null}
-            onSetTarget={selected === today ? openTargets : null}
-            action={
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="By meal"
-                hitSlop={8}
-                onPress={() =>
-                  router.push({
-                    pathname: '/nutrition',
-                    params: { tab: 'consumed' },
-                  })
-                }
-                style={({ pressed }) => [styles.byMeal, pressed && { opacity: 0.6 }]}
-              >
-                <Text style={styles.byMealText}>By meal</Text>
-                <ChevronRight size={16} strokeWidth={2.25} color={colors.accent} />
-              </Pressable>
-            }
-          />
-          <View style={styles.rule} />
-          <NutrientTargets totals={waiting ? null : eaten} targets={targets} />
+          {view === 'calories' ? (
+            <TargetProgressCard
+              title="Calories"
+              leading={toggle}
+              unit="kcal"
+              eaten={waiting ? null : Math.round(eaten?.kcal ?? 0)}
+              target={targets.calories ?? null}
+              onSetTarget={selected === today ? openTargets : null}
+              action={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="By meal"
+                  hitSlop={8}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/nutrition',
+                      params: { tab: 'consumed' },
+                    })
+                  }
+                  style={({ pressed }) => [styles.byMeal, pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.byMealText}>By meal</Text>
+                  <ChevronRight size={16} strokeWidth={2.25} color={colors.accent} />
+                </Pressable>
+              }
+            />
+          ) : (
+            <WorkoutBurnCard
+              title="Workout"
+              leading={toggle}
+              burn={waiting ? null : burnOfDay}
+              onLog={selected === today ? () => void logWorkout() : null}
+              action={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="By workout"
+                  hitSlop={8}
+                  onPress={() => router.push('/training')}
+                  style={({ pressed }) => [styles.byMeal, pressed && { opacity: 0.6 }]}
+                >
+                  <Text style={styles.byMealText}>By workout</Text>
+                  <ChevronRight size={16} strokeWidth={2.25} color={colors.accent} />
+                </Pressable>
+              }
+            />
+          )}
+          {view === 'calories' ? (
+            <>
+              <View style={styles.rule} />
+              <NutrientTargets totals={waiting ? null : eaten} targets={targets} />
+            </>
+          ) : null}
         </View>
         <View style={styles.tiles}>
           {DAY_VALUE_ORDER.map((kind, index) => {
@@ -306,6 +367,7 @@ export function HomeScreen() {
                 })()}
                 shownValue={kind === 'steps' && entry ? formatInteger(entry.value) : undefined}
                 syncState={entry?.syncState ?? null}
+                tag={entry?.fromHealthConnect ? 'Health Connect' : null}
                 waiting={waiting && !entry}
                 onPress={() =>
                   setSheet({

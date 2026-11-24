@@ -42,6 +42,7 @@ const REASONS: Record<ChangeErrorCode, string> = {
   ROLE_NOT_ENABLED: 'your account cannot log this',
   NOT_ALLOWED: 'you cannot change it',
   UNKNOWN_CHANGE_TYPE: 'this version of the app is out of date',
+  MANUAL_VALUE_EXISTS: 'a value you typed is already there',
 };
 
 /** The setting names as Settings lists them. */

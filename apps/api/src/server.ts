@@ -1,4 +1,5 @@
 import { mealParserFromEnv } from './ai/mealParser.ts';
+import { photoEstimatorFromEnv } from './ai/photoEstimator.ts';
 import { photoParserFromEnv } from './ai/photoParser.ts';
 import { productEstimatorFromEnv } from './ai/productEstimator.ts';
 import { buildApp } from './app.ts';
@@ -50,6 +51,7 @@ const app = buildApp({
   mealParser: mealParserFromEnv(process.env),
   productEstimator: productEstimatorFromEnv(process.env),
   photoParser: photoParserFromEnv(process.env),
+  photoEstimator: photoEstimatorFromEnv(process.env),
 });
 
 // Cloud Run stops an instance with SIGTERM, and SIGKILL 10 seconds later. In a container the API

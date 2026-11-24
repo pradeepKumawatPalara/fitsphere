@@ -18,13 +18,15 @@ type Props = {
   icon?: ReactNode;
   /** What is drawn in place of `value` (the spoken label keeps `value`): Steps drops its repeated unit. */
   shownValue?: string | null;
+  /** Where the value came from, when not typed (D-121: "Health Connect"). */
+  tag?: string | null;
   onPress(): void;
 };
 
 // A Home quick tile (REQ-HOME-006): the selected day's value, or "+ Add"; tapping it opens the
 // entry sheet. The redesign's 2.3 (locked by the owner, 2026-11-03): one column of Home's strip of
 // three, its reading in condensed capitals.
-export function QuickTile({ label, value, syncState, divider = false, waiting = false, icon, shownValue, onPress }: Props) {
+export function QuickTile({ label, value, syncState, divider = false, waiting = false, icon, shownValue, tag = null, onPress }: Props) {
   const styles = useStyles();
   const spoken = waiting ? '–' : (value ?? '+ Add');
   const shown = waiting ? '–' : ((shownValue ?? value) || '+ Add');
@@ -32,7 +34,7 @@ export function QuickTile({ label, value, syncState, divider = false, waiting = 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${waiting ? 'not loaded' : spoken}`}
+      accessibilityLabel={`${label}: ${waiting ? 'not loaded' : spoken}${tag && !waiting ? `, from ${tag}` : ''}`}
       onPress={onPress}
       style={({ pressed }) => [styles.tile, divider && styles.divider, pressed && styles.pressed]}
     >
@@ -41,6 +43,7 @@ export function QuickTile({ label, value, syncState, divider = false, waiting = 
         <Text style={styles.label}>{label}</Text>
       </View>
       <Text style={[styles.value, waiting ? styles.waiting : value === null && styles.add]}>{shown}</Text>
+      {tag && !waiting ? <Text style={styles.note}>{tag}</Text> : null}
       {note ? <Text style={[styles.note, syncState === 'rejected' && styles.notSaved]}>{note}</Text> : null}
     </Pressable>
   );

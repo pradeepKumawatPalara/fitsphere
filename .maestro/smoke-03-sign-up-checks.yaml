@@ -1,0 +1,23 @@
+appId: com.fitsphere.app
+name: Sign-up form keeps the button greyed for a bad email and short password (ACC-05)
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Forgot password?"
+    timeout: 20000
+- tapOn: "Create an account"
+- tapOn: "Email"
+- inputText: "abc"
+- hideKeyboard
+- tapOn: "Password"
+- inputText: "1234567"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "(?i).*enter an email address.*"
+    timeout: 10000
+- assertVisible: "(?i).*8 to 72 characters.*"
+- assertVisible: "(?i).*check your email address to sign up.*"
+- assertNotVisible: "Calories"

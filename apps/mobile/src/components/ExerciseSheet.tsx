@@ -68,6 +68,12 @@ const CARDIO_FIELDS: Record<CardioField, { label: string; unit: string; keyboard
 const COMPENDIUM_CREDIT =
   'Activity values: Herrmann SD, Willis EA, Ainsworth BE, et al. 2024 Adult Compendium of Physical Activities: a third update of the energy costs of human activities. Journal of Sport and Health Science, 2024;13(1):6–12. pacompendium.com';
 
+/**
+ * Time spent and Calories burned are hidden for now (the owner, 2026-11-24): the calories did not follow
+ * the sets' weight and reps, so the approach is being changed. Set `show` to true to show them again (the tests of the calories do).
+ */
+export const effortFields = { show: false };
+
 /** e.g. 0.5, 0.75: hours as the estimate's formula reads them. */
 function hours(seconds: number): string {
   return String(Number((seconds / 3600).toFixed(2)));
@@ -643,6 +649,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           {/* The labels in one row and the boxes in the next, so the two boxes line up whatever the labels
               hold: Calories' info button and its tag made its label taller than Time spent's, and its box
               sat lower (the owner, 2026-11-17: "the two input field is not align"). */}
+          {effortFields.show ? (
+          <>
           <View testID="exercise-effort" style={styles.field}>
             <View testID="exercise-effort-labels" style={[styles.pair, styles.pairLabels]}>
               {layout.kind === 'sets' ? (
@@ -710,6 +718,8 @@ export function ExerciseSheet({ title, day, editing, onSave, onRemove, onClose }
           </View>
           {problems.spent ? <Problem text={problems.spent} /> : null}
           {problems.kcal ? <Problem text={problems.kcal} /> : <Text style={styles.afterPair}>{caloriesHelp(text.kcal, estimated, layout.kind)}</Text>}
+          </>
+          ) : null}
           <View style={styles.pair}>
             {(['averageHeartRate', 'highestHeartRate'] as const).map((key) => (
               <View key={key} style={[styles.field, styles.half]}>
