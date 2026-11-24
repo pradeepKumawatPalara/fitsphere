@@ -1,4 +1,4 @@
-// Schemas shared by the app and the API (api-conventions, "Strict input"; error-model).
+﻿// Schemas shared by the app and the API (api-conventions, "Strict input"; error-model).
 // Request schemas are strict: unknown fields are refused. Response schemas accept added fields,
 // because adding a field does not change the API version.
 import { z } from 'zod';
@@ -100,7 +100,9 @@ export const ROLES = ['personal', 'coach', 'head_coach'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const meResponseSchema = z.object({
-  user: z.object({ id: idSchema, email: z.string(), createdAt: instantSchema }),
+  // `onboardedAt` (D-124): when the user finished first sign-in onboarding, null until then. Missing (an
+  // older API) is read as finished, so an old server never sends everyone into onboarding.
+  user: z.object({ id: idSchema, email: z.string(), createdAt: instantSchema, onboardedAt: instantSchema.nullable().optional() }),
   roles: z.array(z.enum(ROLES)),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;

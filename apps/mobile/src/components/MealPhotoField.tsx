@@ -1,3 +1,4 @@
+import { SHOW_IMAGE_LINK } from '../featureFlags';
 import { isPublicLink } from '@fitsphere/shared';
 import { Camera, Image as ImageIcon, Link, TriangleAlert, WifiOff, X, type LucideIcon } from 'lucide-react-native';
 import { useState } from 'react';
@@ -132,18 +133,20 @@ export function MealPhotoField({
               void pick('library');
             }}
           />
-          <ChooserRow
-            icon={Link}
-            title="Add an image link instead"
-            tint={colors.warningTint}
-            ink={colors.warning}
-            disabled={busy}
-            onPress={() => {
-              onChooserClose();
-              setLinkText('');
-              setLinkStep('enter');
-            }}
-          />
+          {SHOW_IMAGE_LINK ? (
+            <ChooserRow
+              icon={Link}
+              title="Add an image link instead"
+              tint={colors.warningTint}
+              ink={colors.warning}
+              disabled={busy}
+              onPress={() => {
+                onChooserClose();
+                setLinkText('');
+                setLinkStep('enter');
+              }}
+            />
+          ) : null}
         </Sheet>
       ) : null}
       {busy ? (

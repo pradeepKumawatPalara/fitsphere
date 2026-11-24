@@ -40,6 +40,9 @@ const estimator: PhotoEstimator = {
     if (fake.failWith) throw fake.failWith;
     return ANSWER;
   },
+  async estimateText() {
+    return ANSWER;
+  },
 };
 
 // 2026-11-20 10:00 in India.

@@ -1,4 +1,4 @@
-import { useFonts } from 'expo-font';
+﻿import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
@@ -22,7 +22,7 @@ function LocalDatabaseForUser({ children }: { children: ReactNode }) {
 }
 
 // App start and the sign-in screens draw their own heading, so they have no header.
-const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup'];
+const NO_HEADER = ['index', 'sign-in', 'sign-up', 'forgot-password', 'reset-password', 'check-email', 'verified', 'account-setup', 'onboarding'];
 
 // The screens. Their header as the tabs': the theme's colours, a flat edge, the back arrow in caramel;
 // the title in condensed capitals (the redesign's 3.5, locked by the owner 2026-11-03).
@@ -53,6 +53,7 @@ function AppStack() {
       <Stack.Screen name="target-history" options={{ title: 'Target history' }} />
       <Stack.Screen name="profile" options={{ title: 'Profile' }} />
       <Stack.Screen name="connections" options={{ title: 'Connections' }} />
+      <Stack.Screen name="health-guide" options={{ title: 'How to connect' }} />
       {/* Log meal draws its own header row: the title at the left, the date at the right (the owner, 2026-11-18). */}
       <Stack.Screen name="log-meal" options={{ title: 'Log meal', headerShown: false }} />
       {/* A saved meal (D-69): made new from its name, or opened to change. */}

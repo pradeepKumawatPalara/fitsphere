@@ -2,13 +2,13 @@ import type { WorkoutExercise } from '@fitsphere/shared';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { AuthProvider } from '../auth/AuthProvider';
 import { LocalDatabaseProvider } from '../local/LocalDatabaseProvider';
-import { getMeta, migrateLocal } from '../local/store';
+import { getMeta, migrateLocal, saveWeighIn } from '../local/store';
 import { SelectedDayProvider } from '../navigation/SelectedDayProvider';
 import { SyncProvider } from '../sync/SyncProvider';
 import { deps, fakeAuthClient, fakeSession } from '../testing/fakes';
 import { fakeServer } from '../testing/fakeServer';
 import { memoryDb } from '../testing/memoryDb';
-import { sameSets } from '../testing/exercises';
+import { sameSets, withExerciseList } from '../testing/exercises';
 import { HomeScreen } from './HomeScreen';
 
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
@@ -35,11 +35,13 @@ beforeEach(() => {
 
 type Seed = { day: string; exercises: WorkoutExercise[] };
 
-async function renderHome(seeds: Seed[] = [], saved?: string) {
+async function renderHome(seeds: Seed[] = [], saved?: string, bodyWeightGrams?: number) {
   const db = memoryDb();
   await migrateLocal(db);
+  if (bodyWeightGrams !== undefined) await saveWeighIn(db, { changeId: newId(), day: '2026-10-27', weightGrams: bodyWeightGrams, recordedAt: '2026-10-27T02:00:00.000Z' });
   if (saved) await db.runAsync(`INSERT OR REPLACE INTO sync_meta (key, value) VALUES ('home_card_view', ?)`, [saved]);
   const server = fakeServer(NOW);
+  await withExerciseList(db, server);
   seeds.forEach((seed) => server.storeWorkoutFromElsewhere(newId(), seed.day, seed.exercises));
   const client = fakeAuthClient(fakeSession({ age_confirmed: true, age_confirmation_text_version: '2026-10-27' }));
   await render(
@@ -56,6 +58,22 @@ async function renderHome(seeds: Seed[] = [], saved?: string) {
   return { db, server };
 }
 
+describe('Home’s Workout view follows the sets (the owner, 2026-11-24)', () => {
+  it('shows calories worked out from an exercise’s sets and the latest weigh-in, with no calories stored', async () => {
+    await renderHome([{ day: '2026-10-28', exercises: [sameSets('Dumbbell curl', 3, 10, 12_000)] }], 'workout', 70_000);
+    await screen.findByText('Workout');
+
+    expect(await screen.findByLabelText('14 kcal burned')).toBeOnTheScreen();
+  });
+
+  it('shows a dash with no weigh-in', async () => {
+    await renderHome([{ day: '2026-10-28', exercises: [sameSets('Dumbbell curl', 3, 10, 12_000)] }], 'workout');
+    await screen.findByText('Workout');
+
+    expect(await screen.findByLabelText('No calories burned logged')).toBeOnTheScreen();
+  });
+});
+
 describe('D-123 Home’s Calories / Workout toggle', () => {
   it('opens on Calories, unchanged, with the toggle at the left of its header', async () => {
     await renderHome();
@@ -65,7 +83,7 @@ describe('D-123 Home’s Calories / Workout toggle', () => {
     expect(screen.getByTestId('nutrient-protein')).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Calories eaten', selected: true })).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Workouts', selected: false })).toBeOnTheScreen();
-    expect(screen.queryByText('By workout')).toBeNull();
+    expect(screen.getAllByText('By meal')).toHaveLength(1);
   });
 
   it('shows the day’s workouts and their calories burned, with no goal', async () => {
@@ -79,7 +97,8 @@ describe('D-123 Home’s Calories / Workout toggle', () => {
     await fireEvent.press(screen.getByRole('radio', { name: 'Workouts' }));
 
     expect(screen.getByText('Workout')).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'By workout' })).toBeOnTheScreen();
+    // The Workout card's link to Training is titled "By training" (the owner, 2026-11-24).
+    expect(screen.getByRole('button', { name: 'By training' })).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'By meal' })).toBeNull();
     expect(screen.queryByTestId('nutrient-protein')).toBeNull();
     expect(await screen.findByLabelText('520 kcal burned')).toBeOnTheScreen();
@@ -106,7 +125,7 @@ describe('D-123 Home’s Calories / Workout toggle', () => {
   it('opens on Workout when that was kept', async () => {
     await renderHome([], 'workout');
 
-    expect(await screen.findByRole('button', { name: 'By workout' })).toBeOnTheScreen();
+    expect(await screen.findByRole('button', { name: 'By training' })).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Workouts', selected: true })).toBeOnTheScreen();
   });
 
@@ -139,10 +158,10 @@ describe('D-123 Home’s Calories / Workout toggle', () => {
     expect(screen.getByText('Includes estimated calories')).toBeOnTheScreen();
   });
 
-  it('By workout opens Training', async () => {
+  it('By training, on the Workout card, opens Training', async () => {
     await renderHome([], 'workout');
 
-    await fireEvent.press(await screen.findByRole('button', { name: 'By workout' }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'By training' }));
 
     expect(mockRouter.push).toHaveBeenCalledWith('/training');
   });

@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useFieldChecks } from '../fieldChecks';
 import { GRAMS_RULE, parseGrams, parseOwnValue } from '../mealItems';
+import { MEAL_ITEM_GRAMS_MAX } from '@fitsphere/shared';
 import { formatKcal } from '../meals';
-import { photoItemOf, type PhotoFood } from '../photoMeal';
+import { gramsPerUnit, photoItemOf, unitWordFor, type PhotoFood } from '../photoMeal';
 import { themedStyles } from '../theme';
 import { TYPE } from '../typography';
 import { Sheet } from './Sheet';
@@ -26,11 +27,35 @@ type Key = (typeof VALUES)[number]['key'];
 
 const textOf = (value: number | null) => (value === null ? '' : String(value));
 
-export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDone(food: PhotoFood): void; onBack(): void }) {
+/** A quantity typed: more than 0, two decimals at most (as a food's page, D-102); null when it is not one. */
+export function parseQuantity(text: string): number | null {
+  const trimmed = text.trim();
+  if (!/^(\d+\.?\d{0,2}|\.\d{1,2})$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return value > 0 && value <= 10_000 ? value : null;
+}
+const QUANTITY_RULE = 'Enter a quantity above 0, with at most two decimals.';
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/** `source`: what the AI read, for the words ("from your photo", "from what you said"). */
+export function PhotoFoodSheet({
+  food,
+  onDone,
+  onBack,
+  source = 'photo',
+}: {
+  food: PhotoFood;
+  onDone(food: PhotoFood): void;
+  onBack(): void;
+  source?: 'photo' | 'voice';
+}) {
   const styles = useStyles();
   const labelStyle = useFieldLabelStyle();
   const [name, setName] = useState(food.name);
   const [gramsText, setGramsText] = useState(String(food.grams));
+  const [quantityText, setQuantityText] = useState(String(food.quantity));
+  // The weight of one of the unit, from the AI's estimate: the Quantity box and the amount follow each other.
+  const [perUnit] = useState(() => gramsPerUnit(food));
   const [texts, setTexts] = useState<Record<Key, string>>({
     kcal: textOf(food.per100.kcal),
     proteinG: textOf(food.per100.proteinG),
@@ -41,14 +66,27 @@ export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDo
   const [focused, setFocused] = useState<string | null>(null);
 
   const grams = parseGrams(gramsText);
+  const quantity = parseQuantity(quantityText);
+
+  function changeQuantity(text: string) {
+    setQuantityText(text);
+    const typed = parseQuantity(text);
+    const weight = typed === null ? null : Math.round(perUnit * typed);
+    if (weight !== null && weight >= 1 && weight <= MEAL_ITEM_GRAMS_MAX) setGramsText(String(weight));
+  }
+  function changeGrams(text: string) {
+    setGramsText(text);
+    const typed = parseGrams(text);
+    if (typed !== null) setQuantityText(String(round2(typed / perUnit)));
+  }
   const values = Object.fromEntries(
     VALUES.map(({ key, nutrient }) => [key, texts[key].trim() === '' ? 'empty' : (parseOwnValue(texts[key], 'g', nutrient) ?? 'invalid')]),
   ) as Record<Key, number | 'empty' | 'invalid'>;
   const valuesValid = VALUES.every(({ key, required }) => typeof values[key] === 'number' || (!required && values[key] === 'empty'));
   const nameValid = name.trim().length >= MY_FOOD_NAME_MIN && name.trim().length <= MY_FOOD_NAME_MAX;
-  const valid = nameValid && grams !== null && valuesValid;
+  const valid = nameValid && grams !== null && quantity !== null && valuesValid;
   // Each problem shows once typing pauses or the field is left (D-99).
-  const checks = useFieldChecks({ name, grams: gramsText, ...texts });
+  const checks = useFieldChecks({ name, grams: gramsText, quantity: quantityText, ...texts });
 
   /** The food as it stands now; null while something cannot be used. */
   function current(): PhotoFood | null {
@@ -56,7 +94,10 @@ export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDo
     const number = (key: Key) => (typeof values[key] === 'number' ? values[key] : null);
     const per100 = { kcal: number('kcal')!, proteinG: number('proteinG')!, carbsG: number('carbsG')!, fatG: number('fatG')!, fibreG: number('fibreG') };
     const changed = grams !== food.grams || VALUES.some(({ key }) => per100[key] !== food.per100[key]);
-    return { ...food, name: name.trim(), grams, per100, edited: food.edited || changed };
+    // The list's line follows the quantity once it is changed ("3 pieces"); untouched, it keeps what the AI said.
+    const typed = quantity ?? food.quantity;
+    const seen = typed === food.quantity ? food.seen : `${typed} ${unitWordFor(food.unit, typed)}`;
+    return { ...food, name: name.trim(), grams, per100, quantity: typed, seen, edited: food.edited || changed };
   }
   const now = current();
   const portion = now ? photoItemOf(now).kcal : null;
@@ -65,7 +106,9 @@ export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDo
     ? name.trim() === ''
       ? "Enter the food's name."
       : "Check the food's name."
-    : grams === null
+    : quantity === null
+      ? QUANTITY_RULE
+      : grams === null
       ? GRAMS_RULE
       : !valuesValid
         ? 'Enter calories, protein, carbs and fat per 100 g.'
@@ -83,7 +126,10 @@ export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDo
         </>
       }
     >
-      <Banner tone="info" text="Estimated by AI from your photo. Change anything that looks off, then add it." />
+      <Banner
+        tone="info"
+        text={`Estimated by AI from ${source === 'voice' ? 'what you said' : 'your photo'}. Change anything that looks off, then add it.`}
+      />
       <Field
         label="Food name"
         value={name}
@@ -94,12 +140,34 @@ export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDo
         onBlur={() => checks.blur('name')}
       />
       <View style={styles.group}>
+        <Text style={labelStyle}>Quantity</Text>
+        <View style={[styles.box, focused === 'quantity' && styles.boxFocused, quantity === null && quantityText.trim() !== '' && checks.shows('quantity') && styles.boxRefused]}>
+          <TextInput
+            accessibilityLabel={`Quantity (${unitWordFor(food.unit, quantity ?? 2)})`}
+            value={quantityText}
+            onChangeText={changeQuantity}
+            onFocus={() => {
+              setFocused('quantity');
+              checks.focus('quantity');
+            }}
+            onBlur={() => {
+              setFocused(null);
+              checks.blur('quantity');
+            }}
+            keyboardType="decimal-pad"
+            style={styles.number}
+          />
+          <Text style={styles.unit}>{unitWordFor(food.unit, quantity ?? 2)}</Text>
+        </View>
+        {quantity === null && quantityText.trim() !== '' && checks.shows('quantity') ? <Problem text={QUANTITY_RULE} /> : null}
+      </View>
+      <View style={styles.group}>
         <Text style={labelStyle}>Amount</Text>
         <View style={[styles.box, focused === 'grams' && styles.boxFocused, grams === null && gramsText.trim() !== '' && checks.shows('grams') && styles.boxRefused]}>
           <TextInput
             accessibilityLabel="Amount (g)"
             value={gramsText}
-            onChangeText={setGramsText}
+            onChangeText={changeGrams}
             onFocus={() => {
               setFocused('grams');
               checks.focus('grams');
@@ -117,7 +185,7 @@ export function PhotoFoodSheet({ food, onDone, onBack }: { food: PhotoFood; onDo
           <Problem text={GRAMS_RULE} />
         ) : (
           <Text style={styles.help}>
-            {food.seen ? `The AI saw about ${food.seen}. ` : 'Estimated from the photo. '}The values below change with the amount.
+            {food.seen ? `The AI ${source === 'voice' ? 'heard' : 'saw'} about ${food.seen}. ` : `Estimated from ${source === 'voice' ? 'what you said' : 'the photo'}. `}The values below change with the amount.
           </Text>
         )}
       </View>

@@ -19,13 +19,26 @@ describe('REQ-ACC-010 sign-up', () => {
 
   it.each([
     ['a new address', null],
-    ['an already registered address (obfuscated user, no error)', null],
     ['an address outside the team', { name: 'AuthApiError', code: 'email_address_not_authorized', status: 400 }],
     ['the email rate limit', { name: 'AuthApiError', code: 'over_email_send_rate_limit', status: 429 }],
     ['a Supabase failure', { name: 'AuthRetryableFetchError', status: 503 }],
-  ])('D-11 gives the same result for %s', async (_case, error) => {
+  ])('D-11 still gives one result for %s', async (_case, error) => {
     const client = fakeAuthClient();
     client.signUp.mockResolvedValueOnce({ error });
+
+    expect(await signUp(deps(client, fakeApi({}).fetchImpl), 'someone@example.test', 'password1')).toBe('sent');
+  });
+
+  it('D-125 an address that already has an account (Supabase’s user with no identities, no error) is reported as existing', async () => {
+    const client = fakeAuthClient();
+    client.signUp.mockResolvedValueOnce({ data: { user: { identities: [] } }, error: null });
+
+    expect(await signUp(deps(client, fakeApi({}).fetchImpl), 'someone@example.test', 'password1')).toBe('exists');
+  });
+
+  it('D-125 a new address (a user with an identity) is sent the link', async () => {
+    const client = fakeAuthClient();
+    client.signUp.mockResolvedValueOnce({ data: { user: { identities: [{ id: 'x' }] } }, error: null });
 
     expect(await signUp(deps(client, fakeApi({}).fetchImpl), 'someone@example.test', 'password1')).toBe('sent');
   });

@@ -12,6 +12,10 @@ import { healthSource } from './healthSource';
 import { importFromHealth, type ImportSummary } from './importHealth';
 import type { HealthAvailability } from './types';
 
+/** How often a connected app in front reads again (the owner, 2026-11-24). */
+export const REFRESH_MINUTES = 20;
+const REFRESH_MS = REFRESH_MINUTES * 60 * 1000;
+
 /** Why a read or a connect did not give values: the user said no, or the store failed (never the user's fault). */
 export type HealthProblem = 'denied' | 'withdrawn' | 'failed' | null;
 
@@ -129,6 +133,16 @@ export function HealthSyncProvider({ children, now = systemNow }: { children: Re
     });
     return () => subscription.remove();
   }, [read]);
+
+  // And every REFRESH_MINUTES while connected and the app is in front (never in the background, ADR-0013).
+  const connected = state.connectedAt !== null;
+  useEffect(() => {
+    if (!connected) return;
+    const timer = setInterval(() => {
+      if (AppState.currentState !== 'background') void read();
+    }, REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [connected, read]);
 
   const connect = useCallback(async () => {
     if (!db) return;

@@ -29,6 +29,8 @@ const mockRouter = {
   replace: jest.fn(),
   back: jest.fn(),
 };
+// The image-link option is hidden by default (the owner, 2026-11-24); this test uses it.
+jest.mock('../featureFlags', () => ({ SHOW_IMAGE_LINK: true }));
 jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => mockParams, usePreventRemove: () => () => undefined }));
 // No camera here: the barcode is typed. BarcodeCamera has its own tests.
 jest.mock('../components/BarcodeCamera', () => ({ BarcodeCamera: () => null }));

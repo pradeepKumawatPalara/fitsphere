@@ -12,12 +12,14 @@ export function backToSignIn(router: { canGoBack(): boolean; back(): void; repla
 }
 
 /** Where to go once the account check is done; returns a text to show when staying put. */
-type Navigator = { replace(href: '/home' | '/account-setup' | '/sign-in'): void };
+type Navigator = { replace(href: '/home' | '/account-setup' | '/sign-in' | '/onboarding'): void };
 
 export function goAfterAccountCheck(router: Navigator, state: AccountState, step: string): string | null {
   switch (state.kind) {
     case 'ready':
-      router.replace('/home');
+      // A new account has not finished first sign-in onboarding (D-124); an older server sends no time,
+      // which is read as finished.
+      router.replace(state.me.user.onboardedAt === null ? '/onboarding' : '/home');
       return null;
     case 'needsAgeConfirmation':
       router.replace('/account-setup');

@@ -14,6 +14,7 @@ import { registerAiBarcodeEstimateRoute } from './routes/aiBarcodeEstimate.ts';
 import { registerAiFoodLookupRoute } from './routes/aiFoodLookup.ts';
 import type { PhotoEstimator } from './ai/photoEstimator.ts';
 import { registerAiPhotoEstimateRoute } from './routes/aiPhotoEstimate.ts';
+import { registerAiVoiceEstimateRoute } from './routes/aiVoiceEstimate.ts';
 import { registerAiPhotoParseRoute } from './routes/aiPhotoParse.ts';
 import { registerAiMealParseRoute } from './routes/aiMealParse.ts';
 import { registerBarcodesRoute } from './routes/barcodes.ts';
@@ -122,6 +123,11 @@ export function buildApp(deps: AppDeps) {
     photoParser: deps.photoParser ?? null,
   });
   registerAiPhotoEstimateRoute(app, {
+    db: deps.db,
+    now: deps.now ?? (() => new Date()),
+    photoEstimator: deps.photoEstimator ?? null,
+  });
+  registerAiVoiceEstimateRoute(app, {
     db: deps.db,
     now: deps.now ?? (() => new Date()),
     photoEstimator: deps.photoEstimator ?? null,

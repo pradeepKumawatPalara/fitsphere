@@ -41,9 +41,10 @@ Every error response has this body:
 - **Another person's data:** when the caller may not see a person or their data, the API answers
   `404 NOT_FOUND`, exactly as for an ID that does not exist. A caller cannot tell "exists but not
   allowed" from "does not exist" (invariant #1, T-01).
-- **Whether an email address is registered:** never, in any message (REQ-ACC-010, D-11). Sign-up
-  and password reset go to Supabase Auth, and the app shows the neutral texts below whatever
-  Supabase returns (ADR-0004 rule 2).
+- **Whether an email address is registered:** sign-up tells the user when the address already has an
+  account (D-125, the owner, 2026-11-24; it replaces D-11's neutral text for sign-up only). Password
+  reset and sign-in keep the neutral texts below whatever Supabase returns (REQ-ACC-010, D-11,
+  ADR-0004 rule 2).
 - **Values:** errors name the field, never the value that was sent (invariant #7).
 - **Internals:** unexpected failures return `INTERNAL_ERROR` with a generic message; the detail
   goes only to the server log, without health data.

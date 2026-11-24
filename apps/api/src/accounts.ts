@@ -1,14 +1,14 @@
-// FitSphere accounts (data-model "users", "user_roles"; REQ-ACC-010, REQ-ROLE-001).
+﻿// FitSphere accounts (data-model "users", "user_roles"; REQ-ACC-010, REQ-ROLE-001).
 import type { MeResponse, Role } from '@fitsphere/shared';
 import type pg from 'pg';
 
-export type Account = { id: string; email: string; createdAt: Date; roles: Role[] };
+export type Account = { id: string; email: string; createdAt: Date; onboardedAt: Date | null; roles: Role[] };
 
 type Queryable = Pick<pg.Pool, 'query'>;
 
 export async function findAccount(db: Queryable, subject: string): Promise<Account | null> {
-  const { rows } = await db.query<{ id: string; email: string; created_at: Date; roles: Role[] }>(
-    `select u.id, u.email, u.created_at,
+  const { rows } = await db.query<{ id: string; email: string; created_at: Date; onboarded_at: Date | null; roles: Role[] }>(
+    `select u.id, u.email, u.created_at, u.onboarded_at,
             coalesce(array_agg(r.role order by r.role) filter (where r.role is not null), '{}') as roles
      from app.users u left join app.user_roles r on r.user_id = u.id
      where u.auth_subject = $1
@@ -16,7 +16,14 @@ export async function findAccount(db: Queryable, subject: string): Promise<Accou
     [subject],
   );
   const row = rows[0];
-  return row ? { id: row.id, email: row.email, createdAt: row.created_at, roles: row.roles } : null;
+  return row
+    ? { id: row.id, email: row.email, createdAt: row.created_at, onboardedAt: row.onboarded_at, roles: row.roles }
+    : null;
+}
+
+/** Marks onboarding finished once (D-124): a second call keeps the first time, and nothing clears it. */
+export async function finishOnboarding(db: Queryable, userId: string): Promise<void> {
+  await db.query(`update app.users set onboarded_at = coalesce(onboarded_at, now()) where id = $1`, [userId]);
 }
 
 /**
@@ -54,7 +61,12 @@ export async function createAccount(
 
 export function meBody(account: Account): MeResponse {
   return {
-    user: { id: account.id, email: account.email, createdAt: account.createdAt.toISOString() },
+    user: {
+      id: account.id,
+      email: account.email,
+      createdAt: account.createdAt.toISOString(),
+      onboardedAt: account.onboardedAt ? account.onboardedAt.toISOString() : null,
+    },
     roles: account.roles,
   };
 }

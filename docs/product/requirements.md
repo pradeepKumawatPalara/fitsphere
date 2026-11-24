@@ -950,6 +950,19 @@ empty state (REQ-PLAN-007). REQ-PLAN-001 to REQ-PLAN-006 and REQ-PLAN-008 are **
     (invariant #4). No value and no reason for a skip is logged (invariant #7). Nothing is sent to an AI service.
   - A device or app is named on the screen only after the owner's test marks it Works, Partial or Not supported.
 
+### REQ-ACC-013 — First sign-in onboarding
+- Type: Functional
+- Requirement: A new account sees a short, skippable onboarding once, straight after its first sign-in: Welcome, About you
+  (optional name and units), Starting weight, Health Connect (Android only) and All set, then Home. *(The owner, D-124.)*
+- Acceptance criteria:
+  - Given a new account has not finished onboarding, then after the account check the app opens Welcome, not Home; an
+    account that exists when the feature ships, or one that finished it, goes to Home.
+  - Every step but Welcome can be skipped, and Back keeps what was typed. Each step saves when it is completed, so quitting
+    loses nothing; the app opens again at the step left at (on another phone, at Welcome with saved values filled in).
+  - Starting weight is 20 to 300 kg (shown in the user's unit), saved as a normal weigh-in dated today or the chosen past day.
+  - Go to Home saves the common starting targets for each kind not already set, marks onboarding finished on the phone
+    and tells the server once; with no connection Home still opens and the server is told at the next start.
+  - Onboarding never blocks the app or hand logging (invariant #4); no value is logged (invariant #7).
 ### REQ-ACC-010 — Sign-up and sign-in
 - Type: Security
 - Requirement: A person can create an account and sign in with email and password before using any role view; this is the only sign-in method in phase 1 (D-05). Users must be 18 or older: sign-up requires an "I am 18 or older" confirmation (D-18, answers Q-066 for the MVP). *(Not in the BRD, which mentions only change password, log out and delete account.)*

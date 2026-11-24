@@ -7,7 +7,7 @@ import { jpegDataUri } from '../photos/bytes';
 import { readMeal } from '../api/aiMeal';
 import { readAiConsent, saveAiConsent } from '../api/account';
 import { lookUpFood } from '../api/foodLookup';
-import { estimatePhoto } from '../api/photoMeal';
+import { estimatePhoto, estimateSpoken } from '../api/photoMeal';
 import { useAuth } from '../auth/AuthProvider';
 import { formatAmount, formatKcal } from '../meals';
 import { photoFoodsOf, photoItemOf, photoLine, type PhotoFood } from '../photoMeal';
@@ -64,11 +64,11 @@ type Stage =
   | { kind: 'consent'; text: string }
   | { kind: 'review'; found: FoundFood[]; ticked: boolean[]; missing: ParsedMealItem[] }
   /** The foods of a photo (D-120): estimated by the AI, each with its weight and values. */
-  | { kind: 'photoReview'; foods: PhotoFood[]; ticked: boolean[]; picture?: string }
+  | { kind: 'photoReview'; foods: PhotoFood[]; ticked: boolean[]; picture?: string; source?: 'voice' }
   /** A photo could not be read: offline, the AI unavailable, an answer out of contract, or no food seen. */
-  | { kind: 'photoNoData' }
+  | { kind: 'photoNoData'; source?: 'voice' }
   /** AI meal reading is switched off in Settings, so the photo was not sent. */
-  | { kind: 'photoOff' };
+  | { kind: 'photoOff'; source?: 'voice' };
 
 /** The mic's language: Settings' choice, English (India) when Hindi isn't on the phone (D-115). */
 export async function voiceLanguageOf(value: string | null): Promise<VoiceLanguage> {
@@ -277,7 +277,7 @@ export function useVoiceMeal({
     endSession();
     setQuery(text);
     if (text.length < 2) setStage({ kind: 'idle', notice: 'nothing' });
-    else void afterListening(text);
+    else void readSpoken(text);
   }
 
   function cancel() {
@@ -292,6 +292,21 @@ export function useVoiceMeal({
   async function afterListening(text: string) {
     pendingPhoto.current = null;
     return afterInput(text);
+  }
+
+  /**
+   * Words SPOKEN (voice, owner 2026-11-24): read at once by AI, which estimates each food's weight and values
+   * (ADR-0012's rule, no consent step; the server refuses a user who switched AI reading off). The food list
+   * is not used. Words typed in Log meal's box keep `afterListening`.
+   */
+  async function readSpoken(text: string) {
+    setStage({ kind: 'reading', photo: false });
+    const reading = await estimateSpoken(deps, text);
+    if (cancelled.current) return;
+    if (reading.kind === 'off') return setStage({ kind: 'photoOff', source: 'voice' });
+    if (reading.kind !== 'ok' || reading.items.length === 0) return setStage({ kind: 'photoNoData', source: 'voice' });
+    const foods = photoFoodsOf(reading.items);
+    setStage({ kind: 'photoReview', foods, ticked: foods.map(() => true), source: 'voice' });
   }
 
   /** Ends on a notice: the picture, if any, is let go of. */
@@ -517,7 +532,9 @@ export function useVoiceMeal({
           {photoReview.picture ? (
             <Image accessibilityLabel="Your photo" source={{ uri: jpegDataUri(photoReview.picture) }} style={styles.pictureSmall} resizeMode="cover" />
           ) : null}
-          <Text style={styles.small}>Estimated by AI from your photo. Tap a food to check or change it.</Text>
+          <Text style={styles.small}>
+            Estimated by AI from {photoReview.source === 'voice' ? 'what you said' : 'your photo'}. Tap a food to check or change it.
+          </Text>
           <View style={styles.card}>
             {photoReview.foods.map((food, index) => {
               const on = photoReview.ticked[index] === true;
@@ -558,6 +575,7 @@ export function useVoiceMeal({
       {photoReview && checkingFood && checking !== null ? (
         <PhotoFoodSheet
           food={checkingFood}
+          source={photoReview.source ?? 'photo'}
           onBack={() => setChecking(null)}
           onDone={(food) => {
             setStage({ ...photoReview, foods: photoReview.foods.map((existing, at) => (at === checking ? food : existing)) });
@@ -571,7 +589,7 @@ export function useVoiceMeal({
           onClose={() => setStage({ kind: 'idle', notice: null })}
           actions={
             <>
-              {onAnotherPhoto ? (
+              {onAnotherPhoto && stage.source !== 'voice' ? (
                 <TextButton
                   title="Try another photo"
                   icon={Camera}
@@ -599,13 +617,15 @@ export function useVoiceMeal({
           }
         >
           <Text style={styles.body}>
-            We couldn't read foods from this photo. It may be unclear, show no food, or the AI may be unavailable right now. Try another photo, or enter your own food.
+            {stage.source === 'voice'
+              ? "We couldn't read foods from what you said. It may have been unclear, or the AI may be unavailable right now. Try speaking again, search the food list, or enter your own food."
+              : "We couldn't read foods from this photo. It may be unclear, show no food, or the AI may be unavailable right now. Try another photo, or enter your own food."}
           </Text>
         </Sheet>
       ) : null}
       {stage.kind === 'photoOff' ? (
         <Sheet
-          header={<SheetHeading icon={CameraOff} title="AI reading is off" />}
+          header={<SheetHeading icon={stage.source === 'voice' ? MicOff : CameraOff} title="AI reading is off" />}
           onClose={() => setStage({ kind: 'idle', notice: null })}
           actions={
             <>
@@ -633,7 +653,9 @@ export function useVoiceMeal({
           }
         >
           <Text style={styles.body}>
-            You turned off AI meal reading, so this photo was not sent. Turn it on in Settings › AI meal reading to read photos, or enter your own food.
+            {stage.source === 'voice'
+              ? 'You turned off AI meal reading, so what you said was not sent. Turn it on in Settings › AI meal reading, search the food list, or enter your own food.'
+              : 'You turned off AI meal reading, so this photo was not sent. Turn it on in Settings › AI meal reading to read photos, or enter your own food.'}
           </Text>
         </Sheet>
       ) : null}

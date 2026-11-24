@@ -19,7 +19,7 @@ export type AuthClient = {
     email: string;
     password: string;
     options: { emailRedirectTo: string; data: object };
-  }): Promise<{ error: ErrorLike }>;
+  }): Promise<{ data?: { user: { identities?: unknown[] | null } | null } | null; error: ErrorLike }>;
   signInWithPassword(credentials: { email: string; password: string }): SessionResult;
   signOut(options: { scope: 'local' | 'others' }): Promise<{ error: ErrorLike }>;
   getSession(): SessionResult;
@@ -46,12 +46,14 @@ function isOffline(error: ErrorLike): boolean {
 
 /**
  * Sign up with the "I am 18 or older" confirmation in the user's metadata, so account setup on
- * any phone can send it. Whatever Supabase answers, the app shows the same neutral text; only a
- * request that never left the phone gets the "needs an internet connection" warning.
+ * any phone can send it. A request that never left the phone gets the "needs an internet connection"
+ * warning. An address that already has an account is told so (D-125, the owner, 2026-11-24: it
+ * replaces D-11's neutral text for sign-up): Supabase answers it with no error and a user whose
+ * `identities` list is empty. Any other answer shows "Check your email".
  */
-export async function signUp(deps: AuthDeps, email: string, password: string): Promise<'sent' | 'offline'> {
+export async function signUp(deps: AuthDeps, email: string, password: string): Promise<'sent' | 'offline' | 'exists'> {
   try {
-    const { error } = await deps.client.signUp({
+    const { data, error } = await deps.client.signUp({
       email: email.trim().toLowerCase(),
       password,
       options: {
@@ -59,7 +61,10 @@ export async function signUp(deps: AuthDeps, email: string, password: string): P
         data: { age_confirmed: true, age_confirmation_text_version: AGE_CONFIRMATION_TEXT_VERSION },
       },
     });
-    return isOffline(error) ? 'offline' : 'sent';
+    if (isOffline(error)) return 'offline';
+    const identities = data?.user?.identities;
+    if (!error && Array.isArray(identities) && identities.length === 0) return 'exists';
+    return 'sent';
   } catch {
     return 'offline';
   }
@@ -135,6 +140,17 @@ export async function ensureAccount(deps: AuthDeps, ageConfirmedNow = false): Pr
   if (setup.code === 'EMAIL_NOT_VERIFIED') return { kind: 'emailNotVerified' };
   if (setup.code === 'AGE_CONFIRMATION_REQUIRED') return { kind: 'needsAgeConfirmation' };
   return { kind: 'unavailable' };
+}
+
+/**
+ * Tells the server the user finished first sign-in onboarding (D-124): `POST /v1/me/onboarding`. True once
+ * it was told; false when there is no session or no connection, so the phone tries again later.
+ */
+export async function sendOnboardingFinished(deps: AuthDeps): Promise<boolean> {
+  const session = (await deps.client.getSession()).data.session;
+  if (!session) return false;
+  const result = await callApi<MeResponse>(deps.apiUrl, '/me/onboarding', { ...options(deps, session), method: 'POST' });
+  return result.kind === 'ok';
 }
 
 /** Forgot password: whatever Supabase answers, the app shows the same neutral text (D-11). */

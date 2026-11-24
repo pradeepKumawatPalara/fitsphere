@@ -1,10 +1,10 @@
-// GET, POST and DELETE /v1/me (api-conventions; REQ-ACC-010, REQ-ROLE-001, REQ-ACC-009, D-18).
+﻿// GET, POST and DELETE /v1/me (api-conventions; REQ-ACC-010, REQ-ROLE-001, REQ-ACC-009, D-18).
 import { API_BASE_PATH, meSetupRequestSchema, validationDetails } from '@fitsphere/shared';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import { deleteAccount } from '../accountDeletion.ts';
-import { requireIdentity } from '../access.ts';
-import { createAccount, findAccount, meBody } from '../accounts.ts';
+import { requireAccount, requireIdentity } from '../access.ts';
+import { createAccount, finishOnboarding, findAccount, meBody } from '../accounts.ts';
 import type { Auth } from '../auth.ts';
 import { ApiError } from '../errors.ts';
 import type { MediaStorage } from '../storage/mediaStorage.ts';
@@ -51,6 +51,16 @@ export function registerMeRoutes(app: FastifyInstance, deps: { auth: Auth; db: p
     if (!account) throw new Error('Account missing after setup');
     request.account = account;
     return reply.status(created ? 201 : 200).send(meBody(account));
+  });
+
+  // Onboarding finished (D-124, REQ-ACC-013): only the caller's own account, once; the first time stays.
+  app.post(`${API_BASE_PATH}/me/onboarding`, { config: { access: 'account' } }, async (request) => {
+    const account = requireAccount(request);
+    await finishOnboarding(deps.db, account.id);
+    const updated = await findAccount(deps.db, requireIdentity(request).subject);
+    if (!updated) throw new Error('Account missing after onboarding');
+    request.account = updated;
+    return meBody(updated);
   });
 
   // Delete account (REQ-ACC-009; ADR-0004 rule 7). Only the caller's own: the path names no user.

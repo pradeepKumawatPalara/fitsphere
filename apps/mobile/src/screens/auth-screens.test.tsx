@@ -48,9 +48,8 @@ describe('REQ-ACC-010 Sign up', () => {
 
   it.each([
     ['success', null],
-    ['already registered', null],
     ['email_address_not_authorized', { name: 'AuthApiError', code: 'email_address_not_authorized', status: 400 }],
-  ])('D-11 shows the same neutral screen for %s', async (_case, error) => {
+  ])('D-11 shows Check your email for %s', async (_case, error) => {
     const client = fakeAuthClient();
     client.signUp.mockResolvedValueOnce({ error });
     await renderWith(<SignUpScreen />, client);
@@ -60,6 +59,19 @@ describe('REQ-ACC-010 Sign up', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/check-email');
+  });
+
+  it('D-125 an address that already has an account gets a warning on the screen, not Check your email', async () => {
+    const client = fakeAuthClient();
+    client.signUp.mockResolvedValueOnce({ data: { user: { identities: [] } }, error: null });
+    await renderWith(<SignUpScreen />, client);
+    await fillSignUp();
+    await fireEvent.press(screen.getByRole('checkbox', { name: TEXTS.ageConfirmation }));
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(await screen.findByText(TEXTS.accountExists)).toBeOnTheScreen();
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
   it('ADR-0007 rule 6 names the step that needs internet when offline', async () => {
@@ -123,6 +135,22 @@ describe('REQ-ACC-010 Sign in', () => {
     await signInWith(client);
 
     expect(await screen.findByText('Signing in needs an internet connection.')).toBeOnTheScreen();
+  });
+
+  it('D-124 a new account, with no finished time yet, goes to onboarding instead of Home', async () => {
+    const created = { ...ME, user: { ...ME.user, onboardedAt: null } };
+    const api = fakeApi({ 'GET /me': apiError(403, 'ACCOUNT_SETUP_REQUIRED'), 'POST /me': { status: 201, body: created } });
+
+    await signInWith(fakeAuthClient(), api.fetchImpl);
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/onboarding');
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home');
+  });
+
+  it('D-124 an account that finished onboarding, or an older server that sends no time, goes to Home', async () => {
+    const finished = { ...ME, user: { ...ME.user, onboardedAt: '2026-10-28T03:10:00.000Z' } };
+    await signInWith(fakeAuthClient(), fakeApi({ 'GET /me': { status: 200, body: finished } }).fetchImpl);
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home');
   });
 
   it('REQ-ACC-010 goes to Home once the account is set up', async () => {

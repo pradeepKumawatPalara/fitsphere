@@ -3963,6 +3963,67 @@ checksum), and the configuration template was left as it is.*
 
 ---
 
+## D-122 Speak your meal: estimated by AI (foods, amounts, nutrition) with a Quantity box; typed search stays on the food list
+- Status: **Accepted** (the owner, in chat, 2026-11-24: "Only if user speak then use AI else use DB"; the foods
+  listed as in the photo estimate, with "the column of quantity as well where user can change"; "use photo rule,
+  no consent step"; "today's changes will be in this branch"). Number taken as the next free one after D-121; the
+  owner may renumber. ADR-0012 (amended, 2026-11-24). Branch `feat/health-connect-refresh-guide` (the owner's
+  word). Extends D-120 to a spoken meal.
+- Answer:
+  - What the user SPEAKS in Search foods (Speak your meal, Done speaking, the quiet or the 30 seconds) is sent, as
+    text only, never audio, at once to the new `POST /v1/ai/voice-estimate`: no consent step. The AI (`gpt-6-luna`,
+    unchanged, the photo estimator's module) names each food and gives the amount said, the portion's weight in
+    grams and its values per 100 g. The server leaves out a food whose kcal is far from its macros. Nothing is
+    stored or logged.
+  - The food list is not used for a spoken meal. The foods are listed ticked, tagged Estimated, open in "Check the
+    estimate" and are added as estimated foods of the user's own, in grams, exactly as a photo's.
+  - "Check the estimate" gets a **Quantity** box (more than 0, two decimals): the number of the measure the AI heard
+    (2 pieces, 1 katori; 1 portion when no amount was said). Quantity and Amount (g) follow each other, and the
+    values and the portion's kcal follow the amount. The photo's sheet has it too.
+  - Any failure: "No data available" (voice's own wording, Close and Enter your own food); a user who switched AI
+    meal reading off in Settings is not read ("AI reading is off", Open Settings). Typing in Search foods is the
+    food list, unchanged (invariant #4).
+  - Words typed in Log meal's box ("Read my meal") are unchanged: consent, the food list. The barcode estimate is
+    unchanged.
+- Exception to invariant #3 and REQ-ACC-004, for a spoken meal as for a photo, written in
+  `.claude/rules/project-invariants.md`. Legal has not reviewed it (Q-049). Reverses, for voice, ADR-0010's "the AI
+  never gives nutrition" (D-115, ADR-0012). The consent text and version are unchanged. No migration, no phone
+  schema change, no new build. **The beta's Cloud Run API needs this API before beta phones can estimate a
+  spoken meal; deploy only when the owner says so.**
+
+---
+
+## D-124 First sign-in onboarding: welcome, about you, starting weight, Health Connect, all set
+- Status: **Accepted** (the owner, in chat, 2026-11-24: design locked on the canvas "First-time goals form", second row F1 to J,
+  "prefer F ... Whole new flow"; "Plan approved, start building"). Number taken as the next free one after D-122 (D-123 is
+  Home's Calories / Workout toggle); the owner may renumber. Plan: `docs/plans/onboarding.md`; REQ-ACC-013.
+- Problem: a new user who created an account landed straight on Home; there was no onboarding.
+- Answer: after the first sign-in the app shows Welcome, About you (name, units), Starting weight, Health Connect (Android
+  only) and All set, then Home. Every step but Welcome can be skipped; each step saves when it is completed. It is shown once:
+  `app.users.onboarded_at` (migration `0037_onboarding.sql`, every existing account marked finished) is returned by
+  `GET /v1/me` as `onboardedAt` and set once by `POST /v1/me/onboarding`; the phone keeps a copy and the step left at, so app
+  start needs no internet. Go to Home saves common starting targets (2,000 kcal, 120 g protein, 250 g carbs, 65 g fat, 30 g
+  fibre, 8,000 steps, 4 workouts a week) for any kind the user has not set; no target body weight.
+- Does not change D-20's MVP. JavaScript only on the phone (no new build); the migration and the updated API go to
+  `fitsphere-dev` before a phone with this change signs in, **only when the owner says so**.
+---
+
+## D-125 Sign-up tells the user when the email already has an account
+- Status: **Accepted** (the owner, in chat, 2026-11-24, as a bug report: with an account already made, sign-up showed
+  "Check your email" and no warning that the account exists; "can you please fix this"). Number taken as the next
+  free one; the owner may renumber. Branch `feat/health-connect-refresh-guide`.
+- Answer: Sign up shows "This email already has an account. Sign in instead, or reset your password if you forgot
+  it." on the screen, and not "Check your email", when Supabase answers with no error and a user whose `identities`
+  list is empty (its answer for a registered, confirmed address). Any other answer shows "Check your email" as before.
+- Replaces D-11 for sign-up only: the neutral sign-up text hid whether an address is registered (REQ-ACC-010). Sign-in
+  ("Email or password is incorrect.") and password reset ("If an account uses this address…") keep their neutral texts.
+  Accepted consequence: anyone can learn on the sign-up screen whether an address is registered (and could already do
+  so by calling Supabase Auth directly, api-conventions). An account whose email was never verified still gets "Check
+  your email" (Supabase sends the link again).
+- No server change, no migration, no phone schema change, no new build.
+
+---
+
 ## Proposed replacement wording for the two invariants
 *(Approved by the owner and applied to `.claude/rules/project-invariants.md` on 2026-10-27.
 Invariant #1 was later updated for D-10, D-13 and D-16; the rules file holds the current wording.)*
