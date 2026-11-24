@@ -402,11 +402,11 @@ describe('D-49 brand labels: foods:import and GET /v1/foods', () => {
     const labels = readBrandLabelsSheet(readFileSync(new URL('../../../../docs/data/brand-labels-sheet.csv', import.meta.url), 'utf8'));
     try {
       expect((await importFoods(client, labels.foods, BRAND_LABEL_SOURCE)).total).toBe(630);
-      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toEqual({ servings: 115, units: 12, sheetUnits: 0, replaced: 0, opening: 0 });
+      expect(await importPortions(client, BRAND_LABEL_SOURCE, labels.portions)).toEqual({ servings: 272, units: 44, sheetUnits: 0, replaced: 0, opening: 0 });
       expect(await flags()).toEqual([
-        { flag: null, n: 23 },
-        { flag: 'llm', n: 408 },
-        { flag: 'scrap', n: 199 },
+        { flag: null, n: 99 },
+        { flag: 'llm', n: 122 },
+        { flag: 'scrap', n: 409 },
       ]);
     } finally {
       await importFoods(client, [], BRAND_LABEL_SOURCE);

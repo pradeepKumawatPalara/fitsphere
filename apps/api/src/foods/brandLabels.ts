@@ -9,6 +9,12 @@
 // (app.foods.flag), never sent to the phone, that nothing reads yet. Since D-53 a row may hold an AI
 // tool's estimate from its general knowledge, approved by the owner: flagged `llm`, with no page.
 //
+// Since D-127 most of those estimates are replaced by values read from a real label: the brand's site,
+// a shop's listing, a calorie app, or a photo of the pack found by image search, each with its page
+// (and photo) in the notes; three plain spices take IFCT 2017's values. A brand site's row keeps an
+// empty flag, every other source `scrap`; a row may be renamed to the product actually sold, keeping
+// its code. A row per 100 ml may hold up to 150 g of a nutrient: a syrup is heavier than water.
+//
 // Since D-55 a row may give search words, separated by semicolons ("whole wheat atta; gehu atta"):
 // the everyday names of what the product is, kept as the food's aliases after its brand, so a search
 // for the item finds every brand whatever its pack calls it. They are never shown.
@@ -99,8 +105,12 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
     }
     const [kcal, protein, carbs, fat] = required.map(Number) as [number, number, number, number];
     const fibre = cell.fibre_g === '' ? null : Number(cell.fibre_g);
-    if (kcal > 1_000 || [protein, carbs, fat, fibre ?? 0].some((value) => value > 100) || protein + carbs + fat > 105) {
-      fail('a value is more than 100 g, or 1,000 kcal, per 100');
+    // A syrup weighs more than water, so 100 ml of it can hold more than 100 g of sugar (Rooh Afza prints
+    // 103.5 g of carbohydrate per 100 ml): per 100 ml a value may reach 150 g; per 100 g it stays at most 100
+    // (owner, 2026-11-24).
+    const gramsMax = cell.basis === '100 ml' ? 150 : 100;
+    if (kcal > 1_000 || [protein, carbs, fat, fibre ?? 0].some((value) => value > gramsMax) || protein + carbs + fat > gramsMax + 5) {
+      fail(`a value is more than ${gramsMax} g, or 1,000 kcal, per ${cell.basis}`);
     }
     // As for packaged foods (D-48): 4 kcal a gram of protein and carbohydrate, 9 of fat, within a
     // quarter or 20 kcal; catches a value copied into the wrong column.

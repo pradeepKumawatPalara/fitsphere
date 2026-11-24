@@ -36,10 +36,10 @@ describe('D-49 the committed brand-labels sheet', () => {
     expect(sheet.foods.every((food) => food.kcalSource === 'published' && !food.estimated)).toBe(true);
   });
 
-  it('flags the 199 rows read from the web as scrap, the 408 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
+  it('flags the 409 rows read from the web as scrap, the 122 AI estimates as llm, and none of the first 23 (D-52, D-53)', () => {
     const { foods } = readBrandLabelsSheet(COMMITTED);
-    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(199);
-    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(408);
+    expect(foods.filter((food) => food.flag === 'scrap')).toHaveLength(409);
+    expect(foods.filter((food) => food.flag === 'llm')).toHaveLength(122);
     expect(foods.slice(0, 23).every((food) => food.flag === undefined)).toBe(true);
   });
 
@@ -119,6 +119,17 @@ describe('D-49 the sheet’s rules', () => {
   it('names a product once when it already starts with its brand', () => {
     expect(brandLabelName('Parle', 'Parle-G Gold')).toBe('Parle-G Gold');
     expect(brandLabelName('Amul', 'Pasteurised Butter')).toBe('Amul Pasteurised Butter');
+  });
+
+  it('lets a syrup per 100 ml hold more than 100 g of carbohydrate, never a food per 100 g (owner, 2026-11-24)', () => {
+    // 4 × 0.5 + 4 × 103.5 = 416: agrees with 414 kcal. A syrup is heavier than water.
+    const syrup = (basis: string) =>
+      `test-rose-syrup,Test Drinks,Rose Syrup,approved,${basis},414,0.5,103.5,0,,,,https://example.com/syrup,2026-11-24,"Per ${basis}: energy 414 kcal",,`;
+    expect(sheet(syrup('100 ml')).foods).toHaveLength(1);
+    expect(refused(syrup('100 g'))).toBe('Brand-labels sheet line 2: a value is more than 100 g, or 1,000 kcal, per 100 g');
+    expect(refused(syrup('100 ml').replace(',103.5,', ',151,').replace(',414,', ',606,'))).toBe(
+      'Brand-labels sheet line 2: a value is more than 150 g, or 1,000 kcal, per 100 ml',
+    );
   });
 
   it('refuses a row whose energy does not agree with its protein, carbs and fat', () => {

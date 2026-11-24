@@ -187,6 +187,12 @@ what the first release needs; "post-MVP" marks parts of Q-049 that apply only on
   general knowledge, not read from any label, flagged `llm` on the server; the app shows them like
   the other brand labels, and its credit says the values are as printed on each product's label
   (R-012).
+- Since D-127 (2026-11-24) 286 of those 408 rows carry values read from real labels instead: the
+  brand's site, a shop's listing, one calorie-app entry (FatSecret), or a photo of the pack's label
+  found by image search (Serper.dev) and downloaded to the owner's PC to be read. The photos are not
+  published, sent to the phone or kept in the repository; each row keeps the page's and the photo's
+  address. Three plain spices take IFCT 2017's values (see the IFCT question). 122 rows keep the
+  estimate.
 - Questions: may FitSphere copy these nutrition facts from the brands' websites into its food list?
   Does it matter that the same facts are printed on the packs, as FSSAI requires? Should FitSphere
   ask brands, or prefer reading packs? May it copy the values from a shop's listing, or from the
