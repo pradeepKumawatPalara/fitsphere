@@ -99,8 +99,12 @@ export function readBrandLabelsSheet(text: string): BrandLabelsSheet {
     }
     const [kcal, protein, carbs, fat] = required.map(Number) as [number, number, number, number];
     const fibre = cell.fibre_g === '' ? null : Number(cell.fibre_g);
-    if (kcal > 1_000 || [protein, carbs, fat, fibre ?? 0].some((value) => value > 100) || protein + carbs + fat > 105) {
-      fail('a value is more than 100 g, or 1,000 kcal, per 100');
+    // A syrup weighs more than water, so 100 ml of it can hold more than 100 g of sugar (Rooh Afza prints
+    // 103.5 g of carbohydrate per 100 ml): per 100 ml a value may reach 150 g; per 100 g it stays at most 100
+    // (owner, 2026-11-24).
+    const gramsMax = cell.basis === '100 ml' ? 150 : 100;
+    if (kcal > 1_000 || [protein, carbs, fat, fibre ?? 0].some((value) => value > gramsMax) || protein + carbs + fat > gramsMax + 5) {
+      fail(`a value is more than ${gramsMax} g, or 1,000 kcal, per ${cell.basis}`);
     }
     // As for packaged foods (D-48): 4 kcal a gram of protein and carbohydrate, 9 of fat, within a
     // quarter or 20 kcal; catches a value copied into the wrong column.
